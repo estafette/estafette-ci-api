@@ -1,0 +1,33 @@
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: estafette-ci-api
+  labels:
+    app: estafette-ci-api
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: estafette-ci-api
+  labels:
+    app: estafette-ci-api
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: estafette-ci-api
+subjects:
+- kind: ServiceAccount
+  name: estafette-ci-api
+  namespace: estafette
