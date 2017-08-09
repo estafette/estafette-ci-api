@@ -63,7 +63,6 @@ metadata:
     app: ${APP_NAME}
     team: ${TEAM_NAME}
 spec:
-  replicas: ${REPLICAS}
   revisionHistoryLimit: 10
   selector:
     matchLabels:
@@ -152,3 +151,19 @@ spec:
       - name: ssl-certificate
         secret:
           secretName: ${APP_NAME}-letsencrypt-certificate
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ${APP_NAME}
+  namespace: ${NAMESPACE}
+  labels:
+    app: ${APP_NAME}
+    team: ${TEAM_NAME}
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: ${APP_NAME}
+  minReplicas: ${MIN_PODS}
+  maxReplicas: ${MAX_PODS}
+  targetCPUUtilizationPercentage: ${AUTOSCALE_CPU_TARGET_PERCENTAGE}
