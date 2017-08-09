@@ -50,7 +50,7 @@ metadata:
     app: ${APP_NAME}
     team: ${TEAM_NAME}
   annotations:
-    estafette.io/letsencrypt-certificate: "${LETSENCRYPT_CREATE_CERTIFICATE}"
+    estafette.io/letsencrypt-certificate: "true"
     estafette.io/letsencrypt-certificate-hostnames: "${HOSTNAMES}"
 type: Opaque
 ---
