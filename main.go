@@ -77,7 +77,7 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("header: %v\n", r.Header)
 	fmt.Printf("body: %v\n", string(body))
 
-	w.WriteHeader(200)
+	fmt.Fprintf(w, "Zero distortion!")
 }
 
 func livenessHandler(w http.ResponseWriter, r *http.Request) {
