@@ -81,9 +81,9 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func livenessHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(200)
+	fmt.Fprintf(w, "I'm alive!")
 }
 
 func readinessHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(200)
+	fmt.Fprintf(w, "I'm ready!")
 }
