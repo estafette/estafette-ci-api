@@ -42,11 +42,19 @@ var (
 		},
 		[]string{"code", "handler"},
 	)
+	webhookTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "estafette_ci_api_webhook_totals",
+			Help: "Total of received webhooks.",
+		},
+		[]string{"event", "source"},
+	)
 )
 
 func init() {
 	// Metrics have to be registered to be exposed:
 	prometheus.MustRegister(httpRequestTotal)
+	prometheus.MustRegister(webhookTotal)
 }
 
 func main() {
@@ -98,6 +106,8 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 	// https://developer.github.com/webhooks/
 
+	webhookTotal.With(prometheus.Labels{"event": r.Header.Get("X-GitHub-Event"), "source": "github"}).Inc()
+
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body from Github webhook failed")
@@ -127,6 +137,8 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 func bitbucketWebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
+
+	webhookTotal.With(prometheus.Labels{"event": r.Header.Get("X-Event-Key"), "source": "bitbucket"}).Inc()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
