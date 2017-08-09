@@ -121,13 +121,13 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		Str("url", r.URL.String()).
 		Interface("headers", r.Header).
 		Interface("body", b).
-		Msgf("Received webhook event '%v' from GitHub...", eventType)
+		Msgf("Received webhook event of type '%v' from GitHub...", eventType)
 
 	switch eventType {
 	case "push":
 		handleGithubPush(body)
 	default:
-		log.Warn().Str("event", eventType).Msgf("Unsupported Github webhook event '%v'", eventType)
+		log.Warn().Str("event", eventType).Msgf("Unsupported Github webhook event of type '%v'", eventType)
 	}
 
 	fmt.Fprintf(w, "Aye aye!")
@@ -161,13 +161,13 @@ func bitbucketWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		Str("url", r.URL.String()).
 		Interface("headers", r.Header).
 		Interface("body", string(body)).
-		Msgf("Received webhook event '%v' from Bitbucket", eventType)
+		Msgf("Received webhook event of type '%v' from Bitbucket", eventType)
 
 	switch eventType {
 	case "repo:push":
 		handleBitbucketPush(body)
 	default:
-		log.Warn().Str("event", eventType).Msgf("Unsupported Bitbucket webhook event '%v'", eventType)
+		log.Warn().Str("event", eventType).Msgf("Unsupported Bitbucket webhook event of type '%v'", eventType)
 	}
 
 	fmt.Fprintf(w, "Aye aye!")
