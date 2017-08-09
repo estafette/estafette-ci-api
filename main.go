@@ -123,6 +123,13 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		Interface("body", b).
 		Msgf("Received %v webhook event from GitHub...", eventType)
 
+	switch eventType {
+	case "push":
+		handleGithubPush(body)
+	default:
+		log.Warn().Str("event", eventType).Msgf("Unsupported Github event %v", eventType)
+	}
+
 	fmt.Fprintf(w, "Aye aye!")
 }
 
@@ -156,7 +163,68 @@ func bitbucketWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		Interface("body", string(body)).
 		Msgf("Received %v webhook event from Bitbucket", eventType)
 
+	switch eventType {
+	case "repo:push":
+		handleBitbucketPush(body)
+	default:
+		log.Warn().Str("event", eventType).Msgf("Unsupported Bitbucket event %v", eventType)
+	}
+
 	fmt.Fprintf(w, "Aye aye!")
+}
+
+// GithubPushEvent represents a Github webhook push event
+type GithubPushEvent struct {
+	After      string           `json:"after"`
+	Commits    []GithubCommit   `json:"commits"`
+	HeadCommit GithubCommit     `json:"head_commit"`
+	Pusher     GithubPusher     `json:"pusher"`
+	Repository GithubRepository `json:"repository"`
+}
+
+// GithubCommit represents a Github commit
+type GithubCommit struct {
+	Author  GithubAuthor `json:"author"`
+	Message string       `json:"message"`
+	ID      string       `json:"id"`
+}
+
+// GithubAuthor represents a Github author
+type GithubAuthor struct {
+	Email    string `json:"email"`
+	Name     string `json:"name"`
+	UserName string `json:"username"`
+}
+
+// GithubPusher represents a Github pusher
+type GithubPusher struct {
+	Email string `json:"email"`
+	Name  string `json:"name"`
+}
+
+// GithubRepository represents a Github repository
+type GithubRepository struct {
+	GitURL   string `json:"git_url"`
+	HTMLURL  string `json:"html_url"`
+	Name     string `json:"name"`
+	FullName string `json:"full_name"`
+}
+
+func handleGithubPush(body []byte) {
+
+	// unmarshal json body
+	var pushEvent GithubPushEvent
+	err := json.Unmarshal(body, &pushEvent)
+	if err != nil {
+		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubPushEvent failed")
+		return
+	}
+
+	log.Info().Interface("pushEvent", pushEvent).Msg("Handling github push event")
+}
+
+func handleBitbucketPush(body []byte) {
+
 }
 
 func livenessHandler(w http.ResponseWriter, r *http.Request) {
