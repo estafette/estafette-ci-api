@@ -23,7 +23,7 @@ var (
 )
 
 var (
-	prometheusAddress     = flag.String("metrics-listen-address", ":9101", "The address to listen on for Prometheus metrics requests.")
+	prometheusAddress     = flag.String("metrics-listen-address", ":9001", "The address to listen on for Prometheus metrics requests.")
 	prometheusMetricsPath = flag.String("metrics-path", "/metrics", "The path to listen for Prometheus metrics requests.")
 	apiAddress            = flag.String("api-listen-address", ":5000", "The address to listen on for api HTTP requests.")
 
@@ -58,6 +58,7 @@ func main() {
 
 	fmt.Printf("Listening at %v for api calls...\n", *apiAddress)
 	http.HandleFunc("/webhook/github", githubWebhookHandler)
+	http.HandleFunc("/liveness", livenessHandler)
 	log.Fatal(http.ListenAndServe(*apiAddress, nil))
 }
 
@@ -71,5 +72,9 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Printf("Received webhook at %v from GitHub: %v\n", r.URL, string(body))
+	w.WriteHeader(200)
+}
+
+func livenessHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 }

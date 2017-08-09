@@ -12,6 +12,48 @@ metadata:
     app: ${APP_NAME}
     team: ${TEAM_NAME}
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${APP_NAME}
+  namespace: ${NAMESPACE}
+  labels:
+    app: ${APP_NAME}
+    team: ${TEAM_NAME}
+    scope: public
+  annotations:
+    prometheus.io/probe: "true"
+    prometheus.io/probe-path: "/metrics"
+    estafette.io/cloudflare-dns: "true"
+    estafette.io/cloudflare-proxy: "true"
+    estafette.io/cloudflare-hostnames: "${HOSTNAMES}"
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: https
+    protocol: TCP
+  selector:
+    app: ${APP_NAME}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${APP_NAME}-letsencrypt-certificate
+  namespace: ${NAMESPACE}
+  labels:
+    app: ${APP_NAME}
+    team: ${TEAM_NAME}
+  annotations:
+    estafette.io/letsencrypt-certificate: "${LETSENCRYPT_CREATE_CERTIFICATE}"
+    estafette.io/letsencrypt-certificate-hostnames: "${HOSTNAMES}"
+type: Opaque
+---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -21,7 +63,7 @@ metadata:
     app: ${APP_NAME}
     team: ${TEAM_NAME}
 spec:
-  replicas: 3
+  replicas: ${REPLICAS}
   revisionHistoryLimit: 10
   selector:
     matchLabels:
@@ -34,7 +76,8 @@ spec:
         version: ${VERSION}
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "9101"
+        prometheus.io/port: "9001"
+        prometheus.io/scrape-nginx-sidecar: "true"
     spec:
       serviceAccount: ${APP_NAME}
       containers:
@@ -48,9 +91,64 @@ spec:
           limits:
             cpu: ${CPU_LIMIT}
             memory: ${MEMORY_LIMIT}
+        ports:
+        - name: api
+          containerPort: 5000
+        - name: prometheus
+          containerPort: 9001
         livenessProbe:
           httpGet:
-            path: /metrics
-            port: 9101
+            path: /status
+            port: api
           initialDelaySeconds: 30
           timeoutSeconds: 1
+      - name: ${APP_NAME}-nginx
+        image: travix/nginx:1.11.10-alpine
+        imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: 50m
+            memory: 50Mi
+          requests:
+            cpu: 10m
+            memory: 10Mi
+        ports:
+        - name: http
+          containerPort: 80
+        - name: https
+          containerPort: 443
+        - name: nginx-liveness
+          containerPort: 82
+        - name: nginx-readiness
+          containerPort: 81
+        - name: nginx-prom
+          containerPort: 9101
+        env:
+        - name: "OFFLOAD_TO_HOST"
+          value: "localhost"
+        - name: "OFFLOAD_TO_PORT"
+          value: "5000"
+        - name: "SERVICE_NAME"
+          value: "${APP_NAME}"
+        - name: "NAMESPACE"
+          value: "${NAMESPACE}"
+        - name: "HEALT_CHECK_PATH"
+          value: "/status"
+        - name: "ALLOW_CIDRS"
+          value: "${ALLOW_CIDRS}"
+        volumeMounts:
+        - name: ssl-certificate
+          mountPath: /etc/ssl/private
+        livenessProbe:
+          httpGet:
+            path: /liveness
+            port: nginx-liveness
+          initialDelaySeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /readiness
+            port: nginx-readiness
+      volumes:
+      - name: ssl-certificate
+        secret:
+          secretName: ${APP_NAME}-letsencrypt-certificate
