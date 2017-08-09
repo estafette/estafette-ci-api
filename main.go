@@ -58,6 +58,7 @@ func main() {
 
 	fmt.Printf("Listening at %v for api calls...\n", *apiAddress)
 	http.HandleFunc("/webhook/github", githubWebhookHandler)
+	http.HandleFunc("/webhook/bitbucket", bitbucketWebhookHandler)
 	http.HandleFunc("/liveness", livenessHandler)
 	http.HandleFunc("/readiness", readinessHandler)
 	log.Fatal(http.ListenAndServe(*apiAddress, nil))
@@ -77,7 +78,24 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("header: %v\n", r.Header)
 	fmt.Printf("body: %v\n", string(body))
 
-	fmt.Fprintf(w, "Zero distortion!")
+	fmt.Fprintf(w, "Aye aye!")
+}
+
+func bitbucketWebhookHandler(w http.ResponseWriter, r *http.Request) {
+
+	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println(err)
+	}
+
+	fmt.Println("Received webhook from Bitbucket...")
+	fmt.Printf("url: %v\n", r.URL)
+	fmt.Printf("header: %v\n", r.Header)
+	fmt.Printf("body: %v\n", string(body))
+
+	fmt.Fprintf(w, "Aye aye!")
 }
 
 func livenessHandler(w http.ResponseWriter, r *http.Request) {
