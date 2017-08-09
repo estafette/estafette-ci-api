@@ -35,13 +35,6 @@ var (
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// define prometheus counter
-	httpRequestTotal = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "http_requests_total",
-			Help: "Number of handled http requests.",
-		},
-		[]string{"code", "handler"},
-	)
 	webhookTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "estafette_ci_api_webhook_totals",
@@ -53,7 +46,6 @@ var (
 
 func init() {
 	// Metrics have to be registered to be exposed:
-	prometheus.MustRegister(httpRequestTotal)
 	prometheus.MustRegister(webhookTotal)
 }
 
@@ -105,8 +97,8 @@ func main() {
 func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 	// https://developer.github.com/webhooks/
-
-	webhookTotal.With(prometheus.Labels{"event": r.Header.Get("X-GitHub-Event"), "source": "github"}).Inc()
+	eventType := r.Header.Get("X-GitHub-Event")
+	webhookTotal.With(prometheus.Labels{"event": eventType, "source": "github"}).Inc()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -129,7 +121,7 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		Str("url", r.URL.String()).
 		Interface("headers", r.Header).
 		Interface("body", b).
-		Msg("Received webhook from GitHub...")
+		Msgf("Received %v webhook event from GitHub...", eventType)
 
 	fmt.Fprintf(w, "Aye aye!")
 }
@@ -138,7 +130,8 @@ func bitbucketWebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
 
-	webhookTotal.With(prometheus.Labels{"event": r.Header.Get("X-Event-Key"), "source": "bitbucket"}).Inc()
+	eventType := r.Header.Get("X-Event-Key")
+	webhookTotal.With(prometheus.Labels{"event": eventType, "source": "bitbucket"}).Inc()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -161,7 +154,7 @@ func bitbucketWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		Str("url", r.URL.String()).
 		Interface("headers", r.Header).
 		Interface("body", string(body)).
-		Msg("Received webhook from Bitbucket")
+		Msgf("Received %v webhook event from Bitbucket", eventType)
 
 	fmt.Fprintf(w, "Aye aye!")
 }
