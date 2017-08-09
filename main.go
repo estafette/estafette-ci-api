@@ -220,7 +220,7 @@ func handleGithubPush(body []byte) {
 		return
 	}
 
-	log.Info().Interface("pushEvent", pushEvent).Msg("Handling github push event")
+	log.Info().Interface("pushEvent", pushEvent).Msg("Deserialized GitHub push event")
 }
 
 func handleBitbucketPush(body []byte) {
