@@ -59,6 +59,7 @@ func main() {
 	fmt.Printf("Listening at %v for api calls...\n", *apiAddress)
 	http.HandleFunc("/webhook/github", githubWebhookHandler)
 	http.HandleFunc("/liveness", livenessHandler)
+	http.HandleFunc("/readiness", readinessHandler)
 	log.Fatal(http.ListenAndServe(*apiAddress, nil))
 }
 
@@ -76,5 +77,9 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func livenessHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(200)
+}
+
+func readinessHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 }

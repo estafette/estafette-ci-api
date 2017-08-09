@@ -98,7 +98,7 @@ spec:
           containerPort: 9001
         livenessProbe:
           httpGet:
-            path: /status
+            path: /liveness
             port: api
           initialDelaySeconds: 30
           timeoutSeconds: 1
@@ -133,7 +133,7 @@ spec:
         - name: "NAMESPACE"
           value: "${NAMESPACE}"
         - name: "HEALT_CHECK_PATH"
-          value: "/status"
+          value: "/readiness"
         - name: "ALLOW_CIDRS"
           value: "${ALLOW_CIDRS}"
         volumeMounts:
