@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -100,13 +101,24 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body from Github webhook failed")
+		http.Error(w, "Reading body from Github webhook failed", 500)
+		return
+	}
+
+	// unmarshal json body
+	var b interface{}
+	err = json.Unmarshal(body, &b)
+	if err != nil {
+		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Github webhook failed")
+		http.Error(w, "Deserializing body from Github webhook failed", 500)
+		return
 	}
 
 	log.Info().
 		Str("method", r.Method).
 		Str("url", r.URL.String()).
 		Interface("headers", r.Header).
-		Interface("body", string(body)).
+		Interface("body", b).
 		Msg("Received webhook from GitHub...")
 
 	fmt.Fprintf(w, "Aye aye!")
@@ -119,6 +131,17 @@ func bitbucketWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body from Bitbucket webhook failed")
+		http.Error(w, "Reading body from Bitbucket webhook failed", 500)
+		return
+	}
+
+	// unmarshal json body
+	var b interface{}
+	err = json.Unmarshal(body, &b)
+	if err != nil {
+		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Bitbucket webhook failed")
+		http.Error(w, "Deserializing body from Bitbucket webhook failed", 500)
+		return
 	}
 
 	log.Info().
