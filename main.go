@@ -4,11 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -47,21 +48,40 @@ func init() {
 
 func main() {
 
-	fmt.Printf("Starting estafette-ci-api (version=%v, branch=%v, revision=%v, buildDate=%v, goVersion=%v)\n", version, branch, revision, buildDate, goVersion)
+	log.Info().
+		Str("version", version).
+		Str("branch", branch).
+		Str("revision", revision).
+		Str("buildDate", buildDate).
+		Str("goVersion", goVersion).
+		Msg("Starting estafette-ci-api")
 
 	// start prometheus
 	go func() {
-		fmt.Printf("Serving Prometheus metrics at %v%v...\n", *prometheusAddress, *prometheusMetricsPath)
+		log.Info().
+			Str("port", *prometheusAddress).
+			Str("path", *prometheusMetricsPath).
+			Msg("Serving Prometheus metrics")
+
 		http.Handle(*prometheusMetricsPath, promhttp.Handler())
-		log.Fatal(http.ListenAndServe(*prometheusAddress, nil))
+
+		if err := http.ListenAndServe(*prometheusAddress, nil); err != nil {
+			log.Fatal().Err(err).Msg("Prometheus listener failed")
+		}
 	}()
 
-	fmt.Printf("Listening at %v for api calls...\n", *apiAddress)
+	log.Info().
+		Str("port", *apiAddress).
+		Msg("Serving api calls")
+
 	http.HandleFunc("/webhook/github", githubWebhookHandler)
 	http.HandleFunc("/webhook/bitbucket", bitbucketWebhookHandler)
 	http.HandleFunc("/liveness", livenessHandler)
 	http.HandleFunc("/readiness", readinessHandler)
-	log.Fatal(http.ListenAndServe(*apiAddress, nil))
+
+	if err := http.ListenAndServe(*apiAddress, nil); err != nil {
+		log.Fatal().Err(err).Msg("Api listener failed")
+	}
 }
 
 func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
@@ -70,13 +90,14 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Println(err)
+		log.Error().Err(err).Msg("Reading body from Github webhook failed")
 	}
 
-	fmt.Println("Received webhook from GitHub...")
-	fmt.Printf("url: %v\n", r.URL)
-	fmt.Printf("header: %v\n", r.Header)
-	fmt.Printf("body: %v\n", string(body))
+	log.Info().
+		Interface("url", r.URL).
+		Interface("headers", r.Header).
+		Interface("body", body).
+		Msg("Received webhook from GitHub...")
 
 	fmt.Fprintf(w, "Aye aye!")
 }
@@ -87,13 +108,14 @@ func bitbucketWebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Println(err)
+		log.Error().Err(err).Msg("Reading body from Bitbucket webhook failed")
 	}
 
-	fmt.Println("Received webhook from Bitbucket...")
-	fmt.Printf("url: %v\n", r.URL)
-	fmt.Printf("header: %v\n", r.Header)
-	fmt.Printf("body: %v\n", string(body))
+	log.Info().
+		Interface("url", r.URL).
+		Interface("headers", r.Header).
+		Interface("body", body).
+		Msg("Received webhook from Bitbucket")
 
 	fmt.Fprintf(w, "Aye aye!")
 }
