@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -22,7 +23,9 @@ var (
 )
 
 var (
-	addr = flag.String("listen-address", ":9101", "The address to listen on for HTTP requests.")
+	prometheusAddress     = flag.String("metrics-listen-address", ":9101", "The address to listen on for Prometheus metrics requests.")
+	prometheusMetricsPath = flag.String("metrics-path", "/metrics", "The path to listen for Prometheus metrics requests.")
+	apiAddress            = flag.String("api-listen-address", ":5000", "The address to listen on for api HTTP requests.")
 
 	// seed random number
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -48,8 +51,25 @@ func main() {
 
 	// start prometheus
 	go func() {
-		fmt.Println("Serving Prometheus metrics at :9101/metrics...")
-		http.Handle("/metrics", promhttp.Handler())
-		log.Fatal(http.ListenAndServe(*addr, nil))
+		fmt.Printf("Serving Prometheus metrics at %v%v...\n", *prometheusAddress, *prometheusMetricsPath)
+		http.Handle(*prometheusMetricsPath, promhttp.Handler())
+		log.Fatal(http.ListenAndServe(*prometheusAddress, nil))
 	}()
+
+	fmt.Printf("Listening at %v for api calls...\n", *apiAddress)
+	http.HandleFunc("/webhook/github", githubWebhookHandler)
+	log.Fatal(http.ListenAndServe(*apiAddress, nil))
+}
+
+func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
+
+	// https://developer.github.com/webhooks/
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println(err)
+	}
+
+	fmt.Printf("Received webhook at %v from GitHub: %v\n", r.URL, string(body))
+	w.WriteHeader(200)
 }
