@@ -121,7 +121,7 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		Str("url", r.URL.String()).
 		Interface("headers", r.Header).
 		Interface("body", b).
-		Msgf("Received %v webhook event from GitHub...", eventType)
+		Msgf("Received webhook event '%v' from GitHub...", eventType)
 
 	switch eventType {
 	case "push":
@@ -161,7 +161,7 @@ func bitbucketWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		Str("url", r.URL.String()).
 		Interface("headers", r.Header).
 		Interface("body", string(body)).
-		Msgf("Received %v webhook event from Bitbucket", eventType)
+		Msgf("Received webhook event '%v' from Bitbucket", eventType)
 
 	switch eventType {
 	case "repo:push":
