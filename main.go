@@ -94,9 +94,10 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Info().
-		Interface("url", r.URL).
+		Str("method", r.Method).
+		Str("url", r.URL.String()).
 		Interface("headers", r.Header).
-		Interface("body", body).
+		Interface("body", string(body)).
 		Msg("Received webhook from GitHub...")
 
 	fmt.Fprintf(w, "Aye aye!")
@@ -112,9 +113,10 @@ func bitbucketWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Info().
-		Interface("url", r.URL).
+		Str("method", r.Method).
+		Str("url", r.URL.String()).
 		Interface("headers", r.Header).
-		Interface("body", body).
+		Interface("body", string(body)).
 		Msg("Received webhook from Bitbucket")
 
 	fmt.Fprintf(w, "Aye aye!")
