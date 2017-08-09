@@ -72,7 +72,11 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
-	fmt.Printf("Received webhook at %v from GitHub: %v\n", r.URL, string(body))
+	fmt.Println("Received webhook from GitHub...")
+	fmt.Printf("url: %v\n", r.URL)
+	fmt.Printf("header: %v\n", r.Header)
+	fmt.Printf("body: %v\n", string(body))
+
 	w.WriteHeader(200)
 }
 
