@@ -198,7 +198,7 @@ func bitbucketWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		Str("method", r.Method).
 		Str("url", r.URL.String()).
 		Interface("headers", r.Header).
-		Interface("body", string(body)).
+		Interface("body", b).
 		Msgf("Received webhook event of type '%v' from Bitbucket...", eventType)
 
 	switch eventType {
@@ -279,7 +279,7 @@ func handleGithubPush(body []byte) {
 		return
 	}
 
-	log.Info().Interface("pushEvent", pushEvent).Msg("Deserialized GitHub push event")
+	log.Info().Interface("pushEvent", pushEvent).Msgf("Deserialized GitHub push event for repository %v", pushEvent.Repository.FullName)
 }
 
 func handleBitbucketPush(body []byte) {
