@@ -304,6 +304,7 @@ type BitbucketPushEventChange struct {
 	Created   bool                           `json:"created"`
 	Closed    bool                           `json:"closed"`
 	Forced    bool                           `json:"forced"`
+	Commits   []BitbucketCommit              `json:"commits"`
 	Truncated bool                           `json:"truncated"`
 }
 
@@ -329,6 +330,22 @@ type BitbucketRepository struct {
 	Scm       string         `json:"scm"`
 }
 
+// BitbucketCommit represents a Bitbucket commit
+type BitbucketCommit struct {
+	Author BitbucketAuthor `json:"author"`
+
+	Date    string `json:"date"`
+	Hash    string `json:"hash"`
+	Message string `json:"message"`
+}
+
+// BitbucketAuthor represents a Bitbucket author
+type BitbucketAuthor struct {
+	Raw  string         `json:"raw"`
+	Type string         `json:"type"`
+	User BitbucketOwner `json:"user"`
+}
+
 func handleBitbucketPush(body []byte) {
 
 	// unmarshal json body
@@ -340,7 +357,6 @@ func handleBitbucketPush(body []byte) {
 	}
 
 	log.Info().Interface("pushEvent", pushEvent).Msgf("Deserialized Bitbucket push event for repository %v", pushEvent.Repository.FullName)
-
 }
 
 func livenessHandler(w http.ResponseWriter, r *http.Request) {
