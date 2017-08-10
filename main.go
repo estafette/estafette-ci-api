@@ -127,8 +127,43 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		Msgf("Received webhook event of type '%v' from GitHub...", eventType)
 
 	switch eventType {
-	case "push":
+	case "push": // Any Git push to a Repository, including editing tags or branches. Commits via API actions that update references are also counted. This is the default event.
 		handleGithubPush(body)
+
+	case "commit_comment": // Any time a Commit is commented on.
+	case "create": // Any time a Branch or Tag is created.
+	case "delete": // Any time a Branch or Tag is deleted.
+	case "deployment": // Any time a Repository has a new deployment created from the API.
+	case "deployment_status": // Any time a deployment for a Repository has a status update from the API.
+	case "fork": // Any time a Repository is forked.
+	case "gollum": // Any time a Wiki page is updated.
+	case "installation": // Any time a GitHub App is installed or uninstalled.
+	case "installation_repositories": // Any time a repository is added or removed from an installation.
+	case "issue_comment": // Any time a comment on an issue is created, edited, or deleted.
+	case "issues": // Any time an Issue is assigned, unassigned, labeled, unlabeled, opened, edited, milestoned, demilestoned, closed, or reopened.
+	case "label": // Any time a Label is created, edited, or deleted.
+	case "marketplace_purchase": // Any time a user purchases, cancels, or changes their GitHub Marketplace plan.
+	case "member": // Any time a User is added or removed as a collaborator to a Repository, or has their permissions modified.
+	case "membership": // Any time a User is added or removed from a team. Organization hooks only.
+	case "milestone": // Any time a Milestone is created, closed, opened, edited, or deleted.
+	case "organization": // Any time a user is added, removed, or invited to an Organization. Organization hooks only.
+	case "org_block": // Any time an organization blocks or unblocks a user. Organization hooks only.
+	case "page_build": // Any time a Pages site is built or results in a failed build.
+	case "project_card": // Any time a Project Card is created, edited, moved, converted to an issue, or deleted.
+	case "project_column": // Any time a Project Column is created, edited, moved, or deleted.
+	case "project": // Any time a Project is created, edited, closed, reopened, or deleted.
+	case "public": // Any time a Repository changes from private to public.
+	case "pull_request_review_comment": // Any time a comment on a pull request's unified diff is created, edited, or deleted (in the Files Changed tab).
+	case "pull_request_review": // Any time a pull request review is submitted, edited, or dismissed.
+	case "pull_request": // Any time a pull request is assigned, unassigned, labeled, unlabeled, opened, edited, closed, reopened, or synchronized (updated due to a new push in the branch that the pull request is tracking). Also any time a pull request review is requested, or a review request is removed.
+	case "repository": // Any time a Repository is created, deleted (organization hooks only), made public, or made private.
+	case "release": // Any time a Release is published in a Repository.
+	case "status": // Any time a Repository has a status update from the API
+	case "team": // Any time a team is created, deleted, modified, or added to or removed from a repository. Organization hooks only
+	case "team_add": // Any time a team is added or modified on a Repository.
+	case "watch": // Any time a User stars a Repository.
+		log.Debug().Str("event", eventType).Msgf("Not implemented Github webhook event of type '%v'", eventType)
+
 	default:
 		log.Warn().Str("event", eventType).Msgf("Unsupported Github webhook event of type '%v'", eventType)
 	}
@@ -164,11 +199,32 @@ func bitbucketWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		Str("url", r.URL.String()).
 		Interface("headers", r.Header).
 		Interface("body", string(body)).
-		Msgf("Received webhook event of type '%v' from Bitbucket", eventType)
+		Msgf("Received webhook event of type '%v' from Bitbucket...", eventType)
 
 	switch eventType {
 	case "repo:push":
 		handleBitbucketPush(body)
+
+	case "repo:fork":
+	case "repo:updated":
+	case "repo:transfer":
+	case "repo:commit_comment_created":
+	case "repo:commit_status_created":
+	case "repo:commit_status_updated":
+	case "issue:created":
+	case "issue:updated":
+	case "issue:comment_created":
+	case "pullrequest:created":
+	case "pullrequest:updated":
+	case "pullrequest:approved":
+	case "pullrequest:unapproved":
+	case "pullrequest:fulfilled":
+	case "pullrequest:rejected":
+	case "pullrequest:comment_created":
+	case "pullrequest:comment_updated":
+	case "pullrequest:comment_deleted":
+		log.Debug().Str("event", eventType).Msgf("Not implemented Bitbucket webhook event of type '%v'", eventType)
+
 	default:
 		log.Warn().Str("event", eventType).Msgf("Unsupported Bitbucket webhook event of type '%v'", eventType)
 	}
