@@ -74,7 +74,7 @@ func main() {
 
 	// start prometheus
 	go func() {
-		log.Info().
+		log.Debug().
 			Str("port", *prometheusAddress).
 			Str("path", *prometheusMetricsPath).
 			Msg("Serving Prometheus metrics...")
@@ -86,7 +86,7 @@ func main() {
 		}
 	}()
 
-	log.Info().
+	log.Debug().
 		Str("port", *apiAddress).
 		Msg("Serving api calls...")
 
@@ -282,7 +282,7 @@ func handleGithubPush(body []byte) {
 		return
 	}
 
-	log.Info().Interface("pushEvent", pushEvent).Msgf("Deserialized GitHub push event for repository %v", pushEvent.Repository.FullName)
+	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized GitHub push event for repository %v", pushEvent.Repository.FullName)
 }
 
 // BitbucketRepositoryPushEvent represents a Bitbucket webhook push event
@@ -356,7 +356,7 @@ func handleBitbucketPush(body []byte) {
 		return
 	}
 
-	log.Info().Interface("pushEvent", pushEvent).Msgf("Deserialized Bitbucket push event for repository %v", pushEvent.Repository.FullName)
+	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized Bitbucket push event for repository %v", pushEvent.Repository.FullName)
 }
 
 func livenessHandler(w http.ResponseWriter, r *http.Request) {
