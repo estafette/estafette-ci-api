@@ -119,6 +119,9 @@ func callGithubAPI(method, url string, params interface{}, token string) (body [
 	client := &http.Client{}
 	request, err := http.NewRequest(method, url, requestBody)
 	if err != nil {
+		log.Error().Err(err).
+			Msg("Creating http client failed")
+
 		return
 	}
 
@@ -129,6 +132,9 @@ func callGithubAPI(method, url string, params interface{}, token string) (body [
 	// perform actual request
 	response, err := client.Do(request)
 	if err != nil {
+		log.Error().Err(err).
+			Msg("Performing Github api call failed")
+
 		return
 	}
 
@@ -136,6 +142,9 @@ func callGithubAPI(method, url string, params interface{}, token string) (body [
 
 	body, err = ioutil.ReadAll(response.Body)
 	if err != nil {
+		log.Error().Err(err).
+			Msg("Reading Github api call response failed")
+
 		return
 	}
 
@@ -162,6 +171,9 @@ func callGithubAPI(method, url string, params interface{}, token string) (body [
 		Interface("responseHeaders", response.Header).
 		Interface("responseBody", b).
 		Msgf("Received response for '%v' Github api call...", url)
+
+	return
+}
 
 	return
 }
