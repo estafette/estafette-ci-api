@@ -60,6 +60,10 @@ func (gh *GithubAPIClient) getGithubAppToken() (githubAppToken string, err error
 		"iss": gh.githubAppOAuthClientID,
 	})
 
+	log.Debug().
+		Interface("token", token).
+		Msg("Created token")
+
 	// sign and get the complete encoded token as a string using the private key
 	log.Debug().Msg("Signing json web token...")
 	githubAppToken, err = token.SignedString(privateKey)
