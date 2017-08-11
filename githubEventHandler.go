@@ -100,4 +100,7 @@ func handleGithubPush(body []byte) {
 	ghClient := CreateGithubAPIClient(*githubAppPrivateKeyPath, *githubAppOAuthClientID, *githubAppOAuthClientSecret)
 	ghClient.getGithubAppDetails()
 	ghClient.getInstallationRepositories(pushEvent.Installation.ID)
+	authenticatedRepositoryURL, err := ghClient.getAuthenticatedRepositoryURL(pushEvent.Installation.ID, pushEvent.Repository.HTMLURL)
+
+	log.Debug().Str("url", authenticatedRepositoryURL).Msgf("Authenticated url for Github repository %v", pushEvent.Repository.FullName)
 }

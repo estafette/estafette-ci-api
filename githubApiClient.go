@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -113,12 +114,15 @@ func (gh *GithubAPIClient) getInstallationRepositories(installationID int) {
 
 func (gh *GithubAPIClient) getAuthenticatedRepositoryURL(installationID int, htmlURL string) (url string, err error) {
 
-	// installationToken, err := gh.getInstallationToken(installationID)
-	// if err != nil {
-	// 	return
-	// }
+	installationToken, err := gh.getInstallationToken(installationID)
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Retrieving Github App installation web token failed")
 
-	// git clone https://x-access-token:<token>@github.com/owner/repo.git
+		return
+	}
+
+	url = strings.Replace(htmlURL, "https://github.com", fmt.Sprintf("https://x-access-token:%v@github.com", installationToken), -1)
 
 	return
 }
