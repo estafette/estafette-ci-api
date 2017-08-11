@@ -174,6 +174,3 @@ func callGithubAPI(method, url string, params interface{}, token string) (body [
 
 	return
 }
-
-	return
-}

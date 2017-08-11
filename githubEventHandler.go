@@ -99,5 +99,5 @@ func handleGithubPush(body []byte) {
 	// test making api calls for github app
 	ghClient := CreateGithubAPIClient(*githubAppPrivateKeyPath, *githubAppOAuthClientID, *githubAppOAuthClientSecret)
 	ghClient.getGithubAppDetails()
-	ghClient.getInstallationRepositories(pushEvent.InstallationID)
+	ghClient.getInstallationRepositories(pushEvent.Installation.ID)
 }
