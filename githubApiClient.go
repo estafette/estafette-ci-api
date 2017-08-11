@@ -158,7 +158,8 @@ func callGithubAPI(method, url string, params interface{}, token string) (body [
 			Interface("requestBody", params).
 			Interface("requestHeaders", request.Header).
 			Interface("responseHeaders", response.Header).
-			Str("responseBody", string(body)).Msg("Deserializing response for '%v' Github api call failed")
+			Str("responseBody", string(body)).
+			Msg("Deserializing response for '%v' Github api call failed")
 
 		return
 	}
