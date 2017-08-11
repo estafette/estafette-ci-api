@@ -42,7 +42,7 @@ func (gh *GithubAPIClient) getGithubAppToken() (githubAppToken string, err error
 	}
 
 	log.Debug().Msg("Reading private key from pem file...")
-	privateKey, err := jwt.ParseECPrivateKeyFromPEM(pemFileByteArray)
+	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(pemFileByteArray)
 	if err != nil {
 		return
 	}
