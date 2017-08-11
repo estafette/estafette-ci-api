@@ -1,13 +1,12 @@
 package main
 
 import (
-	"flag"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"os"
 	"runtime"
-	"time"
+
+	"github.com/alecthomas/kingpin"
 
 	"github.com/rs/zerolog"
 
@@ -24,12 +23,13 @@ var (
 )
 
 var (
-	prometheusAddress     = flag.String("metrics-listen-address", ":9001", "The address to listen on for Prometheus metrics requests.")
-	prometheusMetricsPath = flag.String("metrics-path", "/metrics", "The path to listen for Prometheus metrics requests.")
-	apiAddress            = flag.String("api-listen-address", ":5000", "The address to listen on for api HTTP requests.")
-
-	// seed random number
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+	// flags
+	prometheusMetricsAddress   = kingpin.Flag("metrics-listen-address", "The address to listen on for Prometheus metrics requests.").Default(":9001").String()
+	prometheusMetricsPath      = kingpin.Flag("metrics-path", "The path to listen for Prometheus metrics requests.").Default("/metrics").String()
+	apiAddress                 = kingpin.Flag("api-listen-address", "The address to listen on for api HTTP requests.").Default(":5000").String()
+	githubAppPrivateKeyPath    = kingpin.Flag("github-app-privatey-key-path", "The path to the pem file for the private key of the Github App.").Default("/github-app-key/private-key.pem").String()
+	githubAppOAuthClientID     = kingpin.Flag("github-app-oauth-client-id", "The OAuth client id for the Github App.").String()
+	githubAppOAuthClientSecret = kingpin.Flag("github-app-oauth-client-secret", "The OAuth client secret for the Github App.").String()
 
 	// define prometheus counter
 	webhookTotal = prometheus.NewCounterVec(
@@ -49,7 +49,7 @@ func init() {
 func main() {
 
 	// parse command line parameters
-	flag.Parse()
+	kingpin.Parse()
 
 	// log as severity for stackdriver logging to recognize the level
 	zerolog.LevelFieldName = "severity"
@@ -72,13 +72,13 @@ func main() {
 	// start prometheus
 	go func() {
 		log.Debug().
-			Str("port", *prometheusAddress).
+			Str("port", *prometheusMetricsAddress).
 			Str("path", *prometheusMetricsPath).
 			Msg("Serving Prometheus metrics...")
 
 		http.Handle(*prometheusMetricsPath, promhttp.Handler())
 
-		if err := http.ListenAndServe(*prometheusAddress, nil); err != nil {
+		if err := http.ListenAndServe(*prometheusMetricsAddress, nil); err != nil {
 			log.Fatal().Err(err).Msg("Starting Prometheus listener failed")
 		}
 	}()
