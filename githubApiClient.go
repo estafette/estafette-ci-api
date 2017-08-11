@@ -57,7 +57,7 @@ func (gh *GithubAPIClient) getGithubAppToken() (githubAppToken string, err error
 		// JWT expiration time (10 minute maximum)
 		"exp": epoch + 600,
 		// GitHub App's identifier
-		"iss": githubAppOAuthClientID,
+		"iss": gh.githubAppOAuthClientID,
 	})
 
 	// sign and get the complete encoded token as a string using the private key
