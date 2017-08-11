@@ -12,7 +12,7 @@ type GithubPushEvent struct {
 
 // GithubInstallation represents an installation of a Github app
 type GithubInstallation struct {
-	ID int `json:"installation"`
+	ID int `json:"id"`
 }
 
 // GithubCommit represents a Github commit
