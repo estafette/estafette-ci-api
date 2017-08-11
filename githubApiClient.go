@@ -1,66 +1,167 @@
 package main
 
-// GithubApiClient is the object to perform Github api calls with
-type GithubApiClient struct {
-	baseURL string
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"time"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/rs/zerolog/log"
+)
+
+// GithubAPIClient is the object to perform Github api calls with
+type GithubAPIClient struct {
+	githubAppPrivateKeyPath    string
+	githubAppOAuthClientID     string
+	githubAppOAuthClientSecret string
 }
 
-// New returns an initialized APIClient
-func New() *GithubApiClient {
+// CreateGithubAPIClient returns an initialized APIClient
+func CreateGithubAPIClient(githubAppPrivateKeyPath, githubAppOAuthClientID, githubAppOAuthClientSecret string) *GithubAPIClient {
 
-	return &GithubApiClient{
-		baseURL: "https://api.github.com/",
+	return &GithubAPIClient{
+		githubAppPrivateKeyPath:    githubAppPrivateKeyPath,
+		githubAppOAuthClientID:     githubAppOAuthClientID,
+		githubAppOAuthClientSecret: githubAppOAuthClientSecret,
 	}
 }
 
-func (gh *GithubApiClient) requestJWT() (jwt string, err error) {
+func (gh *GithubAPIClient) getGithubAppToken() (githubAppToken string, err error) {
 
-	// from: https://developer.github.com/apps/building-integrations/setting-up-and-registering-github-apps/about-authentication-options-for-github-apps/
+	// https://developer.github.com/apps/building-integrations/setting-up-and-registering-github-apps/about-authentication-options-for-github-apps/
 
-	// require 'openssl'
-	// require 'jwt'  # https://rubygems.org/gems/jwt
+	// load private key from pem file
+	pemFileByteArray, err := ioutil.ReadFile(gh.githubAppPrivateKeyPath)
+	if err != nil {
+		return
+	}
+	privateKey, err := jwt.ParseECPrivateKeyFromPEM(pemFileByteArray)
 
-	// # Private key contents
-	// private_pem = File.read(path_to_pem)
-	// private_key = OpenSSL::PKey::RSA.new(private_pem)
+	// create a new token object, specifying signing method and the claims you would like it to contain.
+	epoch := time.Now().Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+		// issued at time
+		"iat": epoch,
+		// JWT expiration time (10 minute maximum)
+		"exp": epoch + 600,
+		// GitHub App's identifier
+		"iss": githubAppOAuthClientID,
+	})
 
-	// # Generate the JWT
-	// payload = {
-	// # issued at time
-	// iat: Time.now.to_i,
-	// # JWT expiration time (10 minute maximum)
-	// exp: Time.now.to_i + (10 * 60),
-	// # GitHub App's identifier
-	// iss: 42 <replace with your id>
-	// }
+	// sign and get the complete encoded token as a string using the private key
+	githubAppToken, err = token.SignedString(&privateKey)
 
-	// jwt = JWT.encode(payload, private_key, "RS256")
+	return
+}
+
+func (gh *GithubAPIClient) getGithubAppDetails() {
+
+	githubAppToken, err := gh.getGithubAppToken()
+	if err != nil {
+		return
+	}
 
 	// curl -i -H "Authorization: Bearer $JWT" -H "Accept: application/vnd.github.machine-man-preview+json" https://api.github.com/app
+	callGithubAPI("GET", "https://api.github.com/app", nil, githubAppToken)
+}
+
+func (gh *GithubAPIClient) getInstallationToken(installationID int) (installationToken string, err error) {
+
+	githubAppToken, err := gh.getGithubAppToken()
+	if err != nil {
+		return
+	}
+
+	callGithubAPI("GET", fmt.Sprintf("https://api.github.com/installations/%v/access_tokens", installationID), nil, githubAppToken)
 
 	return
 }
 
-func (gh *GithubApiClient) listInstallations() (i []GithubAppInstallation, err error) {
+func (gh *GithubAPIClient) getInstallationRepositories(installationID int) {
 
-	// curl -i -X POST \
-	// -H "Authorization: Bearer $JWT" \
-	// -H "Accept: application/vnd.github.machine-man-preview+json" \
-	// https://api.github.com/installations/:installation_id/access_tokens
+	installationToken, err := gh.getInstallationToken(installationID)
+	if err != nil {
+		return
+	}
 
-	// response:
+	callGithubAPI("GET", "https://api.github.com/installation/repositories", nil, installationToken)
+}
 
-	// {
-	// "token": "v1.1f699f1069f60xxx",
-	// "expires_at": "2016-07-11T22:14:10Z"
+func (gh *GithubAPIClient) getAuthenticatedRepositoryURL(installationID int, htmlURL string) (url string, err error) {
+
+	// installationToken, err := gh.getInstallationToken(installationID)
+	// if err != nil {
+	// 	return
 	// }
 
+	// git clone https://x-access-token:<token>@github.com/owner/repo.git
+
 	return
 }
 
-func (gh *GithubApiClient) getAuthenticatedRepositoryURL() (url string, err error) {
+func callGithubAPI(method, url string, params interface{}, token string) (body []byte, err error) {
 
-	// git clone https://x-access-token:<token>@github.com/owner/repo.git
+	// convert params to json if they're present
+	var requestBody io.Reader
+	if params != nil {
+		data, err := json.Marshal(params)
+		if err != nil {
+			return body, err
+		}
+		requestBody = bytes.NewReader(data)
+	}
+
+	// create client, in order to add headers
+	client := &http.Client{}
+	request, err := http.NewRequest(method, url, requestBody)
+	if err != nil {
+		return
+	}
+
+	// add headers
+	request.Header.Add("Authorization", token)
+	request.Header.Add("Accept", "application/vnd.github.machine-man-preview+json")
+
+	// perform actual request
+	response, err := client.Do(request)
+	if err != nil {
+		return
+	}
+
+	defer response.Body.Close()
+
+	body, err = ioutil.ReadAll(response.Body)
+	if err != nil {
+		return
+	}
+
+	// unmarshal json body
+	var b interface{}
+	err = json.Unmarshal(body, &b)
+	if err != nil {
+		log.Error().Err(err).
+			Str("url", url).
+			Str("requestMethod", method).
+			Interface("requestBody", params).
+			Interface("requestHeaders", request.Header).
+			Interface("responseHeaders", response.Header).
+			Str("responseBody", string(body)).Msg("Deserializing response for '%v' Github api call failed")
+
+		return
+	}
+
+	log.Debug().
+		Str("url", url).
+		Str("requestMethod", method).
+		Interface("requestBody", params).
+		Interface("requestHeaders", request.Header).
+		Interface("responseHeaders", response.Header).
+		Interface("responseBody", b).
+		Msgf("Received response for '%v' Github api call...", url)
 
 	return
 }

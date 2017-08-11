@@ -47,6 +47,14 @@
 			"revisionTime": "2016-08-04T10:47:26Z"
 		},
 		{
+			"checksumSHA1": "ZEPb+i1t8UkxXJcE0NrFZGNMN/o=",
+			"path": "github.com/dgrijalva/jwt-go",
+			"revision": "d2709f9f1f31ebcda9651b03077758c1f3a0018c",
+			"revisionTime": "2016-06-16T19:15:56Z",
+			"version": "v3.0.0",
+			"versionExact": "v3.0.0"
+		},
+		{
 			"checksumSHA1": "T+MAAJDjsRbA94sPiM5K7K9uueg=",
 			"path": "github.com/ericchiang/k8s",
 			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",

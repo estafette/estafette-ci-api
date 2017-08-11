@@ -2,11 +2,12 @@ package main
 
 // GithubPushEvent represents a Github webhook push event
 type GithubPushEvent struct {
-	After      string           `json:"after"`
-	Commits    []GithubCommit   `json:"commits"`
-	HeadCommit GithubCommit     `json:"head_commit"`
-	Pusher     GithubPusher     `json:"pusher"`
-	Repository GithubRepository `json:"repository"`
+	After          string           `json:"after"`
+	Commits        []GithubCommit   `json:"commits"`
+	HeadCommit     GithubCommit     `json:"head_commit"`
+	Pusher         GithubPusher     `json:"pusher"`
+	Repository     GithubRepository `json:"repository"`
+	InstallationID int              `json:"installation"`
 }
 
 // GithubCommit represents a Github commit
@@ -35,9 +36,4 @@ type GithubRepository struct {
 	HTMLURL  string `json:"html_url"`
 	Name     string `json:"name"`
 	FullName string `json:"full_name"`
-}
-
-// GithubAppInstallation represents and installation of a Github app
-type GithubAppInstallation struct {
-
 }
