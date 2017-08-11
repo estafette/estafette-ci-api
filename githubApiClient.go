@@ -35,13 +35,20 @@ func (gh *GithubAPIClient) getGithubAppToken() (githubAppToken string, err error
 	// https://developer.github.com/apps/building-integrations/setting-up-and-registering-github-apps/about-authentication-options-for-github-apps/
 
 	// load private key from pem file
+	log.Debug().Msgf("Reading pem file at %v...", gh.githubAppPrivateKeyPath)
 	pemFileByteArray, err := ioutil.ReadFile(gh.githubAppPrivateKeyPath)
 	if err != nil {
 		return
 	}
+
+	log.Debug().Msg("Reading private key from pem file...")
 	privateKey, err := jwt.ParseECPrivateKeyFromPEM(pemFileByteArray)
+	if err != nil {
+		return
+	}
 
 	// create a new token object, specifying signing method and the claims you would like it to contain.
+	log.Debug().Msg("Creating json web token...")
 	epoch := time.Now().Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 		// issued at time
@@ -53,7 +60,11 @@ func (gh *GithubAPIClient) getGithubAppToken() (githubAppToken string, err error
 	})
 
 	// sign and get the complete encoded token as a string using the private key
+	log.Debug().Msg("Signing json web token...")
 	githubAppToken, err = token.SignedString(&privateKey)
+	if err != nil {
+		return
+	}
 
 	return
 }
