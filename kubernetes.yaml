@@ -54,6 +54,18 @@ metadata:
     estafette.io/letsencrypt-certificate-hostnames: "${HOSTNAMES}"
 type: Opaque
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${APP_NAME}-github-app-key
+  namespace: ${NAMESPACE}
+  labels:
+    app: ${APP_NAME}
+    team: ${TEAM_NAME}
+type: Opaque
+data:
+  private-key.pem: ${GITHUB_APP_PRIVATE_KEY}
+---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -95,6 +107,9 @@ spec:
           containerPort: 5000
         - name: prometheus
           containerPort: 9001
+        volumeMounts:
+        - name: github-app-key
+          mountPath: /github-app-key
         livenessProbe:
           httpGet:
             path: /liveness
@@ -151,6 +166,9 @@ spec:
       - name: ssl-certificate
         secret:
           secretName: ${APP_NAME}-letsencrypt-certificate
+      - name: github-app-key
+        secret:
+          secretName: ${APP_NAME}-github-app-key
 ---
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
