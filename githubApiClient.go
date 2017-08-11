@@ -36,7 +36,7 @@ func (gh *GithubAPIClient) getGithubAppToken() (githubAppToken string, err error
 	// https://developer.github.com/apps/building-integrations/setting-up-and-registering-github-apps/about-authentication-options-for-github-apps/
 
 	// load private key from pem file
-	log.Debug().Msgf("Reading pem file at %v...", gh.githubAppPrivateKeyPath)
+	log.Debug().Msgf("Reading pem file from %v...", gh.githubAppPrivateKeyPath)
 	pemFileByteArray, err := ioutil.ReadFile(gh.githubAppPrivateKeyPath)
 	if err != nil {
 		return
