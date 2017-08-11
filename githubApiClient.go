@@ -62,7 +62,7 @@ func (gh *GithubAPIClient) getGithubAppToken() (githubAppToken string, err error
 
 	// sign and get the complete encoded token as a string using the private key
 	log.Debug().Msg("Signing json web token...")
-	githubAppToken, err = token.SignedString(&privateKey)
+	githubAppToken, err = token.SignedString(privateKey)
 	if err != nil {
 		return
 	}
