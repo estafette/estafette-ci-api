@@ -81,7 +81,7 @@ func (gh *GithubAPIClient) getGithubAppDetails() {
 	}
 
 	// curl -i -H "Authorization: Bearer $JWT" -H "Accept: application/vnd.github.machine-man-preview+json" https://api.github.com/app
-	callGithubAPI("GET", "https://api.github.com/app", nil, githubAppToken)
+	callGithubAPI("GET", "https://api.github.com/app", nil, "Bearer", githubAppToken)
 }
 
 func (gh *GithubAPIClient) getInstallationToken(installationID int) (installationToken string, err error) {
@@ -94,7 +94,7 @@ func (gh *GithubAPIClient) getInstallationToken(installationID int) (installatio
 		return
 	}
 
-	callGithubAPI("GET", fmt.Sprintf("https://api.github.com/installations/%v/access_tokens", installationID), nil, githubAppToken)
+	callGithubAPI("GET", fmt.Sprintf("https://api.github.com/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
 
 	return
 }
@@ -109,7 +109,7 @@ func (gh *GithubAPIClient) getInstallationRepositories(installationID int) {
 		return
 	}
 
-	callGithubAPI("GET", "https://api.github.com/installation/repositories", nil, installationToken)
+	callGithubAPI("GET", "https://api.github.com/installation/repositories", nil, "Token", installationToken)
 }
 
 func (gh *GithubAPIClient) getAuthenticatedRepositoryURL(installationID int, htmlURL string) (url string, err error) {
@@ -127,7 +127,7 @@ func (gh *GithubAPIClient) getAuthenticatedRepositoryURL(installationID int, htm
 	return
 }
 
-func callGithubAPI(method, url string, params interface{}, token string) (body []byte, err error) {
+func callGithubAPI(method, url string, params interface{}, authorizationType, token string) (body []byte, err error) {
 
 	// convert params to json if they're present
 	var requestBody io.Reader
@@ -150,7 +150,7 @@ func callGithubAPI(method, url string, params interface{}, token string) (body [
 	}
 
 	// add headers
-	request.Header.Add("Authorization", token)
+	request.Header.Add("Authorization", fmt.Sprintf("%v %v", authorizationType, token))
 	request.Header.Add("Accept", "application/vnd.github.machine-man-preview+json")
 
 	// perform actual request
