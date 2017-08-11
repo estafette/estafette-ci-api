@@ -343,7 +343,7 @@ type BitbucketCommit struct {
 type BitbucketAuthor struct {
 	Raw  string         `json:"raw"`
 	Type string         `json:"type"`
-	User BitbucketOwner `json:"user"`
+	User BitbucketOwner `json:"user,omitempty"`
 }
 
 func handleBitbucketPush(body []byte) {
