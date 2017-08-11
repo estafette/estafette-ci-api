@@ -75,6 +75,7 @@ func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	case "team": // Any time a team is created, deleted, modified, or added to or removed from a repository. Organization hooks only
 	case "team_add": // Any time a team is added or modified on a Repository.
 	case "watch": // Any time a User stars a Repository.
+	case "integration_installation_repositories": // ?
 		log.Debug().Str("event", eventType).Msgf("Not implemented Github webhook event of type '%v'", eventType)
 
 	default:
