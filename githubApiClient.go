@@ -63,7 +63,7 @@ func (gh *GithubAPIClient) getGithubAppDetails() {
 	githubAppToken, err := gh.getGithubAppToken()
 	if err != nil {
 		log.Error().Err(err).
-			Msg("Getting Github App web token failed")
+			Msg("Creating Github App web token failed")
 
 		return
 	}
@@ -77,7 +77,7 @@ func (gh *GithubAPIClient) getInstallationToken(installationID int) (installatio
 	githubAppToken, err := gh.getGithubAppToken()
 	if err != nil {
 		log.Error().Err(err).
-			Msg("Getting Github App web token failed")
+			Msg("Creating Github App web token failed")
 
 		return
 	}
@@ -92,7 +92,7 @@ func (gh *GithubAPIClient) getInstallationRepositories(installationID int) {
 	installationToken, err := gh.getInstallationToken(installationID)
 	if err != nil {
 		log.Error().Err(err).
-			Msg("Getting Github App installation web token failed")
+			Msg("Retrieving Github App installation web token failed")
 
 		return
 	}
