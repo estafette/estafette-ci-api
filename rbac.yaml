@@ -5,7 +5,7 @@ metadata:
   labels:
     app: estafette-ci-api
 rules:
-- apiGroups: [""] # "" indicates the core API group
+- apiGroups: ["batch"] # "" indicates the core API group
   resources:
   - jobs
   verbs:

@@ -47,6 +47,12 @@
 			"revisionTime": "2016-08-04T10:47:26Z"
 		},
 		{
+			"checksumSHA1": "mrz/kicZiUaHxkyfvC/DyQcr8Do=",
+			"path": "github.com/davecgh/go-spew/spew",
+			"revision": "adab96458c51a58dc1783b3335dcce5461522e75",
+			"revisionTime": "2017-07-11T18:34:51Z"
+		},
+		{
 			"checksumSHA1": "ZEPb+i1t8UkxXJcE0NrFZGNMN/o=",
 			"path": "github.com/dgrijalva/jwt-go",
 			"revision": "d2709f9f1f31ebcda9651b03077758c1f3a0018c",
@@ -313,6 +319,12 @@
 			"revisionTime": "2016-04-24T11:30:07Z"
 		},
 		{
+			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
+			"path": "github.com/pmezard/go-difflib/difflib",
+			"revision": "792786c7400a136282c1664665ae0a8db921c6c2",
+			"revisionTime": "2016-01-10T10:55:54Z"
+		},
+		{
 			"checksumSHA1": "YZvQ/pFowcTMs4ldf0B7vPG/hKU=",
 			"path": "github.com/prometheus/client_golang/prometheus",
 			"revision": "c5b7fccd204277076155f10851dad72b76a49317",
@@ -383,6 +395,14 @@
 			"revisionTime": "2017-08-06T03:45:41Z",
 			"version": "v1.2.2",
 			"versionExact": "v1.2.2"
+		},
+		{
+			"checksumSHA1": "q1qqfgDOGwfEuMlbHWNjYf09ACM=",
+			"path": "github.com/stretchr/testify/assert",
+			"revision": "69483b4bd14f5845b5a1e55bca19e954e827f1d0",
+			"revisionTime": "2016-09-25T01:54:16Z",
+			"version": "v1.1.4",
+			"versionExact": "v1.1.4"
 		},
 		{
 			"checksumSHA1": "dr5+PfIRzXeN+l1VG+s0lea9qz8=",
