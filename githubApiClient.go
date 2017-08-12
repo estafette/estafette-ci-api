@@ -38,20 +38,16 @@ func (gh *GithubAPIClient) getGithubAppToken() (githubAppToken string, err error
 	// https://developer.github.com/apps/building-integrations/setting-up-and-registering-github-apps/about-authentication-options-for-github-apps/
 
 	// load private key from pem file
-	log.Debug().Msgf("Reading pem file from %v...", gh.githubAppPrivateKeyPath)
 	pemFileByteArray, err := ioutil.ReadFile(gh.githubAppPrivateKeyPath)
 	if err != nil {
 		return
 	}
-
-	log.Debug().Msg("Reading private key from pem file...")
 	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(pemFileByteArray)
 	if err != nil {
 		return
 	}
 
 	// create a new token object, specifying signing method and the claims you would like it to contain.
-	log.Debug().Msg("Creating json web token...")
 	epoch := time.Now().Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 		// issued at time
@@ -62,12 +58,7 @@ func (gh *GithubAPIClient) getGithubAppToken() (githubAppToken string, err error
 		"iss": gh.githubAppID,
 	})
 
-	log.Debug().
-		Interface("token", token).
-		Msg("Created token")
-
 	// sign and get the complete encoded token as a string using the private key
-	log.Debug().Msg("Signing json web token...")
 	githubAppToken, err = token.SignedString(privateKey)
 	if err != nil {
 		return
@@ -76,27 +67,26 @@ func (gh *GithubAPIClient) getGithubAppToken() (githubAppToken string, err error
 	return
 }
 
-func (gh *GithubAPIClient) getGithubAppDetails() {
+func (gh *GithubAPIClient) getGithubAppDetails() (err error) {
 
 	githubAppToken, err := gh.getGithubAppToken()
 	if err != nil {
-		log.Error().Err(err).
-			Msg("Creating Github App web token failed")
-
 		return
 	}
 
 	// curl -i -H "Authorization: Bearer $JWT" -H "Accept: application/vnd.github.machine-man-preview+json" https://api.github.com/app
-	callGithubAPI("GET", "https://api.github.com/app", nil, "Bearer", githubAppToken)
+	_, err = callGithubAPI("GET", "https://api.github.com/app", nil, "Bearer", githubAppToken)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 func (gh *GithubAPIClient) getInstallationToken(installationID int) (accessToken GithubAccessToken, err error) {
 
 	githubAppToken, err := gh.getGithubAppToken()
 	if err != nil {
-		log.Error().Err(err).
-			Msg("Creating Github App web token failed")
-
 		return
 	}
 
@@ -105,33 +95,31 @@ func (gh *GithubAPIClient) getInstallationToken(installationID int) (accessToken
 	// unmarshal json body
 	err = json.Unmarshal(body, &accessToken)
 	if err != nil {
-		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubAccessToken failed")
 		return
 	}
 
 	return
 }
 
-func (gh *GithubAPIClient) getInstallationRepositories(installationID int) {
+func (gh *GithubAPIClient) getInstallationRepositories(installationID int) (err error) {
 
 	installationToken, err := gh.getInstallationToken(installationID)
 	if err != nil {
-		log.Error().Err(err).
-			Msg("Retrieving Github App installation web token failed")
-
 		return
 	}
 
-	callGithubAPI("GET", "https://api.github.com/installation/repositories", nil, "Token", installationToken.Token)
+	_, err = callGithubAPI("GET", "https://api.github.com/installation/repositories", nil, "Token", installationToken.Token)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 func (gh *GithubAPIClient) getAuthenticatedRepositoryURL(installationID int, htmlURL string) (url string, err error) {
 
 	installationToken, err := gh.getInstallationToken(installationID)
 	if err != nil {
-		log.Error().Err(err).
-			Msg("Retrieving Github App installation web token failed")
-
 		return
 	}
 
@@ -156,9 +144,6 @@ func callGithubAPI(method, url string, params interface{}, authorizationType, to
 	client := &http.Client{}
 	request, err := http.NewRequest(method, url, requestBody)
 	if err != nil {
-		log.Error().Err(err).
-			Msg("Creating http client failed")
-
 		return
 	}
 
@@ -169,9 +154,6 @@ func callGithubAPI(method, url string, params interface{}, authorizationType, to
 	// perform actual request
 	response, err := client.Do(request)
 	if err != nil {
-		log.Error().Err(err).
-			Msg("Performing Github api call failed")
-
 		return
 	}
 
@@ -179,9 +161,6 @@ func callGithubAPI(method, url string, params interface{}, authorizationType, to
 
 	body, err = ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Error().Err(err).
-			Msg("Reading Github api call response failed")
-
 		return
 	}
 

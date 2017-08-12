@@ -3,6 +3,7 @@
 *.dll
 *.so
 *.dylib
+estafette-ci-api
 
 # Test binary, build with `go test -c`
 *.test

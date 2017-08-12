@@ -99,9 +99,14 @@ func handleGithubPush(body []byte) {
 
 	// test making api calls for github app
 	ghClient := CreateGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret)
-	ghClient.getGithubAppDetails()
-	ghClient.getInstallationRepositories(pushEvent.Installation.ID)
+	//ghClient.getGithubAppDetails()
+	//ghClient.getInstallationRepositories(pushEvent.Installation.ID)
 	authenticatedRepositoryURL, err := ghClient.getAuthenticatedRepositoryURL(pushEvent.Installation.ID, pushEvent.Repository.HTMLURL)
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Retrieving authenticated repository failed")
+		return
+	}
 
 	log.Debug().Str("url", authenticatedRepositoryURL).Msgf("Authenticated url for Github repository %v", pushEvent.Repository.FullName)
 }
