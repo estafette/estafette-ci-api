@@ -39,7 +39,7 @@ func NewKubernetesClient() (kubernetes KubernetesClient, err error) {
 // CreateJob creates a kubernetes job to clone the authenticated git url
 func (k *Kubernetes) CreateJob(pushEvent GithubPushEvent, authenticatedGitURL string) (job *batchv1.Job, err error) {
 
-	name := fmt.Sprintf("%v-%v", strings.Replace(pushEvent.Repository.FullName, "/", "-", -1), pushEvent.After[0:6])
+	name := fmt.Sprintf("build-%v-%v", strings.Replace(pushEvent.Repository.FullName, "/", "-", -1), pushEvent.After[0:6])
 	containerName := "clone"
 	image := "alpine/git"
 	restartPolicy := "Never"
@@ -48,9 +48,17 @@ func (k *Kubernetes) CreateJob(pushEvent GithubPushEvent, authenticatedGitURL st
 		Metadata: &metav1.ObjectMeta{
 			Name:      &name,
 			Namespace: &k.Client.Namespace,
+			Labels: map[string]string{
+				"createdBy": "estafette",
+			},
 		},
 		Spec: &batchv1.JobSpec{
 			Template: &apiv1.PodTemplateSpec{
+				Metadata: &metav1.ObjectMeta{
+					Labels: map[string]string{
+						"createdBy": "estafette",
+					},
+				},
 				Spec: &apiv1.PodSpec{
 					Containers: []*apiv1.Container{
 						&apiv1.Container{
