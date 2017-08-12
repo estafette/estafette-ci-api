@@ -109,4 +109,18 @@ func handleGithubPush(body []byte) {
 	}
 
 	log.Debug().Str("url", authenticatedRepositoryURL).Msgf("Authenticated url for Github repository %v", pushEvent.Repository.FullName)
+
+	// create kubernetes client
+	kubernetes, err := NewKubernetesClient()
+	if err != nil {
+		log.Error().Err(err).Msg("Initializing Kubernetes client failed")
+		return
+	}
+
+	// create job cloning git repository
+	_, err = kubernetes.CreateJob(pushEvent, authenticatedRepositoryURL)
+	if err != nil {
+		log.Error().Err(err).Msg("Creating Kubernetes job failed")
+		return
+	}
 }
