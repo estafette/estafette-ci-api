@@ -17,15 +17,17 @@ import (
 // GithubAPIClient is the object to perform Github api calls with
 type GithubAPIClient struct {
 	githubAppPrivateKeyPath    string
+	githubAppID                string
 	githubAppOAuthClientID     string
 	githubAppOAuthClientSecret string
 }
 
 // CreateGithubAPIClient returns an initialized APIClient
-func CreateGithubAPIClient(githubAppPrivateKeyPath, githubAppOAuthClientID, githubAppOAuthClientSecret string) *GithubAPIClient {
+func CreateGithubAPIClient(githubAppPrivateKeyPath, githubAppID, githubAppOAuthClientID, githubAppOAuthClientSecret string) *GithubAPIClient {
 
 	return &GithubAPIClient{
 		githubAppPrivateKeyPath:    githubAppPrivateKeyPath,
+		githubAppID:                githubAppID,
 		githubAppOAuthClientID:     githubAppOAuthClientID,
 		githubAppOAuthClientSecret: githubAppOAuthClientSecret,
 	}
@@ -55,9 +57,9 @@ func (gh *GithubAPIClient) getGithubAppToken() (githubAppToken string, err error
 		// issued at time
 		"iat": epoch,
 		// JWT expiration time (10 minute maximum)
-		"exp": epoch + 600,
+		"exp": epoch + 500,
 		// GitHub App's identifier
-		"iss": gh.githubAppOAuthClientID,
+		"iss": gh.githubAppID,
 	})
 
 	log.Debug().
@@ -88,7 +90,7 @@ func (gh *GithubAPIClient) getGithubAppDetails() {
 	callGithubAPI("GET", "https://api.github.com/app", nil, "Bearer", githubAppToken)
 }
 
-func (gh *GithubAPIClient) getInstallationToken(installationID int) (installationToken string, err error) {
+func (gh *GithubAPIClient) getInstallationToken(installationID int) (accessToken GithubAccessToken, err error) {
 
 	githubAppToken, err := gh.getGithubAppToken()
 	if err != nil {
@@ -98,7 +100,14 @@ func (gh *GithubAPIClient) getInstallationToken(installationID int) (installatio
 		return
 	}
 
-	callGithubAPI("GET", fmt.Sprintf("https://api.github.com/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
+	body, err := callGithubAPI("POST", fmt.Sprintf("https://api.github.com/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
+
+	// unmarshal json body
+	err = json.Unmarshal(body, &accessToken)
+	if err != nil {
+		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubAccessToken failed")
+		return
+	}
 
 	return
 }
@@ -113,7 +122,7 @@ func (gh *GithubAPIClient) getInstallationRepositories(installationID int) {
 		return
 	}
 
-	callGithubAPI("GET", "https://api.github.com/installation/repositories", nil, "Token", installationToken)
+	callGithubAPI("GET", "https://api.github.com/installation/repositories", nil, "Token", installationToken.Token)
 }
 
 func (gh *GithubAPIClient) getAuthenticatedRepositoryURL(installationID int, htmlURL string) (url string, err error) {
@@ -126,7 +135,7 @@ func (gh *GithubAPIClient) getAuthenticatedRepositoryURL(installationID int, htm
 		return
 	}
 
-	url = strings.Replace(htmlURL, "https://github.com", fmt.Sprintf("https://x-access-token:%v@github.com", installationToken), -1)
+	url = strings.Replace(htmlURL, "https://github.com", fmt.Sprintf("https://x-access-token:%v@github.com", installationToken.Token), -1)
 
 	return
 }

@@ -43,6 +43,8 @@ type GithubRepository struct {
 	FullName string `json:"full_name"`
 }
 
-// GithubAccessTokenResponse represents the response returned when requesting a Github access token
-type GithubAccessTokenResponse struct {
+// GithubAccessToken represents a Github access token
+type GithubAccessToken struct {
+	ExpiresAt string `json:"expires_at"`
+	Token     string `json:"token"`
 }

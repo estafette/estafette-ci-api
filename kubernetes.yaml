@@ -103,6 +103,8 @@ spec:
             cpu: ${CPU_LIMIT}
             memory: ${MEMORY_LIMIT}
         env:
+        - name: "GITHUB_APP_ID"
+          value: "${GITHUB_APP_ID}"
         - name: "GITHUB_APP_OAUTH_CLIENT_ID"
           value: "${GITHUB_APP_OAUTH_CLIENT_ID}"
         - name: "GITHUB_APP_OAUTH_CLIENT_SECRET"
