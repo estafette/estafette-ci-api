@@ -42,6 +42,7 @@ func (k *Kubernetes) CreateJob(pushEvent GithubPushEvent, authenticatedGitURL st
 	name := fmt.Sprintf("%v-%v", strings.Replace(pushEvent.Repository.FullName, "/", "-", -1), pushEvent.After[0:6])
 	containerName := "clone"
 	image := "alpine/git"
+	restartPolicy := "Never"
 
 	job = &batchv1.Job{
 		Metadata: &metav1.ObjectMeta{
@@ -58,6 +59,7 @@ func (k *Kubernetes) CreateJob(pushEvent GithubPushEvent, authenticatedGitURL st
 							Args:  []string{"clone", authenticatedGitURL},
 						},
 					},
+					RestartPolicy: &restartPolicy,
 				},
 			},
 		},
