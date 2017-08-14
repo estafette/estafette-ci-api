@@ -43,7 +43,13 @@ func NewKubernetesClient() (kubernetes KubernetesClient, err error) {
 // CreateJobForGithubPushEvent creates a kubernetes job to clone the authenticated git url
 func (k *Kubernetes) CreateJobForGithubPushEvent(pushEvent GithubPushEvent, authenticatedGitURL string) (job *batchv1.Job, err error) {
 
-	jobName := fmt.Sprintf("build-%v-%v", strings.Replace(pushEvent.Repository.FullName, "/", "-", -1), pushEvent.After[0:6])
+	repoName := strings.Replace(pushEvent.Repository.FullName, "/", "-", -1)
+	if len(repoName) > 50 {
+		repoName = repoName[:50]
+	}
+
+	// max 63 chars
+	jobName := fmt.Sprintf("build-%v-%v", repoName, pushEvent.After[:6])
 
 	return k.createJob(jobName, authenticatedGitURL)
 }
@@ -51,7 +57,13 @@ func (k *Kubernetes) CreateJobForGithubPushEvent(pushEvent GithubPushEvent, auth
 // CreateJobForBitbucketPushEvent creates a kubernetes job to clone the authenticated git url
 func (k *Kubernetes) CreateJobForBitbucketPushEvent(pushEvent BitbucketRepositoryPushEvent, authenticatedGitURL string) (job *batchv1.Job, err error) {
 
-	jobName := fmt.Sprintf("build-%v-%v", strings.Replace(pushEvent.Repository.FullName, "/", "-", -1), pushEvent.Push.Changes[0].New.Target.Hash)
+	repoName := strings.Replace(pushEvent.Repository.FullName, "/", "-", -1)
+	if len(repoName) > 50 {
+		repoName = repoName[:50]
+	}
+
+	// max 63 chars
+	jobName := fmt.Sprintf("build-%v-%v", repoName, pushEvent.Push.Changes[0].New.Target.Hash[:6])
 
 	return k.createJob(jobName, authenticatedGitURL)
 }
