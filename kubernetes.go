@@ -60,7 +60,6 @@ func (k *Kubernetes) CreateJobForBitbucketPushEvent(pushEvent BitbucketRepositor
 
 	re := regexp.MustCompile("[^a-zA-Z0-9]+")
 	repoName := re.ReplaceAllString(pushEvent.Repository.FullName, "-")
-
 	if len(repoName) > 50 {
 		repoName = repoName[:50]
 	}

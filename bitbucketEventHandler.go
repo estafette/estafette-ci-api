@@ -83,7 +83,7 @@ func handleBitbucketPush(body []byte) {
 
 	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized Bitbucket push event for repository %v", pushEvent.Repository.FullName)
 
-	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil {
+	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil || len(pushEvent.Push.Changes[0].New.Target.Hash) == 0 {
 		return
 	}
 
