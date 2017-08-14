@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"strings"
+	"regexp"
 
 	"github.com/ericchiang/k8s"
 	apiv1 "github.com/ericchiang/k8s/api/v1"
@@ -43,7 +43,8 @@ func NewKubernetesClient() (kubernetes KubernetesClient, err error) {
 // CreateJobForGithubPushEvent creates a kubernetes job to clone the authenticated git url
 func (k *Kubernetes) CreateJobForGithubPushEvent(pushEvent GithubPushEvent, authenticatedGitURL string) (job *batchv1.Job, err error) {
 
-	repoName := strings.Replace(pushEvent.Repository.FullName, "/", "-", -1)
+	re := regexp.MustCompile("[^a-zA-Z0-9]+")
+	repoName := re.ReplaceAllString(pushEvent.Repository.FullName, "-")
 	if len(repoName) > 50 {
 		repoName = repoName[:50]
 	}
@@ -57,7 +58,9 @@ func (k *Kubernetes) CreateJobForGithubPushEvent(pushEvent GithubPushEvent, auth
 // CreateJobForBitbucketPushEvent creates a kubernetes job to clone the authenticated git url
 func (k *Kubernetes) CreateJobForBitbucketPushEvent(pushEvent BitbucketRepositoryPushEvent, authenticatedGitURL string) (job *batchv1.Job, err error) {
 
-	repoName := strings.Replace(pushEvent.Repository.FullName, "/", "-", -1)
+	re := regexp.MustCompile("[^a-zA-Z0-9]+")
+	repoName := re.ReplaceAllString(pushEvent.Repository.FullName, "-")
+
 	if len(repoName) > 50 {
 		repoName = repoName[:50]
 	}

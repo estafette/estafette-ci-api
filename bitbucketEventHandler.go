@@ -83,6 +83,10 @@ func handleBitbucketPush(body []byte) {
 
 	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized Bitbucket push event for repository %v", pushEvent.Repository.FullName)
 
+	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil {
+		return
+	}
+
 	// test making api calls for bitbucket app
 	bbClient := CreateBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret)
 	authenticatedRepositoryURL, err := bbClient.getAuthenticatedRepositoryURL(pushEvent.Repository.Links.HTML.Href)

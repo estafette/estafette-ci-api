@@ -14,13 +14,13 @@ type BitbucketPushEvent struct {
 
 // BitbucketPushEventChange represents a Bitbucket push change
 type BitbucketPushEventChange struct {
-	New       BitbucketPushEventChangeObject `json:"new,omitempty"`
-	Old       BitbucketPushEventChangeObject `json:"old,omitempty"`
-	Created   bool                           `json:"created"`
-	Closed    bool                           `json:"closed"`
-	Forced    bool                           `json:"forced"`
-	Commits   []BitbucketCommit              `json:"commits"`
-	Truncated bool                           `json:"truncated"`
+	New       *BitbucketPushEventChangeObject `json:"new,omitempty"`
+	Old       *BitbucketPushEventChangeObject `json:"old,omitempty"`
+	Created   bool                            `json:"created"`
+	Closed    bool                            `json:"closed"`
+	Forced    bool                            `json:"forced"`
+	Commits   []BitbucketCommit               `json:"commits"`
+	Truncated bool                            `json:"truncated"`
 }
 
 // BitbucketPushEventChangeObject represents the state of the reference after a push
