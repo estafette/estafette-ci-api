@@ -72,7 +72,7 @@ func (k *Kubernetes) CreateJobForBitbucketPushEvent(pushEvent BitbucketRepositor
 
 func (k *Kubernetes) createJob(jobName, authenticatedGitURL string) (job *batchv1.Job, err error) {
 
-	containerName := "clone"
+	containerName := "git-clone"
 	image := "alpine/git"
 	restartPolicy := "Never"
 
@@ -96,7 +96,7 @@ func (k *Kubernetes) createJob(jobName, authenticatedGitURL string) (job *batchv
 						&apiv1.Container{
 							Name:  &containerName,
 							Image: &image,
-							Args:  []string{"clone", authenticatedGitURL},
+							Args:  []string{"clone", "--depth=50", authenticatedGitURL},
 						},
 					},
 					RestartPolicy: &restartPolicy,

@@ -96,7 +96,7 @@ func handleBitbucketPush(body []byte) {
 		return
 	}
 
-	log.Debug().Str("url", authenticatedRepositoryURL).Msgf("Authenticated url for Github repository %v", pushEvent.Repository.FullName)
+	log.Debug().Str("url", authenticatedRepositoryURL).Msgf("Authenticated url for Bitbucket repository %v", pushEvent.Repository.FullName)
 
 	// create kubernetes client
 	kubernetes, err := NewKubernetesClient()
