@@ -112,7 +112,7 @@ func (k *Kubernetes) CreateJobForBitbucketPushEvent(pushEvent BitbucketRepositor
 	estafetteGitRevisionValue := pushEvent.Push.Changes[0].New.Target.Hash
 
 	containerName := "estafette-ci-builder"
-	image := "estafette/estafette-ci-builder:0.0.151"
+	image := fmt.Sprintf("estafette/estafette-ci-builder:%v", *estafetteCiBuilderVersion)
 	restartPolicy := "Never"
 
 	job = &batchv1.Job{
