@@ -87,7 +87,12 @@ func handleBitbucketPush(body []byte) {
 		return
 	}
 
-	// test making api calls for bitbucket app
+	// test making api calls for bitbucket app in the background
+	go createJobForBitbucketPush(pushEvent)
+}
+
+func createJobForBitbucketPush(pushEvent BitbucketRepositoryPushEvent) {
+
 	bbClient := CreateBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret)
 	authenticatedRepositoryURL, err := bbClient.getAuthenticatedRepositoryURL(pushEvent.Repository.Links.HTML.Href)
 	if err != nil {

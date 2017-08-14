@@ -97,7 +97,11 @@ func handleGithubPush(body []byte) {
 
 	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized GitHub push event for repository %v", pushEvent.Repository.FullName)
 
-	// test making api calls for github app
+	// test making api calls for github app in the background
+	go createJobForGithubPush(pushEvent)
+}
+
+func createJobForGithubPush(pushEvent GithubPushEvent) {
 	ghClient := CreateGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret)
 	authenticatedRepositoryURL, err := ghClient.getAuthenticatedRepositoryURL(pushEvent.Installation.ID, pushEvent.Repository.HTMLURL)
 	if err != nil {
