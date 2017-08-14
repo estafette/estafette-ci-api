@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/ericchiang/k8s"
 	apiv1 "github.com/ericchiang/k8s/api/v1"
@@ -50,7 +51,7 @@ func (k *Kubernetes) CreateJobForGithubPushEvent(pushEvent GithubPushEvent, auth
 	}
 
 	// max 63 chars
-	jobName := fmt.Sprintf("build-%v-%v", repoName, pushEvent.After[:6])
+	jobName := strings.ToLower(fmt.Sprintf("build-%v-%v", repoName, pushEvent.After[:6]))
 
 	args := []string{"clone", "--depth=10", authenticatedGitURL}
 
@@ -67,7 +68,7 @@ func (k *Kubernetes) CreateJobForBitbucketPushEvent(pushEvent BitbucketRepositor
 	}
 
 	// max 63 chars
-	jobName := fmt.Sprintf("build-%v-%v", repoName, pushEvent.Push.Changes[0].New.Target.Hash[:6])
+	jobName := strings.ToLower(fmt.Sprintf("build-%v-%v", repoName, pushEvent.Push.Changes[0].New.Target.Hash[:6]))
 
 	args := []string{"clone", "--depth=10", fmt.Sprintf("--branch=%v", pushEvent.Push.Changes[0].New.Name), authenticatedGitURL}
 
