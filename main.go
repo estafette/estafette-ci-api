@@ -46,11 +46,20 @@ var (
 		},
 		[]string{"event", "source"},
 	)
+
+	outgoingAPIRequestTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "estafette_ci_api_outgoing_api_request_totals",
+			Help: "Total of outgoing api calls.",
+		},
+		[]string{"target"},
+	)
 )
 
 func init() {
 	// Metrics have to be registered to be exposed:
 	prometheus.MustRegister(webhookTotal)
+	prometheus.MustRegister(outgoingAPIRequestTotal)
 }
 
 func main() {

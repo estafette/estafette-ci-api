@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // BitbucketAPIClient is the object to perform Bitbucket api calls with
@@ -30,11 +32,7 @@ func CreateBitbucketAPIClient(bitbucketAPIKey, bitbucketAppOAuthKey, bitbucketAp
 
 func (bb *BitbucketAPIClient) getAccessToken() (accessToken BitbucketAccessToken, err error) {
 
-	//curl -X POST -u "cEHbmCvrCbL54afgxF:6wwX7yvXxcrPVkEChebzcCTNPtdKmsp7" https://bitbucket.org/site/oauth2/access_token -d grant_type=client_credentials
-
-	// {"access_token": "dxHqk3Z8-XurpbRbheGTfNgADuChMtY6hE78-nnfHWH8vWnPBfRjbM3LjwolZW0MxZNVG1YtjBffwMOfgEs=", "scopes": "pipeline:variable webhook snippet:write wiki issue:write pullrequest:write repositor
-	// y:delete repository:admin project:write team:write account:write", "expires_in": 3600, "refresh_toke
-	// n": "BfjCrRUm4vB4Ld2AJc", "token_type": "bearer"}
+	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "bitbucket"}).Inc()
 
 	basicAuthenticationToken := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", bb.bitbucketAppOAuthKey, bb.bitbucketAppOAuthSecret)))
 

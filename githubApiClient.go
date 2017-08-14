@@ -12,6 +12,8 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/rs/zerolog/log"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // GithubAPIClient is the object to perform Github api calls with
@@ -129,6 +131,8 @@ func (gh *GithubAPIClient) getAuthenticatedRepositoryURL(installationID int, htm
 }
 
 func callGithubAPI(method, url string, params interface{}, authorizationType, token string) (body []byte, err error) {
+
+	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "github"}).Inc()
 
 	// convert params to json if they're present
 	var requestBody io.Reader
