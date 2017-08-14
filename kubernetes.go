@@ -52,10 +52,18 @@ func (k *Kubernetes) CreateJobForGithubPushEvent(pushEvent GithubPushEvent, auth
 	// max 63 chars
 	jobName := strings.ToLower(fmt.Sprintf("build-%v-%v", repoName, pushEvent.After[:6]))
 
-	args := []string{"clone", "--depth=10", authenticatedGitURL}
+	estafetteGitURLName := "ESTAFETTE_GIT_URL"
+	estafetteGitURLValue := authenticatedGitURL
+	estafetteGitBranchName := "ESTAFETTE_GIT_BRANCH"
+	estafetteGitBranchValue := pushEvent.Ref
+	if strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
+		estafetteGitBranchValue = strings.Replace(estafetteGitBranchValue, "refs/heads/", "", 1)
+	}
+	estafetteGitRevisionName := "ESTAFETTE_GIT_REVISION"
+	estafetteGitRevisionValue := pushEvent.After
 
-	containerName := "git-clone"
-	image := "alpine/git"
+	containerName := "estafette-ci-builder"
+	image := fmt.Sprintf("estafette/estafette-ci-builder:%v", *estafetteCiBuilderVersion)
 	restartPolicy := "Never"
 
 	job = &batchv1.Job{
@@ -78,7 +86,20 @@ func (k *Kubernetes) CreateJobForGithubPushEvent(pushEvent GithubPushEvent, auth
 						&apiv1.Container{
 							Name:  &containerName,
 							Image: &image,
-							Args:  args,
+							Env: []*apiv1.EnvVar{
+								&apiv1.EnvVar{
+									Name:  &estafetteGitURLName,
+									Value: &estafetteGitURLValue,
+								},
+								&apiv1.EnvVar{
+									Name:  &estafetteGitBranchName,
+									Value: &estafetteGitBranchValue,
+								},
+								&apiv1.EnvVar{
+									Name:  &estafetteGitRevisionName,
+									Value: &estafetteGitRevisionValue,
+								},
+							},
 						},
 					},
 					RestartPolicy: &restartPolicy,

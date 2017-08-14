@@ -8,6 +8,7 @@ type GithubPushEvent struct {
 	Pusher       GithubPusher       `json:"pusher"`
 	Repository   GithubRepository   `json:"repository"`
 	Installation GithubInstallation `json:"installation"`
+	Ref          string             `json:"ref"`
 }
 
 // GithubInstallation represents an installation of a Github app

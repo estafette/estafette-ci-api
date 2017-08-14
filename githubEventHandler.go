@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -102,6 +103,11 @@ func handleGithubPush(body []byte) {
 }
 
 func createJobForGithubPush(pushEvent GithubPushEvent) {
+
+	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
+		return
+	}
+
 	ghClient := CreateGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret)
 	authenticatedRepositoryURL, err := ghClient.getAuthenticatedRepositoryURL(pushEvent.Installation.ID, pushEvent.Repository.HTMLURL)
 	if err != nil {
