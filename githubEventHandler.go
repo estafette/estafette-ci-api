@@ -99,8 +99,6 @@ func handleGithubPush(body []byte) {
 
 	// test making api calls for github app
 	ghClient := CreateGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret)
-	//ghClient.getGithubAppDetails()
-	//ghClient.getInstallationRepositories(pushEvent.Installation.ID)
 	authenticatedRepositoryURL, err := ghClient.getAuthenticatedRepositoryURL(pushEvent.Installation.ID, pushEvent.Repository.HTMLURL)
 	if err != nil {
 		log.Error().Err(err).
@@ -118,7 +116,7 @@ func handleGithubPush(body []byte) {
 	}
 
 	// create job cloning git repository
-	_, err = kubernetes.CreateJob(pushEvent, authenticatedRepositoryURL)
+	_, err = kubernetes.CreateJobForGithubPushEvent(pushEvent, authenticatedRepositoryURL)
 	if err != nil {
 		log.Error().Err(err).Msg("Creating Kubernetes job failed")
 		return

@@ -82,4 +82,29 @@ func handleBitbucketPush(body []byte) {
 	}
 
 	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized Bitbucket push event for repository %v", pushEvent.Repository.FullName)
+
+	// test making api calls for bitbucket app
+	bbClient := CreateBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret)
+	authenticatedRepositoryURL, err := bbClient.getAuthenticatedRepositoryURL(pushEvent.Repository.Links.HTML.Href)
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Retrieving authenticated repository failed")
+		return
+	}
+
+	log.Debug().Str("url", authenticatedRepositoryURL).Msgf("Authenticated url for Github repository %v", pushEvent.Repository.FullName)
+
+	// create kubernetes client
+	kubernetes, err := NewKubernetesClient()
+	if err != nil {
+		log.Error().Err(err).Msg("Initializing Kubernetes client failed")
+		return
+	}
+
+	// create job cloning git repository
+	_, err = kubernetes.CreateJobForBitbucketPushEvent(pushEvent, authenticatedRepositoryURL)
+	if err != nil {
+		log.Error().Err(err).Msg("Creating Kubernetes job failed")
+		return
+	}
 }

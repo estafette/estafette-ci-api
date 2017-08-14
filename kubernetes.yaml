@@ -109,6 +109,12 @@ spec:
           value: "${GITHUB_APP_OAUTH_CLIENT_ID}"
         - name: "GITHUB_APP_OAUTH_CLIENT_SECRET"
           value: "${GITHUB_APP_OAUTH_CLIENT_SECRET}"
+        - name: "BITBUCKET_API_KEY"
+          value: "${BITBUCKET_API_KEY}"
+        - name: "BITBUCKET_APP_OAUTH_KEY"
+          value: "${BITBUCKET_APP_OAUTH_KEY}"
+        - name: "BITBUCKET_APP_OAUTH_SECRET"
+          value: "${BITBUCKET_APP_OAUTH_SECRET}"
         ports:
         - name: api
           containerPort: 5000

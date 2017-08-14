@@ -12,12 +12,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// Kubernetes wraps the Kubernetes Client
 type Kubernetes struct {
 	Client *k8s.Client
 }
 
+// KubernetesClient is the interface for running kubernetes commands specific to this application
 type KubernetesClient interface {
-	CreateJob(GithubPushEvent, string) (*batchv1.Job, error)
+	CreateJobForGithubPushEvent(GithubPushEvent, string) (*batchv1.Job, error)
+	CreateJobForBitbucketPushEvent(BitbucketRepositoryPushEvent, string) (*batchv1.Job, error)
+	createJob(string, string) (*batchv1.Job, error)
 }
 
 // NewKubernetesClient return a Kubernetes client
@@ -36,17 +40,31 @@ func NewKubernetesClient() (kubernetes KubernetesClient, err error) {
 	return
 }
 
-// CreateJob creates a kubernetes job to clone the authenticated git url
-func (k *Kubernetes) CreateJob(pushEvent GithubPushEvent, authenticatedGitURL string) (job *batchv1.Job, err error) {
+// CreateJobForGithubPushEvent creates a kubernetes job to clone the authenticated git url
+func (k *Kubernetes) CreateJobForGithubPushEvent(pushEvent GithubPushEvent, authenticatedGitURL string) (job *batchv1.Job, err error) {
 
-	name := fmt.Sprintf("build-%v-%v", strings.Replace(pushEvent.Repository.FullName, "/", "-", -1), pushEvent.After[0:6])
+	jobName := fmt.Sprintf("build-%v-%v", strings.Replace(pushEvent.Repository.FullName, "/", "-", -1), pushEvent.After[0:6])
+
+	return k.createJob(jobName, authenticatedGitURL)
+}
+
+// CreateJobForBitbucketPushEvent creates a kubernetes job to clone the authenticated git url
+func (k *Kubernetes) CreateJobForBitbucketPushEvent(pushEvent BitbucketRepositoryPushEvent, authenticatedGitURL string) (job *batchv1.Job, err error) {
+
+	jobName := fmt.Sprintf("build-%v-%v", strings.Replace(pushEvent.Repository.FullName, "/", "-", -1), pushEvent.Push.Changes[0].New.Target.Hash)
+
+	return k.createJob(jobName, authenticatedGitURL)
+}
+
+func (k *Kubernetes) createJob(jobName, authenticatedGitURL string) (job *batchv1.Job, err error) {
+
 	containerName := "clone"
 	image := "alpine/git"
 	restartPolicy := "Never"
 
 	job = &batchv1.Job{
 		Metadata: &metav1.ObjectMeta{
-			Name:      &name,
+			Name:      &jobName,
 			Namespace: &k.Client.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
