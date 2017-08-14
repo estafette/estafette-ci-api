@@ -21,7 +21,7 @@ type Kubernetes struct {
 type KubernetesClient interface {
 	CreateJobForGithubPushEvent(GithubPushEvent, string) (*batchv1.Job, error)
 	CreateJobForBitbucketPushEvent(BitbucketRepositoryPushEvent, string) (*batchv1.Job, error)
-	createJob(string, string) (*batchv1.Job, error)
+	createJob(string, []string) (*batchv1.Job, error)
 }
 
 // NewKubernetesClient return a Kubernetes client
@@ -52,7 +52,9 @@ func (k *Kubernetes) CreateJobForGithubPushEvent(pushEvent GithubPushEvent, auth
 	// max 63 chars
 	jobName := fmt.Sprintf("build-%v-%v", repoName, pushEvent.After[:6])
 
-	return k.createJob(jobName, authenticatedGitURL)
+	args := []string{"clone", "--depth=10", authenticatedGitURL}
+
+	return k.createJob(jobName, args)
 }
 
 // CreateJobForBitbucketPushEvent creates a kubernetes job to clone the authenticated git url
@@ -67,10 +69,12 @@ func (k *Kubernetes) CreateJobForBitbucketPushEvent(pushEvent BitbucketRepositor
 	// max 63 chars
 	jobName := fmt.Sprintf("build-%v-%v", repoName, pushEvent.Push.Changes[0].New.Target.Hash[:6])
 
-	return k.createJob(jobName, authenticatedGitURL)
+	args := []string{"clone", "--depth=10", fmt.Sprintf("--branch=%v", pushEvent.Push.Changes[0].New.Name), authenticatedGitURL}
+
+	return k.createJob(jobName, args)
 }
 
-func (k *Kubernetes) createJob(jobName, authenticatedGitURL string) (job *batchv1.Job, err error) {
+func (k *Kubernetes) createJob(jobName string, args []string) (job *batchv1.Job, err error) {
 
 	containerName := "git-clone"
 	image := "alpine/git"
@@ -96,7 +100,7 @@ func (k *Kubernetes) createJob(jobName, authenticatedGitURL string) (job *batchv
 						&apiv1.Container{
 							Name:  &containerName,
 							Image: &image,
-							Args:  []string{"clone", "--depth=50", authenticatedGitURL},
+							Args:  args,
 						},
 					},
 					RestartPolicy: &restartPolicy,
