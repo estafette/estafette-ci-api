@@ -24,9 +24,15 @@ type GithubAPIClient struct {
 	githubAppOAuthClientSecret string
 }
 
-// CreateGithubAPIClient returns an initialized APIClient
-func CreateGithubAPIClient(githubAppPrivateKeyPath, githubAppID, githubAppOAuthClientID, githubAppOAuthClientSecret string) *GithubAPIClient {
+// GithubAPIClientInterface is the interface for running kubernetes commands specific to this application
+type GithubAPIClientInterface interface {
+	GetGithubAppToken() (string, error)
+	GetInstallationToken(int) (GithubAccessToken, error)
+	GetAuthenticatedRepositoryURL(int, string) (string, error)
+}
 
+// CreateGithubAPIClient returns an initialized APIClient
+func CreateGithubAPIClient(githubAppPrivateKeyPath, githubAppID, githubAppOAuthClientID, githubAppOAuthClientSecret string) GithubAPIClientInterface {
 	return &GithubAPIClient{
 		githubAppPrivateKeyPath:    githubAppPrivateKeyPath,
 		githubAppID:                githubAppID,
@@ -35,7 +41,8 @@ func CreateGithubAPIClient(githubAppPrivateKeyPath, githubAppID, githubAppOAuthC
 	}
 }
 
-func (gh *GithubAPIClient) getGithubAppToken() (githubAppToken string, err error) {
+// GetGithubAppToken returns a Github app token with which to retrieve an installation token
+func (gh *GithubAPIClient) GetGithubAppToken() (githubAppToken string, err error) {
 
 	// https://developer.github.com/apps/building-integrations/setting-up-and-registering-github-apps/about-authentication-options-for-github-apps/
 
@@ -69,25 +76,10 @@ func (gh *GithubAPIClient) getGithubAppToken() (githubAppToken string, err error
 	return
 }
 
-func (gh *GithubAPIClient) getGithubAppDetails() (err error) {
+// GetInstallationToken returns an access token for an installation of a Github app
+func (gh *GithubAPIClient) GetInstallationToken(installationID int) (accessToken GithubAccessToken, err error) {
 
-	githubAppToken, err := gh.getGithubAppToken()
-	if err != nil {
-		return
-	}
-
-	// curl -i -H "Authorization: Bearer $JWT" -H "Accept: application/vnd.github.machine-man-preview+json" https://api.github.com/app
-	_, err = callGithubAPI("GET", "https://api.github.com/app", nil, "Bearer", githubAppToken)
-	if err != nil {
-		return
-	}
-
-	return
-}
-
-func (gh *GithubAPIClient) getInstallationToken(installationID int) (accessToken GithubAccessToken, err error) {
-
-	githubAppToken, err := gh.getGithubAppToken()
+	githubAppToken, err := gh.GetGithubAppToken()
 	if err != nil {
 		return
 	}
@@ -103,24 +95,10 @@ func (gh *GithubAPIClient) getInstallationToken(installationID int) (accessToken
 	return
 }
 
-func (gh *GithubAPIClient) getInstallationRepositories(installationID int) (err error) {
+// GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
+func (gh *GithubAPIClient) GetAuthenticatedRepositoryURL(installationID int, htmlURL string) (url string, err error) {
 
-	installationToken, err := gh.getInstallationToken(installationID)
-	if err != nil {
-		return
-	}
-
-	_, err = callGithubAPI("GET", "https://api.github.com/installation/repositories", nil, "Token", installationToken.Token)
-	if err != nil {
-		return
-	}
-
-	return
-}
-
-func (gh *GithubAPIClient) getAuthenticatedRepositoryURL(installationID int, htmlURL string) (url string, err error) {
-
-	installationToken, err := gh.getInstallationToken(installationID)
+	installationToken, err := gh.GetInstallationToken(installationID)
 	if err != nil {
 		return
 	}
@@ -132,6 +110,7 @@ func (gh *GithubAPIClient) getAuthenticatedRepositoryURL(installationID int, htm
 
 func callGithubAPI(method, url string, params interface{}, authorizationType, token string) (body []byte, err error) {
 
+	// track call via prometheus
 	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "github"}).Inc()
 
 	// convert params to json if they're present

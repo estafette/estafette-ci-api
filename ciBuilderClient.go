@@ -14,13 +14,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// CiBuilder wraps the k8s client
-type CiBuilder struct {
+// CiBuilderClient wraps the k8s client
+type CiBuilderClient struct {
 	KubeClient *k8s.Client
 }
 
 // CiBuilderClient is the interface for running kubernetes commands specific to this application
-type CiBuilderClient interface {
+type CiBuilderClientInterface interface {
 	CreateCiBuilderJob(CiBuilderParams) (*batchv1.Job, error)
 }
 
@@ -33,7 +33,7 @@ type CiBuilderParams struct {
 }
 
 // CreateCiBuilderClient return a estafette ci builder client
-func CreateCiBuilderClient() (ciBuilderClient CiBuilderClient, err error) {
+func CreateCiBuilderClient() (ciBuilderClient CiBuilderClientInterface, err error) {
 
 	kubeClient, err := k8s.NewInClusterClient()
 	if err != nil {
@@ -41,7 +41,7 @@ func CreateCiBuilderClient() (ciBuilderClient CiBuilderClient, err error) {
 		return
 	}
 
-	ciBuilderClient = &CiBuilder{
+	ciBuilderClient = &CiBuilderClient{
 		KubeClient: kubeClient,
 	}
 
@@ -49,7 +49,7 @@ func CreateCiBuilderClient() (ciBuilderClient CiBuilderClient, err error) {
 }
 
 // CreateCiBuilderJob creates an estafette-ci-builder job in Kubernetes to run the estafette build
-func (cbc *CiBuilder) CreateCiBuilderJob(ciBuilderParams CiBuilderParams) (job *batchv1.Job, err error) {
+func (cbc *CiBuilderClient) CreateCiBuilderJob(ciBuilderParams CiBuilderParams) (job *batchv1.Job, err error) {
 
 	// create job name of max 63 chars
 	re := regexp.MustCompile("[^a-zA-Z0-9]+")
@@ -114,6 +114,7 @@ func (cbc *CiBuilder) CreateCiBuilderJob(ciBuilderParams CiBuilderParams) (job *
 		},
 	}
 
+	// track call via prometheus
 	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 
 	job, err = cbc.KubeClient.BatchV1().CreateJob(context.Background(), job)
