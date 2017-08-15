@@ -6,18 +6,25 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type bitbucketWorker struct {
+// BitbucketWorker processes events pushed to channels
+type BitbucketWorker interface {
+	ListenToBitbucketPushEventChannel()
+	Stop()
+	CreateJobForBitbucketPush(BitbucketRepositoryPushEvent)
+}
+
+type bitbucketWorkerImpl struct {
 	WaitGroup   *sync.WaitGroup
 	QuitChannel chan bool
 }
 
-func newBitbucketWorker(waitGroup *sync.WaitGroup) bitbucketWorker {
-	return bitbucketWorker{
+func newBitbucketWorker(waitGroup *sync.WaitGroup) BitbucketWorker {
+	return &bitbucketWorkerImpl{
 		WaitGroup:   waitGroup,
 		QuitChannel: make(chan bool)}
 }
 
-func (w *bitbucketWorker) listenToBitbucketPushEventChannel() {
+func (w *bitbucketWorkerImpl) ListenToBitbucketPushEventChannel() {
 	go func() {
 		// handle github push events via channels
 		log.Debug().Msg("Listening to Bitbucket push events channel...")
@@ -25,7 +32,7 @@ func (w *bitbucketWorker) listenToBitbucketPushEventChannel() {
 			select {
 			case pushEvent := <-bitbucketPushEvents:
 				w.WaitGroup.Add(1)
-				createJobForBitbucketPush(pushEvent)
+				w.CreateJobForBitbucketPush(pushEvent)
 				w.WaitGroup.Done()
 			case <-w.QuitChannel:
 				log.Info().Msg("Stopping Bitbucket worker...")
@@ -35,13 +42,13 @@ func (w *bitbucketWorker) listenToBitbucketPushEventChannel() {
 	}()
 }
 
-func (w *bitbucketWorker) stop() {
+func (w *bitbucketWorkerImpl) Stop() {
 	go func() {
 		w.QuitChannel <- true
 	}()
 }
 
-func createJobForBitbucketPush(pushEvent BitbucketRepositoryPushEvent) {
+func (w *bitbucketWorkerImpl) CreateJobForBitbucketPush(pushEvent BitbucketRepositoryPushEvent) {
 
 	// check to see that it's a cloneable event
 	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil || pushEvent.Push.Changes[0].New.Type != "branch" || len(pushEvent.Push.Changes[0].New.Target.Hash) == 0 {

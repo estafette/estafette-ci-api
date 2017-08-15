@@ -15,7 +15,20 @@ var (
 	bitbucketPushEvents = make(chan BitbucketRepositoryPushEvent, 100)
 )
 
-func bitbucketWebhookHandler(w http.ResponseWriter, r *http.Request) {
+// BitbucketWebhookHandler handles http events for Bitbucket integration
+type BitbucketWebhookHandler interface {
+	Handle(http.ResponseWriter, *http.Request)
+	HandleBitbucketPush([]byte)
+}
+
+type bitbucketWebhookHandlerImpl struct {
+}
+
+func newBitbucketWebhookHandler() BitbucketWebhookHandler {
+	return &bitbucketWebhookHandlerImpl{}
+}
+
+func (h *bitbucketWebhookHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
 
@@ -47,7 +60,7 @@ func bitbucketWebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch eventType {
 	case "repo:push":
-		handleBitbucketPush(body)
+		h.HandleBitbucketPush(body)
 
 	case "repo:fork":
 	case "repo:updated":
@@ -76,7 +89,7 @@ func bitbucketWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Aye aye!")
 }
 
-func handleBitbucketPush(body []byte) {
+func (h *bitbucketWebhookHandlerImpl) HandleBitbucketPush(body []byte) {
 
 	// unmarshal json body
 	var pushEvent BitbucketRepositoryPushEvent

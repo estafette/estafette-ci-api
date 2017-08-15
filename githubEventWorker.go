@@ -7,18 +7,25 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type githubWorker struct {
+// GithubWorker processes events pushed to channels
+type GithubWorker interface {
+	ListenToGithubPushEventChannel()
+	Stop()
+	CreateJobForGithubPush(GithubPushEvent)
+}
+
+type githubWorkerImpl struct {
 	WaitGroup   *sync.WaitGroup
 	QuitChannel chan bool
 }
 
-func newGithubWorker(waitGroup *sync.WaitGroup) githubWorker {
-	return githubWorker{
+func newGithubWorker(waitGroup *sync.WaitGroup) GithubWorker {
+	return &githubWorkerImpl{
 		WaitGroup:   waitGroup,
 		QuitChannel: make(chan bool)}
 }
 
-func (w *githubWorker) listenToGithubPushEventChannel() {
+func (w *githubWorkerImpl) ListenToGithubPushEventChannel() {
 	go func() {
 		// handle github push events via channels
 		log.Debug().Msg("Listening to Github push events channel...")
@@ -26,7 +33,7 @@ func (w *githubWorker) listenToGithubPushEventChannel() {
 			select {
 			case pushEvent := <-githubPushEvents:
 				w.WaitGroup.Add(1)
-				createJobForGithubPush(pushEvent)
+				w.CreateJobForGithubPush(pushEvent)
 				w.WaitGroup.Done()
 			case <-w.QuitChannel:
 				log.Info().Msg("Stopping Github worker...")
@@ -36,13 +43,13 @@ func (w *githubWorker) listenToGithubPushEventChannel() {
 	}()
 }
 
-func (w *githubWorker) stop() {
+func (w *githubWorkerImpl) Stop() {
 	go func() {
 		w.QuitChannel <- true
 	}()
 }
 
-func createJobForGithubPush(pushEvent GithubPushEvent) {
+func (w *githubWorkerImpl) CreateJobForGithubPush(pushEvent GithubPushEvent) {
 
 	// check to see that it's a cloneable event
 	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {

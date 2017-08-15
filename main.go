@@ -119,10 +119,10 @@ func main() {
 
 	// listen to channels for push events
 	githubWorker := newGithubWorker(waitGroup)
-	githubWorker.listenToGithubPushEventChannel()
+	githubWorker.ListenToGithubPushEventChannel()
 
 	bitbucketWorker := newBitbucketWorker(waitGroup)
-	bitbucketWorker.listenToBitbucketPushEventChannel()
+	bitbucketWorker.ListenToBitbucketPushEventChannel()
 
 	log.Debug().
 		Str("port", *apiAddress).
@@ -130,8 +130,12 @@ func main() {
 
 	srv := &http.Server{Addr: *apiAddress}
 
-	http.HandleFunc("/webhook/github", githubWebhookHandler)
-	http.HandleFunc("/webhook/bitbucket", bitbucketWebhookHandler)
+	githubWebhookHandler := newGithubWebhookHandler()
+	http.HandleFunc("/webhook/github", githubWebhookHandler.Handle)
+
+	bitbucketWebhookHandler := newBitbucketWebhookHandler()
+	http.HandleFunc("/webhook/bitbucket", bitbucketWebhookHandler.Handle)
+
 	http.HandleFunc("/liveness", livenessHandler)
 	http.HandleFunc("/readiness", readinessHandler)
 
@@ -149,8 +153,8 @@ func main() {
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	srv.Shutdown(ctx)
 
-	githubWorker.stop()
-	bitbucketWorker.stop()
+	githubWorker.Stop()
+	bitbucketWorker.Stop()
 
 	log.Info().Msg("Awaiting waitgroup...")
 	waitGroup.Wait()
