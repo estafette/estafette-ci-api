@@ -19,7 +19,7 @@ type CiBuilderClient struct {
 	KubeClient *k8s.Client
 }
 
-// CiBuilderClient is the interface for running kubernetes commands specific to this application
+// CiBuilderClientInterface is the interface for running kubernetes commands specific to this application
 type CiBuilderClientInterface interface {
 	CreateCiBuilderJob(CiBuilderParams) (*batchv1.Job, error)
 }

@@ -10,6 +10,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+var (
+	// channel for passing push events to handler that creates ci-builder job
+	bitbucketPushEvents = make(chan BitbucketRepositoryPushEvent, 100)
+)
+
 func bitbucketWebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
@@ -84,50 +89,5 @@ func handleBitbucketPush(body []byte) {
 	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized Bitbucket push event for repository %v", pushEvent.Repository.FullName)
 
 	// test making api calls for bitbucket app in the background
-	go createJobForBitbucketPush(pushEvent)
-}
-
-func createJobForBitbucketPush(pushEvent BitbucketRepositoryPushEvent) {
-
-	// check to see that it's a cloneable event
-	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil || pushEvent.Push.Changes[0].New.Type != "branch" || len(pushEvent.Push.Changes[0].New.Target.Hash) == 0 {
-		return
-	}
-
-	// get authenticated url for the repository
-	bbClient := CreateBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret)
-	authenticatedRepositoryURL, err := bbClient.GetAuthenticatedRepositoryURL(pushEvent.Repository.Links.HTML.Href)
-	if err != nil {
-		log.Error().Err(err).
-			Msg("Retrieving authenticated repository failed")
-		return
-	}
-
-	// create ci builder client
-	ciBuilderClient, err := CreateCiBuilderClient()
-	if err != nil {
-		log.Error().Err(err).Msg("Initializing ci builder client failed")
-		return
-	}
-
-	// define ci builder params
-	ciBuilderParams := CiBuilderParams{
-		RepoFullName: pushEvent.Repository.FullName,
-		RepoURL:      authenticatedRepositoryURL,
-		RepoBranch:   pushEvent.Push.Changes[0].New.Name,
-		RepoRevision: pushEvent.Push.Changes[0].New.Target.Hash,
-	}
-
-	// create ci builder job
-	_, err = ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
-	if err != nil {
-		log.Error().Err(err).Msg("Creating ci builder job failed")
-		return
-	}
-
-	log.Debug().
-		Str("url", ciBuilderParams.RepoURL).
-		Str("branch", ciBuilderParams.RepoBranch).
-		Str("revision", ciBuilderParams.RepoRevision).
-		Msgf("Created estafette-ci-builder job for Bitbucket repository %v revision %v", ciBuilderParams.RepoURL, ciBuilderParams.RepoRevision)
+	bitbucketPushEvents <- pushEvent
 }

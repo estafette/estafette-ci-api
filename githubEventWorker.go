@@ -1,0 +1,87 @@
+package main
+
+import (
+	"strings"
+	"sync"
+
+	"github.com/rs/zerolog/log"
+)
+
+type githubWorker struct {
+	WaitGroup   *sync.WaitGroup
+	QuitChannel chan bool
+}
+
+func newGithubWorker(waitGroup *sync.WaitGroup) githubWorker {
+	return githubWorker{
+		WaitGroup:   waitGroup,
+		QuitChannel: make(chan bool)}
+}
+
+func (w *githubWorker) listenToGithubPushEventChannel() {
+	go func() {
+		// handle github push events via channels
+		log.Debug().Msg("Listening to Github push events channel...")
+		for {
+			select {
+			case pushEvent := <-githubPushEvents:
+				w.WaitGroup.Add(1)
+				createJobForGithubPush(pushEvent)
+				w.WaitGroup.Done()
+			case <-w.QuitChannel:
+				return
+			}
+		}
+	}()
+}
+
+func (w *githubWorker) stop() {
+	go func() {
+		w.QuitChannel <- true
+	}()
+}
+
+func createJobForGithubPush(pushEvent GithubPushEvent) {
+
+	// check to see that it's a cloneable event
+	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
+		return
+	}
+
+	// get authenticated url for the repository
+	ghClient := CreateGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret)
+	authenticatedRepositoryURL, err := ghClient.GetAuthenticatedRepositoryURL(pushEvent.Installation.ID, pushEvent.Repository.HTMLURL)
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Retrieving authenticated repository failed")
+		return
+	}
+
+	// create ci builder client
+	ciBuilderClient, err := CreateCiBuilderClient()
+	if err != nil {
+		log.Error().Err(err).Msg("Initializing ci builder client failed")
+		return
+	}
+
+	// define ci builder params
+	ciBuilderParams := CiBuilderParams{
+		RepoFullName: pushEvent.Repository.FullName,
+		RepoURL:      authenticatedRepositoryURL,
+		RepoBranch:   strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
+		RepoRevision: pushEvent.After,
+	}
+
+	// create ci builder job
+	_, err = ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+	if err != nil {
+		log.Error().Err(err).Msg("Creating ci builder job failed")
+		return
+	}
+
+	log.Debug().
+		Str("url", ciBuilderParams.RepoURL).
+		Str("branch", ciBuilderParams.RepoBranch).
+		Str("revision", ciBuilderParams.RepoRevision).
+		Msgf("Created estafette-ci-builder job for Github repository %v revision %v", ciBuilderParams.RepoURL, ciBuilderParams.RepoRevision)
+}
