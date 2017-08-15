@@ -82,13 +82,20 @@ func (w *bitbucketWorkerImpl) CreateJobForBitbucketPush(pushEvent BitbucketRepos
 	// create ci builder job
 	_, err = ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
 	if err != nil {
-		log.Error().Err(err).Msg("Creating ci builder job failed")
+		log.Error().Err(err).
+			Str("fullname", ciBuilderParams.RepoFullName).
+			Str("url", ciBuilderParams.RepoURL).
+			Str("branch", ciBuilderParams.RepoBranch).
+			Str("revision", ciBuilderParams.RepoRevision).
+			Msgf("Created estafette-ci-builder job for Bitbucket repository %v revision %v failed", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
+
 		return
 	}
 
 	log.Debug().
+		Str("fullname", ciBuilderParams.RepoFullName).
 		Str("url", ciBuilderParams.RepoURL).
 		Str("branch", ciBuilderParams.RepoBranch).
 		Str("revision", ciBuilderParams.RepoRevision).
-		Msgf("Created estafette-ci-builder job for Bitbucket repository %v revision %v", ciBuilderParams.RepoURL, ciBuilderParams.RepoRevision)
+		Msgf("Created estafette-ci-builder job for Bitbucket repository %v revision %v", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
 }
