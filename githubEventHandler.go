@@ -104,10 +104,12 @@ func handleGithubPush(body []byte) {
 
 func createJobForGithubPush(pushEvent GithubPushEvent) {
 
+	// check to see that it's a cloneable event
 	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
 		return
 	}
 
+	// get authenticated url for the repository
 	ghClient := CreateGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret)
 	authenticatedRepositoryURL, err := ghClient.getAuthenticatedRepositoryURL(pushEvent.Installation.ID, pushEvent.Repository.HTMLURL)
 	if err != nil {
@@ -116,19 +118,31 @@ func createJobForGithubPush(pushEvent GithubPushEvent) {
 		return
 	}
 
-	log.Debug().Str("url", authenticatedRepositoryURL).Msgf("Authenticated url for Github repository %v", pushEvent.Repository.FullName)
-
-	// create kubernetes client
-	kubernetes, err := NewKubernetesClient()
+	// create ci builder client
+	ciBuilderClient, err := CreateCiBuilderClient()
 	if err != nil {
-		log.Error().Err(err).Msg("Initializing Kubernetes client failed")
+		log.Error().Err(err).Msg("Initializing ci builder client failed")
 		return
 	}
 
-	// create job cloning git repository
-	_, err = kubernetes.CreateJobForGithubPushEvent(pushEvent, authenticatedRepositoryURL)
+	// define ci builder params
+	ciBuilderParams := CiBuilderParams{
+		RepoFullName: pushEvent.Repository.FullName,
+		RepoURL:      authenticatedRepositoryURL,
+		RepoBranch:   strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
+		RepoRevision: pushEvent.After,
+	}
+
+	// create ci builder job
+	_, err = ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
 	if err != nil {
-		log.Error().Err(err).Msg("Creating Kubernetes job failed")
+		log.Error().Err(err).Msg("Creating ci builder job failed")
 		return
 	}
+
+	log.Debug().
+		Str("url", ciBuilderParams.RepoURL).
+		Str("branch", ciBuilderParams.RepoBranch).
+		Str("revision", ciBuilderParams.RepoRevision).
+		Msgf("Created estafette-ci-builder job for Github repository %v revision %v", ciBuilderParams.RepoURL, ciBuilderParams.RepoRevision)
 }

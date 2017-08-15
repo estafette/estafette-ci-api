@@ -89,10 +89,12 @@ func handleBitbucketPush(body []byte) {
 
 func createJobForBitbucketPush(pushEvent BitbucketRepositoryPushEvent) {
 
+	// check to see that it's a cloneable event
 	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil || pushEvent.Push.Changes[0].New.Type != "branch" || len(pushEvent.Push.Changes[0].New.Target.Hash) == 0 {
 		return
 	}
 
+	// get authenticated url for the repository
 	bbClient := CreateBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret)
 	authenticatedRepositoryURL, err := bbClient.getAuthenticatedRepositoryURL(pushEvent.Repository.Links.HTML.Href)
 	if err != nil {
@@ -101,19 +103,32 @@ func createJobForBitbucketPush(pushEvent BitbucketRepositoryPushEvent) {
 		return
 	}
 
-	log.Debug().Str("url", authenticatedRepositoryURL).Msgf("Authenticated url for Bitbucket repository %v", pushEvent.Repository.FullName)
-
-	// create kubernetes client
-	kubernetes, err := NewKubernetesClient()
+	// create ci builder client
+	ciBuilderClient, err := CreateCiBuilderClient()
 	if err != nil {
-		log.Error().Err(err).Msg("Initializing Kubernetes client failed")
+		log.Error().Err(err).Msg("Initializing ci builder client failed")
 		return
 	}
 
-	// create job cloning git repository
-	_, err = kubernetes.CreateJobForBitbucketPushEvent(pushEvent, authenticatedRepositoryURL)
+	// define ci builder params
+	ciBuilderParams := CiBuilderParams{
+		RepoFullName: pushEvent.Repository.FullName,
+		RepoURL:      authenticatedRepositoryURL,
+		RepoBranch:   pushEvent.Push.Changes[0].New.Name,
+		RepoRevision: pushEvent.Push.Changes[0].New.Target.Hash,
+	}
+
+	// create ci builder job
+	_, err = ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
 	if err != nil {
-		log.Error().Err(err).Msg("Creating Kubernetes job failed")
+		log.Error().Err(err).Msg("Creating ci builder job failed")
 		return
 	}
+
+	log.Debug().
+		Str("url", ciBuilderParams.RepoURL).
+		Str("branch", ciBuilderParams.RepoBranch).
+		Str("revision", ciBuilderParams.RepoRevision).
+		Msgf("Created estafette-ci-builder job for Bitbucket repository %v revision %v", ciBuilderParams.RepoURL, ciBuilderParams.RepoRevision)
+
 }
