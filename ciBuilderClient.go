@@ -10,6 +10,7 @@ import (
 	apiv1 "github.com/ericchiang/k8s/api/v1"
 	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
 	metav1 "github.com/ericchiang/k8s/apis/meta/v1"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
 
@@ -112,6 +113,8 @@ func (cbc *CiBuilder) CreateCiBuilderJob(ciBuilderParams CiBuilderParams) (job *
 			},
 		},
 	}
+
+	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 
 	job, err = cbc.KubeClient.BatchV1().CreateJob(context.Background(), job)
 
