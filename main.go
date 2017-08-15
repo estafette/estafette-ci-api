@@ -5,10 +5,7 @@ import (
 	stdlog "log"
 	"net/http"
 	"os"
-	"os/signal"
 	"runtime"
-	"syscall"
-	"time"
 
 	"github.com/alecthomas/kingpin"
 
@@ -95,18 +92,6 @@ func main() {
 		Str("buildDate", buildDate).
 		Str("goVersion", goVersion).
 		Msg("Starting estafette-ci-api...")
-
-	// handle SIGTERM for graceful shutdown
-	var gracefulStop = make(chan os.Signal)
-	signal.Notify(gracefulStop, syscall.SIGTERM)
-	signal.Notify(gracefulStop, syscall.SIGINT)
-	go func() {
-		sig := <-gracefulStop
-		fmt.Printf("caught sig: %+v", sig)
-		fmt.Println("Wait for 2 second to finish processing")
-		time.Sleep(2 * time.Second)
-		os.Exit(0)
-	}()
 
 	// start prometheus
 	go func() {
