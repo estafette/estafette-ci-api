@@ -28,6 +28,7 @@ func (w *bitbucketWorker) listenToBitbucketPushEventChannel() {
 				createJobForBitbucketPush(pushEvent)
 				w.WaitGroup.Done()
 			case <-w.QuitChannel:
+				log.Info().Msg("Stopping Bitbucket worker...")
 				return
 			}
 		}

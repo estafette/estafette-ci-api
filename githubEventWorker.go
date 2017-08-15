@@ -29,6 +29,7 @@ func (w *githubWorker) listenToGithubPushEventChannel() {
 				createJobForGithubPush(pushEvent)
 				w.WaitGroup.Done()
 			case <-w.QuitChannel:
+				log.Info().Msg("Stopping Github worker...")
 				return
 			}
 		}
