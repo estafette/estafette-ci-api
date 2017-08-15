@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"sync"
 	"syscall"
 	"time"
 
@@ -100,6 +101,7 @@ func main() {
 	// define channel and wait group to gracefully shutdown the application
 	stopChan := make(chan os.Signal)
 	signal.Notify(stopChan, syscall.SIGTERM, syscall.SIGINT)
+	waitGroup := &sync.WaitGroup{}
 
 	// start prometheus
 	go func() {
@@ -114,6 +116,13 @@ func main() {
 			log.Fatal().Err(err).Msg("Starting Prometheus listener failed")
 		}
 	}()
+
+	// listen to channels for push events
+	githubWorker := newGithubWorker(waitGroup)
+	githubWorker.listenToGithubPushEventChannel()
+
+	bitbucketWorker := newBitbucketWorker(waitGroup)
+	bitbucketWorker.listenToBitbucketPushEventChannel()
 
 	log.Debug().
 		Str("port", *apiAddress).
@@ -139,6 +148,12 @@ func main() {
 	// shut down gracefully
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	srv.Shutdown(ctx)
+
+	githubWorker.stop()
+	bitbucketWorker.stop()
+
+	log.Info().Msg("Awaiting waitgroup...")
+	waitGroup.Wait()
 
 	log.Info().Msg("Server gracefully stopped")
 }

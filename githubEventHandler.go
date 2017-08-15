@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
+)
+
+var (
+	// channel for passing push events to handler that creates ci-builder job
+	githubPushEvents = make(chan GithubPushEvent, 100)
 )
 
 func githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
@@ -99,50 +103,5 @@ func handleGithubPush(body []byte) {
 	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized GitHub push event for repository %v", pushEvent.Repository.FullName)
 
 	// test making api calls for github app in the background
-	go createJobForGithubPush(pushEvent)
-}
-
-func createJobForGithubPush(pushEvent GithubPushEvent) {
-
-	// check to see that it's a cloneable event
-	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
-		return
-	}
-
-	// get authenticated url for the repository
-	ghClient := CreateGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret)
-	authenticatedRepositoryURL, err := ghClient.GetAuthenticatedRepositoryURL(pushEvent.Installation.ID, pushEvent.Repository.HTMLURL)
-	if err != nil {
-		log.Error().Err(err).
-			Msg("Retrieving authenticated repository failed")
-		return
-	}
-
-	// create ci builder client
-	ciBuilderClient, err := CreateCiBuilderClient()
-	if err != nil {
-		log.Error().Err(err).Msg("Initializing ci builder client failed")
-		return
-	}
-
-	// define ci builder params
-	ciBuilderParams := CiBuilderParams{
-		RepoFullName: pushEvent.Repository.FullName,
-		RepoURL:      authenticatedRepositoryURL,
-		RepoBranch:   strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
-		RepoRevision: pushEvent.After,
-	}
-
-	// create ci builder job
-	_, err = ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
-	if err != nil {
-		log.Error().Err(err).Msg("Creating ci builder job failed")
-		return
-	}
-
-	log.Debug().
-		Str("url", ciBuilderParams.RepoURL).
-		Str("branch", ciBuilderParams.RepoBranch).
-		Str("revision", ciBuilderParams.RepoRevision).
-		Msgf("Created estafette-ci-builder job for Github repository %v revision %v", ciBuilderParams.RepoURL, ciBuilderParams.RepoRevision)
+	githubPushEvents <- pushEvent
 }
