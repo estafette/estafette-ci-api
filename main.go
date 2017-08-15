@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	stdlog "log"
 	"net/http"
 	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
+	"time"
 
 	"github.com/alecthomas/kingpin"
 
@@ -93,6 +97,10 @@ func main() {
 		Str("goVersion", goVersion).
 		Msg("Starting estafette-ci-api...")
 
+	// define channel and wait group to gracefully shutdown the application
+	stopChan := make(chan os.Signal)
+	signal.Notify(stopChan, syscall.SIGTERM, syscall.SIGINT)
+
 	// start prometheus
 	go func() {
 		log.Debug().
@@ -111,14 +119,28 @@ func main() {
 		Str("port", *apiAddress).
 		Msg("Serving api calls...")
 
+	srv := &http.Server{Addr: *apiAddress}
+
 	http.HandleFunc("/webhook/github", githubWebhookHandler)
 	http.HandleFunc("/webhook/bitbucket", bitbucketWebhookHandler)
 	http.HandleFunc("/liveness", livenessHandler)
 	http.HandleFunc("/readiness", readinessHandler)
 
-	if err := http.ListenAndServe(*apiAddress, nil); err != nil {
-		log.Fatal().Err(err).Msg("Starting api listener failed")
-	}
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			log.Fatal().Err(err).Msg("Starting api listener failed")
+		}
+	}()
+
+	// wait for graceful shutdown to finish
+	<-stopChan // wait for SIGINT
+	log.Info().Msg("Shutting down server...")
+
+	// shut down gracefully
+	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	srv.Shutdown(ctx)
+
+	log.Info().Msg("Server gracefully stopped")
 }
 
 func livenessHandler(w http.ResponseWriter, r *http.Request) {
