@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	stdlog "log"
 	"net/http"
 	"os"
 	"runtime"
@@ -9,6 +10,7 @@ import (
 	"github.com/alecthomas/kingpin"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -73,11 +75,15 @@ func main() {
 	zerolog.LevelFieldName = "severity"
 
 	// set some default fields added to all logs
-	log := zerolog.New(os.Stdout).With().
+	log.Logger = zerolog.New(os.Stdout).With().
 		Timestamp().
 		Str("app", "estafette-ci-api").
 		Str("version", version).
 		Logger()
+
+	// use zerolog for any logs sent via standard log library
+	stdlog.SetFlags(0)
+	stdlog.SetOutput(log.Logger)
 
 	// log startup message
 	log.Info().
