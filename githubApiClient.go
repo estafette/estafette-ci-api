@@ -16,24 +16,22 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// GithubAPIClient is the object to perform Github api calls with
-type GithubAPIClient struct {
+// GithubAPIClient is the interface for running kubernetes commands specific to this application
+type GithubAPIClient interface {
+	GetGithubAppToken() (string, error)
+	GetInstallationToken(int) (GithubAccessToken, error)
+	GetAuthenticatedRepositoryURL(int, string) (string, error)
+}
+
+type githubAPIClientImpl struct {
 	githubAppPrivateKeyPath    string
 	githubAppID                string
 	githubAppOAuthClientID     string
 	githubAppOAuthClientSecret string
 }
 
-// GithubAPIClientInterface is the interface for running kubernetes commands specific to this application
-type GithubAPIClientInterface interface {
-	GetGithubAppToken() (string, error)
-	GetInstallationToken(int) (GithubAccessToken, error)
-	GetAuthenticatedRepositoryURL(int, string) (string, error)
-}
-
-// CreateGithubAPIClient returns an initialized APIClient
-func CreateGithubAPIClient(githubAppPrivateKeyPath, githubAppID, githubAppOAuthClientID, githubAppOAuthClientSecret string) GithubAPIClientInterface {
-	return &GithubAPIClient{
+func newGithubAPIClient(githubAppPrivateKeyPath, githubAppID, githubAppOAuthClientID, githubAppOAuthClientSecret string) GithubAPIClient {
+	return &githubAPIClientImpl{
 		githubAppPrivateKeyPath:    githubAppPrivateKeyPath,
 		githubAppID:                githubAppID,
 		githubAppOAuthClientID:     githubAppOAuthClientID,
@@ -42,7 +40,7 @@ func CreateGithubAPIClient(githubAppPrivateKeyPath, githubAppID, githubAppOAuthC
 }
 
 // GetGithubAppToken returns a Github app token with which to retrieve an installation token
-func (gh *GithubAPIClient) GetGithubAppToken() (githubAppToken string, err error) {
+func (gh *githubAPIClientImpl) GetGithubAppToken() (githubAppToken string, err error) {
 
 	// https://developer.github.com/apps/building-integrations/setting-up-and-registering-github-apps/about-authentication-options-for-github-apps/
 
@@ -77,7 +75,7 @@ func (gh *GithubAPIClient) GetGithubAppToken() (githubAppToken string, err error
 }
 
 // GetInstallationToken returns an access token for an installation of a Github app
-func (gh *GithubAPIClient) GetInstallationToken(installationID int) (accessToken GithubAccessToken, err error) {
+func (gh *githubAPIClientImpl) GetInstallationToken(installationID int) (accessToken GithubAccessToken, err error) {
 
 	githubAppToken, err := gh.GetGithubAppToken()
 	if err != nil {
@@ -96,7 +94,7 @@ func (gh *GithubAPIClient) GetInstallationToken(installationID int) (accessToken
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (gh *GithubAPIClient) GetAuthenticatedRepositoryURL(installationID int, htmlURL string) (url string, err error) {
+func (gh *githubAPIClientImpl) GetAuthenticatedRepositoryURL(installationID int, htmlURL string) (url string, err error) {
 
 	installationToken, err := gh.GetInstallationToken(installationID)
 	if err != nil {

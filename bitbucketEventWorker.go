@@ -49,7 +49,7 @@ func createJobForBitbucketPush(pushEvent BitbucketRepositoryPushEvent) {
 	}
 
 	// get authenticated url for the repository
-	bbClient := CreateBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret)
+	bbClient := newBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret)
 	authenticatedRepositoryURL, err := bbClient.GetAuthenticatedRepositoryURL(pushEvent.Repository.Links.HTML.Href)
 	if err != nil {
 		log.Error().Err(err).
@@ -58,7 +58,7 @@ func createJobForBitbucketPush(pushEvent BitbucketRepositoryPushEvent) {
 	}
 
 	// create ci builder client
-	ciBuilderClient, err := CreateCiBuilderClient()
+	ciBuilderClient, err := newCiBuilderClient()
 	if err != nil {
 		log.Error().Err(err).Msg("Initializing ci builder client failed")
 		return

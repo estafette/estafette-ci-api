@@ -50,7 +50,7 @@ func createJobForGithubPush(pushEvent GithubPushEvent) {
 	}
 
 	// get authenticated url for the repository
-	ghClient := CreateGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret)
+	ghClient := newGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret)
 	authenticatedRepositoryURL, err := ghClient.GetAuthenticatedRepositoryURL(pushEvent.Installation.ID, pushEvent.Repository.HTMLURL)
 	if err != nil {
 		log.Error().Err(err).
@@ -59,7 +59,7 @@ func createJobForGithubPush(pushEvent GithubPushEvent) {
 	}
 
 	// create ci builder client
-	ciBuilderClient, err := CreateCiBuilderClient()
+	ciBuilderClient, err := newCiBuilderClient()
 	if err != nil {
 		log.Error().Err(err).Msg("Initializing ci builder client failed")
 		return

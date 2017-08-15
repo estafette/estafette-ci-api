@@ -13,22 +13,20 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// BitbucketAPIClient is the object to perform Bitbucket api calls with
-type BitbucketAPIClient struct {
+// BitbucketAPIClient is the interface for running kubernetes commands specific to this application
+type BitbucketAPIClient interface {
+	GetAccessToken() (BitbucketAccessToken, error)
+	GetAuthenticatedRepositoryURL(string) (string, error)
+}
+
+type bitbucketAPIClientImpl struct {
 	bitbucketAPIKey         string
 	bitbucketAppOAuthKey    string
 	bitbucketAppOAuthSecret string
 }
 
-// BitbucketAPIClientInterface is the interface for running kubernetes commands specific to this application
-type BitbucketAPIClientInterface interface {
-	GetAccessToken() (BitbucketAccessToken, error)
-	GetAuthenticatedRepositoryURL(string) (string, error)
-}
-
-// CreateBitbucketAPIClient returns an initialized APIClient
-func CreateBitbucketAPIClient(bitbucketAPIKey, bitbucketAppOAuthKey, bitbucketAppOAuthSecret string) BitbucketAPIClientInterface {
-	return &BitbucketAPIClient{
+func newBitbucketAPIClient(bitbucketAPIKey, bitbucketAppOAuthKey, bitbucketAppOAuthSecret string) BitbucketAPIClient {
+	return &bitbucketAPIClientImpl{
 		bitbucketAPIKey:         bitbucketAPIKey,
 		bitbucketAppOAuthKey:    bitbucketAppOAuthKey,
 		bitbucketAppOAuthSecret: bitbucketAppOAuthSecret,
@@ -36,7 +34,7 @@ func CreateBitbucketAPIClient(bitbucketAPIKey, bitbucketAppOAuthKey, bitbucketAp
 }
 
 // GetAccessToken returns an access token to access the Bitbucket api
-func (bb *BitbucketAPIClient) GetAccessToken() (accessToken BitbucketAccessToken, err error) {
+func (bb *bitbucketAPIClientImpl) GetAccessToken() (accessToken BitbucketAccessToken, err error) {
 
 	// track call via prometheus
 	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "bitbucket"}).Inc()
@@ -81,7 +79,7 @@ func (bb *BitbucketAPIClient) GetAccessToken() (accessToken BitbucketAccessToken
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (bb *BitbucketAPIClient) GetAuthenticatedRepositoryURL(htmlURL string) (url string, err error) {
+func (bb *bitbucketAPIClientImpl) GetAuthenticatedRepositoryURL(htmlURL string) (url string, err error) {
 
 	accessToken, err := bb.GetAccessToken()
 	if err != nil {
