@@ -20,7 +20,7 @@ import (
 type GithubAPIClient interface {
 	GetGithubAppToken() (string, error)
 	GetInstallationToken(int) (GithubAccessToken, error)
-	GetAuthenticatedRepositoryURL(int, string) (string, error)
+	GetAuthenticatedRepositoryURL(int, string) (string, GithubAccessToken, error)
 }
 
 type githubAPIClientImpl struct {
@@ -94,14 +94,14 @@ func (gh *githubAPIClientImpl) GetInstallationToken(installationID int) (accessT
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (gh *githubAPIClientImpl) GetAuthenticatedRepositoryURL(installationID int, htmlURL string) (url string, err error) {
+func (gh *githubAPIClientImpl) GetAuthenticatedRepositoryURL(installationID int, htmlURL string) (url string, accessToken GithubAccessToken, err error) {
 
-	installationToken, err := gh.GetInstallationToken(installationID)
+	accessToken, err = gh.GetInstallationToken(installationID)
 	if err != nil {
 		return
 	}
 
-	url = strings.Replace(htmlURL, "https://github.com", fmt.Sprintf("https://x-access-token:%v@github.com", installationToken.Token), -1)
+	url = strings.Replace(htmlURL, "https://github.com", fmt.Sprintf("https://x-access-token:%v@github.com", accessToken.Token), -1)
 
 	return
 }

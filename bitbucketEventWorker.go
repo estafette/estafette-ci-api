@@ -57,7 +57,7 @@ func (w *bitbucketWorkerImpl) CreateJobForBitbucketPush(pushEvent BitbucketRepos
 
 	// get authenticated url for the repository
 	bbClient := newBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret)
-	authenticatedRepositoryURL, err := bbClient.GetAuthenticatedRepositoryURL(pushEvent.Repository.Links.HTML.Href)
+	authenticatedRepositoryURL, accessToken, err := bbClient.GetAuthenticatedRepositoryURL(pushEvent.Repository.Links.HTML.Href)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving authenticated repository failed")
@@ -77,6 +77,7 @@ func (w *bitbucketWorkerImpl) CreateJobForBitbucketPush(pushEvent BitbucketRepos
 		RepoURL:      authenticatedRepositoryURL,
 		RepoBranch:   pushEvent.Push.Changes[0].New.Name,
 		RepoRevision: pushEvent.Push.Changes[0].New.Target.Hash,
+		EnvironmentVariables: map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken.AccessToken},
 	}
 
 	// create ci builder job

@@ -16,7 +16,7 @@ import (
 // BitbucketAPIClient is the interface for running kubernetes commands specific to this application
 type BitbucketAPIClient interface {
 	GetAccessToken() (BitbucketAccessToken, error)
-	GetAuthenticatedRepositoryURL(string) (string, error)
+	GetAuthenticatedRepositoryURL(string) (string, BitbucketAccessToken, error)
 }
 
 type bitbucketAPIClientImpl struct {
@@ -79,9 +79,9 @@ func (bb *bitbucketAPIClientImpl) GetAccessToken() (accessToken BitbucketAccessT
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (bb *bitbucketAPIClientImpl) GetAuthenticatedRepositoryURL(htmlURL string) (url string, err error) {
+func (bb *bitbucketAPIClientImpl) GetAuthenticatedRepositoryURL(htmlURL string) (url string, accessToken BitbucketAccessToken, err error) {
 
-	accessToken, err := bb.GetAccessToken()
+	accessToken, err = bb.GetAccessToken()
 	if err != nil {
 		return
 	}

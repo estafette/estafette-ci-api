@@ -21,10 +21,11 @@ type CiBuilderClient interface {
 
 // CiBuilderParams contains the parameters required to create a ci builder job
 type CiBuilderParams struct {
-	RepoFullName string
-	RepoURL      string
-	RepoBranch   string
-	RepoRevision string
+	RepoFullName         string
+	RepoURL              string
+	RepoBranch           string
+	RepoRevision         string
+	EnvironmentVariables map[string]string
 }
 
 type ciBuilderClientImpl struct {
@@ -59,12 +60,40 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	jobName := strings.ToLower(fmt.Sprintf("build-%v-%v", repoName, ciBuilderParams.RepoRevision[:6]))
 
 	// create envvars for job
+	estafetteGitNameName := "ESTAFETTE_GIT_NAME"
+	estafetteGitNameValue := ciBuilderParams.RepoFullName
 	estafetteGitURLName := "ESTAFETTE_GIT_URL"
 	estafetteGitURLValue := ciBuilderParams.RepoURL
 	estafetteGitBranchName := "ESTAFETTE_GIT_BRANCH"
 	estafetteGitBranchValue := ciBuilderParams.RepoBranch
 	estafetteGitRevisionName := "ESTAFETTE_GIT_REVISION"
 	estafetteGitRevisionValue := ciBuilderParams.RepoRevision
+
+	environmentVariables := []*apiv1.EnvVar{
+		&apiv1.EnvVar{
+			Name:  &estafetteGitNameName,
+			Value: &estafetteGitNameValue,
+		},
+		&apiv1.EnvVar{
+			Name:  &estafetteGitURLName,
+			Value: &estafetteGitURLValue,
+		},
+		&apiv1.EnvVar{
+			Name:  &estafetteGitBranchName,
+			Value: &estafetteGitBranchValue,
+		},
+		&apiv1.EnvVar{
+			Name:  &estafetteGitRevisionName,
+			Value: &estafetteGitRevisionValue,
+		},
+	}
+
+	for key, value := range ciBuilderParams.EnvironmentVariables {
+		environmentVariables = append(environmentVariables, &apiv1.EnvVar{
+			Name:  &key,
+			Value: &value,
+		})
+	}
 
 	// other job config
 	containerName := "estafette-ci-builder"
@@ -91,20 +120,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 						&apiv1.Container{
 							Name:  &containerName,
 							Image: &image,
-							Env: []*apiv1.EnvVar{
-								&apiv1.EnvVar{
-									Name:  &estafetteGitURLName,
-									Value: &estafetteGitURLValue,
-								},
-								&apiv1.EnvVar{
-									Name:  &estafetteGitBranchName,
-									Value: &estafetteGitBranchValue,
-								},
-								&apiv1.EnvVar{
-									Name:  &estafetteGitRevisionName,
-									Value: &estafetteGitRevisionValue,
-								},
-							},
+							Env:   environmentVariables,
 						},
 					},
 					RestartPolicy: &restartPolicy,

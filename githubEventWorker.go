@@ -58,7 +58,7 @@ func (w *githubWorkerImpl) CreateJobForGithubPush(pushEvent GithubPushEvent) {
 
 	// get authenticated url for the repository
 	ghClient := newGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret)
-	authenticatedRepositoryURL, err := ghClient.GetAuthenticatedRepositoryURL(pushEvent.Installation.ID, pushEvent.Repository.HTMLURL)
+	authenticatedRepositoryURL, accessToken, err := ghClient.GetAuthenticatedRepositoryURL(pushEvent.Installation.ID, pushEvent.Repository.HTMLURL)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving authenticated repository failed")
@@ -74,10 +74,11 @@ func (w *githubWorkerImpl) CreateJobForGithubPush(pushEvent GithubPushEvent) {
 
 	// define ci builder params
 	ciBuilderParams := CiBuilderParams{
-		RepoFullName: pushEvent.Repository.FullName,
-		RepoURL:      authenticatedRepositoryURL,
-		RepoBranch:   strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
-		RepoRevision: pushEvent.After,
+		RepoFullName:         pushEvent.Repository.FullName,
+		RepoURL:              authenticatedRepositoryURL,
+		RepoBranch:           strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
+		RepoRevision:         pushEvent.After,
+		EnvironmentVariables: map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken.Token},
 	}
 
 	// create ci builder job
