@@ -70,6 +70,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	containerName := "estafette-ci-builder"
 	image := fmt.Sprintf("estafette/estafette-ci-builder:%v", *estafetteCiBuilderVersion)
 	restartPolicy := "Never"
+	privileged := true
 
 	job = &batchv1.Job{
 		Metadata: &metav1.ObjectMeta{
@@ -104,6 +105,9 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 									Name:  &estafetteGitRevisionName,
 									Value: &estafetteGitRevisionValue,
 								},
+							},
+							SecurityContext: &apiv1.SecurityContext{
+								Privileged: &privileged,
 							},
 						},
 					},
