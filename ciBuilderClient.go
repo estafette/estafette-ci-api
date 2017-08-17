@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ericchiang/k8s"
+	"github.com/ericchiang/k8s/api/resource"
 	apiv1 "github.com/ericchiang/k8s/api/v1"
 	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
 	metav1 "github.com/ericchiang/k8s/apis/meta/v1"
@@ -121,6 +122,12 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		})
 	}
 
+	// define resource request and limit values to fit reasonably well inside a n1-highmem-4 machine
+	cpuRequest := "1.0"
+	cpuLimit := "3.0"
+	memoryRequest := "2.0"
+	memoryLimit := "20.0"
+
 	// other job config
 	containerName := "estafette-ci-builder"
 	image := fmt.Sprintf("estafette/estafette-ci-builder:%v", *estafetteCiBuilderVersion)
@@ -150,6 +157,16 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 							Env:   environmentVariables,
 							SecurityContext: &apiv1.SecurityContext{
 								Privileged: &privileged,
+							},
+							Resources: &apiv1.ResourceRequirements{
+								Requests: map[string]*resource.Quantity{
+									"cpu":    &resource.Quantity{String_: &cpuRequest},
+									"memory": &resource.Quantity{String_: &memoryRequest},
+								},
+								Limits: map[string]*resource.Quantity{
+									"cpu":    &resource.Quantity{String_: &cpuLimit},
+									"memory": &resource.Quantity{String_: &memoryLimit},
+								},
 							},
 						},
 					},
