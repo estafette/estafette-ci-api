@@ -71,6 +71,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	// temporarily pass build version equal to revision from the outside until estafette supports versioning
 	estafetteBuildVersionName := "ESTAFETTE_BUILD_VERSION"
 	estafetteBuildVersionValue := ciBuilderParams.RepoRevision
+	estafetteBuildVersionPatchName := "ESTAFETTE_BUILD_VERSION_PATCH"
+	estafetteBuildVersionPatchValue := "1"
 
 	environmentVariables := []*apiv1.EnvVar{
 		&apiv1.EnvVar{
@@ -92,6 +94,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		&apiv1.EnvVar{
 			Name:  &estafetteBuildVersionName,
 			Value: &estafetteBuildVersionValue,
+		},
+		&apiv1.EnvVar{
+			Name:  &estafetteBuildVersionPatchName,
+			Value: &estafetteBuildVersionPatchValue,
 		},
 	}
 
