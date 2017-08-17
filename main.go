@@ -46,7 +46,7 @@ var (
 	bitbucketAppOAuthSecret = kingpin.Flag("bitbucket-app-oauth-secret", "The OAuth secret for the Bitbucket App.").Envar("BITBUCKET_APP_OAUTH_SECRET").String()
 
 	estafetteCiBuilderVersion = kingpin.Flag("estafette-ci-builder-version", "The version of estafette/estafette-ci-builder to use.").Envar("ESTAFETTE_CI_BUILDER_VERSION").String()
-	estafetteCiBaseURL        = kingpin.Flag("estafette-ci-builder-version", "The base url of this api server.").Envar("ESTAFETTE_CI_SERVER_BASE_URL").String()
+	estafetteCiServerBaseURL  = kingpin.Flag("estafette-ci-server-base-url", "The base url of this api server.").Envar("ESTAFETTE_CI_SERVER_BASE_URL").String()
 
 	// define prometheus counter
 	webhookTotal = prometheus.NewCounterVec(

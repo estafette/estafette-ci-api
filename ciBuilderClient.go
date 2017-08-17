@@ -72,7 +72,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteBuildJobNameName := "ESTAFETTE_BUILD_JOB_NAME"
 	estafetteBuildJobNameValue := jobName
 	estafetteCiServerBaseURLName := "ESTAFETTE_CI_SERVER_BASE_URL"
-	estafetteCiServerBaseURLValue := *estafetteCiBaseURL
+	estafetteCiServerBaseURLValue := *estafetteCiServerBaseURL
 
 	// temporarily pass build version equal to revision from the outside until estafette supports versioning
 	estafetteBuildVersionName := "ESTAFETTE_BUILD_VERSION"
