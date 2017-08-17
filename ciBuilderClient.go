@@ -18,6 +18,7 @@ import (
 // CiBuilderClient is the interface for running kubernetes commands specific to this application
 type CiBuilderClient interface {
 	CreateCiBuilderJob(CiBuilderParams) (*batchv1.Job, error)
+	RemoveCiBuilderJob(string) error
 }
 
 // CiBuilderParams contains the parameters required to create a ci builder job
@@ -180,6 +181,43 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 
 	job, err = cbc.KubeClient.BatchV1().CreateJob(context.Background(), job)
+
+	return
+}
+
+// RemoveCiBuilderJob waits for a job to finish and then removes it
+func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
+
+	// watch for job updates
+	watcher, err := cbc.KubeClient.BatchV1().WatchJobs(context.Background(), cbc.KubeClient.Namespace)
+	if err != nil {
+		log.Error().Err(err).
+			Str("jobName", jobName).
+			Msgf("WatchJobs call for job %v failed", jobName)
+		return
+	}
+
+	// wait for job to succeed
+	for {
+		event, job, err := watcher.Next()
+		if err != nil {
+			log.Error().Err(err)
+			return err
+		}
+
+		if *event.Type == k8s.EventModified && *job.Metadata.Name == jobName && *job.Status.Succeeded == 1 {
+			break
+		}
+	}
+
+	// delete job
+	err = cbc.KubeClient.BatchV1().DeleteJob(context.Background(), jobName, cbc.KubeClient.Namespace)
+	if err != nil {
+		log.Error().Err(err).
+			Str("jobName", jobName).
+			Msgf("Deleting job %v failed", jobName)
+		return
+	}
 
 	return
 }

@@ -125,6 +125,10 @@ func main() {
 	bitbucketWorker := newBitbucketWorker(waitGroup)
 	bitbucketWorker.ListenToBitbucketPushEventChannel()
 
+	estafetteWorker := newEstafetteWorker(waitGroup)
+	estafetteWorker.ListenToEstafetteBuildFinishedEventChannel()
+
+	// listen to http calls
 	log.Debug().
 		Str("port", *apiAddress).
 		Msg("Serving api calls...")
@@ -136,6 +140,9 @@ func main() {
 
 	bitbucketWebhookHandler := newBitbucketWebhookHandler()
 	http.HandleFunc("/webhook/bitbucket", bitbucketWebhookHandler.Handle)
+
+	estafetteEventHandler := newEstafetteEventHandler()
+	http.HandleFunc("/estafette/build/finished", estafetteEventHandler.HandleBuildFinished)
 
 	http.HandleFunc("/liveness", livenessHandler)
 	http.HandleFunc("/readiness", readinessHandler)
@@ -156,6 +163,7 @@ func main() {
 
 	githubWorker.Stop()
 	bitbucketWorker.Stop()
+	estafetteWorker.Stop()
 
 	log.Info().Msg("Awaiting waitgroup...")
 	waitGroup.Wait()
