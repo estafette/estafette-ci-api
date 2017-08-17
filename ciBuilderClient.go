@@ -125,8 +125,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	// define resource request and limit values to fit reasonably well inside a n1-highmem-4 machine
 	cpuRequest := "1.0"
 	cpuLimit := "3.0"
-	memoryRequest := "2.0"
-	memoryLimit := "20.0"
+	memoryRequest := "2.0Gi"
+	memoryLimit := "20.0Gi"
 
 	// other job config
 	containerName := "estafette-ci-builder"
