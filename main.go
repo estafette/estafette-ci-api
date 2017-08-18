@@ -126,13 +126,15 @@ func main() {
 
 	githubEventHandler := newGithubEventHandler()
 	http.HandleFunc("/webhook/github", githubEventHandler.Handle)
+	http.HandleFunc("/events/github", githubEventHandler.Handle)
 
 	bitbucketEventHandler := newBitbucketEventHandler()
 	http.HandleFunc("/webhook/bitbucket", bitbucketEventHandler.Handle)
+	http.HandleFunc("/events/bitbucket", bitbucketEventHandler.Handle)
 
 	estafetteEventHandler := newEstafetteEventHandler()
 	http.HandleFunc("/estafette/build/finished", estafetteEventHandler.Handle)
-	http.HandleFunc("/webhook/estafette/ci-builder", estafetteEventHandler.Handle)
+	http.HandleFunc("/events/estafette/ci-builder", estafetteEventHandler.Handle)
 
 	http.HandleFunc("/liveness", livenessHandler)
 	http.HandleFunc("/readiness", readinessHandler)
