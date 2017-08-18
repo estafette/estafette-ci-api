@@ -62,24 +62,25 @@ func (h *bitbucketEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Reques
 	case "repo:push":
 		h.HandlePushEvent(body)
 
-	case "repo:fork":
-	case "repo:updated":
-	case "repo:transfer":
-	case "repo:commit_comment_created":
-	case "repo:commit_status_created":
-	case "repo:commit_status_updated":
-	case "issue:created":
-	case "issue:updated":
-	case "issue:comment_created":
-	case "pullrequest:created":
-	case "pullrequest:updated":
-	case "pullrequest:approved":
-	case "pullrequest:unapproved":
-	case "pullrequest:fulfilled":
-	case "pullrequest:rejected":
-	case "pullrequest:comment_created":
-	case "pullrequest:comment_updated":
-	case "pullrequest:comment_deleted":
+	case
+		"repo:fork",
+		"repo:updated",
+		"repo:transfer",
+		"repo:commit_comment_created",
+		"repo:commit_status_created",
+		"repo:commit_status_updated",
+		"issue:created",
+		"issue:updated",
+		"issue:comment_created",
+		"pullrequest:created",
+		"pullrequest:updated",
+		"pullrequest:approved",
+		"pullrequest:unapproved",
+		"pullrequest:fulfilled",
+		"pullrequest:rejected",
+		"pullrequest:comment_created",
+		"pullrequest:comment_updated",
+		"pullrequest:comment_deleted":
 		log.Debug().Str("event", eventType).Msgf("Not implemented Bitbucket webhook event of type '%v'", eventType)
 
 	default:

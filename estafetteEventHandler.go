@@ -68,17 +68,18 @@ func (h *estafetteEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Reques
 
 	log.Debug().Interface("event", ciBuilderEvent).Msgf("Deserialized Estafette event for job %v", ciBuilderEvent.JobName)
 
-	// switch eventType {
-	// case "builder:nomanifest":
-	// case "builder:succeeded":
-	// case "builder:failed":
-	// send via channel to worker
-	log.Debug().Interface("event", ciBuilderEvent).Msgf("Sending event for job %v to channel", ciBuilderEvent.JobName)
-	estafetteCiBuilderEvents <- ciBuilderEvent
+	switch eventType {
+	case
+		"builder:nomanifest",
+		"builder:succeeded",
+		"builder:failed":
+		// send via channel to worker
+		log.Debug().Interface("event", ciBuilderEvent).Msgf("Sending event for job %v to channel", ciBuilderEvent.JobName)
+		estafetteCiBuilderEvents <- ciBuilderEvent
 
-	// default:
-	// 	log.Warn().Str("event", eventType).Msgf("Unsupported Estafette event of type '%v'", eventType)
-	// }
+	default:
+		log.Warn().Str("event", eventType).Msgf("Unsupported Estafette event of type '%v'", eventType)
+	}
 
 	log.Debug().
 		Str("jobName", ciBuilderEvent.JobName).
