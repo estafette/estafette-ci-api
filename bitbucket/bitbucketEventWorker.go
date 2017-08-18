@@ -1,30 +1,37 @@
-package main
+package bitbucket
 
 import (
 	"sync"
 
+	"github.com/estafette/estafette-ci-api/estafette"
 	"github.com/rs/zerolog/log"
 )
 
-// BitbucketEventWorker processes events pushed to channels
-type BitbucketEventWorker interface {
+// EventWorker processes events pushed to channels
+type EventWorker interface {
 	ListenToEventChannels()
 	Stop()
-	CreateJobForBitbucketPush(BitbucketRepositoryPushEvent)
+	CreateJobForBitbucketPush(RepositoryPushEvent)
 }
 
-type bitbucketEventWorkerImpl struct {
-	WaitGroup   *sync.WaitGroup
-	QuitChannel chan bool
+type eventWorkerImpl struct {
+	WaitGroup       *sync.WaitGroup
+	QuitChannel     chan bool
+	APIClient       APIClient
+	CiBuilderClient estafette.CiBuilderClient
 }
 
-func newBitbucketEventWorker(waitGroup *sync.WaitGroup) BitbucketEventWorker {
-	return &bitbucketEventWorkerImpl{
-		WaitGroup:   waitGroup,
-		QuitChannel: make(chan bool)}
+// NewBitbucketEventWorker returns the bitbucket.EventWorker
+func NewBitbucketEventWorker(waitGroup *sync.WaitGroup, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient) EventWorker {
+	return &eventWorkerImpl{
+		WaitGroup:       waitGroup,
+		QuitChannel:     make(chan bool),
+		APIClient:       apiClient,
+		CiBuilderClient: ciBuilderClient,
+	}
 }
 
-func (w *bitbucketEventWorkerImpl) ListenToEventChannels() {
+func (w *eventWorkerImpl) ListenToEventChannels() {
 	go func() {
 		// handle github events via channels
 		log.Debug().Msg("Listening to Bitbucket events channels...")
@@ -44,24 +51,21 @@ func (w *bitbucketEventWorkerImpl) ListenToEventChannels() {
 	}()
 }
 
-func (w *bitbucketEventWorkerImpl) Stop() {
+func (w *eventWorkerImpl) Stop() {
 	go func() {
 		w.QuitChannel <- true
 	}()
 }
 
-func (w *bitbucketEventWorkerImpl) CreateJobForBitbucketPush(pushEvent BitbucketRepositoryPushEvent) {
+func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEvent) {
 
 	// check to see that it's a cloneable event
 	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil || pushEvent.Push.Changes[0].New.Type != "branch" || len(pushEvent.Push.Changes[0].New.Target.Hash) == 0 {
 		return
 	}
 
-	// create bitbucket api client
-	bbClient := newBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret)
-
 	// get access token
-	accessToken, err := bbClient.GetAccessToken()
+	accessToken, err := w.APIClient.GetAccessToken()
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
@@ -69,7 +73,7 @@ func (w *bitbucketEventWorkerImpl) CreateJobForBitbucketPush(pushEvent Bitbucket
 	}
 
 	// get manifest file
-	manifestExists, manifest, err := bbClient.GetEstafetteManifest(accessToken, pushEvent)
+	manifestExists, manifest, err := w.APIClient.GetEstafetteManifest(accessToken, pushEvent)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
@@ -83,22 +87,15 @@ func (w *bitbucketEventWorkerImpl) CreateJobForBitbucketPush(pushEvent Bitbucket
 	log.Debug().Interface("pushEvent", pushEvent).Str("manifest", manifest).Msgf("Estaffette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
 
 	// get authenticated url for the repository
-	authenticatedRepositoryURL, err := bbClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.Links.HTML.Href)
+	authenticatedRepositoryURL, err := w.APIClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.Links.HTML.Href)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving authenticated repository failed")
 		return
 	}
 
-	// create ci builder client
-	ciBuilderClient, err := newCiBuilderClient()
-	if err != nil {
-		log.Error().Err(err).Msg("Initializing ci builder client failed")
-		return
-	}
-
 	// define ci builder params
-	ciBuilderParams := CiBuilderParams{
+	ciBuilderParams := estafette.CiBuilderParams{
 		RepoFullName:         pushEvent.Repository.FullName,
 		RepoURL:              authenticatedRepositoryURL,
 		RepoBranch:           pushEvent.Push.Changes[0].New.Name,
@@ -107,7 +104,7 @@ func (w *bitbucketEventWorkerImpl) CreateJobForBitbucketPush(pushEvent Bitbucket
 	}
 
 	// create ci builder job
-	_, err = ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+	_, err = w.CiBuilderClient.CreateCiBuilderJob(ciBuilderParams)
 	if err != nil {
 		log.Error().Err(err).
 			Str("fullname", ciBuilderParams.RepoFullName).

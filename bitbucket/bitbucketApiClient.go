@@ -1,4 +1,4 @@
-package main
+package bitbucket
 
 import (
 	"bytes"
@@ -13,21 +13,22 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// BitbucketAPIClient is the interface for running kubernetes commands specific to this application
-type BitbucketAPIClient interface {
-	GetAccessToken() (BitbucketAccessToken, error)
-	GetAuthenticatedRepositoryURL(BitbucketAccessToken, string) (string, error)
-	GetEstafetteManifest(BitbucketAccessToken, BitbucketRepositoryPushEvent) (bool, string, error)
+// APIClient is the interface for running kubernetes commands specific to this application
+type APIClient interface {
+	GetAccessToken() (AccessToken, error)
+	GetAuthenticatedRepositoryURL(AccessToken, string) (string, error)
+	GetEstafetteManifest(AccessToken, RepositoryPushEvent) (bool, string, error)
 }
 
-type bitbucketAPIClientImpl struct {
+type apiClientImpl struct {
 	bitbucketAPIKey         string
 	bitbucketAppOAuthKey    string
 	bitbucketAppOAuthSecret string
 }
 
-func newBitbucketAPIClient(bitbucketAPIKey, bitbucketAppOAuthKey, bitbucketAppOAuthSecret string) BitbucketAPIClient {
-	return &bitbucketAPIClientImpl{
+// NewBitbucketAPIClient returns a new bitbucket.APIClient
+func NewBitbucketAPIClient(bitbucketAPIKey, bitbucketAppOAuthKey, bitbucketAppOAuthSecret string) APIClient {
+	return &apiClientImpl{
 		bitbucketAPIKey:         bitbucketAPIKey,
 		bitbucketAppOAuthKey:    bitbucketAppOAuthKey,
 		bitbucketAppOAuthSecret: bitbucketAppOAuthSecret,
@@ -35,10 +36,10 @@ func newBitbucketAPIClient(bitbucketAPIKey, bitbucketAppOAuthKey, bitbucketAppOA
 }
 
 // GetAccessToken returns an access token to access the Bitbucket api
-func (bb *bitbucketAPIClientImpl) GetAccessToken() (accessToken BitbucketAccessToken, err error) {
+func (bb *apiClientImpl) GetAccessToken() (accessToken AccessToken, err error) {
 
 	// track call via prometheus
-	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "bitbucket"}).Inc()
+	OutgoingAPIRequestTotal.With(prometheus.Labels{"target": "bitbucket"}).Inc()
 
 	basicAuthenticationToken := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", bb.bitbucketAppOAuthKey, bb.bitbucketAppOAuthSecret)))
 
@@ -80,17 +81,17 @@ func (bb *bitbucketAPIClientImpl) GetAccessToken() (accessToken BitbucketAccessT
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (bb *bitbucketAPIClientImpl) GetAuthenticatedRepositoryURL(accessToken BitbucketAccessToken, htmlURL string) (url string, err error) {
+func (bb *apiClientImpl) GetAuthenticatedRepositoryURL(accessToken AccessToken, htmlURL string) (url string, err error) {
 
 	url = strings.Replace(htmlURL, "https://bitbucket.org", fmt.Sprintf("https://x-token-auth:%v@bitbucket.org", accessToken.AccessToken), -1)
 
 	return
 }
 
-func (bb *bitbucketAPIClientImpl) GetEstafetteManifest(accessToken BitbucketAccessToken, pushEvent BitbucketRepositoryPushEvent) (exists bool, manifest string, err error) {
+func (bb *apiClientImpl) GetEstafetteManifest(accessToken AccessToken, pushEvent RepositoryPushEvent) (exists bool, manifest string, err error) {
 
 	// track call via prometheus
-	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "bitbucket"}).Inc()
+	OutgoingAPIRequestTotal.With(prometheus.Labels{"target": "bitbucket"}).Inc()
 
 	// create client, in order to add headers
 	client := &http.Client{}

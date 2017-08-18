@@ -13,12 +13,13 @@ import (
 	"time"
 
 	"github.com/alecthomas/kingpin"
-
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-
+	"github.com/estafette/estafette-ci-api/bitbucket"
+	"github.com/estafette/estafette-ci-api/estafette"
+	"github.com/estafette/estafette-ci-api/github"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -49,8 +50,8 @@ var (
 	estafetteCiServerBaseURL  = kingpin.Flag("estafette-ci-server-base-url", "The base url of this api server.").Envar("ESTAFETTE_CI_SERVER_BASE_URL").String()
 	estafetteCiAPIKey         = kingpin.Flag("estafette-ci-api-key", "An api key for estafette itself to use until real oauth is supported.").Envar("ESTAFETTE_CI_API_KEY").String()
 
-	// define prometheus counter
-	webhookTotal = prometheus.NewCounterVec(
+	// WebhookTotal is the prometheus timeline serie that keeps track of inbound events
+	WebhookTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "estafette_ci_api_webhook_totals",
 			Help: "Total of received webhooks.",
@@ -58,7 +59,8 @@ var (
 		[]string{"event", "source"},
 	)
 
-	outgoingAPIRequestTotal = prometheus.NewCounterVec(
+	// OutgoingAPIRequestTotal is the prometheus timeline serie that keeps track of outbound api calls
+	OutgoingAPIRequestTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "estafette_ci_api_outgoing_api_request_totals",
 			Help: "Total of outgoing api calls.",
@@ -69,8 +71,16 @@ var (
 
 func init() {
 	// Metrics have to be registered to be exposed:
-	prometheus.MustRegister(webhookTotal)
-	prometheus.MustRegister(outgoingAPIRequestTotal)
+	prometheus.MustRegister(WebhookTotal)
+	prometheus.MustRegister(OutgoingAPIRequestTotal)
+
+	bitbucket.WebhookTotal = WebhookTotal
+	github.WebhookTotal = WebhookTotal
+	estafette.WebhookTotal = WebhookTotal
+
+	bitbucket.OutgoingAPIRequestTotal = OutgoingAPIRequestTotal
+	github.OutgoingAPIRequestTotal = OutgoingAPIRequestTotal
+	estafette.OutgoingAPIRequestTotal = OutgoingAPIRequestTotal
 }
 
 func main() {
@@ -108,14 +118,21 @@ func main() {
 	// start prometheus
 	go startPrometheus()
 
+	githubAPIClient := github.NewGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret)
+	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret)
+	ciBuilderClient, err := estafette.NewCiBuilderClient(*estafetteCiServerBaseURL, *estafetteCiAPIKey, *estafetteCiBuilderVersion)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
+	}
+
 	// listen to channels for push events
-	githubEventWorker := newGithubEventWorker(waitGroup)
+	githubEventWorker := github.NewGithubEventWorker(waitGroup, githubAPIClient, ciBuilderClient)
 	githubEventWorker.ListenToEventChannels()
 
-	bitbucketEventWorker := newBitbucketEventWorker(waitGroup)
+	bitbucketEventWorker := bitbucket.NewBitbucketEventWorker(waitGroup, bitbucketAPIClient, ciBuilderClient)
 	bitbucketEventWorker.ListenToEventChannels()
 
-	estafetteEventWorker := newEstafetteEventWorker(waitGroup)
+	estafetteEventWorker := estafette.NewEstafetteEventWorker(waitGroup, ciBuilderClient)
 	estafetteEventWorker.ListenToEventChannels()
 
 	// listen to http calls
@@ -125,13 +142,13 @@ func main() {
 
 	srv := &http.Server{Addr: *apiAddress}
 
-	githubEventHandler := newGithubEventHandler()
+	githubEventHandler := github.NewGithubEventHandler()
 	http.HandleFunc("/events/github", githubEventHandler.Handle)
 
-	bitbucketEventHandler := newBitbucketEventHandler()
+	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler()
 	http.HandleFunc("/events/bitbucket", bitbucketEventHandler.Handle)
 
-	estafetteEventHandler := newEstafetteEventHandler()
+	estafetteEventHandler := estafette.NewEstafetteEventHandler(*estafetteCiAPIKey)
 	http.HandleFunc("/events/estafette/ci-builder", estafetteEventHandler.Handle)
 
 	http.HandleFunc("/liveness", livenessHandler)
