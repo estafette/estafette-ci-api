@@ -15,20 +15,20 @@ type EventWorker interface {
 }
 
 type eventWorkerImpl struct {
-	WaitGroup       *sync.WaitGroup
-	QuitChannel     chan bool
-	EventsChannel   chan RepositoryPushEvent
-	APIClient       APIClient
+	waitGroup       *sync.WaitGroup
+	quitChannel     chan bool
+	eventsChannel   chan RepositoryPushEvent
+	apiClient       APIClient
 	CiBuilderClient estafette.CiBuilderClient
 }
 
 // NewBitbucketEventWorker returns the bitbucket.EventWorker
 func NewBitbucketEventWorker(waitGroup *sync.WaitGroup, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, eventsChannel chan RepositoryPushEvent) EventWorker {
 	return &eventWorkerImpl{
-		WaitGroup:       waitGroup,
-		QuitChannel:     make(chan bool),
-		EventsChannel:   eventsChannel,
-		APIClient:       apiClient,
+		waitGroup:       waitGroup,
+		quitChannel:     make(chan bool),
+		eventsChannel:   eventsChannel,
+		apiClient:       apiClient,
 		CiBuilderClient: ciBuilderClient,
 	}
 }
@@ -39,13 +39,13 @@ func (w *eventWorkerImpl) ListenToEventChannels() {
 		log.Debug().Msg("Listening to Bitbucket events channels...")
 		for {
 			select {
-			case pushEvent := <-w.EventsChannel:
+			case pushEvent := <-w.eventsChannel:
 				go func() {
-					w.WaitGroup.Add(1)
+					w.waitGroup.Add(1)
 					w.CreateJobForBitbucketPush(pushEvent)
-					w.WaitGroup.Done()
+					w.waitGroup.Done()
 				}()
-			case <-w.QuitChannel:
+			case <-w.quitChannel:
 				log.Debug().Msg("Stopping Bitbucket event worker...")
 				return
 			}
@@ -55,7 +55,7 @@ func (w *eventWorkerImpl) ListenToEventChannels() {
 
 func (w *eventWorkerImpl) Stop() {
 	go func() {
-		w.QuitChannel <- true
+		w.quitChannel <- true
 	}()
 }
 
@@ -67,7 +67,7 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 	}
 
 	// get access token
-	accessToken, err := w.APIClient.GetAccessToken()
+	accessToken, err := w.apiClient.GetAccessToken()
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
@@ -75,7 +75,7 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 	}
 
 	// get manifest file
-	manifestExists, manifest, err := w.APIClient.GetEstafetteManifest(accessToken, pushEvent)
+	manifestExists, manifest, err := w.apiClient.GetEstafetteManifest(accessToken, pushEvent)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
@@ -89,7 +89,7 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 	log.Debug().Interface("pushEvent", pushEvent).Str("manifest", manifest).Msgf("Estaffette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
 
 	// get authenticated url for the repository
-	authenticatedRepositoryURL, err := w.APIClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.Links.HTML.Href)
+	authenticatedRepositoryURL, err := w.apiClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.Links.HTML.Href)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving authenticated repository failed")

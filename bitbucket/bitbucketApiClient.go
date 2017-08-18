@@ -24,7 +24,7 @@ type apiClientImpl struct {
 	bitbucketAPIKey                 string
 	bitbucketAppOAuthKey            string
 	bitbucketAppOAuthSecret         string
-	PrometheusOutboundAPICallTotals *prometheus.CounterVec
+	prometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
 // NewBitbucketAPIClient returns a new bitbucket.APIClient
@@ -33,7 +33,7 @@ func NewBitbucketAPIClient(bitbucketAPIKey, bitbucketAppOAuthKey, bitbucketAppOA
 		bitbucketAPIKey:                 bitbucketAPIKey,
 		bitbucketAppOAuthKey:            bitbucketAppOAuthKey,
 		bitbucketAppOAuthSecret:         bitbucketAppOAuthSecret,
-		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
+		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 }
 
@@ -41,7 +41,7 @@ func NewBitbucketAPIClient(bitbucketAPIKey, bitbucketAppOAuthKey, bitbucketAppOA
 func (bb *apiClientImpl) GetAccessToken() (accessToken AccessToken, err error) {
 
 	// track call via prometheus
-	bb.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
+	bb.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
 
 	basicAuthenticationToken := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", bb.bitbucketAppOAuthKey, bb.bitbucketAppOAuthSecret)))
 
@@ -93,7 +93,7 @@ func (bb *apiClientImpl) GetAuthenticatedRepositoryURL(accessToken AccessToken, 
 func (bb *apiClientImpl) GetEstafetteManifest(accessToken AccessToken, pushEvent RepositoryPushEvent) (exists bool, manifest string, err error) {
 
 	// track call via prometheus
-	bb.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
+	bb.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
 
 	// create client, in order to add headers
 	client := &http.Client{}

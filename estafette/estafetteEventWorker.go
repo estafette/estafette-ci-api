@@ -14,19 +14,19 @@ type EventWorker interface {
 }
 
 type eventWorkerImpl struct {
-	WaitGroup       *sync.WaitGroup
-	QuitChannel     chan bool
-	CiBuilderClient CiBuilderClient
-	EventsChannel   chan CiBuilderEvent
+	waitGroup       *sync.WaitGroup
+	quitChannel     chan bool
+	ciBuilderClient CiBuilderClient
+	eventsChannel   chan CiBuilderEvent
 }
 
 // NewEstafetteEventWorker returns a new estafette.EventWorker
 func NewEstafetteEventWorker(waitGroup *sync.WaitGroup, ciBuilderClient CiBuilderClient, eventsChannel chan CiBuilderEvent) EventWorker {
 	return &eventWorkerImpl{
-		WaitGroup:       waitGroup,
-		QuitChannel:     make(chan bool),
-		CiBuilderClient: ciBuilderClient,
-		EventsChannel:   eventsChannel,
+		waitGroup:       waitGroup,
+		quitChannel:     make(chan bool),
+		ciBuilderClient: ciBuilderClient,
+		eventsChannel:   eventsChannel,
 	}
 }
 
@@ -36,13 +36,13 @@ func (w *eventWorkerImpl) ListenToEventChannels() {
 		log.Debug().Msg("Listening to Estafette events channels...")
 		for {
 			select {
-			case ciBuilderEvent := <-w.EventsChannel:
+			case ciBuilderEvent := <-w.eventsChannel:
 				go func() {
-					w.WaitGroup.Add(1)
+					w.waitGroup.Add(1)
 					w.RemoveJobForEstafetteBuild(ciBuilderEvent)
-					w.WaitGroup.Done()
+					w.waitGroup.Done()
 				}()
-			case <-w.QuitChannel:
+			case <-w.quitChannel:
 				log.Debug().Msg("Stopping Estafette event worker...")
 				return
 			}
@@ -52,14 +52,14 @@ func (w *eventWorkerImpl) ListenToEventChannels() {
 
 func (w *eventWorkerImpl) Stop() {
 	go func() {
-		w.QuitChannel <- true
+		w.quitChannel <- true
 	}()
 }
 
 func (w *eventWorkerImpl) RemoveJobForEstafetteBuild(ciBuilderEvent CiBuilderEvent) {
 
 	// create ci builder job
-	err := w.CiBuilderClient.RemoveCiBuilderJob(ciBuilderEvent.JobName)
+	err := w.ciBuilderClient.RemoveCiBuilderJob(ciBuilderEvent.JobName)
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", ciBuilderEvent.JobName).

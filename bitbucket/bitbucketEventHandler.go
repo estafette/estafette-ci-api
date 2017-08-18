@@ -17,15 +17,15 @@ type EventHandler interface {
 }
 
 type eventHandlerImpl struct {
-	EventsChannel                chan RepositoryPushEvent
-	PrometheusInboundEventTotals *prometheus.CounterVec
+	eventsChannel                chan RepositoryPushEvent
+	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewBitbucketEventHandler returns a new bitbucket.EventHandler
 func NewBitbucketEventHandler(eventsChannel chan RepositoryPushEvent, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
-		EventsChannel:                eventsChannel,
-		PrometheusInboundEventTotals: prometheusInboundEventTotals,
+		eventsChannel:                eventsChannel,
+		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
 }
 
@@ -34,7 +34,7 @@ func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
 
 	eventType := r.Header.Get("X-Event-Key")
-	h.PrometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "bitbucket"}).Inc()
+	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "bitbucket"}).Inc()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -104,5 +104,5 @@ func (h *eventHandlerImpl) HandlePushEvent(body []byte) {
 	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized Bitbucket push event for repository %v", pushEvent.Repository.FullName)
 
 	// test making api calls for bitbucket app in the background
-	h.EventsChannel <- pushEvent
+	h.eventsChannel <- pushEvent
 }

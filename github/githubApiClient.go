@@ -31,7 +31,7 @@ type apiClientImpl struct {
 	githubAppID                     string
 	githubAppOAuthClientID          string
 	githubAppOAuthClientSecret      string
-	PrometheusOutboundAPICallTotals *prometheus.CounterVec
+	prometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
 // NewGithubAPIClient creates an github.APIClient to communicate with the Github api
@@ -41,7 +41,7 @@ func NewGithubAPIClient(githubAppPrivateKeyPath, githubAppID, githubAppOAuthClie
 		githubAppID:                     githubAppID,
 		githubAppOAuthClientID:          githubAppOAuthClientID,
 		githubAppOAuthClientSecret:      githubAppOAuthClientSecret,
-		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
+		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 }
 
@@ -145,7 +145,7 @@ func (gh *apiClientImpl) GetEstafetteManifest(accessToken AccessToken, pushEvent
 func (gh *apiClientImpl) callGithubAPI(method, url string, params interface{}, authorizationType, token string) (statusCode int, body []byte, err error) {
 
 	// track call via prometheus
-	gh.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "github"}).Inc()
+	gh.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "github"}).Inc()
 
 	// convert params to json if they're present
 	var requestBody io.Reader

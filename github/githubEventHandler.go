@@ -17,15 +17,15 @@ type EventHandler interface {
 }
 
 type eventHandlerImpl struct {
-	EventsChannel                chan PushEvent
-	PrometheusInboundEventTotals *prometheus.CounterVec
+	eventsChannel                chan PushEvent
+	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewGithubEventHandler returns a github.EventHandler to handle incoming webhook events
 func NewGithubEventHandler(eventsChannel chan PushEvent, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
-		EventsChannel:                eventsChannel,
-		PrometheusInboundEventTotals: prometheusInboundEventTotals,
+		eventsChannel:                eventsChannel,
+		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
 }
 
@@ -33,7 +33,7 @@ func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// https://developer.github.com/webhooks/
 	eventType := r.Header.Get("X-GitHub-Event")
-	h.PrometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "github"}).Inc()
+	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "github"}).Inc()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -118,5 +118,5 @@ func (h *eventHandlerImpl) HandlePushEvent(body []byte) {
 	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized GitHub push event for repository %v", pushEvent.Repository.FullName)
 
 	// test making api calls for github app in the background
-	h.EventsChannel <- pushEvent
+	h.eventsChannel <- pushEvent
 }

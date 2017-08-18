@@ -16,34 +16,34 @@ type EventHandler interface {
 }
 
 type eventHandlerImpl struct {
-	CiAPIKey                     string
-	EventsChannel                chan CiBuilderEvent
-	PrometheusInboundEventTotals *prometheus.CounterVec
+	ciAPIKey                     string
+	eventsChannel                chan CiBuilderEvent
+	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewEstafetteEventHandler returns a new estafette.EventHandler
 func NewEstafetteEventHandler(ciAPIKey string, eventsChannel chan CiBuilderEvent, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
-		CiAPIKey:                     ciAPIKey,
-		EventsChannel:                eventsChannel,
-		PrometheusInboundEventTotals: prometheusInboundEventTotals,
+		ciAPIKey:                     ciAPIKey,
+		eventsChannel:                eventsChannel,
+		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
 }
 
 func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 
 	authorizationHeader := r.Header.Get("Authorization")
-	if authorizationHeader != fmt.Sprintf("Bearer %v", h.CiAPIKey) {
+	if authorizationHeader != fmt.Sprintf("Bearer %v", h.ciAPIKey) {
 		log.Error().
 			Str("authorizationHeader", authorizationHeader).
-			Str("apiKey", h.CiAPIKey).
+			Str("apiKey", h.ciAPIKey).
 			Msg("Authorization header for Estafette event is incorrect")
 		http.Error(w, "authorization failed", http.StatusUnauthorized)
 		return
 	}
 
 	eventType := r.Header.Get("X-Estafette-Event")
-	h.PrometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "estafette"}).Inc()
+	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "estafette"}).Inc()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -77,7 +77,7 @@ func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 		"builder:succeeded",
 		"builder:failed":
 		// send via channel to worker
-		h.EventsChannel <- ciBuilderEvent
+		h.eventsChannel <- ciBuilderEvent
 
 	default:
 		log.Warn().Str("event", eventType).Msgf("Unsupported Estafette event of type '%v'", eventType)
