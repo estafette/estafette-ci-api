@@ -49,3 +49,14 @@ type GithubAccessToken struct {
 	ExpiresAt string `json:"expires_at"`
 	Token     string `json:"token"`
 }
+
+// RepositoryContent represents a file retrieved via the Github api
+type RepositoryContent struct {
+	Type     string `json:"type"`
+	Encoding string `json:"encoding"`
+	Size     int    `json:"size"`
+	Name     string `json:"name"`
+	Path     string `json:"path"`
+	Content  string `json:"content"`
+	Sha      string `json:"sha"`
+}

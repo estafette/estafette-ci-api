@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,7 +21,8 @@ import (
 type GithubAPIClient interface {
 	GetGithubAppToken() (string, error)
 	GetInstallationToken(int) (GithubAccessToken, error)
-	GetAuthenticatedRepositoryURL(int, string) (string, GithubAccessToken, error)
+	GetAuthenticatedRepositoryURL(GithubAccessToken, string) (string, error)
+	GetEstafetteManifest(GithubAccessToken, GithubPushEvent) (bool, string, error)
 }
 
 type githubAPIClientImpl struct {
@@ -82,7 +84,7 @@ func (gh *githubAPIClientImpl) GetInstallationToken(installationID int) (accessT
 		return
 	}
 
-	body, err := callGithubAPI("POST", fmt.Sprintf("https://api.github.com/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
+	_, body, err := callGithubAPI("POST", fmt.Sprintf("https://api.github.com/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
 
 	// unmarshal json body
 	err = json.Unmarshal(body, &accessToken)
@@ -94,19 +96,49 @@ func (gh *githubAPIClientImpl) GetInstallationToken(installationID int) (accessT
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (gh *githubAPIClientImpl) GetAuthenticatedRepositoryURL(installationID int, htmlURL string) (url string, accessToken GithubAccessToken, err error) {
-
-	accessToken, err = gh.GetInstallationToken(installationID)
-	if err != nil {
-		return
-	}
+func (gh *githubAPIClientImpl) GetAuthenticatedRepositoryURL(accessToken GithubAccessToken, htmlURL string) (url string, err error) {
 
 	url = strings.Replace(htmlURL, "https://github.com", fmt.Sprintf("https://x-access-token:%v@github.com", accessToken.Token), -1)
 
 	return
 }
 
-func callGithubAPI(method, url string, params interface{}, authorizationType, token string) (body []byte, err error) {
+func (gh *githubAPIClientImpl) GetEstafetteManifest(accessToken GithubAccessToken, pushEvent GithubPushEvent) (exists bool, manifest string, err error) {
+
+	// https://developer.github.com/v3/repos/contents/
+
+	statusCode, body, err := callGithubAPI("GET", fmt.Sprintf("https://api.github.com/repos/%v/contents/.estafette.yaml?ref=%v", pushEvent.Repository.FullName, pushEvent.After), nil, "token", accessToken.Token)
+	if err != nil {
+		return
+	}
+
+	if statusCode == http.StatusNotFound {
+		return
+	}
+
+	var content RepositoryContent
+
+	// unmarshal json body
+	err = json.Unmarshal(body, &content)
+	if err != nil {
+		return
+	}
+
+	if content.Type == "file" && content.Encoding == "base64" {
+		manifest = content.Content
+
+		data, err := base64.StdEncoding.DecodeString(content.Content)
+		if err != nil {
+			return false, "", err
+		}
+		exists = true
+		manifest = string(data)
+	}
+
+	return
+}
+
+func callGithubAPI(method, url string, params interface{}, authorizationType, token string) (statusCode int, body []byte, err error) {
 
 	// track call via prometheus
 	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "github"}).Inc()
@@ -116,7 +148,7 @@ func callGithubAPI(method, url string, params interface{}, authorizationType, to
 	if params != nil {
 		data, err := json.Marshal(params)
 		if err != nil {
-			return body, err
+			return 0, body, err
 		}
 		requestBody = bytes.NewReader(data)
 	}
@@ -139,6 +171,8 @@ func callGithubAPI(method, url string, params interface{}, authorizationType, to
 	}
 
 	defer response.Body.Close()
+
+	statusCode = response.StatusCode
 
 	body, err = ioutil.ReadAll(response.Body)
 	if err != nil {

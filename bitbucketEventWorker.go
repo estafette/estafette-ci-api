@@ -62,16 +62,21 @@ func (w *bitbucketEventWorkerImpl) CreateJobForBitbucketPush(pushEvent Bitbucket
 
 	// get access token
 	accessToken, err := bbClient.GetAccessToken()
-
-	// get manifest file
-	manifest, err := bbClient.GetEstafetteManifest(accessToken, pushEvent)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
 		return
 	}
 
-	if manifest == "Not Found" {
+	// get manifest file
+	manifestExists, manifest, err := bbClient.GetEstafetteManifest(accessToken, pushEvent)
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Retrieving Estafettte manifest failed")
+		return
+	}
+
+	if !manifestExists {
 		log.Info().Interface("pushEvent", pushEvent).Msgf("No Estaffette manifest for repo %v and revision %v, not creating a job", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
 		return
 	}

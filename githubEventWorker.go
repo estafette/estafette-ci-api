@@ -58,9 +58,33 @@ func (w *githubEventWorkerImpl) CreateJobForGithubPush(pushEvent GithubPushEvent
 		return
 	}
 
-	// get authenticated url for the repository
+	// create github api client
 	ghClient := newGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret)
-	authenticatedRepositoryURL, accessToken, err := ghClient.GetAuthenticatedRepositoryURL(pushEvent.Installation.ID, pushEvent.Repository.HTMLURL)
+
+	// get access token
+	accessToken, err := ghClient.GetInstallationToken(pushEvent.Installation.ID)
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Retrieving access token failed")
+		return
+	}
+
+	// get manifest file
+	manifestExists, manifest, err := ghClient.GetEstafetteManifest(accessToken, pushEvent)
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Retrieving Estafettte manifest failed")
+		return
+	}
+
+	if !manifestExists {
+		log.Info().Interface("pushEvent", pushEvent).Msgf("No Estaffette manifest for repo %v and revision %v, not creating a job", pushEvent.Repository.FullName, pushEvent.After)
+		return
+	}
+	log.Debug().Interface("pushEvent", pushEvent).Str("manifest", manifest).Msgf("Estaffette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.After)
+
+	// get authenticated url for the repository
+	authenticatedRepositoryURL, err := ghClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.HTMLURL)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving authenticated repository failed")

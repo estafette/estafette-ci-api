@@ -17,7 +17,7 @@ import (
 type BitbucketAPIClient interface {
 	GetAccessToken() (BitbucketAccessToken, error)
 	GetAuthenticatedRepositoryURL(BitbucketAccessToken, string) (string, error)
-	GetEstafetteManifest(BitbucketAccessToken, BitbucketRepositoryPushEvent) (string, error)
+	GetEstafetteManifest(BitbucketAccessToken, BitbucketRepositoryPushEvent) (bool, string, error)
 }
 
 type bitbucketAPIClientImpl struct {
@@ -87,7 +87,7 @@ func (bb *bitbucketAPIClientImpl) GetAuthenticatedRepositoryURL(accessToken Bitb
 	return
 }
 
-func (bb *bitbucketAPIClientImpl) GetEstafetteManifest(accessToken BitbucketAccessToken, pushEvent BitbucketRepositoryPushEvent) (manifest string, err error) {
+func (bb *bitbucketAPIClientImpl) GetEstafetteManifest(accessToken BitbucketAccessToken, pushEvent BitbucketRepositoryPushEvent) (exists bool, manifest string, err error) {
 
 	// track call via prometheus
 	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "bitbucket"}).Inc()
@@ -115,7 +115,10 @@ func (bb *bitbucketAPIClientImpl) GetEstafetteManifest(accessToken BitbucketAcce
 		return
 	}
 
-	manifest = string(body)
+	if response.StatusCode != http.StatusNotFound {
+		exists = true
+		manifest = string(body)
+	}
 
 	return
 }
