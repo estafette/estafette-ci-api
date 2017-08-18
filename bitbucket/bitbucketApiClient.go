@@ -21,17 +21,19 @@ type APIClient interface {
 }
 
 type apiClientImpl struct {
-	bitbucketAPIKey         string
-	bitbucketAppOAuthKey    string
-	bitbucketAppOAuthSecret string
+	bitbucketAPIKey                 string
+	bitbucketAppOAuthKey            string
+	bitbucketAppOAuthSecret         string
+	PrometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
 // NewBitbucketAPIClient returns a new bitbucket.APIClient
-func NewBitbucketAPIClient(bitbucketAPIKey, bitbucketAppOAuthKey, bitbucketAppOAuthSecret string) APIClient {
+func NewBitbucketAPIClient(bitbucketAPIKey, bitbucketAppOAuthKey, bitbucketAppOAuthSecret string, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
 	return &apiClientImpl{
-		bitbucketAPIKey:         bitbucketAPIKey,
-		bitbucketAppOAuthKey:    bitbucketAppOAuthKey,
-		bitbucketAppOAuthSecret: bitbucketAppOAuthSecret,
+		bitbucketAPIKey:                 bitbucketAPIKey,
+		bitbucketAppOAuthKey:            bitbucketAppOAuthKey,
+		bitbucketAppOAuthSecret:         bitbucketAppOAuthSecret,
+		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 }
 
@@ -39,7 +41,7 @@ func NewBitbucketAPIClient(bitbucketAPIKey, bitbucketAppOAuthKey, bitbucketAppOA
 func (bb *apiClientImpl) GetAccessToken() (accessToken AccessToken, err error) {
 
 	// track call via prometheus
-	OutgoingAPIRequestTotal.With(prometheus.Labels{"target": "bitbucket"}).Inc()
+	bb.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
 
 	basicAuthenticationToken := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", bb.bitbucketAppOAuthKey, bb.bitbucketAppOAuthSecret)))
 
@@ -91,7 +93,7 @@ func (bb *apiClientImpl) GetAuthenticatedRepositoryURL(accessToken AccessToken, 
 func (bb *apiClientImpl) GetEstafetteManifest(accessToken AccessToken, pushEvent RepositoryPushEvent) (exists bool, manifest string, err error) {
 
 	// track call via prometheus
-	OutgoingAPIRequestTotal.With(prometheus.Labels{"target": "bitbucket"}).Inc()
+	bb.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
 
 	// create client, in order to add headers
 	client := &http.Client{}

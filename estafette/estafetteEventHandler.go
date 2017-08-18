@@ -16,15 +16,17 @@ type EventHandler interface {
 }
 
 type eventHandlerImpl struct {
-	CiAPIKey      string
-	EventsChannel chan CiBuilderEvent
+	CiAPIKey                     string
+	EventsChannel                chan CiBuilderEvent
+	PrometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewEstafetteEventHandler returns a new estafette.EventHandler
-func NewEstafetteEventHandler(ciAPIKey string, eventsChannel chan CiBuilderEvent) EventHandler {
+func NewEstafetteEventHandler(ciAPIKey string, eventsChannel chan CiBuilderEvent, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
-		CiAPIKey:      ciAPIKey,
-		EventsChannel: eventsChannel,
+		CiAPIKey:                     ciAPIKey,
+		EventsChannel:                eventsChannel,
+		PrometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
 }
 
@@ -41,7 +43,7 @@ func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	eventType := r.Header.Get("X-Estafette-Event")
-	WebhookTotal.With(prometheus.Labels{"event": eventType, "source": "estafette"}).Inc()
+	h.PrometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "estafette"}).Inc()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {

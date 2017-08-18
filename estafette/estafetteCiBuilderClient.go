@@ -32,14 +32,15 @@ type CiBuilderParams struct {
 }
 
 type ciBuilderClientImpl struct {
-	KubeClient                *k8s.Client
-	EstafetteCiServerBaseURL  string
-	EstafetteCiAPIKey         string
-	EstafetteCiBuilderVersion string
+	KubeClient                      *k8s.Client
+	EstafetteCiServerBaseURL        string
+	EstafetteCiAPIKey               string
+	EstafetteCiBuilderVersion       string
+	PrometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
 // NewCiBuilderClient returns a new estafette.CiBuilderClient
-func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiAPIKey, estafetteCiBuilderVersion string) (ciBuilderClient CiBuilderClient, err error) {
+func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiAPIKey, estafetteCiBuilderVersion string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
 
 	kubeClient, err := k8s.NewInClusterClient()
 	if err != nil {
@@ -48,10 +49,11 @@ func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiAPIKey, estafetteCi
 	}
 
 	ciBuilderClient = &ciBuilderClientImpl{
-		KubeClient:                kubeClient,
-		EstafetteCiServerBaseURL:  estafetteCiServerBaseURL,
-		EstafetteCiAPIKey:         estafetteCiAPIKey,
-		EstafetteCiBuilderVersion: estafetteCiBuilderVersion,
+		KubeClient:                      kubeClient,
+		EstafetteCiServerBaseURL:        estafetteCiServerBaseURL,
+		EstafetteCiAPIKey:               estafetteCiAPIKey,
+		EstafetteCiBuilderVersion:       estafetteCiBuilderVersion,
+		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 
 	return
@@ -203,7 +205,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	}
 
 	job, err = cbc.KubeClient.BatchV1().CreateJob(context.Background(), job)
-	OutgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 
 	return
 }
@@ -213,7 +215,7 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 
 	// check if job is finished
 	job, err := cbc.KubeClient.BatchV1().GetJob(context.Background(), jobName, cbc.KubeClient.Namespace)
-	OutgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).
@@ -227,7 +229,7 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 
 		// watch for job updates
 		watcher, err := cbc.KubeClient.BatchV1().WatchJobs(context.Background(), cbc.KubeClient.Namespace, k8s.Timeout(time.Duration(60)*time.Second))
-		OutgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+		cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 		if err != nil {
 			log.Error().Err(err).
 				Str("jobName", jobName).
@@ -253,7 +255,7 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 
 	// delete job
 	err = cbc.KubeClient.BatchV1().DeleteJob(context.Background(), jobName, cbc.KubeClient.Namespace)
-	OutgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).

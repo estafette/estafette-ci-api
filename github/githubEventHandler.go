@@ -17,13 +17,15 @@ type EventHandler interface {
 }
 
 type eventHandlerImpl struct {
-	EventsChannel chan PushEvent
+	EventsChannel                chan PushEvent
+	PrometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewGithubEventHandler returns a github.EventHandler to handle incoming webhook events
-func NewGithubEventHandler(eventsChannel chan PushEvent) EventHandler {
+func NewGithubEventHandler(eventsChannel chan PushEvent, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
-		EventsChannel: eventsChannel,
+		EventsChannel:                eventsChannel,
+		PrometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
 }
 
@@ -31,7 +33,7 @@ func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// https://developer.github.com/webhooks/
 	eventType := r.Header.Get("X-GitHub-Event")
-	WebhookTotal.With(prometheus.Labels{"event": eventType, "source": "github"}).Inc()
+	h.PrometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "github"}).Inc()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {

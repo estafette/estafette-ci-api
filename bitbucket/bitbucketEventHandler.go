@@ -17,13 +17,15 @@ type EventHandler interface {
 }
 
 type eventHandlerImpl struct {
-	EventsChannel chan RepositoryPushEvent
+	EventsChannel                chan RepositoryPushEvent
+	PrometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewBitbucketEventHandler returns a new bitbucket.EventHandler
-func NewBitbucketEventHandler(eventsChannel chan RepositoryPushEvent) EventHandler {
+func NewBitbucketEventHandler(eventsChannel chan RepositoryPushEvent, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
-		EventsChannel: eventsChannel,
+		EventsChannel:                eventsChannel,
+		PrometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
 }
 
@@ -32,7 +34,7 @@ func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
 
 	eventType := r.Header.Get("X-Event-Key")
-	WebhookTotal.With(prometheus.Labels{"event": eventType, "source": "bitbucket"}).Inc()
+	h.PrometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "bitbucket"}).Inc()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {

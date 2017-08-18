@@ -23,22 +23,25 @@ type APIClient interface {
 	GetInstallationToken(int) (AccessToken, error)
 	GetAuthenticatedRepositoryURL(AccessToken, string) (string, error)
 	GetEstafetteManifest(AccessToken, PushEvent) (bool, string, error)
+	callGithubAPI(string, string, interface{}, string, string) (int, []byte, error)
 }
 
 type apiClientImpl struct {
-	githubAppPrivateKeyPath    string
-	githubAppID                string
-	githubAppOAuthClientID     string
-	githubAppOAuthClientSecret string
+	githubAppPrivateKeyPath         string
+	githubAppID                     string
+	githubAppOAuthClientID          string
+	githubAppOAuthClientSecret      string
+	PrometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
 // NewGithubAPIClient creates an github.APIClient to communicate with the Github api
-func NewGithubAPIClient(githubAppPrivateKeyPath, githubAppID, githubAppOAuthClientID, githubAppOAuthClientSecret string) APIClient {
+func NewGithubAPIClient(githubAppPrivateKeyPath, githubAppID, githubAppOAuthClientID, githubAppOAuthClientSecret string, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
 	return &apiClientImpl{
-		githubAppPrivateKeyPath:    githubAppPrivateKeyPath,
-		githubAppID:                githubAppID,
-		githubAppOAuthClientID:     githubAppOAuthClientID,
-		githubAppOAuthClientSecret: githubAppOAuthClientSecret,
+		githubAppPrivateKeyPath:         githubAppPrivateKeyPath,
+		githubAppID:                     githubAppID,
+		githubAppOAuthClientID:          githubAppOAuthClientID,
+		githubAppOAuthClientSecret:      githubAppOAuthClientSecret,
+		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 }
 
@@ -85,7 +88,7 @@ func (gh *apiClientImpl) GetInstallationToken(installationID int) (accessToken A
 		return
 	}
 
-	_, body, err := callGithubAPI("POST", fmt.Sprintf("https://api.github.com/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
+	_, body, err := gh.callGithubAPI("POST", fmt.Sprintf("https://api.github.com/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
 
 	// unmarshal json body
 	err = json.Unmarshal(body, &accessToken)
@@ -108,7 +111,7 @@ func (gh *apiClientImpl) GetEstafetteManifest(accessToken AccessToken, pushEvent
 
 	// https://developer.github.com/v3/repos/contents/
 
-	statusCode, body, err := callGithubAPI("GET", fmt.Sprintf("https://api.github.com/repos/%v/contents/.estafette.yaml?ref=%v", pushEvent.Repository.FullName, pushEvent.After), nil, "token", accessToken.Token)
+	statusCode, body, err := gh.callGithubAPI("GET", fmt.Sprintf("https://api.github.com/repos/%v/contents/.estafette.yaml?ref=%v", pushEvent.Repository.FullName, pushEvent.After), nil, "token", accessToken.Token)
 	if err != nil {
 		return
 	}
@@ -139,10 +142,10 @@ func (gh *apiClientImpl) GetEstafetteManifest(accessToken AccessToken, pushEvent
 	return
 }
 
-func callGithubAPI(method, url string, params interface{}, authorizationType, token string) (statusCode int, body []byte, err error) {
+func (gh *apiClientImpl) callGithubAPI(method, url string, params interface{}, authorizationType, token string) (statusCode int, body []byte, err error) {
 
 	// track call via prometheus
-	OutgoingAPIRequestTotal.With(prometheus.Labels{"target": "github"}).Inc()
+	gh.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "github"}).Inc()
 
 	// convert params to json if they're present
 	var requestBody io.Reader
