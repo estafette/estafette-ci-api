@@ -105,18 +105,7 @@ func main() {
 	waitGroup := &sync.WaitGroup{}
 
 	// start prometheus
-	go func() {
-		log.Debug().
-			Str("port", *prometheusMetricsAddress).
-			Str("path", *prometheusMetricsPath).
-			Msg("Serving Prometheus metrics...")
-
-		http.Handle(*prometheusMetricsPath, promhttp.Handler())
-
-		if err := http.ListenAndServe(*prometheusMetricsAddress, nil); err != nil {
-			log.Fatal().Err(err).Msg("Starting Prometheus listener failed")
-		}
-	}()
+	go startPrometheus()
 
 	// listen to channels for push events
 	githubEventWorker := newGithubEventWorker(waitGroup)
@@ -170,6 +159,19 @@ func main() {
 	waitGroup.Wait()
 
 	log.Info().Msg("Server gracefully stopped")
+}
+
+func startPrometheus() {
+	log.Debug().
+		Str("port", *prometheusMetricsAddress).
+		Str("path", *prometheusMetricsPath).
+		Msg("Serving Prometheus metrics...")
+
+	http.Handle(*prometheusMetricsPath, promhttp.Handler())
+
+	if err := http.ListenAndServe(*prometheusMetricsAddress, nil); err != nil {
+		log.Fatal().Err(err).Msg("Starting Prometheus listener failed")
+	}
 }
 
 func livenessHandler(w http.ResponseWriter, r *http.Request) {
