@@ -1,43 +1,52 @@
-package main
+package github
 
 import (
 	"strings"
 	"sync"
 
+	"github.com/estafette/estafette-ci-api/estafette"
 	"github.com/rs/zerolog/log"
 )
 
-// GithubEventWorker processes events pushed to channels
-type GithubEventWorker interface {
+// EventWorker processes events pushed to channels
+type EventWorker interface {
 	ListenToEventChannels()
 	Stop()
-	CreateJobForGithubPush(GithubPushEvent)
+	CreateJobForGithubPush(PushEvent)
 }
 
-type githubEventWorkerImpl struct {
-	WaitGroup   *sync.WaitGroup
-	QuitChannel chan bool
+type eventWorkerImpl struct {
+	waitGroup       *sync.WaitGroup
+	quitChannel     chan bool
+	eventsChannel   chan PushEvent
+	apiClient       APIClient
+	ciBuilderClient estafette.CiBuilderClient
 }
 
-func newGithubEventWorker(waitGroup *sync.WaitGroup) GithubEventWorker {
-	return &githubEventWorkerImpl{
-		WaitGroup:   waitGroup,
-		QuitChannel: make(chan bool)}
+// NewGithubEventWorker returns a new github.EventWorker to handle events channeled by github.EventHandler
+func NewGithubEventWorker(waitGroup *sync.WaitGroup, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, eventsChannel chan PushEvent) EventWorker {
+	return &eventWorkerImpl{
+		waitGroup:       waitGroup,
+		quitChannel:     make(chan bool),
+		eventsChannel:   eventsChannel,
+		apiClient:       apiClient,
+		ciBuilderClient: ciBuilderClient,
+	}
 }
 
-func (w *githubEventWorkerImpl) ListenToEventChannels() {
+func (w *eventWorkerImpl) ListenToEventChannels() {
 	go func() {
 		// handle github events via channels
 		log.Debug().Msg("Listening to Github events channels...")
 		for {
 			select {
-			case pushEvent := <-githubPushEvents:
+			case pushEvent := <-w.eventsChannel:
 				go func() {
-					w.WaitGroup.Add(1)
+					w.waitGroup.Add(1)
 					w.CreateJobForGithubPush(pushEvent)
-					w.WaitGroup.Done()
+					w.waitGroup.Done()
 				}()
-			case <-w.QuitChannel:
+			case <-w.quitChannel:
 				log.Debug().Msg("Stopping Github event worker...")
 				return
 			}
@@ -45,24 +54,21 @@ func (w *githubEventWorkerImpl) ListenToEventChannels() {
 	}()
 }
 
-func (w *githubEventWorkerImpl) Stop() {
+func (w *eventWorkerImpl) Stop() {
 	go func() {
-		w.QuitChannel <- true
+		w.quitChannel <- true
 	}()
 }
 
-func (w *githubEventWorkerImpl) CreateJobForGithubPush(pushEvent GithubPushEvent) {
+func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 
 	// check to see that it's a cloneable event
 	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
 		return
 	}
 
-	// create github api client
-	ghClient := newGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret)
-
 	// get access token
-	accessToken, err := ghClient.GetInstallationToken(pushEvent.Installation.ID)
+	accessToken, err := w.apiClient.GetInstallationToken(pushEvent.Installation.ID)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving access token failed")
@@ -70,7 +76,7 @@ func (w *githubEventWorkerImpl) CreateJobForGithubPush(pushEvent GithubPushEvent
 	}
 
 	// get manifest file
-	manifestExists, manifest, err := ghClient.GetEstafetteManifest(accessToken, pushEvent)
+	manifestExists, manifest, err := w.apiClient.GetEstafetteManifest(accessToken, pushEvent)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
@@ -84,22 +90,15 @@ func (w *githubEventWorkerImpl) CreateJobForGithubPush(pushEvent GithubPushEvent
 	log.Debug().Interface("pushEvent", pushEvent).Str("manifest", manifest).Msgf("Estaffette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.After)
 
 	// get authenticated url for the repository
-	authenticatedRepositoryURL, err := ghClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.HTMLURL)
+	authenticatedRepositoryURL, err := w.apiClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.HTMLURL)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving authenticated repository failed")
 		return
 	}
 
-	// create ci builder client
-	ciBuilderClient, err := newCiBuilderClient()
-	if err != nil {
-		log.Error().Err(err).Msg("Initializing ci builder client failed")
-		return
-	}
-
 	// define ci builder params
-	ciBuilderParams := CiBuilderParams{
+	ciBuilderParams := estafette.CiBuilderParams{
 		RepoFullName:         pushEvent.Repository.FullName,
 		RepoURL:              authenticatedRepositoryURL,
 		RepoBranch:           strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
@@ -108,7 +107,7 @@ func (w *githubEventWorkerImpl) CreateJobForGithubPush(pushEvent GithubPushEvent
 	}
 
 	// create ci builder job
-	_, err = ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+	_, err = w.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
 	if err != nil {
 		log.Error().Err(err).
 			Str("fullname", ciBuilderParams.RepoFullName).

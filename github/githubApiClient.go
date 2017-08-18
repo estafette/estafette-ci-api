@@ -1,4 +1,4 @@
-package main
+package github
 
 import (
 	"bytes"
@@ -17,32 +17,36 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// GithubAPIClient is the interface for running kubernetes commands specific to this application
-type GithubAPIClient interface {
+// APIClient is the interface for running kubernetes commands specific to this application
+type APIClient interface {
 	GetGithubAppToken() (string, error)
-	GetInstallationToken(int) (GithubAccessToken, error)
-	GetAuthenticatedRepositoryURL(GithubAccessToken, string) (string, error)
-	GetEstafetteManifest(GithubAccessToken, GithubPushEvent) (bool, string, error)
+	GetInstallationToken(int) (AccessToken, error)
+	GetAuthenticatedRepositoryURL(AccessToken, string) (string, error)
+	GetEstafetteManifest(AccessToken, PushEvent) (bool, string, error)
+	callGithubAPI(string, string, interface{}, string, string) (int, []byte, error)
 }
 
-type githubAPIClientImpl struct {
-	githubAppPrivateKeyPath    string
-	githubAppID                string
-	githubAppOAuthClientID     string
-	githubAppOAuthClientSecret string
+type apiClientImpl struct {
+	githubAppPrivateKeyPath         string
+	githubAppID                     string
+	githubAppOAuthClientID          string
+	githubAppOAuthClientSecret      string
+	prometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
-func newGithubAPIClient(githubAppPrivateKeyPath, githubAppID, githubAppOAuthClientID, githubAppOAuthClientSecret string) GithubAPIClient {
-	return &githubAPIClientImpl{
-		githubAppPrivateKeyPath:    githubAppPrivateKeyPath,
-		githubAppID:                githubAppID,
-		githubAppOAuthClientID:     githubAppOAuthClientID,
-		githubAppOAuthClientSecret: githubAppOAuthClientSecret,
+// NewGithubAPIClient creates an github.APIClient to communicate with the Github api
+func NewGithubAPIClient(githubAppPrivateKeyPath, githubAppID, githubAppOAuthClientID, githubAppOAuthClientSecret string, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
+	return &apiClientImpl{
+		githubAppPrivateKeyPath:         githubAppPrivateKeyPath,
+		githubAppID:                     githubAppID,
+		githubAppOAuthClientID:          githubAppOAuthClientID,
+		githubAppOAuthClientSecret:      githubAppOAuthClientSecret,
+		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 }
 
 // GetGithubAppToken returns a Github app token with which to retrieve an installation token
-func (gh *githubAPIClientImpl) GetGithubAppToken() (githubAppToken string, err error) {
+func (gh *apiClientImpl) GetGithubAppToken() (githubAppToken string, err error) {
 
 	// https://developer.github.com/apps/building-integrations/setting-up-and-registering-github-apps/about-authentication-options-for-github-apps/
 
@@ -77,14 +81,14 @@ func (gh *githubAPIClientImpl) GetGithubAppToken() (githubAppToken string, err e
 }
 
 // GetInstallationToken returns an access token for an installation of a Github app
-func (gh *githubAPIClientImpl) GetInstallationToken(installationID int) (accessToken GithubAccessToken, err error) {
+func (gh *apiClientImpl) GetInstallationToken(installationID int) (accessToken AccessToken, err error) {
 
 	githubAppToken, err := gh.GetGithubAppToken()
 	if err != nil {
 		return
 	}
 
-	_, body, err := callGithubAPI("POST", fmt.Sprintf("https://api.github.com/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
+	_, body, err := gh.callGithubAPI("POST", fmt.Sprintf("https://api.github.com/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
 
 	// unmarshal json body
 	err = json.Unmarshal(body, &accessToken)
@@ -96,18 +100,18 @@ func (gh *githubAPIClientImpl) GetInstallationToken(installationID int) (accessT
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (gh *githubAPIClientImpl) GetAuthenticatedRepositoryURL(accessToken GithubAccessToken, htmlURL string) (url string, err error) {
+func (gh *apiClientImpl) GetAuthenticatedRepositoryURL(accessToken AccessToken, htmlURL string) (url string, err error) {
 
 	url = strings.Replace(htmlURL, "https://github.com", fmt.Sprintf("https://x-access-token:%v@github.com", accessToken.Token), -1)
 
 	return
 }
 
-func (gh *githubAPIClientImpl) GetEstafetteManifest(accessToken GithubAccessToken, pushEvent GithubPushEvent) (exists bool, manifest string, err error) {
+func (gh *apiClientImpl) GetEstafetteManifest(accessToken AccessToken, pushEvent PushEvent) (exists bool, manifest string, err error) {
 
 	// https://developer.github.com/v3/repos/contents/
 
-	statusCode, body, err := callGithubAPI("GET", fmt.Sprintf("https://api.github.com/repos/%v/contents/.estafette.yaml?ref=%v", pushEvent.Repository.FullName, pushEvent.After), nil, "token", accessToken.Token)
+	statusCode, body, err := gh.callGithubAPI("GET", fmt.Sprintf("https://api.github.com/repos/%v/contents/.estafette.yaml?ref=%v", pushEvent.Repository.FullName, pushEvent.After), nil, "token", accessToken.Token)
 	if err != nil {
 		return
 	}
@@ -138,10 +142,10 @@ func (gh *githubAPIClientImpl) GetEstafetteManifest(accessToken GithubAccessToke
 	return
 }
 
-func callGithubAPI(method, url string, params interface{}, authorizationType, token string) (statusCode int, body []byte, err error) {
+func (gh *apiClientImpl) callGithubAPI(method, url string, params interface{}, authorizationType, token string) (statusCode int, body []byte, err error) {
 
 	// track call via prometheus
-	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "github"}).Inc()
+	gh.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "github"}).Inc()
 
 	// convert params to json if they're present
 	var requestBody io.Reader

@@ -1,4 +1,4 @@
-package main
+package bitbucket
 
 import (
 	"encoding/json"
@@ -10,30 +10,31 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var (
-	// channel for passing push events to handler that creates ci-builder job
-	bitbucketPushEvents = make(chan BitbucketRepositoryPushEvent, 100)
-)
-
-// BitbucketEventHandler handles http events for Bitbucket integration
-type BitbucketEventHandler interface {
+// EventHandler handles http events for Bitbucket integration
+type EventHandler interface {
 	Handle(http.ResponseWriter, *http.Request)
 	HandlePushEvent([]byte)
 }
 
-type bitbucketEventHandlerImpl struct {
+type eventHandlerImpl struct {
+	eventsChannel                chan RepositoryPushEvent
+	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
-func newBitbucketEventHandler() BitbucketEventHandler {
-	return &bitbucketEventHandlerImpl{}
+// NewBitbucketEventHandler returns a new bitbucket.EventHandler
+func NewBitbucketEventHandler(eventsChannel chan RepositoryPushEvent, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+	return &eventHandlerImpl{
+		eventsChannel:                eventsChannel,
+		prometheusInboundEventTotals: prometheusInboundEventTotals,
+	}
 }
 
-func (h *bitbucketEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
+func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
 
 	eventType := r.Header.Get("X-Event-Key")
-	webhookTotal.With(prometheus.Labels{"event": eventType, "source": "bitbucket"}).Inc()
+	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "bitbucket"}).Inc()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -90,10 +91,10 @@ func (h *bitbucketEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Reques
 	fmt.Fprintf(w, "Aye aye!")
 }
 
-func (h *bitbucketEventHandlerImpl) HandlePushEvent(body []byte) {
+func (h *eventHandlerImpl) HandlePushEvent(body []byte) {
 
 	// unmarshal json body
-	var pushEvent BitbucketRepositoryPushEvent
+	var pushEvent RepositoryPushEvent
 	err := json.Unmarshal(body, &pushEvent)
 	if err != nil {
 		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to BitbucketRepositoryPushEvent failed")
@@ -103,5 +104,5 @@ func (h *bitbucketEventHandlerImpl) HandlePushEvent(body []byte) {
 	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized Bitbucket push event for repository %v", pushEvent.Repository.FullName)
 
 	// test making api calls for bitbucket app in the background
-	bitbucketPushEvents <- pushEvent
+	h.eventsChannel <- pushEvent
 }

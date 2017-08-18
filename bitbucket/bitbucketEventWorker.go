@@ -1,42 +1,51 @@
-package main
+package bitbucket
 
 import (
 	"sync"
 
+	"github.com/estafette/estafette-ci-api/estafette"
 	"github.com/rs/zerolog/log"
 )
 
-// BitbucketEventWorker processes events pushed to channels
-type BitbucketEventWorker interface {
+// EventWorker processes events pushed to channels
+type EventWorker interface {
 	ListenToEventChannels()
 	Stop()
-	CreateJobForBitbucketPush(BitbucketRepositoryPushEvent)
+	CreateJobForBitbucketPush(RepositoryPushEvent)
 }
 
-type bitbucketEventWorkerImpl struct {
-	WaitGroup   *sync.WaitGroup
-	QuitChannel chan bool
+type eventWorkerImpl struct {
+	waitGroup       *sync.WaitGroup
+	quitChannel     chan bool
+	eventsChannel   chan RepositoryPushEvent
+	apiClient       APIClient
+	CiBuilderClient estafette.CiBuilderClient
 }
 
-func newBitbucketEventWorker(waitGroup *sync.WaitGroup) BitbucketEventWorker {
-	return &bitbucketEventWorkerImpl{
-		WaitGroup:   waitGroup,
-		QuitChannel: make(chan bool)}
+// NewBitbucketEventWorker returns the bitbucket.EventWorker
+func NewBitbucketEventWorker(waitGroup *sync.WaitGroup, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, eventsChannel chan RepositoryPushEvent) EventWorker {
+	return &eventWorkerImpl{
+		waitGroup:       waitGroup,
+		quitChannel:     make(chan bool),
+		eventsChannel:   eventsChannel,
+		apiClient:       apiClient,
+		CiBuilderClient: ciBuilderClient,
+	}
 }
 
-func (w *bitbucketEventWorkerImpl) ListenToEventChannels() {
+func (w *eventWorkerImpl) ListenToEventChannels() {
 	go func() {
 		// handle github events via channels
 		log.Debug().Msg("Listening to Bitbucket events channels...")
 		for {
 			select {
-			case pushEvent := <-bitbucketPushEvents:
+			case pushEvent := <-w.eventsChannel:
 				go func() {
-					w.WaitGroup.Add(1)
+					w.waitGroup.Add(1)
 					w.CreateJobForBitbucketPush(pushEvent)
-					w.WaitGroup.Done()
+					w.waitGroup.Done()
 				}()
-			case <-w.QuitChannel:
+			case <-w.quitChannel:
 				log.Debug().Msg("Stopping Bitbucket event worker...")
 				return
 			}
@@ -44,24 +53,21 @@ func (w *bitbucketEventWorkerImpl) ListenToEventChannels() {
 	}()
 }
 
-func (w *bitbucketEventWorkerImpl) Stop() {
+func (w *eventWorkerImpl) Stop() {
 	go func() {
-		w.QuitChannel <- true
+		w.quitChannel <- true
 	}()
 }
 
-func (w *bitbucketEventWorkerImpl) CreateJobForBitbucketPush(pushEvent BitbucketRepositoryPushEvent) {
+func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEvent) {
 
 	// check to see that it's a cloneable event
 	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil || pushEvent.Push.Changes[0].New.Type != "branch" || len(pushEvent.Push.Changes[0].New.Target.Hash) == 0 {
 		return
 	}
 
-	// create bitbucket api client
-	bbClient := newBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret)
-
 	// get access token
-	accessToken, err := bbClient.GetAccessToken()
+	accessToken, err := w.apiClient.GetAccessToken()
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
@@ -69,7 +75,7 @@ func (w *bitbucketEventWorkerImpl) CreateJobForBitbucketPush(pushEvent Bitbucket
 	}
 
 	// get manifest file
-	manifestExists, manifest, err := bbClient.GetEstafetteManifest(accessToken, pushEvent)
+	manifestExists, manifest, err := w.apiClient.GetEstafetteManifest(accessToken, pushEvent)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
@@ -83,22 +89,15 @@ func (w *bitbucketEventWorkerImpl) CreateJobForBitbucketPush(pushEvent Bitbucket
 	log.Debug().Interface("pushEvent", pushEvent).Str("manifest", manifest).Msgf("Estaffette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
 
 	// get authenticated url for the repository
-	authenticatedRepositoryURL, err := bbClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.Links.HTML.Href)
+	authenticatedRepositoryURL, err := w.apiClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.Links.HTML.Href)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving authenticated repository failed")
 		return
 	}
 
-	// create ci builder client
-	ciBuilderClient, err := newCiBuilderClient()
-	if err != nil {
-		log.Error().Err(err).Msg("Initializing ci builder client failed")
-		return
-	}
-
 	// define ci builder params
-	ciBuilderParams := CiBuilderParams{
+	ciBuilderParams := estafette.CiBuilderParams{
 		RepoFullName:         pushEvent.Repository.FullName,
 		RepoURL:              authenticatedRepositoryURL,
 		RepoBranch:           pushEvent.Push.Changes[0].New.Name,
@@ -107,7 +106,7 @@ func (w *bitbucketEventWorkerImpl) CreateJobForBitbucketPush(pushEvent Bitbucket
 	}
 
 	// create ci builder job
-	_, err = ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+	_, err = w.CiBuilderClient.CreateCiBuilderJob(ciBuilderParams)
 	if err != nil {
 		log.Error().Err(err).
 			Str("fullname", ciBuilderParams.RepoFullName).

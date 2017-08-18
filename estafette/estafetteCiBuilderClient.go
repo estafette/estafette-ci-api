@@ -1,4 +1,4 @@
-package main
+package estafette
 
 import (
 	"context"
@@ -32,11 +32,15 @@ type CiBuilderParams struct {
 }
 
 type ciBuilderClientImpl struct {
-	KubeClient *k8s.Client
+	kubeClient                      *k8s.Client
+	EstafetteCiServerBaseURL        string
+	EstafetteCiAPIKey               string
+	EstafetteCiBuilderVersion       string
+	PrometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
-// newCiBuilderClient return a estafette ci builder client
-func newCiBuilderClient() (ciBuilderClient CiBuilderClient, err error) {
+// NewCiBuilderClient returns a new estafette.CiBuilderClient
+func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiAPIKey, estafetteCiBuilderVersion string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
 
 	kubeClient, err := k8s.NewInClusterClient()
 	if err != nil {
@@ -45,7 +49,11 @@ func newCiBuilderClient() (ciBuilderClient CiBuilderClient, err error) {
 	}
 
 	ciBuilderClient = &ciBuilderClientImpl{
-		KubeClient: kubeClient,
+		kubeClient:                      kubeClient,
+		EstafetteCiServerBaseURL:        estafetteCiServerBaseURL,
+		EstafetteCiAPIKey:               estafetteCiAPIKey,
+		EstafetteCiBuilderVersion:       estafetteCiBuilderVersion,
+		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 
 	return
@@ -74,11 +82,11 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteBuildJobNameName := "ESTAFETTE_BUILD_JOB_NAME"
 	estafetteBuildJobNameValue := jobName
 	estafetteCiServerBaseURLName := "ESTAFETTE_CI_SERVER_BASE_URL"
-	estafetteCiServerBaseURLValue := *estafetteCiServerBaseURL
+	estafetteCiServerBaseURLValue := cbc.EstafetteCiServerBaseURL
 	estafetteCiServerBuilderEventsURLName := "ESTAFETTE_CI_SERVER_BUILDER_EVENTS_URL"
-	estafetteCiServerBuilderEventsURLValue := strings.TrimRight(*estafetteCiServerBaseURL, "/") + "/events/estafette/ci-builder"
+	estafetteCiServerBuilderEventsURLValue := strings.TrimRight(cbc.EstafetteCiServerBaseURL, "/") + "/events/estafette/ci-builder"
 	estafetteCiAPIKeyName := "ESTAFETTE_CI_API_KEY"
-	estafetteCiAPIKeyValue := *estafetteCiAPIKey
+	estafetteCiAPIKeyValue := cbc.EstafetteCiAPIKey
 
 	// temporarily pass build version equal to revision from the outside until estafette supports versioning
 	estafetteBuildVersionName := "ESTAFETTE_BUILD_VERSION"
@@ -150,14 +158,14 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 
 	// other job config
 	containerName := "estafette-ci-builder"
-	image := fmt.Sprintf("estafette/estafette-ci-builder:%v", *estafetteCiBuilderVersion)
+	image := fmt.Sprintf("estafette/estafette-ci-builder:%v", cbc.EstafetteCiBuilderVersion)
 	restartPolicy := "Never"
 	privileged := true
 
 	job = &batchv1.Job{
 		Metadata: &metav1.ObjectMeta{
 			Name:      &jobName,
-			Namespace: &cbc.KubeClient.Namespace,
+			Namespace: &cbc.kubeClient.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
 			},
@@ -196,8 +204,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		},
 	}
 
-	job, err = cbc.KubeClient.BatchV1().CreateJob(context.Background(), job)
-	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	job, err = cbc.kubeClient.BatchV1().CreateJob(context.Background(), job)
+	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 
 	return
 }
@@ -206,8 +214,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 
 	// check if job is finished
-	job, err := cbc.KubeClient.BatchV1().GetJob(context.Background(), jobName, cbc.KubeClient.Namespace)
-	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	job, err := cbc.kubeClient.BatchV1().GetJob(context.Background(), jobName, cbc.kubeClient.Namespace)
+	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).
@@ -220,8 +228,8 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 			Msgf("Job is not done yet, watching for job %v to succeed", jobName)
 
 		// watch for job updates
-		watcher, err := cbc.KubeClient.BatchV1().WatchJobs(context.Background(), cbc.KubeClient.Namespace, k8s.Timeout(time.Duration(60)*time.Second))
-		outgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+		watcher, err := cbc.kubeClient.BatchV1().WatchJobs(context.Background(), cbc.kubeClient.Namespace, k8s.Timeout(time.Duration(60)*time.Second))
+		cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 		if err != nil {
 			log.Error().Err(err).
 				Str("jobName", jobName).
@@ -246,8 +254,8 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 		Msgf("Job %v is done, deleting it...", jobName)
 
 	// delete job
-	err = cbc.KubeClient.BatchV1().DeleteJob(context.Background(), jobName, cbc.KubeClient.Namespace)
-	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	err = cbc.kubeClient.BatchV1().DeleteJob(context.Background(), jobName, cbc.kubeClient.Namespace)
+	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).

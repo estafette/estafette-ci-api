@@ -1,4 +1,4 @@
-package main
+package github
 
 import (
 	"encoding/json"
@@ -10,29 +10,30 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var (
-	// channel for passing push events to handler that creates ci-builder job
-	githubPushEvents = make(chan GithubPushEvent, 100)
-)
-
-// GithubEventHandler handles http events for Github integration
-type GithubEventHandler interface {
+// EventHandler handles http events for Github integration
+type EventHandler interface {
 	Handle(http.ResponseWriter, *http.Request)
 	HandlePushEvent([]byte)
 }
 
-type githubEventHandlerImpl struct {
+type eventHandlerImpl struct {
+	eventsChannel                chan PushEvent
+	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
-func newGithubEventHandler() GithubEventHandler {
-	return &githubEventHandlerImpl{}
+// NewGithubEventHandler returns a github.EventHandler to handle incoming webhook events
+func NewGithubEventHandler(eventsChannel chan PushEvent, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+	return &eventHandlerImpl{
+		eventsChannel:                eventsChannel,
+		prometheusInboundEventTotals: prometheusInboundEventTotals,
+	}
 }
 
-func (h *githubEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
+func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// https://developer.github.com/webhooks/
 	eventType := r.Header.Get("X-GitHub-Event")
-	webhookTotal.With(prometheus.Labels{"event": eventType, "source": "github"}).Inc()
+	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "github"}).Inc()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -104,10 +105,10 @@ func (h *githubEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) 
 	fmt.Fprintf(w, "Aye aye!")
 }
 
-func (h *githubEventHandlerImpl) HandlePushEvent(body []byte) {
+func (h *eventHandlerImpl) HandlePushEvent(body []byte) {
 
 	// unmarshal json body
-	var pushEvent GithubPushEvent
+	var pushEvent PushEvent
 	err := json.Unmarshal(body, &pushEvent)
 	if err != nil {
 		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubPushEvent failed")
@@ -117,5 +118,5 @@ func (h *githubEventHandlerImpl) HandlePushEvent(body []byte) {
 	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized GitHub push event for repository %v", pushEvent.Repository.FullName)
 
 	// test making api calls for github app in the background
-	githubPushEvents <- pushEvent
+	h.eventsChannel <- pushEvent
 }

@@ -1,4 +1,4 @@
-package main
+package estafette
 
 import (
 	"encoding/json"
@@ -10,37 +10,40 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var (
-	// channel for passing push events to worker that cleans up finished jobs
-	estafetteCiBuilderEvents = make(chan EstafetteCiBuilderEvent, 100)
-)
-
-// EstafetteEventHandler handles events from estafette components
-type EstafetteEventHandler interface {
+// EventHandler handles events from estafette components
+type EventHandler interface {
 	Handle(http.ResponseWriter, *http.Request)
 }
 
-type estafetteEventHandlerImpl struct {
+type eventHandlerImpl struct {
+	ciAPIKey                     string
+	eventsChannel                chan CiBuilderEvent
+	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
-func newEstafetteEventHandler() EstafetteEventHandler {
-	return &estafetteEventHandlerImpl{}
+// NewEstafetteEventHandler returns a new estafette.EventHandler
+func NewEstafetteEventHandler(ciAPIKey string, eventsChannel chan CiBuilderEvent, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+	return &eventHandlerImpl{
+		ciAPIKey:                     ciAPIKey,
+		eventsChannel:                eventsChannel,
+		prometheusInboundEventTotals: prometheusInboundEventTotals,
+	}
 }
 
-func (h *estafetteEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
+func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 
 	authorizationHeader := r.Header.Get("Authorization")
-	if authorizationHeader != fmt.Sprintf("Bearer %v", *estafetteCiAPIKey) {
+	if authorizationHeader != fmt.Sprintf("Bearer %v", h.ciAPIKey) {
 		log.Error().
 			Str("authorizationHeader", authorizationHeader).
-			Str("apiKey", *estafetteCiAPIKey).
+			Str("apiKey", h.ciAPIKey).
 			Msg("Authorization header for Estafette event is incorrect")
 		http.Error(w, "authorization failed", http.StatusUnauthorized)
 		return
 	}
 
 	eventType := r.Header.Get("X-Estafette-Event")
-	webhookTotal.With(prometheus.Labels{"event": eventType, "source": "estafette"}).Inc()
+	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "estafette"}).Inc()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -59,7 +62,7 @@ func (h *estafetteEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Reques
 	}
 
 	// unmarshal json body
-	var ciBuilderEvent EstafetteCiBuilderEvent
+	var ciBuilderEvent CiBuilderEvent
 	err = json.Unmarshal(body, &ciBuilderEvent)
 	if err != nil {
 		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to EstafetteCiBuilderEvent failed")
@@ -74,7 +77,7 @@ func (h *estafetteEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Reques
 		"builder:succeeded",
 		"builder:failed":
 		// send via channel to worker
-		estafetteCiBuilderEvents <- ciBuilderEvent
+		h.eventsChannel <- ciBuilderEvent
 
 	default:
 		log.Warn().Str("event", eventType).Msgf("Unsupported Estafette event of type '%v'", eventType)
