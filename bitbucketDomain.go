@@ -1,6 +1,6 @@
 package main
 
-// BitbucketRepositoryPushEvent represents a Bitbucket webhook push event
+// BitbucketRepositoryPushEvent represents a Bitbucket push event
 type BitbucketRepositoryPushEvent struct {
 	Actor      BitbucketOwner      `json:"actor"`
 	Repository BitbucketRepository `json:"repository"`

@@ -10,7 +10,7 @@ import (
 type EstafetteEventWorker interface {
 	ListenToEventChannels()
 	Stop()
-	RemoveJobForEstafetteBuild(EstafetteBuildFinishedEvent)
+	RemoveJobForEstafetteBuild(EstafetteCiBuilderEvent)
 }
 
 type estafetteEventWorkerImpl struct {
@@ -30,10 +30,10 @@ func (w *estafetteEventWorkerImpl) ListenToEventChannels() {
 		log.Debug().Msg("Listening to Estafette events channels...")
 		for {
 			select {
-			case buildFinishedEvent := <-estafetteBuildFinishedEvents:
+			case ciBuilderEvent := <-estafetteCiBuilderEvents:
 				go func() {
 					w.WaitGroup.Add(1)
-					w.RemoveJobForEstafetteBuild(buildFinishedEvent)
+					w.RemoveJobForEstafetteBuild(ciBuilderEvent)
 					w.WaitGroup.Done()
 				}()
 			case <-w.QuitChannel:
@@ -50,7 +50,7 @@ func (w *estafetteEventWorkerImpl) Stop() {
 	}()
 }
 
-func (w *estafetteEventWorkerImpl) RemoveJobForEstafetteBuild(buildFinishedEvent EstafetteBuildFinishedEvent) {
+func (w *estafetteEventWorkerImpl) RemoveJobForEstafetteBuild(ciBuilderEvent EstafetteCiBuilderEvent) {
 
 	// create ci builder client
 	ciBuilderClient, err := newCiBuilderClient()
@@ -60,16 +60,16 @@ func (w *estafetteEventWorkerImpl) RemoveJobForEstafetteBuild(buildFinishedEvent
 	}
 
 	// create ci builder job
-	err = ciBuilderClient.RemoveCiBuilderJob(buildFinishedEvent.JobName)
+	err = ciBuilderClient.RemoveCiBuilderJob(ciBuilderEvent.JobName)
 	if err != nil {
 		log.Error().Err(err).
-			Str("jobName", buildFinishedEvent.JobName).
-			Msgf("Removing ci-builder job %v failed", buildFinishedEvent.JobName)
+			Str("jobName", ciBuilderEvent.JobName).
+			Msgf("Removing ci-builder job %v failed", ciBuilderEvent.JobName)
 
 		return
 	}
 
 	log.Info().
-		Str("jobName", buildFinishedEvent.JobName).
-		Msgf("Removed ci-builder job %v", buildFinishedEvent.JobName)
+		Str("jobName", ciBuilderEvent.JobName).
+		Msgf("Removed ci-builder job %v", ciBuilderEvent.JobName)
 }

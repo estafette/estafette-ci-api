@@ -12,7 +12,7 @@ import (
 
 var (
 	// channel for passing push events to worker that cleans up finished jobs
-	estafetteBuildFinishedEvents = make(chan EstafetteBuildFinishedEvent, 100)
+	estafetteCiBuilderEvents = make(chan EstafetteCiBuilderEvent, 100)
 )
 
 // EstafetteEventHandler handles events from estafette components
@@ -29,7 +29,8 @@ func newEstafetteEventHandler() EstafetteEventHandler {
 
 func (h *estafetteEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 
-	webhookTotal.With(prometheus.Labels{"event": "buildfinished", "source": "ci-builder"}).Inc()
+	eventType := r.Header.Get("X-Estafette-Event")
+	webhookTotal.With(prometheus.Labels{"event": eventType, "source": "ci-builder"}).Inc()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -48,21 +49,29 @@ func (h *estafetteEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Reques
 	}
 
 	// unmarshal json body
-	var buildFinishedEvent EstafetteBuildFinishedEvent
-	err = json.Unmarshal(body, &buildFinishedEvent)
+	var ciBuilderEvent EstafetteCiBuilderEvent
+	err = json.Unmarshal(body, &ciBuilderEvent)
 	if err != nil {
-		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to EstafetteBuildFinishedEvent failed")
+		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to EstafetteCiBuilderEvent failed")
 		return
 	}
 
-	log.Debug().Interface("buildFinishedEvent", buildFinishedEvent).Msgf("Deserialized Estafette 'build finished' event for job %v", buildFinishedEvent.JobName)
+	log.Debug().Interface("buildFinishedEvent", ciBuilderEvent).Msgf("Deserialized Estafette 'build finished' event for job %v", ciBuilderEvent.JobName)
 
-	// send via channel to worker
-	estafetteBuildFinishedEvents <- buildFinishedEvent
+	switch eventType {
+	case "nomanifest":
+	case "succeeded":
+	case "failed":
+		// send via channel to worker
+		estafetteCiBuilderEvents <- ciBuilderEvent
+
+	default:
+		log.Warn().Str("event", eventType).Msgf("Unsupported Estafette event of type '%v'", eventType)
+	}
 
 	log.Debug().
-		Str("jobName", buildFinishedEvent.JobName).
-		Msgf("Received event of type 'build finished' from estafette-ci-builder for job %v...", buildFinishedEvent.JobName)
+		Str("jobName", ciBuilderEvent.JobName).
+		Msgf("Received event of type '%v' from estafette-ci-builder for job %v...", eventType, ciBuilderEvent.JobName)
 
 	fmt.Fprintf(w, "Aye aye!")
 }
