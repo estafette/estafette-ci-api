@@ -195,10 +195,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		},
 	}
 
-	// track call via prometheus
-	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
-
 	job, err = cbc.KubeClient.BatchV1().CreateJob(context.Background(), job)
+	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 
 	return
 }
@@ -206,30 +204,51 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 // RemoveCiBuilderJob waits for a job to finish and then removes it
 func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 
-	// watch for job updates
-	watcher, err := cbc.KubeClient.BatchV1().WatchJobs(context.Background(), cbc.KubeClient.Namespace)
+	// check if job is finished
+	job, err := cbc.KubeClient.BatchV1().GetJob(context.Background(), jobName, cbc.KubeClient.Namespace)
+	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).
-			Msgf("WatchJobs call for job %v failed", jobName)
-		return
+			Msgf("GetJob call for job %v failed", jobName)
+		return err
 	}
 
-	// wait for job to succeed
-	for {
-		event, job, err := watcher.Next()
+	if *job.Status.Succeeded != 1 {
+		log.Debug().
+			Str("jobName", jobName).
+			Msgf("Job is not done yet, watching for job %v to succeed", jobName)
+
+		// watch for job updates
+		watcher, err := cbc.KubeClient.BatchV1().WatchJobs(context.Background(), cbc.KubeClient.Namespace)
+		outgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 		if err != nil {
-			log.Error().Err(err)
+			log.Error().Err(err).
+				Str("jobName", jobName).
+				Msgf("WatchJobs call for job %v failed", jobName)
 			return err
 		}
 
-		if *event.Type == k8s.EventModified && *job.Metadata.Name == jobName && *job.Status.Succeeded == 1 {
-			break
+		// wait for job to succeed
+		for {
+			event, job, err := watcher.Next()
+			if err != nil {
+				log.Error().Err(err)
+				return err
+			}
+
+			if *event.Type == k8s.EventModified && *job.Metadata.Name == jobName && *job.Status.Succeeded == 1 {
+				break
+			}
 		}
 	}
+	log.Debug().
+		Str("jobName", jobName).
+		Msgf("Job %v is done, deleting it...", jobName)
 
 	// delete job
 	err = cbc.KubeClient.BatchV1().DeleteJob(context.Background(), jobName, cbc.KubeClient.Namespace)
+	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).
