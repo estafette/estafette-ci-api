@@ -91,7 +91,7 @@ func (w *githubEventWorkerImpl) CreateJobForGithubPush(pushEvent GithubPushEvent
 			Str("url", ciBuilderParams.RepoURL).
 			Str("branch", ciBuilderParams.RepoBranch).
 			Str("revision", ciBuilderParams.RepoRevision).
-			Msgf("Created estafette-ci-builder job for Github repository %v revision %v failed", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
+			Msgf("Creating estafette-ci-builder job for Github repository %v revision %v failed", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
 
 		return
 	}
