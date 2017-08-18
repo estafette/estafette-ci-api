@@ -83,10 +83,10 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 	}
 
 	if !manifestExists {
-		log.Info().Interface("pushEvent", pushEvent).Msgf("No Estaffette manifest for repo %v and revision %v, not creating a job", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
+		log.Info().Interface("pushEvent", pushEvent).Msgf("No Estafette manifest for repo %v and revision %v, not creating a job", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
 		return
 	}
-	log.Debug().Interface("pushEvent", pushEvent).Str("manifest", manifest).Msgf("Estaffette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
+	log.Debug().Interface("pushEvent", pushEvent).Str("manifest", manifest).Msgf("Estafette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
 
 	// get authenticated url for the repository
 	authenticatedRepositoryURL, err := w.apiClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.Links.HTML.Href)
