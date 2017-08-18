@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/ericchiang/k8s"
 	"github.com/ericchiang/k8s/api/resource"
@@ -211,22 +212,21 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 		log.Error().Err(err).
 			Str("jobName", jobName).
 			Msgf("GetJob call for job %v failed", jobName)
-		return err
 	}
 
-	if *job.Status.Succeeded != 1 {
+	if err != nil || *job.Status.Succeeded != 1 {
 		log.Debug().
 			Str("jobName", jobName).
 			Msgf("Job is not done yet, watching for job %v to succeed", jobName)
 
 		// watch for job updates
-		watcher, err := cbc.KubeClient.BatchV1().WatchJobs(context.Background(), cbc.KubeClient.Namespace)
+		watcher, err := cbc.KubeClient.BatchV1().WatchJobs(context.Background(), cbc.KubeClient.Namespace, k8s.Timeout(time.Duration(60)*time.Second))
 		outgoingAPIRequestTotal.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 		if err != nil {
 			log.Error().Err(err).
 				Str("jobName", jobName).
 				Msgf("WatchJobs call for job %v failed", jobName)
-			return err
+			break
 		}
 
 		// wait for job to succeed
@@ -234,7 +234,7 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 			event, job, err := watcher.Next()
 			if err != nil {
 				log.Error().Err(err)
-				return err
+				break
 			}
 
 			if *event.Type == k8s.EventModified && *job.Metadata.Name == jobName && *job.Status.Succeeded == 1 {
