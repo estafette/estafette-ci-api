@@ -74,7 +74,6 @@ func (h *estafetteEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Reques
 		"builder:succeeded",
 		"builder:failed":
 		// send via channel to worker
-		log.Debug().Interface("event", ciBuilderEvent).Msgf("Sending event for job %v to channel", ciBuilderEvent.JobName)
 		estafetteCiBuilderEvents <- ciBuilderEvent
 
 	default:
