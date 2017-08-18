@@ -71,11 +71,11 @@ func (w *bitbucketEventWorkerImpl) CreateJobForBitbucketPush(pushEvent Bitbucket
 		return
 	}
 
-	if manifest == "" {
+	if manifest == "Not Found" {
 		log.Info().Interface("pushEvent", pushEvent).Msgf("No Estaffette manifest for repo %v and revision %v, not creating a job", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
 		return
 	}
-	log.Debug().Interface("pushEvent", pushEvent).Str("manifest", manifest).Msgf(" Estaffette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
+	log.Debug().Interface("pushEvent", pushEvent).Str("manifest", manifest).Msgf("Estaffette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
 
 	// get authenticated url for the repository
 	authenticatedRepositoryURL, err := bbClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.Links.HTML.Href)
