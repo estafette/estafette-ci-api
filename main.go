@@ -53,8 +53,8 @@ var (
 	// prometheusInboundEventTotals is the prometheus timeline serie that keeps track of inbound events
 	prometheusInboundEventTotals = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "estafette_ci_api_webhook_totals",
-			Help: "Total of received webhooks.",
+			Name: "estafette_ci_api_inbound_event_totals",
+			Help: "Total of inbound events.",
 		},
 		[]string{"event", "source"},
 	)
@@ -62,7 +62,7 @@ var (
 	// prometheusOutboundAPICallTotals is the prometheus timeline serie that keeps track of outbound api calls
 	prometheusOutboundAPICallTotals = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "estafette_ci_api_outgoing_api_request_totals",
+			Name: "estafette_ci_api_outbound_api_call_totals",
 			Help: "Total of outgoing api calls.",
 		},
 		[]string{"target"},
