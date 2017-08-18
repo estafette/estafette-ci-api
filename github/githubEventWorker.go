@@ -18,15 +18,17 @@ type EventWorker interface {
 type eventWorkerImpl struct {
 	WaitGroup       *sync.WaitGroup
 	QuitChannel     chan bool
+	EventsChannel   chan PushEvent
 	APIClient       APIClient
 	CiBuilderClient estafette.CiBuilderClient
 }
 
 // NewGithubEventWorker returns a new github.EventWorker to handle events channeled by github.EventHandler
-func NewGithubEventWorker(waitGroup *sync.WaitGroup, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient) EventWorker {
+func NewGithubEventWorker(waitGroup *sync.WaitGroup, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, eventsChannel chan PushEvent) EventWorker {
 	return &eventWorkerImpl{
 		WaitGroup:       waitGroup,
 		QuitChannel:     make(chan bool),
+		EventsChannel:   eventsChannel,
 		APIClient:       apiClient,
 		CiBuilderClient: ciBuilderClient,
 	}
@@ -38,7 +40,7 @@ func (w *eventWorkerImpl) ListenToEventChannels() {
 		log.Debug().Msg("Listening to Github events channels...")
 		for {
 			select {
-			case pushEvent := <-githubPushEvents:
+			case pushEvent := <-w.EventsChannel:
 				go func() {
 					w.WaitGroup.Add(1)
 					w.CreateJobForGithubPush(pushEvent)

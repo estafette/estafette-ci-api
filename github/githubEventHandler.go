@@ -17,11 +17,14 @@ type EventHandler interface {
 }
 
 type eventHandlerImpl struct {
+	EventsChannel chan PushEvent
 }
 
 // NewGithubEventHandler returns a github.EventHandler to handle incoming webhook events
-func NewGithubEventHandler() EventHandler {
-	return &eventHandlerImpl{}
+func NewGithubEventHandler(eventsChannel chan PushEvent) EventHandler {
+	return &eventHandlerImpl{
+		EventsChannel: eventsChannel,
+	}
 }
 
 func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
@@ -113,5 +116,5 @@ func (h *eventHandlerImpl) HandlePushEvent(body []byte) {
 	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized GitHub push event for repository %v", pushEvent.Repository.FullName)
 
 	// test making api calls for github app in the background
-	githubPushEvents <- pushEvent
+	h.EventsChannel <- pushEvent
 }

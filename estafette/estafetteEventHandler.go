@@ -16,12 +16,16 @@ type EventHandler interface {
 }
 
 type eventHandlerImpl struct {
-	CiAPIKey string
+	CiAPIKey      string
+	EventsChannel chan CiBuilderEvent
 }
 
 // NewEstafetteEventHandler returns a new estafette.EventHandler
-func NewEstafetteEventHandler(ciAPIKey string) EventHandler {
-	return &eventHandlerImpl{CiAPIKey: ciAPIKey}
+func NewEstafetteEventHandler(ciAPIKey string, eventsChannel chan CiBuilderEvent) EventHandler {
+	return &eventHandlerImpl{
+		CiAPIKey:      ciAPIKey,
+		EventsChannel: eventsChannel,
+	}
 }
 
 func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +75,7 @@ func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 		"builder:succeeded",
 		"builder:failed":
 		// send via channel to worker
-		estafetteCiBuilderEvents <- ciBuilderEvent
+		h.EventsChannel <- ciBuilderEvent
 
 	default:
 		log.Warn().Str("event", eventType).Msgf("Unsupported Estafette event of type '%v'", eventType)

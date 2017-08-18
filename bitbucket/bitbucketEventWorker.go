@@ -17,15 +17,17 @@ type EventWorker interface {
 type eventWorkerImpl struct {
 	WaitGroup       *sync.WaitGroup
 	QuitChannel     chan bool
+	EventsChannel   chan RepositoryPushEvent
 	APIClient       APIClient
 	CiBuilderClient estafette.CiBuilderClient
 }
 
 // NewBitbucketEventWorker returns the bitbucket.EventWorker
-func NewBitbucketEventWorker(waitGroup *sync.WaitGroup, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient) EventWorker {
+func NewBitbucketEventWorker(waitGroup *sync.WaitGroup, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, eventsChannel chan RepositoryPushEvent) EventWorker {
 	return &eventWorkerImpl{
 		WaitGroup:       waitGroup,
 		QuitChannel:     make(chan bool),
+		EventsChannel:   eventsChannel,
 		APIClient:       apiClient,
 		CiBuilderClient: ciBuilderClient,
 	}
@@ -37,7 +39,7 @@ func (w *eventWorkerImpl) ListenToEventChannels() {
 		log.Debug().Msg("Listening to Bitbucket events channels...")
 		for {
 			select {
-			case pushEvent := <-bitbucketPushEvents:
+			case pushEvent := <-w.EventsChannel:
 				go func() {
 					w.WaitGroup.Add(1)
 					w.CreateJobForBitbucketPush(pushEvent)

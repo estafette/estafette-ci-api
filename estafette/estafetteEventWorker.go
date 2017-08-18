@@ -17,14 +17,16 @@ type eventWorkerImpl struct {
 	WaitGroup       *sync.WaitGroup
 	QuitChannel     chan bool
 	CiBuilderClient CiBuilderClient
+	EventsChannel   chan CiBuilderEvent
 }
 
 // NewEstafetteEventWorker returns a new estafette.EventWorker
-func NewEstafetteEventWorker(waitGroup *sync.WaitGroup, ciBuilderClient CiBuilderClient) EventWorker {
+func NewEstafetteEventWorker(waitGroup *sync.WaitGroup, ciBuilderClient CiBuilderClient, eventsChannel chan CiBuilderEvent) EventWorker {
 	return &eventWorkerImpl{
 		WaitGroup:       waitGroup,
 		QuitChannel:     make(chan bool),
 		CiBuilderClient: ciBuilderClient,
+		EventsChannel:   eventsChannel,
 	}
 }
 
@@ -34,7 +36,7 @@ func (w *eventWorkerImpl) ListenToEventChannels() {
 		log.Debug().Msg("Listening to Estafette events channels...")
 		for {
 			select {
-			case ciBuilderEvent := <-estafetteCiBuilderEvents:
+			case ciBuilderEvent := <-w.EventsChannel:
 				go func() {
 					w.WaitGroup.Add(1)
 					w.RemoveJobForEstafetteBuild(ciBuilderEvent)

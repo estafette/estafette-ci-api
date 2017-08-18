@@ -125,14 +125,21 @@ func main() {
 		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
 	}
 
+	// channel for passing push events to handler that creates ci-builder job
+	githubPushEvents := make(chan github.PushEvent, 100)
+	// channel for passing push events to handler that creates ci-builder job
+	bitbucketPushEvents := make(chan bitbucket.RepositoryPushEvent, 100)
+	// channel for passing push events to worker that cleans up finished jobs
+	estafetteCiBuilderEvents := make(chan estafette.CiBuilderEvent, 100)
+
 	// listen to channels for push events
-	githubEventWorker := github.NewGithubEventWorker(waitGroup, githubAPIClient, ciBuilderClient)
+	githubEventWorker := github.NewGithubEventWorker(waitGroup, githubAPIClient, ciBuilderClient, githubPushEvents)
 	githubEventWorker.ListenToEventChannels()
 
-	bitbucketEventWorker := bitbucket.NewBitbucketEventWorker(waitGroup, bitbucketAPIClient, ciBuilderClient)
+	bitbucketEventWorker := bitbucket.NewBitbucketEventWorker(waitGroup, bitbucketAPIClient, ciBuilderClient, bitbucketPushEvents)
 	bitbucketEventWorker.ListenToEventChannels()
 
-	estafetteEventWorker := estafette.NewEstafetteEventWorker(waitGroup, ciBuilderClient)
+	estafetteEventWorker := estafette.NewEstafetteEventWorker(waitGroup, ciBuilderClient, estafetteCiBuilderEvents)
 	estafetteEventWorker.ListenToEventChannels()
 
 	// listen to http calls
@@ -142,13 +149,13 @@ func main() {
 
 	srv := &http.Server{Addr: *apiAddress}
 
-	githubEventHandler := github.NewGithubEventHandler()
+	githubEventHandler := github.NewGithubEventHandler(githubPushEvents)
 	http.HandleFunc("/events/github", githubEventHandler.Handle)
 
-	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler()
+	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketPushEvents)
 	http.HandleFunc("/events/bitbucket", bitbucketEventHandler.Handle)
 
-	estafetteEventHandler := estafette.NewEstafetteEventHandler(*estafetteCiAPIKey)
+	estafetteEventHandler := estafette.NewEstafetteEventHandler(*estafetteCiAPIKey, estafetteCiBuilderEvents)
 	http.HandleFunc("/events/estafette/ci-builder", estafetteEventHandler.Handle)
 
 	http.HandleFunc("/liveness", livenessHandler)

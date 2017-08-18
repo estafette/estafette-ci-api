@@ -17,11 +17,14 @@ type EventHandler interface {
 }
 
 type eventHandlerImpl struct {
+	EventsChannel chan RepositoryPushEvent
 }
 
 // NewBitbucketEventHandler returns a new bitbucket.EventHandler
-func NewBitbucketEventHandler() EventHandler {
-	return &eventHandlerImpl{}
+func NewBitbucketEventHandler(eventsChannel chan RepositoryPushEvent) EventHandler {
+	return &eventHandlerImpl{
+		EventsChannel: eventsChannel,
+	}
 }
 
 func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
@@ -99,5 +102,5 @@ func (h *eventHandlerImpl) HandlePushEvent(body []byte) {
 	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized Bitbucket push event for repository %v", pushEvent.Repository.FullName)
 
 	// test making api calls for bitbucket app in the background
-	bitbucketPushEvents <- pushEvent
+	h.EventsChannel <- pushEvent
 }
