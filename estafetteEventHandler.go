@@ -30,7 +30,7 @@ func newEstafetteEventHandler() EstafetteEventHandler {
 func (h *estafetteEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 
 	eventType := r.Header.Get("X-Estafette-Event")
-	webhookTotal.With(prometheus.Labels{"event": eventType, "source": "ci-builder"}).Inc()
+	webhookTotal.With(prometheus.Labels{"event": eventType, "source": "estafette"}).Inc()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -62,6 +62,9 @@ func (h *estafetteEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Reques
 	case "nomanifest":
 	case "succeeded":
 	case "failed":
+	case "builder:nomanifest":
+	case "builder:succeeded":
+	case "builder:failed":
 		// send via channel to worker
 		estafetteCiBuilderEvents <- ciBuilderEvent
 
