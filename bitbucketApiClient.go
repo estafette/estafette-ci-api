@@ -16,7 +16,8 @@ import (
 // BitbucketAPIClient is the interface for running kubernetes commands specific to this application
 type BitbucketAPIClient interface {
 	GetAccessToken() (BitbucketAccessToken, error)
-	GetAuthenticatedRepositoryURL(string) (string, BitbucketAccessToken, error)
+	GetAuthenticatedRepositoryURL(BitbucketAccessToken, string) (string, error)
+	GetEstafetteManifest(BitbucketAccessToken, BitbucketRepositoryPushEvent) (string, error)
 }
 
 type bitbucketAPIClientImpl struct {
@@ -79,14 +80,42 @@ func (bb *bitbucketAPIClientImpl) GetAccessToken() (accessToken BitbucketAccessT
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (bb *bitbucketAPIClientImpl) GetAuthenticatedRepositoryURL(htmlURL string) (url string, accessToken BitbucketAccessToken, err error) {
+func (bb *bitbucketAPIClientImpl) GetAuthenticatedRepositoryURL(accessToken BitbucketAccessToken, htmlURL string) (url string, err error) {
 
-	accessToken, err = bb.GetAccessToken()
+	url = strings.Replace(htmlURL, "https://bitbucket.org", fmt.Sprintf("https://x-token-auth:%v@bitbucket.org", accessToken.AccessToken), -1)
+
+	return
+}
+
+func (bb *bitbucketAPIClientImpl) GetEstafetteManifest(accessToken BitbucketAccessToken, pushEvent BitbucketRepositoryPushEvent) (manifest string, err error) {
+
+	// track call via prometheus
+	outgoingAPIRequestTotal.With(prometheus.Labels{"target": "bitbucket"}).Inc()
+
+	// create client, in order to add headers
+	client := &http.Client{}
+	request, err := http.NewRequest("GET", fmt.Sprintf("https://api.bitbucket.org/1.0/repositories/%v/raw/%v/.estafette.yaml", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash), nil)
 	if err != nil {
 		return
 	}
 
-	url = strings.Replace(htmlURL, "https://bitbucket.org", fmt.Sprintf("https://x-token-auth:%v@bitbucket.org", accessToken.AccessToken), -1)
+	// add headers
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", accessToken.AccessToken))
+
+	// perform actual request
+	response, err := client.Do(request)
+	if err != nil {
+		return
+	}
+
+	defer response.Body.Close()
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return
+	}
+
+	manifest = string(body)
 
 	return
 }
