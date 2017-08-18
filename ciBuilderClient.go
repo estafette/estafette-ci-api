@@ -76,6 +76,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteCiServerBaseURLValue := *estafetteCiServerBaseURL
 	estafetteCiServerBuilderEventsURLName := "ESTAFETTE_CI_SERVER_BUILDER_EVENTS_URL"
 	estafetteCiServerBuilderEventsURLValue := strings.TrimRight(*estafetteCiServerBaseURL, "/") + "/events/estafette/ci-builder"
+	estafetteCiAPIKeyName := "ESTAFETTE_CI_API_KEY"
+	estafetteCiAPIKeyValue := *estafetteCiAPIKey
 
 	// temporarily pass build version equal to revision from the outside until estafette supports versioning
 	estafetteBuildVersionName := "ESTAFETTE_BUILD_VERSION"
@@ -125,6 +127,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		&apiv1.EnvVar{
 			Name:  &estafetteCiServerBuilderEventsURLName,
 			Value: &estafetteCiServerBuilderEventsURLValue,
+		},
+		&apiv1.EnvVar{
+			Name:  &estafetteCiAPIKeyName,
+			Value: &estafetteCiAPIKeyValue,
 		},
 	}
 

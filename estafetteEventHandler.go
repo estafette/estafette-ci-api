@@ -29,6 +29,16 @@ func newEstafetteEventHandler() EstafetteEventHandler {
 
 func (h *estafetteEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 
+	authorizationHeader := r.Header.Get("Authorization")
+	if authorizationHeader != fmt.Sprintf("Bearer %v", *estafetteCiAPIKey) {
+		log.Error().
+			Str("authorizationHeader", authorizationHeader).
+			Str("apiKey", *estafetteCiAPIKey).
+			Msg("Authorization header for Estafette event is incorrect")
+		http.Error(w, "authorization failed", http.StatusUnauthorized)
+		return
+	}
+
 	eventType := r.Header.Get("X-Estafette-Event")
 	webhookTotal.With(prometheus.Labels{"event": eventType, "source": "estafette"}).Inc()
 

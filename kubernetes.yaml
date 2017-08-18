@@ -119,6 +119,8 @@ spec:
           value: "${ESTAFETTE_CI_BUILDER_VERSION}"
         - name: "ESTAFETTE_CI_SERVER_BASE_URL"
           value: "https://${HOSTNAMES}/"
+        - name: "ESTAFETTE_CI_API_KEY"
+          value: "${ESTAFETTE_CI_API_KEY}"
         ports:
         - name: api
           containerPort: 5000
