@@ -59,9 +59,6 @@ func (h *estafetteEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Reques
 	log.Debug().Interface("buildFinishedEvent", ciBuilderEvent).Msgf("Deserialized Estafette 'build finished' event for job %v", ciBuilderEvent.JobName)
 
 	switch eventType {
-	case "nomanifest":
-	case "succeeded":
-	case "failed":
 	case "builder:nomanifest":
 	case "builder:succeeded":
 	case "builder:failed":
