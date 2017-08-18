@@ -15,20 +15,20 @@ var (
 	githubPushEvents = make(chan GithubPushEvent, 100)
 )
 
-// GithubWebhookHandler handles http events for Github integration
-type GithubWebhookHandler interface {
+// GithubEventHandler handles http events for Github integration
+type GithubEventHandler interface {
 	Handle(http.ResponseWriter, *http.Request)
-	HandleGithubPush([]byte)
+	HandlePushEvent([]byte)
 }
 
-type githubWebhookHandlerImpl struct {
+type githubEventHandlerImpl struct {
 }
 
-func newGithubWebhookHandler() GithubWebhookHandler {
-	return &githubWebhookHandlerImpl{}
+func newGithubEventHandler() GithubEventHandler {
+	return &githubEventHandlerImpl{}
 }
 
-func (h *githubWebhookHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
+func (h *githubEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// https://developer.github.com/webhooks/
 	eventType := r.Header.Get("X-GitHub-Event")
@@ -50,7 +50,7 @@ func (h *githubWebhookHandlerImpl) Handle(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	log.Info().
+	log.Debug().
 		Str("method", r.Method).
 		Str("url", r.URL.String()).
 		Interface("headers", r.Header).
@@ -59,7 +59,7 @@ func (h *githubWebhookHandlerImpl) Handle(w http.ResponseWriter, r *http.Request
 
 	switch eventType {
 	case "push": // Any Git push to a Repository, including editing tags or branches. Commits via API actions that update references are also counted. This is the default event.
-		h.HandleGithubPush(body)
+		h.HandlePushEvent(body)
 
 	case "commit_comment": // Any time a Commit is commented on.
 	case "create": // Any time a Branch or Tag is created.
@@ -103,7 +103,7 @@ func (h *githubWebhookHandlerImpl) Handle(w http.ResponseWriter, r *http.Request
 	fmt.Fprintf(w, "Aye aye!")
 }
 
-func (h *githubWebhookHandlerImpl) HandleGithubPush(body []byte) {
+func (h *githubEventHandlerImpl) HandlePushEvent(body []byte) {
 
 	// unmarshal json body
 	var pushEvent GithubPushEvent

@@ -15,20 +15,20 @@ var (
 	bitbucketPushEvents = make(chan BitbucketRepositoryPushEvent, 100)
 )
 
-// BitbucketWebhookHandler handles http events for Bitbucket integration
-type BitbucketWebhookHandler interface {
+// BitbucketEventHandler handles http events for Bitbucket integration
+type BitbucketEventHandler interface {
 	Handle(http.ResponseWriter, *http.Request)
-	HandleBitbucketPush([]byte)
+	HandlePushEvent([]byte)
 }
 
-type bitbucketWebhookHandlerImpl struct {
+type bitbucketEventHandlerImpl struct {
 }
 
-func newBitbucketWebhookHandler() BitbucketWebhookHandler {
-	return &bitbucketWebhookHandlerImpl{}
+func newBitbucketEventHandler() BitbucketEventHandler {
+	return &bitbucketEventHandlerImpl{}
 }
 
-func (h *bitbucketWebhookHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
+func (h *bitbucketEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
 
@@ -51,7 +51,7 @@ func (h *bitbucketWebhookHandlerImpl) Handle(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	log.Info().
+	log.Debug().
 		Str("method", r.Method).
 		Str("url", r.URL.String()).
 		Interface("headers", r.Header).
@@ -60,7 +60,7 @@ func (h *bitbucketWebhookHandlerImpl) Handle(w http.ResponseWriter, r *http.Requ
 
 	switch eventType {
 	case "repo:push":
-		h.HandleBitbucketPush(body)
+		h.HandlePushEvent(body)
 
 	case "repo:fork":
 	case "repo:updated":
@@ -89,7 +89,7 @@ func (h *bitbucketWebhookHandlerImpl) Handle(w http.ResponseWriter, r *http.Requ
 	fmt.Fprintf(w, "Aye aye!")
 }
 
-func (h *bitbucketWebhookHandlerImpl) HandleBitbucketPush(body []byte) {
+func (h *bitbucketEventHandlerImpl) HandlePushEvent(body []byte) {
 
 	// unmarshal json body
 	var pushEvent BitbucketRepositoryPushEvent

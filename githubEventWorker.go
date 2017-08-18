@@ -7,49 +7,51 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// GithubWorker processes events pushed to channels
-type GithubWorker interface {
-	ListenToGithubPushEventChannel()
+// GithubEventWorker processes events pushed to channels
+type GithubEventWorker interface {
+	ListenToEventChannels()
 	Stop()
 	CreateJobForGithubPush(GithubPushEvent)
 }
 
-type githubWorkerImpl struct {
+type githubEventWorkerImpl struct {
 	WaitGroup   *sync.WaitGroup
 	QuitChannel chan bool
 }
 
-func newGithubWorker(waitGroup *sync.WaitGroup) GithubWorker {
-	return &githubWorkerImpl{
+func newGithubEventWorker(waitGroup *sync.WaitGroup) GithubEventWorker {
+	return &githubEventWorkerImpl{
 		WaitGroup:   waitGroup,
 		QuitChannel: make(chan bool)}
 }
 
-func (w *githubWorkerImpl) ListenToGithubPushEventChannel() {
+func (w *githubEventWorkerImpl) ListenToEventChannels() {
 	go func() {
-		// handle github push events via channels
-		log.Debug().Msg("Listening to Github push events channel...")
+		// handle github events via channels
+		log.Debug().Msg("Listening to Github events channels...")
 		for {
 			select {
 			case pushEvent := <-githubPushEvents:
-				w.WaitGroup.Add(1)
-				w.CreateJobForGithubPush(pushEvent)
-				w.WaitGroup.Done()
+				go func() {
+					w.WaitGroup.Add(1)
+					w.CreateJobForGithubPush(pushEvent)
+					w.WaitGroup.Done()
+				}()
 			case <-w.QuitChannel:
-				log.Info().Msg("Stopping Github worker...")
+				log.Debug().Msg("Stopping Github event worker...")
 				return
 			}
 		}
 	}()
 }
 
-func (w *githubWorkerImpl) Stop() {
+func (w *githubEventWorkerImpl) Stop() {
 	go func() {
 		w.QuitChannel <- true
 	}()
 }
 
-func (w *githubWorkerImpl) CreateJobForGithubPush(pushEvent GithubPushEvent) {
+func (w *githubEventWorkerImpl) CreateJobForGithubPush(pushEvent GithubPushEvent) {
 
 	// check to see that it's a cloneable event
 	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
@@ -94,7 +96,7 @@ func (w *githubWorkerImpl) CreateJobForGithubPush(pushEvent GithubPushEvent) {
 		return
 	}
 
-	log.Debug().
+	log.Info().
 		Str("fullname", ciBuilderParams.RepoFullName).
 		Str("url", ciBuilderParams.RepoURL).
 		Str("branch", ciBuilderParams.RepoBranch).

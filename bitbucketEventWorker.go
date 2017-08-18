@@ -6,49 +6,51 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// BitbucketWorker processes events pushed to channels
-type BitbucketWorker interface {
-	ListenToBitbucketPushEventChannel()
+// BitbucketEventWorker processes events pushed to channels
+type BitbucketEventWorker interface {
+	ListenToEventChannels()
 	Stop()
 	CreateJobForBitbucketPush(BitbucketRepositoryPushEvent)
 }
 
-type bitbucketWorkerImpl struct {
+type bitbucketEventWorkerImpl struct {
 	WaitGroup   *sync.WaitGroup
 	QuitChannel chan bool
 }
 
-func newBitbucketWorker(waitGroup *sync.WaitGroup) BitbucketWorker {
-	return &bitbucketWorkerImpl{
+func newBitbucketEventWorker(waitGroup *sync.WaitGroup) BitbucketEventWorker {
+	return &bitbucketEventWorkerImpl{
 		WaitGroup:   waitGroup,
 		QuitChannel: make(chan bool)}
 }
 
-func (w *bitbucketWorkerImpl) ListenToBitbucketPushEventChannel() {
+func (w *bitbucketEventWorkerImpl) ListenToEventChannels() {
 	go func() {
-		// handle github push events via channels
-		log.Debug().Msg("Listening to Bitbucket push events channel...")
+		// handle github events via channels
+		log.Debug().Msg("Listening to Bitbucket events channels...")
 		for {
 			select {
 			case pushEvent := <-bitbucketPushEvents:
-				w.WaitGroup.Add(1)
-				w.CreateJobForBitbucketPush(pushEvent)
-				w.WaitGroup.Done()
+				go func() {
+					w.WaitGroup.Add(1)
+					w.CreateJobForBitbucketPush(pushEvent)
+					w.WaitGroup.Done()
+				}()
 			case <-w.QuitChannel:
-				log.Info().Msg("Stopping Bitbucket worker...")
+				log.Debug().Msg("Stopping Bitbucket event worker...")
 				return
 			}
 		}
 	}()
 }
 
-func (w *bitbucketWorkerImpl) Stop() {
+func (w *bitbucketEventWorkerImpl) Stop() {
 	go func() {
 		w.QuitChannel <- true
 	}()
 }
 
-func (w *bitbucketWorkerImpl) CreateJobForBitbucketPush(pushEvent BitbucketRepositoryPushEvent) {
+func (w *bitbucketEventWorkerImpl) CreateJobForBitbucketPush(pushEvent BitbucketRepositoryPushEvent) {
 
 	// check to see that it's a cloneable event
 	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil || pushEvent.Push.Changes[0].New.Type != "branch" || len(pushEvent.Push.Changes[0].New.Target.Hash) == 0 {
@@ -73,10 +75,10 @@ func (w *bitbucketWorkerImpl) CreateJobForBitbucketPush(pushEvent BitbucketRepos
 
 	// define ci builder params
 	ciBuilderParams := CiBuilderParams{
-		RepoFullName: pushEvent.Repository.FullName,
-		RepoURL:      authenticatedRepositoryURL,
-		RepoBranch:   pushEvent.Push.Changes[0].New.Name,
-		RepoRevision: pushEvent.Push.Changes[0].New.Target.Hash,
+		RepoFullName:         pushEvent.Repository.FullName,
+		RepoURL:              authenticatedRepositoryURL,
+		RepoBranch:           pushEvent.Push.Changes[0].New.Name,
+		RepoRevision:         pushEvent.Push.Changes[0].New.Target.Hash,
 		EnvironmentVariables: map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken.AccessToken},
 	}
 
@@ -93,7 +95,7 @@ func (w *bitbucketWorkerImpl) CreateJobForBitbucketPush(pushEvent BitbucketRepos
 		return
 	}
 
-	log.Debug().
+	log.Info().
 		Str("fullname", ciBuilderParams.RepoFullName).
 		Str("url", ciBuilderParams.RepoURL).
 		Str("branch", ciBuilderParams.RepoBranch).

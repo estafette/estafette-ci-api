@@ -6,49 +6,51 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// EstafetteWorker processes events pushed to channels
-type EstafetteWorker interface {
-	ListenToEstafetteBuildFinishedEventChannel()
+// EstafetteEventWorker processes events pushed to channels
+type EstafetteEventWorker interface {
+	ListenToEventChannels()
 	Stop()
 	RemoveJobForEstafetteBuild(EstafetteBuildFinishedEvent)
 }
 
-type estafetteWorkerImpl struct {
+type estafetteEventWorkerImpl struct {
 	WaitGroup   *sync.WaitGroup
 	QuitChannel chan bool
 }
 
-func newEstafetteWorker(waitGroup *sync.WaitGroup) EstafetteWorker {
-	return &estafetteWorkerImpl{
+func newEstafetteEventWorker(waitGroup *sync.WaitGroup) EstafetteEventWorker {
+	return &estafetteEventWorkerImpl{
 		WaitGroup:   waitGroup,
 		QuitChannel: make(chan bool)}
 }
 
-func (w *estafetteWorkerImpl) ListenToEstafetteBuildFinishedEventChannel() {
+func (w *estafetteEventWorkerImpl) ListenToEventChannels() {
 	go func() {
-		// handle estafette 'build finished' events via channels
-		log.Debug().Msg("Listening to Estafette 'build finished' events channel...")
+		// handle estafette events via channels
+		log.Debug().Msg("Listening to Estafette events channels...")
 		for {
 			select {
 			case buildFinishedEvent := <-estafetteBuildFinishedEvents:
-				w.WaitGroup.Add(1)
-				w.RemoveJobForEstafetteBuild(buildFinishedEvent)
-				w.WaitGroup.Done()
+				go func() {
+					w.WaitGroup.Add(1)
+					w.RemoveJobForEstafetteBuild(buildFinishedEvent)
+					w.WaitGroup.Done()
+				}()
 			case <-w.QuitChannel:
-				log.Info().Msg("Stopping Estafette worker...")
+				log.Debug().Msg("Stopping Estafette event worker...")
 				return
 			}
 		}
 	}()
 }
 
-func (w *estafetteWorkerImpl) Stop() {
+func (w *estafetteEventWorkerImpl) Stop() {
 	go func() {
 		w.QuitChannel <- true
 	}()
 }
 
-func (w *estafetteWorkerImpl) RemoveJobForEstafetteBuild(buildFinishedEvent EstafetteBuildFinishedEvent) {
+func (w *estafetteEventWorkerImpl) RemoveJobForEstafetteBuild(buildFinishedEvent EstafetteBuildFinishedEvent) {
 
 	// create ci builder client
 	ciBuilderClient, err := newCiBuilderClient()
@@ -67,7 +69,7 @@ func (w *estafetteWorkerImpl) RemoveJobForEstafetteBuild(buildFinishedEvent Esta
 		return
 	}
 
-	log.Debug().
+	log.Info().
 		Str("jobName", buildFinishedEvent.JobName).
 		Msgf("Removed ci-builder job %v", buildFinishedEvent.JobName)
 }

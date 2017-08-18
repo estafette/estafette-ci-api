@@ -17,7 +17,7 @@ var (
 
 // EstafetteEventHandler handles events from estafette components
 type EstafetteEventHandler interface {
-	HandleBuildFinished(http.ResponseWriter, *http.Request)
+	Handle(http.ResponseWriter, *http.Request)
 }
 
 type estafetteEventHandlerImpl struct {
@@ -27,7 +27,7 @@ func newEstafetteEventHandler() EstafetteEventHandler {
 	return &estafetteEventHandlerImpl{}
 }
 
-func (h *estafetteEventHandlerImpl) HandleBuildFinished(w http.ResponseWriter, r *http.Request) {
+func (h *estafetteEventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 
 	webhookTotal.With(prometheus.Labels{"event": "buildfinished", "source": "ci-builder"}).Inc()
 
@@ -60,7 +60,7 @@ func (h *estafetteEventHandlerImpl) HandleBuildFinished(w http.ResponseWriter, r
 	// send via channel to worker
 	estafetteBuildFinishedEvents <- buildFinishedEvent
 
-	log.Info().
+	log.Debug().
 		Str("jobName", buildFinishedEvent.JobName).
 		Msgf("Received event of type 'build finished' from estafette-ci-builder for job %v...", buildFinishedEvent.JobName)
 

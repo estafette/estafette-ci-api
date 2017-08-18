@@ -119,14 +119,14 @@ func main() {
 	}()
 
 	// listen to channels for push events
-	githubWorker := newGithubWorker(waitGroup)
-	githubWorker.ListenToGithubPushEventChannel()
+	githubEventWorker := newGithubEventWorker(waitGroup)
+	githubEventWorker.ListenToEventChannels()
 
-	bitbucketWorker := newBitbucketWorker(waitGroup)
-	bitbucketWorker.ListenToBitbucketPushEventChannel()
+	bitbucketEventWorker := newBitbucketEventWorker(waitGroup)
+	bitbucketEventWorker.ListenToEventChannels()
 
-	estafetteWorker := newEstafetteWorker(waitGroup)
-	estafetteWorker.ListenToEstafetteBuildFinishedEventChannel()
+	estafetteEventWorker := newEstafetteEventWorker(waitGroup)
+	estafetteEventWorker.ListenToEventChannels()
 
 	// listen to http calls
 	log.Debug().
@@ -135,14 +135,15 @@ func main() {
 
 	srv := &http.Server{Addr: *apiAddress}
 
-	githubWebhookHandler := newGithubWebhookHandler()
-	http.HandleFunc("/webhook/github", githubWebhookHandler.Handle)
+	githubEventHandler := newGithubEventHandler()
+	http.HandleFunc("/webhook/github", githubEventHandler.Handle)
 
-	bitbucketWebhookHandler := newBitbucketWebhookHandler()
-	http.HandleFunc("/webhook/bitbucket", bitbucketWebhookHandler.Handle)
+	bitbucketEventHandler := newBitbucketEventHandler()
+	http.HandleFunc("/webhook/bitbucket", bitbucketEventHandler.Handle)
 
 	estafetteEventHandler := newEstafetteEventHandler()
-	http.HandleFunc("/estafette/build/finished", estafetteEventHandler.HandleBuildFinished)
+	http.HandleFunc("/estafette/build/finished", estafetteEventHandler.Handle)
+	http.HandleFunc("/webhook/estafette/ci-builder", estafetteEventHandler.Handle)
 
 	http.HandleFunc("/liveness", livenessHandler)
 	http.HandleFunc("/readiness", readinessHandler)
@@ -155,17 +156,17 @@ func main() {
 
 	// wait for graceful shutdown to finish
 	<-stopChan // wait for SIGINT
-	log.Info().Msg("Shutting down server...")
+	log.Debug().Msg("Shutting down server...")
 
 	// shut down gracefully
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	srv.Shutdown(ctx)
 
-	githubWorker.Stop()
-	bitbucketWorker.Stop()
-	estafetteWorker.Stop()
+	githubEventWorker.Stop()
+	bitbucketEventWorker.Stop()
+	estafetteEventWorker.Stop()
 
-	log.Info().Msg("Awaiting waitgroup...")
+	log.Debug().Msg("Awaiting waitgroup...")
 	waitGroup.Wait()
 
 	log.Info().Msg("Server gracefully stopped")
