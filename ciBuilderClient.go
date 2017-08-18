@@ -80,6 +80,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteBuildVersionValue := ciBuilderParams.RepoRevision
 	estafetteBuildVersionPatchName := "ESTAFETTE_BUILD_VERSION_PATCH"
 	estafetteBuildVersionPatchValue := "1"
+	estafetteGcrProjectName := "ESTAFETTE_GCR_PROJECT"
+	estafetteGcrProjectValue := "travix-com"
 
 	environmentVariables := []*apiv1.EnvVar{
 		&apiv1.EnvVar{
@@ -113,6 +115,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		&apiv1.EnvVar{
 			Name:  &estafetteCiServerBaseURLName,
 			Value: &estafetteCiServerBaseURLValue,
+		},
+		&apiv1.EnvVar{
+			Name:  &estafetteGcrProjectName,
+			Value: &estafetteGcrProjectValue,
 		},
 	}
 
