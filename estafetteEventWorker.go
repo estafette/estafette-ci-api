@@ -31,6 +31,7 @@ func (w *estafetteEventWorkerImpl) ListenToEventChannels() {
 		for {
 			select {
 			case ciBuilderEvent := <-estafetteCiBuilderEvents:
+				log.Debug().Interface("event", ciBuilderEvent).Msgf("Received event for job %v from channel", ciBuilderEvent.JobName)
 				go func() {
 					w.WaitGroup.Add(1)
 					w.RemoveJobForEstafetteBuild(ciBuilderEvent)
