@@ -226,19 +226,18 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 			log.Error().Err(err).
 				Str("jobName", jobName).
 				Msgf("WatchJobs call for job %v failed", jobName)
-			break
-		}
+		} else {
+			// wait for job to succeed
+			for {
+				event, job, err := watcher.Next()
+				if err != nil {
+					log.Error().Err(err)
+					break
+				}
 
-		// wait for job to succeed
-		for {
-			event, job, err := watcher.Next()
-			if err != nil {
-				log.Error().Err(err)
-				break
-			}
-
-			if *event.Type == k8s.EventModified && *job.Metadata.Name == jobName && *job.Status.Succeeded == 1 {
-				break
+				if *event.Type == k8s.EventModified && *job.Metadata.Name == jobName && *job.Status.Succeeded == 1 {
+					break
+				}
 			}
 		}
 	}
