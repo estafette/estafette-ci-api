@@ -6,3 +6,4 @@ govendor fetch github.com/rs/zerolog/log@v1.2.2
 govendor fetch github.com/alecthomas/kingpin@v2.2.5
 govendor fetch github.com/dgrijalva/jwt-go@v3.0.0
 govendor fetch github.com/stretchr/testify/assert@v1.1.4
+govendor fetch github.com/stretchr/testify/mock@v1.1.4
