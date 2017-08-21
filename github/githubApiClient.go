@@ -13,6 +13,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/rs/zerolog/log"
+	"github.com/sethgrid/pester"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -158,7 +159,10 @@ func (gh *apiClientImpl) callGithubAPI(method, url string, params interface{}, a
 	}
 
 	// create client, in order to add headers
-	client := &http.Client{}
+	client := pester.New()
+	client.MaxRetries = 3
+	client.Backoff = pester.ExponentialJitterBackoff
+	client.KeepLog = true
 	request, err := http.NewRequest(method, url, requestBody)
 	if err != nil {
 		return

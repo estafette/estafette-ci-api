@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sethgrid/pester"
 )
 
 // APIClient is the interface for running kubernetes commands specific to this application
@@ -50,7 +51,10 @@ func (bb *apiClientImpl) GetAccessToken() (accessToken AccessToken, err error) {
 	data.Set("grant_type", "client_credentials")
 
 	// create client, in order to add headers
-	client := &http.Client{}
+	client := pester.New()
+	client.MaxRetries = 3
+	client.Backoff = pester.ExponentialJitterBackoff
+	client.KeepLog = true
 	request, err := http.NewRequest("POST", "https://bitbucket.org/site/oauth2/access_token", bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		return
@@ -96,7 +100,10 @@ func (bb *apiClientImpl) GetEstafetteManifest(accessToken AccessToken, pushEvent
 	bb.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
 
 	// create client, in order to add headers
-	client := &http.Client{}
+	client := pester.New()
+	client.MaxRetries = 3
+	client.Backoff = pester.ExponentialJitterBackoff
+	client.KeepLog = true
 	request, err := http.NewRequest("GET", fmt.Sprintf("https://api.bitbucket.org/1.0/repositories/%v/raw/%v/.estafette.yaml", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash), nil)
 	if err != nil {
 		return
@@ -124,4 +131,5 @@ func (bb *apiClientImpl) GetEstafetteManifest(accessToken AccessToken, pushEvent
 	}
 
 	return
+}
 }

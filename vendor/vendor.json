@@ -397,6 +397,12 @@
 			"versionExact": "v1.2.2"
 		},
 		{
+			"checksumSHA1": "Is47yO7d/2JPk+exbSEDwXTJsgo=",
+			"path": "github.com/sethgrid/pester",
+			"revision": "a86a2d88f4dc3c7dbf3a6a6bbbfb095690b834b6",
+			"revisionTime": "2017-08-16T16:42:08Z"
+		},
+		{
 			"checksumSHA1": "ofNmmhhJAxYL1Mh09iq+utdfHIM=",
 			"path": "github.com/stretchr/objx",
 			"revision": "1a9d0bb9f541897e62256577b352fdbc1fb4fd94",
