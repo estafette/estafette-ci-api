@@ -132,4 +132,3 @@ func (bb *apiClientImpl) GetEstafetteManifest(accessToken AccessToken, pushEvent
 
 	return
 }
-}
