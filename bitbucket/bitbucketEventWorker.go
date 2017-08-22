@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/estafette/estafette-ci-api/estafette"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
 )
 
@@ -75,7 +76,7 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 	}
 
 	// get manifest file
-	manifestExists, manifest, err := w.apiClient.GetEstafetteManifest(accessToken, pushEvent)
+	manifestExists, manifestString, err := w.apiClient.GetEstafetteManifest(accessToken, pushEvent)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
@@ -86,7 +87,16 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 		log.Info().Interface("pushEvent", pushEvent).Msgf("No Estafette manifest for repo %v and revision %v, not creating a job", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
 		return
 	}
-	log.Debug().Interface("pushEvent", pushEvent).Str("manifest", manifest).Msgf("Estafette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
+
+	mft, err := manifest.ReadManifest(manifestString)
+	builderTrack := "stable"
+	if err != nil {
+		log.Warn().Err(err).Str("manifest", manifestString).Msgf("Deserializing Estafette manifest for repo %v and revision %v failed, continuing though so developer gets useful feedback", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
+	} else {
+		builderTrack = mft.Builder.Track
+	}
+
+	log.Debug().Interface("pushEvent", pushEvent).Interface("manifest", mft).Msgf("Estafette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
 
 	// get authenticated url for the repository
 	authenticatedRepositoryURL, err := w.apiClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.Links.HTML.Href)
@@ -103,6 +113,7 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 		RepoBranch:           pushEvent.Push.Changes[0].New.Name,
 		RepoRevision:         pushEvent.Push.Changes[0].New.Target.Hash,
 		EnvironmentVariables: map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken.AccessToken},
+		Track:                builderTrack,
 	}
 
 	// create ci builder job
@@ -113,6 +124,7 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 			Str("url", ciBuilderParams.RepoURL).
 			Str("branch", ciBuilderParams.RepoBranch).
 			Str("revision", ciBuilderParams.RepoRevision).
+			Str("track", ciBuilderParams.Track).
 			Msgf("Creating estafette-ci-builder job for Bitbucket repository %v revision %v failed", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
 
 		return
@@ -123,5 +135,6 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 		Str("url", ciBuilderParams.RepoURL).
 		Str("branch", ciBuilderParams.RepoBranch).
 		Str("revision", ciBuilderParams.RepoRevision).
+		Str("track", ciBuilderParams.Track).
 		Msgf("Created estafette-ci-builder job for Bitbucket repository %v revision %v", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
 }

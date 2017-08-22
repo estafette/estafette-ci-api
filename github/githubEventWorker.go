@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/estafette/estafette-ci-api/estafette"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
 )
 
@@ -76,7 +77,7 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 	}
 
 	// get manifest file
-	manifestExists, manifest, err := w.apiClient.GetEstafetteManifest(accessToken, pushEvent)
+	manifestExists, manifestString, err := w.apiClient.GetEstafetteManifest(accessToken, pushEvent)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
@@ -87,7 +88,16 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 		log.Info().Interface("pushEvent", pushEvent).Msgf("No Estafette manifest for repo %v and revision %v, not creating a job", pushEvent.Repository.FullName, pushEvent.After)
 		return
 	}
-	log.Debug().Interface("pushEvent", pushEvent).Str("manifest", manifest).Msgf("Estafette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.After)
+
+	mft, err := manifest.ReadManifest(manifestString)
+	builderTrack := "stable"
+	if err != nil {
+		log.Warn().Err(err).Str("manifest", manifestString).Msgf("Deserializing Estafette manifest for repo %v and revision %v failed, continuing though so developer gets useful feedback", pushEvent.Repository.FullName, pushEvent.After)
+	} else {
+		builderTrack = mft.Builder.Track
+	}
+
+	log.Debug().Interface("pushEvent", pushEvent).Interface("manifest", mft).Msgf("Estafette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.After)
 
 	// get authenticated url for the repository
 	authenticatedRepositoryURL, err := w.apiClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.HTMLURL)
@@ -104,6 +114,7 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 		RepoBranch:           strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
 		RepoRevision:         pushEvent.After,
 		EnvironmentVariables: map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken.Token},
+		Track:                builderTrack,
 	}
 
 	// create ci builder job
@@ -114,6 +125,7 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 			Str("url", ciBuilderParams.RepoURL).
 			Str("branch", ciBuilderParams.RepoBranch).
 			Str("revision", ciBuilderParams.RepoRevision).
+			Str("track", ciBuilderParams.Track).
 			Msgf("Creating estafette-ci-builder job for Github repository %v revision %v failed", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
 
 		return
@@ -124,5 +136,6 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 		Str("url", ciBuilderParams.RepoURL).
 		Str("branch", ciBuilderParams.RepoBranch).
 		Str("revision", ciBuilderParams.RepoRevision).
+		Str("track", ciBuilderParams.Track).
 		Msgf("Created estafette-ci-builder job for Github repository %v revision %v", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
 }

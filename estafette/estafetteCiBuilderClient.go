@@ -29,6 +29,7 @@ type CiBuilderParams struct {
 	RepoBranch           string
 	RepoRevision         string
 	EnvironmentVariables map[string]string
+	Track                string
 }
 
 type ciBuilderClientImpl struct {
@@ -87,6 +88,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteCiServerBuilderEventsURLValue := strings.TrimRight(cbc.EstafetteCiServerBaseURL, "/") + "/events/estafette/ci-builder"
 	estafetteCiAPIKeyName := "ESTAFETTE_CI_API_KEY"
 	estafetteCiAPIKeyValue := cbc.EstafetteCiAPIKey
+	estafetteCiBuilderTrackName := "ESTAFETTE_CI_BUILDER_TRACK"
+	estafetteCiBuilderTrackValue := ciBuilderParams.Track
 
 	// temporarily pass build version equal to revision from the outside until estafette supports versioning
 	estafetteBuildVersionName := "ESTAFETTE_BUILD_VERSION"
@@ -141,6 +144,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 			Name:  &estafetteCiAPIKeyName,
 			Value: &estafetteCiAPIKeyValue,
 		},
+		&apiv1.EnvVar{
+			Name:  &estafetteCiBuilderTrackName,
+			Value: &estafetteCiBuilderTrackValue,
+		},
 	}
 
 	for key, value := range ciBuilderParams.EnvironmentVariables {
@@ -158,7 +165,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 
 	// other job config
 	containerName := "estafette-ci-builder"
-	image := fmt.Sprintf("estafette/estafette-ci-builder:%v", cbc.EstafetteCiBuilderVersion)
+	image := fmt.Sprintf("estafette/estafette-ci-builder:%v", ciBuilderParams.Track)
 	restartPolicy := "Never"
 	privileged := true
 

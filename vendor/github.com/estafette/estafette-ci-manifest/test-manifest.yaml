@@ -1,0 +1,51 @@
+builder:
+  track: dev
+
+labels:
+  app: estafette-ci-builder
+  team: estafette-team
+  language: golang
+
+pipelines:
+  build:
+    image: golang:1.8.0-alpine
+    workDir: /go/src/github.com/estafette/estafette-ci-builder
+    commands:
+    - go test -v ./...
+    - CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ./publish/estafette-ci-builder .
+
+  bake:
+    image: docker:17.03.0-ce
+    shell: /bin/bash
+    commands:
+    - cp Dockerfile ./publish
+    - docker build -t estafette-ci-builder ./publish
+
+  set-build-status:
+    image: extensions/github-status:0.0.2
+    when:
+      server == 'estafette'
+
+  push-to-docker-hub:
+    image: docker:17.03.0-ce
+    commands:
+    - docker login --username=${ESTAFETTE_DOCKER_HUB_USERNAME} --password='${ESTAFETTE_DOCKER_HUB_PASSWORD}'
+    - docker push estafette/${ESTAFETTE_LABEL_APP}:${ESTAFETTE_BUILD_VERSION}
+    when:
+      status == 'succeeded' &&
+      branch == 'master'
+
+  slack-notify:
+    image: docker:17.03.0-ce
+    env:
+      SOME_ENVIRONMENT_VAR: "some value with spaces"
+    commands:
+    - 'curl -X POST --data-urlencode ''payload={"channel": "#build-status", "username": "estafette-ci-builder", "text": "Build ${ESTAFETTE_BUILD_VERSION} for ${ESTAFETTE_LABEL_APP} has failed!"}'' ${ESTAFETTE_SLACK_WEBHOOK}'
+    when:
+      status == 'failed' ||
+      branch == 'master'
+    unknownProperty1: value1
+    unknownProperty2: value2
+    unsupportedUnknownProperty:
+      - notsupported1
+      - notsupported2
