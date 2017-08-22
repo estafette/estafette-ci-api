@@ -165,6 +165,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	containerName := "estafette-ci-builder"
 	image := fmt.Sprintf("estafette/estafette-ci-builder:%v", ciBuilderParams.Track)
 	restartPolicy := "Never"
+	imagePullPolicy := "Always"
 	privileged := true
 
 	job = &batchv1.Job{
@@ -185,9 +186,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 				Spec: &apiv1.PodSpec{
 					Containers: []*apiv1.Container{
 						&apiv1.Container{
-							Name:  &containerName,
-							Image: &image,
-							Env:   environmentVariables,
+							Name:            &containerName,
+							Image:           &image,
+							ImagePullPolicy: &imagePullPolicy,
+							Env:             environmentVariables,
 							SecurityContext: &apiv1.SecurityContext{
 								Privileged: &privileged,
 							},
