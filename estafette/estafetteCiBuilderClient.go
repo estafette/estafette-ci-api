@@ -36,12 +36,11 @@ type ciBuilderClientImpl struct {
 	kubeClient                      *k8s.Client
 	EstafetteCiServerBaseURL        string
 	EstafetteCiAPIKey               string
-	EstafetteCiBuilderVersion       string
 	PrometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
 // NewCiBuilderClient returns a new estafette.CiBuilderClient
-func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiAPIKey, estafetteCiBuilderVersion string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
+func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiAPIKey string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
 
 	kubeClient, err := k8s.NewInClusterClient()
 	if err != nil {
@@ -53,7 +52,6 @@ func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiAPIKey, estafetteCi
 		kubeClient:                      kubeClient,
 		EstafetteCiServerBaseURL:        estafetteCiServerBaseURL,
 		EstafetteCiAPIKey:               estafetteCiAPIKey,
-		EstafetteCiBuilderVersion:       estafetteCiBuilderVersion,
 		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 

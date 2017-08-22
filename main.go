@@ -46,9 +46,8 @@ var (
 	bitbucketAppOAuthKey    = kingpin.Flag("bitbucket-app-oauth-key", "The OAuth key for the Bitbucket App.").Envar("BITBUCKET_APP_OAUTH_KEY").String()
 	bitbucketAppOAuthSecret = kingpin.Flag("bitbucket-app-oauth-secret", "The OAuth secret for the Bitbucket App.").Envar("BITBUCKET_APP_OAUTH_SECRET").String()
 
-	estafetteCiBuilderVersion = kingpin.Flag("estafette-ci-builder-version", "The version of estafette/estafette-ci-builder to use.").Envar("ESTAFETTE_CI_BUILDER_VERSION").String()
-	estafetteCiServerBaseURL  = kingpin.Flag("estafette-ci-server-base-url", "The base url of this api server.").Envar("ESTAFETTE_CI_SERVER_BASE_URL").String()
-	estafetteCiAPIKey         = kingpin.Flag("estafette-ci-api-key", "An api key for estafette itself to use until real oauth is supported.").Envar("ESTAFETTE_CI_API_KEY").String()
+	estafetteCiServerBaseURL = kingpin.Flag("estafette-ci-server-base-url", "The base url of this api server.").Envar("ESTAFETTE_CI_SERVER_BASE_URL").String()
+	estafetteCiAPIKey        = kingpin.Flag("estafette-ci-api-key", "An api key for estafette itself to use until real oauth is supported.").Envar("ESTAFETTE_CI_API_KEY").String()
 
 	// prometheusInboundEventTotals is the prometheus timeline serie that keeps track of inbound events
 	prometheusInboundEventTotals = prometheus.NewCounterVec(
@@ -112,7 +111,7 @@ func main() {
 
 	githubAPIClient := github.NewGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret, prometheusOutboundAPICallTotals)
 	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret, prometheusOutboundAPICallTotals)
-	ciBuilderClient, err := estafette.NewCiBuilderClient(*estafetteCiServerBaseURL, *estafetteCiAPIKey, *estafetteCiBuilderVersion, prometheusOutboundAPICallTotals)
+	ciBuilderClient, err := estafette.NewCiBuilderClient(*estafetteCiServerBaseURL, *estafetteCiAPIKey, prometheusOutboundAPICallTotals)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
 	}

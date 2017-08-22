@@ -115,8 +115,6 @@ spec:
           value: "${BITBUCKET_APP_OAUTH_KEY}"
         - name: "BITBUCKET_APP_OAUTH_SECRET"
           value: "${BITBUCKET_APP_OAUTH_SECRET}"
-        - name: "ESTAFETTE_CI_BUILDER_VERSION"
-          value: "${ESTAFETTE_CI_BUILDER_VERSION}"
         - name: "ESTAFETTE_CI_SERVER_BASE_URL"
           value: "https://${HOSTNAMES}/"
         - name: "ESTAFETTE_CI_API_KEY"
