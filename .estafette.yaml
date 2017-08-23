@@ -48,6 +48,5 @@ pipelines:
     channels:
     - '#build-status'
     when:
-      (status == 'failed' ||
-      status == 'succeeded') &&
+      status == 'failed' &&
       server == 'gocd'
