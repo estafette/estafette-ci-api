@@ -44,6 +44,7 @@ pipelines:
 
   slack-notify:
     image: extensions/slack-build-status:dev
+    name: ${ESTAFETTE_LABEL_APP}
     channels:
     - '#build-status'
     when:
