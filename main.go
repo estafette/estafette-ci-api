@@ -15,6 +15,7 @@ import (
 	"github.com/estafette/estafette-ci-api/bitbucket"
 	"github.com/estafette/estafette-ci-api/estafette"
 	"github.com/estafette/estafette-ci-api/github"
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -152,6 +153,9 @@ func main() {
 	// Recovery middleware recovers from any panics and writes a 500 if there was one.
 	router.Use(gin.Recovery())
 
+	// Gzip middlewar
+	router.Use(gzip.Gzip(gzip.DefaultCompression))
+
 	githubEventHandler := github.NewGithubEventHandler(githubPushEvents, prometheusInboundEventTotals)
 	router.POST("/events/github", githubEventHandler.Handle)
 
@@ -216,4 +220,3 @@ func startPrometheus() {
 		log.Fatal().Err(err).Msg("Starting Prometheus listener failed")
 	}
 }
-

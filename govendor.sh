@@ -10,3 +10,4 @@ govendor fetch github.com/stretchr/testify/mock@v1.1.4
 govendor fetch github.com/sethgrid/pester
 govendor fetch github.com/estafette/estafette-ci-manifest@0.0.9
 govendor fetch github.com/gin-gonic/gin@v1.2
+govendor fetch github.com/gin-contrib/gzip
