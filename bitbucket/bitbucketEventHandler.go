@@ -1,6 +1,7 @@
 package bitbucket
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
@@ -35,18 +36,17 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	eventType := c.GetHeader("X-Event-Key")
 	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "bitbucket"}).Inc()
 
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		log.Error().Err(err).Msg("Reading body from Bitbucket webhook failed")
+		c.String(http.StatusInternalServerError, "Reading body from Bitbucket webhook failed")
+		return
+	}
+
 	// unmarshal json body
 	var b interface{}
-	err := c.BindJSON(&b)
+	err = json.Unmarshal(body, &b)
 	if err != nil {
-
-		body, err := ioutil.ReadAll(c.Request.Body)
-		if err != nil {
-			log.Error().Err(err).Msg("Reading body from Bitbucket webhook failed")
-			c.String(http.StatusInternalServerError, "Reading body from Bitbucket webhook failed")
-			return
-		}
-
 		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Bitbucket webhook failed")
 		c.String(http.StatusInternalServerError, "Deserializing body from Github webhook failed")
 		return
@@ -64,16 +64,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 		// unmarshal json body
 		var pushEvent RepositoryPushEvent
-		err := c.BindJSON(&pushEvent)
+		err := json.Unmarshal(body, &pushEvent)
 		if err != nil {
-
-			body, err := ioutil.ReadAll(c.Request.Body)
-			if err != nil {
-				log.Error().Err(err).Msg("Reading body from Bitbucket webhook failed")
-				c.String(http.StatusInternalServerError, "Reading body from Bitbucket webhook failed")
-				return
-			}
-
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to BitbucketRepositoryPushEvent failed")
 			return
 		}

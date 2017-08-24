@@ -10,6 +10,14 @@ import (
 // ZeroLogMiddleware logs gin requests via zerolog
 func ZeroLogMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+
+		path := c.Request.URL.Path
+		if path == "/liveness" || path == "/readiness" {
+			// don't log these requests, only execute them
+			c.Next()
+			return
+		}
+
 		// start timer
 		start := time.Now()
 
@@ -19,8 +27,8 @@ func ZeroLogMiddleware() gin.HandlerFunc {
 		// stop timer
 		end := time.Now()
 
-		path := c.Request.URL.Path
 		raw := c.Request.URL.RawQuery
+		headers := c.Header
 		latency := end.Sub(start)
 		clientIP := c.ClientIP()
 		method := c.Request.Method
@@ -37,6 +45,7 @@ func ZeroLogMiddleware() gin.HandlerFunc {
 				Dur("latencyMs", latency).
 				Str("clientIP", clientIP).
 				Str("path", path).
+				Interface("headers", headers).
 				Msgf("[GIN] %3d %13v %15s %-7s %s", statusCode, latency, clientIP, method, path)
 
 		} else {
@@ -46,6 +55,7 @@ func ZeroLogMiddleware() gin.HandlerFunc {
 				Dur("latencyMs", latency).
 				Str("clientIP", clientIP).
 				Str("path", path).
+				Interface("headers", headers).
 				Msgf("[GIN] %3d %13v %15s %-7s %s", statusCode, latency, clientIP, method, path)
 
 		}
