@@ -1,10 +1,8 @@
 package estafette
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 
@@ -48,11 +46,17 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	eventType := c.GetHeader("X-Estafette-Event")
 	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "estafette"}).Inc()
 
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		log.Error().Err(err).Msg("Reading body from Estafette 'build finished' event failed")
+		c.String(http.StatusInternalServerError, "Reading body from Estafette 'build finished' event failed")
+		return
+	}
+
 	// unmarshal json body
 	var b interface{}
-	err := json.NewDecoder(io.TeeReader(c.Request.Body, bytes.NewBuffer(make([]byte, 0)))).Decode(&b)
+	err = json.Unmarshal(body, &b)
 	if err != nil {
-		body, _ := ioutil.ReadAll(io.TeeReader(c.Request.Body, bytes.NewBuffer(make([]byte, 0))))
 		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Estafette 'build finished' event failed")
 		c.String(http.StatusInternalServerError, "Deserializing body from Estafette 'build finished' event failed")
 		return
@@ -60,9 +64,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 	// unmarshal json body
 	var ciBuilderEvent CiBuilderEvent
-	err = json.NewDecoder(io.TeeReader(c.Request.Body, bytes.NewBuffer(make([]byte, 0)))).Decode(&ciBuilderEvent)
+	err = json.Unmarshal(body, &ciBuilderEvent)
 	if err != nil {
-		body, _ := ioutil.ReadAll(io.TeeReader(c.Request.Body, bytes.NewBuffer(make([]byte, 0))))
 		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to EstafetteCiBuilderEvent failed")
 		return
 	}
