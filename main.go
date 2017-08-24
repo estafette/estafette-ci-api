@@ -139,6 +139,9 @@ func main() {
 		Str("port", *apiAddress).
 		Msg("Serving api calls...")
 
+	// run gin in release mode
+	gin.SetMode(gin.ReleaseMode)
+
 	// Creates a router without any middleware by default
 	router := gin.New()
 
