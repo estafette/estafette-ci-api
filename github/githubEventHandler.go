@@ -1,7 +1,9 @@
 package github
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 
@@ -35,17 +37,11 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	eventType := c.GetHeader("X-GitHub-Event")
 	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "github"}).Inc()
 
-	body, err := ioutil.ReadAll(c.Request.Body)
-	if err != nil {
-		log.Error().Err(err).Msg("Reading body from Github webhook failed")
-		c.String(http.StatusInternalServerError, "Reading body from Github webhook failed")
-		return
-	}
-
 	// unmarshal json body
 	var b interface{}
-	err = json.Unmarshal(body, &b)
+	err := json.NewDecoder(io.TeeReader(c.Request.Body, bytes.NewBuffer(make([]byte, 0)))).Decode(&b)
 	if err != nil {
+		body, _ := ioutil.ReadAll(io.TeeReader(c.Request.Body, bytes.NewBuffer(make([]byte, 0))))
 		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Github webhook failed")
 		c.String(http.StatusInternalServerError, "Deserializing body from Github webhook failed")
 		return
@@ -63,8 +59,9 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 		// unmarshal json body
 		var pushEvent PushEvent
-		err := json.Unmarshal(body, &pushEvent)
+		err = json.NewDecoder(io.TeeReader(c.Request.Body, bytes.NewBuffer(make([]byte, 0)))).Decode(&pushEvent)
 		if err != nil {
+			body, _ := ioutil.ReadAll(io.TeeReader(c.Request.Body, bytes.NewBuffer(make([]byte, 0))))
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubPushEvent failed")
 			return
 		}
