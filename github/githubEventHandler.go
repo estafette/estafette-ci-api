@@ -32,7 +32,7 @@ func NewGithubEventHandler(eventsChannel chan PushEvent, prometheusInboundEventT
 func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 	// https://developer.github.com/webhooks/
-	eventType := c.GetHeader("X-GitHub-Event")
+	eventType := c.GetHeader("X-Github-Event")
 	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "github"}).Inc()
 
 	body, err := ioutil.ReadAll(c.Request.Body)
