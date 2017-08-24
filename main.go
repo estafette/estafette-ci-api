@@ -153,7 +153,7 @@ func main() {
 	// Recovery middleware recovers from any panics and writes a 500 if there was one.
 	router.Use(gin.Recovery())
 
-	// Gzip middlewar
+	// Gzip middleware
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
 
 	githubEventHandler := github.NewGithubEventHandler(githubPushEvents, prometheusInboundEventTotals)
