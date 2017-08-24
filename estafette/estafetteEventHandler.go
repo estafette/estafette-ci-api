@@ -1,18 +1,18 @@
 package estafette
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
 
 // EventHandler handles events from estafette components
 type EventHandler interface {
-	Handle(http.ResponseWriter, *http.Request)
+	Handle(*gin.Context)
 }
 
 type eventHandlerImpl struct {
@@ -30,41 +30,50 @@ func NewEstafetteEventHandler(ciAPIKey string, eventsChannel chan CiBuilderEvent
 	}
 }
 
-func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
+func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
-	authorizationHeader := r.Header.Get("Authorization")
+	authorizationHeader := c.GetHeader("Authorization")
 	if authorizationHeader != fmt.Sprintf("Bearer %v", h.ciAPIKey) {
 		log.Error().
 			Str("authorizationHeader", authorizationHeader).
 			Str("apiKey", h.ciAPIKey).
 			Msg("Authorization header for Estafette event is incorrect")
-		http.Error(w, "authorization failed", http.StatusUnauthorized)
+		c.String(http.StatusUnauthorized, "Authorization failed")
 		return
 	}
 
-	eventType := r.Header.Get("X-Estafette-Event")
+	eventType := c.GetHeader("X-Estafette-Event")
 	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "estafette"}).Inc()
-
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Error().Err(err).Msg("Reading body from Estafette 'build finished' event failed")
-		http.Error(w, "Reading body from Estafette build 'finished event' failed", 500)
-		return
-	}
 
 	// unmarshal json body
 	var b interface{}
-	err = json.Unmarshal(body, &b)
+	err := c.BindJSON(&b)
 	if err != nil {
+
+		body, err := ioutil.ReadAll(c.Request.Body)
+		if err != nil {
+			log.Error().Err(err).Msg("Reading body from Estafette 'build finished' event failed")
+			c.String(http.StatusInternalServerError, "Reading body from Estafette 'build finished' event failed")
+			return
+		}
+
 		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Estafette 'build finished' event failed")
-		http.Error(w, "Deserializing body from Estafette 'build finished' event failed", 500)
+		c.String(http.StatusInternalServerError, "Deserializing body from Estafette 'build finished' event failed")
 		return
 	}
 
 	// unmarshal json body
 	var ciBuilderEvent CiBuilderEvent
-	err = json.Unmarshal(body, &ciBuilderEvent)
+	err = c.BindJSON(&ciBuilderEvent)
 	if err != nil {
+
+		body, err := ioutil.ReadAll(c.Request.Body)
+		if err != nil {
+			log.Error().Err(err).Msg("Reading body from Estafette 'build finished' event failed")
+			c.String(http.StatusInternalServerError, "Reading body from Estafette 'build finished' event failed")
+			return
+		}
+
 		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to EstafetteCiBuilderEvent failed")
 		return
 	}
@@ -87,5 +96,5 @@ func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 		Str("jobName", ciBuilderEvent.JobName).
 		Msgf("Received event of type '%v' from estafette-ci-builder for job %v...", eventType, ciBuilderEvent.JobName)
 
-	fmt.Fprintf(w, "Aye aye!")
+	c.String(http.StatusOK, "Aye aye!")
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	stdlog "log"
 	"net/http"
 	"os"
@@ -16,6 +15,8 @@ import (
 	"github.com/estafette/estafette-ci-api/bitbucket"
 	"github.com/estafette/estafette-ci-api/estafette"
 	"github.com/estafette/estafette-ci-api/github"
+	"github.com/gin-contrib/gzip"
+	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
@@ -138,23 +139,51 @@ func main() {
 		Str("port", *apiAddress).
 		Msg("Serving api calls...")
 
-	srv := &http.Server{Addr: *apiAddress}
+	// run gin in release mode and other defaults
+	gin.SetMode(gin.ReleaseMode)
+	gin.DefaultWriter = log.Logger
+	gin.DisableConsoleColor()
+
+	// Creates a router without any middleware by default
+	router := gin.New()
+
+	// Logging middleware
+	router.Use(ZeroLogMiddleware())
+
+	// Recovery middleware recovers from any panics and writes a 500 if there was one.
+	router.Use(gin.Recovery())
+
+	// Gzip middleware
+	router.Use(gzip.Gzip(gzip.DefaultCompression))
 
 	githubEventHandler := github.NewGithubEventHandler(githubPushEvents, prometheusInboundEventTotals)
-	http.HandleFunc("/events/github", githubEventHandler.Handle)
+	router.POST("/events/github", githubEventHandler.Handle)
 
 	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketPushEvents, prometheusInboundEventTotals)
-	http.HandleFunc("/events/bitbucket", bitbucketEventHandler.Handle)
+	router.POST("/events/bitbucket", bitbucketEventHandler.Handle)
 
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*estafetteCiAPIKey, estafetteCiBuilderEvents, prometheusInboundEventTotals)
-	http.HandleFunc("/events/estafette/ci-builder", estafetteEventHandler.Handle)
+	router.POST("/events/estafette/ci-builder", estafetteEventHandler.Handle)
 
-	http.HandleFunc("/liveness", livenessHandler)
-	http.HandleFunc("/readiness", readinessHandler)
+	router.GET("/liveness", func(c *gin.Context) {
+		c.String(200, "I'm alive!")
+	})
+	router.GET("/readiness", func(c *gin.Context) {
+		c.String(200, "I'm ready!")
+	})
+
+	// instantiate servers instead of using router.Run in order to handle graceful shutdown
+	srv := &http.Server{
+		Addr:           *apiAddress,
+		Handler:        router,
+		ReadTimeout:    30 * time.Second,
+		WriteTimeout:   30 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Fatal().Err(err).Msg("Starting api listener failed")
+			log.Fatal().Err(err).Msg("Starting gin router failed")
 		}
 	}()
 
@@ -163,8 +192,11 @@ func main() {
 	log.Debug().Msg("Shutting down server...")
 
 	// shut down gracefully
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	srv.Shutdown(ctx)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal().Err(err).Msg("Graceful server shutdown failed")
+	}
 
 	githubEventWorker.Stop()
 	bitbucketEventWorker.Stop()
@@ -187,12 +219,4 @@ func startPrometheus() {
 	if err := http.ListenAndServe(*prometheusMetricsAddress, nil); err != nil {
 		log.Fatal().Err(err).Msg("Starting Prometheus listener failed")
 	}
-}
-
-func livenessHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "I'm alive!")
-}
-
-func readinessHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "I'm ready!")
 }

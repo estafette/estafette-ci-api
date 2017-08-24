@@ -1,19 +1,18 @@
 package github
 
 import (
-	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
 
 // EventHandler handles http events for Github integration
 type EventHandler interface {
-	Handle(http.ResponseWriter, *http.Request)
-	HandlePushEvent([]byte)
+	Handle(*gin.Context)
+	HandlePushEvent(PushEvent)
 }
 
 type eventHandlerImpl struct {
@@ -29,38 +28,56 @@ func NewGithubEventHandler(eventsChannel chan PushEvent, prometheusInboundEventT
 	}
 }
 
-func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
+func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 	// https://developer.github.com/webhooks/
-	eventType := r.Header.Get("X-GitHub-Event")
+	eventType := c.GetHeader("X-GitHub-Event")
 	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "github"}).Inc()
-
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Error().Err(err).Msg("Reading body from Github webhook failed")
-		http.Error(w, "Reading body from Github webhook failed", 500)
-		return
-	}
 
 	// unmarshal json body
 	var b interface{}
-	err = json.Unmarshal(body, &b)
+	err := c.BindJSON(&b)
 	if err != nil {
+
+		body, err := ioutil.ReadAll(c.Request.Body)
+		if err != nil {
+			log.Error().Err(err).Msg("Reading body from Github webhook failed")
+			c.String(http.StatusInternalServerError, "Reading body from Github webhook failed")
+			return
+		}
+
 		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Github webhook failed")
-		http.Error(w, "Deserializing body from Github webhook failed", 500)
+		c.String(http.StatusInternalServerError, "Deserializing body from Github webhook failed")
 		return
 	}
 
 	log.Debug().
-		Str("method", r.Method).
-		Str("url", r.URL.String()).
-		Interface("headers", r.Header).
+		Str("method", c.Request.Method).
+		Str("url", c.Request.URL.String()).
+		Interface("headers", c.Request.Header).
 		Interface("body", b).
 		Msgf("Received webhook event of type '%v' from GitHub...", eventType)
 
 	switch eventType {
 	case "push": // Any Git push to a Repository, including editing tags or branches. Commits via API actions that update references are also counted. This is the default event.
-		h.HandlePushEvent(body)
+
+		// unmarshal json body
+		var pushEvent PushEvent
+		err := c.BindJSON(&pushEvent)
+		if err != nil {
+
+			body, err := ioutil.ReadAll(c.Request.Body)
+			if err != nil {
+				log.Error().Err(err).Msg("Reading body from Github webhook failed")
+				c.String(http.StatusInternalServerError, "Reading body from Github webhook failed")
+				return
+			}
+
+			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubPushEvent failed")
+			return
+		}
+
+		h.HandlePushEvent(pushEvent)
 
 	case
 		"commit_comment",              // Any time a Commit is commented on.
@@ -102,18 +119,10 @@ func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 		log.Warn().Str("event", eventType).Msgf("Unsupported Github webhook event of type '%v'", eventType)
 	}
 
-	fmt.Fprintf(w, "Aye aye!")
+	c.String(http.StatusOK, "Aye aye!")
 }
 
-func (h *eventHandlerImpl) HandlePushEvent(body []byte) {
-
-	// unmarshal json body
-	var pushEvent PushEvent
-	err := json.Unmarshal(body, &pushEvent)
-	if err != nil {
-		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubPushEvent failed")
-		return
-	}
+func (h *eventHandlerImpl) HandlePushEvent(pushEvent PushEvent) {
 
 	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized GitHub push event for repository %v", pushEvent.Repository.FullName)
 

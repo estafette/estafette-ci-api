@@ -301,12 +301,48 @@
 			"versionExact": "v0.4.0"
 		},
 		{
-			"checksumSHA1": "AuyEpojAPL7sTh2fsKf8OvvqeQQ=",
+			"checksumSHA1": "7+xBh0N1bM9Jj2ELTEdRuicvQKY=",
 			"path": "github.com/estafette/estafette-ci-manifest",
-			"revision": "18d97067f059c600a55e33b45a55440cfbe7c726",
-			"revisionTime": "2017-08-22T11:29:47Z",
-			"version": "0.0.7",
-			"versionExact": "0.0.7"
+			"revision": "88de982af0fe6faae7b73ec3ce9ec20699ad022d",
+			"revisionTime": "2017-08-22T15:05:32Z",
+			"version": "0.0.9",
+			"versionExact": "0.0.9"
+		},
+		{
+			"checksumSHA1": "TDysVqhcacAS+H/fqk5X2egtcrA=",
+			"path": "github.com/gin-contrib/gzip",
+			"revision": "ff223ab9f8e3e69d4eb333c90966e057c5a97873",
+			"revisionTime": "2017-08-07T06:36:59Z"
+		},
+		{
+			"checksumSHA1": "QeKwBtN2df+j+4stw3bQJ6yO4EY=",
+			"path": "github.com/gin-contrib/sse",
+			"revision": "22d885f9ecc78bf4ee5d72b937e4bbcdc58e8cae",
+			"revisionTime": "2017-01-09T09:34:21Z"
+		},
+		{
+			"checksumSHA1": "cpELhz30Sco7IBwvI6FyuShnjnQ=",
+			"path": "github.com/gin-gonic/gin",
+			"revision": "d459835d2b077e44f7c9b453505ee29881d5d12d",
+			"revisionTime": "2017-07-02T09:28:26Z",
+			"version": "v1.2",
+			"versionExact": "v1.2"
+		},
+		{
+			"checksumSHA1": "YVt5lqmGq95m5tFdiz5pr2BF1Jo=",
+			"path": "github.com/gin-gonic/gin/binding",
+			"revision": "d459835d2b077e44f7c9b453505ee29881d5d12d",
+			"revisionTime": "2017-07-02T09:28:26Z",
+			"version": "v1.2",
+			"versionExact": "v1.2"
+		},
+		{
+			"checksumSHA1": "M3FwiqpVbXwo9t2FyI5/gKxCDKY=",
+			"path": "github.com/gin-gonic/gin/render",
+			"revision": "d459835d2b077e44f7c9b453505ee29881d5d12d",
+			"revisionTime": "2017-07-02T09:28:26Z",
+			"version": "v1.2",
+			"versionExact": "v1.2"
 		},
 		{
 			"checksumSHA1": "cRxfZM32wP1Ry67s3jLRoYxAz/E=",
@@ -319,6 +355,12 @@
 			"path": "github.com/google/go-querystring/query",
 			"revision": "53e6ce116135b80d037921a7fdd5138cf32d7a8a",
 			"revisionTime": "2017-01-11T10:11:55Z"
+		},
+		{
+			"checksumSHA1": "U6lX43KDDlNOn+Z0Yyww+ZzHfFo=",
+			"path": "github.com/mattn/go-isatty",
+			"revision": "fc9e8d8ef48496124e79ae0df75490096eccf6fe",
+			"revisionTime": "2017-03-22T23:44:13Z"
 		},
 		{
 			"checksumSHA1": "bQ9BML+wAZd81vdDAOC1U+yN8dU=",
@@ -433,6 +475,12 @@
 			"versionExact": "v1.1.4"
 		},
 		{
+			"checksumSHA1": "9Zw986fuQM/hCoVd8vmHoSM+8sU=",
+			"path": "github.com/ugorji/go/codec",
+			"revision": "5efa3251c7f7d05e5d9704a69a984ec9f1386a40",
+			"revisionTime": "2017-06-20T10:48:52Z"
+		},
+		{
 			"checksumSHA1": "dr5+PfIRzXeN+l1VG+s0lea9qz8=",
 			"path": "golang.org/x/net/context",
 			"revision": "1c05540f6879653db88113bc4a2b70aec4bd491f",
@@ -461,6 +509,12 @@
 			"path": "golang.org/x/net/lex/httplex",
 			"revision": "f5079bd7f6f74e23c4d65efa0f4ce14cbd6a3c0f",
 			"revisionTime": "2017-07-19T21:11:51Z"
+		},
+		{
+			"checksumSHA1": "yMZF9dXHnTzHIOvYzLfqvcsU4mQ=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "07c182904dbd53199946ba614a412c61d3c548f5",
+			"revisionTime": "2017-08-16T12:26:40Z"
 		},
 		{
 			"checksumSHA1": "ZQdHbB9VYCXwQ+9/CmZPhJv0+SM=",
@@ -581,6 +635,12 @@
 			"path": "google.golang.org/appengine/internal/remote_api",
 			"revision": "c5a90ac045b779001847fec87403f5cba090deae",
 			"revisionTime": "2017-08-01T18:31:37Z"
+		},
+		{
+			"checksumSHA1": "P/k5ZGf0lEBgpKgkwy++F7K1PSg=",
+			"path": "gopkg.in/go-playground/validator.v8",
+			"revision": "5f1438d3fca68893a817e4a66806cea46a9e4ebf",
+			"revisionTime": "2017-07-30T05:02:35Z"
 		},
 		{
 			"checksumSHA1": "aUDnhyGTHeiMERx4L4jx/zLsvSQ=",

@@ -3,9 +3,13 @@ package estafette
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/ericchiang/k8s"
 	"github.com/ericchiang/k8s/api/resource"
@@ -42,10 +46,33 @@ type ciBuilderClientImpl struct {
 // NewCiBuilderClient returns a new estafette.CiBuilderClient
 func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiAPIKey string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
 
-	kubeClient, err := k8s.NewInClusterClient()
-	if err != nil {
-		log.Error().Err(err).Msg("Creating k8s client failed")
-		return
+	var kubeClient *k8s.Client
+
+	if os.Getenv("KUBERNETES_SERVICE_HOST") != "" && os.Getenv("KUBERNETES_SERVICE_PORT") != "" {
+
+		kubeClient, err = k8s.NewInClusterClient()
+		if err != nil {
+			log.Error().Err(err).Msg("Creating k8s client failed")
+			return
+		}
+
+	} else {
+
+		homeDir := os.Getenv("HOME")
+
+		data, err := ioutil.ReadFile(fmt.Sprintf("%v/.kube/config", homeDir))
+		if err != nil {
+			log.Error().Err(err).Msg("Reading kube config failed")
+			return nil, err
+		}
+
+		var config k8s.Config
+		if err := yaml.Unmarshal(data, &config); err != nil {
+			log.Error().Err(err).Msg("Deserializing kube config failed")
+			return nil, err
+		}
+
+		kubeClient, err = k8s.NewClient(&config)
 	}
 
 	ciBuilderClient = &ciBuilderClientImpl{
