@@ -1,7 +1,6 @@
 package bitbucket
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
@@ -13,7 +12,7 @@ import (
 // EventHandler handles http events for Bitbucket integration
 type EventHandler interface {
 	Handle(*gin.Context)
-	HandlePushEvent([]byte)
+	HandlePushEvent(pushEvent RepositoryPushEvent)
 }
 
 type eventHandlerImpl struct {
@@ -36,17 +35,18 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	eventType := c.GetHeader("X-Event-Key")
 	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "bitbucket"}).Inc()
 
-	body, err := ioutil.ReadAll(c.Request.Body)
-	if err != nil {
-		log.Error().Err(err).Msg("Reading body from Bitbucket webhook failed")
-		c.String(http.StatusInternalServerError, "Reading body from Bitbucket webhook failed")
-		return
-	}
-
 	// unmarshal json body
 	var b interface{}
-	err = c.BindJSON(&b)
+	err := c.BindJSON(&b)
 	if err != nil {
+
+		body, err := ioutil.ReadAll(c.Request.Body)
+		if err != nil {
+			log.Error().Err(err).Msg("Reading body from Bitbucket webhook failed")
+			c.String(http.StatusInternalServerError, "Reading body from Bitbucket webhook failed")
+			return
+		}
+
 		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Bitbucket webhook failed")
 		c.String(http.StatusInternalServerError, "Deserializing body from Github webhook failed")
 		return
@@ -61,7 +61,24 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 	switch eventType {
 	case "repo:push":
-		h.HandlePushEvent(body)
+
+		// unmarshal json body
+		var pushEvent RepositoryPushEvent
+		err := c.BindJSON(&pushEvent)
+		if err != nil {
+
+			body, err := ioutil.ReadAll(c.Request.Body)
+			if err != nil {
+				log.Error().Err(err).Msg("Reading body from Bitbucket webhook failed")
+				c.String(http.StatusInternalServerError, "Reading body from Bitbucket webhook failed")
+				return
+			}
+
+			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to BitbucketRepositoryPushEvent failed")
+			return
+		}
+
+		h.HandlePushEvent(pushEvent)
 
 	case
 		"repo:fork",
@@ -91,15 +108,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
-func (h *eventHandlerImpl) HandlePushEvent(body []byte) {
-
-	// unmarshal json body
-	var pushEvent RepositoryPushEvent
-	err := json.Unmarshal(body, &pushEvent)
-	if err != nil {
-		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to BitbucketRepositoryPushEvent failed")
-		return
-	}
+func (h *eventHandlerImpl) HandlePushEvent(pushEvent RepositoryPushEvent) {
 
 	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized Bitbucket push event for repository %v", pushEvent.Repository.FullName)
 
