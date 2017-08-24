@@ -38,7 +38,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	eventType := c.GetHeader("X-Event-Key")
 	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "bitbucket"}).Inc()
 
-	// deserialize json body
+	// unmarshal json body
 	var b interface{}
 	err := json.NewDecoder(io.TeeReader(c.Request.Body, bytes.NewBuffer(make([]byte, 0)))).Decode(&b)
 	if err != nil {
