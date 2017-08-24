@@ -92,7 +92,6 @@ func main() {
 	// use zerolog for any logs sent via standard log library
 	stdlog.SetFlags(0)
 	stdlog.SetOutput(log.Logger)
-	gin.DefaultWriter = log.Logger
 
 	// log startup message
 	log.Info().
@@ -139,16 +138,16 @@ func main() {
 		Str("port", *apiAddress).
 		Msg("Serving api calls...")
 
-	// run gin in release mode
+	// run gin in release mode and other defaults
 	gin.SetMode(gin.ReleaseMode)
+	gin.DefaultWriter = log.Logger
+	gin.DisableConsoleColor()
 
 	// Creates a router without any middleware by default
 	router := gin.New()
 
-	// Global middleware
-	// Logger middleware will write the logs to gin.DefaultWriter even you set with GIN_MODE=release.
-	// By default gin.DefaultWriter = os.Stdout
-	router.Use(gin.Logger())
+	// Logging middleware
+	router.Use(ZeroLogMiddleware())
 
 	// Recovery middleware recovers from any panics and writes a 500 if there was one.
 	router.Use(gin.Recovery())
@@ -171,8 +170,11 @@ func main() {
 
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown
 	srv := &http.Server{
-		Addr:    *apiAddress,
-		Handler: router,
+		Addr:           *apiAddress,
+		Handler:        router,
+		ReadTimeout:    30 * time.Second,
+		WriteTimeout:   30 * time.Second,
+		MaxHeaderBytes: 1 << 20,
 	}
 
 	go func() {
@@ -214,3 +216,4 @@ func startPrometheus() {
 		log.Fatal().Err(err).Msg("Starting Prometheus listener failed")
 	}
 }
+
