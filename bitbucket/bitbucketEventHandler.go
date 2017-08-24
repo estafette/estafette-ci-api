@@ -2,17 +2,17 @@ package bitbucket
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
 
 // EventHandler handles http events for Bitbucket integration
 type EventHandler interface {
-	Handle(http.ResponseWriter, *http.Request)
+	Handle(*gin.Context)
 	HandlePushEvent([]byte)
 }
 
@@ -29,33 +29,33 @@ func NewBitbucketEventHandler(eventsChannel chan RepositoryPushEvent, prometheus
 	}
 }
 
-func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
+func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
 
-	eventType := r.Header.Get("X-Event-Key")
+	eventType := c.GetHeader("X-Event-Key")
 	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "bitbucket"}).Inc()
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body from Bitbucket webhook failed")
-		http.Error(w, "Reading body from Bitbucket webhook failed", 500)
+		c.String(http.StatusInternalServerError, "Reading body from Bitbucket webhook failed")
 		return
 	}
 
 	// unmarshal json body
 	var b interface{}
-	err = json.Unmarshal(body, &b)
+	err = c.BindJSON(&b)
 	if err != nil {
 		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Bitbucket webhook failed")
-		http.Error(w, "Deserializing body from Bitbucket webhook failed", 500)
+		c.String(http.StatusInternalServerError, "Deserializing body from Github webhook failed")
 		return
 	}
 
 	log.Debug().
-		Str("method", r.Method).
-		Str("url", r.URL.String()).
-		Interface("headers", r.Header).
+		Str("method", c.Request.Method).
+		Str("url", c.Request.URL.String()).
+		Interface("headers", c.Request.Header).
 		Interface("body", b).
 		Msgf("Received webhook event of type '%v' from Bitbucket...", eventType)
 
@@ -88,7 +88,7 @@ func (h *eventHandlerImpl) Handle(w http.ResponseWriter, r *http.Request) {
 		log.Warn().Str("event", eventType).Msgf("Unsupported Bitbucket webhook event of type '%v'", eventType)
 	}
 
-	fmt.Fprintf(w, "Aye aye!")
+	c.String(http.StatusOK, "Aye aye!")
 }
 
 func (h *eventHandlerImpl) HandlePushEvent(body []byte) {
