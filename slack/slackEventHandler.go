@@ -1,8 +1,6 @@
 package slack
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -35,34 +33,12 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": "", "source": "slack"}).Inc()
 
-	body, err := ioutil.ReadAll(c.Request.Body)
-	if err != nil {
-		log.Error().Err(err).Msg("Reading body from Slack webhook failed")
-		c.String(http.StatusInternalServerError, "Reading body from Slack webhook failed")
-		return
-	}
-
-	// unmarshal json body
-	var b interface{}
-	err = json.Unmarshal(body, &b)
-	if err != nil {
-		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Slack webhook failed")
-		c.String(http.StatusInternalServerError, "Deserializing body from Slack webhook failed")
-		return
-	}
-
-	log.Debug().
-		Str("method", c.Request.Method).
-		Str("url", c.Request.URL.String()).
-		Interface("headers", c.Request.Header).
-		Interface("body", b).
-		Msg("Received webhook event from Slack...")
-
-	// unmarshal json body
 	var slashCommand SlashCommand
-	err = json.Unmarshal(body, &slashCommand)
+	// This will infer what binder to use depending on the content-type header.
+	err := c.Bind(&slashCommand)
 	if err != nil {
-		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to SlashCommand failed")
+		log.Error().Err(err).Msg("Binding form data from Slack command webhook failed")
+		c.String(http.StatusInternalServerError, "Binding form data from Slack command webhook failed")
 		return
 	}
 
