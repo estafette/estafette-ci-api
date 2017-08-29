@@ -28,7 +28,7 @@ func ZeroLogMiddleware() gin.HandlerFunc {
 		end := time.Now()
 
 		raw := c.Request.URL.RawQuery
-		headers := c.Header
+		headers := c.Request.Header
 		latency := end.Sub(start)
 		clientIP := c.ClientIP()
 		method := c.Request.Method
