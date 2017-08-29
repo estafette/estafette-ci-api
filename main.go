@@ -51,7 +51,10 @@ var (
 	estafetteCiServerBaseURL = kingpin.Flag("estafette-ci-server-base-url", "The base url of this api server.").Envar("ESTAFETTE_CI_SERVER_BASE_URL").String()
 	estafetteCiAPIKey        = kingpin.Flag("estafette-ci-api-key", "An api key for estafette itself to use until real oauth is supported.").Envar("ESTAFETTE_CI_API_KEY").String()
 
-	slackAppOAuthAccessToken = kingpin.Flag("slack-app-oauth-access-token", "The OAuth access token for the Slack App.").Envar("SLACK_APP_OAUTH_ACCESS_TOKEN").String()
+	slackAppClientID          = kingpin.Flag("slack-app-client-id", "The Slack App id for accessing Slack API.").Envar("SLACK_APP_CLIENT_ID").String()
+	slackAppClientSecret      = kingpin.Flag("slack-app-client-secret", "The Slack App secret for accessing Slack API.").Envar("SLACK_APP_CLIENT_ID").String()
+	slackAppVerificationToken = kingpin.Flag("slack-app-verification-token", "The token used to verify incoming Slack webhook events.").Envar("SLACK_APP_VERIFICATION_TOKEN").String()
+	slackAppOAuthAccessToken  = kingpin.Flag("slack-app-oauth-access-token", "The OAuth access token for the Slack App.").Envar("SLACK_APP_OAUTH_ACCESS_TOKEN").String()
 
 	// prometheusInboundEventTotals is the prometheus timeline serie that keeps track of inbound events
 	prometheusInboundEventTotals = prometheus.NewCounterVec(
@@ -115,7 +118,7 @@ func main() {
 
 	githubAPIClient := github.NewGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret, prometheusOutboundAPICallTotals)
 	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret, prometheusOutboundAPICallTotals)
-	slackAPIClient := slack.NewSlackAPIClient(*slackAppOAuthAccessToken, prometheusOutboundAPICallTotals)
+	slackAPIClient := slack.NewSlackAPIClient(*slackAppClientID, *slackAppClientSecret, *slackAppOAuthAccessToken, prometheusOutboundAPICallTotals)
 	ciBuilderClient, err := estafette.NewCiBuilderClient(*estafetteCiServerBaseURL, *estafetteCiAPIKey, prometheusOutboundAPICallTotals)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
@@ -171,7 +174,7 @@ func main() {
 	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketPushEvents, prometheusInboundEventTotals)
 	router.POST("/events/bitbucket", bitbucketEventHandler.Handle)
 
-	slackEventHandler := slack.NewSlackEventHandler(slackEvents, prometheusInboundEventTotals)
+	slackEventHandler := slack.NewSlackEventHandler(*slackAppVerificationToken, slackEvents, prometheusInboundEventTotals)
 	router.POST("/events/slack/slash", slackEventHandler.Handle)
 
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*estafetteCiAPIKey, estafetteCiBuilderEvents, prometheusInboundEventTotals)

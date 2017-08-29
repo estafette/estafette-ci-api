@@ -15,13 +15,15 @@ type EventHandler interface {
 }
 
 type eventHandlerImpl struct {
+	slackAppVerificationToken    string
 	eventsChannel                chan SlashCommand
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewSlackEventHandler returns a new slack.EventHandler
-func NewSlackEventHandler(eventsChannel chan SlashCommand, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewSlackEventHandler(slackAppVerificationToken string, eventsChannel chan SlashCommand, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
+		slackAppVerificationToken:    slackAppVerificationToken,
 		eventsChannel:                eventsChannel,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
