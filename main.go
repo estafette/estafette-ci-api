@@ -15,6 +15,7 @@ import (
 	"github.com/estafette/estafette-ci-api/bitbucket"
 	"github.com/estafette/estafette-ci-api/estafette"
 	"github.com/estafette/estafette-ci-api/github"
+	"github.com/estafette/estafette-ci-api/slack"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
@@ -49,6 +50,8 @@ var (
 
 	estafetteCiServerBaseURL = kingpin.Flag("estafette-ci-server-base-url", "The base url of this api server.").Envar("ESTAFETTE_CI_SERVER_BASE_URL").String()
 	estafetteCiAPIKey        = kingpin.Flag("estafette-ci-api-key", "An api key for estafette itself to use until real oauth is supported.").Envar("ESTAFETTE_CI_API_KEY").String()
+
+	slackAppOAuthAccessToken = kingpin.Flag("slack-app-oauth-access-token", "The OAuth access token for the Slack App.").Envar("SLACK_APP_OAUTH_ACCESS_TOKEN").String()
 
 	// prometheusInboundEventTotals is the prometheus timeline serie that keeps track of inbound events
 	prometheusInboundEventTotals = prometheus.NewCounterVec(
@@ -112,6 +115,7 @@ func main() {
 
 	githubAPIClient := github.NewGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret, prometheusOutboundAPICallTotals)
 	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret, prometheusOutboundAPICallTotals)
+	slackAPIClient := slack.NewSlackAPIClient(*slackAppOAuthAccessToken, prometheusOutboundAPICallTotals)
 	ciBuilderClient, err := estafette.NewCiBuilderClient(*estafetteCiServerBaseURL, *estafetteCiAPIKey, prometheusOutboundAPICallTotals)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
@@ -123,6 +127,8 @@ func main() {
 	bitbucketPushEvents := make(chan bitbucket.RepositoryPushEvent, 100)
 	// channel for passing push events to worker that cleans up finished jobs
 	estafetteCiBuilderEvents := make(chan estafette.CiBuilderEvent, 100)
+	// channel for passing slash commands to worker that acts on the command
+	slackEvents := make(chan slack.SlashCommand, 100)
 
 	// listen to channels for push events
 	githubEventWorker := github.NewGithubEventWorker(waitGroup, githubAPIClient, ciBuilderClient, githubPushEvents)
@@ -130,6 +136,9 @@ func main() {
 
 	bitbucketEventWorker := bitbucket.NewBitbucketEventWorker(waitGroup, bitbucketAPIClient, ciBuilderClient, bitbucketPushEvents)
 	bitbucketEventWorker.ListenToEventChannels()
+
+	slackEventWorker := slack.NewSlackEventWorker(waitGroup, slackAPIClient, slackEvents)
+	slackEventWorker.ListenToEventChannels()
 
 	estafetteEventWorker := estafette.NewEstafetteEventWorker(waitGroup, ciBuilderClient, estafetteCiBuilderEvents)
 	estafetteEventWorker.ListenToEventChannels()
@@ -161,6 +170,9 @@ func main() {
 
 	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketPushEvents, prometheusInboundEventTotals)
 	router.POST("/events/bitbucket", bitbucketEventHandler.Handle)
+
+	slackEventHandler := slack.NewSlackEventHandler(slackEvents, prometheusInboundEventTotals)
+	router.POST("/events/slack/slash", slackEventHandler.Handle)
 
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*estafetteCiAPIKey, estafetteCiBuilderEvents, prometheusInboundEventTotals)
 	router.POST("/events/estafette/ci-builder", estafetteEventHandler.Handle)

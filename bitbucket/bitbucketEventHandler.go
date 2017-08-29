@@ -48,7 +48,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	err = json.Unmarshal(body, &b)
 	if err != nil {
 		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Bitbucket webhook failed")
-		c.String(http.StatusInternalServerError, "Deserializing body from Github webhook failed")
+		c.String(http.StatusInternalServerError, "Deserializing body from Bitbucket webhook failed")
 		return
 	}
 

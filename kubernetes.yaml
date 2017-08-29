@@ -119,6 +119,8 @@ spec:
           value: "https://${HOSTNAMES}/"
         - name: "ESTAFETTE_CI_API_KEY"
           value: "${ESTAFETTE_CI_API_KEY}"
+        - name: "SLACK_APP_OAUTH_ACCESS_TOKEN"
+          value: "${SLACK_APP_OAUTH_ACCESS_TOKEN}"
         ports:
         - name: api
           containerPort: 5000
