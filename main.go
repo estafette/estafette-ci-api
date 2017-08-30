@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/estafette/estafette-ci-crypt"
+
 	"github.com/alecthomas/kingpin"
 	"github.com/estafette/estafette-ci-api/bitbucket"
 	"github.com/estafette/estafette-ci-api/estafette"
@@ -125,6 +127,10 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
 	}
+	secretHelper, err := crypt.NewSecretHelper(*secretDecryptionKey)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating new SecretHelper has failed")
+	}
 
 	// channel for passing push events to handler that creates ci-builder job
 	githubPushEvents := make(chan github.PushEvent, 100)
@@ -176,7 +182,7 @@ func main() {
 	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketPushEvents, prometheusInboundEventTotals)
 	router.POST("/events/bitbucket", bitbucketEventHandler.Handle)
 
-	slackEventHandler := slack.NewSlackEventHandler(*slackAppVerificationToken, slackEvents, prometheusInboundEventTotals)
+	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *slackAppVerificationToken, slackEvents, prometheusInboundEventTotals)
 	router.POST("/events/slack/slash", slackEventHandler.Handle)
 
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*estafetteCiAPIKey, estafetteCiBuilderEvents, prometheusInboundEventTotals)
