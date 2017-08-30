@@ -123,13 +123,10 @@ func main() {
 	githubAPIClient := github.NewGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret, prometheusOutboundAPICallTotals)
 	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret, prometheusOutboundAPICallTotals)
 	slackAPIClient := slack.NewSlackAPIClient(*slackAppClientID, *slackAppClientSecret, *slackAppOAuthAccessToken, prometheusOutboundAPICallTotals)
+	secretHelper := crypt.NewSecretHelper(*secretDecryptionKey)
 	ciBuilderClient, err := estafette.NewCiBuilderClient(*estafetteCiServerBaseURL, *estafetteCiAPIKey, *secretDecryptionKey, prometheusOutboundAPICallTotals)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
-	}
-	secretHelper, err := crypt.NewSecretHelper(*secretDecryptionKey)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating new SecretHelper has failed")
 	}
 
 	// channel for passing push events to handler that creates ci-builder job
