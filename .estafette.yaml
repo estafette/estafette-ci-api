@@ -29,6 +29,9 @@ pipelines:
 
   push-to-docker-hub:
     image: docker:17.06.1-ce
+    env:
+      ESTAFETTE_DOCKER_HUB_USERNAME: estafette.secret(IXFQ9igip3IH0KVY.N6RTT4RB9dz15UGKHQUBctAf5QNI8G8QYg==)
+      ESTAFETTE_DOCKER_HUB_PASSWORD: estafette.secret(zhN34B3iKmWis2t-.guUQYqZPjXTjaWK4G6ZU4n-DYyOZvigT2tdRYEP3zQddr4HA)
     commands:
     - docker login --username=${ESTAFETTE_DOCKER_HUB_USERNAME} --password="${ESTAFETTE_DOCKER_HUB_PASSWORD}"
     - docker push estafette/${ESTAFETTE_LABEL_APP}:${ESTAFETTE_BUILD_VERSION}
@@ -45,7 +48,7 @@ pipelines:
   slack-notify:
     image: extensions/slack-build-status:dev
     env:
-      ESTAFETTE_SLACK_WEBHOOK: estafette.secret(VQhyeydGURZSFLmh.zxAW1ZVhI7JqLgr9-K7_YuzSFWAasNFRIHAm9OXj2RK_Wa-FWXt9LCCJuD6K6jz_SYpbEhiBWcjd0VkD23AazyLmz3EsImi2C1AJ82ltxuMmN93rPZbdP3kT5vwa)
+      ESTAFETTE_SLACK_WEBHOOK: estafette.secret(08UOJSF6Fvdz9u2X.lzsCArDpf97g7i2Vx-3UTyWsxCB81e05jthdY_AI3OffXBA-NurQePraQqzNf-9IhdoDvr1Akg0yom4S2kHjvWLhRC8Y7xgheK8MR6qPu2oi3QvlYbnNtTTOOjMi)
     name: ${ESTAFETTE_LABEL_APP}
     channels:
     - '#build-status'
