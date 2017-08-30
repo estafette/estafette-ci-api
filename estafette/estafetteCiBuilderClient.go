@@ -40,11 +40,12 @@ type ciBuilderClientImpl struct {
 	kubeClient                      *k8s.Client
 	EstafetteCiServerBaseURL        string
 	EstafetteCiAPIKey               string
+	secretDecryptionKey             string
 	PrometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
 // NewCiBuilderClient returns a new estafette.CiBuilderClient
-func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiAPIKey string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
+func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiAPIKey, secretDecryptionKey string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
 
 	var kubeClient *k8s.Client
 
@@ -79,6 +80,7 @@ func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiAPIKey string, prom
 		kubeClient:                      kubeClient,
 		EstafetteCiServerBaseURL:        estafetteCiServerBaseURL,
 		EstafetteCiAPIKey:               estafetteCiAPIKey,
+		secretDecryptionKey:             secretDecryptionKey,
 		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 
@@ -216,6 +218,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 							Name:            &containerName,
 							Image:           &image,
 							ImagePullPolicy: &imagePullPolicy,
+							Args:            []string{fmt.Sprintf("--secret-decryption-key=%v", cbc.secretDecryptionKey)},
 							Env:             environmentVariables,
 							SecurityContext: &apiv1.SecurityContext{
 								Privileged: &privileged,
