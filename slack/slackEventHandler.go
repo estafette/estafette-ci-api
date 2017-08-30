@@ -63,10 +63,11 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					if err != nil {
 						log.Error().Err(err).Interface("slashCommand", slashCommand).Msg("Failed to encrypt secret")
 						c.String(http.StatusOK, "Incorrect usage of /estafette encrypt!")
+						return
 					}
 
 					c.String(http.StatusOK, fmt.Sprintf("estafette.secret(%v)", encryptedString))
-
+					return
 				}
 			}
 		}
