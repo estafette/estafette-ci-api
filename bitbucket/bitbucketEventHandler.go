@@ -76,6 +76,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		"repo:fork",
 		"repo:updated",
 		"repo:transfer",
+		"repo:created",
+		"repo:deleted",
 		"repo:commit_comment_created",
 		"repo:commit_status_created",
 		"repo:commit_status_updated",
