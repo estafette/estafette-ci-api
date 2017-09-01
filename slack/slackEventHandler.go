@@ -14,6 +14,7 @@ import (
 // EventHandler handles http events for Slack integration
 type EventHandler interface {
 	Handle(*gin.Context)
+	HasValidVerificationToken(SlashCommand) bool
 }
 
 type eventHandlerImpl struct {
@@ -48,6 +49,13 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		return
 	}
 
+	hasValidVerificationToken := h.HasValidVerificationToken(slashCommand)
+	if hasValidVerificationToken {
+		log.Debug().Str("expectedToken", h.slackAppVerificationToken).Str("actualToken", slashCommand.Token).Msg("Verification token is valid")
+	} else {
+		log.Warn().Str("expectedToken", h.slackAppVerificationToken).Str("actualToken", slashCommand.Token).Msg("Verification token is not valid")
+	}
+
 	log.Debug().Interface("slashCommand", slashCommand).Msg("Deserialized slash command")
 
 	if slashCommand.Command == "/estafette" {
@@ -77,4 +85,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	//h.eventsChannel <- slashCommand
 
 	c.String(http.StatusOK, "Aye aye!")
+}
+
+func (h *eventHandlerImpl) HasValidVerificationToken(slashCommand SlashCommand) bool {
+	return slashCommand.Token == h.slackAppVerificationToken
 }
