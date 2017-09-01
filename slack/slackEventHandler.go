@@ -49,14 +49,14 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		return
 	}
 
-	hasValidVerificationToken := h.HasValidVerificationToken(slashCommand)
-	if hasValidVerificationToken {
-		log.Debug().Str("expectedToken", h.slackAppVerificationToken).Str("actualToken", slashCommand.Token).Msg("Verification token is valid")
-	} else {
-		log.Warn().Str("expectedToken", h.slackAppVerificationToken).Str("actualToken", slashCommand.Token).Msg("Verification token is not valid")
-	}
-
 	log.Debug().Interface("slashCommand", slashCommand).Msg("Deserialized slash command")
+
+	hasValidVerificationToken := h.HasValidVerificationToken(slashCommand)
+	if !hasValidVerificationToken {
+		log.Warn().Str("expectedToken", h.slackAppVerificationToken).Str("actualToken", slashCommand.Token).Msg("Verification token for Slack command is invalid")
+		c.String(http.StatusBadRequest, "Verification token for Slack command is invalid")
+		return
+	}
 
 	if slashCommand.Command == "/estafette" {
 		if slashCommand.Text != "" {
