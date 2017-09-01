@@ -3,6 +3,7 @@ package github
 import (
 	"crypto/hmac"
 	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -49,16 +50,22 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 	// https://developer.github.com/webhooks/securing/
 	signature := c.GetHeader("X-Hub-Signature")
+	signature = strings.Replace(signature, "sha1=", "", 1)
+	actualMAC, err := hex.DecodeString(signature)
+	if err != nil {
+		log.Error().Err(err).Msg("Decoding hexadecimal X-Hub-Signature to byte array failed")
+	}
 
+	// calculate expected MAC
 	mac := hmac.New(sha1.New, []byte(h.githubWebhookSecret))
 	mac.Write(body)
 	expectedMAC := mac.Sum(nil)
-	actualMAC := []byte(strings.Replace(signature, "sha1=", "", 1))
 
+	// compare actual and expected MAC
 	if hmac.Equal(actualMAC, expectedMAC) {
-		log.Debug().Str("expectedMAC", string(expectedMAC)).Str("actualMAC", string(actualMAC)).Msg("Valid HMAC signature")
+		log.Debug().Str("expectedMAC", hex.EncodeToString(expectedMAC)).Str("actualMAC", hex.EncodeToString(actualMAC)).Msg("Valid HMAC signature")
 	} else {
-		log.Warn().Str("expectedMAC", string(expectedMAC)).Str("actualMAC", string(actualMAC)).Msg("Invalid HMAC signature")
+		log.Warn().Str("expectedMAC", hex.EncodeToString(expectedMAC)).Str("actualMAC", hex.EncodeToString(actualMAC)).Msg("Invalid HMAC signature")
 	}
 
 	// unmarshal json body
@@ -139,4 +146,5 @@ func (h *eventHandlerImpl) HandlePushEvent(pushEvent PushEvent) {
 
 	// test making api calls for github app in the background
 	h.eventsChannel <- pushEvent
+}
 }
