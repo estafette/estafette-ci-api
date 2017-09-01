@@ -147,4 +147,3 @@ func (h *eventHandlerImpl) HandlePushEvent(pushEvent PushEvent) {
 	// test making api calls for github app in the background
 	h.eventsChannel <- pushEvent
 }
-}
