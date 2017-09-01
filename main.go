@@ -45,6 +45,7 @@ var (
 	githubAppID                = kingpin.Flag("github-app-id", "The Github App id.").Envar("GITHUB_APP_ID").String()
 	githubAppOAuthClientID     = kingpin.Flag("github-app-oauth-client-id", "The OAuth client id for the Github App.").Envar("GITHUB_APP_OAUTH_CLIENT_ID").String()
 	githubAppOAuthClientSecret = kingpin.Flag("github-app-oauth-client-secret", "The OAuth client secret for the Github App.").Envar("GITHUB_APP_OAUTH_CLIENT_SECRET").String()
+	githubWebhookSecret        = kingpin.Flag("github-webhook-secret", "The secret to verify webhook authenticity.").Envar("GITHUB_WEBHOOK_SECRET").String()
 
 	bitbucketAPIKey         = kingpin.Flag("bitbucket-api-key", "The api key for Bitbucket.").Envar("BITBUCKET_API_KEY").String()
 	bitbucketAppOAuthKey    = kingpin.Flag("bitbucket-app-oauth-key", "The OAuth key for the Bitbucket App.").Envar("BITBUCKET_APP_OAUTH_KEY").String()
@@ -173,7 +174,7 @@ func main() {
 	// Gzip middleware
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
 
-	githubEventHandler := github.NewGithubEventHandler(githubPushEvents, prometheusInboundEventTotals)
+	githubEventHandler := github.NewGithubEventHandler(githubPushEvents, *githubWebhookSecret, prometheusInboundEventTotals)
 	router.POST("/events/github", githubEventHandler.Handle)
 
 	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketPushEvents, prometheusInboundEventTotals)

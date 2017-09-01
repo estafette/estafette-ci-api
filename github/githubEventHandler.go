@@ -1,9 +1,12 @@
 package github
 
 import (
+	"crypto/hmac"
+	"crypto/sha1"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
@@ -18,13 +21,15 @@ type EventHandler interface {
 
 type eventHandlerImpl struct {
 	eventsChannel                chan PushEvent
+	githubWebhookSecret          string
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewGithubEventHandler returns a github.EventHandler to handle incoming webhook events
-func NewGithubEventHandler(eventsChannel chan PushEvent, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewGithubEventHandler(eventsChannel chan PushEvent, githubWebhookSecret string, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		eventsChannel:                eventsChannel,
+		githubWebhookSecret:          githubWebhookSecret,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
 }
@@ -40,6 +45,20 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		log.Error().Err(err).Msg("Reading body from Github webhook failed")
 		c.String(http.StatusInternalServerError, "Reading body from Github webhook failed")
 		return
+	}
+
+	// https://developer.github.com/webhooks/securing/
+	signature := c.GetHeader("X-Hub-Signature")
+
+	mac := hmac.New(sha1.New, []byte(h.githubWebhookSecret))
+	mac.Write(body)
+	expectedMAC := mac.Sum(nil)
+	actualMAC := []byte(strings.Replace(signature, "sha1=", "", 1))
+
+	if hmac.Equal(actualMAC, expectedMAC) {
+		log.Debug().Str("expectedMAC", string(expectedMAC)).Str("actualMAC", string(actualMAC)).Msg("Valid HMAC signature")
+	} else {
+		log.Warn().Str("expectedMAC", string(expectedMAC)).Str("actualMAC", string(actualMAC)).Msg("Invalid HMAC signature")
 	}
 
 	// unmarshal json body
