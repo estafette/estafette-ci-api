@@ -11,6 +11,7 @@ import (
 // DBClient is the interface for communicating with CockroachDB
 type DBClient interface {
 	Connect() error
+	InitTables() error
 }
 
 type cockroachDBClientImpl struct {
@@ -56,6 +57,17 @@ func (dbc *cockroachDBClientImpl) Connect() (err error) {
 
 	dbc.databaseConnection, err = sql.Open("postgres", dataSourceName)
 	if err != nil {
+		return
+	}
+
+	return
+}
+
+// InitTables initializes the tables in CockroachDB
+func (dbc *cockroachDBClientImpl) InitTables() (err error) {
+
+	// Create the "logs" table.
+	if _, err = dbc.databaseConnection.Exec("CREATE TABLE IF NOT EXISTS build_logs (id INT PRIMARY KEY, repo_full_name VARCHAR(256), repo_branch VARCHAR(256), repo_revision VARCHAR(256), repo_source VARCHAR(256), log_text TEXT, inserted_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (current_timestamp AT TIME ZONE 'UTC'))"); err != nil {
 		return
 	}
 

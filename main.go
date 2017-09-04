@@ -142,9 +142,14 @@ func main() {
 		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
 	}
 
+	// set up database
 	err = cockroachDBClient.Connect()
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed connecting to CockroachDB")
+	}
+	err = cockroachDBClient.InitTables()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed initializing tables in CockroachDB")
 	}
 
 	// channel for passing push events to handler that creates ci-builder job
