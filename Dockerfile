@@ -5,6 +5,6 @@ LABEL maintainer="estafette.io" \
 
 COPY ca-certificates.crt /etc/ssl/certs/
 COPY estafette-ci-api /
-COPY migrations /
+COPY migrations /migrations
 
 ENTRYPOINT ["/estafette-ci-api"]
