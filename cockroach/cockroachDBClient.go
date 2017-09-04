@@ -67,12 +67,7 @@ func (dbc *cockroachDBClientImpl) Connect() (err error) {
 // MigrateSchema migrates the schema in CockroachDB
 func (dbc *cockroachDBClientImpl) MigrateSchema() (err error) {
 
-	err = goose.Status(dbc.databaseConnection, "/migrations/")
-	if err != nil {
-		return err
-	}
-
-	err = goose.Up(dbc.databaseConnection, "/migrations/")
+	err = goose.Up(dbc.databaseConnection, "/migrations")
 	if err != nil {
 		return err
 	}
