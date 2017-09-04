@@ -131,6 +131,20 @@ spec:
           value: "${SLACK_APP_OAUTH_ACCESS_TOKEN}"
         - name: "SECRET_DECRYPTION_KEY"
           value: "${SECRET_DECRYPTION_KEY}"
+        - name: "COCKROACH_DATABASE"
+          value: "${COCKROACH_DATABASE}"
+        - name: "COCKROACH_HOST"
+          value: "${COCKROACH_HOST}"
+        - name: "COCKROACH_INSECURE"
+          value: "${COCKROACH_INSECURE}"
+        - name: "COCKROACH_CERTS_DIR"
+          value: "${COCKROACH_CERTS_DIR}"
+        - name: "COCKROACH_PORT"
+          value: "${COCKROACH_PORT}"
+        - name: "COCKROACH_USER"
+          value: "${COCKROACH_USER}"
+        - name: "COCKROACH_PASSWORD"
+          value: "${COCKROACH_PASSWORD}"
         ports:
         - name: api
           containerPort: 5000

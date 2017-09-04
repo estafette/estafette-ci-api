@@ -12,3 +12,4 @@ govendor fetch github.com/estafette/estafette-ci-manifest@0.0.9
 govendor fetch github.com/gin-gonic/gin@v1.2
 govendor fetch github.com/gin-contrib/gzip
 govendor fetch github.com/estafette/estafette-ci-crypt@0.0.1
+govendor fetch github.com/lib/pq
