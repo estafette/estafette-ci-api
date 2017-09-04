@@ -147,9 +147,9 @@ func main() {
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed connecting to CockroachDB")
 	}
-	err = cockroachDBClient.InitTables()
+	err = cockroachDBClient.MigrateSchema()
 	if err != nil {
-		log.Warn().Err(err).Msg("Failed initializing tables in CockroachDB")
+		log.Warn().Err(err).Msg("Failed migrating schema of CockroachDB")
 	}
 
 	// channel for passing push events to handler that creates ci-builder job

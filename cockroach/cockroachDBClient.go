@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/pressly/goose"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
@@ -11,7 +12,7 @@ import (
 // DBClient is the interface for communicating with CockroachDB
 type DBClient interface {
 	Connect() error
-	InitTables() error
+	MigrateSchema() error
 }
 
 type cockroachDBClientImpl struct {
@@ -63,12 +64,17 @@ func (dbc *cockroachDBClientImpl) Connect() (err error) {
 	return
 }
 
-// InitTables initializes the tables in CockroachDB
-func (dbc *cockroachDBClientImpl) InitTables() (err error) {
+// MigrateSchema migrates the schema in CockroachDB
+func (dbc *cockroachDBClientImpl) MigrateSchema() (err error) {
 
-	// Create the "logs" table.
-	if _, err = dbc.databaseConnection.Exec("CREATE TABLE IF NOT EXISTS build_logs (id INT PRIMARY KEY, repo_full_name VARCHAR(256), repo_branch VARCHAR(256), repo_revision VARCHAR(256), repo_source VARCHAR(256), log_text TEXT, inserted_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (current_timestamp AT TIME ZONE 'UTC'))"); err != nil {
-		return
+	err = goose.Status(dbc.databaseConnection, "/db-migrations/")
+	if err != nil {
+		return err
+	}
+
+	err = goose.Up(dbc.databaseConnection, "/db-migrations/")
+	if err != nil {
+		return err
 	}
 
 	return
