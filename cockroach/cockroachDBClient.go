@@ -78,6 +78,8 @@ func (dbc *cockroachDBClientImpl) MigrateSchema() (err error) {
 
 func (dbc *cockroachDBClientImpl) InsertBuildJobLogs(buildJobLogs BuildJobLogs) (err error) {
 
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
 	// Insert two rows into the "accounts" table.
 	_, err = dbc.databaseConnection.Exec(
 		`INSERT INTO build_logs
