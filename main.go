@@ -258,4 +258,3 @@ func startPrometheus() {
 		log.Fatal().Err(err).Msg("Starting Prometheus listener failed")
 	}
 }
-}
