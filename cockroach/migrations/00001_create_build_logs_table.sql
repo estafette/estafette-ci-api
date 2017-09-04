@@ -7,8 +7,8 @@ CREATE TABLE build_logs (
   repo_revision VARCHAR(256),
   repo_source VARCHAR(256),
   log_text TEXT
-)
+);
 
 -- +goose Down
 -- SQL in this section is executed when the migration is rolled back.
-DROP TABLE CREATE TABLE build_logs
+DROP TABLE CREATE TABLE build_logs;
