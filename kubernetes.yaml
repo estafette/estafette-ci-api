@@ -146,7 +146,7 @@ spec:
           initialDelaySeconds: 30
           timeoutSeconds: 1
       - name: ${APP_NAME}-nginx
-        image: travix/nginx:1.11.10-alpine
+        image: estafette/nginx-sidecar:1.12.1
         imagePullPolicy: Always
         resources:
           limits:
