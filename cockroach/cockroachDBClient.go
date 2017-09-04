@@ -13,6 +13,7 @@ import (
 type DBClient interface {
 	Connect() error
 	MigrateSchema() error
+	InsertBuildJobLogs(BuildJobLogs) error
 }
 
 type cockroachDBClientImpl struct {
@@ -70,6 +71,39 @@ func (dbc *cockroachDBClientImpl) MigrateSchema() (err error) {
 	err = goose.Up(dbc.databaseConnection, "/migrations")
 	if err != nil {
 		return err
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) InsertBuildJobLogs(buildJobLogs BuildJobLogs) (err error) {
+
+	// Insert two rows into the "accounts" table.
+	_, err = dbc.databaseConnection.Exec(
+		`INSERT INTO build_logs
+		(
+			repo_full_name,
+			repo_branch,
+			repo_revision,
+			repo_source,
+			log_text
+		)
+		VALUES
+		(
+			$1,
+			$2,
+			$3,
+			$4,
+			$5
+		)`,
+		buildJobLogs.RepoFullName,
+		buildJobLogs.RepoBranch,
+		buildJobLogs.RepoRevision,
+		buildJobLogs.RepoSource,
+		buildJobLogs.LogText)
+
+	if err != nil {
+		return
 	}
 
 	return
