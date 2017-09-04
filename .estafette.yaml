@@ -25,7 +25,7 @@ pipelines:
     commands:
     - cp Dockerfile ./publish
     - cp /etc/ssl/certs/ca-certificates.crt ./publish
-    - cp ./cockroach/migrations ./publish
+    - cp -r ./cockroach/migrations/* ./publish
     - docker build -t estafette/${ESTAFETTE_LABEL_APP}:${ESTAFETTE_BUILD_VERSION} ./publish
 
   push-to-docker-hub:
