@@ -227,7 +227,6 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		log.Warn().Err(err).Msg("Failed migrating schema of CockroachDB")
 	}
 
-
 	// listen to channels for push events
 	githubPushEvents := make(chan github.PushEvent, 100)
 	githubEventWorker := github.NewGithubEventWorker(stopChannel, waitGroup, githubAPIClient, ciBuilderClient, githubPushEvents)
@@ -242,7 +241,8 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	slackEventWorker.ListenToEventChannels()
 
 	estafetteCiBuilderEvents := make(chan estafette.CiBuilderEvent, 100)
-	estafetteEventWorker := estafette.NewEstafetteEventWorker(stopChannel, waitGroup, ciBuilderClient, estafetteCiBuilderEvents)
+	estafetteBuildJobLogs := make(chan cockroach.BuildJobLogs, 100)
+	estafetteEventWorker := estafette.NewEstafetteEventWorker(stopChannel, waitGroup, ciBuilderClient, cockroachDBClient, estafetteCiBuilderEvents, estafetteBuildJobLogs)
 	estafetteEventWorker.ListenToEventChannels()
 
 	// listen to http calls
@@ -262,7 +262,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *slackAppVerificationToken, slackEvents, prometheusInboundEventTotals)
 	router.POST("/events/slack/slash", slackEventHandler.Handle)
 
-	estafetteEventHandler := estafette.NewEstafetteEventHandler(*estafetteCiAPIKey, estafetteCiBuilderEvents, prometheusInboundEventTotals)
+	estafetteEventHandler := estafette.NewEstafetteEventHandler(*estafetteCiAPIKey, estafetteCiBuilderEvents, estafetteBuildJobLogs, prometheusInboundEventTotals)
 	router.POST("/events/estafette/ci-builder", estafetteEventHandler.Handle)
 
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown

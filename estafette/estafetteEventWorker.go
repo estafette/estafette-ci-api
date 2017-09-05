@@ -3,6 +3,7 @@ package estafette
 import (
 	"sync"
 
+	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/rs/zerolog/log"
 )
 
@@ -10,22 +11,27 @@ import (
 type EventWorker interface {
 	ListenToEventChannels()
 	RemoveJobForEstafetteBuild(CiBuilderEvent)
+	InsertLogs(cockroach.BuildJobLogs)
 }
 
 type eventWorkerImpl struct {
-	waitGroup       *sync.WaitGroup
-	stopChannel     <-chan struct{}
-	ciBuilderClient CiBuilderClient
-	eventsChannel   chan CiBuilderEvent
+	waitGroup              *sync.WaitGroup
+	stopChannel            <-chan struct{}
+	ciBuilderClient        CiBuilderClient
+	cockroachDBClient      cockroach.DBClient
+	ciBuilderEventsChannel chan CiBuilderEvent
+	buildJobLogsChannel    chan cockroach.BuildJobLogs
 }
 
 // NewEstafetteEventWorker returns a new estafette.EventWorker
-func NewEstafetteEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, ciBuilderClient CiBuilderClient, eventsChannel chan CiBuilderEvent) EventWorker {
+func NewEstafetteEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, ciBuilderClient CiBuilderClient, cockroachDBClient cockroach.DBClient, ciBuilderEventsChannel chan CiBuilderEvent, buildJobLogsChannel chan cockroach.BuildJobLogs) EventWorker {
 	return &eventWorkerImpl{
-		waitGroup:       waitGroup,
-		stopChannel:     stopChannel,
-		ciBuilderClient: ciBuilderClient,
-		eventsChannel:   eventsChannel,
+		waitGroup:              waitGroup,
+		stopChannel:            stopChannel,
+		ciBuilderClient:        ciBuilderClient,
+		cockroachDBClient:      cockroachDBClient,
+		ciBuilderEventsChannel: ciBuilderEventsChannel,
+		buildJobLogsChannel:    buildJobLogsChannel,
 	}
 }
 
@@ -35,10 +41,16 @@ func (w *eventWorkerImpl) ListenToEventChannels() {
 		log.Debug().Msg("Listening to Estafette events channels...")
 		for {
 			select {
-			case ciBuilderEvent := <-w.eventsChannel:
+			case ciBuilderEvent := <-w.ciBuilderEventsChannel:
 				go func() {
 					w.waitGroup.Add(1)
 					w.RemoveJobForEstafetteBuild(ciBuilderEvent)
+					w.waitGroup.Done()
+				}()
+			case buildJobLogs := <-w.buildJobLogsChannel:
+				go func() {
+					w.waitGroup.Add(1)
+					w.InsertLogs(buildJobLogs)
 					w.waitGroup.Done()
 				}()
 			case <-w.stopChannel:
@@ -64,4 +76,20 @@ func (w *eventWorkerImpl) RemoveJobForEstafetteBuild(ciBuilderEvent CiBuilderEve
 	log.Info().
 		Str("jobName", ciBuilderEvent.JobName).
 		Msgf("Removed ci-builder job %v", ciBuilderEvent.JobName)
+}
+
+func (w *eventWorkerImpl) InsertLogs(buildJobLogs cockroach.BuildJobLogs) {
+
+	err := w.cockroachDBClient.InsertBuildJobLogs(buildJobLogs)
+	if err != nil {
+		log.Error().Err(err).
+			Interface("buildJobLogs", buildJobLogs).
+			Msgf("Inserting logs for %v failed", buildJobLogs.RepoFullName)
+
+		return
+	}
+
+	log.Info().
+		Str("repoFullName", buildJobLogs.RepoFullName).
+		Msgf("Inserted logs for %v", buildJobLogs.RepoFullName)
 }

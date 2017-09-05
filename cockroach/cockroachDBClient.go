@@ -76,6 +76,7 @@ func (dbc *cockroachDBClientImpl) MigrateSchema() (err error) {
 	return
 }
 
+// InsertBuildJobLogs inserts build logs into the database
 func (dbc *cockroachDBClientImpl) InsertBuildJobLogs(buildJobLogs BuildJobLogs) (err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()

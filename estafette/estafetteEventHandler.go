@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -18,15 +19,17 @@ type EventHandler interface {
 
 type eventHandlerImpl struct {
 	ciAPIKey                     string
-	eventsChannel                chan CiBuilderEvent
+	ciBuilderEventsChannel       chan CiBuilderEvent
+	buildJobLogsChannel          chan cockroach.BuildJobLogs
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewEstafetteEventHandler returns a new estafette.EventHandler
-func NewEstafetteEventHandler(ciAPIKey string, eventsChannel chan CiBuilderEvent, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewEstafetteEventHandler(ciAPIKey string, ciBuilderEventsChannel chan CiBuilderEvent, buildJobLogsChannel chan cockroach.BuildJobLogs, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		ciAPIKey:                     ciAPIKey,
-		eventsChannel:                eventsChannel,
+		ciBuilderEventsChannel:       ciBuilderEventsChannel,
+		buildJobLogsChannel:          buildJobLogsChannel,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
 }
@@ -62,31 +65,47 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		return
 	}
 
-	// unmarshal json body
-	var ciBuilderEvent CiBuilderEvent
-	err = json.Unmarshal(body, &ciBuilderEvent)
-	if err != nil {
-		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to EstafetteCiBuilderEvent failed")
-		return
-	}
-
-	log.Debug().Interface("event", ciBuilderEvent).Msgf("Deserialized Estafette event for job %v", ciBuilderEvent.JobName)
-
 	switch eventType {
 	case
 		"builder:nomanifest",
 		"builder:succeeded",
 		"builder:failed":
+
+		// unmarshal json body
+		var ciBuilderEvent CiBuilderEvent
+		err = json.Unmarshal(body, &ciBuilderEvent)
+		if err != nil {
+			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to CiBuilderEvent failed")
+			return
+		}
+
+		log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Deserialized CiBuilderEvent event for job %v", ciBuilderEvent.JobName)
+
 		// send via channel to worker
-		h.eventsChannel <- ciBuilderEvent
+		h.ciBuilderEventsChannel <- ciBuilderEvent
+
+		log.Debug().
+			Str("jobName", ciBuilderEvent.JobName).
+			Msgf("Received event of type '%v' from estafette-ci-builder for job %v...", eventType, ciBuilderEvent.JobName)
+
+	case "builder:logs":
+
+		// unmarshal json body
+		var buildJobLogs cockroach.BuildJobLogs
+		err = json.Unmarshal(body, &buildJobLogs)
+		if err != nil {
+			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to BuildJobLogs failed")
+			return
+		}
+
+		log.Debug().Interface("buildJobLogs", buildJobLogs).Msgf("Deserialized BuildJobLogs event for job %v", buildJobLogs.RepoFullName)
+
+		// send via channel to worker
+		h.buildJobLogsChannel <- buildJobLogs
 
 	default:
 		log.Warn().Str("event", eventType).Msgf("Unsupported Estafette event of type '%v'", eventType)
 	}
-
-	log.Debug().
-		Str("jobName", ciBuilderEvent.JobName).
-		Msgf("Received event of type '%v' from estafette-ci-builder for job %v...", eventType, ciBuilderEvent.JobName)
 
 	c.String(http.StatusOK, "Aye aye!")
 }
