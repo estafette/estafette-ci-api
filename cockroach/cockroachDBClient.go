@@ -18,7 +18,7 @@ type DBClient interface {
 }
 
 type cockroachDBClientImpl struct {
-	databaseDialect                 string
+	databaseDriver                  string
 	migrationsDir                   string
 	cockroachDatabase               string
 	cockroachHost                   string
@@ -35,7 +35,7 @@ type cockroachDBClientImpl struct {
 func NewCockroachDBClient(cockroachDatabase, cockroachHost string, cockroachInsecure bool, cockroachCertificateDir string, cockroachPort int, cockroachUser, cockroachPassword string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (cockroachDBClient DBClient) {
 
 	cockroachDBClient = &cockroachDBClientImpl{
-		databaseDialect:                 "postgres",
+		databaseDriver:                  "postgres",
 		migrationsDir:                   "/migrations",
 		cockroachDatabase:               cockroachDatabase,
 		cockroachHost:                   cockroachHost,
@@ -62,7 +62,7 @@ func (dbc *cockroachDBClientImpl) Connect() (err error) {
 
 	dataSourceName := fmt.Sprintf("postgresql://%v:%v@%v:%v/%v%v", dbc.cockroachUser, dbc.cockroachPassword, dbc.cockroachHost, dbc.cockroachPort, dbc.cockroachDatabase, sslMode)
 
-	return dbc.ConnectWithDriverAndSource("postgres", dataSourceName)
+	return dbc.ConnectWithDriverAndSource(dbc.databaseDriver, dataSourceName)
 }
 
 // ConnectWithDriverAndSource set up a connection with any database
@@ -79,7 +79,15 @@ func (dbc *cockroachDBClientImpl) ConnectWithDriverAndSource(driverName string, 
 // MigrateSchema migrates the schema in CockroachDB
 func (dbc *cockroachDBClientImpl) MigrateSchema() (err error) {
 
-	err = goose.SetDialect(dbc.databaseDialect)
+	err = goose.SetDialect(dbc.databaseDriver)
+	if err != nil {
+		return err
+	}
+
+	err = goose.Status(dbc.databaseConnection, dbc.migrationsDir)
+	if err != nil {
+		return err
+	}
 
 	err = goose.Up(dbc.databaseConnection, dbc.migrationsDir)
 	if err != nil {
@@ -106,17 +114,18 @@ func (dbc *cockroachDBClientImpl) InsertBuildJobLogs(buildJobLogs BuildJobLogs) 
 		)
 		VALUES
 		(
-			?fullname,
-			?branch,
-			?revision,
-			?source,
-			?text
+			?repo_full_name,
+			?repo_branch,
+			?repo_revision,
+			?repo_source,
+			?log_text
 		)`,
-		sql.Named("fullname", buildJobLogs.RepoFullName),
-		sql.Named("branch", buildJobLogs.RepoBranch),
-		sql.Named("revision", buildJobLogs.RepoRevision),
-		sql.Named("source", buildJobLogs.RepoSource),
-		sql.Named("text", buildJobLogs.LogText))
+		sql.Named("repo_full_name", buildJobLogs.RepoFullName),
+		sql.Named("repo_branch", buildJobLogs.RepoBranch),
+		sql.Named("repo_revision", buildJobLogs.RepoRevision),
+		sql.Named("repo_source", buildJobLogs.RepoSource),
+		sql.Named("log_text", buildJobLogs.LogText),
+	)
 
 	if err != nil {
 		return
