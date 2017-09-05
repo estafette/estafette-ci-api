@@ -383,6 +383,14 @@
 			"revisionTime": "2017-03-22T23:44:13Z"
 		},
 		{
+			"checksumSHA1": "YmcO1E/MwKS6ZW5xEgJy6NtFiig=",
+			"path": "github.com/mattn/go-sqlite3",
+			"revision": "ca5e3819723d8eeaf170ad510e7da1d6d2e94a08",
+			"revisionTime": "2016-11-11T00:01:23Z",
+			"version": "v1.2.0",
+			"versionExact": "v1.2.0"
+		},
+		{
 			"checksumSHA1": "bQ9BML+wAZd81vdDAOC1U+yN8dU=",
 			"path": "github.com/matttproud/golang_protobuf_extensions/pbutil",
 			"revision": "c12348ce28de40eed0136aa2b644d0ee0650e56c",

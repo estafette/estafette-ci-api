@@ -12,11 +12,14 @@ import (
 // DBClient is the interface for communicating with CockroachDB
 type DBClient interface {
 	Connect() error
+	ConnectWithDriverAndSource(string, string) error
 	MigrateSchema() error
 	InsertBuildJobLogs(BuildJobLogs) error
 }
 
 type cockroachDBClientImpl struct {
+	databaseDialect                 string
+	migrationsDir                   string
 	cockroachDatabase               string
 	cockroachHost                   string
 	cockroachInsecure               bool
@@ -32,6 +35,8 @@ type cockroachDBClientImpl struct {
 func NewCockroachDBClient(cockroachDatabase, cockroachHost string, cockroachInsecure bool, cockroachCertificateDir string, cockroachPort int, cockroachUser, cockroachPassword string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (cockroachDBClient DBClient) {
 
 	cockroachDBClient = &cockroachDBClientImpl{
+		databaseDialect:                 "postgres",
+		migrationsDir:                   "/migrations",
 		cockroachDatabase:               cockroachDatabase,
 		cockroachHost:                   cockroachHost,
 		cockroachInsecure:               cockroachInsecure,
@@ -57,7 +62,13 @@ func (dbc *cockroachDBClientImpl) Connect() (err error) {
 
 	dataSourceName := fmt.Sprintf("postgresql://%v:%v@%v:%v/%v%v", dbc.cockroachUser, dbc.cockroachPassword, dbc.cockroachHost, dbc.cockroachPort, dbc.cockroachDatabase, sslMode)
 
-	dbc.databaseConnection, err = sql.Open("postgres", dataSourceName)
+	return dbc.ConnectWithDriverAndSource("postgres", dataSourceName)
+}
+
+// ConnectWithDriverAndSource set up a connection with any database
+func (dbc *cockroachDBClientImpl) ConnectWithDriverAndSource(driverName string, dataSourceName string) (err error) {
+
+	dbc.databaseConnection, err = sql.Open(driverName, dataSourceName)
 	if err != nil {
 		return
 	}
@@ -68,7 +79,9 @@ func (dbc *cockroachDBClientImpl) Connect() (err error) {
 // MigrateSchema migrates the schema in CockroachDB
 func (dbc *cockroachDBClientImpl) MigrateSchema() (err error) {
 
-	err = goose.Up(dbc.databaseConnection, "/migrations")
+	err = goose.SetDialect(dbc.databaseDialect)
+
+	err = goose.Up(dbc.databaseConnection, dbc.migrationsDir)
 	if err != nil {
 		return err
 	}
@@ -81,7 +94,7 @@ func (dbc *cockroachDBClientImpl) InsertBuildJobLogs(buildJobLogs BuildJobLogs) 
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	// Insert two rows into the "accounts" table.
+	// insert logs
 	_, err = dbc.databaseConnection.Exec(
 		`INSERT INTO build_logs
 		(
@@ -93,17 +106,17 @@ func (dbc *cockroachDBClientImpl) InsertBuildJobLogs(buildJobLogs BuildJobLogs) 
 		)
 		VALUES
 		(
-			$1,
-			$2,
-			$3,
-			$4,
-			$5
+			?fullname,
+			?branch,
+			?revision,
+			?source,
+			?text
 		)`,
-		buildJobLogs.RepoFullName,
-		buildJobLogs.RepoBranch,
-		buildJobLogs.RepoRevision,
-		buildJobLogs.RepoSource,
-		buildJobLogs.LogText)
+		sql.Named("fullname", buildJobLogs.RepoFullName),
+		sql.Named("branch", buildJobLogs.RepoBranch),
+		sql.Named("revision", buildJobLogs.RepoRevision),
+		sql.Named("source", buildJobLogs.RepoSource),
+		sql.Named("text", buildJobLogs.LogText))
 
 	if err != nil {
 		return
