@@ -92,4 +92,13 @@ func (w *eventWorkerImpl) InsertLogs(buildJobLogs cockroach.BuildJobLogs) {
 	log.Info().
 		Interface("buildJobLogs", buildJobLogs).
 		Msgf("Inserted logs for %v", buildJobLogs.RepoFullName)
+
+	err = w.cockroachDBClient.GetBuildLogs(buildJobLogs)
+	if err != nil {
+		log.Error().Err(err).
+			Interface("buildJobLogs", buildJobLogs).
+			Msgf("Reading logs for %v failed", buildJobLogs.RepoFullName)
+
+		return
+	}
 }
