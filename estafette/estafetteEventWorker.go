@@ -90,6 +90,6 @@ func (w *eventWorkerImpl) InsertLogs(buildJobLogs cockroach.BuildJobLogs) {
 	}
 
 	log.Info().
-		Str("repoFullName", buildJobLogs.RepoFullName).
+		Interface("buildJobLogs", buildJobLogs).
 		Msgf("Inserted logs for %v", buildJobLogs.RepoFullName)
 }
