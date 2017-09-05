@@ -7,6 +7,8 @@ import (
 	"github.com/pressly/goose"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
+
+	_ "github.com/lib/pq"
 )
 
 // DBClient is the interface for communicating with CockroachDB

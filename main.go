@@ -25,8 +25,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-
-	_ "github.com/lib/pq"
 )
 
 var (
