@@ -104,22 +104,7 @@ func (dbc *cockroachDBClientImpl) InsertBuildJobLogs(buildJobLogs BuildJobLogs) 
 
 	// insert logs
 	_, err = dbc.databaseConnection.Exec(
-		`INSERT INTO build_logs
-		(
-			repo_full_name,
-			repo_branch,
-			repo_revision,
-			repo_source,
-			log_text
-		)
-		VALUES
-		(
-			$1,
-			$2,
-			$3,
-			$4,
-			$5
-		)`,
+		"INSERT INTO build_logs (repo_full_name,repo_branch,repo_revision,repo_source,log_text) VALUES ($1,$2,$3,$4,$5)",
 		buildJobLogs.RepoFullName,
 		buildJobLogs.RepoBranch,
 		buildJobLogs.RepoRevision,
