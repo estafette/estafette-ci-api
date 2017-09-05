@@ -105,7 +105,7 @@ func (dbc *cockroachDBClientImpl) InsertBuildJobLogs(buildJobLogs BuildJobLogs) 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// insert logs
-	_, err = dbc.databaseConnection.Exec(
+	r, err := dbc.databaseConnection.Exec(
 		"INSERT INTO build_logs (repo_full_name,repo_branch,repo_revision,repo_source,log_text) VALUES ($1,$2,$3,$4,$5)",
 		buildJobLogs.RepoFullName,
 		buildJobLogs.RepoBranch,
@@ -117,6 +117,21 @@ func (dbc *cockroachDBClientImpl) InsertBuildJobLogs(buildJobLogs BuildJobLogs) 
 	if err != nil {
 		return
 	}
+
+	lastInsertID, err := r.LastInsertId()
+	if err != nil {
+		return
+	}
+
+	rowsAffected, err := r.RowsAffected()
+	if err != nil {
+		return
+	}
+
+	log.Debug().
+		Int64("LastInsertId", lastInsertID).
+		Int64("RowsAffected", rowsAffected).
+		Msg("Inserted log record")
 
 	return
 }
