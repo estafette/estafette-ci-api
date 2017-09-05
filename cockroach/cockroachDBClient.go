@@ -114,17 +114,17 @@ func (dbc *cockroachDBClientImpl) InsertBuildJobLogs(buildJobLogs BuildJobLogs) 
 		)
 		VALUES
 		(
-			?name,
-			?branch,
-			?revision,
-			?source,
-			?log
+			?,
+			?,
+			?,
+			?,
+			?
 		)`,
-		sql.Named("name", buildJobLogs.RepoFullName),
-		sql.Named("branch", buildJobLogs.RepoBranch),
-		sql.Named("revision", buildJobLogs.RepoRevision),
-		sql.Named("source", buildJobLogs.RepoSource),
-		sql.Named("log", buildJobLogs.LogText),
+		buildJobLogs.RepoFullName,
+		buildJobLogs.RepoBranch,
+		buildJobLogs.RepoRevision,
+		buildJobLogs.RepoSource,
+		buildJobLogs.LogText,
 	)
 
 	if err != nil {
