@@ -9,22 +9,21 @@ import (
 // EventWorker processes events pushed to channels
 type EventWorker interface {
 	ListenToEventChannels()
-	Stop()
 	RemoveJobForEstafetteBuild(CiBuilderEvent)
 }
 
 type eventWorkerImpl struct {
 	waitGroup       *sync.WaitGroup
-	quitChannel     chan bool
+	stopChannel     <-chan struct{}
 	ciBuilderClient CiBuilderClient
 	eventsChannel   chan CiBuilderEvent
 }
 
 // NewEstafetteEventWorker returns a new estafette.EventWorker
-func NewEstafetteEventWorker(waitGroup *sync.WaitGroup, ciBuilderClient CiBuilderClient, eventsChannel chan CiBuilderEvent) EventWorker {
+func NewEstafetteEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, ciBuilderClient CiBuilderClient, eventsChannel chan CiBuilderEvent) EventWorker {
 	return &eventWorkerImpl{
 		waitGroup:       waitGroup,
-		quitChannel:     make(chan bool),
+		stopChannel:     stopChannel,
 		ciBuilderClient: ciBuilderClient,
 		eventsChannel:   eventsChannel,
 	}
@@ -42,17 +41,11 @@ func (w *eventWorkerImpl) ListenToEventChannels() {
 					w.RemoveJobForEstafetteBuild(ciBuilderEvent)
 					w.waitGroup.Done()
 				}()
-			case <-w.quitChannel:
+			case <-w.stopChannel:
 				log.Debug().Msg("Stopping Estafette event worker...")
 				return
 			}
 		}
-	}()
-}
-
-func (w *eventWorkerImpl) Stop() {
-	go func() {
-		w.quitChannel <- true
 	}()
 }
 

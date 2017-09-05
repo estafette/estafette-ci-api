@@ -11,23 +11,22 @@ import (
 // EventWorker processes events pushed to channels
 type EventWorker interface {
 	ListenToEventChannels()
-	Stop()
 	CreateJobForBitbucketPush(RepositoryPushEvent)
 }
 
 type eventWorkerImpl struct {
 	waitGroup       *sync.WaitGroup
-	quitChannel     chan bool
+	stopChannel     <-chan struct{}
 	eventsChannel   chan RepositoryPushEvent
 	apiClient       APIClient
 	CiBuilderClient estafette.CiBuilderClient
 }
 
 // NewBitbucketEventWorker returns the bitbucket.EventWorker
-func NewBitbucketEventWorker(waitGroup *sync.WaitGroup, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, eventsChannel chan RepositoryPushEvent) EventWorker {
+func NewBitbucketEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, eventsChannel chan RepositoryPushEvent) EventWorker {
 	return &eventWorkerImpl{
 		waitGroup:       waitGroup,
-		quitChannel:     make(chan bool),
+		stopChannel:     stopChannel,
 		eventsChannel:   eventsChannel,
 		apiClient:       apiClient,
 		CiBuilderClient: ciBuilderClient,
@@ -46,17 +45,11 @@ func (w *eventWorkerImpl) ListenToEventChannels() {
 					w.CreateJobForBitbucketPush(pushEvent)
 					w.waitGroup.Done()
 				}()
-			case <-w.quitChannel:
+			case <-w.stopChannel:
 				log.Debug().Msg("Stopping Bitbucket event worker...")
 				return
 			}
 		}
-	}()
-}
-
-func (w *eventWorkerImpl) Stop() {
-	go func() {
-		w.quitChannel <- true
 	}()
 }
 

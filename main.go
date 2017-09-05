@@ -102,6 +102,56 @@ func main() {
 	// parse command line parameters
 	kingpin.Parse()
 
+	// configure json logging
+	initLogging()
+
+	// define channels and waitgroup to gracefully shutdown the application
+	sigs := make(chan os.Signal, 1)                                    // Create channel to receive OS signals
+	stop := make(chan struct{})                                        // Create channel to receive stop signal
+	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM, syscall.SIGINT) // Register the sigs channel to receieve SIGTERM
+	wg := &sync.WaitGroup{}                                            // Goroutines can add themselves to this to be waited on so that they finish
+
+	// start prometheus
+	go startPrometheus()
+
+	// handle api requests
+	srv := handleRequests(stop, wg)
+
+	// wait for graceful shutdown to finish
+	<-sigs // Wait for signals (this hangs until a signal arrives)
+	log.Debug().Msg("Shutting down...")
+
+	// shut down gracefully
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal().Err(err).Msg("Graceful server shutdown failed")
+	}
+
+	log.Debug().Msg("Stopping goroutines...")
+	close(stop) // Tell goroutines to stop themselves
+
+	log.Debug().Msg("Awaiting waitgroup...")
+	wg.Wait() // Wait for all to be stopped
+
+	log.Info().Msg("Server gracefully stopped")
+}
+
+func startPrometheus() {
+	log.Debug().
+		Str("port", *prometheusMetricsAddress).
+		Str("path", *prometheusMetricsPath).
+		Msg("Serving Prometheus metrics...")
+
+	http.Handle(*prometheusMetricsPath, promhttp.Handler())
+
+	if err := http.ListenAndServe(*prometheusMetricsAddress, nil); err != nil {
+		log.Fatal().Err(err).Msg("Starting Prometheus listener failed")
+	}
+}
+
+func initLogging() {
+
 	// log as severity for stackdriver logging to recognize the level
 	zerolog.LevelFieldName = "severity"
 
@@ -123,14 +173,39 @@ func main() {
 		Str("buildDate", buildDate).
 		Str("goVersion", goVersion).
 		Msg("Starting estafette-ci-api...")
+}
 
-	// define channel and wait group to gracefully shutdown the application
-	stopChan := make(chan os.Signal)
-	signal.Notify(stopChan, syscall.SIGTERM, syscall.SIGINT)
-	waitGroup := &sync.WaitGroup{}
+func createRouter() *gin.Engine {
 
-	// start prometheus
-	go startPrometheus()
+	// run gin in release mode and other defaults
+	gin.SetMode(gin.ReleaseMode)
+	gin.DefaultWriter = log.Logger
+	gin.DisableConsoleColor()
+
+	// Creates a router without any middleware by default
+	router := gin.New()
+
+	// Logging middleware
+	router.Use(ZeroLogMiddleware())
+
+	// Recovery middleware recovers from any panics and writes a 500 if there was one.
+	router.Use(gin.Recovery())
+
+	// Gzip middleware
+	router.Use(gzip.Gzip(gzip.DefaultCompression))
+
+	// liveness and readiness
+	router.GET("/liveness", func(c *gin.Context) {
+		c.String(200, "I'm alive!")
+	})
+	router.GET("/readiness", func(c *gin.Context) {
+		c.String(200, "I'm ready!")
+	})
+
+	return router
+}
+
+func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *http.Server {
 
 	githubAPIClient := github.NewGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret, prometheusOutboundAPICallTotals)
 	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret, prometheusOutboundAPICallTotals)
@@ -152,26 +227,22 @@ func main() {
 		log.Warn().Err(err).Msg("Failed migrating schema of CockroachDB")
 	}
 
-	// channel for passing push events to handler that creates ci-builder job
-	githubPushEvents := make(chan github.PushEvent, 100)
-	// channel for passing push events to handler that creates ci-builder job
-	bitbucketPushEvents := make(chan bitbucket.RepositoryPushEvent, 100)
-	// channel for passing push events to worker that cleans up finished jobs
-	estafetteCiBuilderEvents := make(chan estafette.CiBuilderEvent, 100)
-	// channel for passing slash commands to worker that acts on the command
-	slackEvents := make(chan slack.SlashCommand, 100)
 
 	// listen to channels for push events
-	githubEventWorker := github.NewGithubEventWorker(waitGroup, githubAPIClient, ciBuilderClient, githubPushEvents)
+	githubPushEvents := make(chan github.PushEvent, 100)
+	githubEventWorker := github.NewGithubEventWorker(stopChannel, waitGroup, githubAPIClient, ciBuilderClient, githubPushEvents)
 	githubEventWorker.ListenToEventChannels()
 
-	bitbucketEventWorker := bitbucket.NewBitbucketEventWorker(waitGroup, bitbucketAPIClient, ciBuilderClient, bitbucketPushEvents)
+	bitbucketPushEvents := make(chan bitbucket.RepositoryPushEvent, 100)
+	bitbucketEventWorker := bitbucket.NewBitbucketEventWorker(stopChannel, waitGroup, bitbucketAPIClient, ciBuilderClient, bitbucketPushEvents)
 	bitbucketEventWorker.ListenToEventChannels()
 
-	slackEventWorker := slack.NewSlackEventWorker(waitGroup, slackAPIClient, slackEvents)
+	slackEvents := make(chan slack.SlashCommand, 100)
+	slackEventWorker := slack.NewSlackEventWorker(stopChannel, waitGroup, slackAPIClient, slackEvents)
 	slackEventWorker.ListenToEventChannels()
 
-	estafetteEventWorker := estafette.NewEstafetteEventWorker(waitGroup, ciBuilderClient, estafetteCiBuilderEvents)
+	estafetteCiBuilderEvents := make(chan estafette.CiBuilderEvent, 100)
+	estafetteEventWorker := estafette.NewEstafetteEventWorker(stopChannel, waitGroup, ciBuilderClient, estafetteCiBuilderEvents)
 	estafetteEventWorker.ListenToEventChannels()
 
 	// listen to http calls
@@ -179,22 +250,8 @@ func main() {
 		Str("port", *apiAddress).
 		Msg("Serving api calls...")
 
-	// run gin in release mode and other defaults
-	gin.SetMode(gin.ReleaseMode)
-	gin.DefaultWriter = log.Logger
-	gin.DisableConsoleColor()
-
-	// Creates a router without any middleware by default
-	router := gin.New()
-
-	// Logging middleware
-	router.Use(ZeroLogMiddleware())
-
-	// Recovery middleware recovers from any panics and writes a 500 if there was one.
-	router.Use(gin.Recovery())
-
-	// Gzip middleware
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
+	// create and init router
+	router := createRouter()
 
 	githubEventHandler := github.NewGithubEventHandler(githubPushEvents, *githubWebhookSecret, prometheusInboundEventTotals)
 	router.POST("/events/github", githubEventHandler.Handle)
@@ -207,13 +264,6 @@ func main() {
 
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*estafetteCiAPIKey, estafetteCiBuilderEvents, prometheusInboundEventTotals)
 	router.POST("/events/estafette/ci-builder", estafetteEventHandler.Handle)
-
-	router.GET("/liveness", func(c *gin.Context) {
-		c.String(200, "I'm alive!")
-	})
-	router.GET("/readiness", func(c *gin.Context) {
-		c.String(200, "I'm ready!")
-	})
 
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown
 	srv := &http.Server{
@@ -230,36 +280,5 @@ func main() {
 		}
 	}()
 
-	// wait for graceful shutdown to finish
-	<-stopChan // wait for SIGINT
-	log.Debug().Msg("Shutting down server...")
-
-	// shut down gracefully
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal().Err(err).Msg("Graceful server shutdown failed")
-	}
-
-	githubEventWorker.Stop()
-	bitbucketEventWorker.Stop()
-	estafetteEventWorker.Stop()
-
-	log.Debug().Msg("Awaiting waitgroup...")
-	waitGroup.Wait()
-
-	log.Info().Msg("Server gracefully stopped")
-}
-
-func startPrometheus() {
-	log.Debug().
-		Str("port", *prometheusMetricsAddress).
-		Str("path", *prometheusMetricsPath).
-		Msg("Serving Prometheus metrics...")
-
-	http.Handle(*prometheusMetricsPath, promhttp.Handler())
-
-	if err := http.ListenAndServe(*prometheusMetricsAddress, nil); err != nil {
-		log.Fatal().Err(err).Msg("Starting Prometheus listener failed")
-	}
+	return srv
 }

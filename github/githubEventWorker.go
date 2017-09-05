@@ -12,23 +12,22 @@ import (
 // EventWorker processes events pushed to channels
 type EventWorker interface {
 	ListenToEventChannels()
-	Stop()
 	CreateJobForGithubPush(PushEvent)
 }
 
 type eventWorkerImpl struct {
 	waitGroup       *sync.WaitGroup
-	quitChannel     chan bool
+	stopChannel     <-chan struct{}
 	eventsChannel   chan PushEvent
 	apiClient       APIClient
 	ciBuilderClient estafette.CiBuilderClient
 }
 
 // NewGithubEventWorker returns a new github.EventWorker to handle events channeled by github.EventHandler
-func NewGithubEventWorker(waitGroup *sync.WaitGroup, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, eventsChannel chan PushEvent) EventWorker {
+func NewGithubEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, eventsChannel chan PushEvent) EventWorker {
 	return &eventWorkerImpl{
 		waitGroup:       waitGroup,
-		quitChannel:     make(chan bool),
+		stopChannel:     stopChannel,
 		eventsChannel:   eventsChannel,
 		apiClient:       apiClient,
 		ciBuilderClient: ciBuilderClient,
@@ -47,17 +46,11 @@ func (w *eventWorkerImpl) ListenToEventChannels() {
 					w.CreateJobForGithubPush(pushEvent)
 					w.waitGroup.Done()
 				}()
-			case <-w.quitChannel:
+			case <-w.stopChannel:
 				log.Debug().Msg("Stopping Github event worker...")
 				return
 			}
 		}
-	}()
-}
-
-func (w *eventWorkerImpl) Stop() {
-	go func() {
-		w.quitChannel <- true
 	}()
 }
 
