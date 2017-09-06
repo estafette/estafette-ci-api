@@ -122,12 +122,16 @@ func (dbc *cockroachDBClientImpl) InsertBuildJobLogs(buildJobLogs BuildJobLogs) 
 
 	lastInsertID, err := r.LastInsertId()
 	if err != nil {
-		return
+		log.Warn().Err(err).
+			Interface("buildJobLogs", buildJobLogs).
+			Msgf("Getting LastInsertId for %v failed", buildJobLogs.RepoFullName)
 	}
 
 	rowsAffected, err := r.RowsAffected()
 	if err != nil {
-		return
+		log.Warn().Err(err).
+			Interface("buildJobLogs", buildJobLogs).
+			Msgf("Getting RowsAffected for %v failed", buildJobLogs.RepoFullName)
 	}
 
 	log.Debug().
