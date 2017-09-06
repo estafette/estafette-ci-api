@@ -3,6 +3,7 @@ package cockroach
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/pressly/goose"
 	"github.com/prometheus/client_golang/prometheus"
@@ -159,8 +160,9 @@ func (dbc *cockroachDBClientImpl) GetBuildLogs(buildJobLogs BuildJobLogs) (err e
 	for rows.Next() {
 		var id int
 		var repo_full_name, repo_branch, repo_revision, repo_source, log_text string
+		var inserted_at time.Time
 
-		if err := rows.Scan(&id, &repo_full_name, &repo_branch, &repo_revision, &repo_source, &log_text); err != nil {
+		if err := rows.Scan(&id, &repo_full_name, &repo_branch, &repo_revision, &repo_source, &log_text, &inserted_at); err != nil {
 			return err
 		}
 
@@ -171,6 +173,7 @@ func (dbc *cockroachDBClientImpl) GetBuildLogs(buildJobLogs BuildJobLogs) (err e
 			Str("repo_revision", repo_revision).
 			Str("repo_source", repo_source).
 			Str("log_text", log_text).
+			Interface("inserted_at", inserted_at).
 			Msg("Read logs")
 	}
 
