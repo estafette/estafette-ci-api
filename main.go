@@ -308,6 +308,11 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 			logLines := strings.Split(logItem.LogText, "\n")
 			for _, logLine := range logLines {
 
+				if logLine != "" {
+					logTexts = append(logTexts, logLine)
+					continue
+				}
+
 				// deserialize json log
 				var ciBuilderLogLine estafette.CiBuilderLogLine
 				err = json.Unmarshal([]byte(logLine), &ciBuilderLogLine)
