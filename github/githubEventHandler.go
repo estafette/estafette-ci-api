@@ -20,6 +20,7 @@ type EventHandler interface {
 	Handle(*gin.Context)
 	HandlePushEvent(PushEvent)
 	HasValidSignature([]byte, string) (bool, error)
+	logRequest(string, *http.Request, []byte)
 }
 
 type eventHandlerImpl struct {
@@ -63,21 +64,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		return
 	}
 
-	// unmarshal json body
-	var b interface{}
-	err = json.Unmarshal(body, &b)
-	if err != nil {
-		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Github webhook failed")
-		c.String(http.StatusInternalServerError, "Deserializing body from Github webhook failed")
-		return
-	}
-
-	log.Debug().
-		Str("method", c.Request.Method).
-		Str("url", c.Request.URL.String()).
-		Interface("headers", c.Request.Header).
-		Interface("body", b).
-		Msgf("Received webhook event of type '%v' from GitHub...", eventType)
+	go h.logRequest(eventType, c.Request, body)
 
 	switch eventType {
 	case "push": // Any Git push to a Repository, including editing tags or branches. Commits via API actions that update references are also counted. This is the default event.
@@ -168,4 +155,21 @@ func (h *eventHandlerImpl) HasValidSignature(body []byte, signatureHeader string
 		Msg("Expected and actual MAC do not match")
 
 	return false, nil
+}
+
+func (h *eventHandlerImpl) logRequest(eventType string, request *http.Request, body []byte) {
+	// unmarshal json body
+	var b interface{}
+	err := json.Unmarshal(body, &b)
+	if err != nil {
+		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Github webhook failed")
+		return
+	}
+
+	log.Debug().
+		Str("method", request.Method).
+		Str("url", request.URL.String()).
+		Interface("headers", request.Header).
+		Interface("body", b).
+		Msgf("Received webhook event of type '%v' from GitHub...", eventType)
 }

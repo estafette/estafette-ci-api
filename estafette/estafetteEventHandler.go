@@ -15,6 +15,7 @@ import (
 // EventHandler handles events from estafette components
 type EventHandler interface {
 	Handle(*gin.Context)
+	logRequest(string, *http.Request, []byte)
 }
 
 type eventHandlerImpl struct {
@@ -56,14 +57,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		return
 	}
 
-	// unmarshal json body
-	var b interface{}
-	err = json.Unmarshal(body, &b)
-	if err != nil {
-		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Estafette 'build finished' event failed")
-		c.String(http.StatusInternalServerError, "Deserializing body from Estafette 'build finished' event failed")
-		return
-	}
+	go h.logRequest(eventType, c.Request, body)
 
 	switch eventType {
 	case
@@ -108,4 +102,15 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
+}
+
+func (h *eventHandlerImpl) logRequest(eventType string, request *http.Request, body []byte) {
+
+	// unmarshal json body
+	var b interface{}
+	err := json.Unmarshal(body, &b)
+	if err != nil {
+		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Estafette 'build finished' event failed")
+		return
+	}
 }

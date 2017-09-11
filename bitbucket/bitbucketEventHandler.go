@@ -14,6 +14,7 @@ import (
 type EventHandler interface {
 	Handle(*gin.Context)
 	HandlePushEvent(pushEvent RepositoryPushEvent)
+	logRequest(string, *http.Request, []byte)
 }
 
 type eventHandlerImpl struct {
@@ -43,21 +44,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		return
 	}
 
-	// unmarshal json body
-	var b interface{}
-	err = json.Unmarshal(body, &b)
-	if err != nil {
-		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Bitbucket webhook failed")
-		c.String(http.StatusInternalServerError, "Deserializing body from Bitbucket webhook failed")
-		return
-	}
-
-	log.Debug().
-		Str("method", c.Request.Method).
-		Str("url", c.Request.URL.String()).
-		Interface("headers", c.Request.Header).
-		Interface("body", b).
-		Msgf("Received webhook event of type '%v' from Bitbucket...", eventType)
+	// unmarshal json body in background
+	go h.logRequest(eventType, c.Request, body)
 
 	switch eventType {
 	case "repo:push":
@@ -108,4 +96,20 @@ func (h *eventHandlerImpl) HandlePushEvent(pushEvent RepositoryPushEvent) {
 
 	// test making api calls for bitbucket app in the background
 	h.eventsChannel <- pushEvent
+}
+
+func (h *eventHandlerImpl) logRequest(eventType string, request *http.Request, body []byte) {
+	var b interface{}
+	err := json.Unmarshal(body, &b)
+	if err != nil {
+		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body from Bitbucket webhook failed")
+		return
+	}
+
+	log.Debug().
+		Str("method", request.Method).
+		Str("url", request.URL.String()).
+		Interface("headers", request.Header).
+		Interface("body", b).
+		Msgf("Received webhook event of type '%v' from Bitbucket...", eventType)
 }
