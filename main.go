@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	stdlog "log"
 	"net/http"
@@ -296,8 +297,22 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 
 		// get text from logs
 		logTexts := make([]string, 0)
-		for _, log := range logs {
-			logTexts = append(logTexts, log.LogText)
+		for _, logItem := range logs {
+
+			// split text on newline
+			logLines := strings.Split(logItem.LogText, "\n")
+			for _, logLine := range logLines {
+
+				// deserialize json log
+				var ciBuilderLogLine estafette.CiBuilderLogLine
+				err = json.Unmarshal([]byte(logLine), &ciBuilderLogLine)
+				if err != nil {
+					log.Warn().Err(err).Msg("Failed unmarshalling log line")
+					continue
+				}
+
+				logTexts = append(logTexts, fmt.Sprintf("%v [%v] %v", ciBuilderLogLine.Time, ciBuilderLogLine.Severity, ciBuilderLogLine.Message))
+			}
 		}
 
 		c.String(http.StatusOK, strings.Join(logTexts, "\n"))
