@@ -311,7 +311,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 					continue
 				}
 
-				logTexts = append(logTexts, fmt.Sprintf("%v [%v] %v", ciBuilderLogLine.Time, ciBuilderLogLine.Severity, ciBuilderLogLine.Message))
+				logTexts = append(logTexts, fmt.Sprintf("%v [%5s] %v", ciBuilderLogLine.Time, ciBuilderLogLine.Severity, ciBuilderLogLine.Message))
 			}
 		}
 
