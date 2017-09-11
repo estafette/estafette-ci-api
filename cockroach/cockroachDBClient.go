@@ -3,7 +3,6 @@ package cockroach
 import (
 	"database/sql"
 	"fmt"
-	"time"
 
 	"github.com/pressly/goose"
 	"github.com/prometheus/client_golang/prometheus"
@@ -19,7 +18,7 @@ type DBClient interface {
 	ConnectWithDriverAndSource(string, string) error
 	MigrateSchema() error
 	InsertBuildJobLogs(BuildJobLogs) error
-	GetBuildLogs(BuildJobLogs) error
+	GetBuildLogs(BuildJobLogs) ([]BuildJobLogRow, error)
 }
 
 type cockroachDBClientImpl struct {
@@ -144,7 +143,9 @@ func (dbc *cockroachDBClientImpl) InsertBuildJobLogs(buildJobLogs BuildJobLogs) 
 }
 
 // GetBuildJobLogs reads a specific log
-func (dbc *cockroachDBClientImpl) GetBuildLogs(buildJobLogs BuildJobLogs) (err error) {
+func (dbc *cockroachDBClientImpl) GetBuildLogs(buildJobLogs BuildJobLogs) (logs []BuildJobLogRow, err error) {
+
+	logs = make([]BuildJobLogRow, 0)
 
 	rows, err := dbc.databaseConnection.Query("SELECT * FROM build_logs WHERE repo_full_name=$1 AND repo_branch=$2 AND repo_revision=$3 AND repo_source=$4",
 		buildJobLogs.RepoFullName,
@@ -158,23 +159,18 @@ func (dbc *cockroachDBClientImpl) GetBuildLogs(buildJobLogs BuildJobLogs) (err e
 
 	defer rows.Close()
 	for rows.Next() {
-		var id int
-		var repo_full_name, repo_branch, repo_revision, repo_source, log_text string
-		var inserted_at time.Time
 
-		if err := rows.Scan(&id, &repo_full_name, &repo_branch, &repo_revision, &repo_source, &log_text, &inserted_at); err != nil {
-			return err
+		logRow := BuildJobLogRow{}
+
+		if err := rows.Scan(&logRow.Id, &logRow.RepoFullName, &logRow.RepoBranch, &logRow.RepoRevision, &logRow.RepoSource, &logRow.LogText, &logRow.InsertedAt); err != nil {
+			return nil, err
 		}
 
 		log.Debug().
-			Int("id", id).
-			Str("repo_full_name", repo_full_name).
-			Str("repo_branch", repo_branch).
-			Str("repo_revision", repo_revision).
-			Str("repo_source", repo_source).
-			Str("log_text", log_text).
-			Interface("inserted_at", inserted_at).
+			Interface("row", logRow).
 			Msg("Read logs")
+
+		logs = append(logs, logRow)
 	}
 
 	return

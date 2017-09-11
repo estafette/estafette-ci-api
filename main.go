@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"fmt"
 	stdlog "log"
 	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -270,6 +272,36 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*estafetteCiAPIKey, estafetteCiBuilderEvents, estafetteBuildJobLogs, prometheusInboundEventTotals)
 	router.POST("/events/estafette/ci-builder", estafetteEventHandler.Handle)
+
+	router.GET("/logs/:source/:owner/:repo/:branch/:revision", func(c *gin.Context) {
+		source := c.Param("source")
+		owner := c.Param("owner")
+		repo := c.Param("repo")
+		branch := c.Param("branch")
+		revision := c.Param("revision")
+
+		buildJobLogsParams := cockroach.BuildJobLogs{
+			RepoSource:   source,
+			RepoFullName: fmt.Sprintf("%v/%v", owner, repo),
+			RepoBranch:   branch,
+			RepoRevision: revision,
+		}
+
+		// retrieve logs from database
+		logs, err := cockroachDBClient.GetBuildLogs(buildJobLogsParams)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		// get text from logs
+		logTexts := make([]string, 0)
+		for _, log := range logs {
+			logTexts = append(logTexts, log.LogText)
+		}
+
+		c.String(http.StatusOK, strings.Join(logTexts, "\n"))
+	})
 
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown
 	srv := &http.Server{
