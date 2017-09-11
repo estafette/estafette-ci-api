@@ -42,23 +42,31 @@ var (
 
 	apiAddress = kingpin.Flag("api-listen-address", "The address to listen on for api HTTP requests.").Default(":5000").String()
 
-	githubAppPrivateKeyPath    = kingpin.Flag("github-app-privatey-key-path", "The path to the pem file for the private key of the Github App.").Default("/github-app-key/private-key.pem").String()
-	githubAppID                = kingpin.Flag("github-app-id", "The Github App id.").Envar("GITHUB_APP_ID").String()
-	githubAppOAuthClientID     = kingpin.Flag("github-app-oauth-client-id", "The OAuth client id for the Github App.").Envar("GITHUB_APP_OAUTH_CLIENT_ID").String()
-	githubAppOAuthClientSecret = kingpin.Flag("github-app-oauth-client-secret", "The OAuth client secret for the Github App.").Envar("GITHUB_APP_OAUTH_CLIENT_SECRET").String()
-	githubWebhookSecret        = kingpin.Flag("github-webhook-secret", "The secret to verify webhook authenticity.").Envar("GITHUB_WEBHOOK_SECRET").String()
+	githubAppPrivateKeyPath      = kingpin.Flag("github-app-privatey-key-path", "The path to the pem file for the private key of the Github App.").Default("/github-app-key/private-key.pem").String()
+	githubAppID                  = kingpin.Flag("github-app-id", "The Github App id.").Envar("GITHUB_APP_ID").String()
+	githubAppOAuthClientID       = kingpin.Flag("github-app-oauth-client-id", "The OAuth client id for the Github App.").Envar("GITHUB_APP_OAUTH_CLIENT_ID").String()
+	githubAppOAuthClientSecret   = kingpin.Flag("github-app-oauth-client-secret", "The OAuth client secret for the Github App.").Envar("GITHUB_APP_OAUTH_CLIENT_SECRET").String()
+	githubWebhookSecret          = kingpin.Flag("github-webhook-secret", "The secret to verify webhook authenticity.").Envar("GITHUB_WEBHOOK_SECRET").String()
+	githubEventChannelBufferSize = kingpin.Flag("github-event-channel-buffer-size", "The buffer size of the github event channel.").Envar("GITHUB_EVENT_CHANNEL_BUFFER_SIZE").Default("100").Int()
+	githubMaxWorkers             = kingpin.Flag("github-max-workers", "The maximum number of workers to handle github events from the event channel.").Envar("GITHUB_MAX_WORKERS").Default("5").Int()
 
-	bitbucketAPIKey         = kingpin.Flag("bitbucket-api-key", "The api key for Bitbucket.").Envar("BITBUCKET_API_KEY").String()
-	bitbucketAppOAuthKey    = kingpin.Flag("bitbucket-app-oauth-key", "The OAuth key for the Bitbucket App.").Envar("BITBUCKET_APP_OAUTH_KEY").String()
-	bitbucketAppOAuthSecret = kingpin.Flag("bitbucket-app-oauth-secret", "The OAuth secret for the Bitbucket App.").Envar("BITBUCKET_APP_OAUTH_SECRET").String()
+	bitbucketAPIKey                 = kingpin.Flag("bitbucket-api-key", "The api key for Bitbucket.").Envar("BITBUCKET_API_KEY").String()
+	bitbucketAppOAuthKey            = kingpin.Flag("bitbucket-app-oauth-key", "The OAuth key for the Bitbucket App.").Envar("BITBUCKET_APP_OAUTH_KEY").String()
+	bitbucketAppOAuthSecret         = kingpin.Flag("bitbucket-app-oauth-secret", "The OAuth secret for the Bitbucket App.").Envar("BITBUCKET_APP_OAUTH_SECRET").String()
+	bitbucketEventChannelBufferSize = kingpin.Flag("bitbucket-event-channel-buffer-size", "The buffer size of the bitbucket event channel.").Envar("BITBUCKET_EVENT_CHANNEL_BUFFER_SIZE").Default("100").Int()
+	bitbucketMaxWorkers             = kingpin.Flag("bitbucket-max-workers", "The maximum number of workers to handle bitbucket events from the event channel.").Envar("BITBUCKET_MAX_WORKERS").Default("5").Int()
 
-	estafetteCiServerBaseURL = kingpin.Flag("estafette-ci-server-base-url", "The base url of this api server.").Envar("ESTAFETTE_CI_SERVER_BASE_URL").String()
-	estafetteCiAPIKey        = kingpin.Flag("estafette-ci-api-key", "An api key for estafette itself to use until real oauth is supported.").Envar("ESTAFETTE_CI_API_KEY").String()
+	estafetteCiServerBaseURL        = kingpin.Flag("estafette-ci-server-base-url", "The base url of this api server.").Envar("ESTAFETTE_CI_SERVER_BASE_URL").String()
+	estafetteCiAPIKey               = kingpin.Flag("estafette-ci-api-key", "An api key for estafette itself to use until real oauth is supported.").Envar("ESTAFETTE_CI_API_KEY").String()
+	estafetteEventChannelBufferSize = kingpin.Flag("estafette-event-channel-buffer-size", "The buffer size of the estafette event channel.").Envar("ESTAFETTE_EVENT_CHANNEL_BUFFER_SIZE").Default("100").Int()
+	estafetteMaxWorkers             = kingpin.Flag("estafette-max-workers", "The maximum number of workers to handle estafette events from the event channel.").Envar("ESTAFETTE_MAX_WORKERS").Default("5").Int()
 
-	slackAppClientID          = kingpin.Flag("slack-app-client-id", "The Slack App id for accessing Slack API.").Envar("SLACK_APP_CLIENT_ID").String()
-	slackAppClientSecret      = kingpin.Flag("slack-app-client-secret", "The Slack App secret for accessing Slack API.").Envar("SLACK_APP_CLIENT_ID").String()
-	slackAppVerificationToken = kingpin.Flag("slack-app-verification-token", "The token used to verify incoming Slack webhook events.").Envar("SLACK_APP_VERIFICATION_TOKEN").String()
-	slackAppOAuthAccessToken  = kingpin.Flag("slack-app-oauth-access-token", "The OAuth access token for the Slack App.").Envar("SLACK_APP_OAUTH_ACCESS_TOKEN").String()
+	slackAppClientID            = kingpin.Flag("slack-app-client-id", "The Slack App id for accessing Slack API.").Envar("SLACK_APP_CLIENT_ID").String()
+	slackAppClientSecret        = kingpin.Flag("slack-app-client-secret", "The Slack App secret for accessing Slack API.").Envar("SLACK_APP_CLIENT_ID").String()
+	slackAppVerificationToken   = kingpin.Flag("slack-app-verification-token", "The token used to verify incoming Slack webhook events.").Envar("SLACK_APP_VERIFICATION_TOKEN").String()
+	slackAppOAuthAccessToken    = kingpin.Flag("slack-app-oauth-access-token", "The OAuth access token for the Slack App.").Envar("SLACK_APP_OAUTH_ACCESS_TOKEN").String()
+	slackEventChannelBufferSize = kingpin.Flag("slack-event-channel-buffer-size", "The buffer size of the slack event channel.").Envar("SLACK_EVENT_CHANNEL_BUFFER_SIZE").Default("100").Int()
+	slackMaxWorkers             = kingpin.Flag("slack-max-workers", "The maximum number of workers to handle slack events from the event channel.").Envar("SLACK_MAX_WORKERS").Default("5").Int()
 
 	secretDecryptionKey = kingpin.Flag("secret-decryption-key", "The AES-256 key used to decrypt secrets that have been encrypted with it.").Envar("SECRET_DECRYPTION_KEY").String()
 
@@ -226,22 +234,22 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	}
 
 	// listen to channels for push events
-	githubPushEvents := make(chan github.PushEvent, 100)
-	githubEventWorker := github.NewGithubEventWorker(stopChannel, waitGroup, githubAPIClient, ciBuilderClient, githubPushEvents)
-	githubEventWorker.ListenToEventChannels()
+	githubPushEvents := make(chan github.PushEvent, *githubEventChannelBufferSize)
+	githubDispatcher := github.NewGithubDispatcher(stopChannel, waitGroup, *githubMaxWorkers, githubAPIClient, ciBuilderClient, githubPushEvents)
+	githubDispatcher.Run()
 
-	bitbucketPushEvents := make(chan bitbucket.RepositoryPushEvent, 100)
-	bitbucketEventWorker := bitbucket.NewBitbucketEventWorker(stopChannel, waitGroup, bitbucketAPIClient, ciBuilderClient, bitbucketPushEvents)
-	bitbucketEventWorker.ListenToEventChannels()
+	bitbucketPushEvents := make(chan bitbucket.RepositoryPushEvent, *bitbucketEventChannelBufferSize)
+	bitbucketDispatcher := bitbucket.NewBitbucketDispatcher(stopChannel, waitGroup, *bitbucketMaxWorkers, bitbucketAPIClient, ciBuilderClient, bitbucketPushEvents)
+	bitbucketDispatcher.Run()
 
-	slackEvents := make(chan slack.SlashCommand, 100)
-	slackEventWorker := slack.NewSlackEventWorker(stopChannel, waitGroup, slackAPIClient, slackEvents)
-	slackEventWorker.ListenToEventChannels()
+	slackEvents := make(chan slack.SlashCommand, *slackEventChannelBufferSize)
+	slackDispatcher := slack.NewSlackDispatcher(stopChannel, waitGroup, *slackMaxWorkers, slackAPIClient, slackEvents)
+	slackDispatcher.Run()
 
-	estafetteCiBuilderEvents := make(chan estafette.CiBuilderEvent, 100)
-	estafetteBuildJobLogs := make(chan cockroach.BuildJobLogs, 100)
-	estafetteEventWorker := estafette.NewEstafetteEventWorker(stopChannel, waitGroup, ciBuilderClient, cockroachDBClient, estafetteCiBuilderEvents, estafetteBuildJobLogs)
-	estafetteEventWorker.ListenToEventChannels()
+	estafetteCiBuilderEvents := make(chan estafette.CiBuilderEvent, *estafetteEventChannelBufferSize)
+	estafetteBuildJobLogs := make(chan cockroach.BuildJobLogs, *estafetteEventChannelBufferSize)
+	estafetteDispatcher := estafette.NewEstafetteDispatcher(stopChannel, waitGroup, *estafetteMaxWorkers, ciBuilderClient, cockroachDBClient, estafetteCiBuilderEvents, estafetteBuildJobLogs)
+	estafetteDispatcher.Run()
 
 	// listen to http calls
 	log.Debug().

@@ -9,7 +9,8 @@ import (
 
 // EventWorker processes events pushed to channels
 type EventWorker interface {
-	ListenToEventChannels()
+	ListenToCiBuilderEventChannels()
+	ListenToBuildJobLogsEventChannels()
 	RemoveJobForEstafetteBuild(CiBuilderEvent)
 	InsertLogs(cockroach.BuildJobLogs)
 }
@@ -17,6 +18,8 @@ type EventWorker interface {
 type eventWorkerImpl struct {
 	waitGroup              *sync.WaitGroup
 	stopChannel            <-chan struct{}
+	ciBuilderWorkerPool    chan chan CiBuilderEvent
+	buildJobLogsWorkerPool chan chan cockroach.BuildJobLogs
 	ciBuilderClient        CiBuilderClient
 	cockroachDBClient      cockroach.DBClient
 	ciBuilderEventsChannel chan CiBuilderEvent
@@ -24,22 +27,27 @@ type eventWorkerImpl struct {
 }
 
 // NewEstafetteEventWorker returns a new estafette.EventWorker
-func NewEstafetteEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, ciBuilderClient CiBuilderClient, cockroachDBClient cockroach.DBClient, ciBuilderEventsChannel chan CiBuilderEvent, buildJobLogsChannel chan cockroach.BuildJobLogs) EventWorker {
+func NewEstafetteEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, ciBuilderWorkerPool chan chan CiBuilderEvent, buildJobLogsWorkerPool chan chan cockroach.BuildJobLogs, ciBuilderClient CiBuilderClient, cockroachDBClient cockroach.DBClient) EventWorker {
 	return &eventWorkerImpl{
 		waitGroup:              waitGroup,
 		stopChannel:            stopChannel,
+		ciBuilderWorkerPool:    ciBuilderWorkerPool,
+		buildJobLogsWorkerPool: buildJobLogsWorkerPool,
 		ciBuilderClient:        ciBuilderClient,
 		cockroachDBClient:      cockroachDBClient,
-		ciBuilderEventsChannel: ciBuilderEventsChannel,
-		buildJobLogsChannel:    buildJobLogsChannel,
+		ciBuilderEventsChannel: make(chan CiBuilderEvent),
+		buildJobLogsChannel:    make(chan cockroach.BuildJobLogs),
 	}
 }
 
-func (w *eventWorkerImpl) ListenToEventChannels() {
+func (w *eventWorkerImpl) ListenToCiBuilderEventChannels() {
 	go func() {
 		// handle estafette events via channels
-		log.Debug().Msg("Listening to Estafette events channels...")
+		log.Debug().Msg("Listening to Estafette ci builder events channels...")
 		for {
+			// register the current worker into the worker queue.
+			w.ciBuilderWorkerPool <- w.ciBuilderEventsChannel
+
 			select {
 			case ciBuilderEvent := <-w.ciBuilderEventsChannel:
 				go func() {
@@ -47,6 +55,23 @@ func (w *eventWorkerImpl) ListenToEventChannels() {
 					w.RemoveJobForEstafetteBuild(ciBuilderEvent)
 					w.waitGroup.Done()
 				}()
+			case <-w.stopChannel:
+				log.Debug().Msg("Stopping Estafette event worker...")
+				return
+			}
+		}
+	}()
+}
+
+func (w *eventWorkerImpl) ListenToBuildJobLogsEventChannels() {
+	go func() {
+		// handle estafette events via channels
+		log.Debug().Msg("Listening to Estafette events channels...")
+		for {
+			// register the current worker into the worker queue.
+			w.buildJobLogsWorkerPool <- w.buildJobLogsChannel
+
+			select {
 			case buildJobLogs := <-w.buildJobLogsChannel:
 				go func() {
 					w.waitGroup.Add(1)

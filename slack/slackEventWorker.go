@@ -14,16 +14,18 @@ type EventWorker interface {
 type eventWorkerImpl struct {
 	waitGroup     *sync.WaitGroup
 	stopChannel   <-chan struct{}
+	workerPool    chan chan SlashCommand
 	eventsChannel chan SlashCommand
 	apiClient     APIClient
 }
 
 // NewSlackEventWorker returns the slack.EventWorker
-func NewSlackEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, apiClient APIClient, eventsChannel chan SlashCommand) EventWorker {
+func NewSlackEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, workerPool chan chan SlashCommand, apiClient APIClient) EventWorker {
 	return &eventWorkerImpl{
 		waitGroup:     waitGroup,
 		stopChannel:   stopChannel,
-		eventsChannel: eventsChannel,
+		workerPool:    workerPool,
+		eventsChannel: make(chan SlashCommand),
 		apiClient:     apiClient,
 	}
 }
@@ -33,6 +35,9 @@ func (w *eventWorkerImpl) ListenToEventChannels() {
 		// handle slack events via channels
 		log.Debug().Msg("Listening to Slack events channels...")
 		for {
+			// register the current worker into the worker queue.
+			w.workerPool <- w.eventsChannel
+
 			select {
 			case slashCommand := <-w.eventsChannel:
 				go func() {
