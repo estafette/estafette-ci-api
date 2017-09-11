@@ -28,6 +28,7 @@ type CiBuilderClient interface {
 
 // CiBuilderParams contains the parameters required to create a ci builder job
 type CiBuilderParams struct {
+	RepoSource           string
 	RepoFullName         string
 	RepoURL              string
 	RepoBranch           string
@@ -99,6 +100,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	jobName := strings.ToLower(fmt.Sprintf("build-%v-%v", repoName, ciBuilderParams.RepoRevision[:6]))
 
 	// create envvars for job
+	estafetteGitSourceName := "ESTAFETTE_GIT_SOURCE"
+	estafetteGitSourceValue := ciBuilderParams.RepoSource
 	estafetteGitNameName := "ESTAFETTE_GIT_NAME"
 	estafetteGitNameValue := ciBuilderParams.RepoFullName
 	estafetteGitURLName := "ESTAFETTE_GIT_URL"
@@ -127,6 +130,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteGcrProjectValue := "travix-com"
 
 	environmentVariables := []*apiv1.EnvVar{
+		&apiv1.EnvVar{
+			Name:  &estafetteGitSourceName,
+			Value: &estafetteGitSourceValue,
+		},
 		&apiv1.EnvVar{
 			Name:  &estafetteGitNameName,
 			Value: &estafetteGitNameValue,

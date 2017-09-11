@@ -106,6 +106,7 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 
 	// define ci builder params
 	ciBuilderParams := estafette.CiBuilderParams{
+		RepoSource:           "bitbucket",
 		RepoFullName:         pushEvent.Repository.FullName,
 		RepoURL:              authenticatedRepositoryURL,
 		RepoBranch:           pushEvent.Push.Changes[0].New.Name,
@@ -118,21 +119,13 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 	_, err = w.CiBuilderClient.CreateCiBuilderJob(ciBuilderParams)
 	if err != nil {
 		log.Error().Err(err).
-			Str("fullname", ciBuilderParams.RepoFullName).
-			Str("url", ciBuilderParams.RepoURL).
-			Str("branch", ciBuilderParams.RepoBranch).
-			Str("revision", ciBuilderParams.RepoRevision).
-			Str("track", ciBuilderParams.Track).
+			Interface("params", ciBuilderParams).
 			Msgf("Creating estafette-ci-builder job for Bitbucket repository %v revision %v failed", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
 
 		return
 	}
 
 	log.Info().
-		Str("fullname", ciBuilderParams.RepoFullName).
-		Str("url", ciBuilderParams.RepoURL).
-		Str("branch", ciBuilderParams.RepoBranch).
-		Str("revision", ciBuilderParams.RepoRevision).
-		Str("track", ciBuilderParams.Track).
+		Interface("params", ciBuilderParams).
 		Msgf("Created estafette-ci-builder job for Bitbucket repository %v revision %v", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
 }

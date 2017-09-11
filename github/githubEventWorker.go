@@ -107,6 +107,7 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 
 	// define ci builder params
 	ciBuilderParams := estafette.CiBuilderParams{
+		RepoSource:           "github",
 		RepoFullName:         pushEvent.Repository.FullName,
 		RepoURL:              authenticatedRepositoryURL,
 		RepoBranch:           strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
@@ -119,21 +120,13 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 	_, err = w.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
 	if err != nil {
 		log.Error().Err(err).
-			Str("fullname", ciBuilderParams.RepoFullName).
-			Str("url", ciBuilderParams.RepoURL).
-			Str("branch", ciBuilderParams.RepoBranch).
-			Str("revision", ciBuilderParams.RepoRevision).
-			Str("track", ciBuilderParams.Track).
+			Interface("params", ciBuilderParams).
 			Msgf("Creating estafette-ci-builder job for Github repository %v revision %v failed", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
 
 		return
 	}
 
 	log.Info().
-		Str("fullname", ciBuilderParams.RepoFullName).
-		Str("url", ciBuilderParams.RepoURL).
-		Str("branch", ciBuilderParams.RepoBranch).
-		Str("revision", ciBuilderParams.RepoRevision).
-		Str("track", ciBuilderParams.Track).
+		Interface("params", ciBuilderParams).
 		Msgf("Created estafette-ci-builder job for Github repository %v revision %v", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
 }
