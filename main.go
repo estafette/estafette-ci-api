@@ -312,7 +312,8 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 				var ciBuilderLogLine estafette.CiBuilderLogLine
 				err = json.Unmarshal([]byte(logLine), &ciBuilderLogLine)
 				if err != nil {
-					log.Warn().Err(err).Msg("Failed unmarshalling log line")
+					log.Warn().Err(err).Str("logLine", logLine).Msg("Failed unmarshalling log line")
+					logTexts = append(logTexts, logLine)
 					continue
 				}
 
