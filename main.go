@@ -295,6 +295,11 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 			return
 		}
 
+		if len(logs) == 0 {
+			c.String(http.StatusOK, "These logs are no longer available")
+			return
+		}
+
 		// get text from logs
 		logTexts := make([]string, 0)
 		for _, logItem := range logs {
@@ -311,7 +316,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 					continue
 				}
 
-				logTexts = append(logTexts, fmt.Sprintf("%v [%4s] %v", ciBuilderLogLine.Time, ciBuilderLogLine.Severity, ciBuilderLogLine.Message))
+				logTexts = append(logTexts, fmt.Sprintf("%v %-5s %v", ciBuilderLogLine.Time, strings.ToUpper(ciBuilderLogLine.Severity), ciBuilderLogLine.Message))
 			}
 		}
 
