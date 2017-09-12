@@ -89,10 +89,12 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 
 	mft, err := manifest.ReadManifest(manifestString)
 	builderTrack := "stable"
+	hasValidManifest := false
 	if err != nil {
 		log.Warn().Err(err).Str("manifest", manifestString).Msgf("Deserializing Estafette manifest for repo %v and revision %v failed, continuing though so developer gets useful feedback", pushEvent.Repository.FullName, pushEvent.After)
 	} else {
 		builderTrack = mft.Builder.Track
+		hasValidManifest = true
 	}
 
 	log.Debug().Interface("pushEvent", pushEvent).Interface("manifest", mft).Msgf("Estafette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.After)
@@ -114,6 +116,9 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 		RepoRevision:         pushEvent.After,
 		EnvironmentVariables: map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken.Token},
 		Track:                builderTrack,
+		AutoIncrement:        1,
+		HasValidManifest:     hasValidManifest,
+		Manifest:             mft,
 	}
 
 	// create ci builder job

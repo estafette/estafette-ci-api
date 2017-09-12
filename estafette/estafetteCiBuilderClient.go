@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/estafette/estafette-ci-manifest"
+
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/ericchiang/k8s"
@@ -35,6 +37,9 @@ type CiBuilderParams struct {
 	RepoRevision         string
 	EnvironmentVariables map[string]string
 	Track                string
+	AutoIncrement        int
+	HasValidManifest     bool
+	Manifest             manifest.EstafetteManifest
 }
 
 type ciBuilderClientImpl struct {
@@ -91,6 +96,16 @@ func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiAPIKey, secretDecry
 // CreateCiBuilderJob creates an estafette-ci-builder job in Kubernetes to run the estafette build
 func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderParams) (job *batchv1.Job, err error) {
 
+	// set build version number
+	buildVersion := ""
+	if ciBuilderParams.HasValidManifest {
+		buildVersion = ciBuilderParams.Manifest.Version.Version(manifest.EstafetteVersionParams{
+			AutoIncrement: ciBuilderParams.AutoIncrement,
+			Branch:        ciBuilderParams.RepoBranch,
+			Revision:      ciBuilderParams.RepoRevision,
+		})
+	}
+
 	// create job name of max 63 chars
 	re := regexp.MustCompile("[^a-zA-Z0-9]+")
 	repoName := re.ReplaceAllString(ciBuilderParams.RepoFullName, "-")
@@ -123,9 +138,9 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 
 	// temporarily pass build version equal to revision from the outside until estafette supports versioning
 	estafetteBuildVersionName := "ESTAFETTE_BUILD_VERSION"
-	estafetteBuildVersionValue := ciBuilderParams.RepoRevision
+	estafetteBuildVersionValue := buildVersion
 	estafetteBuildVersionPatchName := "ESTAFETTE_BUILD_VERSION_PATCH"
-	estafetteBuildVersionPatchValue := "1"
+	estafetteBuildVersionPatchValue := fmt.Sprint(ciBuilderParams.AutoIncrement)
 	estafetteGcrProjectName := "ESTAFETTE_GCR_PROJECT"
 	estafetteGcrProjectValue := "travix-com"
 

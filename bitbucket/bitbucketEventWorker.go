@@ -88,10 +88,12 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 
 	mft, err := manifest.ReadManifest(manifestString)
 	builderTrack := "stable"
+	hasValidManifest := false
 	if err != nil {
 		log.Warn().Err(err).Str("manifest", manifestString).Msgf("Deserializing Estafette manifest for repo %v and revision %v failed, continuing though so developer gets useful feedback", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
 	} else {
 		builderTrack = mft.Builder.Track
+		hasValidManifest = true
 	}
 
 	log.Debug().Interface("pushEvent", pushEvent).Interface("manifest", mft).Msgf("Estafette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
@@ -113,6 +115,9 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 		RepoRevision:         pushEvent.Push.Changes[0].New.Target.Hash,
 		EnvironmentVariables: map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken.AccessToken},
 		Track:                builderTrack,
+		AutoIncrement:        1,
+		HasValidManifest:     hasValidManifest,
+		Manifest:             mft,
 	}
 
 	// create ci builder job
