@@ -180,10 +180,6 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 			Value: &estafetteCiServerBaseURLValue,
 		},
 		&apiv1.EnvVar{
-			Name:  &estafetteGcrProjectName,
-			Value: &estafetteGcrProjectValue,
-		},
-		&apiv1.EnvVar{
 			Name:  &estafetteCiServerBuilderEventsURLName,
 			Value: &estafetteCiServerBuilderEventsURLValue,
 		},
