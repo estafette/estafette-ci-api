@@ -308,7 +308,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 			logLines := strings.Split(logItem.LogText, "\n")
 			for _, logLine := range logLines {
 
-				if logLine != "" {
+				if logLine == "" {
 					logTexts = append(logTexts, logLine)
 					continue
 				}
