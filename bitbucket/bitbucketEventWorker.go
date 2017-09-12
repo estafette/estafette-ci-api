@@ -111,6 +111,10 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 
 	// get autoincrement number
 	autoincrement, err := w.cockroachDBClient.GetAutoIncrement("bitbucket", pushEvent.Repository.FullName)
+	if err != nil {
+		log.Warn().Err(err).
+			Msgf("Failed generating autoincrement for Bitbucket repository %v", pushEvent.Repository.FullName)
+	}
 
 	// define ci builder params
 	ciBuilderParams := estafette.CiBuilderParams{

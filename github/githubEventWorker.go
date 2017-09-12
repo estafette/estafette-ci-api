@@ -112,6 +112,10 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 
 	// get autoincrement number
 	autoincrement, err := w.cockroachDBClient.GetAutoIncrement("github", pushEvent.Repository.FullName)
+	if err != nil {
+		log.Warn().Err(err).
+			Msgf("Failed generating autoincrement for Github repository %v", pushEvent.Repository.FullName)
+	}
 
 	// define ci builder params
 	ciBuilderParams := estafette.CiBuilderParams{
