@@ -3,6 +3,7 @@ package bitbucket
 import (
 	"sync"
 
+	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/estafette"
 )
 
@@ -13,25 +14,27 @@ type EventDispatcher interface {
 }
 
 type eventDispatcherImpl struct {
-	waitGroup       *sync.WaitGroup
-	stopChannel     <-chan struct{}
-	workerPool      chan chan RepositoryPushEvent
-	maxWorkers      int
-	eventsChannel   chan RepositoryPushEvent
-	apiClient       APIClient
-	ciBuilderClient estafette.CiBuilderClient
+	waitGroup         *sync.WaitGroup
+	stopChannel       <-chan struct{}
+	workerPool        chan chan RepositoryPushEvent
+	maxWorkers        int
+	eventsChannel     chan RepositoryPushEvent
+	apiClient         APIClient
+	ciBuilderClient   estafette.CiBuilderClient
+	cockroachDBClient cockroach.DBClient
 }
 
 // NewBitbucketDispatcher returns a new github.EventWorker to handle events channeled by bitbucket.EventDispatcher
-func NewBitbucketDispatcher(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, maxWorkers int, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, eventsChannel chan RepositoryPushEvent) EventDispatcher {
+func NewBitbucketDispatcher(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, maxWorkers int, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, cockroachDBClient cockroach.DBClient, eventsChannel chan RepositoryPushEvent) EventDispatcher {
 	return &eventDispatcherImpl{
-		waitGroup:       waitGroup,
-		stopChannel:     stopChannel,
-		workerPool:      make(chan chan RepositoryPushEvent, maxWorkers),
-		maxWorkers:      maxWorkers,
-		eventsChannel:   eventsChannel,
-		apiClient:       apiClient,
-		ciBuilderClient: ciBuilderClient,
+		waitGroup:         waitGroup,
+		stopChannel:       stopChannel,
+		workerPool:        make(chan chan RepositoryPushEvent, maxWorkers),
+		maxWorkers:        maxWorkers,
+		eventsChannel:     eventsChannel,
+		apiClient:         apiClient,
+		ciBuilderClient:   ciBuilderClient,
+		cockroachDBClient: cockroachDBClient,
 	}
 }
 
@@ -39,7 +42,7 @@ func NewBitbucketDispatcher(stopChannel <-chan struct{}, waitGroup *sync.WaitGro
 func (d *eventDispatcherImpl) Run() {
 	// starting n number of workers
 	for i := 0; i < d.maxWorkers; i++ {
-		worker := NewBitbucketEventWorker(d.stopChannel, d.waitGroup, d.workerPool, d.apiClient, d.ciBuilderClient)
+		worker := NewBitbucketEventWorker(d.stopChannel, d.waitGroup, d.workerPool, d.apiClient, d.ciBuilderClient, d.cockroachDBClient)
 		worker.ListenToEventChannels()
 	}
 

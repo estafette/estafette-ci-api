@@ -238,11 +238,11 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 
 	// listen to channels for push events
 	githubPushEvents := make(chan github.PushEvent, *githubEventChannelBufferSize)
-	githubDispatcher := github.NewGithubDispatcher(stopChannel, waitGroup, *githubMaxWorkers, githubAPIClient, ciBuilderClient, githubPushEvents)
+	githubDispatcher := github.NewGithubDispatcher(stopChannel, waitGroup, *githubMaxWorkers, githubAPIClient, ciBuilderClient, cockroachDBClient, githubPushEvents)
 	githubDispatcher.Run()
 
 	bitbucketPushEvents := make(chan bitbucket.RepositoryPushEvent, *bitbucketEventChannelBufferSize)
-	bitbucketDispatcher := bitbucket.NewBitbucketDispatcher(stopChannel, waitGroup, *bitbucketMaxWorkers, bitbucketAPIClient, ciBuilderClient, bitbucketPushEvents)
+	bitbucketDispatcher := bitbucket.NewBitbucketDispatcher(stopChannel, waitGroup, *bitbucketMaxWorkers, bitbucketAPIClient, ciBuilderClient, cockroachDBClient, bitbucketPushEvents)
 	bitbucketDispatcher.Run()
 
 	slackEvents := make(chan slack.SlashCommand, *slackEventChannelBufferSize)

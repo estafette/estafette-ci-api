@@ -19,6 +19,7 @@ type DBClient interface {
 	MigrateSchema() error
 	InsertBuildJobLogs(BuildJobLogs) error
 	GetBuildLogs(BuildJobLogs) ([]BuildJobLogRow, error)
+	GetAutoIncrement(string, string) (int, error)
 }
 
 type cockroachDBClientImpl struct {
@@ -166,11 +167,28 @@ func (dbc *cockroachDBClientImpl) GetBuildLogs(buildJobLogs BuildJobLogs) (logs 
 			return nil, err
 		}
 
-		log.Debug().
-			Interface("row", logRow).
-			Msg("Read logs")
-
 		logs = append(logs, logRow)
+	}
+
+	return
+}
+
+// GetBuildJobLogs reads a specific log
+func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string) (autoincrement int, err error) {
+
+	rows, err := dbc.databaseConnection.Query("INSERT INTO build_versions (repo_source, repo_full_name) VALUES ($1, $2) ON CONFLICT (repo_source, repo_full_name) DO UPDATE SET auto_increment = build_versions.auto_increment + 1, updated_at = now(); SELECT auto_increment WHERE repo_source=$1 AND repo_full_name=$2",
+		gitSource,
+		gitFullname,
+	)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		if err = rows.Scan(&autoincrement); err != nil {
+			return
+		}
 	}
 
 	return

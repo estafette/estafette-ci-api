@@ -3,6 +3,7 @@ package github
 import (
 	"sync"
 
+	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/estafette"
 )
 
@@ -13,25 +14,27 @@ type EventDispatcher interface {
 }
 
 type eventDispatcherImpl struct {
-	waitGroup       *sync.WaitGroup
-	stopChannel     <-chan struct{}
-	workerPool      chan chan PushEvent
-	maxWorkers      int
-	eventsChannel   chan PushEvent
-	apiClient       APIClient
-	ciBuilderClient estafette.CiBuilderClient
+	waitGroup         *sync.WaitGroup
+	stopChannel       <-chan struct{}
+	workerPool        chan chan PushEvent
+	maxWorkers        int
+	eventsChannel     chan PushEvent
+	apiClient         APIClient
+	ciBuilderClient   estafette.CiBuilderClient
+	cockroachDBClient cockroach.DBClient
 }
 
 // NewGithubDispatcher returns a new github.EventWorker to handle events channeled by github.EventDispatcher
-func NewGithubDispatcher(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, maxWorkers int, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, eventsChannel chan PushEvent) EventDispatcher {
+func NewGithubDispatcher(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, maxWorkers int, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, cockroachDBClient cockroach.DBClient, eventsChannel chan PushEvent) EventDispatcher {
 	return &eventDispatcherImpl{
-		waitGroup:       waitGroup,
-		stopChannel:     stopChannel,
-		workerPool:      make(chan chan PushEvent, maxWorkers),
-		maxWorkers:      maxWorkers,
-		eventsChannel:   eventsChannel,
-		apiClient:       apiClient,
-		ciBuilderClient: ciBuilderClient,
+		waitGroup:         waitGroup,
+		stopChannel:       stopChannel,
+		workerPool:        make(chan chan PushEvent, maxWorkers),
+		maxWorkers:        maxWorkers,
+		eventsChannel:     eventsChannel,
+		apiClient:         apiClient,
+		ciBuilderClient:   ciBuilderClient,
+		cockroachDBClient: cockroachDBClient,
 	}
 }
 
@@ -39,7 +42,7 @@ func NewGithubDispatcher(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup,
 func (d *eventDispatcherImpl) Run() {
 	// starting n number of workers
 	for i := 0; i < d.maxWorkers; i++ {
-		worker := NewGithubEventWorker(d.stopChannel, d.waitGroup, d.workerPool, d.apiClient, d.ciBuilderClient)
+		worker := NewGithubEventWorker(d.stopChannel, d.waitGroup, d.workerPool, d.apiClient, d.ciBuilderClient, d.cockroachDBClient)
 		worker.ListenToEventChannels()
 	}
 

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/estafette"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
@@ -16,23 +17,25 @@ type EventWorker interface {
 }
 
 type eventWorkerImpl struct {
-	waitGroup       *sync.WaitGroup
-	stopChannel     <-chan struct{}
-	workerPool      chan chan PushEvent
-	eventsChannel   chan PushEvent
-	apiClient       APIClient
-	ciBuilderClient estafette.CiBuilderClient
+	waitGroup         *sync.WaitGroup
+	stopChannel       <-chan struct{}
+	workerPool        chan chan PushEvent
+	eventsChannel     chan PushEvent
+	apiClient         APIClient
+	ciBuilderClient   estafette.CiBuilderClient
+	cockroachDBClient cockroach.DBClient
 }
 
 // NewGithubEventWorker returns a new github.EventWorker to handle events channeled by github.EventHandler
-func NewGithubEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, workerPool chan chan PushEvent, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient) EventWorker {
+func NewGithubEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, workerPool chan chan PushEvent, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, cockroachDBClient cockroach.DBClient) EventWorker {
 	return &eventWorkerImpl{
-		waitGroup:       waitGroup,
-		stopChannel:     stopChannel,
-		workerPool:      workerPool,
-		eventsChannel:   make(chan PushEvent),
-		apiClient:       apiClient,
-		ciBuilderClient: ciBuilderClient,
+		waitGroup:         waitGroup,
+		stopChannel:       stopChannel,
+		workerPool:        workerPool,
+		eventsChannel:     make(chan PushEvent),
+		apiClient:         apiClient,
+		ciBuilderClient:   ciBuilderClient,
+		cockroachDBClient: cockroachDBClient,
 	}
 }
 
@@ -107,6 +110,9 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 		return
 	}
 
+	// get autoincrement number
+	autoincrement, err := w.cockroachDBClient.GetAutoIncrement("github", pushEvent.Repository.FullName)
+
 	// define ci builder params
 	ciBuilderParams := estafette.CiBuilderParams{
 		RepoSource:           "github",
@@ -116,7 +122,7 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 		RepoRevision:         pushEvent.After,
 		EnvironmentVariables: map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken.Token},
 		Track:                builderTrack,
-		AutoIncrement:        1,
+		AutoIncrement:        autoincrement,
 		HasValidManifest:     hasValidManifest,
 		Manifest:             mft,
 	}

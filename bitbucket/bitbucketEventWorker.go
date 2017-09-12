@@ -3,6 +3,7 @@ package bitbucket
 import (
 	"sync"
 
+	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/estafette"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
@@ -15,23 +16,25 @@ type EventWorker interface {
 }
 
 type eventWorkerImpl struct {
-	waitGroup       *sync.WaitGroup
-	stopChannel     <-chan struct{}
-	workerPool      chan chan RepositoryPushEvent
-	eventsChannel   chan RepositoryPushEvent
-	apiClient       APIClient
-	CiBuilderClient estafette.CiBuilderClient
+	waitGroup         *sync.WaitGroup
+	stopChannel       <-chan struct{}
+	workerPool        chan chan RepositoryPushEvent
+	eventsChannel     chan RepositoryPushEvent
+	apiClient         APIClient
+	CiBuilderClient   estafette.CiBuilderClient
+	cockroachDBClient cockroach.DBClient
 }
 
 // NewBitbucketEventWorker returns the bitbucket.EventWorker
-func NewBitbucketEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, workerPool chan chan RepositoryPushEvent, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient) EventWorker {
+func NewBitbucketEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, workerPool chan chan RepositoryPushEvent, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, cockroachDBClient cockroach.DBClient) EventWorker {
 	return &eventWorkerImpl{
-		waitGroup:       waitGroup,
-		stopChannel:     stopChannel,
-		workerPool:      workerPool,
-		eventsChannel:   make(chan RepositoryPushEvent),
-		apiClient:       apiClient,
-		CiBuilderClient: ciBuilderClient,
+		waitGroup:         waitGroup,
+		stopChannel:       stopChannel,
+		workerPool:        workerPool,
+		eventsChannel:     make(chan RepositoryPushEvent),
+		apiClient:         apiClient,
+		CiBuilderClient:   ciBuilderClient,
+		cockroachDBClient: cockroachDBClient,
 	}
 }
 
@@ -106,6 +109,9 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 		return
 	}
 
+	// get autoincrement number
+	autoincrement, err := w.cockroachDBClient.GetAutoIncrement("bitbucket", pushEvent.Repository.FullName)
+
 	// define ci builder params
 	ciBuilderParams := estafette.CiBuilderParams{
 		RepoSource:           "bitbucket",
@@ -115,7 +121,7 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 		RepoRevision:         pushEvent.Push.Changes[0].New.Target.Hash,
 		EnvironmentVariables: map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken.AccessToken},
 		Track:                builderTrack,
-		AutoIncrement:        1,
+		AutoIncrement:        autoincrement,
 		HasValidManifest:     hasValidManifest,
 		Manifest:             mft,
 	}
