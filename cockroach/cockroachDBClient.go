@@ -186,7 +186,7 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string
 	}
 
 	// fetching auto_increment value, because RETURNING is not supported with UPSERT / INSERT ON CONFLICT (see issue https://github.com/cockroachdb/cockroach/issues/6637)
-	rows, err := dbc.databaseConnection.Query("SELECT auto_increment WHERE repo_source=$1 AND repo_full_name=$2",
+	rows, err := dbc.databaseConnection.Query("SELECT auto_increment FROM build_versions WHERE repo_source=$1 AND repo_full_name=$2",
 		gitSource,
 		gitFullname,
 	)
