@@ -141,8 +141,6 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteBuildVersionValue := buildVersion
 	estafetteBuildVersionPatchName := "ESTAFETTE_BUILD_VERSION_PATCH"
 	estafetteBuildVersionPatchValue := fmt.Sprint(ciBuilderParams.AutoIncrement)
-	estafetteGcrProjectName := "ESTAFETTE_GCR_PROJECT"
-	estafetteGcrProjectValue := "travix-com"
 
 	environmentVariables := []*apiv1.EnvVar{
 		&apiv1.EnvVar{
