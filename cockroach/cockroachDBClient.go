@@ -2,6 +2,7 @@ package cockroach
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/pressly/goose"
@@ -20,6 +21,8 @@ type DBClient interface {
 	InsertBuildJobLogs(BuildJobLogs) error
 	GetBuildLogs(BuildJobLogs) ([]BuildJobLogRow, error)
 	GetAutoIncrement(string, string) (int, error)
+	InsertBuildVersionDetail(BuildVersionDetail) error
+	GetBuildVersionDetail(string, string, string) (BuildVersionDetail, error)
 }
 
 type cockroachDBClientImpl struct {
@@ -146,7 +149,7 @@ func (dbc *cockroachDBClientImpl) GetBuildLogs(buildJobLogs BuildJobLogs) (logs 
 
 		logRow := BuildJobLogRow{}
 
-		if err := rows.Scan(&logRow.Id, &logRow.RepoFullName, &logRow.RepoBranch, &logRow.RepoRevision, &logRow.RepoSource, &logRow.LogText, &logRow.InsertedAt); err != nil {
+		if err := rows.Scan(&logRow.ID, &logRow.RepoFullName, &logRow.RepoBranch, &logRow.RepoRevision, &logRow.RepoSource, &logRow.LogText, &logRow.InsertedAt); err != nil {
 			return nil, err
 		}
 
@@ -187,6 +190,64 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string
 			return
 		}
 	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) InsertBuildVersionDetail(buildVersionDetail BuildVersionDetail) (err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// insert logs
+	_, err = dbc.databaseConnection.Exec(
+		"INSERT INTO build_version_details (build_version,repo_source,repo_full_name,repo_branch,repo_revision,manifest) VALUES ($1,$2,$3,$4,$5,$6)",
+		buildVersionDetail.BuildVersion,
+		buildVersionDetail.RepoSource,
+		buildVersionDetail.RepoFullName,
+		buildVersionDetail.RepoBranch,
+		buildVersionDetail.RepoRevision,
+		buildVersionDetail.Manifest,
+	)
+
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetBuildVersionDetail(buildVersion, repoSource, repoFullName string) (buildVersionDetail BuildVersionDetail, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	rows, err := dbc.databaseConnection.Query("SELECT * FROM build_version_details WHERE build_version=$1 AND repo_source=$2 AND repo_full_name=$3",
+		buildVersion,
+		repoSource,
+		repoFullName,
+	)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		if err = rows.Scan(
+			&buildVersionDetail.ID,
+			&buildVersionDetail.BuildVersion,
+			&buildVersionDetail.RepoSource,
+			&buildVersionDetail.RepoFullName,
+			&buildVersionDetail.RepoBranch,
+			&buildVersionDetail.RepoRevision,
+			&buildVersionDetail.Manifest,
+			&buildVersionDetail.InsertedAt); err != nil {
+			return
+		}
+
+		return
+	}
+
+	err = errors.New("Record does not exist")
 
 	return
 }

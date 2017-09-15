@@ -117,6 +117,30 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 			Msgf("Failed generating autoincrement for Github repository %v", pushEvent.Repository.FullName)
 	}
 
+	// set build version number
+	buildVersion := ""
+	if hasValidManifest {
+		buildVersion = mft.Version.Version(manifest.EstafetteVersionParams{
+			AutoIncrement: autoincrement,
+			Branch:        strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
+			Revision:      pushEvent.After,
+		})
+	}
+
+	// store version details in db
+	err = w.cockroachDBClient.InsertBuildVersionDetail(cockroach.BuildVersionDetail{
+		BuildVersion: buildVersion,
+		RepoSource:   "bitbucket",
+		RepoFullName: pushEvent.Repository.FullName,
+		RepoBranch:   strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
+		RepoRevision: pushEvent.After,
+		Manifest:     manifestString,
+	})
+	if err != nil {
+		log.Warn().Err(err).
+			Msgf("Failed inserting version details into db for Bitbucket repository %v", pushEvent.Repository.FullName)
+	}
+
 	// define ci builder params
 	ciBuilderParams := estafette.CiBuilderParams{
 		RepoSource:           "github",
@@ -127,6 +151,7 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 		EnvironmentVariables: map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken.Token},
 		Track:                builderTrack,
 		AutoIncrement:        autoincrement,
+		VersionNumber:        buildVersion,
 		HasValidManifest:     hasValidManifest,
 		Manifest:             mft,
 	}
