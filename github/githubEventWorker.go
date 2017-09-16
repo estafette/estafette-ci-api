@@ -130,7 +130,7 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 	// store version details in db
 	err = w.cockroachDBClient.InsertBuildVersionDetail(cockroach.BuildVersionDetail{
 		BuildVersion: buildVersion,
-		RepoSource:   "bitbucket",
+		RepoSource:   "github",
 		RepoFullName: pushEvent.Repository.FullName,
 		RepoBranch:   strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
 		RepoRevision: pushEvent.After,
