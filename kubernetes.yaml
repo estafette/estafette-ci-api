@@ -20,7 +20,6 @@ metadata:
   labels:
     app: ${APP_NAME}
     team: ${TEAM_NAME}
-    scope: public
   annotations:
     prometheus.io/probe: "true"
     prometheus.io/probe-path: "/readiness"
@@ -29,6 +28,7 @@ metadata:
     estafette.io/cloudflare-hostnames: "${HOSTNAMES}"
 spec:
   type: LoadBalancer
+  loadBalancerSourceRanges: [ ${CLOUDFLARE_IP_RANGES} ]
   ports:
   - name: http
     port: 80
