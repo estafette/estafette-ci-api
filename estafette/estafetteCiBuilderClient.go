@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/estafette/estafette-ci-api/docker"
+
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/ericchiang/k8s"
@@ -28,6 +30,7 @@ type CiBuilderClient interface {
 
 type ciBuilderClientImpl struct {
 	kubeClient                      *k8s.Client
+	dockerHubClient                 docker.DockerHubAPIClient
 	EstafetteCiServerBaseURL        string
 	EstafetteCiAPIKey               string
 	secretDecryptionKey             string
@@ -66,8 +69,14 @@ func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiAPIKey, secretDecry
 		kubeClient, err = k8s.NewClient(&config)
 	}
 
+	dockerHubClient, err := docker.NewDockerHubAPIClient()
+	if err != nil {
+		return
+	}
+
 	ciBuilderClient = &ciBuilderClientImpl{
 		kubeClient:                      kubeClient,
+		dockerHubClient:                 dockerHubClient,
 		EstafetteCiServerBaseURL:        estafetteCiServerBaseURL,
 		EstafetteCiAPIKey:               estafetteCiAPIKey,
 		secretDecryptionKey:             secretDecryptionKey,
@@ -182,9 +191,12 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 
 	// other job config
 	containerName := "estafette-ci-builder"
-	image := fmt.Sprintf("estafette/estafette-ci-builder:%v", ciBuilderParams.Track)
+	repository := "estafette/estafette-ci-builder"
+	tag := ciBuilderParams.Track
+	digest, err := cbc.dockerHubClient.GetDigestCached(repository, tag)
+	image := fmt.Sprintf("%v@%v", repository, digest.Digest)
 	restartPolicy := "Never"
-	imagePullPolicy := "Always"
+	imagePullPolicy := "IfNotPresent"
 	privileged := true
 
 	job = &batchv1.Job{
