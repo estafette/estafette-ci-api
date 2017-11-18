@@ -193,10 +193,14 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	containerName := "estafette-ci-builder"
 	repository := "estafette/estafette-ci-builder"
 	tag := ciBuilderParams.Track
+	image := fmt.Sprintf("%v:%v", repository, tag)
+	imagePullPolicy := "Always"
 	digest, err := cbc.dockerHubClient.GetDigestCached(repository, tag)
-	image := fmt.Sprintf("%v@%v", repository, digest.Digest)
+	if err == nil {
+		image = fmt.Sprintf("%v@%v", repository, digest.Digest)
+		imagePullPolicy = "IfNotPresent"
+	}
 	restartPolicy := "Never"
-	imagePullPolicy := "IfNotPresent"
 	privileged := true
 
 	job = &batchv1.Job{
