@@ -60,6 +60,7 @@ var (
 	bitbucketMaxWorkers             = kingpin.Flag("bitbucket-max-workers", "The maximum number of workers to handle bitbucket events from the event channel.").Envar("BITBUCKET_MAX_WORKERS").Default("5").Int()
 
 	estafetteCiServerBaseURL        = kingpin.Flag("estafette-ci-server-base-url", "The base url of this api server.").Envar("ESTAFETTE_CI_SERVER_BASE_URL").String()
+	estafetteCiServerServiceURL     = kingpin.Flag("estafette-ci-server-service-url", "The kubernetes service url of this api server.").Envar("ESTAFETTE_CI_SERVER_SERVICE_URL").String()
 	estafetteCiAPIKey               = kingpin.Flag("estafette-ci-api-key", "An api key for estafette itself to use until real oauth is supported.").Envar("ESTAFETTE_CI_API_KEY").String()
 	estafetteEventChannelBufferSize = kingpin.Flag("estafette-event-channel-buffer-size", "The buffer size of the estafette event channel.").Envar("ESTAFETTE_EVENT_CHANNEL_BUFFER_SIZE").Default("100").Int()
 	estafetteMaxWorkers             = kingpin.Flag("estafette-max-workers", "The maximum number of workers to handle estafette events from the event channel.").Envar("ESTAFETTE_MAX_WORKERS").Default("5").Int()
@@ -221,7 +222,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	slackAPIClient := slack.NewSlackAPIClient(*slackAppClientID, *slackAppClientSecret, *slackAppOAuthAccessToken, prometheusOutboundAPICallTotals)
 	secretHelper := crypt.NewSecretHelper(*secretDecryptionKey)
 	cockroachDBClient := cockroach.NewCockroachDBClient(*cockroachDatabase, *cockroachHost, *cockroachInsecure, *cockroachCertificateDir, *cockroachPort, *cockroachUser, *cockroachPassword, prometheusOutboundAPICallTotals)
-	ciBuilderClient, err := estafette.NewCiBuilderClient(*estafetteCiServerBaseURL, *estafetteCiAPIKey, *secretDecryptionKey, prometheusOutboundAPICallTotals)
+	ciBuilderClient, err := estafette.NewCiBuilderClient(*estafetteCiServerBaseURL, *estafetteCiServerServiceURL, *estafetteCiAPIKey, *secretDecryptionKey, prometheusOutboundAPICallTotals)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
 	}

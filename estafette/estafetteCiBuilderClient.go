@@ -32,13 +32,14 @@ type ciBuilderClientImpl struct {
 	kubeClient                      *k8s.Client
 	dockerHubClient                 docker.DockerHubAPIClient
 	EstafetteCiServerBaseURL        string
+	EstafetteCiServerServiceURL     string
 	EstafetteCiAPIKey               string
 	secretDecryptionKey             string
 	PrometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
 // NewCiBuilderClient returns a new estafette.CiBuilderClient
-func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiAPIKey, secretDecryptionKey string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
+func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiServerServiceURL, estafetteCiAPIKey, secretDecryptionKey string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
 
 	var kubeClient *k8s.Client
 
@@ -78,6 +79,7 @@ func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiAPIKey, secretDecry
 		kubeClient:                      kubeClient,
 		dockerHubClient:                 dockerHubClient,
 		EstafetteCiServerBaseURL:        estafetteCiServerBaseURL,
+		EstafetteCiServerServiceURL:     estafetteCiServerServiceURL,
 		EstafetteCiAPIKey:               estafetteCiAPIKey,
 		secretDecryptionKey:             secretDecryptionKey,
 		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
@@ -113,7 +115,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteCiServerBaseURLName := "ESTAFETTE_CI_SERVER_BASE_URL"
 	estafetteCiServerBaseURLValue := cbc.EstafetteCiServerBaseURL
 	estafetteCiServerBuilderEventsURLName := "ESTAFETTE_CI_SERVER_BUILDER_EVENTS_URL"
-	estafetteCiServerBuilderEventsURLValue := strings.TrimRight(cbc.EstafetteCiServerBaseURL, "/") + "/events/estafette/ci-builder"
+	estafetteCiServerBuilderEventsURLValue := strings.TrimRight(cbc.EstafetteCiServerServiceURL, "/") + "/events/estafette/ci-builder"
 	estafetteCiAPIKeyName := "ESTAFETTE_CI_API_KEY"
 	estafetteCiAPIKeyValue := cbc.EstafetteCiAPIKey
 	estafetteCiBuilderTrackName := "ESTAFETTE_CI_BUILDER_TRACK"

@@ -154,6 +154,8 @@ spec:
           value: "${BITBUCKET_APP_OAUTH_SECRET}"
         - name: "ESTAFETTE_CI_SERVER_BASE_URL"
           value: "https://${HOSTNAMES}/"
+        - name: "ESTAFETTE_CI_SERVER_SERVICE_URL"
+          value: "http://estafette-ci-api/"
         - name: "ESTAFETTE_CI_API_KEY"
           value: "${ESTAFETTE_CI_API_KEY}"
         - name: "SLACK_APP_CLIENT_ID"
