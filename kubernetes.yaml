@@ -116,6 +116,16 @@ spec:
         prometheus.io/scrape-nginx-sidecar: "true"
     spec:
       serviceAccount: ${APP_NAME}
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 10
+            preference:
+              matchExpressions:
+              - key: cloud.google.com/gke-preemptible
+                operator: In
+                values:
+                - "true"
       containers:
       - name: ${APP_NAME}
         image: estafette/estafette-ci-api:${GO_PIPELINE_LABEL}
