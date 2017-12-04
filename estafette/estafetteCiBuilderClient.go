@@ -203,6 +203,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	restartPolicy := "Never"
 	privileged := true
 
+	preemptibleAffinityWeight := int32(10)
+	preemptibleAffinityKey := "cloud.google.com/gke-preemptible"
+	preemptibleAffinityOperator := "In"
+
 	job = &batchv1.Job{
 		Metadata: &metav1.ObjectMeta{
 			Name:      &jobName,
@@ -242,6 +246,26 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 						},
 					},
 					RestartPolicy: &restartPolicy,
+
+					Affinity: &apiv1.Affinity{
+						NodeAffinity: &apiv1.NodeAffinity{
+							PreferredDuringSchedulingIgnoredDuringExecution: []*apiv1.PreferredSchedulingTerm{
+								&apiv1.PreferredSchedulingTerm{
+									Weight: &preemptibleAffinityWeight,
+									// A node selector term, associated with the corresponding weight.
+									Preference: &apiv1.NodeSelectorTerm{
+										MatchExpressions: []*apiv1.NodeSelectorRequirement{
+											&apiv1.NodeSelectorRequirement{
+												Key:      &preemptibleAffinityKey,
+												Operator: &preemptibleAffinityOperator,
+												Values:   []string{"true"},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
