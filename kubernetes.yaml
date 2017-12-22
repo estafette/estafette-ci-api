@@ -41,6 +41,32 @@ spec:
           serviceName: ${APP_NAME}
           servicePort: https
 ---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ${APP_NAME}-slack
+  namespace: ${NAMESPACE}
+  labels:
+    app: ${APP_NAME}
+    team: ${TEAM_NAME}
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/secure-backends: "true"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "0.0.0.0/0"
+spec:
+  tls:
+  - hosts:
+    - ${HOSTNAMES}
+    secretName: ${APP_NAME}-letsencrypt-certificate
+  rules:
+  - host: ${HOSTNAMES}
+    http:
+      paths:
+      - path: /events/slack/
+        backend:
+          serviceName: ${APP_NAME}
+          servicePort: https
+---
 apiVersion: v1
 kind: Service
 metadata:
