@@ -1,25 +1,25 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ${NAMESPACE}
+  name: estafette
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: ${APP_NAME}
-  namespace: ${NAMESPACE}
+  name: estafette-ci-api
+  namespace: estafette
   labels:
-    app: ${APP_NAME}
-    team: ${TEAM_NAME}
+    app: estafette-ci-api
+    team: tooling
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: ${APP_NAME}
-  namespace: ${NAMESPACE}
+  name: estafette-ci-api
+  namespace: estafette
   labels:
-    app: ${APP_NAME}
-    team: ${TEAM_NAME}
+    app: estafette-ci-api
+    team: tooling
   annotations:
     kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/secure-backends: "true"
@@ -31,24 +31,24 @@ spec:
   tls:
   - hosts:
     - ${HOSTNAMES}
-    secretName: ${APP_NAME}-letsencrypt-certificate
+    secretName: estafette-ci-api-letsencrypt-certificate
   rules:
   - host: ${HOSTNAMES}
     http:
       paths:
       - path: /
         backend:
-          serviceName: ${APP_NAME}
+          serviceName: estafette-ci-api
           servicePort: https
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: ${APP_NAME}-slack
-  namespace: ${NAMESPACE}
+  name: estafette-ci-api-slack
+  namespace: estafette
   labels:
-    app: ${APP_NAME}
-    team: ${TEAM_NAME}
+    app: estafette-ci-api
+    team: tooling
   annotations:
     kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/secure-backends: "true"
@@ -57,24 +57,24 @@ spec:
   tls:
   - hosts:
     - ${HOSTNAMES}
-    secretName: ${APP_NAME}-letsencrypt-certificate
+    secretName: estafette-ci-api-letsencrypt-certificate
   rules:
   - host: ${HOSTNAMES}
     http:
       paths:
       - path: /events/slack/
         backend:
-          serviceName: ${APP_NAME}
+          serviceName: estafette-ci-api
           servicePort: https
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: ${APP_NAME}
-  namespace: ${NAMESPACE}
+  name: estafette-ci-api
+  namespace: estafette
   labels:
-    app: ${APP_NAME}
-    team: ${TEAM_NAME}
+    app: estafette-ci-api
+    team: tooling
   annotations:
     prometheus.io/probe: "true"
     prometheus.io/probe-path: "/readiness"
@@ -90,16 +90,16 @@ spec:
     targetPort: https
     protocol: TCP
   selector:
-    app: ${APP_NAME}
+    app: estafette-ci-api
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: ${APP_NAME}-letsencrypt-certificate
-  namespace: ${NAMESPACE}
+  name: estafette-ci-api-letsencrypt-certificate
+  namespace: estafette
   labels:
-    app: ${APP_NAME}
-    team: ${TEAM_NAME}
+    app: estafette-ci-api
+    team: tooling
   annotations:
     estafette.io/letsencrypt-certificate: "true"
     estafette.io/letsencrypt-certificate-hostnames: "${HOSTNAMES}"
@@ -108,11 +108,11 @@ type: Opaque
 apiVersion: v1
 kind: Secret
 metadata:
-  name: ${APP_NAME}-github-app-key
-  namespace: ${NAMESPACE}
+  name: estafette-ci-api-github-app-key
+  namespace: estafette
   labels:
-    app: ${APP_NAME}
-    team: ${TEAM_NAME}
+    app: estafette-ci-api
+    team: tooling
 type: Opaque
 data:
   private-key.pem: ${GITHUB_APP_PRIVATE_KEY}
@@ -120,29 +120,40 @@ data:
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: ${APP_NAME}
-  namespace: ${NAMESPACE}
+  name: estafette-ci-api
+  namespace: estafette
   labels:
-    app: ${APP_NAME}
-    team: ${TEAM_NAME}
+    app: estafette-ci-api
+    team: tooling
 spec:
   revisionHistoryLimit: 10
   selector:
     matchLabels:
-      app: ${APP_NAME}
+      app: estafette-ci-api
   template:
     metadata:
       labels:
-        app: ${APP_NAME}
-        team: ${TEAM_NAME}
+        app: estafette-ci-api
+        team: tooling
         version: ${VERSION}
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9001"
         prometheus.io/scrape-nginx-sidecar: "true"
     spec:
-      serviceAccount: ${APP_NAME}
+      serviceAccount: estafette-ci-api
       affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - estafette-ci-api
+              topologyKey: kubernetes.io/hostname
         nodeAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 10
@@ -153,7 +164,7 @@ spec:
                 values:
                 - "true"
       containers:
-      - name: ${APP_NAME}
+      - name: estafette-ci-api
         image: estafette/estafette-ci-api:${GO_PIPELINE_LABEL}
         imagePullPolicy: Always
         resources:
@@ -222,7 +233,7 @@ spec:
             port: api
           initialDelaySeconds: 30
           timeoutSeconds: 1
-      - name: ${APP_NAME}-openresty
+      - name: estafette-ci-api-openresty
         image: estafette/openresty-sidecar:1.13.6.1-alpine
         imagePullPolicy: Always
         resources:
@@ -249,9 +260,9 @@ spec:
         - name: "OFFLOAD_TO_PORT"
           value: "5000"
         - name: "SERVICE_NAME"
-          value: "${APP_NAME}"
+          value: "estafette-ci-api"
         - name: "NAMESPACE"
-          value: "${NAMESPACE}"
+          value: "estafette"
         - name: "HEALT_CHECK_PATH"
           value: "/readiness"
         volumeMounts:
@@ -269,23 +280,38 @@ spec:
       volumes:
       - name: ssl-certificate
         secret:
-          secretName: ${APP_NAME}-letsencrypt-certificate
+          secretName: estafette-ci-api-letsencrypt-certificate
       - name: github-app-key
         secret:
-          secretName: ${APP_NAME}-github-app-key
+          secretName: estafette-ci-api-github-app-key
 ---
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: ${APP_NAME}
-  namespace: ${NAMESPACE}
+  name: estafette-ci-api
+  namespace: estafette
   labels:
-    app: ${APP_NAME}
-    team: ${TEAM_NAME}
+    app: estafette-ci-api
+    team: tooling
 spec:
   scaleTargetRef:
+    apiVersion: extensions/v1beta1
     kind: Deployment
-    name: ${APP_NAME}
-  minReplicas: ${MIN_PODS}
+    name: estafette-ci-api
+  minReplicas: 3
   maxReplicas: ${MAX_PODS}
-  targetCPUUtilizationPercentage: ${AUTOSCALE_CPU_TARGET_PERCENTAGE}
+  targetCPUUtilizationPercentage: 80
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: estafette-ci-api
+  namespace: estafette
+  labels:
+    app: estafette-ci-api
+    team: tooling
+spec:
+  selector:
+    matchLabels:
+      app: estafette-ci-api
+  minAvailable: 2
