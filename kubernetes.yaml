@@ -36,11 +36,15 @@ spec:
   - host: ${HOSTNAMES}
     http:
       paths:
-      - path: /events
+      - path: /events/
         backend:
           serviceName: estafette-ci-api
           servicePort: https
-      - path: /logs
+      - path: /logs/
+        backend:
+          serviceName: estafette-ci-api
+          servicePort: https
+      - path: /
         backend:
           serviceName: estafette-ci-api
           servicePort: https
