@@ -1,6 +1,7 @@
 package bitbucket
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/estafette/estafette-ci-api/cockroach"
@@ -143,8 +144,8 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 	// store build in db
 	err = w.cockroachDBClient.InsertBuild(cockroach.Build{
 		RepoSource:   "bitbucket",
-		RepoOwner:    pushEvent.Repository.Owner.DisplayName,
-		RepoName:     pushEvent.Repository.Name,
+		RepoOwner:    strings.Split(pushEvent.Repository.FullName, "/")[0],
+		RepoName:     strings.Split(pushEvent.Repository.FullName, "/")[1],
 		RepoBranch:   pushEvent.Push.Changes[0].New.Name,
 		RepoRevision: pushEvent.Push.Changes[0].New.Target.Hash,
 		BuildVersion: buildVersion,
