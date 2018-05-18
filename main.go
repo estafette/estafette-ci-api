@@ -341,6 +341,10 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 
 		builds, err := cockroachDBClient.GetPipelines(page)
+		if err != nil {
+			log.Error().Err(err).
+				Msg("Failed retrieving pipelines from db")
+		}
 
 		c.JSON(http.StatusOK, builds)
 	})
@@ -359,6 +363,10 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 
 		builds, err := cockroachDBClient.GetPipelineBuilds(source, owner, repo, page)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed retrieving builds for %v/%v/%v from db", source, owner, repo)
+		}
 
 		c.JSON(http.StatusOK, builds)
 	})
