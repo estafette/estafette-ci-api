@@ -310,9 +310,9 @@ func (dbc *cockroachDBClientImpl) GetPipelines(page int) (builds []Build, err er
      SELECT *, 
        RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) build_version_rank
        FROM builds
-     ) where build_version_rank = 1 ORDER BY repo_source,repo_owner,repo_name LIMIT $1,$2`,
+	 ) where build_version_rank = 1 ORDER BY repo_source,repo_owner,repo_name LIMIT $1 OFFSET $2`,
+		20,
 		(page-1)*20,
-		page*20,
 	)
 	if err != nil {
 		return
@@ -351,12 +351,12 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 
 	builds = make([]Build, 0)
 
-	rows, err := dbc.databaseConnection.Query("SELECT * FROM builds WHERE repo_source=$1,repo_owner=$2,repo_name=$3 ORDER BY inserted_at DESC LIMIT $4,$5",
+	rows, err := dbc.databaseConnection.Query("SELECT * FROM builds WHERE repo_source=$1,repo_owner=$2,repo_name=$3 ORDER BY inserted_at DESC LIMIT $4 OFFSET $5",
 		repoSource,
 		repoOwner,
 		repoName,
+		20,
 		(page-1)*20,
-		page*20,
 	)
 	if err != nil {
 		return
