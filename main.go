@@ -345,6 +345,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 			log.Error().Err(err).
 				Msg("Failed retrieving pipelines from db")
 		}
+		log.Info().Msgf("Retrieved %v pipelines", len(builds))
 
 		c.JSON(http.StatusOK, builds)
 	})
@@ -367,6 +368,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 			log.Error().Err(err).
 				Msgf("Failed retrieving builds for %v/%v/%v from db", source, owner, repo)
 		}
+		log.Info().Msgf("Retrieved %v builds for %v/%v/%v", len(builds), source, owner, repo)
 
 		c.JSON(http.StatusOK, builds)
 	})

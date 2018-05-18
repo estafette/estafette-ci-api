@@ -36,16 +36,16 @@ type BuildVersionDetail struct {
 
 // Build represents a specific build, including version number, repo, branch, revision, labels and manifest
 type Build struct {
-	ID           int
-	RepoSource   string
-	RepoOwner    string
-	RepoName     string
-	RepoBranch   string
-	RepoRevision string
-	BuildVersion string
-	BuildStatus  string
-	Labels       string
-	Manifest     string
-	InsertedAt   time.Time
-	UpdatedAt    time.Time
+	ID           int       `json:"id"`
+	RepoSource   string    `json:"repoSource"`
+	RepoOwner    string    `json:"repoOwner"`
+	RepoName     string    `json:"repoName"`
+	RepoBranch   string    `json:"repoBranch"`
+	RepoRevision string    `json:"repoRevision"`
+	BuildVersion string    `json:"buildVersion"`
+	BuildStatus  string    `json:"buildStatus"`
+	Labels       string    `json:"labels"`
+	Manifest     string    `json:"manifest"`
+	InsertedAt   time.Time `json:"insertedAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
 }
