@@ -261,7 +261,7 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build Build) (err error) {
 
 	// insert logs
 	_, err = dbc.databaseConnection.Exec(
-		"INSERT INTO builds (repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,manifest) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+		"INSERT INTO builds (repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,manifest) VALUES ($1,$2,$3,$4,$5,$6,$7,$9)",
 		build.RepoSource,
 		build.RepoOwner,
 		build.RepoName,
@@ -269,7 +269,6 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build Build) (err error) {
 		build.RepoRevision,
 		build.BuildVersion,
 		build.BuildStatus,
-		build.Labels,
 		build.Manifest,
 	)
 
