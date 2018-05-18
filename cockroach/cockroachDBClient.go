@@ -285,7 +285,7 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 
 	// insert logs
 	_, err = dbc.databaseConnection.Exec(
-		"UPDATE builds SET build_status=$1,updated_at=now() WHERE repo_source=$2, repo_owner=$3, repo_name=$4, repo_revision=$5",
+		"UPDATE builds SET build_status=$1,updated_at=now() WHERE repo_source=$2 AND repo_owner=$3 AND repo_name=$4 AND repo_revision=$5",
 		buildStatus,
 		repoSource,
 		repoOwner,
@@ -350,7 +350,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 
 	builds = make([]Build, 0)
 
-	rows, err := dbc.databaseConnection.Query("SELECT id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,'' as labels,manifest,inserted_at,updated_at FROM builds WHERE repo_source=$1,repo_owner=$2,repo_name=$3 ORDER BY inserted_at DESC LIMIT $4 OFFSET $5",
+	rows, err := dbc.databaseConnection.Query("SELECT id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,'' as labels,manifest,inserted_at,updated_at FROM builds WHERE repo_source=$1 AND repo_owner=$2 AND repo_name=$3 ORDER BY inserted_at DESC LIMIT $4 OFFSET $5",
 		repoSource,
 		repoOwner,
 		repoName,
