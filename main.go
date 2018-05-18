@@ -347,7 +347,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 		log.Info().Msgf("Retrieved %v pipelines", len(builds))
 
-		c.JSON(http.StatusOK, builds)
+		c.JSON(http.StatusOK, gin.H{"data": builds})
 	})
 
 	router.GET("/api/pipelines/:source/:owner/:repo", func(c *gin.Context) {
@@ -370,7 +370,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 		log.Info().Msgf("Retrieved %v builds for %v/%v/%v", len(builds), source, owner, repo)
 
-		c.JSON(http.StatusOK, builds)
+		c.JSON(http.StatusOK, gin.H{"data": builds})
 	})
 
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown
