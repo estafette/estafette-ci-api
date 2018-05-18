@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -348,10 +350,11 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 		log.Info().Msgf("Retrieved %v pipelines", len(builds))
 
-		jsonapi.MarshalPayload(c.Writer, builds)
-		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
-		c.Status(http.StatusOK)
-		c.Writer.WriteHeaderNow()
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		err = jsonapi.MarshalPayload(w, builds)
+
+		c.Data(http.StatusOK, jsonapi.MediaType, b.Bytes())
 	})
 
 	router.GET("/api/pipelines/:source/:owner/:repo", func(c *gin.Context) {
@@ -374,10 +377,11 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 		log.Info().Msgf("Retrieved %v builds for %v/%v/%v", len(builds), source, owner, repo)
 
-		jsonapi.MarshalPayload(c.Writer, builds)
-		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
-		c.Status(http.StatusOK)
-		c.Writer.WriteHeaderNow()
+		var b bytes.Buffer
+		w := bufio.NewWriter(&b)
+		err = jsonapi.MarshalPayload(w, builds)
+
+		c.Data(http.StatusOK, jsonapi.MediaType, b.Bytes())
 	})
 
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown
