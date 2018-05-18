@@ -25,6 +25,7 @@ import (
 	"github.com/estafette/estafette-ci-api/slack"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
+	"github.com/google/jsonapi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
@@ -347,7 +348,10 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 		log.Info().Msgf("Retrieved %v pipelines", len(builds))
 
-		c.JSON(http.StatusOK, gin.H{"data": builds})
+		jsonapi.MarshalPayload(c.Writer, builds)
+		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
+		c.Status(http.StatusOK)
+		c.Writer.WriteHeaderNow()
 	})
 
 	router.GET("/api/pipelines/:source/:owner/:repo", func(c *gin.Context) {
@@ -370,7 +374,10 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 		log.Info().Msgf("Retrieved %v builds for %v/%v/%v", len(builds), source, owner, repo)
 
-		c.JSON(http.StatusOK, gin.H{"data": builds})
+		jsonapi.MarshalPayload(c.Writer, builds)
+		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
+		c.Status(http.StatusOK)
+		c.Writer.WriteHeaderNow()
 	})
 
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown

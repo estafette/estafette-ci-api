@@ -15,3 +15,4 @@ govendor fetch github.com/estafette/estafette-ci-crypt@0.0.1
 govendor fetch github.com/lib/pq
 govendor fetch github.com/pressly/goose@v2.3.0
 govendor fetch github.com/mattn/go-sqlite3@v1.2.0
+govendor fetch github.com/google/jsonapi@1.0.0

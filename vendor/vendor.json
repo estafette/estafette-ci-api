@@ -365,6 +365,14 @@
 			"revisionTime": "2017-01-11T10:11:55Z"
 		},
 		{
+			"checksumSHA1": "E7Djn1SNHKdlf/jL7mq+gFyTz38=",
+			"path": "github.com/google/jsonapi",
+			"revision": "46d3ced0434461be12e555852e2f1a9ed382e139",
+			"revisionTime": "2017-07-08T00:58:51Z",
+			"version": "1.0.0",
+			"versionExact": "1.0.0"
+		},
+		{
 			"checksumSHA1": "rJmL/UTcLMkPVtrycsoFt4iQN18=",
 			"path": "github.com/lib/pq",
 			"revision": "e42267488fe361b9dc034be7a6bffef5b195bceb",
