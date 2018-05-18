@@ -305,7 +305,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(page int) (builds []Build, err er
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	builds = make([]Build, 0)
-	rows, err := dbc.databaseConnection.Query(`SELECT id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,manifest,inserted_at,updated_at FROM (
+	rows, err := dbc.databaseConnection.Query(`SELECT id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,'' as labels,manifest,inserted_at,updated_at FROM (
      SELECT *, 
        RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) build_version_rank
        FROM builds
@@ -350,7 +350,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 
 	builds = make([]Build, 0)
 
-	rows, err := dbc.databaseConnection.Query("SELECT id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,manifest,inserted_at,updated_at FROM builds WHERE repo_source=$1,repo_owner=$2,repo_name=$3 ORDER BY inserted_at DESC LIMIT $4 OFFSET $5",
+	rows, err := dbc.databaseConnection.Query("SELECT id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,'' as labels,manifest,inserted_at,updated_at FROM builds WHERE repo_source=$1,repo_owner=$2,repo_name=$3 ORDER BY inserted_at DESC LIMIT $4 OFFSET $5",
 		repoSource,
 		repoOwner,
 		repoName,
