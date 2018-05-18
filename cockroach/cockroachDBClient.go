@@ -332,7 +332,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(page int) (builds []Build, err er
 			&build.RepoRevision,
 			&build.BuildVersion,
 			&build.BuildStatus,
-			&build.Labels,
+			//&build.Labels,
 			&build.Manifest,
 			&build.InsertedAt,
 			&build.UpdatedAt); err != nil {
@@ -376,7 +376,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 			&build.RepoRevision,
 			&build.BuildVersion,
 			&build.BuildStatus,
-			&build.Labels,
+			//&build.Labels,
 			&build.Manifest,
 			&build.InsertedAt,
 			&build.UpdatedAt); err != nil {
