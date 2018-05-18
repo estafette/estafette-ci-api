@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -328,6 +329,38 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 
 		c.String(http.StatusOK, strings.Join(logTexts, "\n"))
+	})
+
+	router.GET("/api/pipelines", func(c *gin.Context) {
+
+		// get page query string value or default to 1
+		pageValue, pageExists := c.GetQuery("page")
+		page, err := strconv.Atoi(pageValue)
+		if !pageExists || err != nil {
+			page = 1
+		}
+
+		builds, err := cockroachDBClient.GetPipelines(page)
+
+		c.JSON(http.StatusOK, builds)
+	})
+
+	router.GET("/api/pipelines/:source/:owner/:repo", func(c *gin.Context) {
+
+		source := c.Param("source")
+		owner := c.Param("owner")
+		repo := c.Param("repo")
+
+		// get page query string value or default to 1
+		pageValue, pageExists := c.GetQuery("page")
+		page, err := strconv.Atoi(pageValue)
+		if !pageExists || err != nil {
+			page = 1
+		}
+
+		builds, err := cockroachDBClient.GetPipelineBuilds(source, owner, repo, page)
+
+		c.JSON(http.StatusOK, builds)
 	})
 
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown

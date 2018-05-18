@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
+	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -105,6 +105,10 @@ func AddNamedMigration(filename string, up func(*sql.Tx) error, down func(*sql.T
 // CollectMigrations returns all the valid looking migration scripts in the
 // migrations folder and go func registry, and key them by version.
 func CollectMigrations(dirpath string, current, target int64) (Migrations, error) {
+	if _, err := os.Stat(dirpath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("%s directory does not exists", dirpath)
+	}
+
 	var migrations Migrations
 
 	// SQL migration files.
@@ -237,7 +241,7 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 	return 0, ErrNoNextVersion
 }
 
-// Create the goose_db_version table
+// Create the db version table
 // and insert the initial 0 value into it
 func createVersionTable(db *sql.DB) error {
 	txn, err := db.Begin()

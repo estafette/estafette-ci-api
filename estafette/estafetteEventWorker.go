@@ -12,6 +12,7 @@ type EventWorker interface {
 	ListenToCiBuilderEventChannels()
 	ListenToBuildJobLogsEventChannels()
 	RemoveJobForEstafetteBuild(CiBuilderEvent)
+	UpdateBuildStatus(CiBuilderEvent)
 	InsertLogs(cockroach.BuildJobLogs)
 }
 
@@ -52,6 +53,7 @@ func (w *eventWorkerImpl) ListenToCiBuilderEventChannels() {
 			case ciBuilderEvent := <-w.ciBuilderEventsChannel:
 				go func() {
 					w.waitGroup.Add(1)
+					w.UpdateBuildStatus(ciBuilderEvent)
 					w.RemoveJobForEstafetteBuild(ciBuilderEvent)
 					w.waitGroup.Done()
 				}()
@@ -101,6 +103,25 @@ func (w *eventWorkerImpl) RemoveJobForEstafetteBuild(ciBuilderEvent CiBuilderEve
 	log.Info().
 		Str("jobName", ciBuilderEvent.JobName).
 		Msgf("Removed ci-builder job %v", ciBuilderEvent.JobName)
+}
+
+func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) {
+
+	// check build status for backwards compatibility of builder
+	if ciBuilderEvent.BuildStatus != "" {
+
+		err := w.cockroachDBClient.UpdateBuildStatus(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, ciBuilderEvent.RepoRevision, ciBuilderEvent.BuildStatus)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Updating build status for job %v failed", ciBuilderEvent.JobName)
+
+			return
+		}
+
+		log.Info().
+			Str("jobName", ciBuilderEvent.JobName).
+			Msgf("Updated build status for ci-builder job %v to %v", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
+	}
 }
 
 func (w *eventWorkerImpl) InsertLogs(buildJobLogs cockroach.BuildJobLogs) {

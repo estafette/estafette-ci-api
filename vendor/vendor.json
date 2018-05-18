@@ -403,12 +403,12 @@
 			"revisionTime": "2016-01-10T10:55:54Z"
 		},
 		{
-			"checksumSHA1": "YiyPwodXfmWgqgUDm739uMxHIpw=",
+			"checksumSHA1": "84t/r2jCAua2k2d2FUEhP9iGdVQ=",
 			"path": "github.com/pressly/goose",
-			"revision": "056a4d47dcc4d67fa3947a4f13945a5c690e568b",
-			"revisionTime": "2017-07-07T14:39:44Z",
-			"version": "v2.1.0",
-			"versionExact": "v2.1.0"
+			"revision": "95600eb369b1f657efd54a401ab85d0647a1db80",
+			"revisionTime": "2018-05-03T15:24:55Z",
+			"version": "v2.3.0",
+			"versionExact": "v2.3.0"
 		},
 		{
 			"checksumSHA1": "YZvQ/pFowcTMs4ldf0B7vPG/hKU=",

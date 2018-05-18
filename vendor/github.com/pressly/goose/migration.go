@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -38,7 +37,7 @@ func (m *Migration) Up(db *sql.DB) error {
 	if err := m.run(db, true); err != nil {
 		return err
 	}
-	fmt.Println("OK   ", filepath.Base(m.Source))
+	log.Println("OK   ", filepath.Base(m.Source))
 	return nil
 }
 
@@ -47,7 +46,7 @@ func (m *Migration) Down(db *sql.DB) error {
 	if err := m.run(db, false); err != nil {
 		return err
 	}
-	fmt.Println("OK   ", filepath.Base(m.Source))
+	log.Println("OK   ", filepath.Base(m.Source))
 	return nil
 }
 

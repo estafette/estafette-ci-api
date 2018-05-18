@@ -9,7 +9,7 @@ import (
 )
 
 // Create writes a new blank migration file.
-func Create(db *sql.DB, dir, name, migrationType string) error {
+func CreateWithTemplate(db *sql.DB, dir string, migrationTemplate *template.Template, name, migrationType string) error {
 	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
@@ -25,9 +25,14 @@ func Create(db *sql.DB, dir, name, migrationType string) error {
 	filename := fmt.Sprintf("%v_%v.%v", version, name, migrationType)
 
 	fpath := filepath.Join(dir, filename)
+
 	tmpl := sqlMigrationTemplate
 	if migrationType == "go" {
 		tmpl = goSQLMigrationTemplate
+	}
+
+	if migrationTemplate != nil {
+		tmpl = migrationTemplate
 	}
 
 	path, err := writeTemplateToFile(fpath, tmpl, version)
@@ -35,8 +40,13 @@ func Create(db *sql.DB, dir, name, migrationType string) error {
 		return err
 	}
 
-	fmt.Printf("Created new file: %s\n", path)
+	log.Printf("Created new file: %s\n", path)
 	return nil
+}
+
+// Create writes a new blank migration file.
+func Create(db *sql.DB, dir, name, migrationType string) error {
+	return CreateWithTemplate(db, dir, nil, name, migrationType)
 }
 
 func writeTemplateToFile(path string, t *template.Template, version string) (string, error) {

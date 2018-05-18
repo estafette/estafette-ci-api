@@ -33,3 +33,19 @@ type BuildVersionDetail struct {
 	Manifest     string
 	InsertedAt   time.Time
 }
+
+// Build represents a specific build, including version number, repo, branch, revision, labels and manifest
+type Build struct {
+	ID           int
+	RepoSource   string
+	RepoOwner    string
+	RepoName     string
+	RepoBranch   string
+	RepoRevision string
+	BuildVersion string
+	BuildStatus  string
+	Labels       string
+	Manifest     string
+	InsertedAt   time.Time
+	UpdatedAt    time.Time
+}

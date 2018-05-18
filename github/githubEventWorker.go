@@ -141,6 +141,23 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 			Msgf("Failed inserting version details into db for Bitbucket repository %v", pushEvent.Repository.FullName)
 	}
 
+	// store build in db
+	err = w.cockroachDBClient.InsertBuild(cockroach.Build{
+		RepoSource:   "github",
+		RepoOwner:    strings.Split(pushEvent.Repository.FullName, "/")[0],
+		RepoName:     pushEvent.Repository.Name,
+		RepoBranch:   strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
+		RepoRevision: pushEvent.After,
+		BuildVersion: buildVersion,
+		BuildStatus:  "running",
+		Labels:       "",
+		Manifest:     manifestString,
+	})
+	if err != nil {
+		log.Warn().Err(err).
+			Msgf("Failed inserting build into db for Bitbucket repository %v", pushEvent.Repository.FullName)
+	}
+
 	// define ci builder params
 	ciBuilderParams := estafette.CiBuilderParams{
 		RepoSource:           "github",

@@ -23,6 +23,10 @@ type DBClient interface {
 	GetAutoIncrement(string, string) (int, error)
 	InsertBuildVersionDetail(BuildVersionDetail) error
 	GetBuildVersionDetail(string, string, string) (BuildVersionDetail, error)
+	InsertBuild(Build) error
+	UpdateBuildStatus(string, string, string, string, string) error
+	GetPipelines(int) ([]Build, error)
+	GetPipelineBuilds(string, string, string, int) ([]Build, error)
 }
 
 type cockroachDBClientImpl struct {
@@ -248,6 +252,140 @@ func (dbc *cockroachDBClientImpl) GetBuildVersionDetail(buildVersion, repoSource
 	}
 
 	err = errors.New("Record does not exist")
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) InsertBuild(build Build) (err error) {
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// insert logs
+	_, err = dbc.databaseConnection.Exec(
+		"INSERT INTO builds (repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,manifest) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+		build.RepoSource,
+		build.RepoOwner,
+		build.RepoName,
+		build.RepoBranch,
+		build.RepoRevision,
+		build.BuildVersion,
+		build.BuildStatus,
+		build.Labels,
+		build.Manifest,
+	)
+
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoName, repoRevision, buildStatus string) (err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// insert logs
+	_, err = dbc.databaseConnection.Exec(
+		"UPDATE builds SET build_status=$1,updated_at=now() WHERE repo_source=$2, repo_owner=$3, repo_name=$4, repo_revision=$5",
+		buildStatus,
+		repoSource,
+		repoOwner,
+		repoName,
+		repoRevision,
+	)
+
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelines(page int) (builds []Build, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	builds = make([]Build, 0)
+
+	rows, err := dbc.databaseConnection.Query(`SELECT * FROM ( 
+     SELECT *, 
+       RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) build_version_rank
+       FROM builds
+     ) where build_version_rank = 1 ORDER BY repo_source,repo_owner,repo_name LIMIT $1,$2`,
+		(page-1)*20,
+		page*20,
+	)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		build := Build{}
+
+		if err := rows.Scan(
+			&build.ID,
+			&build.RepoSource,
+			&build.RepoOwner,
+			&build.RepoName,
+			&build.RepoBranch,
+			&build.RepoRevision,
+			&build.BuildVersion,
+			&build.BuildStatus,
+			&build.Labels,
+			&build.Manifest,
+			&build.InsertedAt,
+			&build.UpdatedAt); err != nil {
+			return nil, err
+		}
+
+		builds = append(builds, build)
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoName string, page int) (builds []Build, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	builds = make([]Build, 0)
+
+	rows, err := dbc.databaseConnection.Query("SELECT * FROM builds WHERE repo_source=$1,repo_owner=$2,repo_name=$3 ORDER BY inserted_at DESC LIMIT $4,$5",
+		repoSource,
+		repoOwner,
+		repoName,
+		(page-1)*20,
+		page*20,
+	)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		build := Build{}
+
+		if err := rows.Scan(
+			&build.ID,
+			&build.RepoSource,
+			&build.RepoOwner,
+			&build.RepoName,
+			&build.RepoBranch,
+			&build.RepoRevision,
+			&build.BuildVersion,
+			&build.BuildStatus,
+			&build.Labels,
+			&build.Manifest,
+			&build.InsertedAt,
+			&build.UpdatedAt); err != nil {
+			return nil, err
+		}
+
+		builds = append(builds, build)
+	}
 
 	return
 }

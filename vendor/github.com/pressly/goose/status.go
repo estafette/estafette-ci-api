@@ -3,7 +3,6 @@ package goose
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"path/filepath"
 	"time"
 )
@@ -21,8 +20,8 @@ func Status(db *sql.DB, dir string) error {
 		return err
 	}
 
-	fmt.Println("    Applied At                  Migration")
-	fmt.Println("    =======================================")
+	log.Println("    Applied At                  Migration")
+	log.Println("    =======================================")
 	for _, migration := range migrations {
 		printMigrationStatus(db, migration.Version, filepath.Base(migration.Source))
 	}
@@ -32,7 +31,7 @@ func Status(db *sql.DB, dir string) error {
 
 func printMigrationStatus(db *sql.DB, version int64, script string) {
 	var row MigrationRecord
-	q := fmt.Sprintf("SELECT tstamp, is_applied FROM goose_db_version WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", version)
+	q := fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", TableName(), version)
 	e := db.QueryRow(q).Scan(&row.TStamp, &row.IsApplied)
 
 	if e != nil && e != sql.ErrNoRows {
@@ -47,5 +46,5 @@ func printMigrationStatus(db *sql.DB, version int64, script string) {
 		appliedAt = "Pending"
 	}
 
-	fmt.Printf("    %-24s -- %v\n", appliedAt, script)
+	log.Printf("    %-24s -- %v\n", appliedAt, script)
 }
