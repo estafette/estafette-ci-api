@@ -349,11 +349,12 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		log.Info().Msgf("Retrieved %v pipelines", len(builds))
 
 		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
-		c.Writer.WriteHeader(http.StatusOK)
+		c.Status(http.StatusOK)
 
 		if err := jsonapi.MarshalPayload(c.Writer, builds); err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 		}
+		c.Writer.Flush()
 	})
 
 	router.GET("/api/pipelines/:source/:owner/:repo", func(c *gin.Context) {
@@ -377,11 +378,12 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		log.Info().Msgf("Retrieved %v builds for %v/%v/%v", len(builds), source, owner, repo)
 
 		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
-		c.Writer.WriteHeader(http.StatusOK)
+		c.Status(http.StatusOK)
 
 		if err := jsonapi.MarshalPayload(c.Writer, builds); err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 		}
+		c.Writer.Flush()
 	})
 
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown
