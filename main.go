@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -350,11 +348,12 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 		log.Info().Msgf("Retrieved %v pipelines", len(builds))
 
-		var b bytes.Buffer
-		w := bufio.NewWriter(&b)
-		err = jsonapi.MarshalPayload(w, builds)
+		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
+		c.Writer.WriteHeader(http.StatusOK)
 
-		c.Data(http.StatusOK, jsonapi.MediaType, b.Bytes())
+		if err := jsonapi.MarshalPayload(c.Writer, builds); err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		}
 	})
 
 	router.GET("/api/pipelines/:source/:owner/:repo", func(c *gin.Context) {
@@ -377,11 +376,12 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 		log.Info().Msgf("Retrieved %v builds for %v/%v/%v", len(builds), source, owner, repo)
 
-		var b bytes.Buffer
-		w := bufio.NewWriter(&b)
-		err = jsonapi.MarshalPayload(w, builds)
+		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
+		c.Writer.WriteHeader(http.StatusOK)
 
-		c.Data(http.StatusOK, jsonapi.MediaType, b.Bytes())
+		if err := jsonapi.MarshalPayload(c.Writer, builds); err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		}
 	})
 
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown
