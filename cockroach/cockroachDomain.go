@@ -37,15 +37,15 @@ type BuildVersionDetail struct {
 // Build represents a specific build, including version number, repo, branch, revision, labels and manifest
 type Build struct {
 	ID           string    `jsonapi:"primary,pipeline"`
-	RepoSource   string    `jsonapi:"attr,repoSource"`
-	RepoOwner    string    `jsonapi:"attr,repoOwner"`
-	RepoName     string    `jsonapi:"attr,repoName"`
-	RepoBranch   string    `jsonapi:"attr,repoBranch"`
-	RepoRevision string    `jsonapi:"attr,repoRevision"`
-	BuildVersion string    `jsonapi:"attr,buildVersion"`
-	BuildStatus  string    `jsonapi:"attr,buildStatus"`
+	RepoSource   string    `jsonapi:"attr,repo-source"`
+	RepoOwner    string    `jsonapi:"attr,repo-owner"`
+	RepoName     string    `jsonapi:"attr,repo-name"`
+	RepoBranch   string    `jsonapi:"attr,repo-branch"`
+	RepoRevision string    `jsonapi:"attr,repo-revision"`
+	BuildVersion string    `jsonapi:"attr,build-version"`
+	BuildStatus  string    `jsonapi:"attr,build-status"`
 	Labels       string    `jsonapi:"attr,labels"`
 	Manifest     string    `jsonapi:"attr,manifest"`
-	InsertedAt   time.Time `jsonapi:"attr,insertedAt"`
-	UpdatedAt    time.Time `jsonapi:"attr,updatedAt"`
+	InsertedAt   time.Time `jsonapi:"attr,inserted-at"`
+	UpdatedAt    time.Time `jsonapi:"attr,updated-at"`
 }
