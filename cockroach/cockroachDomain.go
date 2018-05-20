@@ -36,7 +36,7 @@ type BuildVersionDetail struct {
 
 // Build represents a specific build, including version number, repo, branch, revision, labels and manifest
 type Build struct {
-	ID           int       `jsonapi:"primary,pipelines"`
+	ID           string    `jsonapi:"primary,pipelines"`
 	RepoSource   string    `jsonapi:"attr,repo-source"`
 	RepoOwner    string    `jsonapi:"attr,repo-owner"`
 	RepoName     string    `jsonapi:"attr,repo-name"`

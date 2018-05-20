@@ -25,8 +25,8 @@ type DBClient interface {
 	GetBuildVersionDetail(string, string, string) (BuildVersionDetail, error)
 	InsertBuild(Build) error
 	UpdateBuildStatus(string, string, string, string, string) error
-	GetPipelines(int) ([]Build, error)
-	GetPipelineBuilds(string, string, string, int) ([]Build, error)
+	GetPipelines(int) ([]*Build, error)
+	GetPipelineBuilds(string, string, string, int) ([]*Build, error)
 }
 
 type cockroachDBClientImpl struct {
@@ -300,12 +300,12 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelines(page int) (builds []Build, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelines(page int) (builds []*Build, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	builds = make([]Build, 0)
-	rows, err := dbc.databaseConnection.Query(`SELECT id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,'' as labels,manifest,inserted_at,updated_at FROM (
+	builds = make([]*Build, 0)
+	rows, err := dbc.databaseConnection.Query(`SELECT CONCAT(repo_source,'/',repo_owner,'/',repo_name) as id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,'' as labels,manifest,inserted_at,updated_at FROM (
      SELECT *, 
        RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) build_version_rank
        FROM builds
@@ -338,19 +338,19 @@ func (dbc *cockroachDBClientImpl) GetPipelines(page int) (builds []Build, err er
 			return nil, err
 		}
 
-		builds = append(builds, build)
+		builds = append(builds, &build)
 	}
 
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoName string, page int) (builds []Build, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoName string, page int) (builds []*Build, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	builds = make([]Build, 0)
+	builds = make([]*Build, 0)
 
-	rows, err := dbc.databaseConnection.Query("SELECT id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,'' as labels,manifest,inserted_at,updated_at FROM builds WHERE repo_source=$1 AND repo_owner=$2 AND repo_name=$3 ORDER BY inserted_at DESC LIMIT $4 OFFSET $5",
+	rows, err := dbc.databaseConnection.Query("SELECT CONCAT(repo_source,'/',repo_owner,'/',repo_name) as id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,'' as labels,manifest,inserted_at,updated_at FROM builds WHERE repo_source=$1 AND repo_owner=$2 AND repo_name=$3 ORDER BY inserted_at DESC LIMIT $4 OFFSET $5",
 		repoSource,
 		repoOwner,
 		repoName,
@@ -382,7 +382,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 			return nil, err
 		}
 
-		builds = append(builds, build)
+		builds = append(builds, &build)
 	}
 
 	return
