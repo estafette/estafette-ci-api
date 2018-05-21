@@ -127,23 +127,9 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 		})
 	}
 
-	// store version details in db
-	err = w.cockroachDBClient.InsertBuildVersionDetail(cockroach.BuildVersionDetail{
-		BuildVersion: buildVersion,
-		RepoSource:   "github",
-		RepoFullName: pushEvent.Repository.FullName,
-		RepoBranch:   strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
-		RepoRevision: pushEvent.After,
-		Manifest:     manifestString,
-	})
-	if err != nil {
-		log.Warn().Err(err).
-			Msgf("Failed inserting version details into db for Bitbucket repository %v", pushEvent.Repository.FullName)
-	}
-
 	// store build in db
 	err = w.cockroachDBClient.InsertBuild(cockroach.Build{
-		RepoSource:   "github",
+		RepoSource:   "github.com",
 		RepoOwner:    strings.Split(pushEvent.Repository.FullName, "/")[0],
 		RepoName:     pushEvent.Repository.Name,
 		RepoBranch:   strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
@@ -160,7 +146,7 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 
 	// define ci builder params
 	ciBuilderParams := estafette.CiBuilderParams{
-		RepoSource:           "github",
+		RepoSource:           "github.com",
 		RepoFullName:         pushEvent.Repository.FullName,
 		RepoURL:              authenticatedRepositoryURL,
 		RepoBranch:           strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),

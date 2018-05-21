@@ -49,7 +49,7 @@ package cockroach
 // 			RepoFullName: "estafette/estafette-ci-api",
 // 			RepoBranch:   "master",
 // 			RepoRevision: "605fed1c8e57b6c11a24120e6be1344c0dad038a",
-// 			RepoSource:   "github",
+// 			RepoSource:   "github.com",
 // 			LogText:      "First line\nSecond line",
 // 		}
 
