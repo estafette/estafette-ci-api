@@ -351,17 +351,17 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 			pageSize = 100
 		}
 
-		builds, err := cockroachDBClient.GetPipelines(pageNumber, pageSize)
+		pipelines, err := cockroachDBClient.GetPipelines(pageNumber, pageSize)
 		if err != nil {
 			log.Error().Err(err).
 				Msg("Failed retrieving pipelines from db")
 		}
-		log.Info().Msgf("Retrieved %v pipelines", len(builds))
+		log.Info().Msgf("Retrieved %v pipelines", len(pipelines))
 
 		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
 		c.Writer.WriteHeader(http.StatusOK)
 
-		if err := jsonapi.MarshalPayload(c.Writer, builds); err != nil {
+		if err := jsonapi.MarshalPayload(c.Writer, pipelines); err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 		}
 	})
@@ -372,17 +372,17 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		owner := c.Param("owner")
 		repo := c.Param("repo")
 
-		builds, err := cockroachDBClient.GetPipelineBuilds(source, owner, repo, 1, 1)
+		pipeline, err := cockroachDBClient.GetPipeline(source, owner, repo)
 		if err != nil {
 			log.Error().Err(err).
-				Msgf("Failed retrieving builds for %v/%v/%v from db", source, owner, repo)
+				Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
 		}
-		log.Info().Msgf("Retrieved %v builds for %v/%v/%v", len(builds), source, owner, repo)
+		log.Info().Msgf("Retrieved pipeline for %v/%v/%v", source, owner, repo)
 
 		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
 		c.Writer.WriteHeader(http.StatusOK)
 
-		if err := jsonapi.MarshalPayload(c.Writer, builds[0]); err != nil {
+		if err := jsonapi.MarshalPayload(c.Writer, pipeline); err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 		}
 	})
