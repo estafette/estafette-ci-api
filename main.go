@@ -366,6 +366,27 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 	})
 
+	router.GET("/api/pipelines/:source/:owner/:repo", func(c *gin.Context) {
+
+		source := c.Param("source")
+		owner := c.Param("owner")
+		repo := c.Param("repo")
+
+		builds, err := cockroachDBClient.GetPipelineBuilds(source, owner, repo, 1, 1)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed retrieving builds for %v/%v/%v from db", source, owner, repo)
+		}
+		log.Info().Msgf("Retrieved %v builds for %v/%v/%v", len(builds), source, owner, repo)
+
+		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
+		c.Writer.WriteHeader(http.StatusOK)
+
+		if err := jsonapi.MarshalPayload(c.Writer, builds[0]); err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		}
+	})
+
 	router.GET("/api/pipelines/:source/:owner/:repo/builds", func(c *gin.Context) {
 
 		source := c.Param("source")
