@@ -22,8 +22,8 @@ type DBClient interface {
 	GetAutoIncrement(string, string) (int, error)
 	InsertBuild(Build) error
 	UpdateBuildStatus(string, string, string, string, string) error
-	GetPipelines(int) ([]*Build, error)
-	GetPipelineBuilds(string, string, string, int) ([]*Build, error)
+	GetPipelines(int, int) ([]*Build, error)
+	GetPipelineBuilds(string, string, string, int, int) ([]*Build, error)
 }
 
 type cockroachDBClientImpl struct {
@@ -239,7 +239,7 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelines(page int) (builds []*Build, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int) (builds []*Build, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
@@ -249,8 +249,8 @@ func (dbc *cockroachDBClientImpl) GetPipelines(page int) (builds []*Build, err e
        RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) build_version_rank
        FROM builds
 	 ) where build_version_rank = 1 ORDER BY repo_source,repo_owner,repo_name LIMIT $1 OFFSET $2`,
-		20,
-		(page-1)*20,
+		pageSize,
+		(pageNumber-1)*pageSize,
 	)
 	if err != nil {
 		return
@@ -283,7 +283,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(page int) (builds []*Build, err e
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoName string, page int) (builds []*Build, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoName string, pageNumber, pageSize int) (builds []*Build, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
@@ -293,8 +293,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 		repoSource,
 		repoOwner,
 		repoName,
-		20,
-		(page-1)*20,
+		pageSize,
+		(pageNumber-1)*pageSize,
 	)
 	if err != nil {
 		return

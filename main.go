@@ -334,14 +334,24 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 
 	router.GET("/api/pipelines", func(c *gin.Context) {
 
-		// get page query string value or default to 1
-		pageValue, pageExists := c.GetQuery("page")
-		page, err := strconv.Atoi(pageValue)
-		if !pageExists || err != nil {
-			page = 1
+		// get page number query string value or default to 1
+		pageNumberValue, pageNumberExists := c.GetQuery("page[number]")
+		pageNumber, err := strconv.Atoi(pageNumberValue)
+		if !pageNumberExists || err != nil {
+			pageNumber = 1
 		}
 
-		builds, err := cockroachDBClient.GetPipelines(page)
+		// get page number query string value or default to 20 (maximize at 100)
+		pageSizeValue, pageSizeExists := c.GetQuery("page[size]")
+		pageSize, err := strconv.Atoi(pageSizeValue)
+		if !pageSizeExists || err != nil {
+			pageSize = 20
+		}
+		if pageSize > 100 {
+			pageSize = 100
+		}
+
+		builds, err := cockroachDBClient.GetPipelines(pageNumber, pageSize)
 		if err != nil {
 			log.Error().Err(err).
 				Msg("Failed retrieving pipelines from db")
@@ -356,20 +366,30 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 	})
 
-	router.GET("/api/pipelines/:source/:owner/:repo", func(c *gin.Context) {
+	router.GET("/api/pipelines/:source/:owner/:repo/builds", func(c *gin.Context) {
 
 		source := c.Param("source")
 		owner := c.Param("owner")
 		repo := c.Param("repo")
 
-		// get page query string value or default to 1
-		pageValue, pageExists := c.GetQuery("page")
-		page, err := strconv.Atoi(pageValue)
-		if !pageExists || err != nil {
-			page = 1
+		// get page number query string value or default to 1
+		pageNumberValue, pageNumberExists := c.GetQuery("page[number]")
+		pageNumber, err := strconv.Atoi(pageNumberValue)
+		if !pageNumberExists || err != nil {
+			pageNumber = 1
 		}
 
-		builds, err := cockroachDBClient.GetPipelineBuilds(source, owner, repo, page)
+		// get page number query string value or default to 20 (maximize at 100)
+		pageSizeValue, pageSizeExists := c.GetQuery("page[size]")
+		pageSize, err := strconv.Atoi(pageSizeValue)
+		if !pageSizeExists || err != nil {
+			pageSize = 20
+		}
+		if pageSize > 100 {
+			pageSize = 100
+		}
+
+		builds, err := cockroachDBClient.GetPipelineBuilds(source, owner, repo, pageNumber, pageSize)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving builds for %v/%v/%v from db", source, owner, repo)
