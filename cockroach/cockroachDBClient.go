@@ -25,6 +25,7 @@ type DBClient interface {
 	GetPipelines(int, int) ([]*Pipeline, error)
 	GetPipeline(string, string, string) (*Pipeline, error)
 	GetPipelineBuilds(string, string, string, int, int) ([]*Build, error)
+	GetPipelineBuild(string, string, string, string) (*Build, error)
 }
 
 type cockroachDBClientImpl struct {
@@ -372,7 +373,7 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 		return nil, err
 	}
 
-	return pipeline, nil
+	return
 }
 
 func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoName string, pageNumber, pageSize int) (builds []*Build, err error) {
@@ -437,6 +438,68 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 		}
 
 		builds = append(builds, &build)
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoName, repoRevision string) (build *Build, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	rows, err := dbc.databaseConnection.Query(`
+		SELECT
+			id,
+			repo_source,
+			repo_owner,
+			repo_name,
+			repo_branch,
+			repo_revision,
+			build_version,
+			build_status,
+			'' as labels,
+			manifest,
+			inserted_at,
+			updated_at
+		FROM
+			builds
+		WHERE
+			repo_source=$1 AND
+			repo_owner=$2 AND
+			repo_name=$3 AND
+			repo_revision=$4
+		ORDER BY
+			inserted_at DESC
+		LIMIT 1
+		OFFSET 0`,
+		repoSource,
+		repoOwner,
+		repoName,
+		repoRevision,
+	)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	rows.Next()
+
+	build = &Build{}
+
+	if err := rows.Scan(
+		&build.ID,
+		&build.RepoSource,
+		&build.RepoOwner,
+		&build.RepoName,
+		&build.RepoBranch,
+		&build.RepoRevision,
+		&build.BuildVersion,
+		&build.BuildStatus,
+		&build.Labels,
+		&build.Manifest,
+		&build.InsertedAt,
+		&build.UpdatedAt); err != nil {
+		return nil, err
 	}
 
 	return
