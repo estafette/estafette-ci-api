@@ -41,7 +41,6 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	if authorizationHeader != fmt.Sprintf("Bearer %v", h.ciAPIKey) {
 		log.Error().
 			Str("authorizationHeader", authorizationHeader).
-			Str("apiKey", h.ciAPIKey).
 			Msg("Authorization header for Estafette event is incorrect")
 		c.String(http.StatusUnauthorized, "Authorization failed")
 		return

@@ -120,12 +120,14 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 
 	// set build version number
 	buildVersion := ""
+	buildStatus := "failed"
 	if hasValidManifest {
 		buildVersion = mft.Version.Version(manifest.EstafetteVersionParams{
 			AutoIncrement: autoincrement,
 			Branch:        pushEvent.Push.Changes[0].New.Name,
 			Revision:      pushEvent.Push.Changes[0].New.Target.Hash,
 		})
+		buildStatus = "running"
 	}
 
 	// store build in db
@@ -136,7 +138,7 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 		RepoBranch:   pushEvent.Push.Changes[0].New.Name,
 		RepoRevision: pushEvent.Push.Changes[0].New.Target.Hash,
 		BuildVersion: buildVersion,
-		BuildStatus:  "running",
+		BuildStatus:  buildStatus,
 		Labels:       "",
 		Manifest:     manifestString,
 	})

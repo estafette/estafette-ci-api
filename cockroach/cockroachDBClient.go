@@ -2,6 +2,7 @@ package cockroach
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
 	"github.com/estafette/estafette-ci-contracts"
@@ -27,7 +28,8 @@ type DBClient interface {
 	GetPipeline(string, string, string) (*contracts.Pipeline, error)
 	GetPipelineBuilds(string, string, string, int, int) ([]*contracts.Build, error)
 	GetPipelineBuild(string, string, string, string) (*contracts.Build, error)
-	GetPipelineBuildLogs(string, string, string, string) ([]*BuildJobLogRow, error)
+	GetPipelineBuildLogs(string, string, string, string) ([]*contracts.BuildLog, error)
+	InsertBuildLog(contracts.BuildLog) error
 }
 
 type cockroachDBClientImpl struct {
@@ -507,15 +509,16 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, repoName, repoRevision string) (logs []*BuildJobLogRow, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, repoName, repoRevision string) (logs []*contracts.BuildLog, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	logs = make([]*BuildJobLogRow, 0)
+	logs = make([]*contracts.BuildLog, 0)
 
-	rows, err := dbc.databaseConnection.Query("SELECT * FROM build_logs WHERE repo_source=$1 AND repo_full_name=$2 AND repo_revision=$3",
+	rows, err := dbc.databaseConnection.Query("SELECT * FROM build_logs_v2 WHERE repo_source=$1 AND repo_owner=$2 AND repo_name=$3 AND repo_revision=$4",
 		repoSource,
-		repoOwner+"/"+repoName,
+		repoOwner,
+		repoName,
 		repoRevision,
 	)
 	if err != nil {
@@ -525,13 +528,59 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 	defer rows.Close()
 	for rows.Next() {
 
-		logRow := &BuildJobLogRow{}
+		logRow := &contracts.BuildLog{}
 
-		if err := rows.Scan(&logRow.ID, &logRow.RepoFullName, &logRow.RepoBranch, &logRow.RepoRevision, &logRow.RepoSource, &logRow.LogText, &logRow.InsertedAt); err != nil {
+		if err := rows.Scan(&logRow.ID, &logRow.RepoOwner, &logRow.RepoName, &logRow.RepoBranch, &logRow.RepoRevision, &logRow.RepoSource, &logRow.Steps, &logRow.InsertedAt); err != nil {
 			return nil, err
 		}
 
 		logs = append(logs, logRow)
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) InsertBuildLog(buildLog contracts.BuildLog) (err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	bytes, err := json.Marshal(buildLog)
+	if err != nil {
+		return
+	}
+
+	// insert logs
+	_, err = dbc.databaseConnection.Exec(
+		`
+		INSERT INTO 
+			build_logs_v2 
+		(
+			repo_source,
+			repo_owner,
+			repo_name,
+			repo_branch,
+			repo_revision,
+			steps
+		) 
+		VALUES 
+		(
+			$1,
+			$2,
+			$3,
+			$4,
+			$5,
+			$6
+		)`,
+		buildLog.RepoSource,
+		buildLog.RepoOwner,
+		buildLog.RepoName,
+		buildLog.RepoBranch,
+		buildLog.RepoRevision,
+		bytes,
+	)
+
+	if err != nil {
+		return
 	}
 
 	return

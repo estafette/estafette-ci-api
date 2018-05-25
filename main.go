@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/estafette/estafette-ci-contracts"
 	"github.com/estafette/estafette-ci-crypt"
 
 	"github.com/alecthomas/kingpin"
@@ -467,6 +468,39 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		if err := jsonapi.MarshalPayload(c.Writer, build); err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 		}
+	})
+
+	router.POST("/api/pipelines/:source/:owner/:repo/builds/:revision/logs", func(c *gin.Context) {
+
+		authorizationHeader := c.GetHeader("Authorization")
+		if authorizationHeader != fmt.Sprintf("Bearer %v", *estafetteCiAPIKey) {
+			log.Error().
+				Str("authorizationHeader", authorizationHeader).
+				Msg("Authorization header for Estafette event is incorrect")
+			c.String(http.StatusUnauthorized, "Authorization failed")
+			return
+		}
+
+		source := c.Param("source")
+		owner := c.Param("owner")
+		repo := c.Param("repo")
+		revision := c.Param("revision")
+
+		var buildLog contracts.BuildLog
+		err := c.Bind(&buildLog)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed bindings logs for %v/%v/%v/%v", source, owner, repo, revision)
+		}
+
+		err = cockroachDBClient.InsertBuildLog(buildLog)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed inserting logs for %v/%v/%v/%v", source, owner, repo, revision)
+		}
+		log.Info().Msgf("Inserted logs for %v/%v/%v/%v", source, owner, repo, revision)
+
+		c.String(http.StatusOK, "Aye aye!")
 	})
 
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown

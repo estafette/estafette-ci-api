@@ -20,5 +20,5 @@ CREATE TABLE builds (
 -- +goose Down
 -- SQL in this section is executed when the migration is rolled back.
 DROP TABLE builds;
-DROP INDEX build_logs@builds_repo_source_repo_owner_repo_name_repo_revision_idx;
-DROP INDEX build_logs@builds_labels;
+DROP INDEX builds@builds_repo_source_repo_owner_repo_name_repo_revision_idx;
+DROP INDEX builds@builds_labels;

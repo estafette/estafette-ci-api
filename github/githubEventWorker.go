@@ -120,12 +120,14 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 
 	// set build version number
 	buildVersion := ""
+	buildStatus := "failed"
 	if hasValidManifest {
 		buildVersion = mft.Version.Version(manifest.EstafetteVersionParams{
 			AutoIncrement: autoincrement,
 			Branch:        strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
 			Revision:      pushEvent.After,
 		})
+		buildStatus = "running"
 	}
 
 	// store build in db
@@ -136,13 +138,17 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 		RepoBranch:   strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
 		RepoRevision: pushEvent.After,
 		BuildVersion: buildVersion,
-		BuildStatus:  "running",
+		BuildStatus:  buildStatus,
 		Labels:       "",
 		Manifest:     manifestString,
 	})
 	if err != nil {
 		log.Warn().Err(err).
 			Msgf("Failed inserting build into db for Bitbucket repository %v", pushEvent.Repository.FullName)
+	}
+
+	if !hasValidManifest {
+
 	}
 
 	// define ci builder params
