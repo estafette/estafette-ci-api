@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/estafette/estafette-ci-contracts"
 	"github.com/google/jsonapi"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,7 +14,7 @@ func TestMarshalPayloads(t *testing.T) {
 
 	t.Run("MarshalsSingleBuild", func(t *testing.T) {
 
-		build := Build{
+		build := contracts.Build{
 			ID:           "github.com/estafette/estafette-ci-api",
 			RepoSource:   "github.com",
 			RepoOwner:    "estafette",
@@ -39,9 +40,9 @@ func TestMarshalPayloads(t *testing.T) {
 
 	t.Run("MarshalsArrayOfBuilds", func(t *testing.T) {
 
-		builds := make([]*Build, 0)
+		builds := make([]*contracts.Build, 0)
 
-		builds = append(builds, &Build{
+		builds = append(builds, &contracts.Build{
 			ID:           "github.com/estafette/estafette-ci-api",
 			RepoSource:   "github.com",
 			RepoOwner:    "estafette",
@@ -55,7 +56,7 @@ func TestMarshalPayloads(t *testing.T) {
 			InsertedAt:   time.Date(2018, 4, 17, 8, 3, 0, 0, time.UTC),
 			UpdatedAt:    time.Date(2018, 4, 17, 8, 15, 0, 0, time.UTC),
 		})
-		builds = append(builds, &Build{
+		builds = append(builds, &contracts.Build{
 			ID:           "github.com/estafette/estafette-ci-api",
 			RepoSource:   "github.com",
 			RepoOwner:    "estafette",
@@ -81,7 +82,7 @@ func TestMarshalPayloads(t *testing.T) {
 
 	t.Run("MarshalsSinglePipeline", func(t *testing.T) {
 
-		pipeline := Pipeline{
+		pipeline := contracts.Pipeline{
 			ID:           "github.com/estafette/estafette-ci-api",
 			RepoSource:   "github.com",
 			RepoOwner:    "estafette",
@@ -107,9 +108,9 @@ func TestMarshalPayloads(t *testing.T) {
 
 	t.Run("MarshalsArrayOfPipelines", func(t *testing.T) {
 
-		pipelines := make([]*Pipeline, 0)
+		pipelines := make([]*contracts.Pipeline, 0)
 
-		pipelines = append(pipelines, &Pipeline{
+		pipelines = append(pipelines, &contracts.Pipeline{
 			ID:           "github.com/estafette/estafette-ci-api",
 			RepoSource:   "github.com",
 			RepoOwner:    "estafette",
@@ -123,7 +124,7 @@ func TestMarshalPayloads(t *testing.T) {
 			InsertedAt:   time.Date(2018, 4, 17, 8, 3, 0, 0, time.UTC),
 			UpdatedAt:    time.Date(2018, 4, 17, 8, 15, 0, 0, time.UTC),
 		})
-		pipelines = append(pipelines, &Pipeline{
+		pipelines = append(pipelines, &contracts.Pipeline{
 			ID:           "github.com/estafette/estafette-ci-api",
 			RepoSource:   "github.com",
 			RepoOwner:    "estafette",

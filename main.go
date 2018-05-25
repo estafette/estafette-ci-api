@@ -447,6 +447,28 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 	})
 
+	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revision/logs", func(c *gin.Context) {
+
+		source := c.Param("source")
+		owner := c.Param("owner")
+		repo := c.Param("repo")
+		revision := c.Param("revision")
+
+		build, err := cockroachDBClient.GetPipelineBuildLogs(source, owner, repo, revision)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed retrieving build for %v/%v/%v/%v from db", source, owner, repo, revision)
+		}
+		log.Info().Msgf("Retrieved builds for %v/%v/%v/%v", source, owner, repo, revision)
+
+		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
+		c.Writer.WriteHeader(http.StatusOK)
+
+		if err := jsonapi.MarshalPayload(c.Writer, build); err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		}
+	})
+
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown
 	srv := &http.Server{
 		Addr:           *apiAddress,

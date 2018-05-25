@@ -6,6 +6,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/estafette"
+	"github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
 )
@@ -128,7 +129,7 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 	}
 
 	// store build in db
-	err = w.cockroachDBClient.InsertBuild(cockroach.Build{
+	err = w.cockroachDBClient.InsertBuild(contracts.Build{
 		RepoSource:   "github.com",
 		RepoOwner:    strings.Split(pushEvent.Repository.FullName, "/")[0],
 		RepoName:     pushEvent.Repository.Name,

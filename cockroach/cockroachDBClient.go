@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/estafette/estafette-ci-contracts"
 	"github.com/pressly/goose"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -20,12 +21,13 @@ type DBClient interface {
 	InsertBuildJobLogs(BuildJobLogs) error
 	GetBuildLogs(BuildJobLogs) ([]BuildJobLogRow, error)
 	GetAutoIncrement(string, string) (int, error)
-	InsertBuild(Build) error
+	InsertBuild(contracts.Build) error
 	UpdateBuildStatus(string, string, string, string, string) error
-	GetPipelines(int, int) ([]*Pipeline, error)
-	GetPipeline(string, string, string) (*Pipeline, error)
-	GetPipelineBuilds(string, string, string, int, int) ([]*Build, error)
-	GetPipelineBuild(string, string, string, string) (*Build, error)
+	GetPipelines(int, int) ([]*contracts.Pipeline, error)
+	GetPipeline(string, string, string) (*contracts.Pipeline, error)
+	GetPipelineBuilds(string, string, string, int, int) ([]*contracts.Build, error)
+	GetPipelineBuild(string, string, string, string) (*contracts.Build, error)
+	GetPipelineBuildLogs(string, string, string, string) ([]*BuildJobLogRow, error)
 }
 
 type cockroachDBClientImpl struct {
@@ -197,7 +199,7 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string
 	return
 }
 
-func (dbc *cockroachDBClientImpl) InsertBuild(build Build) (err error) {
+func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// insert logs
@@ -241,11 +243,11 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int) (pipelines []*Pipeline, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int) (pipelines []*contracts.Pipeline, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	pipelines = make([]*Pipeline, 0)
+	pipelines = make([]*contracts.Pipeline, 0)
 	rows, err := dbc.databaseConnection.Query(`
 		SELECT
 			id,
@@ -292,7 +294,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int) (pipeli
 	defer rows.Close()
 	for rows.Next() {
 
-		pipeline := Pipeline{}
+		pipeline := contracts.Pipeline{}
 
 		if err := rows.Scan(
 			&pipeline.ID,
@@ -316,7 +318,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int) (pipeli
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName string) (pipeline *Pipeline, err error) {
+func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName string) (pipeline *contracts.Pipeline, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
@@ -355,7 +357,7 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 	defer rows.Close()
 	rows.Next()
 
-	pipeline = &Pipeline{}
+	pipeline = &contracts.Pipeline{}
 
 	if err := rows.Scan(
 		&pipeline.ID,
@@ -376,11 +378,11 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoName string, pageNumber, pageSize int) (builds []*Build, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoName string, pageNumber, pageSize int) (builds []*contracts.Build, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	builds = make([]*Build, 0)
+	builds = make([]*contracts.Build, 0)
 
 	rows, err := dbc.databaseConnection.Query(`
 		SELECT
@@ -419,7 +421,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 	defer rows.Close()
 	for rows.Next() {
 
-		build := Build{}
+		build := contracts.Build{}
 
 		if err := rows.Scan(
 			&build.ID,
@@ -443,7 +445,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoName, repoRevision string) (build *Build, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoName, repoRevision string) (build *contracts.Build, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
@@ -484,7 +486,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 	defer rows.Close()
 	rows.Next()
 
-	build = &Build{}
+	build = &contracts.Build{}
 
 	if err := rows.Scan(
 		&build.ID,
@@ -500,6 +502,36 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 		&build.InsertedAt,
 		&build.UpdatedAt); err != nil {
 		return nil, err
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, repoName, repoRevision string) (logs []*BuildJobLogRow, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	logs = make([]*BuildJobLogRow, 0)
+
+	rows, err := dbc.databaseConnection.Query("SELECT * FROM build_logs WHERE repo_source=$1 AND repo_full_name=$2 AND repo_revision=$3",
+		repoSource,
+		repoOwner+"/"+repoName,
+		repoRevision,
+	)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		logRow := &BuildJobLogRow{}
+
+		if err := rows.Scan(&logRow.ID, &logRow.RepoFullName, &logRow.RepoBranch, &logRow.RepoRevision, &logRow.RepoSource, &logRow.LogText, &logRow.InsertedAt); err != nil {
+			return nil, err
+		}
+
+		logs = append(logs, logRow)
 	}
 
 	return
