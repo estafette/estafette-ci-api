@@ -11,4 +11,4 @@ CREATE TABLE IF NOT EXISTS build_versions (
 
 -- +goose Down
 -- SQL in this section is executed when the migration is rolled back.
-DROP TABLE build_versions IF EXISTS;
+DROP TABLE IF EXISTS build_versions;

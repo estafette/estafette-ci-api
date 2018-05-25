@@ -15,4 +15,4 @@ CREATE TABLE IF NOT EXISTS build_logs_v2 (
 
 -- +goose Down
 -- SQL in this section is executed when the migration is rolled back.
-DROP TABLE builds_logs_v2 IF EXISTS;
+DROP TABLE IF EXISTS builds_logs_v2;
