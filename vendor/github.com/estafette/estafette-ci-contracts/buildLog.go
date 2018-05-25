@@ -4,21 +4,21 @@ import "time"
 
 // BuildLog represents a build log for a specific revision
 type BuildLog struct {
-	ID           string          `json:"id" jsonapi:"primary,build-logs"`
-	RepoSource   string          `json:"repoSource" jsonapi:"attr,repo-source"`
-	RepoOwner    string          `json:"repoOwner" jsonapi:"attr,repo-owner"`
-	RepoName     string          `json:"repoName" jsonapi:"attr,repo-name"`
-	RepoBranch   string          `json:"repoBranch" jsonapi:"attr,repo-branch"`
-	RepoRevision string          `json:"repoRevision" jsonapi:"attr,repo-revision"`
-	Steps        []*BuildLogStep `json:"steps" jsonapi:"attr,steps"`
-	InsertedAt   time.Time       `json:"insertedAt" jsonapi:"attr,inserted-at"`
+	ID           string         `json:"id,omitempty" jsonapi:"primary,build-logs"`
+	RepoSource   string         `json:"repoSource" jsonapi:"attr,repo-source"`
+	RepoOwner    string         `json:"repoOwner" jsonapi:"attr,repo-owner"`
+	RepoName     string         `json:"repoName" jsonapi:"attr,repo-name"`
+	RepoBranch   string         `json:"repoBranch" jsonapi:"attr,repo-branch"`
+	RepoRevision string         `json:"repoRevision" jsonapi:"attr,repo-revision"`
+	Steps        []BuildLogStep `json:"steps" jsonapi:"attr,steps"`
+	InsertedAt   time.Time      `json:"insertedAt" jsonapi:"attr,inserted-at"`
 }
 
 // BuildLogStep represents the logs for a single step of a pipeline
 type BuildLogStep struct {
 	Step     string                   `json:"step"`
 	Image    *BuildLogStepDockerImage `json:"image"`
-	Commands []*BuildLogStepCommand   `json:"commands"`
+	Commands []BuildLogStepCommand    `json:"commands"`
 	ExitCode int                      `json:"exitCode"`
 	Status   string                   `json:"status"`
 }
@@ -35,9 +35,9 @@ type BuildLogStepDockerImage struct {
 
 // BuildLogStepCommand holds information about the execution of a command inside a step
 type BuildLogStepCommand struct {
-	Command  string          `json:"command"`
-	Duration time.Duration   `json:"duration"`
-	LogLines []*BuildLogLine `json:"logLines"`
+	Command  string         `json:"command"`
+	Duration time.Duration  `json:"duration"`
+	LogLines []BuildLogLine `json:"logLines"`
 }
 
 // BuildLogLine has low level log information
