@@ -1,7 +1,6 @@
 -- +goose Up
 -- SQL in this section is executed when the migration is applied.
-DROP TABLE build_version_details;
-DROP INDEX build_version_details@build_version_details_build_version_repo_source_repo_full_name_idx;
+DROP TABLE build_version_details IF EXISTS;
 
 -- +goose Down
 -- SQL in this section is executed when the migration is rolled back.

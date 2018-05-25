@@ -1,6 +1,6 @@
 -- +goose Up
 -- SQL in this section is executed when the migration is applied.
-CREATE TABLE build_logs (
+CREATE TABLE IF NOT EXISTS build_logs (
   id INT PRIMARY KEY,
   repo_full_name VARCHAR(256),
   repo_branch VARCHAR(256),
@@ -11,4 +11,4 @@ CREATE TABLE build_logs (
 
 -- +goose Down
 -- SQL in this section is executed when the migration is rolled back.
-DROP TABLE CREATE TABLE build_logs;
+DROP TABLE CREATE TABLE build_logs IF EXISTS;

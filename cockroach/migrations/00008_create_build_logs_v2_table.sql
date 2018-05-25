@@ -1,6 +1,6 @@
 -- +goose Up
 -- SQL in this section is executed when the migration is applied.
-CREATE TABLE build_logs_v2 (
+CREATE TABLE IF NOT EXISTS build_logs_v2 (
   id INT PRIMARY KEY DEFAULT unique_rowid(),
   repo_source VARCHAR(256),
   repo_owner VARCHAR(256),
@@ -15,6 +15,4 @@ CREATE TABLE build_logs_v2 (
 
 -- +goose Down
 -- SQL in this section is executed when the migration is rolled back.
-DROP TABLE builds_logs_v2;
-DROP INDEX builds_logs_v2@build_logs_repo_source_repo_owner_repo_name_repo_revision_idx;
-DROP INDEX builds_logs_v2@build_logs_steps;
+DROP TABLE builds_logs_v2 IF EXISTS;

@@ -1,6 +1,6 @@
 -- +goose Up
 -- SQL in this section is executed when the migration is applied.
-CREATE TABLE build_versions (
+CREATE TABLE IF NOT EXISTS build_versions (
   id INT PRIMARY KEY DEFAULT unique_rowid(),
   repo_source VARCHAR(256),
   repo_full_name VARCHAR(256),
@@ -11,4 +11,4 @@ CREATE TABLE build_versions (
 
 -- +goose Down
 -- SQL in this section is executed when the migration is rolled back.
-DROP TABLE build_versions;
+DROP TABLE build_versions IF EXISTS;
