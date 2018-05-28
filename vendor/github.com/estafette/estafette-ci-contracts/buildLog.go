@@ -20,7 +20,7 @@ type BuildLogStep struct {
 	Image    *BuildLogStepDockerImage `json:"image"`
 	Duration time.Duration            `json:"duration"`
 	LogLines []BuildLogLine           `json:"logLines"`
-	ExitCode int                      `json:"exitCode"`
+	ExitCode int64                    `json:"exitCode"`
 	Status   string                   `json:"status"`
 }
 
