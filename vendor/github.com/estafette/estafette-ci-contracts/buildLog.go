@@ -18,7 +18,8 @@ type BuildLog struct {
 type BuildLogStep struct {
 	Step     string                   `json:"step"`
 	Image    *BuildLogStepDockerImage `json:"image"`
-	Commands []BuildLogStepCommand    `json:"commands"`
+	Duration time.Duration            `json:"duration"`
+	LogLines []BuildLogLine           `json:"logLines"`
 	ExitCode int                      `json:"exitCode"`
 	Status   string                   `json:"status"`
 }
@@ -31,13 +32,6 @@ type BuildLogStepDockerImage struct {
 	ImageSize    int64         `json:"imageSize"`
 	PullDuration time.Duration `json:"pullDuration"`
 	Error        string        `json:"error,omitempty"`
-}
-
-// BuildLogStepCommand holds information about the execution of a command inside a step
-type BuildLogStepCommand struct {
-	Command  string         `json:"command"`
-	Duration time.Duration  `json:"duration"`
-	LogLines []BuildLogLine `json:"logLines"`
 }
 
 // BuildLogLine has low level log information
