@@ -476,7 +476,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		if authorizationHeader != fmt.Sprintf("Bearer %v", *estafetteCiAPIKey) {
 			log.Error().
 				Str("authorizationHeader", authorizationHeader).
-				Msg("Authorization header for Estafette event is incorrect")
+				Msg("Authorization header for Estafette v2 logs is incorrect")
 			c.String(http.StatusUnauthorized, "Authorization failed")
 			return
 		}
@@ -490,15 +490,17 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		err := c.Bind(&buildLog)
 		if err != nil {
 			log.Error().Err(err).
-				Msgf("Failed bindings logs for %v/%v/%v/%v", source, owner, repo, revision)
+				Msgf("Failed binding v2 logs for %v/%v/%v/%v", source, owner, repo, revision)
 		}
+
+		log.Info().Interface("buildLog", buildLog).Msgf("Binded v2 logs for for %v/%v/%v/%v", source, owner, repo, revision)
 
 		err = cockroachDBClient.InsertBuildLog(buildLog)
 		if err != nil {
 			log.Error().Err(err).
-				Msgf("Failed inserting logs for %v/%v/%v/%v", source, owner, repo, revision)
+				Msgf("Failed inserting v2 logs for %v/%v/%v/%v", source, owner, repo, revision)
 		}
-		log.Info().Msgf("Inserted logs for %v/%v/%v/%v", source, owner, repo, revision)
+		log.Info().Msgf("Inserted v2 logs for %v/%v/%v/%v", source, owner, repo, revision)
 
 		c.String(http.StatusOK, "Aye aye!")
 	})
