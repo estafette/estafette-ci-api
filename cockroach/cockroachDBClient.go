@@ -530,8 +530,14 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 
 		logRow := &contracts.BuildLog{}
 
-		if err := rows.Scan(&logRow.ID, &logRow.RepoOwner, &logRow.RepoName, &logRow.RepoBranch, &logRow.RepoRevision, &logRow.RepoSource, &logRow.Steps, &logRow.InsertedAt); err != nil {
-			return nil, err
+		var stepsData []uint8
+
+		if err = rows.Scan(&logRow.ID, &logRow.RepoOwner, &logRow.RepoName, &logRow.RepoBranch, &logRow.RepoRevision, &logRow.RepoSource, &stepsData, &logRow.InsertedAt); err != nil {
+			return
+		}
+
+		if err = json.Unmarshal(stepsData, &logRow.Steps); err != nil {
+			return
 		}
 
 		logs = append(logs, logRow)
@@ -544,7 +550,7 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(buildLog contracts.BuildLog) (e
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	bytes, err := json.Marshal(buildLog)
+	bytes, err := json.Marshal(buildLog.Steps)
 	if err != nil {
 		return
 	}

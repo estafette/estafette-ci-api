@@ -458,9 +458,9 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		build, err := cockroachDBClient.GetPipelineBuildLogs(source, owner, repo, revision)
 		if err != nil {
 			log.Error().Err(err).
-				Msgf("Failed retrieving build for %v/%v/%v/%v from db", source, owner, repo, revision)
+				Msgf("Failed retrieving build logs for %v/%v/%v/%v from db", source, owner, repo, revision)
 		}
-		log.Info().Msgf("Retrieved builds for %v/%v/%v/%v", source, owner, repo, revision)
+		log.Info().Msgf("Retrieved build logs for %v/%v/%v/%v", source, owner, repo, revision)
 
 		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
 		c.Writer.WriteHeader(http.StatusOK)
