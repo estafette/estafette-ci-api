@@ -28,7 +28,7 @@ type DBClient interface {
 	GetPipeline(string, string, string) (*contracts.Pipeline, error)
 	GetPipelineBuilds(string, string, string, int, int) ([]*contracts.Build, error)
 	GetPipelineBuild(string, string, string, string) (*contracts.Build, error)
-	GetPipelineBuildLogs(string, string, string, string) ([]*contracts.BuildLog, error)
+	GetPipelineBuildLogs(string, string, string, string) (*contracts.BuildLog, error)
 	InsertBuildLog(contracts.BuildLog) error
 }
 
@@ -509,13 +509,22 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, repoName, repoRevision string) (logs []*contracts.BuildLog, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, repoName, repoRevision string) (buildLog *contracts.BuildLog, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	logs = make([]*contracts.BuildLog, 0)
-
-	rows, err := dbc.databaseConnection.Query("SELECT * FROM build_logs_v2 WHERE repo_source=$1 AND repo_owner=$2 AND repo_name=$3 AND repo_revision=$4",
+	rows, err := dbc.databaseConnection.Query(`
+		SELECT
+			*
+		FROM
+			build_logs_v2
+		WHERE
+			repo_source=$1 AND
+			repo_owner=$2 AND
+			repo_name=$3 AND
+			repo_revision=$4
+		LIMIT 1
+		`,
 		repoSource,
 		repoOwner,
 		repoName,
@@ -526,21 +535,18 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 	}
 
 	defer rows.Close()
-	for rows.Next() {
+	rows.Next()
 
-		logRow := &contracts.BuildLog{}
+	buildLog = &contracts.BuildLog{}
 
-		var stepsData []uint8
+	var stepsData []uint8
 
-		if err = rows.Scan(&logRow.ID, &logRow.RepoOwner, &logRow.RepoName, &logRow.RepoBranch, &logRow.RepoRevision, &logRow.RepoSource, &stepsData, &logRow.InsertedAt); err != nil {
-			return
-		}
+	if err = rows.Scan(&buildLog.ID, &buildLog.RepoOwner, &buildLog.RepoName, &buildLog.RepoBranch, &buildLog.RepoRevision, &buildLog.RepoSource, &stepsData, &buildLog.InsertedAt); err != nil {
+		return
+	}
 
-		if err = json.Unmarshal(stepsData, &logRow.Steps); err != nil {
-			return
-		}
-
-		logs = append(logs, logRow)
+	if err = json.Unmarshal(stepsData, &buildLog.Steps); err != nil {
+		return
 	}
 
 	return
