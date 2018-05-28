@@ -22,14 +22,14 @@ pipelines:
       server == 'estafette'
 
   build:
-    image: golang:1.10.0-alpine3.7
+    image: golang:1.10.2-alpine3.7
     workDir: /go/src/github.com/estafette/${ESTAFETTE_LABEL_APP}
     commands:
     - go test `go list ./... | grep -v /vendor/`
     - CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags "-X main.version=${ESTAFETTE_BUILD_VERSION} -X main.revision=${ESTAFETTE_GIT_REVISION} -X main.branch=${ESTAFETTE_GIT_BRANCH} -X main.buildDate=${ESTAFETTE_BUILD_DATETIME}" -o ./publish/${ESTAFETTE_LABEL_APP} .
 
   bake:
-    image: docker:17.12.0-ce
+    image: docker:18.03.1-ce
     commands:
     - cp Dockerfile ./publish
     - cp /etc/ssl/certs/ca-certificates.crt ./publish
@@ -37,7 +37,7 @@ pipelines:
     - docker build -t estafette/${ESTAFETTE_LABEL_APP}:${ESTAFETTE_BUILD_VERSION} ./publish
 
   push-to-docker-hub:
-    image: docker:17.12.0-ce
+    image: docker:18.03.1-ce
     env:
       DOCKER_HUB_USERNAME: estafette.secret(IXFQ9igip3IH0KVY.N6RTT4RB9dz15UGKHQUBctAf5QNI8G8QYg==)
       DOCKER_HUB_PASSWORD: estafette.secret(zhN34B3iKmWis2t-.guUQYqZPjXTjaWK4G6ZU4n-DYyOZvigT2tdRYEP3zQddr4HA)
