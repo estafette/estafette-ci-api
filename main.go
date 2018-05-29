@@ -378,6 +378,10 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 			log.Error().Err(err).
 				Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
 		}
+		if pipeline == nil {
+			c.JSON(404, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline not found"})
+		}
+
 		log.Info().Msgf("Retrieved pipeline for %v/%v/%v", source, owner, repo)
 
 		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
@@ -438,6 +442,9 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 			log.Error().Err(err).
 				Msgf("Failed retrieving build for %v/%v/%v/%v from db", source, owner, repo, revision)
 		}
+		if build == nil {
+			c.JSON(404, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline build not found"})
+		}
 		log.Info().Msgf("Retrieved builds for %v/%v/%v/%v", source, owner, repo, revision)
 
 		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
@@ -459,6 +466,9 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build logs for %v/%v/%v/%v from db", source, owner, repo, revision)
+		}
+		if buildLog == nil {
+			c.JSON(404, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline build log not found"})
 		}
 		log.Info().Msgf("Retrieved build logs for %v/%v/%v/%v", source, owner, repo, revision)
 

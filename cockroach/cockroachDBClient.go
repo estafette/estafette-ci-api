@@ -119,7 +119,25 @@ func (dbc *cockroachDBClientImpl) InsertBuildJobLogs(buildJobLogs BuildJobLogs) 
 
 	// insert logs
 	_, err = dbc.databaseConnection.Exec(
-		"INSERT INTO build_logs (repo_full_name,repo_branch,repo_revision,repo_source,log_text) VALUES ($1,$2,$3,$4,$5)",
+		`
+		INSERT INTO
+			build_logs
+		(
+			repo_full_name,
+			repo_branch,
+			repo_revision,
+			repo_source,
+			log_text
+		)
+		VALUES
+		(
+			$1,
+			$2,
+			$3,
+			$4,
+			$5
+		)
+		`,
 		buildJobLogs.RepoFullName,
 		buildJobLogs.RepoBranch,
 		buildJobLogs.RepoRevision,
@@ -141,7 +159,18 @@ func (dbc *cockroachDBClientImpl) GetBuildLogs(buildJobLogs BuildJobLogs) (logs 
 
 	logs = make([]BuildJobLogRow, 0)
 
-	rows, err := dbc.databaseConnection.Query("SELECT * FROM build_logs WHERE repo_full_name=$1 AND repo_branch=$2 AND repo_revision=$3 AND repo_source=$4",
+	rows, err := dbc.databaseConnection.Query(
+		`
+		SELECT
+			*
+		FROM
+			build_logs
+		WHERE
+			repo_full_name=$1 AND
+			repo_branch=$2 AND
+			repo_revision=$3 AND
+			repo_source=$4
+		`,
 		buildJobLogs.RepoFullName,
 		buildJobLogs.RepoBranch,
 		buildJobLogs.RepoRevision,
@@ -172,7 +201,28 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// insert or increment if record for repo_source and repo_full_name combination already exists
-	_, err = dbc.databaseConnection.Exec("INSERT INTO build_versions (repo_source, repo_full_name) VALUES ($1, $2) ON CONFLICT (repo_source, repo_full_name) DO UPDATE SET auto_increment = build_versions.auto_increment + 1, updated_at = now()",
+	_, err = dbc.databaseConnection.Exec(
+		`
+		INSERT INTO
+			build_versions
+		(
+			repo_source,
+			repo_full_name
+		)
+		VALUES
+		(
+			$1,
+			$2
+		)
+		ON CONFLICT
+		(
+			repo_source,
+			repo_full_name
+		)
+		DO UPDATE SET
+			auto_increment = build_versions.auto_increment + 1,
+			updated_at = now()
+		`,
 		gitSource,
 		gitFullname,
 	)
@@ -183,7 +233,16 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// fetching auto_increment value, because RETURNING is not supported with UPSERT / INSERT ON CONFLICT (see issue https://github.com/cockroachdb/cockroach/issues/6637)
-	rows, err := dbc.databaseConnection.Query("SELECT auto_increment FROM build_versions WHERE repo_source=$1 AND repo_full_name=$2",
+	rows, err := dbc.databaseConnection.Query(
+		`
+		SELECT
+			auto_increment
+		FROM
+			build_versions
+		WHERE
+			repo_source=$1 AND
+			repo_full_name=$2
+		`,
 		gitSource,
 		gitFullname,
 	)
@@ -206,7 +265,31 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (err error)
 
 	// insert logs
 	_, err = dbc.databaseConnection.Exec(
-		"INSERT INTO builds (repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,manifest) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
+		`
+		INSERT INTO
+			builds
+		(
+			repo_source,
+			repo_owner,
+			repo_name,
+			repo_branch,
+			repo_revision,
+			build_version,
+			build_status,
+			manifest
+		)
+		VALUES
+		(
+			$1,
+			$2,
+			$3,
+			$4,
+			$5,
+			$6,
+			$7,
+			$8
+		)
+		`,
 		build.RepoSource,
 		build.RepoOwner,
 		build.RepoName,
@@ -230,7 +313,18 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 
 	// insert logs
 	_, err = dbc.databaseConnection.Exec(
-		"UPDATE builds SET build_status=$1,updated_at=now() WHERE repo_source=$2 AND repo_owner=$3 AND repo_name=$4 AND repo_revision=$5",
+		`
+		UPDATE
+			builds
+		SET
+			build_status=$1,
+			updated_at=now()
+		WHERE
+			repo_source=$2 AND
+			repo_owner=$3 AND
+			repo_name=$4 AND
+			repo_revision=$5
+		`,
 		buildStatus,
 		repoSource,
 		repoOwner,
@@ -250,7 +344,8 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int) (pipeli
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	pipelines = make([]*contracts.Pipeline, 0)
-	rows, err := dbc.databaseConnection.Query(`
+	rows, err := dbc.databaseConnection.Query(
+		`
 		SELECT
 			id,
 			repo_source,
@@ -285,7 +380,8 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int) (pipeli
 			repo_owner,
 			repo_name
 		LIMIT $1
-		OFFSET $2`,
+		OFFSET $2
+		`,
 		pageSize,
 		(pageNumber-1)*pageSize,
 	)
@@ -324,7 +420,8 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	rows, err := dbc.databaseConnection.Query(`
+	rows, err := dbc.databaseConnection.Query(
+		`
 		SELECT
 			id,
 			repo_source,
@@ -347,7 +444,8 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 		ORDER BY
 			inserted_at DESC
 		LIMIT 1
-		OFFSET 0`,
+		OFFSET 0
+		`,
 		repoSource,
 		repoOwner,
 		repoName,
@@ -356,8 +454,14 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 		return
 	}
 
+	recordExists := false
+
 	defer rows.Close()
-	rows.Next()
+	recordExists = rows.Next()
+
+	if !recordExists {
+		return
+	}
 
 	pipeline = &contracts.Pipeline{}
 
@@ -386,7 +490,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 
 	builds = make([]*contracts.Build, 0)
 
-	rows, err := dbc.databaseConnection.Query(`
+	rows, err := dbc.databaseConnection.Query(
+		`
 		SELECT
 			id,
 			repo_source,
@@ -409,7 +514,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 		ORDER BY
 			inserted_at DESC
 		LIMIT $4
-		OFFSET $5`,
+		OFFSET $5
+		`,
 		repoSource,
 		repoOwner,
 		repoName,
@@ -451,7 +557,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	rows, err := dbc.databaseConnection.Query(`
+	rows, err := dbc.databaseConnection.Query(
+		`
 		SELECT
 			id,
 			repo_source,
@@ -475,7 +582,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 		ORDER BY
 			inserted_at DESC
 		LIMIT 1
-		OFFSET 0`,
+		OFFSET 0
+		`,
 		repoSource,
 		repoOwner,
 		repoName,
@@ -485,8 +593,14 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 		return
 	}
 
+	recordExists := false
+
 	defer rows.Close()
-	rows.Next()
+	recordExists = rows.Next()
+
+	if !recordExists {
+		return
+	}
 
 	build = &contracts.Build{}
 
@@ -513,7 +627,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	rows, err := dbc.databaseConnection.Query(`
+	rows, err := dbc.databaseConnection.Query(
+		`
 		SELECT
 			*
 		FROM
@@ -534,8 +649,14 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 		return
 	}
 
+	recordExists := false
+
 	defer rows.Close()
-	rows.Next()
+	recordExists = rows.Next()
+
+	if !recordExists {
+		return
+	}
 
 	buildLog = &contracts.BuildLog{}
 
@@ -564,8 +685,8 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(buildLog contracts.BuildLog) (e
 	// insert logs
 	_, err = dbc.databaseConnection.Exec(
 		`
-		INSERT INTO 
-			build_logs_v2 
+		INSERT INTO
+			build_logs_v2
 		(
 			repo_source,
 			repo_owner,
@@ -573,8 +694,8 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(buildLog contracts.BuildLog) (e
 			repo_branch,
 			repo_revision,
 			steps
-		) 
-		VALUES 
+		)
+		VALUES
 		(
 			$1,
 			$2,
@@ -582,7 +703,8 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(buildLog contracts.BuildLog) (e
 			$4,
 			$5,
 			$6
-		)`,
+		)
+		`,
 		buildLog.RepoSource,
 		buildLog.RepoOwner,
 		buildLog.RepoName,
