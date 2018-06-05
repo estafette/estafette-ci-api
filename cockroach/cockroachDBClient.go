@@ -630,7 +630,14 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 	rows, err := dbc.databaseConnection.Query(
 		`
 		SELECT
-			*
+			id,
+			repo_source,
+			repo_owner,
+			repo_name,
+			repo_branch,
+			repo_revision,
+			steps,
+			inserted_at
 		FROM
 			build_logs_v2
 		WHERE
@@ -662,7 +669,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 
 	var stepsData []uint8
 
-	if err = rows.Scan(&buildLog.ID, &buildLog.RepoOwner, &buildLog.RepoName, &buildLog.RepoBranch, &buildLog.RepoRevision, &buildLog.RepoSource, &stepsData, &buildLog.InsertedAt); err != nil {
+	if err = rows.Scan(&buildLog.ID, &buildLog.RepoSource, &buildLog.RepoOwner, &buildLog.RepoName, &buildLog.RepoBranch, &buildLog.RepoRevision, &stepsData, &buildLog.InsertedAt); err != nil {
 		return
 	}
 
