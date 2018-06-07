@@ -15,6 +15,14 @@
 			"revision": ""
 		},
 		{
+			"checksumSHA1": "uMtDxWDl9wpoAJLg2620/rwjFvk=",
+			"path": "github.com/Masterminds/squirrel",
+			"revision": "a6b93000bd219143c56c16e6cb1c4b91da3f224b",
+			"revisionTime": "2017-08-25T19:47:51Z",
+			"version": "v1.0",
+			"versionExact": "v1.0"
+		},
+		{
 			"checksumSHA1": "Rbzeu2PHokO8oRqr6Dokkl4sHMk=",
 			"path": "github.com/alecthomas/kingpin",
 			"revision": "1087e65c9441605df944fb12c33f0fe7072d18ca",
@@ -379,6 +387,18 @@
 			"revisionTime": "2017-07-08T00:58:51Z",
 			"version": "1.0.0",
 			"versionExact": "1.0.0"
+		},
+		{
+			"checksumSHA1": "QKo3rVez8D7fh1w60CPZkxtc1qw=",
+			"path": "github.com/lann/builder",
+			"revision": "1b87b36280d04fe7882d1512bf038ea2967ad534",
+			"revisionTime": "2018-02-16T23:43:17Z"
+		},
+		{
+			"checksumSHA1": "nR871nUQ6KxGoDR+TdgQhGUqcHI=",
+			"path": "github.com/lann/ps",
+			"revision": "62de8c46ede02a7675c4c79c84883eb164cb71e3",
+			"revisionTime": "2015-08-10T15:23:59Z"
 		},
 		{
 			"checksumSHA1": "rJmL/UTcLMkPVtrycsoFt4iQN18=",

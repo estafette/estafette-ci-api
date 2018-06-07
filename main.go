@@ -352,7 +352,14 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 			pageSize = 100
 		}
 
-		pipelines, err := cockroachDBClient.GetPipelines(pageNumber, pageSize)
+		// get filters (?filter[post]=1,2&filter[author]=12)
+		filters := map[string][]string{}
+		filterStatusValues, filterStatusExist := c.GetQueryArray("filter[status]")
+		if filterStatusExist {
+			filters["status"] = filterStatusValues
+		}
+
+		pipelines, err := cockroachDBClient.GetPipelines(pageNumber, pageSize, filters)
 		if err != nil {
 			log.Error().Err(err).
 				Msg("Failed retrieving pipelines from db")

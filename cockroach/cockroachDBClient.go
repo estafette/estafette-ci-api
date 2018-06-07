@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/estafette/estafette-ci-contracts"
 	"github.com/pressly/goose"
 	"github.com/prometheus/client_golang/prometheus"
@@ -24,7 +25,7 @@ type DBClient interface {
 	GetAutoIncrement(string, string) (int, error)
 	InsertBuild(contracts.Build) error
 	UpdateBuildStatus(string, string, string, string, string) error
-	GetPipelines(int, int) ([]*contracts.Pipeline, error)
+	GetPipelines(int, int, map[string][]string) ([]*contracts.Pipeline, error)
 	GetPipeline(string, string, string) (*contracts.Pipeline, error)
 	GetPipelineBuilds(string, string, string, int, int) ([]*contracts.Build, error)
 	GetPipelineBuild(string, string, string, string) (*contracts.Build, error)
@@ -339,52 +340,31 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int) (pipelines []*contracts.Pipeline, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters map[string][]string) (pipelines []*contracts.Pipeline, err error) {
+
+	//?filter[post]=1,2&filter[author]=12
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,'' AS labels,manifest,inserted_at,updated_at").
+			From("(SELECT *, RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) AS build_version_rank FROM builds)").
+			Where(sq.Eq{"build_version_rank": 1}).
+			OrderBy("repo_source,repo_owner,repo_name").
+			Limit(uint64(pageSize)).
+			Offset(uint64((pageNumber - 1) * pageSize))
+
+	if statuses, ok := filters["status"]; ok {
+		query.Where(sq.Eq{"build_status": statuses})
+	}
+
 	pipelines = make([]*contracts.Pipeline, 0)
-	rows, err := dbc.databaseConnection.Query(
-		`
-		SELECT
-			id,
-			repo_source,
-			repo_owner,
-			repo_name,
-			repo_branch,
-			repo_revision,
-			build_version,
-			build_status,
-			'' AS labels,
-			manifest,
-			inserted_at,
-			updated_at
-		FROM
-			(
-				SELECT
-					*,
-					RANK() OVER (
-						PARTITION BY
-							repo_source,
-							repo_owner,
-							repo_name
-						ORDER BY
-							inserted_at DESC) AS build_version_rank
-				FROM
-					builds
-			)
-		WHERE
-			build_version_rank = 1
-		ORDER BY
-			repo_source,
-			repo_owner,
-			repo_name
-		LIMIT $1
-		OFFSET $2
-		`,
-		pageSize,
-		(pageNumber-1)*pageSize,
-	)
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+
 	if err != nil {
 		return
 	}
