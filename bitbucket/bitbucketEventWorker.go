@@ -103,6 +103,14 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 
 	log.Debug().Interface("pushEvent", pushEvent).Interface("manifest", mft).Msgf("Estafette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
 
+	// inject steps
+	mft, err = estafette.InjectSteps(mft, builderTrack, "bitbucket")
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Failed injecting steps")
+		return
+	}
+
 	// get authenticated url for the repository
 	authenticatedRepositoryURL, err := w.apiClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.Links.HTML.Href)
 	if err != nil {

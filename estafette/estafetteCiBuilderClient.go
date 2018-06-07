@@ -2,6 +2,7 @@ package estafette
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -122,6 +123,9 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteCiAPIKeyValue := cbc.EstafetteCiAPIKey
 	estafetteCiBuilderTrackName := "ESTAFETTE_CI_BUILDER_TRACK"
 	estafetteCiBuilderTrackValue := ciBuilderParams.Track
+	estafetteManifestJSONKeyName := "ESTAFETTE_CI_MANIFEST_JSON"
+	manifestJSONBytes, err := json.Marshal(ciBuilderParams.Manifest)
+	estafetteManifestJSONKeyValue := string(manifestJSONBytes)
 
 	// temporarily pass build version equal to revision from the outside until estafette supports versioning
 	estafetteBuildVersionName := "ESTAFETTE_BUILD_VERSION"
@@ -181,6 +185,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		&apiv1.EnvVar{
 			Name:  &estafetteCiBuilderTrackName,
 			Value: &estafetteCiBuilderTrackValue,
+		},
+		&apiv1.EnvVar{
+			Name:  &estafetteManifestJSONKeyName,
+			Value: &estafetteManifestJSONKeyValue,
 		},
 	}
 
