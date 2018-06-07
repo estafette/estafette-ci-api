@@ -358,7 +358,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 			Offset(uint64((pageNumber - 1) * pageSize))
 
 	if statuses, ok := filters["status"]; ok {
-		query.Where(sq.Eq{"build_status": statuses})
+		query = query.Where(sq.Eq{"build_status": statuses})
 	}
 
 	pipelines = make([]*contracts.Pipeline, 0)
