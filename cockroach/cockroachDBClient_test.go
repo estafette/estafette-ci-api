@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	sq "github.com/Masterminds/squirrel"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func TestQueryBuilder(t *testing.T) {
