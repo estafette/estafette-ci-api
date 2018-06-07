@@ -357,7 +357,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
-	if statuses, ok := filters["status"]; ok && len(statuses) > 0 {
+	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "" {
 		query = query.Where(sq.Eq{"build_status": statuses})
 	}
 
