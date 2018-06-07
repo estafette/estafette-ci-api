@@ -104,7 +104,7 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 	log.Debug().Interface("pushEvent", pushEvent).Interface("manifest", mft).Msgf("Estafette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.After)
 
 	// inject steps
-	mft, err = estafette.InjectSteps(mft, builderTrack, "bitbucket")
+	mft, err = estafette.InjectSteps(mft, builderTrack, "github")
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Failed injecting steps")
