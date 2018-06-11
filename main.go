@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-gonic/gin/binding"
+
 	"github.com/estafette/estafette-ci-contracts"
 	"github.com/estafette/estafette-ci-crypt"
 
@@ -366,11 +368,17 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 		log.Info().Msgf("Retrieved %v pipelines", len(pipelines))
 
-		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
-		c.Writer.WriteHeader(http.StatusOK)
+		negotiatedFormat := c.NegotiateFormat(binding.MIMEJSON, jsonapi.MediaType)
 
-		if err := jsonapi.MarshalPayload(c.Writer, pipelines); err != nil {
-			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		if negotiatedFormat == jsonapi.MediaType {
+			c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
+			c.Writer.WriteHeader(http.StatusOK)
+
+			if err := jsonapi.MarshalPayload(c.Writer, pipelines); err != nil {
+				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			}
+		} else {
+			c.JSON(http.StatusOK, pipelines)
 		}
 	})
 
@@ -392,11 +400,17 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 
 		log.Info().Msgf("Retrieved pipeline for %v/%v/%v", source, owner, repo)
 
-		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
-		c.Writer.WriteHeader(http.StatusOK)
+		negotiatedFormat := c.NegotiateFormat(binding.MIMEJSON, jsonapi.MediaType)
 
-		if err := jsonapi.MarshalPayload(c.Writer, pipeline); err != nil {
-			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		if negotiatedFormat == jsonapi.MediaType {
+			c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
+			c.Writer.WriteHeader(http.StatusOK)
+
+			if err := jsonapi.MarshalPayload(c.Writer, pipeline); err != nil {
+				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			}
+		} else {
+			c.JSON(http.StatusOK, pipeline)
 		}
 	})
 
@@ -430,11 +444,17 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 		log.Info().Msgf("Retrieved %v builds for %v/%v/%v", len(builds), source, owner, repo)
 
-		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
-		c.Writer.WriteHeader(http.StatusOK)
+		negotiatedFormat := c.NegotiateFormat(binding.MIMEJSON, jsonapi.MediaType)
 
-		if err := jsonapi.MarshalPayload(c.Writer, builds); err != nil {
-			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		if negotiatedFormat == jsonapi.MediaType {
+			c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
+			c.Writer.WriteHeader(http.StatusOK)
+
+			if err := jsonapi.MarshalPayload(c.Writer, builds); err != nil {
+				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			}
+		} else {
+			c.JSON(http.StatusOK, builds)
 		}
 	})
 
@@ -456,11 +476,17 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 		log.Info().Msgf("Retrieved builds for %v/%v/%v/%v", source, owner, repo, revision)
 
-		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
-		c.Writer.WriteHeader(http.StatusOK)
+		negotiatedFormat := c.NegotiateFormat(binding.MIMEJSON, jsonapi.MediaType)
 
-		if err := jsonapi.MarshalPayload(c.Writer, build); err != nil {
-			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		if negotiatedFormat == jsonapi.MediaType {
+			c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
+			c.Writer.WriteHeader(http.StatusOK)
+
+			if err := jsonapi.MarshalPayload(c.Writer, build); err != nil {
+				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			}
+		} else {
+			c.JSON(http.StatusOK, build)
 		}
 	})
 
@@ -482,11 +508,17 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 		log.Info().Msgf("Retrieved build logs for %v/%v/%v/%v", source, owner, repo, revision)
 
-		c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
-		c.Writer.WriteHeader(http.StatusOK)
+		negotiatedFormat := c.NegotiateFormat(binding.MIMEJSON, jsonapi.MediaType)
 
-		if err := jsonapi.MarshalPayload(c.Writer, buildLog); err != nil {
-			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		if negotiatedFormat == jsonapi.MediaType {
+			c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
+			c.Writer.WriteHeader(http.StatusOK)
+
+			if err := jsonapi.MarshalPayload(c.Writer, buildLog); err != nil {
+				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			}
+		} else {
+			c.JSON(http.StatusOK, buildLog)
 		}
 	})
 
