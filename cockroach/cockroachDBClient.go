@@ -27,8 +27,10 @@ type DBClient interface {
 	InsertBuild(contracts.Build) error
 	UpdateBuildStatus(string, string, string, string, string) error
 	GetPipelines(int, int, map[string][]string) ([]*contracts.Pipeline, error)
+	GetPipelinesCount(map[string][]string) (int, error)
 	GetPipeline(string, string, string) (*contracts.Pipeline, error)
 	GetPipelineBuilds(string, string, string, int, int) ([]*contracts.Build, error)
+	GetPipelineBuildsCount(string, string, string) (int, error)
 	GetPipelineBuild(string, string, string, string) (*contracts.Build, error)
 	GetPipelineBuildLogs(string, string, string, string) (*contracts.BuildLog, error)
 	InsertBuildLog(contracts.BuildLog) error
@@ -343,8 +345,6 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 
 func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters map[string][]string) (pipelines []*contracts.Pipeline, err error) {
 
-	//?filter[post]=1,2&filter[author]=12
-
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
@@ -405,6 +405,55 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 		}
 
 		pipelines = append(pipelines, &pipeline)
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelinesCount(filters map[string][]string) (totalCount int, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("COUNT(*)").
+			From("(SELECT *, RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) AS build_version_rank FROM builds)").
+			Where(sq.Eq{"build_version_rank": 1})
+
+	if statuses, ok := filters["status"]; ok {
+		query = query.Where(sq.Eq{"build_status": statuses})
+	}
+	if since, ok := filters["since"]; ok {
+		sinceValue := since[0]
+		switch sinceValue {
+		case "1d":
+			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, 0, -1)})
+		case "1w":
+			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, 0, -7)})
+		case "1m":
+			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, -1, 0)})
+		case "1y":
+			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(-1, 0, 0)})
+		}
+	}
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	recordExists := rows.Next()
+
+	if !recordExists {
+		return
+	}
+
+	if err := rows.Scan(&totalCount); err != nil {
+		return 0, err
 	}
 
 	return
@@ -542,6 +591,43 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 		}
 
 		builds = append(builds, &build)
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineBuildsCount(repoSource, repoOwner, repoName string) (totalCount int, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	rows, err := dbc.databaseConnection.Query(
+		`
+		SELECT
+			COUNT(*)
+		FROM
+			builds
+		WHERE
+			repo_source=$1 AND
+			repo_owner=$2 AND
+			repo_name=$3
+		`,
+		repoSource,
+		repoOwner,
+		repoName,
+	)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	recordExists := rows.Next()
+
+	if !recordExists {
+		return
+	}
+
+	if err := rows.Scan(&totalCount); err != nil {
+		return 0, err
 	}
 
 	return

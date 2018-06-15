@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	stdlog "log"
+	"math"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,8 +15,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-
-	"github.com/gin-gonic/gin/binding"
 
 	"github.com/estafette/estafette-ci-contracts"
 	"github.com/estafette/estafette-ci-crypt"
@@ -28,7 +27,6 @@ import (
 	"github.com/estafette/estafette-ci-api/slack"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
-	"github.com/google/jsonapi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
@@ -374,18 +372,28 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 		log.Info().Msgf("Retrieved %v pipelines", len(pipelines))
 
-		negotiatedFormat := c.NegotiateFormat(binding.MIMEJSON, jsonapi.MediaType)
-
-		if negotiatedFormat == jsonapi.MediaType {
-			c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
-			c.Writer.WriteHeader(http.StatusOK)
-
-			if err := jsonapi.MarshalPayload(c.Writer, pipelines); err != nil {
-				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
-			}
-		} else {
-			c.JSON(http.StatusOK, pipelines)
+		pipelinesCount, err := cockroachDBClient.GetPipelinesCount(filters)
+		if err != nil {
+			log.Error().Err(err).
+				Msg("Failed retrieving pipelines count from db")
 		}
+		log.Info().Msgf("Retrieved pipelines count %v", pipelinesCount)
+
+		response := contracts.ListResponse{
+			Pagination: contracts.Pagination{
+				Page:       pageNumber,
+				Size:       pageSize,
+				TotalItems: pipelinesCount,
+				TotalPages: int(math.Ceil(float64(pipelinesCount) / float64(pageSize))),
+			},
+		}
+
+		response.Items = make([]interface{}, len(pipelines))
+		for i := range pipelines {
+			response.Items[i] = pipelines[i]
+		}
+
+		c.JSON(http.StatusOK, response)
 	})
 
 	router.GET("/api/pipelines/:source/:owner/:repo", func(c *gin.Context) {
@@ -406,18 +414,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 
 		log.Info().Msgf("Retrieved pipeline for %v/%v/%v", source, owner, repo)
 
-		negotiatedFormat := c.NegotiateFormat(binding.MIMEJSON, jsonapi.MediaType)
-
-		if negotiatedFormat == jsonapi.MediaType {
-			c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
-			c.Writer.WriteHeader(http.StatusOK)
-
-			if err := jsonapi.MarshalPayload(c.Writer, pipeline); err != nil {
-				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
-			}
-		} else {
-			c.JSON(http.StatusOK, pipeline)
-		}
+		c.JSON(http.StatusOK, pipeline)
 	})
 
 	router.GET("/api/pipelines/:source/:owner/:repo/builds", func(c *gin.Context) {
@@ -450,18 +447,28 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 		log.Info().Msgf("Retrieved %v builds for %v/%v/%v", len(builds), source, owner, repo)
 
-		negotiatedFormat := c.NegotiateFormat(binding.MIMEJSON, jsonapi.MediaType)
-
-		if negotiatedFormat == jsonapi.MediaType {
-			c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
-			c.Writer.WriteHeader(http.StatusOK)
-
-			if err := jsonapi.MarshalPayload(c.Writer, builds); err != nil {
-				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
-			}
-		} else {
-			c.JSON(http.StatusOK, builds)
+		buildsCount, err := cockroachDBClient.GetPipelineBuildsCount(source, owner, repo)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed retrieving builds count for %v/%v/%v from db", source, owner, repo)
 		}
+		log.Info().Msgf("Retrieved builds count %v for %v/%v/%v", buildsCount, source, owner, repo)
+
+		response := contracts.ListResponse{
+			Pagination: contracts.Pagination{
+				Page:       pageNumber,
+				Size:       pageSize,
+				TotalItems: buildsCount,
+				TotalPages: int(math.Ceil(float64(buildsCount) / float64(pageSize))),
+			},
+		}
+
+		response.Items = make([]interface{}, len(builds))
+		for i := range builds {
+			response.Items[i] = builds[i]
+		}
+
+		c.JSON(http.StatusOK, response)
 	})
 
 	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revision", func(c *gin.Context) {
@@ -482,18 +489,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 		log.Info().Msgf("Retrieved builds for %v/%v/%v/%v", source, owner, repo, revision)
 
-		negotiatedFormat := c.NegotiateFormat(binding.MIMEJSON, jsonapi.MediaType)
-
-		if negotiatedFormat == jsonapi.MediaType {
-			c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
-			c.Writer.WriteHeader(http.StatusOK)
-
-			if err := jsonapi.MarshalPayload(c.Writer, build); err != nil {
-				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
-			}
-		} else {
-			c.JSON(http.StatusOK, build)
-		}
+		c.JSON(http.StatusOK, build)
 	})
 
 	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revision/logs", func(c *gin.Context) {
@@ -514,18 +510,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		}
 		log.Info().Msgf("Retrieved build logs for %v/%v/%v/%v", source, owner, repo, revision)
 
-		negotiatedFormat := c.NegotiateFormat(binding.MIMEJSON, jsonapi.MediaType)
-
-		if negotiatedFormat == jsonapi.MediaType {
-			c.Writer.Header().Set("Content-Type", jsonapi.MediaType)
-			c.Writer.WriteHeader(http.StatusOK)
-
-			if err := jsonapi.MarshalPayload(c.Writer, buildLog); err != nil {
-				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
-			}
-		} else {
-			c.JSON(http.StatusOK, buildLog)
-		}
+		c.JSON(http.StatusOK, buildLog)
 	})
 
 	router.POST("/api/pipelines/:source/:owner/:repo/builds/:revision/logs", func(c *gin.Context) {
