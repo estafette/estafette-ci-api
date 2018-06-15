@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/estafette/estafette-ci-contracts"
@@ -364,13 +365,13 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 		sinceValue := since[0]
 		switch sinceValue {
 		case "1d":
-			query = query.Where(sq.LtOrEq{"inserted_at": "now() - interval '1 day'"})
+			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, 0, -1)})
 		case "1w":
-			query = query.Where(sq.LtOrEq{"inserted_at": "now() - interval '1 week'"})
+			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, 0, -7)})
 		case "1m":
-			query = query.Where(sq.LtOrEq{"inserted_at": "now() - interval '1 month'"})
+			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, -1, 0)})
 		case "1y":
-			query = query.Where(sq.LtOrEq{"inserted_at": "now() - interval '1 year'"})
+			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(-1, 0, 0)})
 		}
 	}
 
