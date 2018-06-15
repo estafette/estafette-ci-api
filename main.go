@@ -357,8 +357,14 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		// get filters (?filter[post]=1,2&filter[author]=12)
 		filters := map[string][]string{}
 		filterStatusValues, filterStatusExist := c.GetQueryArray("filter[status]")
-		if filterStatusExist {
+		if filterStatusExist && len(filterStatusValues) > 0 && filterStatusValues[0] != "" {
 			filters["status"] = filterStatusValues
+		}
+		filterSinceValues, filterSinceExist := c.GetQueryArray("filter[since]")
+		if filterSinceExist {
+			filters["since"] = filterSinceValues
+		} else {
+			filters["since"] = []string{"eternity"}
 		}
 
 		pipelines, err := cockroachDBClient.GetPipelines(pageNumber, pageSize, filters)

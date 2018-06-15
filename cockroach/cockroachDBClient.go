@@ -357,8 +357,21 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
-	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "" {
+	if statuses, ok := filters["status"]; ok {
 		query = query.Where(sq.Eq{"build_status": statuses})
+	}
+	if since, ok := filters["since"]; ok {
+		sinceValue := since[0]
+		switch sinceValue {
+		case "1d":
+			query = query.Where(sq.LtOrEq{"inserted_at": "now() - interval '1 day'"})
+		case "1w":
+			query = query.Where(sq.LtOrEq{"inserted_at": "now() - interval '1 week'"})
+		case "1m":
+			query = query.Where(sq.LtOrEq{"inserted_at": "now() - interval '1 month'"})
+		case "1y":
+			query = query.Where(sq.LtOrEq{"inserted_at": "now() - interval '1 year'"})
+		}
 	}
 
 	pipelines = make([]*contracts.Pipeline, 0)
