@@ -116,7 +116,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteCiServerBaseURLName := "ESTAFETTE_CI_SERVER_BASE_URL"
 	estafetteCiServerBaseURLValue := cbc.EstafetteCiServerBaseURL
 	estafetteCiServerBuilderEventsURLName := "ESTAFETTE_CI_SERVER_BUILDER_EVENTS_URL"
-	estafetteCiServerBuilderEventsURLValue := strings.TrimRight(cbc.EstafetteCiServerServiceURL, "/") + "/events/estafette/ci-builder"
+	estafetteCiServerBuilderEventsURLValue := strings.TrimRight(cbc.EstafetteCiServerServiceURL, "/") + "/api/commands"
 	estafetteCiServerBuilderPostLogsURLName := "ESTAFETTE_CI_SERVER_POST_LOGS_URL"
 	estafetteCiServerBuilderPostLogsURLValue := strings.TrimRight(cbc.EstafetteCiServerServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
 	estafetteCiAPIKeyName := "ESTAFETTE_CI_API_KEY"

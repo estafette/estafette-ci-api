@@ -70,7 +70,7 @@ spec:
   - host: ${HOSTNAMES}
     http:
       paths:
-      - path: /events/slack/
+      - path: /api/integrations/slack/slash
         backend:
           serviceName: estafette-ci-api
           servicePort: https
