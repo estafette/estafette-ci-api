@@ -267,7 +267,6 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	router := createRouter()
 
 	githubEventHandler := github.NewGithubEventHandler(githubPushEvents, *githubWebhookSecret, prometheusInboundEventTotals)
-	router.POST("/events/github", githubEventHandler.Handle)
 	router.POST("/api/integrations/github/events", githubEventHandler.Handle)
 
 	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketPushEvents, prometheusInboundEventTotals)
