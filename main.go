@@ -276,7 +276,6 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	router.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
 
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*estafetteCiAPIKey, estafetteCiBuilderEvents, estafetteBuildJobLogs, prometheusInboundEventTotals)
-	router.POST("/events/estafette/ci-builder", estafetteEventHandler.Handle)
 	router.POST("/api/commands", estafetteEventHandler.Handle)
 
 	router.GET("/logs/:source/:owner/:repo/:branch/:revision", func(c *gin.Context) {

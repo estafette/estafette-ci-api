@@ -40,10 +40,6 @@ spec:
         backend:
           serviceName: estafette-ci-api
           servicePort: https
-      - path: /events
-        backend:
-          serviceName: estafette-ci-api
-          servicePort: https
       - path: /logs
         backend:
           serviceName: estafette-ci-api
