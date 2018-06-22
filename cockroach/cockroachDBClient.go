@@ -8,7 +8,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/estafette/estafette-ci-contracts"
-	"github.com/pressly/goose"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 
@@ -20,7 +19,6 @@ import (
 type DBClient interface {
 	Connect() error
 	ConnectWithDriverAndSource(string, string) error
-	MigrateSchema() error
 	InsertBuildJobLogs(BuildJobLogs) error
 	GetBuildLogs(BuildJobLogs) ([]BuildJobLogRow, error)
 	GetAutoIncrement(string, string) (int, error)
@@ -38,7 +36,6 @@ type DBClient interface {
 
 type cockroachDBClientImpl struct {
 	databaseDriver                  string
-	migrationsDir                   string
 	cockroachDatabase               string
 	cockroachHost                   string
 	cockroachInsecure               bool
@@ -55,7 +52,6 @@ func NewCockroachDBClient(cockroachDatabase, cockroachHost string, cockroachInse
 
 	cockroachDBClient = &cockroachDBClientImpl{
 		databaseDriver:                  "postgres",
-		migrationsDir:                   "/migrations",
 		cockroachDatabase:               cockroachDatabase,
 		cockroachHost:                   cockroachHost,
 		cockroachInsecure:               cockroachInsecure,
@@ -90,27 +86,6 @@ func (dbc *cockroachDBClientImpl) ConnectWithDriverAndSource(driverName string, 
 	dbc.databaseConnection, err = sql.Open(driverName, dataSourceName)
 	if err != nil {
 		return
-	}
-
-	return
-}
-
-// MigrateSchema migrates the schema in CockroachDB
-func (dbc *cockroachDBClientImpl) MigrateSchema() (err error) {
-
-	err = goose.SetDialect(dbc.databaseDriver)
-	if err != nil {
-		return err
-	}
-
-	err = goose.Status(dbc.databaseConnection, dbc.migrationsDir)
-	if err != nil {
-		return err
-	}
-
-	err = goose.Up(dbc.databaseConnection, dbc.migrationsDir)
-	if err != nil {
-		return err
 	}
 
 	return

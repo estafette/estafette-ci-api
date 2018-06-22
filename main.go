@@ -235,10 +235,6 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed connecting to CockroachDB")
 	}
-	err = cockroachDBClient.MigrateSchema()
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed migrating schema of CockroachDB")
-	}
 
 	// listen to channels for push events
 	githubPushEvents := make(chan github.PushEvent, *githubEventChannelBufferSize)

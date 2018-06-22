@@ -381,14 +381,6 @@
 			"revisionTime": "2017-01-11T10:11:55Z"
 		},
 		{
-			"checksumSHA1": "E7Djn1SNHKdlf/jL7mq+gFyTz38=",
-			"path": "github.com/google/jsonapi",
-			"revision": "46d3ced0434461be12e555852e2f1a9ed382e139",
-			"revisionTime": "2017-07-08T00:58:51Z",
-			"version": "1.0.0",
-			"versionExact": "1.0.0"
-		},
-		{
 			"checksumSHA1": "QKo3rVez8D7fh1w60CPZkxtc1qw=",
 			"path": "github.com/lann/builder",
 			"revision": "1b87b36280d04fe7882d1512bf038ea2967ad534",
@@ -437,14 +429,6 @@
 			"path": "github.com/pmezard/go-difflib/difflib",
 			"revision": "792786c7400a136282c1664665ae0a8db921c6c2",
 			"revisionTime": "2016-01-10T10:55:54Z"
-		},
-		{
-			"checksumSHA1": "84t/r2jCAua2k2d2FUEhP9iGdVQ=",
-			"path": "github.com/pressly/goose",
-			"revision": "95600eb369b1f657efd54a401ab85d0647a1db80",
-			"revisionTime": "2018-05-03T15:24:55Z",
-			"version": "v2.3.0",
-			"versionExact": "v2.3.0"
 		},
 		{
 			"checksumSHA1": "YZvQ/pFowcTMs4ldf0B7vPG/hKU=",

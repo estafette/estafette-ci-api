@@ -13,8 +13,6 @@ govendor fetch github.com/gin-gonic/gin@v1.2
 govendor fetch github.com/gin-contrib/gzip
 govendor fetch github.com/estafette/estafette-ci-crypt@0.0.2
 govendor fetch github.com/lib/pq
-govendor fetch github.com/pressly/goose@v2.3.0
 govendor fetch github.com/mattn/go-sqlite3@v1.2.0
-govendor fetch github.com/google/jsonapi@1.0.0
 govendor fetch github.com/estafette/estafette-ci-contracts@0.0.12
 govendor fetch github.com/Masterminds/squirrel@v1.0
