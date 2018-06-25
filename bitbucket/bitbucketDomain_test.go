@@ -9,7 +9,7 @@ import (
 func TestPushEventChangeObjectTargetAuthorUser(t *testing.T) {
 	t.Run("GetEmailAddressExtractsEmailAddressFromRawField", func(t *testing.T) {
 
-		u := PushEventChangeObjectTargetAuthorUser{
+		u := PushEventChangeObjectTargetAuthor{
 			Raw: "Someones Name \u003csomeone@server.com\u003e",
 		}
 

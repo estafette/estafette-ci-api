@@ -56,18 +56,13 @@ func (t *PushEventChangeObjectTarget) GetCommitMessage() string {
 
 // PushEventChangeObjectTargetAuthor represents the author of a commit
 type PushEventChangeObjectTargetAuthor struct {
-	User PushEventChangeObjectTargetAuthorUser `json:"user"`
-}
-
-// PushEventChangeObjectTargetAuthorUser represents the actual user for the author of a commit
-type PushEventChangeObjectTargetAuthorUser struct {
 	Name     string `json:"display_name"`
 	Username string `json:"username"`
 	Raw      string `json:"raw"`
 }
 
 // GetEmailAddress returns the email address extracted from PushEventChangeObjectTargetAuthorUser
-func (u *PushEventChangeObjectTargetAuthorUser) GetEmailAddress() string {
+func (u *PushEventChangeObjectTargetAuthor) GetEmailAddress() string {
 
 	re := regexp.MustCompile(`[^<]+<([^>]+)>`)
 	match := re.FindStringSubmatch(u.Raw)
