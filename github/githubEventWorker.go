@@ -138,6 +138,30 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 		buildStatus = "running"
 	}
 
+	var labels []contracts.Label
+	if hasValidManifest {
+		for k, v := range mft.Labels {
+			labels = append(labels, contracts.Label{
+				Key:   k,
+				Value: v,
+			})
+		}
+	}
+
+	var commits []contracts.GitCommit
+	if hasValidManifest {
+		for _, c := range pushEvent.Commits {
+			commits = append(commits, contracts.GitCommit{
+				Author: contracts.GitAuthor{
+					Email:    c.Author.Email,
+					Name:     c.Author.Name,
+					Username: c.Author.UserName,
+				},
+				Message: c.Message,
+			})
+		}
+	}
+
 	// store build in db
 	err = w.cockroachDBClient.InsertBuild(contracts.Build{
 		RepoSource:   "github.com",
@@ -147,16 +171,13 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 		RepoRevision: pushEvent.After,
 		BuildVersion: buildVersion,
 		BuildStatus:  buildStatus,
-		Labels:       "",
+		Labels:       labels,
 		Manifest:     manifestString,
+		Commits:      commits,
 	})
 	if err != nil {
 		log.Warn().Err(err).
 			Msgf("Failed inserting build into db for Bitbucket repository %v", pushEvent.Repository.FullName)
-	}
-
-	if !hasValidManifest {
-
 	}
 
 	// define ci builder params
@@ -175,16 +196,19 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 	}
 
 	// create ci builder job
-	_, err = w.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
-	if err != nil {
-		log.Error().Err(err).
+	if hasValidManifest {
+
+		_, err = w.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+		if err != nil {
+			log.Error().Err(err).
+				Interface("params", ciBuilderParams).
+				Msgf("Creating estafette-ci-builder job for Github repository %v revision %v failed", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
+
+			return
+		}
+
+		log.Info().
 			Interface("params", ciBuilderParams).
-			Msgf("Creating estafette-ci-builder job for Github repository %v revision %v failed", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
-
-		return
+			Msgf("Created estafette-ci-builder job for Github repository %v revision %v", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
 	}
-
-	log.Info().
-		Interface("params", ciBuilderParams).
-		Msgf("Created estafette-ci-builder job for Github repository %v revision %v", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
 }

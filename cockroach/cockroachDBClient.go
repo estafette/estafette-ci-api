@@ -242,6 +242,15 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string
 func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
+	labelsBytes, err := json.Marshal(build.Labels)
+	if err != nil {
+		return
+	}
+	commitsBytes, err := json.Marshal(build.Commits)
+	if err != nil {
+		return
+	}
+
 	// insert logs
 	_, err = dbc.databaseConnection.Exec(
 		`
@@ -255,7 +264,9 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (err error)
 			repo_revision,
 			build_version,
 			build_status,
-			manifest
+			labels,
+			manifest,
+			commits
 		)
 		VALUES
 		(
@@ -266,7 +277,9 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (err error)
 			$5,
 			$6,
 			$7,
-			$8
+			$8,
+			$9,
+			$10
 		)
 		`,
 		build.RepoSource,
@@ -276,7 +289,9 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (err error)
 		build.RepoRevision,
 		build.BuildVersion,
 		build.BuildStatus,
+		labelsBytes,
 		build.Manifest,
+		commitsBytes,
 	)
 
 	if err != nil {

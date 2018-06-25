@@ -1,5 +1,9 @@
 package bitbucket
 
+import (
+	"regexp"
+)
+
 // RepositoryPushEvent represents a Bitbucket push event
 type RepositoryPushEvent struct {
 	Actor      Owner      `json:"actor"`
@@ -32,10 +36,50 @@ type PushEventChangeObject struct {
 
 // PushEventChangeObjectTarget represents the target of a change
 type PushEventChangeObjectTarget struct {
-	Hash string `json:"hash"`
+	Hash    string                            `json:"hash"`
+	Author  PushEventChangeObjectTargetAuthor `json:"author"`
+	Message string                            `json:"message"`
 }
 
-// Owner represents a Bitbucket owern
+// GetCommitMessage extracts the commit message from the Commit Message field
+func (t *PushEventChangeObjectTarget) GetCommitMessage() string {
+
+	re := regexp.MustCompile(`^([^\n]+)`)
+	match := re.FindStringSubmatch(t.Message)
+
+	if len(match) < 2 {
+		return ""
+	}
+
+	return match[1]
+}
+
+// PushEventChangeObjectTargetAuthor represents the author of a commit
+type PushEventChangeObjectTargetAuthor struct {
+	User PushEventChangeObjectTargetAuthorUser `json:"user"`
+}
+
+// PushEventChangeObjectTargetAuthorUser represents the actual user for the author of a commit
+type PushEventChangeObjectTargetAuthorUser struct {
+	Name     string `json:"display_name"`
+	Username string `json:"username"`
+	Raw      string `json:"raw"`
+}
+
+// GetEmailAddress returns the email address extracted from PushEventChangeObjectTargetAuthorUser
+func (u *PushEventChangeObjectTargetAuthorUser) GetEmailAddress() string {
+
+	re := regexp.MustCompile(`[^<]+<([^>]+)>`)
+	match := re.FindStringSubmatch(u.Raw)
+
+	if len(match) < 2 {
+		return ""
+	}
+
+	return match[1]
+}
+
+// Owner represents a Bitbucket owner
 type Owner struct {
 	Type        string `json:"type"`
 	UserName    string `json:"username"`
