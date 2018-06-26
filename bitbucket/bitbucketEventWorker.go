@@ -151,14 +151,14 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 	var commits []contracts.GitCommit
 	if hasValidManifest {
 		for _, c := range pushEvent.Push.Changes {
-			if c.Created && c.New != nil {
+			if len(c.Commits) > 0 {
 				commits = append(commits, contracts.GitCommit{
 					Author: contracts.GitAuthor{
-						Email:    c.New.Target.Author.GetEmailAddress(),
-						Name:     c.New.Target.Author.Name,
-						Username: c.New.Target.Author.Username,
+						Email:    c.Commits[0].Author.GetEmailAddress(),
+						Name:     c.Commits[0].Author.GetName(),
+						Username: c.Commits[0].Author.Username,
 					},
-					Message: c.New.Target.GetCommitMessage(),
+					Message: c.Commits[0].GetCommitMessage(),
 				})
 			}
 		}

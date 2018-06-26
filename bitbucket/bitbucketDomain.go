@@ -2,6 +2,7 @@ package bitbucket
 
 import (
 	"regexp"
+	"strings"
 )
 
 // RepositoryPushEvent represents a Bitbucket push event
@@ -109,11 +110,50 @@ type Commit struct {
 	Message string `json:"message"`
 }
 
+// GetCommitMessage extracts the commit message from the Commit Message field
+func (t *Commit) GetCommitMessage() string {
+
+	re := regexp.MustCompile(`^([^\n]+)`)
+	match := re.FindStringSubmatch(t.Message)
+
+	if len(match) < 2 {
+		return ""
+	}
+
+	return match[1]
+}
+
 // Author represents a Bitbucket author
 type Author struct {
-	Raw  string `json:"raw"`
-	Type string `json:"type"`
-	User Owner  `json:"user,omitempty"`
+	Name     string `json:"display_name"`
+	Username string `json:"username"`
+	Raw      string `json:"raw"`
+}
+
+// GetEmailAddress returns the email address extracted from Author
+func (u *Author) GetEmailAddress() string {
+
+	re := regexp.MustCompile(`[^<]+<([^>]+)>`)
+	match := re.FindStringSubmatch(u.Raw)
+
+	if len(match) < 2 {
+		return ""
+	}
+
+	return match[1]
+}
+
+// GetName returns the name extracted from Author
+func (u *Author) GetName() string {
+
+	re := regexp.MustCompile(`([^<]+)<([^>]+)>`)
+	match := re.FindStringSubmatch(u.Raw)
+
+	if len(match) < 2 {
+		return ""
+	}
+
+	return strings.TrimSpace(match[1])
 }
 
 // AccessToken represents a token to use for api requests
