@@ -361,9 +361,6 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
-	sql, args, _ := query.ToSql()
-	log.Debug().Interface("sql", sql).Interface("args", args).Msg("GetPipelines query")
-
 	pipelines = make([]*contracts.Pipeline, 0)
 
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
@@ -434,9 +431,6 @@ func (dbc *cockroachDBClientImpl) GetPipelinesCount(filters map[string][]string)
 	if err != nil {
 		return
 	}
-
-	sql, args, _ := query.ToSql()
-	log.Debug().Interface("sql", sql).Interface("args", args).Msg("GetPipelinesCount query")
 
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 	if err != nil {
@@ -520,15 +514,11 @@ func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, filters map[str
 			}
 		}
 
-		log.Debug().Interface("labels", labelsParam).Msg("Labels array for filtering")
-
 		if len(labelsParam) > 0 {
 			bytes, err := json.Marshal(labelsParam)
 			if err != nil {
 				return query, err
 			}
-
-			log.Debug().Interface("labelsJSON", string(bytes)).Msg("Labels array for filtering")
 
 			query = query.Where("labels @> ?", string(bytes))
 		}
