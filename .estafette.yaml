@@ -16,7 +16,7 @@ version:
 
 pipelines:
   build:
-    image: golang:1.10.2-alpine3.7
+    image: golang:1.10.3-alpine3.7
     workDir: /go/src/github.com/estafette/${ESTAFETTE_LABEL_APP}
     commands:
     - go test `go list ./... | grep -v /vendor/`
