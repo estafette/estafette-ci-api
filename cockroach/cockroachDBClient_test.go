@@ -90,7 +90,7 @@ func TestQueryBuilder(t *testing.T) {
 		sql, _, err := query.ToSql()
 
 		assert.Nil(t, err)
-		assert.Equal(t, "SELECT * FROM builds WHERE labels @> '$1'", sql)
+		assert.Equal(t, "SELECT * FROM builds WHERE labels @> $1", sql)
 	})
 
 	t.Run("GeneratesGetPipelinesQuery", func(t *testing.T) {
