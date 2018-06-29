@@ -530,7 +530,7 @@ func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, filters map[str
 
 			log.Debug().Interface("labelsJSON", string(bytes)).Msg("Labels array for filtering")
 
-			query = query.Where("labels @> '?'", string(bytes))
+			query = query.Where("labels @> ?", string(bytes))
 		}
 	}
 
