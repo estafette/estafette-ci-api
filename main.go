@@ -360,6 +360,10 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		} else {
 			filters["since"] = []string{"eternity"}
 		}
+		filterLabelsValues, filterLabelsExist := c.GetQueryArray("filter[labels]")
+		if filterLabelsExist {
+			filters["labels"] = filterLabelsValues
+		}
 
 		pipelines, err := cockroachDBClient.GetPipelines(pageNumber, pageSize, filters)
 		if err != nil {

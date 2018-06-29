@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -363,6 +364,29 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 		case "1y":
 			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(-1, 0, 0)})
 		}
+	}
+
+	if labels, ok := filters["labels"]; ok {
+
+		labelsParam := []contracts.Label{}
+
+		for _, label := range labels {
+			keyValuePair := strings.Split(label, "=")
+
+			if len(keyValuePair) == 2 {
+				labelsParam = append(labelsParam, contracts.Label{
+					Key:   keyValuePair[0],
+					Value: keyValuePair[1],
+				})
+			}
+		}
+
+		bytes, err := json.Marshal(labelsParam)
+		if err != nil {
+			return pipelines, err
+		}
+
+		query = query.Where("labels @> '?'", string(bytes))
 	}
 
 	pipelines = make([]*contracts.Pipeline, 0)
