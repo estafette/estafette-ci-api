@@ -340,54 +340,31 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
+	innerQuery :=
+		psql.
+			Select("*, RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) AS build_version_rank").
+			From("builds")
+
+	innerQuery, err = whereClauseGeneratorForSinceFilter(innerQuery, filters)
+	if err != nil {
+		return
+	}
+
 	query :=
 		psql.
 			Select("id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,manifest,commits,inserted_at,updated_at").
-			From("(SELECT *, RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) AS build_version_rank FROM builds)").
-			Where(sq.Eq{"build_version_rank": 1}).
-			OrderBy("repo_source,repo_owner,repo_name").
-			Limit(uint64(pageSize)).
-			Offset(uint64((pageNumber - 1) * pageSize))
+			FromSelect(innerQuery, "ranked_builds").
+			Where(sq.Eq{"build_version_rank": 1})
 
-	if statuses, ok := filters["status"]; ok {
-		query = query.Where(sq.Eq{"build_status": statuses})
-	}
-	if since, ok := filters["since"]; ok {
-		sinceValue := since[0]
-		switch sinceValue {
-		case "1d":
-			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, 0, -1)})
-		case "1w":
-			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, 0, -7)})
-		case "1m":
-			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, -1, 0)})
-		case "1y":
-			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(-1, 0, 0)})
-		}
+	query, err = whereClauseGeneratorForAllFilters(query, filters)
+	if err != nil {
+		return
 	}
 
-	if labels, ok := filters["labels"]; ok {
-
-		labelsParam := []contracts.Label{}
-
-		for _, label := range labels {
-			keyValuePair := strings.Split(label, "=")
-
-			if len(keyValuePair) == 2 {
-				labelsParam = append(labelsParam, contracts.Label{
-					Key:   keyValuePair[0],
-					Value: keyValuePair[1],
-				})
-			}
-		}
-
-		bytes, err := json.Marshal(labelsParam)
-		if err != nil {
-			return pipelines, err
-		}
-
-		query = query.Where("labels @> '?'", string(bytes))
-	}
+	query = query.
+		OrderBy("repo_source,repo_owner,repo_name").
+		Limit(uint64(pageSize)).
+		Offset(uint64((pageNumber - 1) * pageSize))
 
 	pipelines = make([]*contracts.Pipeline, 0)
 
@@ -444,31 +421,28 @@ func (dbc *cockroachDBClientImpl) GetPipelinesCount(filters map[string][]string)
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
+	innerQuery :=
+		psql.
+			Select("*, RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) AS build_version_rank").
+			From("builds")
+
+	innerQuery, err = whereClauseGeneratorForSinceFilter(innerQuery, filters)
+	if err != nil {
+		return
+	}
+
 	query :=
 		psql.
 			Select("COUNT(*)").
-			From("(SELECT *, RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) AS build_version_rank FROM builds)").
+			FromSelect(innerQuery, "ranked_builds").
 			Where(sq.Eq{"build_version_rank": 1})
 
-	if statuses, ok := filters["status"]; ok {
-		query = query.Where(sq.Eq{"build_status": statuses})
-	}
-	if since, ok := filters["since"]; ok {
-		sinceValue := since[0]
-		switch sinceValue {
-		case "1d":
-			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, 0, -1)})
-		case "1w":
-			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, 0, -7)})
-		case "1m":
-			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, -1, 0)})
-		case "1y":
-			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(-1, 0, 0)})
-		}
+	query, err = whereClauseGeneratorForAllFilters(query, filters)
+	if err != nil {
+		return
 	}
 
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
-
 	if err != nil {
 		return
 	}
@@ -485,6 +459,80 @@ func (dbc *cockroachDBClientImpl) GetPipelinesCount(filters map[string][]string)
 	}
 
 	return
+}
+
+func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	query, err := whereClauseGeneratorForStatusFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForSinceFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForLabelsFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForStatusFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if statuses, ok := filters["status"]; ok {
+		query = query.Where(sq.Eq{"build_status": statuses})
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if since, ok := filters["since"]; ok {
+		sinceValue := since[0]
+		switch sinceValue {
+		case "1d":
+			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, 0, -1)})
+		case "1w":
+			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, 0, -7)})
+		case "1m":
+			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, -1, 0)})
+		case "1y":
+			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(-1, 0, 0)})
+		}
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if labels, ok := filters["labels"]; ok {
+
+		labelsParam := []contracts.Label{}
+
+		for _, label := range labels {
+			keyValuePair := strings.Split(label, "=")
+
+			if len(keyValuePair) == 2 {
+				labelsParam = append(labelsParam, contracts.Label{
+					Key:   keyValuePair[0],
+					Value: keyValuePair[1],
+				})
+			}
+		}
+
+		bytes, err := json.Marshal(labelsParam)
+		if err != nil {
+			return query, err
+		}
+
+		query = query.Where("labels @> '?'", string(bytes))
+	}
+
+	return query, nil
 }
 
 func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName string) (pipeline *contracts.Pipeline, err error) {
