@@ -345,11 +345,6 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 			Select("*, RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) AS build_version_rank").
 			From("builds")
 
-	innerQuery, err = whereClauseGeneratorForSinceFilter(innerQuery, filters)
-	if err != nil {
-		return
-	}
-
 	query :=
 		psql.
 			Select("id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,manifest,commits,inserted_at,updated_at").
@@ -425,11 +420,6 @@ func (dbc *cockroachDBClientImpl) GetPipelinesCount(filters map[string][]string)
 		psql.
 			Select("*, RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) AS build_version_rank").
 			From("builds")
-
-	innerQuery, err = whereClauseGeneratorForSinceFilter(innerQuery, filters)
-	if err != nil {
-		return
-	}
 
 	query :=
 		psql.

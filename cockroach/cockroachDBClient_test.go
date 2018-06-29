@@ -117,5 +117,4 @@ func TestQueryBuilder(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "SELECT id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,manifest,commits,inserted_at,updated_at FROM (SELECT *, RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) AS build_version_rank FROM builds) AS ranked_builds WHERE build_version_rank = $1 ORDER BY repo_source,repo_owner,repo_name LIMIT 2 OFFSET 20", sql)
 	})
-
 }
