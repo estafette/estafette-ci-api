@@ -133,7 +133,7 @@ data:
   config.yaml: |-
     integrations:
       github:
-        privateKeyPath: "/github-app-key/private-key.pem"
+        privateKeyPath: /github-app-key/private-key.pem
         appID: ${GITHUB_APP_ID}
         clientID: ${GITHUB_APP_OAUTH_CLIENT_ID}
         clientSecret: ${GITHUB_APP_OAUTH_CLIENT_SECRET}
@@ -157,8 +157,8 @@ data:
         maxWorkers: 5
 
     apiServer:
-      baseURL: "https://${HOSTNAMES}/"
-      serviceURL: "http://estafette-ci-api/"
+      baseURL: https://${HOSTNAMES}/
+      serviceURL: http://estafette-ci-api/
       apiKey: ${ESTAFETTE_CI_API_KEY}
       eventChannelBufferSize: 100
       maxWorkers: 5
