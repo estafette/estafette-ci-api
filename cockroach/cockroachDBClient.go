@@ -471,7 +471,7 @@ func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, filters map[strin
 
 func whereClauseGeneratorForStatusFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
 
-	if statuses, ok := filters["status"]; ok {
+	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "all" {
 		query = query.Where(sq.Eq{"build_status": statuses})
 	}
 
