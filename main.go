@@ -488,7 +488,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	router.POST("/api/pipelines/:source/:owner/:repo/builds/:revision/logs", func(c *gin.Context) {
 
 		authorizationHeader := c.GetHeader("Authorization")
-		if authorizationHeader != fmt.Sprintf("Bearer %v", &config.APIServer.APIKey) {
+		if authorizationHeader != fmt.Sprintf("Bearer %v", config.APIServer.APIKey) {
 			log.Error().
 				Str("authorizationHeader", authorizationHeader).
 				Msg("Authorization header for Estafette v2 logs is incorrect")
