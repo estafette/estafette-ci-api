@@ -8,6 +8,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-contracts"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -37,29 +38,17 @@ type DBClient interface {
 
 type cockroachDBClientImpl struct {
 	databaseDriver                  string
-	cockroachDatabase               string
-	cockroachHost                   string
-	cockroachInsecure               bool
-	cockroachCertificateDir         string
-	cockroachPort                   int
-	cockroachUser                   string
-	cockroachPassword               string
+	config                          config.DatabaseConfig
 	PrometheusOutboundAPICallTotals *prometheus.CounterVec
 	databaseConnection              *sql.DB
 }
 
 // NewCockroachDBClient returns a new cockroach.DBClient
-func NewCockroachDBClient(cockroachDatabase, cockroachHost string, cockroachInsecure bool, cockroachCertificateDir string, cockroachPort int, cockroachUser, cockroachPassword string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (cockroachDBClient DBClient) {
+func NewCockroachDBClient(config config.DatabaseConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) (cockroachDBClient DBClient) {
 
 	cockroachDBClient = &cockroachDBClientImpl{
-		databaseDriver:                  "postgres",
-		cockroachDatabase:               cockroachDatabase,
-		cockroachHost:                   cockroachHost,
-		cockroachInsecure:               cockroachInsecure,
-		cockroachCertificateDir:         cockroachCertificateDir,
-		cockroachPort:                   cockroachPort,
-		cockroachUser:                   cockroachUser,
-		cockroachPassword:               cockroachPassword,
+		databaseDriver: "postgres",
+		config:         config,
 		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 
@@ -69,14 +58,14 @@ func NewCockroachDBClient(cockroachDatabase, cockroachHost string, cockroachInse
 // Connect sets up a connection with CockroachDB
 func (dbc *cockroachDBClientImpl) Connect() (err error) {
 
-	log.Debug().Msgf("Connecting to database %v on host %v...", dbc.cockroachDatabase, dbc.cockroachHost)
+	log.Debug().Msgf("Connecting to database %v on host %v...", dbc.config.DatabaseName, dbc.config.Host)
 
 	sslMode := ""
-	if dbc.cockroachInsecure {
+	if dbc.config.Insecure {
 		sslMode = "?sslmode=disable"
 	}
 
-	dataSourceName := fmt.Sprintf("postgresql://%v:%v@%v:%v/%v%v", dbc.cockroachUser, dbc.cockroachPassword, dbc.cockroachHost, dbc.cockroachPort, dbc.cockroachDatabase, sslMode)
+	dataSourceName := fmt.Sprintf("postgresql://%v:%v@%v:%v/%v%v", dbc.config.User, dbc.config.Password, dbc.config.Host, dbc.config.Port, dbc.config.DatabaseName, sslMode)
 
 	return dbc.ConnectWithDriverAndSource(dbc.databaseDriver, dataSourceName)
 }

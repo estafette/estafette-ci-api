@@ -121,6 +121,57 @@ type: Opaque
 data:
   private-key.pem: ${GITHUB_APP_PRIVATE_KEY}
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: estafette-ci-api-config
+  namespace: estafette
+  labels:
+    app: estafette-ci-api
+    team: tooling
+data:
+  config.yaml: |-
+    integrations:
+      github:
+        privateKeyPath: "/github-app-key/private-key.pem"
+        appID: ${GITHUB_APP_ID}
+        clientID: ${GITHUB_APP_OAUTH_CLIENT_ID}
+        clientSecret: ${GITHUB_APP_OAUTH_CLIENT_SECRET}
+        webhookSecret: ${GITHUB_WEBHOOK_SECRET}
+        eventChannelBufferSize: 100
+        maxWorkers: 5
+
+      bitbucket:
+        apiKey: ${BITBUCKET_API_KEY}
+        appOAuthKey: ${BITBUCKET_APP_OAUTH_KEY}
+        appOAuthSecret: ${BITBUCKET_APP_OAUTH_SECRET}
+        eventChannelBufferSize: 100
+        maxWorkers: 5
+
+      slack:
+        clientID: ${SLACK_APP_CLIENT_ID}
+        clientSecret: ${SLACK_APP_CLIENT_SECRET}
+        appVerificationToken: ${SLACK_APP_VERIFICATION_TOKEN}
+        appOAuthAccessToken: ${SLACK_APP_OAUTH_ACCESS_TOKEN}
+        eventChannelBufferSize: 100
+        maxWorkers: 5
+
+    apiServer:
+      baseURL: "https://${HOSTNAMES}/"
+      serviceURL: "http://estafette-ci-api/"
+      apiKey: ${ESTAFETTE_CI_API_KEY}
+      eventChannelBufferSize: 100
+      maxWorkers: 5
+
+    database:
+      databaseName: ${COCKROACH_DATABASE}
+      host: ${COCKROACH_HOST}
+      insecure: ${COCKROACH_INSECURE}
+      certificateDir: ${COCKROACH_CERTS_DIR}
+      port: ${COCKROACH_PORT}
+      user: ${COCKROACH_USER}
+      password: ${COCKROACH_PASSWORD}
+---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -179,50 +230,8 @@ spec:
             cpu: ${CPU_LIMIT}
             memory: ${MEMORY_LIMIT}
         env:
-        - name: "GITHUB_APP_ID"
-          value: "${GITHUB_APP_ID}"
-        - name: "GITHUB_APP_OAUTH_CLIENT_ID"
-          value: "${GITHUB_APP_OAUTH_CLIENT_ID}"
-        - name: "GITHUB_APP_OAUTH_CLIENT_SECRET"
-          value: "${GITHUB_APP_OAUTH_CLIENT_SECRET}"
-        - name: "GITHUB_WEBHOOK_SECRET"
-          value: "${GITHUB_WEBHOOK_SECRET}"
-        - name: "BITBUCKET_API_KEY"
-          value: "${BITBUCKET_API_KEY}"
-        - name: "BITBUCKET_APP_OAUTH_KEY"
-          value: "${BITBUCKET_APP_OAUTH_KEY}"
-        - name: "BITBUCKET_APP_OAUTH_SECRET"
-          value: "${BITBUCKET_APP_OAUTH_SECRET}"
-        - name: "ESTAFETTE_CI_SERVER_BASE_URL"
-          value: "https://${HOSTNAMES}/"
-        - name: "ESTAFETTE_CI_SERVER_SERVICE_URL"
-          value: "http://estafette-ci-api/"
-        - name: "ESTAFETTE_CI_API_KEY"
-          value: "${ESTAFETTE_CI_API_KEY}"
-        - name: "SLACK_APP_CLIENT_ID"
-          value: "${SLACK_APP_CLIENT_ID}"
-        - name: "SLACK_APP_CLIENT_SECRET"
-          value: "${SLACK_APP_CLIENT_SECRET}"
-        - name: "SLACK_APP_VERIFICATION_TOKEN"
-          value: "${SLACK_APP_VERIFICATION_TOKEN}"
-        - name: "SLACK_APP_OAUTH_ACCESS_TOKEN"
-          value: "${SLACK_APP_OAUTH_ACCESS_TOKEN}"
         - name: "SECRET_DECRYPTION_KEY"
           value: "${SECRET_DECRYPTION_KEY}"
-        - name: "COCKROACH_DATABASE"
-          value: "${COCKROACH_DATABASE}"
-        - name: "COCKROACH_HOST"
-          value: "${COCKROACH_HOST}"
-        - name: "COCKROACH_INSECURE"
-          value: "${COCKROACH_INSECURE}"
-        - name: "COCKROACH_CERTS_DIR"
-          value: "${COCKROACH_CERTS_DIR}"
-        - name: "COCKROACH_PORT"
-          value: "${COCKROACH_PORT}"
-        - name: "COCKROACH_USER"
-          value: "${COCKROACH_USER}"
-        - name: "COCKROACH_PASSWORD"
-          value: "${COCKROACH_PASSWORD}"
         ports:
         - name: api
           containerPort: 5000
@@ -231,6 +240,8 @@ spec:
         volumeMounts:
         - name: github-app-key
           mountPath: /github-app-key
+        - name: estafette-ci-api-config
+          mountPath: /config
         livenessProbe:
           httpGet:
             path: /liveness
@@ -288,6 +299,9 @@ spec:
       - name: github-app-key
         secret:
           secretName: estafette-ci-api-github-app-key
+      - name: estafette-ci-api-config
+        configMap:
+          name: estafette-ci-api-config
 ---
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler

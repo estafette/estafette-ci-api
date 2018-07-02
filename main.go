@@ -22,6 +22,7 @@ import (
 	"github.com/alecthomas/kingpin"
 	"github.com/estafette/estafette-ci-api/bitbucket"
 	"github.com/estafette/estafette-ci-api/cockroach"
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/estafette"
 	"github.com/estafette/estafette-ci-api/github"
 	"github.com/estafette/estafette-ci-api/slack"
@@ -45,45 +46,9 @@ var (
 	// flags
 	prometheusMetricsAddress = kingpin.Flag("metrics-listen-address", "The address to listen on for Prometheus metrics requests.").Default(":9001").String()
 	prometheusMetricsPath    = kingpin.Flag("metrics-path", "The path to listen for Prometheus metrics requests.").Default("/metrics").String()
-
-	apiAddress = kingpin.Flag("api-listen-address", "The address to listen on for api HTTP requests.").Default(":5000").String()
-
-	githubAppPrivateKeyPath      = kingpin.Flag("github-app-privatey-key-path", "The path to the pem file for the private key of the Github App.").Default("/github-app-key/private-key.pem").String()
-	githubAppID                  = kingpin.Flag("github-app-id", "The Github App id.").Envar("GITHUB_APP_ID").String()
-	githubAppOAuthClientID       = kingpin.Flag("github-app-oauth-client-id", "The OAuth client id for the Github App.").Envar("GITHUB_APP_OAUTH_CLIENT_ID").String()
-	githubAppOAuthClientSecret   = kingpin.Flag("github-app-oauth-client-secret", "The OAuth client secret for the Github App.").Envar("GITHUB_APP_OAUTH_CLIENT_SECRET").String()
-	githubWebhookSecret          = kingpin.Flag("github-webhook-secret", "The secret to verify webhook authenticity.").Envar("GITHUB_WEBHOOK_SECRET").String()
-	githubEventChannelBufferSize = kingpin.Flag("github-event-channel-buffer-size", "The buffer size of the github event channel.").Envar("GITHUB_EVENT_CHANNEL_BUFFER_SIZE").Default("100").Int()
-	githubMaxWorkers             = kingpin.Flag("github-max-workers", "The maximum number of workers to handle github events from the event channel.").Envar("GITHUB_MAX_WORKERS").Default("5").Int()
-
-	bitbucketAPIKey                 = kingpin.Flag("bitbucket-api-key", "The api key for Bitbucket.").Envar("BITBUCKET_API_KEY").String()
-	bitbucketAppOAuthKey            = kingpin.Flag("bitbucket-app-oauth-key", "The OAuth key for the Bitbucket App.").Envar("BITBUCKET_APP_OAUTH_KEY").String()
-	bitbucketAppOAuthSecret         = kingpin.Flag("bitbucket-app-oauth-secret", "The OAuth secret for the Bitbucket App.").Envar("BITBUCKET_APP_OAUTH_SECRET").String()
-	bitbucketEventChannelBufferSize = kingpin.Flag("bitbucket-event-channel-buffer-size", "The buffer size of the bitbucket event channel.").Envar("BITBUCKET_EVENT_CHANNEL_BUFFER_SIZE").Default("100").Int()
-	bitbucketMaxWorkers             = kingpin.Flag("bitbucket-max-workers", "The maximum number of workers to handle bitbucket events from the event channel.").Envar("BITBUCKET_MAX_WORKERS").Default("5").Int()
-
-	estafetteCiServerBaseURL        = kingpin.Flag("estafette-ci-server-base-url", "The base url of this api server.").Envar("ESTAFETTE_CI_SERVER_BASE_URL").String()
-	estafetteCiServerServiceURL     = kingpin.Flag("estafette-ci-server-service-url", "The kubernetes service url of this api server.").Envar("ESTAFETTE_CI_SERVER_SERVICE_URL").String()
-	estafetteCiAPIKey               = kingpin.Flag("estafette-ci-api-key", "An api key for estafette itself to use until real oauth is supported.").Envar("ESTAFETTE_CI_API_KEY").String()
-	estafetteEventChannelBufferSize = kingpin.Flag("estafette-event-channel-buffer-size", "The buffer size of the estafette event channel.").Envar("ESTAFETTE_EVENT_CHANNEL_BUFFER_SIZE").Default("100").Int()
-	estafetteMaxWorkers             = kingpin.Flag("estafette-max-workers", "The maximum number of workers to handle estafette events from the event channel.").Envar("ESTAFETTE_MAX_WORKERS").Default("5").Int()
-
-	slackAppClientID            = kingpin.Flag("slack-app-client-id", "The Slack App id for accessing Slack API.").Envar("SLACK_APP_CLIENT_ID").String()
-	slackAppClientSecret        = kingpin.Flag("slack-app-client-secret", "The Slack App secret for accessing Slack API.").Envar("SLACK_APP_CLIENT_ID").String()
-	slackAppVerificationToken   = kingpin.Flag("slack-app-verification-token", "The token used to verify incoming Slack webhook events.").Envar("SLACK_APP_VERIFICATION_TOKEN").String()
-	slackAppOAuthAccessToken    = kingpin.Flag("slack-app-oauth-access-token", "The OAuth access token for the Slack App.").Envar("SLACK_APP_OAUTH_ACCESS_TOKEN").String()
-	slackEventChannelBufferSize = kingpin.Flag("slack-event-channel-buffer-size", "The buffer size of the slack event channel.").Envar("SLACK_EVENT_CHANNEL_BUFFER_SIZE").Default("100").Int()
-	slackMaxWorkers             = kingpin.Flag("slack-max-workers", "The maximum number of workers to handle slack events from the event channel.").Envar("SLACK_MAX_WORKERS").Default("5").Int()
-
-	secretDecryptionKey = kingpin.Flag("secret-decryption-key", "The AES-256 key used to decrypt secrets that have been encrypted with it.").Envar("SECRET_DECRYPTION_KEY").String()
-
-	cockroachDatabase       = kingpin.Flag("cockroach-database", "CockroachDB database.").Envar("COCKROACH_DATABASE").String()
-	cockroachHost           = kingpin.Flag("cockroach-host", "CockroachDB host.").Envar("COCKROACH_HOST").String()
-	cockroachInsecure       = kingpin.Flag("cockroach-insecure", "CockroachDB insecure connection.").Envar("COCKROACH_INSECURE").Bool()
-	cockroachCertificateDir = kingpin.Flag("cockroach-certs-dir", "CockroachDB certificate directory.").Envar("COCKROACH_CERTS_DIR").String()
-	cockroachPort           = kingpin.Flag("cockroach-port", "CockroachDB port.").Envar("COCKROACH_PORT").Int()
-	cockroachUser           = kingpin.Flag("cockroach-user", "CockroachDB user.").Envar("COCKROACH_USER").String()
-	cockroachPassword       = kingpin.Flag("cockroach-password", "CockroachDB password.").Envar("COCKROACH_PASSWORD").String()
+	apiAddress               = kingpin.Flag("api-listen-address", "The address to listen on for api HTTP requests.").Default(":5000").String()
+	configFilePath           = kingpin.Flag("config-file-path", "The path to yaml config file configuring this application.").Default("/config/config.yaml").String()
+	secretDecryptionKey      = kingpin.Flag("secret-decryption-key", "The AES-256 key used to decrypt secrets that have been encrypted with it.").Envar("SECRET_DECRYPTION_KEY").String()
 
 	// prometheusInboundEventTotals is the prometheus timeline serie that keeps track of inbound events
 	prometheusInboundEventTotals = prometheus.NewCounterVec(
@@ -220,12 +185,19 @@ func createRouter() *gin.Engine {
 
 func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *http.Server {
 
-	githubAPIClient := github.NewGithubAPIClient(*githubAppPrivateKeyPath, *githubAppID, *githubAppOAuthClientID, *githubAppOAuthClientSecret, prometheusOutboundAPICallTotals)
-	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*bitbucketAPIKey, *bitbucketAppOAuthKey, *bitbucketAppOAuthSecret, prometheusOutboundAPICallTotals)
-	slackAPIClient := slack.NewSlackAPIClient(*slackAppClientID, *slackAppClientSecret, *slackAppOAuthAccessToken, prometheusOutboundAPICallTotals)
 	secretHelper := crypt.NewSecretHelper(*secretDecryptionKey)
-	cockroachDBClient := cockroach.NewCockroachDBClient(*cockroachDatabase, *cockroachHost, *cockroachInsecure, *cockroachCertificateDir, *cockroachPort, *cockroachUser, *cockroachPassword, prometheusOutboundAPICallTotals)
-	ciBuilderClient, err := estafette.NewCiBuilderClient(*estafetteCiServerBaseURL, *estafetteCiServerServiceURL, *estafetteCiAPIKey, *secretDecryptionKey, prometheusOutboundAPICallTotals)
+	configReader := config.NewConfigReader(secretHelper)
+
+	config, err := configReader.ReadConfigFromFile(*configFilePath)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed reading configuration")
+	}
+
+	githubAPIClient := github.NewGithubAPIClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
+	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
+	slackAPIClient := slack.NewSlackAPIClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
+	cockroachDBClient := cockroach.NewCockroachDBClient(*config.Database, prometheusOutboundAPICallTotals)
+	ciBuilderClient, err := estafette.NewCiBuilderClient(*config.APIServer, *secretDecryptionKey, prometheusOutboundAPICallTotals)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
 	}
@@ -233,25 +205,25 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	// set up database
 	err = cockroachDBClient.Connect()
 	if err != nil {
-		log.Warn().Err(err).Msg("Failed connecting to CockroachDB")
+		log.Fatal().Err(err).Msg("Failed connecting to CockroachDB")
 	}
 
 	// listen to channels for push events
-	githubPushEvents := make(chan github.PushEvent, *githubEventChannelBufferSize)
-	githubDispatcher := github.NewGithubDispatcher(stopChannel, waitGroup, *githubMaxWorkers, githubAPIClient, ciBuilderClient, cockroachDBClient, githubPushEvents)
+	githubPushEvents := make(chan github.PushEvent, config.Integrations.Github.EventChannelBufferSize)
+	githubDispatcher := github.NewGithubDispatcher(stopChannel, waitGroup, config.Integrations.Github.MaxWorkers, githubAPIClient, ciBuilderClient, cockroachDBClient, githubPushEvents)
 	githubDispatcher.Run()
 
-	bitbucketPushEvents := make(chan bitbucket.RepositoryPushEvent, *bitbucketEventChannelBufferSize)
-	bitbucketDispatcher := bitbucket.NewBitbucketDispatcher(stopChannel, waitGroup, *bitbucketMaxWorkers, bitbucketAPIClient, ciBuilderClient, cockroachDBClient, bitbucketPushEvents)
+	bitbucketPushEvents := make(chan bitbucket.RepositoryPushEvent, config.Integrations.Bitbucket.EventChannelBufferSize)
+	bitbucketDispatcher := bitbucket.NewBitbucketDispatcher(stopChannel, waitGroup, config.Integrations.Bitbucket.MaxWorkers, bitbucketAPIClient, ciBuilderClient, cockroachDBClient, bitbucketPushEvents)
 	bitbucketDispatcher.Run()
 
-	slackEvents := make(chan slack.SlashCommand, *slackEventChannelBufferSize)
-	slackDispatcher := slack.NewSlackDispatcher(stopChannel, waitGroup, *slackMaxWorkers, slackAPIClient, slackEvents)
+	slackEvents := make(chan slack.SlashCommand, config.Integrations.Slack.EventChannelBufferSize)
+	slackDispatcher := slack.NewSlackDispatcher(stopChannel, waitGroup, config.Integrations.Slack.MaxWorkers, slackAPIClient, slackEvents)
 	slackDispatcher.Run()
 
-	estafetteCiBuilderEvents := make(chan estafette.CiBuilderEvent, *estafetteEventChannelBufferSize)
-	estafetteBuildJobLogs := make(chan cockroach.BuildJobLogs, *estafetteEventChannelBufferSize)
-	estafetteDispatcher := estafette.NewEstafetteDispatcher(stopChannel, waitGroup, *estafetteMaxWorkers, ciBuilderClient, cockroachDBClient, estafetteCiBuilderEvents, estafetteBuildJobLogs)
+	estafetteCiBuilderEvents := make(chan estafette.CiBuilderEvent, config.APIServer.MaxWorkers)
+	estafetteBuildJobLogs := make(chan cockroach.BuildJobLogs, config.APIServer.EventChannelBufferSize)
+	estafetteDispatcher := estafette.NewEstafetteDispatcher(stopChannel, waitGroup, config.APIServer.MaxWorkers, ciBuilderClient, cockroachDBClient, estafetteCiBuilderEvents, estafetteBuildJobLogs)
 	estafetteDispatcher.Run()
 
 	// listen to http calls
@@ -262,16 +234,16 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	// create and init router
 	router := createRouter()
 
-	githubEventHandler := github.NewGithubEventHandler(githubPushEvents, *githubWebhookSecret, prometheusInboundEventTotals)
+	githubEventHandler := github.NewGithubEventHandler(githubPushEvents, *config.Integrations.Github, prometheusInboundEventTotals)
 	router.POST("/api/integrations/github/events", githubEventHandler.Handle)
 
 	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketPushEvents, prometheusInboundEventTotals)
 	router.POST("/api/integrations/bitbucket/events", bitbucketEventHandler.Handle)
 
-	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *slackAppVerificationToken, slackEvents, prometheusInboundEventTotals)
+	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, slackEvents, prometheusInboundEventTotals)
 	router.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
 
-	estafetteEventHandler := estafette.NewEstafetteEventHandler(*estafetteCiAPIKey, estafetteCiBuilderEvents, estafetteBuildJobLogs, prometheusInboundEventTotals)
+	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, estafetteCiBuilderEvents, estafetteBuildJobLogs, prometheusInboundEventTotals)
 	router.POST("/api/commands", estafetteEventHandler.Handle)
 
 	router.GET("/logs/:source/:owner/:repo/:branch/:revision", func(c *gin.Context) {
@@ -516,7 +488,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	router.POST("/api/pipelines/:source/:owner/:repo/builds/:revision/logs", func(c *gin.Context) {
 
 		authorizationHeader := c.GetHeader("Authorization")
-		if authorizationHeader != fmt.Sprintf("Bearer %v", *estafetteCiAPIKey) {
+		if authorizationHeader != fmt.Sprintf("Bearer %v", &config.APIServer.APIKey) {
 			log.Error().
 				Str("authorizationHeader", authorizationHeader).
 				Msg("Authorization header for Estafette v2 logs is incorrect")

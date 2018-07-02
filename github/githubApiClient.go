@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
 
@@ -28,20 +29,14 @@ type APIClient interface {
 }
 
 type apiClientImpl struct {
-	githubAppPrivateKeyPath         string
-	githubAppID                     string
-	githubAppOAuthClientID          string
-	githubAppOAuthClientSecret      string
+	config                          config.GithubConfig
 	prometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
 // NewGithubAPIClient creates an github.APIClient to communicate with the Github api
-func NewGithubAPIClient(githubAppPrivateKeyPath, githubAppID, githubAppOAuthClientID, githubAppOAuthClientSecret string, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
+func NewGithubAPIClient(config config.GithubConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
 	return &apiClientImpl{
-		githubAppPrivateKeyPath:         githubAppPrivateKeyPath,
-		githubAppID:                     githubAppID,
-		githubAppOAuthClientID:          githubAppOAuthClientID,
-		githubAppOAuthClientSecret:      githubAppOAuthClientSecret,
+		config: config,
 		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 }
@@ -52,7 +47,7 @@ func (gh *apiClientImpl) GetGithubAppToken() (githubAppToken string, err error) 
 	// https://developer.github.com/apps/building-integrations/setting-up-and-registering-github-apps/about-authentication-options-for-github-apps/
 
 	// load private key from pem file
-	pemFileByteArray, err := ioutil.ReadFile(gh.githubAppPrivateKeyPath)
+	pemFileByteArray, err := ioutil.ReadFile(gh.config.PrivateKeyPath)
 	if err != nil {
 		return
 	}
@@ -69,7 +64,7 @@ func (gh *apiClientImpl) GetGithubAppToken() (githubAppToken string, err error) 
 		// JWT expiration time (10 minute maximum)
 		"exp": epoch + 500,
 		// GitHub App's identifier
-		"iss": gh.githubAppID,
+		"iss": gh.config.AppID,
 	})
 
 	// sign and get the complete encoded token as a string using the private key

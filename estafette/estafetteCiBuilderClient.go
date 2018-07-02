@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/docker"
 
 	yaml "gopkg.in/yaml.v2"
@@ -32,15 +33,13 @@ type CiBuilderClient interface {
 type ciBuilderClientImpl struct {
 	kubeClient                      *k8s.Client
 	dockerHubClient                 docker.DockerHubAPIClient
-	EstafetteCiServerBaseURL        string
-	EstafetteCiServerServiceURL     string
-	EstafetteCiAPIKey               string
+	config                          config.APIServerConfig
 	secretDecryptionKey             string
 	PrometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
 // NewCiBuilderClient returns a new estafette.CiBuilderClient
-func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiServerServiceURL, estafetteCiAPIKey, secretDecryptionKey string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
+func NewCiBuilderClient(config config.APIServerConfig, secretDecryptionKey string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
 
 	var kubeClient *k8s.Client
 
@@ -79,9 +78,7 @@ func NewCiBuilderClient(estafetteCiServerBaseURL, estafetteCiServerServiceURL, e
 	ciBuilderClient = &ciBuilderClientImpl{
 		kubeClient:                      kubeClient,
 		dockerHubClient:                 dockerHubClient,
-		EstafetteCiServerBaseURL:        estafetteCiServerBaseURL,
-		EstafetteCiServerServiceURL:     estafetteCiServerServiceURL,
-		EstafetteCiAPIKey:               estafetteCiAPIKey,
+		config:                          config,
 		secretDecryptionKey:             secretDecryptionKey,
 		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
@@ -114,13 +111,13 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteBuildJobNameName := "ESTAFETTE_BUILD_JOB_NAME"
 	estafetteBuildJobNameValue := jobName
 	estafetteCiServerBaseURLName := "ESTAFETTE_CI_SERVER_BASE_URL"
-	estafetteCiServerBaseURLValue := cbc.EstafetteCiServerBaseURL
+	estafetteCiServerBaseURLValue := cbc.config.BaseURL
 	estafetteCiServerBuilderEventsURLName := "ESTAFETTE_CI_SERVER_BUILDER_EVENTS_URL"
-	estafetteCiServerBuilderEventsURLValue := strings.TrimRight(cbc.EstafetteCiServerServiceURL, "/") + "/api/commands"
+	estafetteCiServerBuilderEventsURLValue := strings.TrimRight(cbc.config.ServiceURL, "/") + "/api/commands"
 	estafetteCiServerBuilderPostLogsURLName := "ESTAFETTE_CI_SERVER_POST_LOGS_URL"
-	estafetteCiServerBuilderPostLogsURLValue := strings.TrimRight(cbc.EstafetteCiServerServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
+	estafetteCiServerBuilderPostLogsURLValue := strings.TrimRight(cbc.config.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
 	estafetteCiAPIKeyName := "ESTAFETTE_CI_API_KEY"
-	estafetteCiAPIKeyValue := cbc.EstafetteCiAPIKey
+	estafetteCiAPIKeyValue := cbc.config.APIKey
 	estafetteCiBuilderTrackName := "ESTAFETTE_CI_BUILDER_TRACK"
 	estafetteCiBuilderTrackValue := ciBuilderParams.Track
 	estafetteManifestJSONKeyName := "ESTAFETTE_CI_MANIFEST_JSON"

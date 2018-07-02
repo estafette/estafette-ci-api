@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/estafette/estafette-ci-api/cockroach"
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -19,16 +20,16 @@ type EventHandler interface {
 }
 
 type eventHandlerImpl struct {
-	ciAPIKey                     string
+	config                       config.APIServerConfig
 	ciBuilderEventsChannel       chan CiBuilderEvent
 	buildJobLogsChannel          chan cockroach.BuildJobLogs
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewEstafetteEventHandler returns a new estafette.EventHandler
-func NewEstafetteEventHandler(ciAPIKey string, ciBuilderEventsChannel chan CiBuilderEvent, buildJobLogsChannel chan cockroach.BuildJobLogs, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewEstafetteEventHandler(config config.APIServerConfig, ciBuilderEventsChannel chan CiBuilderEvent, buildJobLogsChannel chan cockroach.BuildJobLogs, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
-		ciAPIKey:                     ciAPIKey,
+		config:                       config,
 		ciBuilderEventsChannel:       ciBuilderEventsChannel,
 		buildJobLogsChannel:          buildJobLogsChannel,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
@@ -38,7 +39,7 @@ func NewEstafetteEventHandler(ciAPIKey string, ciBuilderEventsChannel chan CiBui
 func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 	authorizationHeader := c.GetHeader("Authorization")
-	if authorizationHeader != fmt.Sprintf("Bearer %v", h.ciAPIKey) {
+	if authorizationHeader != fmt.Sprintf("Bearer %v", h.config.APIKey) {
 		log.Error().
 			Str("authorizationHeader", authorizationHeader).
 			Msg("Authorization header for Estafette event is incorrect")

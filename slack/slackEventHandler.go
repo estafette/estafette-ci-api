@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/estafette/estafette-ci-api/config"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
@@ -19,16 +20,16 @@ type EventHandler interface {
 
 type eventHandlerImpl struct {
 	secretHelper                 crypt.SecretHelper
-	slackAppVerificationToken    string
+	config                       config.SlackConfig
 	eventsChannel                chan SlashCommand
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewSlackEventHandler returns a new slack.EventHandler
-func NewSlackEventHandler(secretHelper crypt.SecretHelper, slackAppVerificationToken string, eventsChannel chan SlashCommand, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewSlackEventHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, eventsChannel chan SlashCommand, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		secretHelper:                 secretHelper,
-		slackAppVerificationToken:    slackAppVerificationToken,
+		config:                       config,
 		eventsChannel:                eventsChannel,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
@@ -53,7 +54,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 	hasValidVerificationToken := h.HasValidVerificationToken(slashCommand)
 	if !hasValidVerificationToken {
-		log.Warn().Str("expectedToken", h.slackAppVerificationToken).Str("actualToken", slashCommand.Token).Msg("Verification token for Slack command is invalid")
+		log.Warn().Str("expectedToken", h.config.AppVerificationToken).Str("actualToken", slashCommand.Token).Msg("Verification token for Slack command is invalid")
 		c.String(http.StatusBadRequest, "Verification token for Slack command is invalid")
 		return
 	}
@@ -88,5 +89,5 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 }
 
 func (h *eventHandlerImpl) HasValidVerificationToken(slashCommand SlashCommand) bool {
-	return slashCommand.Token == h.slackAppVerificationToken
+	return slashCommand.Token == h.config.AppVerificationToken
 }

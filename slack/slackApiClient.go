@@ -1,6 +1,7 @@
 package slack
 
 import (
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -9,18 +10,14 @@ type APIClient interface {
 }
 
 type apiClientImpl struct {
-	slackAppClientID                string
-	slackAppClientSecret            string
-	slackAppOAuthAccessToken        string
+	config                          config.SlackConfig
 	prometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
 // NewSlackAPIClient returns a new slack.APIClient
-func NewSlackAPIClient(slackAppClientID, slackAppClientSecret, slackAppOAuthAccessToken string, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
+func NewSlackAPIClient(config config.SlackConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
 	return &apiClientImpl{
-		slackAppClientID:                slackAppClientID,
-		slackAppClientSecret:            slackAppClientSecret,
-		slackAppOAuthAccessToken:        slackAppOAuthAccessToken,
+		config: config,
 		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 }

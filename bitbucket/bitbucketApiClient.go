@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sethgrid/pester"
 )
@@ -22,18 +23,14 @@ type APIClient interface {
 }
 
 type apiClientImpl struct {
-	bitbucketAPIKey                 string
-	bitbucketAppOAuthKey            string
-	bitbucketAppOAuthSecret         string
+	config                          config.BitbucketConfig
 	prometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
 // NewBitbucketAPIClient returns a new bitbucket.APIClient
-func NewBitbucketAPIClient(bitbucketAPIKey, bitbucketAppOAuthKey, bitbucketAppOAuthSecret string, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
+func NewBitbucketAPIClient(config config.BitbucketConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
 	return &apiClientImpl{
-		bitbucketAPIKey:                 bitbucketAPIKey,
-		bitbucketAppOAuthKey:            bitbucketAppOAuthKey,
-		bitbucketAppOAuthSecret:         bitbucketAppOAuthSecret,
+		config: config,
 		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 }
@@ -44,7 +41,7 @@ func (bb *apiClientImpl) GetAccessToken() (accessToken AccessToken, err error) {
 	// track call via prometheus
 	bb.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
 
-	basicAuthenticationToken := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", bb.bitbucketAppOAuthKey, bb.bitbucketAppOAuthSecret)))
+	basicAuthenticationToken := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", bb.config.AppOAuthKey, bb.config.AppOAuthSecret)))
 
 	// form values
 	data := url.Values{}

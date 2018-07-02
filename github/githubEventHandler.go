@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -25,15 +26,15 @@ type EventHandler interface {
 
 type eventHandlerImpl struct {
 	eventsChannel                chan PushEvent
-	githubWebhookSecret          string
+	config                       config.GithubConfig
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewGithubEventHandler returns a github.EventHandler to handle incoming webhook events
-func NewGithubEventHandler(eventsChannel chan PushEvent, githubWebhookSecret string, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewGithubEventHandler(eventsChannel chan PushEvent, config config.GithubConfig, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
-		eventsChannel:                eventsChannel,
-		githubWebhookSecret:          githubWebhookSecret,
+		eventsChannel: eventsChannel,
+		config:        config,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
 }
@@ -140,7 +141,7 @@ func (h *eventHandlerImpl) HasValidSignature(body []byte, signatureHeader string
 	}
 
 	// calculate expected MAC
-	mac := hmac.New(sha1.New, []byte(h.githubWebhookSecret))
+	mac := hmac.New(sha1.New, []byte(h.config.WebhookSecret))
 	mac.Write(body)
 	expectedMAC := mac.Sum(nil)
 
