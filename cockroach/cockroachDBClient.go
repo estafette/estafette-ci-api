@@ -323,18 +323,16 @@ func (dbc *cockroachDBClientImpl) GetPipelinesCount(filters map[string][]string)
 
 	innerQuery :=
 		psql.
-			Select("DISTINCT repo_source,repo_owner,repo_name").
+			Select("*, RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) AS build_version_rank").
 			From("builds")
-
-	innerQuery, err = whereClauseGeneratorForAllFilters(innerQuery, filters)
-	if err != nil {
-		return
-	}
 
 	query :=
 		psql.
 			Select("COUNT(*)").
-			FromSelect(innerQuery, "distinct_pipelines")
+			FromSelect(innerQuery, "ranked_builds").
+			Where(sq.Eq{"build_version_rank": 1})
+
+	query, err = whereClauseGeneratorForAllFilters(query, filters)
 
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 	if err != nil {
