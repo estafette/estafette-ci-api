@@ -21,6 +21,9 @@ type APIHandler interface {
 	GetPipelineBuild(*gin.Context)
 	GetPipelineBuildLogs(*gin.Context)
 	PostPipelineBuildLogs(*gin.Context)
+
+	GetStatsPipelinesCount(c *gin.Context)
+	GetStatsBuildsCount(c *gin.Context)
 }
 
 type apiHandlerImpl struct {
@@ -59,22 +62,11 @@ func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 		pageSize = 100
 	}
 
-	// get filters (?filter[post]=1,2&filter[author]=12)
+	// get filters (?filter[status]=running,succeeded&filter[since]=1w&filter[labels]=team%3Destafette-team)
 	filters := map[string][]string{}
-	filterStatusValues, filterStatusExist := c.GetQueryArray("filter[status]")
-	if filterStatusExist && len(filterStatusValues) > 0 && filterStatusValues[0] != "" {
-		filters["status"] = filterStatusValues
-	}
-	filterSinceValues, filterSinceExist := c.GetQueryArray("filter[since]")
-	if filterSinceExist {
-		filters["since"] = filterSinceValues
-	} else {
-		filters["since"] = []string{"eternity"}
-	}
-	filterLabelsValues, filterLabelsExist := c.GetQueryArray("filter[labels]")
-	if filterLabelsExist {
-		filters["labels"] = filterLabelsValues
-	}
+	filters["status"] = h.getStatusFilter(c)
+	filters["since"] = h.getSinceFilter(c)
+	filters["labels"] = h.getLabelsFilter(c)
 
 	pipelines, err := h.cockroachDBClient.GetPipelines(pageNumber, pageSize, filters)
 	if err != nil {
@@ -254,4 +246,65 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 	log.Info().Msgf("Inserted v2 logs for %v/%v/%v/%v", source, owner, repo, revision)
 
 	c.String(http.StatusOK, "Aye aye!")
+}
+
+func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {
+
+	filters := map[string][]string{"since": h.getSinceFilter(c)}
+
+	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(filters)
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Failed retrieving pipelines count from db")
+	}
+	log.Info().Msgf("Retrieved pipelines count %v", pipelinesCount)
+
+	c.JSON(http.StatusOK, gin.H{
+		"count": pipelinesCount,
+	})
+}
+
+func (h *apiHandlerImpl) GetStatsBuildsCount(c *gin.Context) {
+
+	filters := map[string][]string{"since": h.getSinceFilter(c)}
+
+	pipelinesCount, err := h.cockroachDBClient.GetBuildsCount(filters)
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Failed retrieving builds count from db")
+	}
+	log.Info().Msgf("Retrieved builds count %v", pipelinesCount)
+
+	c.JSON(http.StatusOK, gin.H{
+		"count": pipelinesCount,
+	})
+}
+
+func (h *apiHandlerImpl) getStatusFilter(c *gin.Context) []string {
+
+	filterStatusValues, filterStatusExist := c.GetQueryArray("filter[status]")
+	if filterStatusExist && len(filterStatusValues) > 0 && filterStatusValues[0] != "" {
+		return filterStatusValues
+	}
+
+	return []string{}
+}
+
+func (h *apiHandlerImpl) getSinceFilter(c *gin.Context) []string {
+
+	filterSinceValues, filterSinceExist := c.GetQueryArray("filter[since]")
+	if filterSinceExist {
+		return filterSinceValues
+	}
+
+	return []string{"eternity"}
+}
+
+func (h *apiHandlerImpl) getLabelsFilter(c *gin.Context) []string {
+	filterLabelsValues, filterLabelsExist := c.GetQueryArray("filter[labels]")
+	if filterLabelsExist {
+		return filterLabelsValues
+	}
+
+	return []string{}
 }

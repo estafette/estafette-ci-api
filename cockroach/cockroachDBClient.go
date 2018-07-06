@@ -31,6 +31,7 @@ type DBClient interface {
 	GetPipelineBuildsCount(string, string, string) (int, error)
 	GetPipelineBuild(string, string, string, string) (*contracts.Build, error)
 	GetPipelineBuildLogs(string, string, string, string) (*contracts.BuildLog, error)
+	GetBuildsCount(map[string][]string) (int, error)
 	InsertBuildLog(contracts.BuildLog) error
 }
 
@@ -322,19 +323,18 @@ func (dbc *cockroachDBClientImpl) GetPipelinesCount(filters map[string][]string)
 
 	innerQuery :=
 		psql.
-			Select("*, RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) AS build_version_rank").
+			Select("DISTINCT repo_source,repo_owner,repo_name").
 			From("builds")
+
+	innerQuery, err = whereClauseGeneratorForAllFilters(innerQuery, filters)
+	if err != nil {
+		return
+	}
 
 	query :=
 		psql.
 			Select("COUNT(*)").
-			FromSelect(innerQuery, "ranked_builds").
-			Where(sq.Eq{"build_version_rank": 1})
-
-	query, err = whereClauseGeneratorForAllFilters(query, filters)
-	if err != nil {
-		return
-	}
+			FromSelect(innerQuery, "distinct_pipelines")
 
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 	if err != nil {
@@ -353,82 +353,6 @@ func (dbc *cockroachDBClientImpl) GetPipelinesCount(filters map[string][]string)
 	}
 
 	return
-}
-
-func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
-
-	query, err := whereClauseGeneratorForStatusFilter(query, filters)
-	if err != nil {
-		return query, err
-	}
-	query, err = whereClauseGeneratorForSinceFilter(query, filters)
-	if err != nil {
-		return query, err
-	}
-	query, err = whereClauseGeneratorForLabelsFilter(query, filters)
-	if err != nil {
-		return query, err
-	}
-
-	return query, nil
-}
-
-func whereClauseGeneratorForStatusFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
-
-	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "all" {
-		query = query.Where(sq.Eq{"build_status": statuses})
-	}
-
-	return query, nil
-}
-
-func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
-
-	if since, ok := filters["since"]; ok {
-		sinceValue := since[0]
-		switch sinceValue {
-		case "1d":
-			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, 0, -1)})
-		case "1w":
-			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, 0, -7)})
-		case "1m":
-			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, -1, 0)})
-		case "1y":
-			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(-1, 0, 0)})
-		}
-	}
-
-	return query, nil
-}
-
-func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
-
-	if labels, ok := filters["labels"]; ok {
-
-		labelsParam := []contracts.Label{}
-
-		for _, label := range labels {
-			keyValuePair := strings.Split(label, "=")
-
-			if len(keyValuePair) == 2 {
-				labelsParam = append(labelsParam, contracts.Label{
-					Key:   keyValuePair[0],
-					Value: keyValuePair[1],
-				})
-			}
-		}
-
-		if len(labelsParam) > 0 {
-			bytes, err := json.Marshal(labelsParam)
-			if err != nil {
-				return query, err
-			}
-
-			query = query.Where("labels @> ?", string(bytes))
-		}
-	}
-
-	return query, nil
 }
 
 func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName string) (pipeline *contracts.Pipeline, err error) {
@@ -822,4 +746,115 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(buildLog contracts.BuildLog) (e
 	}
 
 	return
+}
+
+func (dbc *cockroachDBClientImpl) GetBuildsCount(filters map[string][]string) (totalCount int, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("COUNT(*)").
+			From("builds")
+
+	query, err = whereClauseGeneratorForSinceFilter(query, filters)
+	if err != nil {
+		return
+	}
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	recordExists := rows.Next()
+
+	if !recordExists {
+		return
+	}
+
+	if err := rows.Scan(&totalCount); err != nil {
+		return 0, err
+	}
+
+	return
+}
+
+func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	query, err := whereClauseGeneratorForStatusFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForSinceFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForLabelsFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForStatusFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "all" {
+		query = query.Where(sq.Eq{"build_status": statuses})
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if since, ok := filters["since"]; ok && len(since) > 0 && since[0] != "eternity" {
+		sinceValue := since[0]
+		switch sinceValue {
+		case "1d":
+			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, 0, -1)})
+		case "1w":
+			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, 0, -7)})
+		case "1m":
+			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, -1, 0)})
+		case "1y":
+			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(-1, 0, 0)})
+		}
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if labels, ok := filters["labels"]; ok && len(labels) > 0 {
+
+		labelsParam := []contracts.Label{}
+
+		for _, label := range labels {
+			keyValuePair := strings.Split(label, "=")
+
+			if len(keyValuePair) == 2 {
+				labelsParam = append(labelsParam, contracts.Label{
+					Key:   keyValuePair[0],
+					Value: keyValuePair[1],
+				})
+			}
+		}
+
+		if len(labelsParam) > 0 {
+			bytes, err := json.Marshal(labelsParam)
+			if err != nil {
+				return query, err
+			}
+
+			query = query.Where("labels @> ?", string(bytes))
+		}
+	}
+
+	return query, nil
 }
