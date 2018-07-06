@@ -250,7 +250,10 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {
 
-	filters := map[string][]string{"since": h.getSinceFilter(c)}
+	// get filters (?filter[status]=running,succeeded&filter[since]=1w
+	filters := map[string][]string{}
+	filters["status"] = h.getStatusFilter(c)
+	filters["since"] = h.getSinceFilter(c)
 
 	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(filters)
 	if err != nil {
@@ -266,7 +269,10 @@ func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetStatsBuildsCount(c *gin.Context) {
 
-	filters := map[string][]string{"since": h.getSinceFilter(c)}
+	// get filters (?filter[status]=running,succeeded&filter[since]=1w
+	filters := map[string][]string{}
+	filters["status"] = h.getStatusFilter(c)
+	filters["since"] = h.getSinceFilter(c)
 
 	pipelinesCount, err := h.cockroachDBClient.GetBuildsCount(filters)
 	if err != nil {
