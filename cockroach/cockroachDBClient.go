@@ -21,8 +21,6 @@ import (
 type DBClient interface {
 	Connect() error
 	ConnectWithDriverAndSource(string, string) error
-	InsertBuildJobLogs(BuildJobLogs) error
-	GetBuildLogs(BuildJobLogs) ([]BuildJobLogRow, error)
 	GetAutoIncrement(string, string) (int, error)
 	InsertBuild(contracts.Build) error
 	UpdateBuildStatus(string, string, string, string, string) error
@@ -81,90 +79,7 @@ func (dbc *cockroachDBClientImpl) ConnectWithDriverAndSource(driverName string, 
 	return
 }
 
-// InsertBuildJobLogs inserts build logs into the database
-func (dbc *cockroachDBClientImpl) InsertBuildJobLogs(buildJobLogs BuildJobLogs) (err error) {
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
-	// insert logs
-	_, err = dbc.databaseConnection.Exec(
-		`
-		INSERT INTO
-			build_logs
-		(
-			repo_full_name,
-			repo_branch,
-			repo_revision,
-			repo_source,
-			log_text
-		)
-		VALUES
-		(
-			$1,
-			$2,
-			$3,
-			$4,
-			$5
-		)
-		`,
-		buildJobLogs.RepoFullName,
-		buildJobLogs.RepoBranch,
-		buildJobLogs.RepoRevision,
-		buildJobLogs.RepoSource,
-		buildJobLogs.LogText,
-	)
-
-	if err != nil {
-		return
-	}
-
-	return
-}
-
-// GetBuildJobLogs reads a specific log
-func (dbc *cockroachDBClientImpl) GetBuildLogs(buildJobLogs BuildJobLogs) (logs []BuildJobLogRow, err error) {
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
-	logs = make([]BuildJobLogRow, 0)
-
-	rows, err := dbc.databaseConnection.Query(
-		`
-		SELECT
-			*
-		FROM
-			build_logs
-		WHERE
-			repo_full_name=$1 AND
-			repo_branch=$2 AND
-			repo_revision=$3 AND
-			repo_source=$4
-		`,
-		buildJobLogs.RepoFullName,
-		buildJobLogs.RepoBranch,
-		buildJobLogs.RepoRevision,
-		buildJobLogs.RepoSource,
-	)
-	if err != nil {
-		return
-	}
-
-	defer rows.Close()
-	for rows.Next() {
-
-		logRow := BuildJobLogRow{}
-
-		if err := rows.Scan(&logRow.ID, &logRow.RepoFullName, &logRow.RepoBranch, &logRow.RepoRevision, &logRow.RepoSource, &logRow.LogText, &logRow.InsertedAt); err != nil {
-			return nil, err
-		}
-
-		logs = append(logs, logRow)
-	}
-
-	return
-}
-
-// GetBuildJobLogs reads a specific log
+// GetAutoIncrement returns the autoincrement number for a pipeline
 func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string) (autoincrement int, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()

@@ -2,14 +2,11 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	stdlog "log"
 	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -219,8 +216,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	slackDispatcher.Run()
 
 	estafetteCiBuilderEvents := make(chan estafette.CiBuilderEvent, config.APIServer.MaxWorkers)
-	estafetteBuildJobLogs := make(chan cockroach.BuildJobLogs, config.APIServer.EventChannelBufferSize)
-	estafetteDispatcher := estafette.NewEstafetteDispatcher(stopChannel, waitGroup, config.APIServer.MaxWorkers, ciBuilderClient, cockroachDBClient, estafetteCiBuilderEvents, estafetteBuildJobLogs)
+	estafetteDispatcher := estafette.NewEstafetteDispatcher(stopChannel, waitGroup, config.APIServer.MaxWorkers, ciBuilderClient, cockroachDBClient, estafetteCiBuilderEvents)
 	estafetteDispatcher.Run()
 
 	// listen to http calls
@@ -240,66 +236,10 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, slackEvents, prometheusInboundEventTotals)
 	router.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
 
-	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, estafetteCiBuilderEvents, estafetteBuildJobLogs, prometheusInboundEventTotals)
+	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, estafetteCiBuilderEvents, prometheusInboundEventTotals)
 	router.POST("/api/commands", estafetteEventHandler.Handle)
 
 	estafetteAPIHandler := estafette.NewAPIHandler(*config.APIServer, cockroachDBClient)
-
-	router.GET("/logs/:source/:owner/:repo/:branch/:revision", func(c *gin.Context) {
-		source := c.Param("source")
-		owner := c.Param("owner")
-		repo := c.Param("repo")
-		branch := c.Param("branch")
-		revision := c.Param("revision")
-
-		buildJobLogsParams := cockroach.BuildJobLogs{
-			RepoSource:   source,
-			RepoFullName: fmt.Sprintf("%v/%v", owner, repo),
-			RepoBranch:   branch,
-			RepoRevision: revision,
-		}
-
-		// retrieve logs from database
-		logs, err := cockroachDBClient.GetBuildLogs(buildJobLogsParams)
-		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		if len(logs) == 0 {
-			c.String(http.StatusOK, "These logs are no longer available")
-			return
-		}
-
-		// get text from logs
-		logTexts := make([]string, 0)
-		for _, logItem := range logs {
-
-			// split text on newline
-			logLines := strings.Split(logItem.LogText, "\n")
-			for _, logLine := range logLines {
-
-				if logLine == "" {
-					logTexts = append(logTexts, logLine)
-					continue
-				}
-
-				// deserialize json log
-				var ciBuilderLogLine estafette.CiBuilderLogLine
-				err = json.Unmarshal([]byte(logLine), &ciBuilderLogLine)
-				if err != nil {
-					log.Warn().Err(err).Str("logLine", logLine).Msg("Failed unmarshalling log line")
-					logTexts = append(logTexts, logLine)
-					continue
-				}
-
-				logTexts = append(logTexts, fmt.Sprintf("%v | %-5s | %v", ciBuilderLogLine.Time, strings.ToUpper(ciBuilderLogLine.Severity), ciBuilderLogLine.Message))
-			}
-		}
-
-		c.String(http.StatusOK, strings.Join(logTexts, "\n"))
-	})
-
 	router.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
 	router.GET("/api/pipelines/:source/:owner/:repo", estafetteAPIHandler.GetPipeline)
 	router.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)
