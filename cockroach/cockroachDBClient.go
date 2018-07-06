@@ -759,7 +759,7 @@ func (dbc *cockroachDBClientImpl) GetBuildsCount(filters map[string][]string) (t
 			Select("COUNT(*)").
 			From("builds")
 
-	query, err = whereClauseGeneratorForSinceFilter(query, filters)
+	query, err = whereClauseGeneratorForAllFilters(query, filters)
 	if err != nil {
 		return
 	}
