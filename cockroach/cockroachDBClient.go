@@ -790,7 +790,7 @@ func (dbc *cockroachDBClientImpl) GetBuildsDuration(filters map[string][]string)
 
 	query :=
 		psql.
-			Select("SUM(AGE(inserted_at,updated_at))").
+			Select("SUM(AGE(updated_at,inserted_at))::string").
 			From("builds")
 
 	query, err = whereClauseGeneratorForAllFilters(query, filters)
@@ -810,8 +810,15 @@ func (dbc *cockroachDBClientImpl) GetBuildsDuration(filters map[string][]string)
 		return
 	}
 
-	if err := rows.Scan(&totalDuration); err != nil {
+	var totalDurationAsString string
+
+	if err := rows.Scan(&totalDurationAsString); err != nil {
 		return 0, err
+	}
+
+	totalDuration, err = time.ParseDuration(totalDurationAsString)
+	if err != nil {
+		return
 	}
 
 	return
