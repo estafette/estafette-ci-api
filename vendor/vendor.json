@@ -69,12 +69,12 @@
 			"versionExact": "v3.0.0"
 		},
 		{
-			"checksumSHA1": "T+MAAJDjsRbA94sPiM5K7K9uueg=",
+			"checksumSHA1": "d/ckgctLC2JI8v9IVCD1nzwMCxc=",
 			"path": "github.com/ericchiang/k8s",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
+			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
+			"revisionTime": "2018-04-27T00:52:59Z",
+			"version": "v1.1.0",
+			"versionExact": "v1.1.0"
 		},
 		{
 			"checksumSHA1": "01fAptxxnAtpETnK6ehLMer0a0c=",

@@ -284,7 +284,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		},
 	}
 
-	job, err = cbc.kubeClient.BatchV1().CreateJob(context.Background(), job)
+	err = cbc.kubeClient.Create(context.Background(), job)
 	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 
 	return
@@ -294,12 +294,13 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 
 	// check if job is finished
-	job, err := cbc.kubeClient.BatchV1().GetJob(context.Background(), jobName, cbc.kubeClient.Namespace)
+	var job batchv1.Job
+	err = cbc.kubeClient.Get(context.Background(), cbc.kubeClient.Namespace, jobName, &job)
 	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).
-			Msgf("GetJob call for job %v failed", jobName)
+			Msgf("Get call for job %v failed", jobName)
 	}
 
 	if err != nil || *job.Status.Succeeded != 1 {
@@ -308,22 +309,26 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 			Msgf("Job is not done yet, watching for job %v to succeed", jobName)
 
 		// watch for job updates
-		watcher, err := cbc.kubeClient.BatchV1().WatchJobs(context.Background(), cbc.kubeClient.Namespace, k8s.Timeout(time.Duration(60)*time.Second))
+		var job batchv1.Job
+		watcher, err := cbc.kubeClient.Watch(context.Background(), cbc.kubeClient.Namespace, &job, k8s.Timeout(time.Duration(300)*time.Second))
+		defer watcher.Close()
+
 		cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 		if err != nil {
 			log.Error().Err(err).
 				Str("jobName", jobName).
-				Msgf("WatchJobs call for job %v failed", jobName)
+				Msgf("Watcher call for job %v failed", jobName)
 		} else {
 			// wait for job to succeed
 			for {
-				event, job, err := watcher.Next()
+				job := new(batchv1.Job)
+				event, err := watcher.Next(job)
 				if err != nil {
 					log.Error().Err(err)
 					break
 				}
 
-				if *event.Type == k8s.EventModified && *job.Metadata.Name == jobName && *job.Status.Succeeded == 1 {
+				if event == k8s.EventModified && *job.Metadata.Name == jobName && *job.Status.Succeeded == 1 {
 					break
 				}
 			}
@@ -334,7 +339,7 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 		Msgf("Job %v is done, deleting it...", jobName)
 
 	// delete job
-	err = cbc.kubeClient.BatchV1().DeleteJob(context.Background(), jobName, cbc.kubeClient.Namespace)
+	err = cbc.kubeClient.Delete(context.Background(), &job)
 	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
