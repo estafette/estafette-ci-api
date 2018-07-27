@@ -285,6 +285,11 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	}
 
 	err = cbc.kubeClient.Create(context.Background(), job)
+	if err != nil {
+		log.Error().Err(err).
+			Str("jobName", jobName).
+			Msgf("Create call for job %v failed", jobName)
+	}
 	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 
 	return
