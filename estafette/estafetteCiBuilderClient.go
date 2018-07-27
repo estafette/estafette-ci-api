@@ -16,10 +16,10 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/ericchiang/k8s"
-	"github.com/ericchiang/k8s/api/resource"
-	apiv1 "github.com/ericchiang/k8s/api/v1"
 	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
+	corev1 "github.com/ericchiang/k8s/apis/core/v1"
 	metav1 "github.com/ericchiang/k8s/apis/meta/v1"
+	"github.com/ericchiang/k8s/apis/resource"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
@@ -130,67 +130,67 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteBuildVersionPatchName := "ESTAFETTE_BUILD_VERSION_PATCH"
 	estafetteBuildVersionPatchValue := fmt.Sprint(ciBuilderParams.AutoIncrement)
 
-	environmentVariables := []*apiv1.EnvVar{
-		&apiv1.EnvVar{
+	environmentVariables := []*corev1.EnvVar{
+		&corev1.EnvVar{
 			Name:  &estafetteGitSourceName,
 			Value: &estafetteGitSourceValue,
 		},
-		&apiv1.EnvVar{
+		&corev1.EnvVar{
 			Name:  &estafetteGitNameName,
 			Value: &estafetteGitNameValue,
 		},
-		&apiv1.EnvVar{
+		&corev1.EnvVar{
 			Name:  &estafetteGitURLName,
 			Value: &estafetteGitURLValue,
 		},
-		&apiv1.EnvVar{
+		&corev1.EnvVar{
 			Name:  &estafetteGitBranchName,
 			Value: &estafetteGitBranchValue,
 		},
-		&apiv1.EnvVar{
+		&corev1.EnvVar{
 			Name:  &estafetteGitRevisionName,
 			Value: &estafetteGitRevisionValue,
 		},
-		&apiv1.EnvVar{
+		&corev1.EnvVar{
 			Name:  &estafetteBuildVersionName,
 			Value: &estafetteBuildVersionValue,
 		},
-		&apiv1.EnvVar{
+		&corev1.EnvVar{
 			Name:  &estafetteBuildVersionPatchName,
 			Value: &estafetteBuildVersionPatchValue,
 		},
-		&apiv1.EnvVar{
+		&corev1.EnvVar{
 			Name:  &estafetteBuildJobNameName,
 			Value: &estafetteBuildJobNameValue,
 		},
-		&apiv1.EnvVar{
+		&corev1.EnvVar{
 			Name:  &estafetteCiServerBaseURLName,
 			Value: &estafetteCiServerBaseURLValue,
 		},
-		&apiv1.EnvVar{
+		&corev1.EnvVar{
 			Name:  &estafetteCiServerBuilderEventsURLName,
 			Value: &estafetteCiServerBuilderEventsURLValue,
 		},
-		&apiv1.EnvVar{
+		&corev1.EnvVar{
 			Name:  &estafetteCiServerBuilderPostLogsURLName,
 			Value: &estafetteCiServerBuilderPostLogsURLValue,
 		},
-		&apiv1.EnvVar{
+		&corev1.EnvVar{
 			Name:  &estafetteCiAPIKeyName,
 			Value: &estafetteCiAPIKeyValue,
 		},
-		&apiv1.EnvVar{
+		&corev1.EnvVar{
 			Name:  &estafetteCiBuilderTrackName,
 			Value: &estafetteCiBuilderTrackValue,
 		},
-		&apiv1.EnvVar{
+		&corev1.EnvVar{
 			Name:  &estafetteManifestJSONKeyName,
 			Value: &estafetteManifestJSONKeyValue,
 		},
 	}
 
 	for key, value := range ciBuilderParams.EnvironmentVariables {
-		environmentVariables = append(environmentVariables, &apiv1.EnvVar{
+		environmentVariables = append(environmentVariables, &corev1.EnvVar{
 			Name:  &key,
 			Value: &value,
 		})
@@ -229,24 +229,24 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 			},
 		},
 		Spec: &batchv1.JobSpec{
-			Template: &apiv1.PodTemplateSpec{
+			Template: &corev1.PodTemplateSpec{
 				Metadata: &metav1.ObjectMeta{
 					Labels: map[string]string{
 						"createdBy": "estafette",
 					},
 				},
-				Spec: &apiv1.PodSpec{
-					Containers: []*apiv1.Container{
-						&apiv1.Container{
+				Spec: &corev1.PodSpec{
+					Containers: []*corev1.Container{
+						&corev1.Container{
 							Name:            &containerName,
 							Image:           &image,
 							ImagePullPolicy: &imagePullPolicy,
 							Args:            []string{fmt.Sprintf("--secret-decryption-key=%v", cbc.secretDecryptionKey)},
 							Env:             environmentVariables,
-							SecurityContext: &apiv1.SecurityContext{
+							SecurityContext: &corev1.SecurityContext{
 								Privileged: &privileged,
 							},
-							Resources: &apiv1.ResourceRequirements{
+							Resources: &corev1.ResourceRequirements{
 								Requests: map[string]*resource.Quantity{
 									"cpu":    &resource.Quantity{String_: &cpuRequest},
 									"memory": &resource.Quantity{String_: &memoryRequest},
@@ -260,15 +260,15 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 					},
 					RestartPolicy: &restartPolicy,
 
-					Affinity: &apiv1.Affinity{
-						NodeAffinity: &apiv1.NodeAffinity{
-							PreferredDuringSchedulingIgnoredDuringExecution: []*apiv1.PreferredSchedulingTerm{
-								&apiv1.PreferredSchedulingTerm{
+					Affinity: &corev1.Affinity{
+						NodeAffinity: &corev1.NodeAffinity{
+							PreferredDuringSchedulingIgnoredDuringExecution: []*corev1.PreferredSchedulingTerm{
+								&corev1.PreferredSchedulingTerm{
 									Weight: &preemptibleAffinityWeight,
 									// A node selector term, associated with the corresponding weight.
-									Preference: &apiv1.NodeSelectorTerm{
-										MatchExpressions: []*apiv1.NodeSelectorRequirement{
-											&apiv1.NodeSelectorRequirement{
+									Preference: &corev1.NodeSelectorTerm{
+										MatchExpressions: []*corev1.NodeSelectorRequirement{
+											&corev1.NodeSelectorRequirement{
 												Key:      &preemptibleAffinityKey,
 												Operator: &preemptibleAffinityOperator,
 												Values:   []string{"true"},
@@ -284,12 +284,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		},
 	}
 
+	// "error":"unregistered type *v1.Job",
 	err = cbc.kubeClient.Create(context.Background(), job)
-	if err != nil {
-		log.Error().Err(err).
-			Str("jobName", jobName).
-			Msgf("Create call for job %v failed", jobName)
-	}
 	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 
 	return

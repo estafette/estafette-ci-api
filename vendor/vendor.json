@@ -77,236 +77,88 @@
 			"versionExact": "v1.1.0"
 		},
 		{
-			"checksumSHA1": "01fAptxxnAtpETnK6ehLMer0a0c=",
 			"path": "github.com/ericchiang/k8s/api/resource",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
+			"revision": "v1.1.0",
+			"version": "v1.1.0",
+			"versionExact": "v1.1.0"
 		},
 		{
-			"checksumSHA1": "fZJL0AkmBrCVcKg1hDSNTYyd23Y=",
-			"path": "github.com/ericchiang/k8s/api/unversioned",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "TBBCDDY4ImiRNHgwu2d0g+x9XHo=",
 			"path": "github.com/ericchiang/k8s/api/v1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
+			"revision": "v1.1.0",
+			"version": "v1.1.0",
+			"versionExact": "v1.1.0"
 		},
 		{
-			"checksumSHA1": "DZ6AlJ62y3seVMkZBnBRMDPlpaI=",
-			"path": "github.com/ericchiang/k8s/apis/apps/v1alpha1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
+			"checksumSHA1": "cxdskWaHbixHV6kP4XIkhHneYOI=",
+			"path": "github.com/ericchiang/k8s/apis/apiextensions/v1beta1",
+			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
+			"revisionTime": "2018-04-27T00:52:59Z",
+			"version": "v1.1.0",
+			"versionExact": "v1.1.0"
 		},
 		{
-			"checksumSHA1": "8h2RKYIkyIHEyAjhty8k1dNawGY=",
-			"path": "github.com/ericchiang/k8s/apis/apps/v1beta1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "mRZVUJllzabqZLjMx6bRDj/bKV4=",
-			"path": "github.com/ericchiang/k8s/apis/authentication/v1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "QVE9J3i3iZXaXGlIDcWUGkaOmgU=",
-			"path": "github.com/ericchiang/k8s/apis/authentication/v1beta1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "wiNruNl/ns+FGGO4w/t9IJytFA8=",
-			"path": "github.com/ericchiang/k8s/apis/authorization/v1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "hs+9egHVbBW7sJ0XFM2jUpGXSkM=",
-			"path": "github.com/ericchiang/k8s/apis/authorization/v1beta1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "eWgETaZG0Gghcv3UtpotdmCNi0s=",
-			"path": "github.com/ericchiang/k8s/apis/autoscaling/v1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "FTVTNoi0kESZM7xGNpXYYhNPWvo=",
-			"path": "github.com/ericchiang/k8s/apis/autoscaling/v2alpha1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "zipNODamDXynrRhLRf2tZtANLNA=",
+			"checksumSHA1": "FryZuAxWn4Ig8zc913w9BdfYzvs=",
 			"path": "github.com/ericchiang/k8s/apis/batch/v1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
+			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
+			"revisionTime": "2018-04-27T00:52:59Z",
+			"version": "v1.1.0",
+			"versionExact": "v1.1.0"
 		},
 		{
-			"checksumSHA1": "NG+B3ghwQB9+gqC4u1/n5rvxgcI=",
-			"path": "github.com/ericchiang/k8s/apis/batch/v2alpha1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
+			"checksumSHA1": "jlmdOx3uTUp3vgBrXjqYc28OoXA=",
+			"path": "github.com/ericchiang/k8s/apis/core/v1",
+			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
+			"revisionTime": "2018-04-27T00:52:59Z",
+			"version": "v1.1.0",
+			"versionExact": "v1.1.0"
 		},
 		{
-			"checksumSHA1": "bjUm/v/nQ33UOS2jD7/bw6TfAu8=",
-			"path": "github.com/ericchiang/k8s/apis/certificates/v1alpha1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "1Pu1ueW1d83sklJff8G3LUBeRcI=",
-			"path": "github.com/ericchiang/k8s/apis/certificates/v1beta1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "7xMtn5Dn3r/068oHbtML7KCmuBQ=",
-			"path": "github.com/ericchiang/k8s/apis/extensions/v1beta1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "NMDlkK3Q2IM/akBvqZtgKsCUrfM=",
-			"path": "github.com/ericchiang/k8s/apis/imagepolicy/v1alpha1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "wPBzFn9MKfJfKeevePWVuMmQpRg=",
+			"checksumSHA1": "fBP09m6drsy/tbjTYCtRDK+yFPU=",
 			"path": "github.com/ericchiang/k8s/apis/meta/v1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
+			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
+			"revisionTime": "2018-04-27T00:52:59Z",
+			"version": "v1.1.0",
+			"versionExact": "v1.1.0"
 		},
 		{
-			"checksumSHA1": "8D1NhmWtYax59XjzqUjaK1Itue8=",
-			"path": "github.com/ericchiang/k8s/apis/policy/v1alpha1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
+			"checksumSHA1": "JirJkoeIkWJRNrbprsQvqwisxds=",
+			"path": "github.com/ericchiang/k8s/apis/resource",
+			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
+			"revisionTime": "2018-04-27T00:52:59Z",
+			"version": "v1.1.0",
+			"versionExact": "v1.1.0"
 		},
 		{
-			"checksumSHA1": "tLHS51o8SQ2TYaILNm14aKZ2aJo=",
-			"path": "github.com/ericchiang/k8s/apis/policy/v1beta1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "83nt80JGMeByBwM2BPe5HFNasUE=",
-			"path": "github.com/ericchiang/k8s/apis/rbac/v1alpha1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "xrvHGab/DURsj0EJ7Ezlptkc8yM=",
-			"path": "github.com/ericchiang/k8s/apis/rbac/v1beta1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "+7YLBWKMX+s73PSJal7HkWIcYp4=",
-			"path": "github.com/ericchiang/k8s/apis/settings/v1alpha1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "uxte6vQ84Nig3blUP1BMfzj3nEQ=",
-			"path": "github.com/ericchiang/k8s/apis/storage/v1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "B0vbcMEotEB4Vn+AUlMUfKeTevQ=",
-			"path": "github.com/ericchiang/k8s/apis/storage/v1beta1",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
-		},
-		{
-			"checksumSHA1": "Zamn5Q5QpwWEcFSkNoS5E/gDn7c=",
+			"checksumSHA1": "Su6wSR8V8HL2QZsF8icJ0R9AFq8=",
 			"path": "github.com/ericchiang/k8s/runtime",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
+			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
+			"revisionTime": "2018-04-27T00:52:59Z",
+			"version": "v1.1.0",
+			"versionExact": "v1.1.0"
 		},
 		{
-			"checksumSHA1": "CPgiZ+Fsdw/aHhZz0efSFqeVscY=",
+			"checksumSHA1": "8ETrRvIaXPfD21N7fa8kdbumL00=",
 			"path": "github.com/ericchiang/k8s/runtime/schema",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
+			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
+			"revisionTime": "2018-04-27T00:52:59Z",
+			"version": "v1.1.0",
+			"versionExact": "v1.1.0"
 		},
 		{
-			"checksumSHA1": "XVUvsAZo6marPNTIm0yxJ+muaZg=",
+			"checksumSHA1": "cMk3HE8/81ExHuEs0F5sZCclOFs=",
 			"path": "github.com/ericchiang/k8s/util/intstr",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
+			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
+			"revisionTime": "2018-04-27T00:52:59Z",
+			"version": "v1.1.0",
+			"versionExact": "v1.1.0"
 		},
 		{
-			"checksumSHA1": "Kj8WnmKc/J5nPYR9PjrAb/zi25E=",
+			"checksumSHA1": "fobEKiMk5D7IGvCSwh4HdG1o98c=",
 			"path": "github.com/ericchiang/k8s/watch/versioned",
-			"revision": "68b0248f880c5967d1ba7166486cb216af849b15",
-			"revisionTime": "2017-05-16T16:41:00Z",
-			"version": "v0.4.0",
-			"versionExact": "v0.4.0"
+			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
+			"revisionTime": "2018-04-27T00:52:59Z",
+			"version": "v1.1.0",
+			"versionExact": "v1.1.0"
 		},
 		{
 			"checksumSHA1": "uODsKVTl+HL1mH1i3itWiKNMjY8=",
