@@ -24,6 +24,7 @@ type APIHandler interface {
 
 	GetStatsPipelinesCount(c *gin.Context)
 	GetStatsBuildsCount(c *gin.Context)
+	GetStatsBuildsDuration(c *gin.Context)
 }
 
 type apiHandlerImpl struct {
@@ -274,15 +275,34 @@ func (h *apiHandlerImpl) GetStatsBuildsCount(c *gin.Context) {
 	filters["status"] = h.getStatusFilter(c)
 	filters["since"] = h.getSinceFilter(c)
 
-	pipelinesCount, err := h.cockroachDBClient.GetBuildsCount(filters)
+	buildsCount, err := h.cockroachDBClient.GetBuildsCount(filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Failed retrieving builds count from db")
 	}
-	log.Info().Msgf("Retrieved builds count %v", pipelinesCount)
+	log.Info().Msgf("Retrieved builds count %v", buildsCount)
 
 	c.JSON(http.StatusOK, gin.H{
-		"count": pipelinesCount,
+		"count": buildsCount,
+	})
+}
+
+func (h *apiHandlerImpl) GetStatsBuildsDuration(c *gin.Context) {
+
+	// get filters (?filter[status]=running,succeeded&filter[since]=1w
+	filters := map[string][]string{}
+	filters["status"] = h.getStatusFilter(c)
+	filters["since"] = h.getSinceFilter(c)
+
+	buildsDuration, err := h.cockroachDBClient.GetBuildsDuration(filters)
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Failed retrieving builds duration from db")
+	}
+	log.Info().Msgf("Retrieved builds duration %v", buildsDuration)
+
+	c.JSON(http.StatusOK, gin.H{
+		"duration": buildsDuration,
 	})
 }
 

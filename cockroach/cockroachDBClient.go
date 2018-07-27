@@ -32,6 +32,7 @@ type DBClient interface {
 	GetPipelineBuild(string, string, string, string) (*contracts.Build, error)
 	GetPipelineBuildLogs(string, string, string, string) (*contracts.BuildLog, error)
 	GetBuildsCount(map[string][]string) (int, error)
+	GetBuildsDuration(map[string][]string) (time.Duration, error)
 	InsertBuildLog(contracts.BuildLog) error
 }
 
@@ -775,6 +776,41 @@ func (dbc *cockroachDBClientImpl) GetBuildsCount(filters map[string][]string) (t
 	}
 
 	if err := rows.Scan(&totalCount); err != nil {
+		return 0, err
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetBuildsDuration(filters map[string][]string) (totalDuration time.Duration, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("SUM(AGE(inserted_at,updated_at))").
+			From("builds")
+
+	query, err = whereClauseGeneratorForAllFilters(query, filters)
+	if err != nil {
+		return
+	}
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	recordExists := rows.Next()
+
+	if !recordExists {
+		return
+	}
+
+	if err := rows.Scan(&totalDuration); err != nil {
 		return 0, err
 	}
 
