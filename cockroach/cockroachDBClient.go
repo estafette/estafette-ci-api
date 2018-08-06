@@ -153,6 +153,10 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (err error)
 	if err != nil {
 		return
 	}
+	releasesBytes, err := json.Marshal(build.Releases)
+	if err != nil {
+		return
+	}
 	commitsBytes, err := json.Marshal(build.Commits)
 	if err != nil {
 		return
@@ -172,6 +176,7 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (err error)
 			build_version,
 			build_status,
 			labels,
+			releases,
 			manifest,
 			commits
 		)
@@ -186,7 +191,8 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (err error)
 			$7,
 			$8,
 			$9,
-			$10
+			$10,
+			$11
 		)
 		`,
 		build.RepoSource,
@@ -197,6 +203,7 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (err error)
 		build.BuildVersion,
 		build.BuildStatus,
 		labelsBytes,
+		releasesBytes,
 		build.Manifest,
 		commitsBytes,
 	)
@@ -253,7 +260,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 
 	query :=
 		psql.
-			Select("id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,manifest,commits,inserted_at,updated_at").
+			Select("id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,releases,manifest,commits,inserted_at,updated_at").
 			FromSelect(innerQuery, "ranked_builds").
 			Where(sq.Eq{"build_version_rank": 1})
 
@@ -278,7 +285,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 	defer rows.Close()
 	for rows.Next() {
 
-		var labelsData, commitsData []uint8
+		var labelsData, releasesData, commitsData []uint8
 
 		pipeline := contracts.Pipeline{}
 
@@ -292,6 +299,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 			&pipeline.BuildVersion,
 			&pipeline.BuildStatus,
 			&labelsData,
+			&releasesData,
 			&pipeline.Manifest,
 			&commitsData,
 			&pipeline.InsertedAt,
@@ -301,6 +309,11 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 
 		if len(labelsData) > 0 {
 			if err = json.Unmarshal(labelsData, &pipeline.Labels); err != nil {
+				return
+			}
+		}
+		if len(releasesData) > 0 {
+			if err = json.Unmarshal(releasesData, &pipeline.Releases); err != nil {
 				return
 			}
 		}
@@ -370,6 +383,7 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 			build_version,
 			build_status,
 			labels,
+			releases,
 			manifest,
 			commits,
 			inserted_at,
@@ -402,7 +416,7 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 		return
 	}
 
-	var labelsData, commitsData []uint8
+	var labelsData, releasesData, commitsData []uint8
 
 	pipeline = &contracts.Pipeline{}
 
@@ -416,6 +430,7 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 		&pipeline.BuildVersion,
 		&pipeline.BuildStatus,
 		&labelsData,
+		&releasesData,
 		&pipeline.Manifest,
 		&commitsData,
 		&pipeline.InsertedAt,
@@ -425,6 +440,11 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &pipeline.Labels); err != nil {
+			return
+		}
+	}
+	if len(releasesData) > 0 {
+		if err = json.Unmarshal(releasesData, &pipeline.Releases); err != nil {
 			return
 		}
 	}

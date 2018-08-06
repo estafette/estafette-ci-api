@@ -148,6 +148,15 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 		}
 	}
 
+	var releases []contracts.Release
+	if hasValidManifest {
+		for _, r := range mft.Releases {
+			releases = append(releases, contracts.Release{
+				Name: r.Name,
+			})
+		}
+	}
+
 	var commits []contracts.GitCommit
 	if hasValidManifest {
 		for _, c := range pushEvent.Push.Changes {
@@ -174,6 +183,7 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 		BuildVersion: buildVersion,
 		BuildStatus:  buildStatus,
 		Labels:       labels,
+		Releases:     releases,
 		Manifest:     manifestString,
 		Commits:      commits,
 	})
