@@ -18,9 +18,9 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(mft, "beta", "github")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 4, len(injectedManifest.Pipelines))
-		assert.Equal(t, "git-clone", injectedManifest.Pipelines[1].Name)
-		assert.Equal(t, "extensions/git-clone:beta", injectedManifest.Pipelines[1].ContainerImage)
+		assert.Equal(t, 4, len(injectedManifest.Stages))
+		assert.Equal(t, "git-clone", injectedManifest.Stages[1].Name)
+		assert.Equal(t, "extensions/git-clone:beta", injectedManifest.Stages[1].ContainerImage)
 	})
 
 	t.Run("PrependSetPendingBuildStatusStep", func(t *testing.T) {
@@ -31,10 +31,10 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(mft, "beta", "github")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 4, len(injectedManifest.Pipelines))
-		assert.Equal(t, "set-pending-build-status", injectedManifest.Pipelines[0].Name)
-		assert.Equal(t, "extensions/github-status:beta", injectedManifest.Pipelines[0].ContainerImage)
-		assert.Equal(t, "pending", injectedManifest.Pipelines[0].CustomProperties["status"])
+		assert.Equal(t, 4, len(injectedManifest.Stages))
+		assert.Equal(t, "set-pending-build-status", injectedManifest.Stages[0].Name)
+		assert.Equal(t, "extensions/github-status:beta", injectedManifest.Stages[0].ContainerImage)
+		assert.Equal(t, "pending", injectedManifest.Stages[0].CustomProperties["status"])
 	})
 
 	t.Run("AppendSetBuildStatusStep", func(t *testing.T) {
@@ -45,9 +45,9 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(mft, "beta", "github")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 4, len(injectedManifest.Pipelines))
-		assert.Equal(t, "set-build-status", injectedManifest.Pipelines[3].Name)
-		assert.Equal(t, "extensions/github-status:beta", injectedManifest.Pipelines[3].ContainerImage)
+		assert.Equal(t, 4, len(injectedManifest.Stages))
+		assert.Equal(t, "set-build-status", injectedManifest.Stages[3].Name)
+		assert.Equal(t, "extensions/github-status:beta", injectedManifest.Stages[3].ContainerImage)
 	})
 
 	t.Run("PrependGitCloneStepIfBuildStatusStepsExist", func(t *testing.T) {
@@ -58,9 +58,9 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(mft, "dev", "github")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 4, len(injectedManifest.Pipelines))
-		assert.Equal(t, "git-clone", injectedManifest.Pipelines[0].Name)
-		assert.Equal(t, "extensions/git-clone:dev", injectedManifest.Pipelines[0].ContainerImage)
+		assert.Equal(t, 4, len(injectedManifest.Stages))
+		assert.Equal(t, "git-clone", injectedManifest.Stages[0].Name)
+		assert.Equal(t, "extensions/git-clone:dev", injectedManifest.Stages[0].ContainerImage)
 	})
 
 	t.Run("PrependSetPendingBuildStatusStep", func(t *testing.T) {
@@ -71,10 +71,10 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(mft, "dev", "github")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 4, len(injectedManifest.Pipelines))
-		assert.Equal(t, "set-pending-build-status", injectedManifest.Pipelines[1].Name)
-		assert.Equal(t, "extensions/github-status:stable", injectedManifest.Pipelines[1].ContainerImage)
-		assert.Equal(t, "pending", injectedManifest.Pipelines[1].CustomProperties["status"])
+		assert.Equal(t, 4, len(injectedManifest.Stages))
+		assert.Equal(t, "set-pending-build-status", injectedManifest.Stages[1].Name)
+		assert.Equal(t, "extensions/github-status:stable", injectedManifest.Stages[1].ContainerImage)
+		assert.Equal(t, "pending", injectedManifest.Stages[1].CustomProperties["status"])
 	})
 
 	t.Run("AppendSetBuildStatusStep", func(t *testing.T) {
@@ -85,9 +85,9 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(mft, "dev", "github")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 4, len(injectedManifest.Pipelines))
-		assert.Equal(t, "set-build-status", injectedManifest.Pipelines[3].Name)
-		assert.Equal(t, "extensions/github-status:stable", injectedManifest.Pipelines[3].ContainerImage)
+		assert.Equal(t, 4, len(injectedManifest.Stages))
+		assert.Equal(t, "set-build-status", injectedManifest.Stages[3].Name)
+		assert.Equal(t, "extensions/github-status:stable", injectedManifest.Stages[3].ContainerImage)
 	})
 
 }
@@ -108,8 +108,8 @@ func getManifestWithoutBuildStatusSteps() manifest.EstafetteManifest {
 		},
 		Labels:        map[string]string{},
 		GlobalEnvVars: map[string]string{},
-		Pipelines: []*manifest.EstafettePipeline{
-			&manifest.EstafettePipeline{
+		Stages: []*manifest.EstafetteStage{
+			&manifest.EstafetteStage{
 				Name:             "build",
 				ContainerImage:   "golang:1.10.2-alpine3.7",
 				Shell:            "/bin/sh",
@@ -136,8 +136,8 @@ func getManifestWithBuildStatusSteps() manifest.EstafetteManifest {
 		},
 		Labels:        map[string]string{},
 		GlobalEnvVars: map[string]string{},
-		Pipelines: []*manifest.EstafettePipeline{
-			&manifest.EstafettePipeline{
+		Stages: []*manifest.EstafetteStage{
+			&manifest.EstafetteStage{
 				Name:           "set-pending-build-status",
 				ContainerImage: "extensions/github-status:stable",
 				CustomProperties: map[string]interface{}{
@@ -147,14 +147,14 @@ func getManifestWithBuildStatusSteps() manifest.EstafetteManifest {
 				WorkingDirectory: "/estafette-work",
 				When:             "status == 'succeeded'",
 			},
-			&manifest.EstafettePipeline{
+			&manifest.EstafetteStage{
 				Name:             "build",
 				ContainerImage:   "golang:1.10.2-alpine3.7",
 				Shell:            "/bin/sh",
 				WorkingDirectory: "/go/src/github.com/estafette/${ESTAFETTE_LABEL_APP}",
 				When:             "status == 'succeeded'",
 			},
-			&manifest.EstafettePipeline{
+			&manifest.EstafetteStage{
 				Name:             "set-build-status",
 				ContainerImage:   "extensions/github-status:stable",
 				Shell:            "/bin/sh",

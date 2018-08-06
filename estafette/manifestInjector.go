@@ -13,7 +13,7 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 
 	if !StepExists(injectedManifest, "git-clone") {
 		// add git-clone at the start
-		gitCloneStep := &manifest.EstafettePipeline{
+		gitCloneStep := &manifest.EstafetteStage{
 			Name:             "git-clone",
 			ContainerImage:   fmt.Sprintf("extensions/git-clone:%v", builderTrack),
 			Shell:            "/bin/sh",
@@ -21,12 +21,12 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 			When:             "status == 'succeeded'",
 			AutoInjected:     true,
 		}
-		injectedManifest.Pipelines = append([]*manifest.EstafettePipeline{gitCloneStep}, injectedManifest.Pipelines...)
+		injectedManifest.Stages = append([]*manifest.EstafetteStage{gitCloneStep}, injectedManifest.Stages...)
 	}
 
 	if !StepExists(injectedManifest, "set-pending-build-status") {
 		// add set-pending-build-status at the start if it doesn't exist yet
-		setPendingBuildStatusStep := &manifest.EstafettePipeline{
+		setPendingBuildStatusStep := &manifest.EstafetteStage{
 			Name:           "set-pending-build-status",
 			ContainerImage: fmt.Sprintf("extensions/%v-status:%v", gitSource, builderTrack),
 			CustomProperties: map[string]interface{}{
@@ -37,12 +37,12 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 			When:             "status == 'succeeded'",
 			AutoInjected:     true,
 		}
-		injectedManifest.Pipelines = append([]*manifest.EstafettePipeline{setPendingBuildStatusStep}, injectedManifest.Pipelines...)
+		injectedManifest.Stages = append([]*manifest.EstafetteStage{setPendingBuildStatusStep}, injectedManifest.Stages...)
 	}
 
 	if !StepExists(injectedManifest, "set-build-status") {
 		// add set-build-status at the end if it doesn't exist yet
-		setBuildStatusStep := &manifest.EstafettePipeline{
+		setBuildStatusStep := &manifest.EstafetteStage{
 			Name:             "set-build-status",
 			ContainerImage:   fmt.Sprintf("extensions/%v-status:%v", gitSource, builderTrack),
 			Shell:            "/bin/sh",
@@ -50,7 +50,7 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 			When:             "status == 'succeeded' || status == 'failed'",
 			AutoInjected:     true,
 		}
-		injectedManifest.Pipelines = append(injectedManifest.Pipelines, setBuildStatusStep)
+		injectedManifest.Stages = append(injectedManifest.Stages, setBuildStatusStep)
 	}
 
 	return
@@ -58,7 +58,7 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 
 // StepExists returns true if a step with stepName already exists, false otherwise
 func StepExists(mft manifest.EstafetteManifest, stepName string) bool {
-	for _, step := range mft.Pipelines {
+	for _, step := range mft.Stages {
 		if step.Name == stepName {
 			return true
 		}
