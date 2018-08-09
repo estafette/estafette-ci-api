@@ -27,7 +27,7 @@ type DBClient interface {
 	GetAutoIncrement(string, string) (int, error)
 	InsertBuild(contracts.Build) error
 	UpdateBuildStatus(string, string, string, string, string) error
-	InsertRelease(contracts.Release) error
+	InsertRelease(contracts.Release) (contracts.Release, error)
 	UpdateReleaseStatus(string, string, string, int, string) error
 	GetPipelines(int, int, map[string][]string) ([]*contracts.Pipeline, error)
 	GetPipelinesCount(map[string][]string) (int, error)
@@ -35,6 +35,7 @@ type DBClient interface {
 	GetPipelineBuilds(string, string, string, int, int) ([]*contracts.Build, error)
 	GetPipelineBuildsCount(string, string, string) (int, error)
 	GetPipelineBuild(string, string, string, string) (*contracts.Build, error)
+	GetPipelineBuildByVersion(string, string, string, string) (*contracts.Build, error)
 	GetPipelineBuildLogs(string, string, string, string) (*contracts.BuildLog, error)
 	GetPipelineReleases(string, string, string, int, int) ([]*contracts.Release, error)
 	GetPipelineReleasesCount(string, string, string) (int, error)
@@ -255,11 +256,11 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 	return
 }
 
-func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (err error) {
+func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (insertedRelease contracts.Release, err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// insert logs
-	_, err = dbc.databaseConnection.Exec(
+	rows, err := dbc.databaseConnection.Query(
 		`
 		INSERT INTO
 			releases
@@ -282,6 +283,8 @@ func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (err 
 			$6,
 			$7
 		)
+		RETURNING 
+			id
 		`,
 		release.RepoSource,
 		release.RepoOwner,
@@ -293,7 +296,20 @@ func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (err 
 	)
 
 	if err != nil {
+		return insertedRelease, err
+	}
+
+	defer rows.Close()
+	recordExists := rows.Next()
+
+	if !recordExists {
 		return
+	}
+
+	insertedRelease = release
+
+	if err := rows.Scan(&insertedRelease.ID); err != nil {
+		return insertedRelease, err
 	}
 
 	return
@@ -740,6 +756,105 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 		repoOwner,
 		repoName,
 		repoRevision,
+	)
+	if err != nil {
+		return
+	}
+
+	recordExists := false
+
+	defer rows.Close()
+	recordExists = rows.Next()
+
+	if !recordExists {
+		return
+	}
+
+	var labelsData, commitsData []uint8
+
+	build = &contracts.Build{}
+
+	if err := rows.Scan(
+		&build.ID,
+		&build.RepoSource,
+		&build.RepoOwner,
+		&build.RepoName,
+		&build.RepoBranch,
+		&build.RepoRevision,
+		&build.BuildVersion,
+		&build.BuildStatus,
+		&labelsData,
+		&build.Manifest,
+		&commitsData,
+		&build.InsertedAt,
+		&build.UpdatedAt); err != nil {
+		return nil, err
+	}
+
+	if len(labelsData) > 0 {
+		if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
+			return nil, err
+		}
+	}
+	if len(commitsData) > 0 {
+		if err = json.Unmarshal(commitsData, &build.Commits); err != nil {
+			return nil, err
+		}
+	}
+
+	// unmarshal then marshal manifest to include defaults
+	var manifest manifest.EstafetteManifest
+	err = yaml.Unmarshal([]byte(build.Manifest), &manifest)
+	if err == nil {
+		manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+		if err == nil {
+			build.ManifestWithDefaults = string(manifestWithDefaultBytes)
+		} else {
+			log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+		}
+	} else {
+		log.Warn().Err(err).Str("manifest", build.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineBuildByVersion(repoSource, repoOwner, repoName, buildVersion string) (build *contracts.Build, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	rows, err := dbc.databaseConnection.Query(
+		`
+		SELECT
+			id,
+			repo_source,
+			repo_owner,
+			repo_name,
+			repo_branch,
+			repo_revision,
+			build_version,
+			build_status,
+			labels,
+			manifest,
+			commits,
+			inserted_at,
+			updated_at
+		FROM
+			builds
+		WHERE
+			repo_source=$1 AND
+			repo_owner=$2 AND
+			repo_name=$3 AND
+			build_version=$4
+		ORDER BY
+			inserted_at DESC
+		LIMIT 1
+		OFFSET 0
+		`,
+		repoSource,
+		repoOwner,
+		repoName,
+		buildVersion,
 	)
 	if err != nil {
 		return

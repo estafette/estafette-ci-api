@@ -189,7 +189,6 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 
 	githubAPIClient := github.NewGithubAPIClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
 	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
-	slackAPIClient := slack.NewSlackAPIClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
 	cockroachDBClient := cockroach.NewCockroachDBClient(*config.Database, prometheusOutboundAPICallTotals)
 	ciBuilderClient, err := estafette.NewCiBuilderClient(*config.APIServer, *secretDecryptionKey, prometheusOutboundAPICallTotals)
 	if err != nil {
@@ -211,10 +210,6 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	bitbucketDispatcher := bitbucket.NewBitbucketDispatcher(stopChannel, waitGroup, config.Integrations.Bitbucket.MaxWorkers, bitbucketAPIClient, ciBuilderClient, cockroachDBClient, bitbucketPushEvents)
 	bitbucketDispatcher.Run()
 
-	slackEvents := make(chan slack.SlashCommand, config.Integrations.Slack.EventChannelBufferSize)
-	slackDispatcher := slack.NewSlackDispatcher(stopChannel, waitGroup, config.Integrations.Slack.MaxWorkers, slackAPIClient, slackEvents)
-	slackDispatcher.Run()
-
 	estafetteCiBuilderEvents := make(chan estafette.CiBuilderEvent, config.APIServer.MaxWorkers)
 	estafetteDispatcher := estafette.NewEstafetteDispatcher(stopChannel, waitGroup, config.APIServer.MaxWorkers, ciBuilderClient, cockroachDBClient, estafetteCiBuilderEvents)
 	estafetteDispatcher.Run()
@@ -233,7 +228,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketPushEvents, prometheusInboundEventTotals)
 	router.POST("/api/integrations/bitbucket/events", bitbucketEventHandler.Handle)
 
-	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, slackEvents, prometheusInboundEventTotals)
+	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, cockroachDBClient, *config.APIServer, prometheusInboundEventTotals)
 	router.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
 
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, estafetteCiBuilderEvents, prometheusInboundEventTotals)
