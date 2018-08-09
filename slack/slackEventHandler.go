@@ -118,7 +118,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					releaseExists := false
 					for _, release := range pipeline.Releases {
 						if release.Name == releaseName {
-							releaseExists = false
+							releaseExists = true
 							break
 						}
 					}
