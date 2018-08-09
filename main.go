@@ -245,6 +245,8 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	router.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)
 	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revision", estafetteAPIHandler.GetPipelineBuild)
 	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revision/logs", estafetteAPIHandler.GetPipelineBuildLogs)
+	router.GET("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.GetPipelineReleases)
+	router.GET("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteAPIHandler.GetPipelineRelease)
 	router.POST("/api/pipelines/:source/:owner/:repo/builds/:revision/logs", estafetteAPIHandler.PostPipelineBuildLogs)
 	router.GET("/api/stats/pipelinescount", estafetteAPIHandler.GetStatsPipelinesCount)
 	router.GET("/api/stats/buildscount", estafetteAPIHandler.GetStatsBuildsCount)

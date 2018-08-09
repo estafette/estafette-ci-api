@@ -27,6 +27,8 @@ type DBClient interface {
 	GetAutoIncrement(string, string) (int, error)
 	InsertBuild(contracts.Build) error
 	UpdateBuildStatus(string, string, string, string, string) error
+	InsertRelease(contracts.Release) error
+	UpdateReleaseStatus(string, string, string, int, string) error
 	GetPipelines(int, int, map[string][]string) ([]*contracts.Pipeline, error)
 	GetPipelinesCount(map[string][]string) (int, error)
 	GetPipeline(string, string, string) (*contracts.Pipeline, error)
@@ -34,6 +36,9 @@ type DBClient interface {
 	GetPipelineBuildsCount(string, string, string) (int, error)
 	GetPipelineBuild(string, string, string, string) (*contracts.Build, error)
 	GetPipelineBuildLogs(string, string, string, string) (*contracts.BuildLog, error)
+	GetPipelineReleases(string, string, string, int, int) ([]*contracts.Release, error)
+	GetPipelineReleasesCount(string, string, string) (int, error)
+	GetPipelineRelease(string, string, string, int) (*contracts.Release, error)
 	GetBuildsCount(map[string][]string) (int, error)
 	GetBuildsDuration(map[string][]string) (time.Duration, error)
 	InsertBuildLog(contracts.BuildLog) error
@@ -241,6 +246,82 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 		repoOwner,
 		repoName,
 		repoRevision,
+	)
+
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (err error) {
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// insert logs
+	_, err = dbc.databaseConnection.Exec(
+		`
+		INSERT INTO
+			releases
+		(
+			repo_source,
+			repo_owner,
+			repo_name,
+			release,
+			release_version,
+			release_status,
+			triggered_by
+		)
+		VALUES
+		(
+			$1,
+			$2,
+			$3,
+			$4,
+			$5,
+			$6,
+			$7
+		)
+		`,
+		release.RepoSource,
+		release.RepoOwner,
+		release.RepoName,
+		release.Name,
+		release.ReleaseVersion,
+		release.ReleaseStatus,
+		release.TriggeredBy,
+	)
+
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(repoSource, repoOwner, repoName string, id int, releaseStatus string) (err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// insert logs
+	_, err = dbc.databaseConnection.Exec(
+		`
+		UPDATE
+			releases
+		SET
+			release_status=$1,
+			updated_at=now()
+		WHERE
+			id=$2 AND
+			repo_source=$3 AND
+			repo_owner=$4 AND
+			repo_name=$5
+		`,
+		releaseStatus,
+		id,
+		repoSource,
+		repoOwner,
+		repoName,
 	)
 
 	if err != nil {
@@ -774,6 +855,172 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 
 	if err = json.Unmarshal(stepsData, &buildLog.Steps); err != nil {
 		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, repoName string, pageNumber, pageSize int) (releases []*contracts.Release, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	releases = make([]*contracts.Release, 0)
+
+	rows, err := dbc.databaseConnection.Query(
+		`
+		SELECT
+			id,
+			repo_source,
+			repo_owner,
+			repo_name,
+			release,
+			release_version,
+			release_status,
+			triggered_by,
+			inserted_at,
+			updated_at
+		FROM
+			releases
+		WHERE
+			repo_source=$1 AND
+			repo_owner=$2 AND
+			repo_name=$3
+		ORDER BY
+			inserted_at DESC
+		LIMIT $4
+		OFFSET $5
+		`,
+		repoSource,
+		repoOwner,
+		repoName,
+		pageSize,
+		(pageNumber-1)*pageSize,
+	)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		release := contracts.Release{}
+
+		if err := rows.Scan(
+			&release.ID,
+			&release.RepoSource,
+			&release.RepoOwner,
+			&release.RepoName,
+			&release.Name,
+			&release.ReleaseVersion,
+			&release.ReleaseStatus,
+			&release.TriggeredBy,
+			&release.InsertedAt,
+			&release.UpdatedAt); err != nil {
+			return nil, err
+		}
+
+		releases = append(releases, &release)
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineReleasesCount(repoSource, repoOwner, repoName string) (totalCount int, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	rows, err := dbc.databaseConnection.Query(
+		`
+		SELECT
+			COUNT(*)
+		FROM
+			releases
+		WHERE
+			repo_source=$1 AND
+			repo_owner=$2 AND
+			repo_name=$3
+		`,
+		repoSource,
+		repoOwner,
+		repoName,
+	)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	recordExists := rows.Next()
+
+	if !recordExists {
+		return
+	}
+
+	if err := rows.Scan(&totalCount); err != nil {
+		return 0, err
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repoName string, id int) (release *contracts.Release, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	rows, err := dbc.databaseConnection.Query(
+		`
+		SELECT
+			id,
+			repo_source,
+			repo_owner,
+			repo_name,
+			release,
+			release_version,
+			release_status,
+			triggered_by,
+			inserted_at,
+			updated_at
+		FROM
+			releases
+		WHERE
+			id=$1 AND
+			repo_source=$2 AND
+			repo_owner=$3 AND
+			repo_name=$4
+		LIMIT 1
+		OFFSET 0
+		`,
+		id,
+		repoSource,
+		repoOwner,
+		repoName,
+	)
+	if err != nil {
+		return
+	}
+
+	recordExists := false
+
+	defer rows.Close()
+	recordExists = rows.Next()
+
+	if !recordExists {
+		return
+	}
+
+	release = &contracts.Release{}
+
+	if err := rows.Scan(
+		&release.ID,
+		&release.RepoSource,
+		&release.RepoOwner,
+		&release.RepoName,
+		&release.Name,
+		&release.ReleaseVersion,
+		&release.ReleaseStatus,
+		&release.TriggeredBy,
+		&release.InsertedAt,
+		&release.UpdatedAt); err != nil {
+		return nil, err
 	}
 
 	return
