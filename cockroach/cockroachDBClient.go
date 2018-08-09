@@ -7,6 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/estafette/estafette-ci-manifest"
+	"gopkg.in/yaml.v2"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-contracts"
@@ -323,6 +326,20 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 			}
 		}
 
+		// unmarshal then marshal manifest to include defaults
+		var manifest manifest.EstafetteManifest
+		err = yaml.Unmarshal([]byte(pipeline.Manifest), &manifest)
+		if err == nil {
+			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+			if err == nil {
+				pipeline.ManifestWithDefaults = string(manifestWithDefaultBytes)
+			} else {
+				log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
+			}
+		} else {
+			log.Warn().Err(err).Str("manifest", pipeline.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
+		}
+
 		pipelines = append(pipelines, &pipeline)
 	}
 
@@ -454,6 +471,20 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 		}
 	}
 
+	// unmarshal then marshal manifest to include defaults
+	var manifest manifest.EstafetteManifest
+	err = yaml.Unmarshal([]byte(pipeline.Manifest), &manifest)
+	if err == nil {
+		manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+		if err == nil {
+			pipeline.ManifestWithDefaults = string(manifestWithDefaultBytes)
+		} else {
+			log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
+		}
+	} else {
+		log.Warn().Err(err).Str("manifest", pipeline.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
+	}
+
 	return
 }
 
@@ -533,6 +564,20 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 			if err = json.Unmarshal(commitsData, &build.Commits); err != nil {
 				return
 			}
+		}
+
+		// unmarshal then marshal manifest to include defaults
+		var manifest manifest.EstafetteManifest
+		err = yaml.Unmarshal([]byte(build.Manifest), &manifest)
+		if err == nil {
+			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+			if err == nil {
+				build.ManifestWithDefaults = string(manifestWithDefaultBytes)
+			} else {
+				log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+			}
+		} else {
+			log.Warn().Err(err).Str("manifest", build.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 		}
 
 		builds = append(builds, &build)
@@ -658,6 +703,20 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 		if err = json.Unmarshal(commitsData, &build.Commits); err != nil {
 			return nil, err
 		}
+	}
+
+	// unmarshal then marshal manifest to include defaults
+	var manifest manifest.EstafetteManifest
+	err = yaml.Unmarshal([]byte(build.Manifest), &manifest)
+	if err == nil {
+		manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+		if err == nil {
+			build.ManifestWithDefaults = string(manifestWithDefaultBytes)
+		} else {
+			log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+		}
+	} else {
+		log.Warn().Err(err).Str("manifest", build.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 	}
 
 	return
