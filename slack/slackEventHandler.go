@@ -109,7 +109,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					fullRepoNameArray := strings.Split(fullRepoName, "/")
 
 					pipeline, err := h.cockroachDBClient.GetPipeline(fullRepoNameArray[0], fullRepoNameArray[1], fullRepoNameArray[2])
-					if err != nil {
+					if err != nil || pipeline == nil {
 						c.String(http.StatusOK, fmt.Sprintf("The repo %v in your command does not have any estafette builds", fullRepoName))
 						return
 					}
@@ -130,7 +130,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 					// check if version exists
 					build, err := h.cockroachDBClient.GetPipelineBuildByVersion(fullRepoNameArray[0], fullRepoNameArray[1], fullRepoNameArray[2], buildVersion)
-					if err != nil {
+					if err != nil || build == nil {
 						c.String(http.StatusOK, fmt.Sprintf("The version %v in your command does not exist", buildVersion))
 						return
 					}
