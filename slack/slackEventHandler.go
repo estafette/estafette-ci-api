@@ -264,7 +264,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 						return
 					}
 
-					c.String(http.StatusOK, fmt.Sprintf("Started releasing version %v to %v: %vpipelines/%v/releases/%v", buildVersion, releaseName, h.apiConfig.BaseURL, fullRepoName, insertedRelease.ID))
+					c.String(http.StatusOK, fmt.Sprintf("Started releasing version %v to %v: %vpipelines/%v/%v/%v/releases/%v/logs", buildVersion, releaseName, h.apiConfig.BaseURL, build.RepoSource, build.RepoOwner, build.RepoName, insertedRelease.ID))
 					return
 				}
 			}
