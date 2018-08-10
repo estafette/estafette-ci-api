@@ -243,6 +243,14 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 						return
 					}
 
+					// inject steps
+					manifest, err = estafette.InjectReleaseSteps(manifest, manifest.Builder.Track, releaseName)
+					if err != nil {
+						log.Error().Err(err).
+							Msg("Failed injecting steps")
+						return
+					}
+
 					insertedReleaseID, err := strconv.Atoi(insertedRelease.ID)
 					if err != nil {
 						c.String(http.StatusOK, fmt.Sprintf("Converting the release id to a string failed: %v", err))

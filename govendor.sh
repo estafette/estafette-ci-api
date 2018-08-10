@@ -8,7 +8,7 @@ govendor fetch github.com/dgrijalva/jwt-go@v3.0.0
 govendor fetch github.com/stretchr/testify/assert@v1.1.4
 govendor fetch github.com/stretchr/testify/mock@v1.1.4
 govendor fetch github.com/sethgrid/pester
-govendor fetch github.com/estafette/estafette-ci-manifest@0.1.32
+govendor fetch github.com/estafette/estafette-ci-manifest@0.1.33
 govendor fetch github.com/gin-gonic/gin@v1.2
 govendor fetch github.com/gin-contrib/gzip
 govendor fetch github.com/estafette/estafette-ci-crypt@0.0.2
