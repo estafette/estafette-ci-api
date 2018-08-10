@@ -121,9 +121,11 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					if len(fullRepoNameArray) == 1 {
 						pipelines, err := h.cockroachDBClient.GetPipelinesByRepoName(fullRepoName)
 						if err != nil {
+							log.Error().Err(err).Msgf("Failed retrieving pipelines for repo name %v by name", fullRepoName)
 							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
 							return
 						}
+						log.Debug().Msgf("Retrieved %v pipelines for repo name %v", len(pipelines), fullRepoName)
 						if len(pipelines) <= 0 {
 							c.String(http.StatusOK, fmt.Sprintf("The repo %v in your command does not have any estafette builds", fullRepoName))
 							return
@@ -162,6 +164,9 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 						}
 
 						if !releaseExists {
+
+							log.Debug().Interface("releases", build.Releases).Msgf("Release %v for repo name %v can't be found", releaseName, fullRepoName)
+
 							c.String(http.StatusOK, fmt.Sprintf("The release %v in your command is not defined in the manifest", releaseName))
 							return
 						}
