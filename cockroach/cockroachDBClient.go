@@ -42,6 +42,7 @@ type DBClient interface {
 	GetPipelineReleases(string, string, string, int, int) ([]*contracts.Release, error)
 	GetPipelineReleasesCount(string, string, string) (int, error)
 	GetPipelineRelease(string, string, string, int) (*contracts.Release, error)
+	GetPipelineLastReleaseByName(string, string, string, string) (*contracts.Release, error)
 	GetPipelineReleaseLogs(string, string, string, int) (*contracts.ReleaseLog, error)
 	GetBuildsCount(map[string][]string) (int, error)
 	GetBuildsDuration(map[string][]string) (time.Duration, error)
@@ -427,6 +428,20 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 			}
 		}
 
+		// set released versions
+		updatedReleases := make([]contracts.Release, 0)
+		for _, r := range pipeline.Releases {
+			latestRelease, err := dbc.GetPipelineLastReleaseByName(pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, r.Name)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed retrieving latest release for %v/%v/%v %v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, r.Name)
+			} else if latestRelease != nil {
+				updatedReleases = append(updatedReleases, *latestRelease)
+			} else {
+				updatedReleases = append(updatedReleases, r)
+			}
+		}
+		pipeline.Releases = updatedReleases
+
 		// unmarshal then marshal manifest to include defaults
 		var manifest manifest.EstafetteManifest
 		err = yaml.Unmarshal([]byte(pipeline.Manifest), &manifest)
@@ -658,6 +673,20 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 			return
 		}
 	}
+
+	// set released versions
+	updatedReleases := make([]contracts.Release, 0)
+	for _, r := range pipeline.Releases {
+		latestRelease, err := dbc.GetPipelineLastReleaseByName(pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, r.Name)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed retrieving latest release for %v/%v/%v %v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, r.Name)
+		} else if latestRelease != nil {
+			updatedReleases = append(updatedReleases, *latestRelease)
+		} else {
+			updatedReleases = append(updatedReleases, r)
+		}
+	}
+	pipeline.Releases = updatedReleases
 
 	// unmarshal then marshal manifest to include defaults
 	var manifest manifest.EstafetteManifest
@@ -1238,6 +1267,74 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 	}
 
 	release = &contracts.Release{}
+
+	if err := rows.Scan(
+		&id,
+		&release.RepoSource,
+		&release.RepoOwner,
+		&release.RepoName,
+		&release.Name,
+		&release.ReleaseVersion,
+		&release.ReleaseStatus,
+		&release.TriggeredBy,
+		&release.InsertedAt,
+		&release.UpdatedAt); err != nil {
+		return nil, err
+	}
+	release.ID = strconv.Itoa(id)
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineLastReleaseByName(repoSource, repoOwner, repoName, releaseName string) (release *contracts.Release, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	rows, err := dbc.databaseConnection.Query(
+		`
+		SELECT
+			id,
+			repo_source,
+			repo_owner,
+			repo_name,
+			release,
+			release_version,
+			release_status,
+			triggered_by,
+			inserted_at,
+			updated_at
+		FROM
+			releases
+		WHERE
+			release=$1 AND
+			repo_source=$2 AND
+			repo_owner=$3 AND
+			repo_name=$4
+		ORDER BY
+			inserted_at DESC
+		LIMIT 1
+		OFFSET 0
+		`,
+		releaseName,
+		repoSource,
+		repoOwner,
+		repoName,
+	)
+	if err != nil {
+		return
+	}
+
+	recordExists := false
+
+	defer rows.Close()
+	recordExists = rows.Next()
+
+	if !recordExists {
+		return
+	}
+
+	release = &contracts.Release{}
+	var id int
 
 	if err := rows.Scan(
 		&id,
