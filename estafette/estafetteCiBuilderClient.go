@@ -96,7 +96,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	maxRepoNameLength := 50
 	revisionOrID := ciBuilderParams.RepoRevision[:6]
 	if ciBuilderParams.ReleaseID > 0 {
-		revisionOrID = string(ciBuilderParams.ReleaseID)
+		revisionOrID = strconv.Itoa(ciBuilderParams.ReleaseID)
 		maxRepoNameLength = 54 - len(revisionOrID)
 	}
 	if len(repoName) > maxRepoNameLength {
