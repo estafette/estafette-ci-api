@@ -40,9 +40,11 @@ type DBClient interface {
 	GetPipelineReleases(string, string, string, int, int) ([]*contracts.Release, error)
 	GetPipelineReleasesCount(string, string, string) (int, error)
 	GetPipelineRelease(string, string, string, int) (*contracts.Release, error)
+	GetPipelineReleaseLogs(string, string, string, int) (*contracts.ReleaseLog, error)
 	GetBuildsCount(map[string][]string) (int, error)
 	GetBuildsDuration(map[string][]string) (time.Duration, error)
 	InsertBuildLog(contracts.BuildLog) error
+	InsertReleaseLog(contracts.ReleaseLog) error
 }
 
 type cockroachDBClientImpl struct {
@@ -1141,6 +1143,62 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 	return
 }
 
+func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogs(repoSource, repoOwner, repoName string, id int) (releaseLog *contracts.ReleaseLog, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	rows, err := dbc.databaseConnection.Query(
+		`
+		SELECT
+			id,
+			repo_source,
+			repo_owner,
+			repo_name,
+			release_id,
+			steps,
+			inserted_at
+		FROM
+			release_logs
+		WHERE
+			repo_source=$1 AND
+			repo_owner=$2 AND
+			repo_name=$3 AND
+			release_id=$4
+		LIMIT 1
+		`,
+		repoSource,
+		repoOwner,
+		repoName,
+		id,
+	)
+	if err != nil {
+		return
+	}
+
+	recordExists := false
+
+	defer rows.Close()
+	recordExists = rows.Next()
+
+	if !recordExists {
+		return
+	}
+
+	releaseLog = &contracts.ReleaseLog{}
+
+	var stepsData []uint8
+
+	if err = rows.Scan(&releaseLog.ID, &releaseLog.RepoSource, &releaseLog.RepoOwner, &releaseLog.RepoName, &releaseLog.ReleaseID, &stepsData, &releaseLog.InsertedAt); err != nil {
+		return
+	}
+
+	if err = json.Unmarshal(stepsData, &releaseLog.Steps); err != nil {
+		return
+	}
+
+	return
+}
+
 func (dbc *cockroachDBClientImpl) InsertBuildLog(buildLog contracts.BuildLog) (err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1178,6 +1236,50 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(buildLog contracts.BuildLog) (e
 		buildLog.RepoName,
 		buildLog.RepoBranch,
 		buildLog.RepoRevision,
+		bytes,
+	)
+
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) InsertReleaseLog(releaseLog contracts.ReleaseLog) (err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	bytes, err := json.Marshal(releaseLog.Steps)
+	if err != nil {
+		return
+	}
+
+	// insert logs
+	_, err = dbc.databaseConnection.Exec(
+		`
+		INSERT INTO
+			release_logs
+		(
+			repo_source,
+			repo_owner,
+			repo_name,
+			release_id,
+			steps
+		)
+		VALUES
+		(
+			$1,
+			$2,
+			$3,
+			$4,
+			$5
+		)
+		`,
+		releaseLog.RepoSource,
+		releaseLog.RepoOwner,
+		releaseLog.RepoName,
+		releaseLog.ReleaseID,
 		bytes,
 	)
 

@@ -9,6 +9,7 @@ type CiBuilderEvent struct {
 	RepoOwner    string `json:"repo_owner,omitempty"`
 	RepoName     string `json:"repo_name,omitempty"`
 	RepoRevision string `json:"repo_revision,omitempty"`
+	ReleaseID    int    `json:"release_id,omitempty"`
 	BuildStatus  string `json:"build_status,omitempty"`
 }
 
@@ -26,6 +27,8 @@ type CiBuilderParams struct {
 	RepoURL              string
 	RepoBranch           string
 	RepoRevision         string
+	ReleaseName          string
+	ReleaseID            int
 	EnvironmentVariables map[string]string
 	Track                string
 	AutoIncrement        int

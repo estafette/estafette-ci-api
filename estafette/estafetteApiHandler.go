@@ -23,6 +23,8 @@ type APIHandler interface {
 	PostPipelineBuildLogs(*gin.Context)
 	GetPipelineReleases(*gin.Context)
 	GetPipelineRelease(*gin.Context)
+	GetPipelineReleaseLogs(*gin.Context)
+	PostPipelineReleaseLogs(*gin.Context)
 
 	GetStatsPipelinesCount(c *gin.Context)
 	GetStatsBuildsCount(c *gin.Context)
@@ -329,6 +331,78 @@ func (h *apiHandlerImpl) GetPipelineRelease(c *gin.Context) {
 	log.Info().Msgf("Retrieved release for %v/%v/%v/%v", source, owner, repo, id)
 
 	c.JSON(http.StatusOK, release)
+}
+
+func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	idValue := c.Param("id")
+	id, err := strconv.Atoi(idValue)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, idValue)
+		c.JSON(http.StatusBadRequest, gin.H{"code": "BAD_REQUEST", "message": "Path parameter id is not of type integer"})
+		return
+	}
+
+	releaseLog, err := h.cockroachDBClient.GetPipelineReleaseLogs(source, owner, repo, id)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed retrieving release logs for %v/%v/%v/%v from db", source, owner, repo, id)
+	}
+	if releaseLog == nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline release log not found"})
+		return
+	}
+	log.Info().Msgf("Retrieved release logs for %v/%v/%v/%v", source, owner, repo, id)
+
+	c.JSON(http.StatusOK, releaseLog)
+
+}
+
+func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
+
+	authorizationHeader := c.GetHeader("Authorization")
+	if authorizationHeader != fmt.Sprintf("Bearer %v", h.config.APIKey) {
+		log.Error().
+			Str("authorizationHeader", authorizationHeader).
+			Msg("Authorization header for Estafette v2 logs is incorrect")
+		c.String(http.StatusUnauthorized, "Authorization failed")
+		return
+	}
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	idValue := c.Param("id")
+	id, err := strconv.Atoi(idValue)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, idValue)
+		c.JSON(http.StatusBadRequest, gin.H{"code": "BAD_REQUEST", "message": "Path parameter id is not of type integer"})
+		return
+	}
+
+	var buildLog contracts.BuildLog
+	err = c.Bind(&buildLog)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed binding release logs for %v/%v/%v/%v", source, owner, repo, id)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": "INTERNAL_SERVER_ERROR", "message": "Failed binding release logs from body"})
+		return
+	}
+
+	log.Info().Interface("buildLog", buildLog).Msgf("Binded release logs for for %v/%v/%v/%v", source, owner, repo, id)
+
+	err = h.cockroachDBClient.InsertReleaseLog(buildLog)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed inserting release logs for %v/%v/%v/%v", source, owner, repo, id)
+	}
+	log.Info().Msgf("Inserted release logs for %v/%v/%v/%v", source, owner, repo, id)
+
+	c.String(http.StatusOK, "Aye aye!")
 }
 
 func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {

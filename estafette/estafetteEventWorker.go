@@ -79,7 +79,7 @@ func (w *eventWorkerImpl) RemoveJobForEstafetteBuild(ciBuilderEvent CiBuilderEve
 func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) {
 
 	// check build status for backwards compatibility of builder
-	if ciBuilderEvent.BuildStatus != "" {
+	if ciBuilderEvent.BuildStatus != "" && ciBuilderEvent.ReleaseID == 0 {
 
 		err := w.cockroachDBClient.UpdateBuildStatus(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, ciBuilderEvent.RepoRevision, ciBuilderEvent.BuildStatus)
 		if err != nil {
@@ -92,5 +92,19 @@ func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) {
 		log.Info().
 			Str("jobName", ciBuilderEvent.JobName).
 			Msgf("Updated build status for ci-builder job %v to %v", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
+	} else if ciBuilderEvent.BuildStatus != "" && ciBuilderEvent.ReleaseID > 0 {
+
+		err := w.cockroachDBClient.UpdateReleaseStatus(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, ciBuilderEvent.ReleaseID, ciBuilderEvent.BuildStatus)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Updating release status for job %v failed", ciBuilderEvent.JobName)
+
+			return
+		}
+
+		log.Info().
+			Str("jobName", ciBuilderEvent.JobName).
+			Msgf("Updated release status for ci-builder job %v to %v", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
+
 	}
 }

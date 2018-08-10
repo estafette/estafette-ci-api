@@ -95,7 +95,11 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	if len(repoName) > 50 {
 		repoName = repoName[:50]
 	}
-	jobName := strings.ToLower(fmt.Sprintf("build-%v-%v", repoName, ciBuilderParams.RepoRevision[:6]))
+	jobType := "build"
+	if ciBuilderParams.ReleaseID > 0 {
+		jobType = "release"
+	}
+	jobName := strings.ToLower(fmt.Sprintf("%v-%v-%v", jobType, repoName, ciBuilderParams.RepoRevision[:6]))
 
 	// create envvars for job
 	estafetteGitSourceName := "ESTAFETTE_GIT_SOURCE"
@@ -116,6 +120,9 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteCiServerBuilderEventsURLValue := strings.TrimRight(cbc.config.ServiceURL, "/") + "/api/commands"
 	estafetteCiServerBuilderPostLogsURLName := "ESTAFETTE_CI_SERVER_POST_LOGS_URL"
 	estafetteCiServerBuilderPostLogsURLValue := strings.TrimRight(cbc.config.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
+	if ciBuilderParams.ReleaseID > 0 {
+		estafetteCiServerBuilderPostLogsURLValue = strings.TrimRight(cbc.config.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/releases/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoFullName, ciBuilderParams.ReleaseID)
+	}
 	estafetteCiAPIKeyName := "ESTAFETTE_CI_API_KEY"
 	estafetteCiAPIKeyValue := cbc.config.APIKey
 	estafetteCiBuilderTrackName := "ESTAFETTE_CI_BUILDER_TRACK"
@@ -129,6 +136,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteBuildVersionValue := ciBuilderParams.VersionNumber
 	estafetteBuildVersionPatchName := "ESTAFETTE_BUILD_VERSION_PATCH"
 	estafetteBuildVersionPatchValue := fmt.Sprint(ciBuilderParams.AutoIncrement)
+	estafetteReleaseNameName := "ESTAFETTE_RELEASE_NAME"
+	estafetteReleaseNameValue := ciBuilderParams.ReleaseName
 
 	environmentVariables := []*corev1.EnvVar{
 		&corev1.EnvVar{
@@ -186,6 +195,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		&corev1.EnvVar{
 			Name:  &estafetteManifestJSONKeyName,
 			Value: &estafetteManifestJSONKeyValue,
+		},
+		&corev1.EnvVar{
+			Name:  &estafetteReleaseNameName,
+			Value: &estafetteReleaseNameValue,
 		},
 	}
 
