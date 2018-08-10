@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -145,7 +146,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteReleaseNameName := "ESTAFETTE_RELEASE_NAME"
 	estafetteReleaseNameValue := ciBuilderParams.ReleaseName
 	estafetteReleaseIDName := "ESTAFETTE_RELEASE_ID"
-	estafetteReleaseIDValue := string(ciBuilderParams.ReleaseID)
+	estafetteReleaseIDValue := strconv.Itoa(ciBuilderParams.ReleaseID)
 
 	environmentVariables := []*corev1.EnvVar{
 		&corev1.EnvVar{
