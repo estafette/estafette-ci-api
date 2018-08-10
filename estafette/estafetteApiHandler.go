@@ -384,8 +384,8 @@ func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 		return
 	}
 
-	var buildLog contracts.BuildLog
-	err = c.Bind(&buildLog)
+	var releaseLog contracts.ReleaseLog
+	err = c.Bind(&releaseLog)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed binding release logs for %v/%v/%v/%v", source, owner, repo, id)
@@ -393,9 +393,9 @@ func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 		return
 	}
 
-	log.Info().Interface("buildLog", buildLog).Msgf("Binded release logs for for %v/%v/%v/%v", source, owner, repo, id)
+	log.Info().Interface("releaseLog", releaseLog).Msgf("Binded release logs for for %v/%v/%v/%v", source, owner, repo, id)
 
-	err = h.cockroachDBClient.InsertReleaseLog(buildLog)
+	err = h.cockroachDBClient.InsertReleaseLog(releaseLog)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed inserting release logs for %v/%v/%v/%v", source, owner, repo, id)

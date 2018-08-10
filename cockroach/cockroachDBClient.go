@@ -30,6 +30,7 @@ type DBClient interface {
 	InsertRelease(contracts.Release) (contracts.Release, error)
 	UpdateReleaseStatus(string, string, string, int, string) error
 	GetPipelines(int, int, map[string][]string) ([]*contracts.Pipeline, error)
+	GetPipelinesByRepoName(string) ([]*contracts.Pipeline, error)
 	GetPipelinesCount(map[string][]string) (int, error)
 	GetPipeline(string, string, string) (*contracts.Pipeline, error)
 	GetPipelineBuilds(string, string, string, int, int) ([]*contracts.Build, error)
@@ -375,6 +376,93 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 		OrderBy("repo_source,repo_owner,repo_name").
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
+
+	pipelines = make([]*contracts.Pipeline, 0)
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		var labelsData, releasesData, commitsData []uint8
+
+		pipeline := contracts.Pipeline{}
+
+		if err := rows.Scan(
+			&pipeline.ID,
+			&pipeline.RepoSource,
+			&pipeline.RepoOwner,
+			&pipeline.RepoName,
+			&pipeline.RepoBranch,
+			&pipeline.RepoRevision,
+			&pipeline.BuildVersion,
+			&pipeline.BuildStatus,
+			&labelsData,
+			&releasesData,
+			&pipeline.Manifest,
+			&commitsData,
+			&pipeline.InsertedAt,
+			&pipeline.UpdatedAt); err != nil {
+			return nil, err
+		}
+
+		if len(labelsData) > 0 {
+			if err = json.Unmarshal(labelsData, &pipeline.Labels); err != nil {
+				return
+			}
+		}
+		if len(releasesData) > 0 {
+			if err = json.Unmarshal(releasesData, &pipeline.Releases); err != nil {
+				return
+			}
+		}
+		if len(commitsData) > 0 {
+			if err = json.Unmarshal(commitsData, &pipeline.Commits); err != nil {
+				return
+			}
+		}
+
+		// unmarshal then marshal manifest to include defaults
+		var manifest manifest.EstafetteManifest
+		err = yaml.Unmarshal([]byte(pipeline.Manifest), &manifest)
+		if err == nil {
+			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+			if err == nil {
+				pipeline.ManifestWithDefaults = string(manifestWithDefaultBytes)
+			} else {
+				log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
+			}
+		} else {
+			log.Warn().Err(err).Str("manifest", pipeline.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
+		}
+
+		pipelines = append(pipelines, &pipeline)
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipelines []*contracts.Pipeline, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	innerQuery :=
+		psql.
+			Select("*, RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) AS build_version_rank").
+			From("builds")
+
+	query :=
+		psql.
+			Select("id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,releases,manifest,commits,inserted_at,updated_at").
+			FromSelect(innerQuery, "ranked_builds").
+			Where(sq.Eq{"build_version_rank": 1}).
+			Where(sq.Eq{"repo_name": repoName})
 
 	pipelines = make([]*contracts.Pipeline, 0)
 

@@ -92,14 +92,20 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	// create job name of max 63 chars
 	re := regexp.MustCompile("[^a-zA-Z0-9]+")
 	repoName := re.ReplaceAllString(ciBuilderParams.RepoFullName, "-")
-	if len(repoName) > 50 {
-		repoName = repoName[:50]
+	maxRepoNameLength := 50
+	revisionOrID := ciBuilderParams.RepoRevision[:6]
+	if ciBuilderParams.ReleaseID > 0 {
+		revisionOrID = string(ciBuilderParams.ReleaseID)
+		maxRepoNameLength = 54 - len(revisionOrID)
+	}
+	if len(repoName) > maxRepoNameLength {
+		repoName = repoName[:maxRepoNameLength]
 	}
 	jobType := "build"
 	if ciBuilderParams.ReleaseID > 0 {
 		jobType = "release"
 	}
-	jobName := strings.ToLower(fmt.Sprintf("%v-%v-%v", jobType, repoName, ciBuilderParams.RepoRevision[:6]))
+	jobName := strings.ToLower(fmt.Sprintf("%v-%v-%v", jobType, repoName, revisionOrID))
 
 	// create envvars for job
 	estafetteGitSourceName := "ESTAFETTE_GIT_SOURCE"
@@ -138,6 +144,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteBuildVersionPatchValue := fmt.Sprint(ciBuilderParams.AutoIncrement)
 	estafetteReleaseNameName := "ESTAFETTE_RELEASE_NAME"
 	estafetteReleaseNameValue := ciBuilderParams.ReleaseName
+	estafetteReleaseIDName := "ESTAFETTE_RELEASE_ID"
+	estafetteReleaseIDValue := string(ciBuilderParams.ReleaseID)
 
 	environmentVariables := []*corev1.EnvVar{
 		&corev1.EnvVar{
@@ -199,6 +207,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		&corev1.EnvVar{
 			Name:  &estafetteReleaseNameName,
 			Value: &estafetteReleaseNameValue,
+		},
+		&corev1.EnvVar{
+			Name:  &estafetteReleaseIDName,
+			Value: &estafetteReleaseIDValue,
 		},
 	}
 

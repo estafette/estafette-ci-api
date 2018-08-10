@@ -228,7 +228,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketPushEvents, prometheusInboundEventTotals)
 	router.POST("/api/integrations/bitbucket/events", bitbucketEventHandler.Handle)
 
-	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, cockroachDBClient, *config.APIServer, prometheusInboundEventTotals)
+	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, cockroachDBClient, *config.APIServer, ciBuilderClient, prometheusInboundEventTotals)
 	router.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
 
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, estafetteCiBuilderEvents, prometheusInboundEventTotals)

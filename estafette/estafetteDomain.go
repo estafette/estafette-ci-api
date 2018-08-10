@@ -27,12 +27,12 @@ type CiBuilderParams struct {
 	RepoURL              string
 	RepoBranch           string
 	RepoRevision         string
-	ReleaseName          string
-	ReleaseID            int
 	EnvironmentVariables map[string]string
 	Track                string
 	AutoIncrement        int
 	VersionNumber        string
 	HasValidManifest     bool
 	Manifest             manifest.EstafetteManifest
+	ReleaseName          string
+	ReleaseID            int
 }
