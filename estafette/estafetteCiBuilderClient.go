@@ -204,14 +204,17 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 			Name:  &estafetteManifestJSONKeyName,
 			Value: &estafetteManifestJSONKeyValue,
 		},
-		&corev1.EnvVar{
+	}
+
+	if ciBuilderParams.ReleaseID > 0 {
+		environmentVariables = append(environmentVariables, &corev1.EnvVar{
 			Name:  &estafetteReleaseNameName,
 			Value: &estafetteReleaseNameValue,
-		},
-		&corev1.EnvVar{
+		})
+		environmentVariables = append(environmentVariables, &corev1.EnvVar{
 			Name:  &estafetteReleaseIDName,
 			Value: &estafetteReleaseIDValue,
-		},
+		})
 	}
 
 	for key, value := range ciBuilderParams.EnvironmentVariables {
