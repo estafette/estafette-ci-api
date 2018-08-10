@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1130,9 +1131,10 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, rep
 	for rows.Next() {
 
 		release := contracts.Release{}
+		var id int
 
 		if err := rows.Scan(
-			&release.ID,
+			&id,
 			&release.RepoSource,
 			&release.RepoOwner,
 			&release.RepoName,
@@ -1144,6 +1146,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, rep
 			&release.UpdatedAt); err != nil {
 			return nil, err
 		}
+
+		release.ID = strconv.Itoa(id)
 
 		releases = append(releases, &release)
 	}
@@ -1236,7 +1240,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 	release = &contracts.Release{}
 
 	if err := rows.Scan(
-		&release.ID,
+		&id,
 		&release.RepoSource,
 		&release.RepoOwner,
 		&release.RepoName,
@@ -1248,6 +1252,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 		&release.UpdatedAt); err != nil {
 		return nil, err
 	}
+	release.ID = strconv.Itoa(id)
 
 	return
 }
@@ -1296,10 +1301,20 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogs(repoSource, repoOwner, 
 	releaseLog = &contracts.ReleaseLog{}
 
 	var stepsData []uint8
+	var releaseID int
 
-	if err = rows.Scan(&releaseLog.ID, &releaseLog.RepoSource, &releaseLog.RepoOwner, &releaseLog.RepoName, &releaseLog.ReleaseID, &stepsData, &releaseLog.InsertedAt); err != nil {
+	if err = rows.Scan(
+		&releaseLog.ID,
+		&releaseLog.RepoSource,
+		&releaseLog.RepoOwner,
+		&releaseLog.RepoName,
+		&releaseID,
+		&stepsData,
+		&releaseLog.InsertedAt); err != nil {
 		return
 	}
+
+	releaseLog.ReleaseID = strconv.Itoa(releaseID)
 
 	if err = json.Unmarshal(stepsData, &releaseLog.Steps); err != nil {
 		return
@@ -1364,6 +1379,11 @@ func (dbc *cockroachDBClientImpl) InsertReleaseLog(releaseLog contracts.ReleaseL
 		return
 	}
 
+	releaseID, err := strconv.Atoi(releaseLog.ReleaseID)
+	if err != nil {
+		return err
+	}
+
 	// insert logs
 	_, err = dbc.databaseConnection.Exec(
 		`
@@ -1388,7 +1408,7 @@ func (dbc *cockroachDBClientImpl) InsertReleaseLog(releaseLog contracts.ReleaseL
 		releaseLog.RepoSource,
 		releaseLog.RepoOwner,
 		releaseLog.RepoName,
-		releaseLog.ReleaseID,
+		releaseID,
 		bytes,
 	)
 

@@ -3,6 +3,7 @@ package slack
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/estafette/estafette-ci-manifest"
@@ -238,7 +239,14 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 					manifest, err := manifest.ReadManifest(build.Manifest)
 					if err != nil {
+						c.String(http.StatusOK, fmt.Sprintf("Reading the manifest from the build failed: %v", err))
+						return
+					}
 
+					insertedReleaseID, err := strconv.Atoi(insertedRelease.ID)
+					if err != nil {
+						c.String(http.StatusOK, fmt.Sprintf("Converting the release id to a string failed: %v", err))
+						return
 					}
 
 					// start release job
@@ -254,7 +262,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 						VersionNumber:    buildVersion,
 						HasValidManifest: true,
 						Manifest:         manifest,
-						ReleaseID:        insertedRelease.ID,
+						ReleaseID:        insertedReleaseID,
 						ReleaseName:      releaseName,
 					}
 
