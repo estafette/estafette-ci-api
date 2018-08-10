@@ -693,6 +693,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 			build_version,
 			build_status,
 			labels,
+			releases,
 			manifest,
 			commits,
 			inserted_at,
@@ -721,7 +722,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 	defer rows.Close()
 	for rows.Next() {
 
-		var labelsData, commitsData []uint8
+		var labelsData, releasesData, commitsData []uint8
 
 		build := contracts.Build{}
 
@@ -735,6 +736,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 			&build.BuildVersion,
 			&build.BuildStatus,
 			&labelsData,
+			&releasesData,
 			&build.Manifest,
 			&commitsData,
 			&build.InsertedAt,
@@ -744,6 +746,11 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 
 		if len(labelsData) > 0 {
 			if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
+				return
+			}
+		}
+		if len(releasesData) > 0 {
+			if err = json.Unmarshal(releasesData, &build.Releases); err != nil {
 				return
 			}
 		}
@@ -826,6 +833,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 			build_version,
 			build_status,
 			labels,
+			releases,
 			manifest,
 			commits,
 			inserted_at,
@@ -860,7 +868,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 		return
 	}
 
-	var labelsData, commitsData []uint8
+	var labelsData, releasesData, commitsData []uint8
 
 	build = &contracts.Build{}
 
@@ -874,6 +882,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 		&build.BuildVersion,
 		&build.BuildStatus,
 		&labelsData,
+		&releasesData,
 		&build.Manifest,
 		&commitsData,
 		&build.InsertedAt,
@@ -884,6 +893,11 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
 			return nil, err
+		}
+	}
+	if len(releasesData) > 0 {
+		if err = json.Unmarshal(releasesData, &build.Releases); err != nil {
+			return
 		}
 	}
 	if len(commitsData) > 0 {
@@ -925,6 +939,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByVersion(repoSource, repoOwne
 			build_version,
 			build_status,
 			labels,
+			releases,
 			manifest,
 			commits,
 			inserted_at,
@@ -959,7 +974,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByVersion(repoSource, repoOwne
 		return
 	}
 
-	var labelsData, commitsData []uint8
+	var labelsData, releasesData, commitsData []uint8
 
 	build = &contracts.Build{}
 
@@ -973,6 +988,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByVersion(repoSource, repoOwne
 		&build.BuildVersion,
 		&build.BuildStatus,
 		&labelsData,
+		&releasesData,
 		&build.Manifest,
 		&commitsData,
 		&build.InsertedAt,
@@ -983,6 +999,11 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByVersion(repoSource, repoOwne
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
 			return nil, err
+		}
+	}
+	if len(releasesData) > 0 {
+		if err = json.Unmarshal(releasesData, &build.Releases); err != nil {
+			return
 		}
 	}
 	if len(commitsData) > 0 {
