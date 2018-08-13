@@ -13,6 +13,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/config"
+	ghcontracts "github.com/estafette/estafette-ci-api/github/contracts"
 	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
 
@@ -22,9 +23,9 @@ import (
 // APIClient is the interface for running kubernetes commands specific to this application
 type APIClient interface {
 	GetGithubAppToken() (string, error)
-	GetInstallationToken(int) (AccessToken, error)
-	GetAuthenticatedRepositoryURL(AccessToken, string) (string, error)
-	GetEstafetteManifest(AccessToken, PushEvent) (bool, string, error)
+	GetInstallationToken(int) (ghcontracts.AccessToken, error)
+	GetAuthenticatedRepositoryURL(ghcontracts.AccessToken, string) (string, error)
+	GetEstafetteManifest(ghcontracts.AccessToken, ghcontracts.PushEvent) (bool, string, error)
 	callGithubAPI(string, string, interface{}, string, string) (int, []byte, error)
 }
 
@@ -77,7 +78,7 @@ func (gh *apiClientImpl) GetGithubAppToken() (githubAppToken string, err error) 
 }
 
 // GetInstallationToken returns an access token for an installation of a Github app
-func (gh *apiClientImpl) GetInstallationToken(installationID int) (accessToken AccessToken, err error) {
+func (gh *apiClientImpl) GetInstallationToken(installationID int) (accessToken ghcontracts.AccessToken, err error) {
 
 	githubAppToken, err := gh.GetGithubAppToken()
 	if err != nil {
@@ -96,14 +97,14 @@ func (gh *apiClientImpl) GetInstallationToken(installationID int) (accessToken A
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (gh *apiClientImpl) GetAuthenticatedRepositoryURL(accessToken AccessToken, htmlURL string) (url string, err error) {
+func (gh *apiClientImpl) GetAuthenticatedRepositoryURL(accessToken ghcontracts.AccessToken, htmlURL string) (url string, err error) {
 
 	url = strings.Replace(htmlURL, "https://github.com", fmt.Sprintf("https://x-access-token:%v@github.com", accessToken.Token), -1)
 
 	return
 }
 
-func (gh *apiClientImpl) GetEstafetteManifest(accessToken AccessToken, pushEvent PushEvent) (exists bool, manifest string, err error) {
+func (gh *apiClientImpl) GetEstafetteManifest(accessToken ghcontracts.AccessToken, pushEvent ghcontracts.PushEvent) (exists bool, manifest string, err error) {
 
 	// https://developer.github.com/v3/repos/contents/
 
@@ -116,7 +117,7 @@ func (gh *apiClientImpl) GetEstafetteManifest(accessToken AccessToken, pushEvent
 		return
 	}
 
-	var content RepositoryContent
+	var content ghcontracts.RepositoryContent
 
 	// unmarshal json body
 	err = json.Unmarshal(body, &content)

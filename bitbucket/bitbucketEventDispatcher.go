@@ -3,6 +3,7 @@ package bitbucket
 import (
 	"sync"
 
+	bbcontracts "github.com/estafette/estafette-ci-api/bitbucket/contracts"
 	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/estafette"
 )
@@ -16,20 +17,20 @@ type EventDispatcher interface {
 type eventDispatcherImpl struct {
 	waitGroup         *sync.WaitGroup
 	stopChannel       <-chan struct{}
-	workerPool        chan chan RepositoryPushEvent
+	workerPool        chan chan bbcontracts.RepositoryPushEvent
 	maxWorkers        int
-	eventsChannel     chan RepositoryPushEvent
+	eventsChannel     chan bbcontracts.RepositoryPushEvent
 	apiClient         APIClient
 	ciBuilderClient   estafette.CiBuilderClient
 	cockroachDBClient cockroach.DBClient
 }
 
 // NewBitbucketDispatcher returns a new github.EventWorker to handle events channeled by bitbucket.EventDispatcher
-func NewBitbucketDispatcher(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, maxWorkers int, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, cockroachDBClient cockroach.DBClient, eventsChannel chan RepositoryPushEvent) EventDispatcher {
+func NewBitbucketDispatcher(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, maxWorkers int, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, cockroachDBClient cockroach.DBClient, eventsChannel chan bbcontracts.RepositoryPushEvent) EventDispatcher {
 	return &eventDispatcherImpl{
 		waitGroup:         waitGroup,
 		stopChannel:       stopChannel,
-		workerPool:        make(chan chan RepositoryPushEvent, maxWorkers),
+		workerPool:        make(chan chan bbcontracts.RepositoryPushEvent, maxWorkers),
 		maxWorkers:        maxWorkers,
 		eventsChannel:     eventsChannel,
 		apiClient:         apiClient,
@@ -54,7 +55,7 @@ func (d *eventDispatcherImpl) dispatch() {
 		select {
 		case pushEvent := <-d.eventsChannel:
 			// a job request has been received
-			go func(pushEvent RepositoryPushEvent) {
+			go func(pushEvent bbcontracts.RepositoryPushEvent) {
 				// try to obtain a worker job channel that is available.
 				// this will block until a worker is idle
 				eventsChannel := <-d.workerPool

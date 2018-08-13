@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	bbcontracts "github.com/estafette/estafette-ci-api/bitbucket/contracts"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -13,17 +14,17 @@ import (
 // EventHandler handles http events for Bitbucket integration
 type EventHandler interface {
 	Handle(*gin.Context)
-	HandlePushEvent(pushEvent RepositoryPushEvent)
+	HandlePushEvent(pushEvent bbcontracts.RepositoryPushEvent)
 	logRequest(string, *http.Request, []byte)
 }
 
 type eventHandlerImpl struct {
-	eventsChannel                chan RepositoryPushEvent
+	eventsChannel                chan bbcontracts.RepositoryPushEvent
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewBitbucketEventHandler returns a new bitbucket.EventHandler
-func NewBitbucketEventHandler(eventsChannel chan RepositoryPushEvent, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewBitbucketEventHandler(eventsChannel chan bbcontracts.RepositoryPushEvent, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		eventsChannel:                eventsChannel,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
@@ -51,7 +52,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	case "repo:push":
 
 		// unmarshal json body
-		var pushEvent RepositoryPushEvent
+		var pushEvent bbcontracts.RepositoryPushEvent
 		err := json.Unmarshal(body, &pushEvent)
 		if err != nil {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to BitbucketRepositoryPushEvent failed")
@@ -90,7 +91,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
-func (h *eventHandlerImpl) HandlePushEvent(pushEvent RepositoryPushEvent) {
+func (h *eventHandlerImpl) HandlePushEvent(pushEvent bbcontracts.RepositoryPushEvent) {
 
 	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized Bitbucket push event for repository %v", pushEvent.Repository.FullName)
 

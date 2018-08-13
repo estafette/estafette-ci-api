@@ -1,4 +1,4 @@
-package bitbucket
+package contracts
 
 import (
 	"regexp"
@@ -163,4 +163,34 @@ type AccessToken struct {
 	ExpiresIn    int    `json:"expires_in"`
 	RefreshToken string `json:"refresh_token"`
 	TokenType    string `json:"token_type"`
+}
+
+// GetRepoSource returns the repository source
+func (pe *RepositoryPushEvent) GetRepoSource() string {
+	return "bitbucket.org"
+}
+
+// GetRepoOwner returns the repository owner
+func (pe *RepositoryPushEvent) GetRepoOwner() string {
+	return strings.Split(pe.Repository.FullName, "/")[0]
+}
+
+// GetRepoName returns the repository name
+func (pe *RepositoryPushEvent) GetRepoName() string {
+	return strings.Split(pe.Repository.FullName, "/")[1]
+}
+
+// GetRepoFullName returns the repository owner and name
+func (pe *RepositoryPushEvent) GetRepoFullName() string {
+	return pe.Repository.FullName
+}
+
+// GetRepoBranch returns the branch of the push event
+func (pe *RepositoryPushEvent) GetRepoBranch() string {
+	return pe.Push.Changes[0].New.Name
+}
+
+// GetRepoRevision returns the revision of the push event
+func (pe *RepositoryPushEvent) GetRepoRevision() string {
+	return pe.Push.Changes[0].New.Target.Hash
 }

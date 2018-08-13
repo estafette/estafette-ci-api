@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/estafette/estafette-ci-api/config"
+	ghcontracts "github.com/estafette/estafette-ci-api/github/contracts"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -19,19 +20,19 @@ import (
 // EventHandler handles http events for Github integration
 type EventHandler interface {
 	Handle(*gin.Context)
-	HandlePushEvent(PushEvent)
+	HandlePushEvent(ghcontracts.PushEvent)
 	HasValidSignature([]byte, string) (bool, error)
 	logRequest(string, *http.Request, []byte)
 }
 
 type eventHandlerImpl struct {
-	eventsChannel                chan PushEvent
+	eventsChannel                chan ghcontracts.PushEvent
 	config                       config.GithubConfig
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewGithubEventHandler returns a github.EventHandler to handle incoming webhook events
-func NewGithubEventHandler(eventsChannel chan PushEvent, config config.GithubConfig, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewGithubEventHandler(eventsChannel chan ghcontracts.PushEvent, config config.GithubConfig, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		eventsChannel: eventsChannel,
 		config:        config,
@@ -71,7 +72,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	case "push": // Any Git push to a Repository, including editing tags or branches. Commits via API actions that update references are also counted. This is the default event.
 
 		// unmarshal json body
-		var pushEvent PushEvent
+		var pushEvent ghcontracts.PushEvent
 		err := json.Unmarshal(body, &pushEvent)
 		if err != nil {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubPushEvent failed")
@@ -123,7 +124,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
-func (h *eventHandlerImpl) HandlePushEvent(pushEvent PushEvent) {
+func (h *eventHandlerImpl) HandlePushEvent(pushEvent ghcontracts.PushEvent) {
 
 	log.Debug().Interface("pushEvent", pushEvent).Msgf("Deserialized GitHub push event for repository %v", pushEvent.Repository.FullName)
 

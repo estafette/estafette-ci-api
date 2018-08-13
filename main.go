@@ -15,10 +15,12 @@ import (
 
 	"github.com/alecthomas/kingpin"
 	"github.com/estafette/estafette-ci-api/bitbucket"
+	bbcontracts "github.com/estafette/estafette-ci-api/bitbucket/contracts"
 	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/estafette"
 	"github.com/estafette/estafette-ci-api/github"
+	ghcontracts "github.com/estafette/estafette-ci-api/github/contracts"
 	"github.com/estafette/estafette-ci-api/slack"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
@@ -202,11 +204,11 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	}
 
 	// listen to channels for push events
-	githubPushEvents := make(chan github.PushEvent, config.Integrations.Github.EventChannelBufferSize)
+	githubPushEvents := make(chan ghcontracts.PushEvent, config.Integrations.Github.EventChannelBufferSize)
 	githubDispatcher := github.NewGithubDispatcher(stopChannel, waitGroup, config.Integrations.Github.MaxWorkers, githubAPIClient, ciBuilderClient, cockroachDBClient, githubPushEvents)
 	githubDispatcher.Run()
 
-	bitbucketPushEvents := make(chan bitbucket.RepositoryPushEvent, config.Integrations.Bitbucket.EventChannelBufferSize)
+	bitbucketPushEvents := make(chan bbcontracts.RepositoryPushEvent, config.Integrations.Bitbucket.EventChannelBufferSize)
 	bitbucketDispatcher := bitbucket.NewBitbucketDispatcher(stopChannel, waitGroup, config.Integrations.Bitbucket.MaxWorkers, bitbucketAPIClient, ciBuilderClient, cockroachDBClient, bitbucketPushEvents)
 	bitbucketDispatcher.Run()
 
@@ -228,7 +230,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketPushEvents, prometheusInboundEventTotals)
 	router.POST("/api/integrations/bitbucket/events", bitbucketEventHandler.Handle)
 
-	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, cockroachDBClient, *config.APIServer, ciBuilderClient, prometheusInboundEventTotals)
+	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, cockroachDBClient, *config.APIServer, ciBuilderClient, bitbucketAPIClient, githubAPIClient, prometheusInboundEventTotals)
 	router.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
 
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, estafetteCiBuilderEvents, prometheusInboundEventTotals)

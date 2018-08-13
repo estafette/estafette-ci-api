@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 
+	bbcontracts "github.com/estafette/estafette-ci-api/bitbucket/contracts"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sethgrid/pester"
@@ -17,9 +18,9 @@ import (
 
 // APIClient is the interface for running kubernetes commands specific to this application
 type APIClient interface {
-	GetAccessToken() (AccessToken, error)
-	GetAuthenticatedRepositoryURL(AccessToken, string) (string, error)
-	GetEstafetteManifest(AccessToken, RepositoryPushEvent) (bool, string, error)
+	GetAccessToken() (bbcontracts.AccessToken, error)
+	GetAuthenticatedRepositoryURL(bbcontracts.AccessToken, string) (string, error)
+	GetEstafetteManifest(bbcontracts.AccessToken, bbcontracts.RepositoryPushEvent) (bool, string, error)
 }
 
 type apiClientImpl struct {
@@ -36,7 +37,7 @@ func NewBitbucketAPIClient(config config.BitbucketConfig, prometheusOutboundAPIC
 }
 
 // GetAccessToken returns an access token to access the Bitbucket api
-func (bb *apiClientImpl) GetAccessToken() (accessToken AccessToken, err error) {
+func (bb *apiClientImpl) GetAccessToken() (accessToken bbcontracts.AccessToken, err error) {
 
 	// track call via prometheus
 	bb.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
@@ -84,14 +85,14 @@ func (bb *apiClientImpl) GetAccessToken() (accessToken AccessToken, err error) {
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (bb *apiClientImpl) GetAuthenticatedRepositoryURL(accessToken AccessToken, htmlURL string) (url string, err error) {
+func (bb *apiClientImpl) GetAuthenticatedRepositoryURL(accessToken bbcontracts.AccessToken, htmlURL string) (url string, err error) {
 
 	url = strings.Replace(htmlURL, "https://bitbucket.org", fmt.Sprintf("https://x-token-auth:%v@bitbucket.org", accessToken.AccessToken), -1)
 
 	return
 }
 
-func (bb *apiClientImpl) GetEstafetteManifest(accessToken AccessToken, pushEvent RepositoryPushEvent) (exists bool, manifest string, err error) {
+func (bb *apiClientImpl) GetEstafetteManifest(accessToken bbcontracts.AccessToken, pushEvent bbcontracts.RepositoryPushEvent) (exists bool, manifest string, err error) {
 
 	// track call via prometheus
 	bb.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()

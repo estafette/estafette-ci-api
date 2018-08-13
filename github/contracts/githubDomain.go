@@ -1,4 +1,6 @@
-package github
+package contracts
+
+import "strings"
 
 // PushEvent represents a Github webhook push event
 type PushEvent struct {
@@ -59,4 +61,34 @@ type RepositoryContent struct {
 	Path     string `json:"path"`
 	Content  string `json:"content"`
 	Sha      string `json:"sha"`
+}
+
+// GetRepoSource returns the repository source
+func (pe *PushEvent) GetRepoSource() string {
+	return "github.com"
+}
+
+// GetRepoOwner returns the repository owner
+func (pe *PushEvent) GetRepoOwner() string {
+	return strings.Split(pe.Repository.FullName, "/")[0]
+}
+
+// GetRepoName returns the repository name
+func (pe *PushEvent) GetRepoName() string {
+	return pe.Repository.Name
+}
+
+// GetRepoFullName returns the repository owner and name
+func (pe *PushEvent) GetRepoFullName() string {
+	return pe.Repository.FullName
+}
+
+// GetRepoBranch returns the branch of the push event
+func (pe *PushEvent) GetRepoBranch() string {
+	return strings.Replace(pe.Ref, "refs/heads/", "", 1)
+}
+
+// GetRepoRevision returns the revision of the push event
+func (pe *PushEvent) GetRepoRevision() string {
+	return pe.After
 }

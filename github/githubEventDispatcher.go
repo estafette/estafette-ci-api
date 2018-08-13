@@ -5,6 +5,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/estafette"
+	ghcontracts "github.com/estafette/estafette-ci-api/github/contracts"
 )
 
 // EventDispatcher dispatches events pushed to channels to the workers
@@ -16,20 +17,20 @@ type EventDispatcher interface {
 type eventDispatcherImpl struct {
 	waitGroup         *sync.WaitGroup
 	stopChannel       <-chan struct{}
-	workerPool        chan chan PushEvent
+	workerPool        chan chan ghcontracts.PushEvent
 	maxWorkers        int
-	eventsChannel     chan PushEvent
+	eventsChannel     chan ghcontracts.PushEvent
 	apiClient         APIClient
 	ciBuilderClient   estafette.CiBuilderClient
 	cockroachDBClient cockroach.DBClient
 }
 
 // NewGithubDispatcher returns a new github.EventWorker to handle events channeled by github.EventDispatcher
-func NewGithubDispatcher(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, maxWorkers int, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, cockroachDBClient cockroach.DBClient, eventsChannel chan PushEvent) EventDispatcher {
+func NewGithubDispatcher(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, maxWorkers int, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, cockroachDBClient cockroach.DBClient, eventsChannel chan ghcontracts.PushEvent) EventDispatcher {
 	return &eventDispatcherImpl{
 		waitGroup:         waitGroup,
 		stopChannel:       stopChannel,
-		workerPool:        make(chan chan PushEvent, maxWorkers),
+		workerPool:        make(chan chan ghcontracts.PushEvent, maxWorkers),
 		maxWorkers:        maxWorkers,
 		eventsChannel:     eventsChannel,
 		apiClient:         apiClient,
@@ -54,7 +55,7 @@ func (d *eventDispatcherImpl) dispatch() {
 		select {
 		case pushEvent := <-d.eventsChannel:
 			// a job request has been received
-			go func(pushEvent PushEvent) {
+			go func(pushEvent ghcontracts.PushEvent) {
 				// try to obtain a worker job channel that is available.
 				// this will block until a worker is idle
 				eventsChannel := <-d.workerPool

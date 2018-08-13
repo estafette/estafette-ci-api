@@ -6,6 +6,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/estafette"
+	ghcontracts "github.com/estafette/estafette-ci-api/github/contracts"
 	"github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
@@ -14,26 +15,26 @@ import (
 // EventWorker processes events pushed to channels
 type EventWorker interface {
 	ListenToEventChannels()
-	CreateJobForGithubPush(PushEvent)
+	CreateJobForGithubPush(ghcontracts.PushEvent)
 }
 
 type eventWorkerImpl struct {
 	waitGroup         *sync.WaitGroup
 	stopChannel       <-chan struct{}
-	workerPool        chan chan PushEvent
-	eventsChannel     chan PushEvent
+	workerPool        chan chan ghcontracts.PushEvent
+	eventsChannel     chan ghcontracts.PushEvent
 	apiClient         APIClient
 	ciBuilderClient   estafette.CiBuilderClient
 	cockroachDBClient cockroach.DBClient
 }
 
 // NewGithubEventWorker returns a new github.EventWorker to handle events channeled by github.EventHandler
-func NewGithubEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, workerPool chan chan PushEvent, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, cockroachDBClient cockroach.DBClient) EventWorker {
+func NewGithubEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, workerPool chan chan ghcontracts.PushEvent, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, cockroachDBClient cockroach.DBClient) EventWorker {
 	return &eventWorkerImpl{
 		waitGroup:         waitGroup,
 		stopChannel:       stopChannel,
 		workerPool:        workerPool,
-		eventsChannel:     make(chan PushEvent),
+		eventsChannel:     make(chan ghcontracts.PushEvent),
 		apiClient:         apiClient,
 		ciBuilderClient:   ciBuilderClient,
 		cockroachDBClient: cockroachDBClient,
@@ -63,11 +64,19 @@ func (w *eventWorkerImpl) ListenToEventChannels() {
 	}()
 }
 
-func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
+func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent) {
 
 	// check to see that it's a cloneable event
 	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
 		return
+	}
+
+	// insert push event into database
+	err := w.cockroachDBClient.InsertGithubPushEvent(pushEvent)
+	if err != nil {
+		// log.Error().Err(err).
+		// 	Msg("Inserting github push event into database failed")
+		// return
 	}
 
 	// get access token
@@ -173,11 +182,11 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 
 	// store build in db
 	err = w.cockroachDBClient.InsertBuild(contracts.Build{
-		RepoSource:   "github.com",
-		RepoOwner:    strings.Split(pushEvent.Repository.FullName, "/")[0],
-		RepoName:     pushEvent.Repository.Name,
-		RepoBranch:   strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
-		RepoRevision: pushEvent.After,
+		RepoSource:   pushEvent.GetRepoOwner(),
+		RepoOwner:    pushEvent.GetRepoOwner(),
+		RepoName:     pushEvent.GetRepoName(),
+		RepoBranch:   pushEvent.GetRepoBranch(),
+		RepoRevision: pushEvent.GetRepoRevision(),
 		BuildVersion: buildVersion,
 		BuildStatus:  buildStatus,
 		Labels:       labels,
@@ -192,11 +201,11 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent PushEvent) {
 
 	// define ci builder params
 	ciBuilderParams := estafette.CiBuilderParams{
-		RepoSource:           "github.com",
-		RepoFullName:         pushEvent.Repository.FullName,
+		RepoSource:           pushEvent.GetRepoOwner(),
+		RepoFullName:         pushEvent.GetRepoFullName(),
 		RepoURL:              authenticatedRepositoryURL,
-		RepoBranch:           strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
-		RepoRevision:         pushEvent.After,
+		RepoBranch:           pushEvent.GetRepoBranch(),
+		RepoRevision:         pushEvent.GetRepoRevision(),
 		EnvironmentVariables: map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken.Token},
 		Track:                builderTrack,
 		AutoIncrement:        autoincrement,

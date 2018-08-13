@@ -1,9 +1,9 @@
 package bitbucket
 
 import (
-	"strings"
 	"sync"
 
+	bbcontracts "github.com/estafette/estafette-ci-api/bitbucket/contracts"
 	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/estafette"
 	"github.com/estafette/estafette-ci-contracts"
@@ -14,26 +14,26 @@ import (
 // EventWorker processes events pushed to channels
 type EventWorker interface {
 	ListenToEventChannels()
-	CreateJobForBitbucketPush(RepositoryPushEvent)
+	CreateJobForBitbucketPush(bbcontracts.RepositoryPushEvent)
 }
 
 type eventWorkerImpl struct {
 	waitGroup         *sync.WaitGroup
 	stopChannel       <-chan struct{}
-	workerPool        chan chan RepositoryPushEvent
-	eventsChannel     chan RepositoryPushEvent
+	workerPool        chan chan bbcontracts.RepositoryPushEvent
+	eventsChannel     chan bbcontracts.RepositoryPushEvent
 	apiClient         APIClient
 	CiBuilderClient   estafette.CiBuilderClient
 	cockroachDBClient cockroach.DBClient
 }
 
 // NewBitbucketEventWorker returns the bitbucket.EventWorker
-func NewBitbucketEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, workerPool chan chan RepositoryPushEvent, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, cockroachDBClient cockroach.DBClient) EventWorker {
+func NewBitbucketEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, workerPool chan chan bbcontracts.RepositoryPushEvent, apiClient APIClient, ciBuilderClient estafette.CiBuilderClient, cockroachDBClient cockroach.DBClient) EventWorker {
 	return &eventWorkerImpl{
 		waitGroup:         waitGroup,
 		stopChannel:       stopChannel,
 		workerPool:        workerPool,
-		eventsChannel:     make(chan RepositoryPushEvent),
+		eventsChannel:     make(chan bbcontracts.RepositoryPushEvent),
 		apiClient:         apiClient,
 		CiBuilderClient:   ciBuilderClient,
 		cockroachDBClient: cockroachDBClient,
@@ -63,11 +63,19 @@ func (w *eventWorkerImpl) ListenToEventChannels() {
 	}()
 }
 
-func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEvent) {
+func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.RepositoryPushEvent) {
 
 	// check to see that it's a cloneable event
 	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil || pushEvent.Push.Changes[0].New.Type != "branch" || len(pushEvent.Push.Changes[0].New.Target.Hash) == 0 {
 		return
+	}
+
+	// insert push event into database
+	err := w.cockroachDBClient.InsertBitbucketPushEvent(pushEvent)
+	if err != nil {
+		// log.Error().Err(err).
+		// 	Msg("Inserting bitbucket push event into database failed")
+		// return
 	}
 
 	// get access token
@@ -175,11 +183,11 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 
 	// store build in db
 	err = w.cockroachDBClient.InsertBuild(contracts.Build{
-		RepoSource:   "bitbucket.org",
-		RepoOwner:    strings.Split(pushEvent.Repository.FullName, "/")[0],
-		RepoName:     strings.Split(pushEvent.Repository.FullName, "/")[1],
-		RepoBranch:   pushEvent.Push.Changes[0].New.Name,
-		RepoRevision: pushEvent.Push.Changes[0].New.Target.Hash,
+		RepoSource:   pushEvent.GetRepoSource(),
+		RepoOwner:    pushEvent.GetRepoOwner(),
+		RepoName:     pushEvent.GetRepoName(),
+		RepoBranch:   pushEvent.GetRepoBranch(),
+		RepoRevision: pushEvent.GetRepoRevision(),
 		BuildVersion: buildVersion,
 		BuildStatus:  buildStatus,
 		Labels:       labels,
@@ -194,11 +202,11 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent RepositoryPushEven
 
 	// define ci builder params
 	ciBuilderParams := estafette.CiBuilderParams{
-		RepoSource:           "bitbucket.org",
-		RepoFullName:         pushEvent.Repository.FullName,
+		RepoSource:           pushEvent.GetRepoSource(),
+		RepoFullName:         pushEvent.GetRepoFullName(),
 		RepoURL:              authenticatedRepositoryURL,
-		RepoBranch:           pushEvent.Push.Changes[0].New.Name,
-		RepoRevision:         pushEvent.Push.Changes[0].New.Target.Hash,
+		RepoBranch:           pushEvent.GetRepoBranch(),
+		RepoRevision:         pushEvent.GetRepoRevision(),
 		EnvironmentVariables: map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken.AccessToken},
 		Track:                builderTrack,
 		AutoIncrement:        autoincrement,

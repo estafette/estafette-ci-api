@@ -6,6 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/estafette/estafette-ci-api/bitbucket"
+	"github.com/estafette/estafette-ci-api/github"
+
 	"github.com/estafette/estafette-ci-manifest"
 
 	"github.com/estafette/estafette-ci-contracts"
@@ -31,17 +34,21 @@ type eventHandlerImpl struct {
 	cockroachDBClient            cockroach.DBClient
 	apiConfig                    config.APIServerConfig
 	ciBuilderClient              estafette.CiBuilderClient
+	bitbucketAPIClient           bitbucket.APIClient
+	githubAPIClient              github.APIClient
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewSlackEventHandler returns a new slack.EventHandler
-func NewSlackEventHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, cockroachDBClient cockroach.DBClient, apiConfig config.APIServerConfig, ciBuilderClient estafette.CiBuilderClient, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewSlackEventHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, cockroachDBClient cockroach.DBClient, apiConfig config.APIServerConfig, ciBuilderClient estafette.CiBuilderClient, bitbucketAPIClient bitbucket.APIClient, githubAPIClient github.APIClient, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		secretHelper:                 secretHelper,
 		config:                       config,
 		cockroachDBClient:            cockroachDBClient,
 		apiConfig:                    apiConfig,
 		ciBuilderClient:              ciBuilderClient,
+		bitbucketAPIClient:           bitbucketAPIClient,
+		githubAPIClient:              githubAPIClient,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
 }
@@ -203,39 +210,45 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 					// get authenticated url
 					var authenticatedRepositoryURL string
-					// switch build.RepoSource {
-					// case "github.com":
-					// 	// get access token
-					// 	accessToken, err := w.apiClient.GetInstallationToken(pushEvent.Installation.ID)
-					// 	if err != nil {
-					// 		log.Error().Err(err).
-					// 			Msg("Retrieving access token failed")
-					// 		return
-					// 	}
-					// 	// get authenticated url for the repository
-					// 	authenticatedRepositoryURL, err := w.apiClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.HTMLURL)
-					// 	if err != nil {
-					// 		log.Error().Err(err).
-					// 			Msg("Retrieving authenticated repository failed")
-					// 		return
-					// 	}
+					var environmentVariableWithToken map[string]string
+					switch build.RepoSource {
+					case "github.com":
+						// get original push event from database
+						pushEvent, err := h.cockroachDBClient.GetGithubPushEventForBuild(*build)
+						if err != nil {
+							c.String(http.StatusOK, fmt.Sprintf("Retrieving github push event for repository %v and version %v from database failed: %v", fullRepoName, buildVersion, err))
+							return
+						}
 
-					// case "bitbucket.org":
-					// 	// get access token
-					// 	accessToken, err := w.apiClient.GetAccessToken()
-					// 	if err != nil {
-					// 		log.Error().Err(err).
-					// 			Msg("Retrieving Estafettte manifest failed")
-					// 		return
-					// 	}
-					// 	// get authenticated url for the repository
-					// 	authenticatedRepositoryURL, err := w.apiClient.GetAuthenticatedRepositoryURL(accessToken, fmt.Sprintf("https://bitbucket.org/%v/%v", build.RepoOwner, build.RepoName))
-					// 	if err != nil {
-					// 		log.Error().Err(err).
-					// 			Msg("Retrieving authenticated repository failed")
-					// 		return
-					// 	}
-					// }
+						// get access token
+						accessToken, err := h.githubAPIClient.GetInstallationToken(pushEvent.Installation.ID) // 45229
+						if err != nil {
+							c.String(http.StatusOK, fmt.Sprintf("Retrieving github access token for repository %v and version %v failed: %v", fullRepoName, buildVersion, err))
+							return
+						}
+						// get authenticated url for the repository
+						authenticatedRepositoryURL, err = h.githubAPIClient.GetAuthenticatedRepositoryURL(accessToken, fmt.Sprintf("https://github.com/%v/%v", build.RepoOwner, build.RepoName))
+						if err != nil {
+							c.String(http.StatusOK, fmt.Sprintf("Constructing authenticated github url for repository %v and version %v failed: %v", fullRepoName, buildVersion, err))
+							return
+						}
+						environmentVariableWithToken = map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken.Token}
+
+					case "bitbucket.org":
+						// get access token
+						accessToken, err := h.bitbucketAPIClient.GetAccessToken()
+						if err != nil {
+							c.String(http.StatusOK, fmt.Sprintf("Retrieving bitbucket access token for repository %v and version %v failed: %v", fullRepoName, buildVersion, err))
+							return
+						}
+						// get authenticated url for the repository
+						authenticatedRepositoryURL, err = h.bitbucketAPIClient.GetAuthenticatedRepositoryURL(accessToken, fmt.Sprintf("https://bitbucket.org/%v/%v", build.RepoOwner, build.RepoName))
+						if err != nil {
+							c.String(http.StatusOK, fmt.Sprintf("Constructing authenticated bitbucket url for repository %v and version %v failed: %v", fullRepoName, buildVersion, err))
+							return
+						}
+						environmentVariableWithToken = map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken.AccessToken}
+					}
 
 					manifest, err := manifest.ReadManifest(build.Manifest)
 					if err != nil {
@@ -251,13 +264,13 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 					// start release job
 					ciBuilderParams := estafette.CiBuilderParams{
-						RepoSource:   build.RepoSource,
-						RepoFullName: fmt.Sprintf("%v/%v", build.RepoOwner, build.RepoName),
-						RepoURL:      authenticatedRepositoryURL,
-						RepoBranch:   build.RepoBranch,
-						RepoRevision: build.RepoRevision,
-						//EnvironmentVariables: map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken.AccessToken}, // EnvironmentVariables: map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken.Token},
-						Track: manifest.Builder.Track,
+						RepoSource:           build.RepoSource,
+						RepoFullName:         fmt.Sprintf("%v/%v", build.RepoOwner, build.RepoName),
+						RepoURL:              authenticatedRepositoryURL,
+						RepoBranch:           build.RepoBranch,
+						RepoRevision:         build.RepoRevision,
+						EnvironmentVariables: environmentVariableWithToken,
+						Track:                manifest.Builder.Track,
 						//AutoIncrement:    autoincrement,
 						VersionNumber:    buildVersion,
 						HasValidManifest: true,
