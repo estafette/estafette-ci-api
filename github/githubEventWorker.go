@@ -201,7 +201,7 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent
 
 	// define ci builder params
 	ciBuilderParams := estafette.CiBuilderParams{
-		RepoSource:           pushEvent.GetRepoOwner(),
+		RepoSource:           pushEvent.GetRepoSource(),
 		RepoFullName:         pushEvent.GetRepoFullName(),
 		RepoURL:              authenticatedRepositoryURL,
 		RepoBranch:           pushEvent.GetRepoBranch(),
