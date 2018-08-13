@@ -73,8 +73,8 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.Reposi
 	// insert push event into database
 	err := w.cockroachDBClient.InsertBitbucketPushEvent(pushEvent)
 	if err != nil {
-		// log.Error().Err(err).
-		// 	Msg("Inserting bitbucket push event into database failed")
+		log.Error().Err(err).
+			Msg("Inserting bitbucket push event into database failed")
 		// return
 	}
 
@@ -140,8 +140,8 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.Reposi
 	if hasValidManifest {
 		buildVersion = mft.Version.Version(manifest.EstafetteVersionParams{
 			AutoIncrement: autoincrement,
-			Branch:        pushEvent.Push.Changes[0].New.Name,
-			Revision:      pushEvent.Push.Changes[0].New.Target.Hash,
+			Branch:        pushEvent.GetRepoBranch(),
+			Revision:      pushEvent.GetRepoRevision(),
 		})
 		buildStatus = "running"
 	}

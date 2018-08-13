@@ -74,8 +74,8 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent
 	// insert push event into database
 	err := w.cockroachDBClient.InsertGithubPushEvent(pushEvent)
 	if err != nil {
-		// log.Error().Err(err).
-		// 	Msg("Inserting github push event into database failed")
+		log.Error().Err(err).
+			Msg("Inserting github push event into database failed")
 		// return
 	}
 
@@ -141,8 +141,8 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent
 	if hasValidManifest {
 		buildVersion = mft.Version.Version(manifest.EstafetteVersionParams{
 			AutoIncrement: autoincrement,
-			Branch:        strings.Replace(pushEvent.Ref, "refs/heads/", "", 1),
-			Revision:      pushEvent.After,
+			Branch:        pushEvent.GetRepoBranch(),
+			Revision:      pushEvent.GetRepoRevision(),
 		})
 		buildStatus = "running"
 	}
@@ -182,7 +182,7 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent
 
 	// store build in db
 	err = w.cockroachDBClient.InsertBuild(contracts.Build{
-		RepoSource:   pushEvent.GetRepoOwner(),
+		RepoSource:   pushEvent.GetRepoSource(),
 		RepoOwner:    pushEvent.GetRepoOwner(),
 		RepoName:     pushEvent.GetRepoName(),
 		RepoBranch:   pushEvent.GetRepoBranch(),
