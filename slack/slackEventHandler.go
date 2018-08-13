@@ -219,6 +219,10 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 							c.String(http.StatusOK, fmt.Sprintf("Retrieving github push event for repository %v and version %v from database failed: %v", fullRepoName, buildVersion, err))
 							return
 						}
+						if pushEvent == nil {
+							c.String(http.StatusOK, fmt.Sprintf("Retrieving no github push event for repository %v and version %v from database", fullRepoName, buildVersion))
+							return
+						}
 						// get access token
 						accessToken, err := h.githubAPIClient.GetInstallationToken(pushEvent.Installation.ID) // 45229
 						if err != nil {
@@ -238,6 +242,10 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 						pushEvent, err := h.cockroachDBClient.GetBitbucketPushEventForBuild(*build)
 						if err != nil {
 							c.String(http.StatusOK, fmt.Sprintf("Retrieving bitbucket push event for repository %v and version %v from database failed: %v", fullRepoName, buildVersion, err))
+							return
+						}
+						if pushEvent == nil {
+							c.String(http.StatusOK, fmt.Sprintf("Retrieving no bitbucket push event for repository %v and version %v from database", fullRepoName, buildVersion))
 							return
 						}
 						// get access token

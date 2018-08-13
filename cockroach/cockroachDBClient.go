@@ -1552,7 +1552,7 @@ func (dbc *cockroachDBClientImpl) InsertGithubPushEvent(pushEvent ghcontracts.Pu
 			$5
 		)
 		`,
-		pushEvent.GetRepoOwner(),
+		pushEvent.GetRepoSource(),
 		pushEvent.GetRepoOwner(),
 		pushEvent.GetRepoName(),
 		pushEvent.GetRepoRevision(),
@@ -1643,7 +1643,7 @@ func (dbc *cockroachDBClientImpl) InsertBitbucketPushEvent(pushEvent bbcontracts
 			$5
 		)
 		`,
-		pushEvent.GetRepoOwner(),
+		pushEvent.GetRepoSource(),
 		pushEvent.GetRepoOwner(),
 		pushEvent.GetRepoName(),
 		pushEvent.GetRepoRevision(),
