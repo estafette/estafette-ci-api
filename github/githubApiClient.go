@@ -23,6 +23,7 @@ import (
 // APIClient is the interface for running kubernetes commands specific to this application
 type APIClient interface {
 	GetGithubAppToken() (string, error)
+	GetInstallationID(string) (int, error)
 	GetInstallationToken(int) (ghcontracts.AccessToken, error)
 	GetAuthenticatedRepositoryURL(ghcontracts.AccessToken, string) (string, error)
 	GetEstafetteManifest(ghcontracts.AccessToken, ghcontracts.PushEvent) (bool, string, error)
@@ -75,6 +76,45 @@ func (gh *apiClientImpl) GetGithubAppToken() (githubAppToken string, err error) 
 	}
 
 	return
+}
+
+// GetInstallationID returns the id for an installation of a Github app
+func (gh *apiClientImpl) GetInstallationID(repoOwner string) (installationID int, err error) {
+
+	githubAppToken, err := gh.GetGithubAppToken()
+	if err != nil {
+		return
+	}
+
+	type InstallationAccount struct {
+		Login string `json:"login"`
+	}
+
+	type InstallationResponse struct {
+		ID      int                 `json:"id"`
+		Account InstallationAccount `json:"account"`
+	}
+
+	_, body, err := gh.callGithubAPI("GET", "https://api.github.com/app/installations", nil, "Bearer", githubAppToken)
+
+	var installations []InstallationResponse
+
+	// unmarshal json body
+	err = json.Unmarshal(body, &installations)
+	if err != nil {
+		return
+	}
+
+	// find installation matching repoOwner
+	for _, installation := range installations {
+		if installation.Account.Login == repoOwner {
+			installationID = installation.ID
+			return
+		}
+	}
+
+	log.Debug().Str("body", string(body)).Msg("Response for github app installations")
+	return installationID, fmt.Errorf("Github installation of app %v with account login %v can't be found", gh.config.AppID, repoOwner)
 }
 
 // GetInstallationToken returns an access token for an installation of a Github app
