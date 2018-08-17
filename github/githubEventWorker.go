@@ -79,13 +79,6 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent
 		// return
 	}
 
-	// try and get installation id with just the repo owner
-	installationID, err := w.apiClient.GetInstallationID(pushEvent.GetRepoOwner())
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve installation id by repo owner")
-	}
-	log.Debug().Msgf("Installation id from api: %v. Installation id from push event: %v", installationID, pushEvent.Installation.ID)
-
 	// get access token
 	accessToken, err := w.apiClient.GetInstallationToken(pushEvent.Installation.ID)
 	if err != nil {

@@ -213,24 +213,21 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					var environmentVariableWithToken map[string]string
 					switch build.RepoSource {
 					case "github.com":
-						// get original push event from database
-						pushEvent, err := h.cockroachDBClient.GetGithubPushEventForBuild(*build)
+						// get installation id with just the repo owner
+						installationID, err := h.githubAPIClient.GetInstallationID(build.RepoOwner)
 						if err != nil {
-							c.String(http.StatusOK, fmt.Sprintf("Retrieving github push event for repository %v and version %v from database failed: %v", fullRepoName, buildVersion, err))
+							c.String(http.StatusOK, fmt.Sprintf("Retrieving github app installation id repository owner %v failed: %v", build.RepoOwner, err))
 							return
 						}
-						if pushEvent == nil {
-							c.String(http.StatusOK, fmt.Sprintf("Retrieving no github push event for repository %v and version %v from database", fullRepoName, buildVersion))
-							return
-						}
+
 						// get access token
-						accessToken, err := h.githubAPIClient.GetInstallationToken(pushEvent.Installation.ID) // 45229
+						accessToken, err := h.githubAPIClient.GetInstallationToken(installationID)
 						if err != nil {
 							c.String(http.StatusOK, fmt.Sprintf("Retrieving github access token for repository %v and version %v failed: %v", fullRepoName, buildVersion, err))
 							return
 						}
 						// get authenticated url for the repository
-						authenticatedRepositoryURL, err = h.githubAPIClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.HTMLURL)
+						authenticatedRepositoryURL, err = h.githubAPIClient.GetAuthenticatedRepositoryURL(accessToken, fmt.Sprintf("https://%v/%v/%v", build.RepoSource, build.RepoOwner, build.RepoName))
 						if err != nil {
 							c.String(http.StatusOK, fmt.Sprintf("Constructing authenticated github url for repository %v and version %v failed: %v", fullRepoName, buildVersion, err))
 							return
@@ -238,16 +235,6 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 						environmentVariableWithToken = map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken.Token}
 
 					case "bitbucket.org":
-						// get original push event from database
-						pushEvent, err := h.cockroachDBClient.GetBitbucketPushEventForBuild(*build)
-						if err != nil {
-							c.String(http.StatusOK, fmt.Sprintf("Retrieving bitbucket push event for repository %v and version %v from database failed: %v", fullRepoName, buildVersion, err))
-							return
-						}
-						if pushEvent == nil {
-							c.String(http.StatusOK, fmt.Sprintf("Retrieving no bitbucket push event for repository %v and version %v from database", fullRepoName, buildVersion))
-							return
-						}
 						// get access token
 						accessToken, err := h.bitbucketAPIClient.GetAccessToken()
 						if err != nil {
@@ -255,7 +242,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 							return
 						}
 						// get authenticated url for the repository
-						authenticatedRepositoryURL, err = h.bitbucketAPIClient.GetAuthenticatedRepositoryURL(accessToken, pushEvent.Repository.Links.HTML.Href)
+						authenticatedRepositoryURL, err = h.bitbucketAPIClient.GetAuthenticatedRepositoryURL(accessToken, fmt.Sprintf("https://%v/%v/%v", build.RepoSource, build.RepoOwner, build.RepoName))
 						if err != nil {
 							c.String(http.StatusOK, fmt.Sprintf("Constructing authenticated bitbucket url for repository %v and version %v failed: %v", fullRepoName, buildVersion, err))
 							return
