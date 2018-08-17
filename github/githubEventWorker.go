@@ -71,14 +71,6 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent
 		return
 	}
 
-	// insert push event into database
-	err := w.cockroachDBClient.InsertGithubPushEvent(pushEvent)
-	if err != nil {
-		log.Error().Err(err).
-			Msg("Inserting github push event into database failed")
-		// return
-	}
-
 	// get access token
 	accessToken, err := w.apiClient.GetInstallationToken(pushEvent.Installation.ID)
 	if err != nil {

@@ -8,9 +8,6 @@ import (
 	"strings"
 	"time"
 
-	bbcontracts "github.com/estafette/estafette-ci-api/bitbucket/contracts"
-	ghcontracts "github.com/estafette/estafette-ci-api/github/contracts"
-
 	"github.com/estafette/estafette-ci-manifest"
 	"gopkg.in/yaml.v2"
 
@@ -51,10 +48,6 @@ type DBClient interface {
 	GetBuildsDuration(map[string][]string) (time.Duration, error)
 	InsertBuildLog(contracts.BuildLog) error
 	InsertReleaseLog(contracts.ReleaseLog) error
-	InsertGithubPushEvent(ghcontracts.PushEvent) error
-	GetGithubPushEventForBuild(contracts.Build) (*ghcontracts.PushEvent, error)
-	InsertBitbucketPushEvent(bbcontracts.RepositoryPushEvent) error
-	GetBitbucketPushEventForBuild(contracts.Build) (*bbcontracts.RepositoryPushEvent, error)
 }
 
 type cockroachDBClientImpl struct {
@@ -1517,188 +1510,6 @@ func (dbc *cockroachDBClientImpl) InsertReleaseLog(releaseLog contracts.ReleaseL
 	)
 
 	if err != nil {
-		return
-	}
-
-	return
-}
-
-func (dbc *cockroachDBClientImpl) InsertGithubPushEvent(pushEvent ghcontracts.PushEvent) (err error) {
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
-	bytes, err := json.Marshal(pushEvent)
-	if err != nil {
-		return
-	}
-
-	// insert logs
-	_, err = dbc.databaseConnection.Exec(
-		`
-		INSERT INTO
-			github_push_events
-		(
-			repo_source,
-			repo_owner,
-			repo_name,
-			repo_revision,
-			push_event
-		)
-		VALUES
-		(
-			$1,
-			$2,
-			$3,
-			$4,
-			$5
-		)
-		`,
-		pushEvent.GetRepoSource(),
-		pushEvent.GetRepoOwner(),
-		pushEvent.GetRepoName(),
-		pushEvent.GetRepoRevision(),
-		bytes,
-	)
-
-	if err != nil {
-		return
-	}
-
-	return
-}
-
-func (dbc *cockroachDBClientImpl) GetGithubPushEventForBuild(build contracts.Build) (pushEvent *ghcontracts.PushEvent, err error) {
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
-	rows, err := dbc.databaseConnection.Query(
-		`
-		SELECT
-			push_event
-		FROM
-			github_push_events
-		WHERE
-			repo_source=$1 AND
-			repo_owner=$2 AND
-			repo_name=$3 AND
-			repo_revision=$4
-		LIMIT 1
-		OFFSET 0
-		`,
-		build.RepoSource,
-		build.RepoOwner,
-		build.RepoName,
-		build.RepoRevision,
-	)
-	if err != nil {
-		return
-	}
-
-	recordExists := false
-
-	defer rows.Close()
-	recordExists = rows.Next()
-
-	if !recordExists {
-		return
-	}
-
-	var bytes []uint8
-
-	if err = rows.Scan(&bytes); err != nil {
-		return
-	}
-
-	if err = json.Unmarshal(bytes, &pushEvent); err != nil {
-		return
-	}
-
-	return
-}
-
-func (dbc *cockroachDBClientImpl) InsertBitbucketPushEvent(pushEvent bbcontracts.RepositoryPushEvent) (err error) {
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
-	bytes, err := json.Marshal(pushEvent)
-	if err != nil {
-		return
-	}
-
-	// insert logs
-	_, err = dbc.databaseConnection.Exec(
-		`
-		INSERT INTO
-			bitbucket_push_events
-		(
-			repo_source,
-			repo_owner,
-			repo_name,
-			repo_revision,
-			push_event
-		)
-		VALUES
-		(
-			$1,
-			$2,
-			$3,
-			$4,
-			$5
-		)
-		`,
-		pushEvent.GetRepoSource(),
-		pushEvent.GetRepoOwner(),
-		pushEvent.GetRepoName(),
-		pushEvent.GetRepoRevision(),
-		bytes,
-	)
-
-	if err != nil {
-		return
-	}
-
-	return
-}
-
-func (dbc *cockroachDBClientImpl) GetBitbucketPushEventForBuild(build contracts.Build) (pushEvent *bbcontracts.RepositoryPushEvent, err error) {
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
-	rows, err := dbc.databaseConnection.Query(
-		`
-		SELECT
-			push_event
-		FROM
-			bitbucket_push_events
-		WHERE
-			repo_source=$1 AND
-			repo_owner=$2 AND
-			repo_name=$3 AND
-			repo_revision=$4
-		LIMIT 1
-		OFFSET 0
-		`,
-		build.RepoSource,
-		build.RepoOwner,
-		build.RepoName,
-		build.RepoRevision,
-	)
-	if err != nil {
-		return
-	}
-
-	recordExists := false
-
-	defer rows.Close()
-	recordExists = rows.Next()
-
-	if !recordExists {
-		return
-	}
-
-	var bytes []uint8
-
-	if err = rows.Scan(&bytes); err != nil {
-		return
-	}
-
-	if err = json.Unmarshal(bytes, &pushEvent); err != nil {
 		return
 	}
 

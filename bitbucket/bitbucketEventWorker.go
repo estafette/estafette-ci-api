@@ -70,14 +70,6 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.Reposi
 		return
 	}
 
-	// insert push event into database
-	err := w.cockroachDBClient.InsertBitbucketPushEvent(pushEvent)
-	if err != nil {
-		log.Error().Err(err).
-			Msg("Inserting bitbucket push event into database failed")
-		// return
-	}
-
 	// get access token
 	accessToken, err := w.apiClient.GetAccessToken()
 	if err != nil {
