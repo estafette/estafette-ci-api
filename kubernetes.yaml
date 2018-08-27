@@ -67,6 +67,61 @@ spec:
           serviceName: estafette-ci-api
           servicePort: https
 ---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: estafette-ci-api-github
+  namespace: estafette
+  labels:
+    app: estafette-ci-api
+    team: tooling
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/secure-backends: "true"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "${ALLOW_INGRESS_GITHUB}"
+    estafette.io/cloudflare-dns: "true"
+    estafette.io/cloudflare-proxy: "true"
+    estafette.io/cloudflare-hostnames: "${INTEGRATIONS_HOSTNAME}"
+spec:
+  tls:
+  - hosts:
+    - ${INTEGRATIONS_HOSTNAME}
+    secretName: estafette-ci-api-integrations-letsencrypt-certificate
+  rules:
+  - host: ${INTEGRATIONS_HOSTNAME}
+    http:
+      paths:
+      - path: /api/integrations/github
+        backend:
+          serviceName: estafette-ci-api
+          servicePort: https
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: estafette-ci-api-bitbucket
+  namespace: estafette
+  labels:
+    app: estafette-ci-api
+    team: tooling
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/secure-backends: "true"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "${ALLOW_INGRESS_BITBUCKET}"
+spec:
+  tls:
+  - hosts:
+    - ${HOSTNAMES}
+    secretName: estafette-ci-api-integrations-letsencrypt-certificate
+  rules:
+  - host: ${HOSTNAMES}
+    http:
+      paths:
+      - path: /api/integrations/bitbucket
+        backend:
+          serviceName: estafette-ci-api
+          servicePort: https
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -103,6 +158,19 @@ metadata:
   annotations:
     estafette.io/letsencrypt-certificate: "true"
     estafette.io/letsencrypt-certificate-hostnames: "${HOSTNAMES}"
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: estafette-ci-api-integrations-letsencrypt-certificate
+  namespace: estafette
+  labels:
+    app: estafette-ci-api
+    team: tooling
+  annotations:
+    estafette.io/letsencrypt-certificate: "true"
+    estafette.io/letsencrypt-certificate-hostnames: "${INTEGRATIONS_HOSTNAME}"
 type: Opaque
 ---
 apiVersion: v1
