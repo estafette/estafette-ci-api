@@ -111,10 +111,10 @@ metadata:
 spec:
   tls:
   - hosts:
-    - ${HOSTNAMES}
+    - ${INTEGRATIONS_HOSTNAME}
     secretName: estafette-ci-api-integrations-letsencrypt-certificate
   rules:
-  - host: ${HOSTNAMES}
+  - host: ${INTEGRATIONS_HOSTNAME}
     http:
       paths:
       - path: /api/integrations/bitbucket
