@@ -56,10 +56,10 @@ metadata:
 spec:
   tls:
   - hosts:
-    - ${HOSTNAMES}
-    secretName: estafette-ci-api-letsencrypt-certificate
+    - ${INTEGRATIONS_HOSTNAME}
+    secretName: estafette-ci-api-integrations-letsencrypt-certificate
   rules:
-  - host: ${HOSTNAMES}
+  - host: ${INTEGRATIONS_HOSTNAME}
     http:
       paths:
       - path: /api/integrations/slack/slash
