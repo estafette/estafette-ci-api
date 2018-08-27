@@ -15,6 +15,35 @@ metadata:
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
+  name: estafette-ci
+  namespace: estafette
+  labels:
+    app: estafette-ci-api
+    team: tooling
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.allow-http: "false"
+spec:
+  tls:
+  - hosts:
+    - ${HOSTNAMES}
+    secretName: estafette-ci-api-letsencrypt-certificate
+  rules:
+  - host: ${HOSTNAMES}
+    http:
+      paths:
+      - path: /api/*
+        backend:
+          serviceName: estafette-ci-api
+          servicePort: https
+      - path: /*
+        backend:
+          serviceName: estafette-ci-web
+          servicePort: https
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
   name: estafette-ci-api
   namespace: estafette
   labels:
@@ -132,6 +161,7 @@ metadata:
   annotations:
     prometheus.io/probe: "true"
     prometheus.io/probe-path: "/readiness"
+    service.alpha.kubernetes.io/app-protocols: '{"https":"HTTPS"}'
 spec:
   type: ClusterIP
   ports:
@@ -354,7 +384,8 @@ spec:
         readinessProbe:
           httpGet:
             path: /readiness
-            port: nginx-readiness
+            port: https
+            scheme: HTTPS
       volumes:
       - name: ssl-certificate
         secret:
