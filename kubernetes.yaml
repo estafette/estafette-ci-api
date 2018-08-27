@@ -163,7 +163,7 @@ metadata:
     prometheus.io/probe-path: "/readiness"
     service.alpha.kubernetes.io/app-protocols: '{"https":"HTTPS"}'
 spec:
-  type: ClusterIP
+  type: NodePort
   ports:
   - name: http
     port: 80
