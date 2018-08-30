@@ -267,11 +267,11 @@ data:
 
     privateContainerRegistries:
       - server: gcr.io
-        username: _json_key
-        password: ${GCR_IO_PASSWORD}
+        username: "_json_key"
+        password: "${GCR_IO_PASSWORD}"
       - server: eu.gcr.io
-        username: _json_key
-        password: ${GCR_IO_PASSWORD}
+        username: "_json_key"
+        password: "${GCR_IO_PASSWORD}"
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
