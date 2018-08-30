@@ -264,6 +264,14 @@ data:
       port: ${COCKROACH_PORT}
       user: ${COCKROACH_USER}
       password: ${COCKROACH_PASSWORD}
+
+    privateContainerRegistries:
+      - server: https://gcr.io
+        username: _json_key
+        password: ${GCR_IO_PASSWORD}
+      - server: https://eu.gcr.io
+        username: _json_key
+        password: ${GCR_IO_PASSWORD}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment

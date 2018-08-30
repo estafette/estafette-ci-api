@@ -102,4 +102,20 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "myuser", databaseConfig.User)
 		assert.Equal(t, "this is my secret", databaseConfig.Password)
 	})
+
+	t.Run("ReturnsPrivateContainerRegistryConfigs", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml")
+
+		assert.Equal(t, "https://gcr.io", config.PrivateContainerRegistries[0].Server)
+		assert.Equal(t, "_json_key", config.PrivateContainerRegistries[0].Username)
+		assert.Equal(t, "this is my secret", config.PrivateContainerRegistries[0].Password)
+
+		assert.Equal(t, "https://eu.gcr.io", config.PrivateContainerRegistries[1].Server)
+		assert.Equal(t, "_json_key", config.PrivateContainerRegistries[1].Username)
+		assert.Equal(t, "this is my secret", config.PrivateContainerRegistries[1].Password)
+	})
 }
