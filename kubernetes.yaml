@@ -346,11 +346,11 @@ spec:
         imagePullPolicy: Always
         resources:
           limits:
+            cpu: 150m
+            memory: 150Mi
+          requests:
             cpu: 50m
             memory: 50Mi
-          requests:
-            cpu: 10m
-            memory: 10Mi
         ports:
         - name: http
           containerPort: 80
