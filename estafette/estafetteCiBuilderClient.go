@@ -34,13 +34,13 @@ type CiBuilderClient interface {
 type ciBuilderClientImpl struct {
 	kubeClient                      *k8s.Client
 	dockerHubClient                 docker.DockerHubAPIClient
-	config                          config.APIServerConfig
+	config                          config.APIConfig
 	secretDecryptionKey             string
 	PrometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
 // NewCiBuilderClient returns a new estafette.CiBuilderClient
-func NewCiBuilderClient(config config.APIServerConfig, secretDecryptionKey string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
+func NewCiBuilderClient(config config.APIConfig, secretDecryptionKey string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
 
 	var kubeClient *k8s.Client
 
@@ -122,21 +122,24 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteBuildJobNameName := "ESTAFETTE_BUILD_JOB_NAME"
 	estafetteBuildJobNameValue := jobName
 	estafetteCiServerBaseURLName := "ESTAFETTE_CI_SERVER_BASE_URL"
-	estafetteCiServerBaseURLValue := cbc.config.BaseURL
+	estafetteCiServerBaseURLValue := cbc.config.APIServer.BaseURL
 	estafetteCiServerBuilderEventsURLName := "ESTAFETTE_CI_SERVER_BUILDER_EVENTS_URL"
-	estafetteCiServerBuilderEventsURLValue := strings.TrimRight(cbc.config.ServiceURL, "/") + "/api/commands"
+	estafetteCiServerBuilderEventsURLValue := strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + "/api/commands"
 	estafetteCiServerBuilderPostLogsURLName := "ESTAFETTE_CI_SERVER_POST_LOGS_URL"
-	estafetteCiServerBuilderPostLogsURLValue := strings.TrimRight(cbc.config.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
+	estafetteCiServerBuilderPostLogsURLValue := strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
 	if ciBuilderParams.ReleaseID > 0 {
-		estafetteCiServerBuilderPostLogsURLValue = strings.TrimRight(cbc.config.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/releases/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoFullName, ciBuilderParams.ReleaseID)
+		estafetteCiServerBuilderPostLogsURLValue = strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/releases/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoFullName, ciBuilderParams.ReleaseID)
 	}
 	estafetteCiAPIKeyName := "ESTAFETTE_CI_API_KEY"
-	estafetteCiAPIKeyValue := cbc.config.APIKey
+	estafetteCiAPIKeyValue := cbc.config.APIServer.APIKey
 	estafetteCiBuilderTrackName := "ESTAFETTE_CI_BUILDER_TRACK"
 	estafetteCiBuilderTrackValue := ciBuilderParams.Track
 	estafetteManifestJSONKeyName := "ESTAFETTE_CI_MANIFEST_JSON"
 	manifestJSONBytes, err := json.Marshal(ciBuilderParams.Manifest)
 	estafetteManifestJSONKeyValue := string(manifestJSONBytes)
+	estafetteRegistriesJSONKeyName := "ESTAFETTE_CI_REGISTRIES_JSON"
+	registriesJSONBytes, err := json.Marshal(cbc.config.PrivateContainerRegistries)
+	estafetteRegistriesJSONKeyValue := string(registriesJSONBytes)
 
 	// temporarily pass build version equal to revision from the outside until estafette supports versioning
 	estafetteBuildVersionName := "ESTAFETTE_BUILD_VERSION"
@@ -204,6 +207,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		&corev1.EnvVar{
 			Name:  &estafetteManifestJSONKeyName,
 			Value: &estafetteManifestJSONKeyValue,
+		},
+		&corev1.EnvVar{
+			Name:  &estafetteRegistriesJSONKeyName,
+			Value: &estafetteRegistriesJSONKeyValue,
 		},
 	}
 

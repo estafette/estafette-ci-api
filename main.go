@@ -192,7 +192,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	githubAPIClient := github.NewGithubAPIClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
 	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
 	cockroachDBClient := cockroach.NewCockroachDBClient(*config.Database, prometheusOutboundAPICallTotals)
-	ciBuilderClient, err := estafette.NewCiBuilderClient(*config.APIServer, *secretDecryptionKey, prometheusOutboundAPICallTotals)
+	ciBuilderClient, err := estafette.NewCiBuilderClient(*config, *secretDecryptionKey, prometheusOutboundAPICallTotals)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
 	}
