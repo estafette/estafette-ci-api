@@ -110,11 +110,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		// act
 		config, _ := configReader.ReadConfigFromFile("test-config.yaml")
 
-		assert.Equal(t, "https://gcr.io", config.PrivateContainerRegistries[0].Server)
+		assert.Equal(t, "gcr.io", config.PrivateContainerRegistries[0].Server)
 		assert.Equal(t, "_json_key", config.PrivateContainerRegistries[0].Username)
 		assert.Equal(t, "this is my secret", config.PrivateContainerRegistries[0].Password)
 
-		assert.Equal(t, "https://eu.gcr.io", config.PrivateContainerRegistries[1].Server)
+		assert.Equal(t, "eu.gcr.io", config.PrivateContainerRegistries[1].Server)
 		assert.Equal(t, "_json_key", config.PrivateContainerRegistries[1].Username)
 		assert.Equal(t, "this is my secret", config.PrivateContainerRegistries[1].Password)
 	})

@@ -266,10 +266,10 @@ data:
       password: ${COCKROACH_PASSWORD}
 
     privateContainerRegistries:
-      - server: https://gcr.io
+      - server: gcr.io
         username: _json_key
         password: ${GCR_IO_PASSWORD}
-      - server: https://eu.gcr.io
+      - server: eu.gcr.io
         username: _json_key
         password: ${GCR_IO_PASSWORD}
 ---
