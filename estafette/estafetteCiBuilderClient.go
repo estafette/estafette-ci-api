@@ -137,9 +137,9 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteManifestJSONKeyName := "ESTAFETTE_CI_MANIFEST_JSON"
 	manifestJSONBytes, err := json.Marshal(ciBuilderParams.Manifest)
 	estafetteManifestJSONKeyValue := string(manifestJSONBytes)
-	estafetteRegistriesJSONKeyName := "ESTAFETTE_CI_REGISTRIES_JSON"
-	registriesJSONBytes, err := json.Marshal(cbc.config.PrivateContainerRegistries)
-	estafetteRegistriesJSONKeyValue := string(registriesJSONBytes)
+	estafetteRepositoryCredentialsJSONKeyName := "ESTAFETTE_CI_REPOSITORY_CREDENTIALS_JSON"
+	repositoryCredentialsJSONBytes, err := json.Marshal(cbc.config.ContainerRepositoryCredentials)
+	estafetteRepositoryCredentialsJSONKeyValue := string(repositoryCredentialsJSONBytes)
 
 	// temporarily pass build version equal to revision from the outside until estafette supports versioning
 	estafetteBuildVersionName := "ESTAFETTE_BUILD_VERSION"
@@ -209,8 +209,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 			Value: &estafetteManifestJSONKeyValue,
 		},
 		&corev1.EnvVar{
-			Name:  &estafetteRegistriesJSONKeyName,
-			Value: &estafetteRegistriesJSONKeyValue,
+			Name:  &estafetteRepositoryCredentialsJSONKeyName,
+			Value: &estafetteRepositoryCredentialsJSONKeyValue,
 		},
 	}
 

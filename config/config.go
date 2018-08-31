@@ -11,10 +11,10 @@ import (
 
 // APIConfig represent the configuration for the entire api application
 type APIConfig struct {
-	Integrations               *APIConfigIntegrations            `yaml:"integrations,omitempty"`
-	APIServer                  *APIServerConfig                  `yaml:"apiServer,omitempty"`
-	Database                   *DatabaseConfig                   `yaml:"database,omitempty"`
-	PrivateContainerRegistries []*PrivateContainerRegistryConfig `yaml:"privateContainerRegistries,omitempty"`
+	Integrations                   *APIConfigIntegrations                 `yaml:"integrations,omitempty"`
+	APIServer                      *APIServerConfig                       `yaml:"apiServer,omitempty"`
+	Database                       *DatabaseConfig                        `yaml:"database,omitempty"`
+	ContainerRepositoryCredentials []*ContainerRepositoryCredentialConfig `yaml:"containerRepositoryCredentials,omitempty"`
 }
 
 // APIServerConfig represents configuration for the api server
@@ -74,11 +74,11 @@ type SlackConfig struct {
 	MaxWorkers             int    `yaml:"maxWorkers"`
 }
 
-// PrivateContainerRegistryConfig is used to authenticate for private container registries
-type PrivateContainerRegistryConfig struct {
-	Server   string `yaml:"server"`
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
+// ContainerRepositoryCredentialConfig is used to authenticate for (private) container repositories
+type ContainerRepositoryCredentialConfig struct {
+	Repository string `yaml:"repository"`
+	Username   string `yaml:"username"`
+	Password   string `yaml:"password"`
 }
 
 // ConfigReader reads the api config from file
