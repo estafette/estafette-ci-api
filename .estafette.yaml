@@ -38,6 +38,10 @@ stages:
     action: push
     repositories:
     - estafette
+    when:
+      status == 'succeeded' &&
+      branch == 'master' &&
+      server == 'gocd'
 
   slack-notify:
     image: extensions/slack-build-status:dev
