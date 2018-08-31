@@ -36,6 +36,7 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 			WorkingDirectory: "/estafette-work",
 			When:             "status == 'succeeded'",
 			AutoInjected:     true,
+			Retries:          3,
 		}
 		injectedManifest.Stages = append([]*manifest.EstafetteStage{setPendingBuildStatusStep}, injectedManifest.Stages...)
 	}
@@ -49,6 +50,7 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 			WorkingDirectory: "/estafette-work",
 			When:             "status == 'succeeded' || status == 'failed'",
 			AutoInjected:     true,
+			Retries:          3,
 		}
 		injectedManifest.Stages = append(injectedManifest.Stages, setBuildStatusStep)
 	}
