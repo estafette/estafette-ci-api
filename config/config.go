@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"regexp"
 
+	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
@@ -11,10 +12,10 @@ import (
 
 // APIConfig represent the configuration for the entire api application
 type APIConfig struct {
-	Integrations                   *APIConfigIntegrations                 `yaml:"integrations,omitempty"`
-	APIServer                      *APIServerConfig                       `yaml:"apiServer,omitempty"`
-	Database                       *DatabaseConfig                        `yaml:"database,omitempty"`
-	ContainerRepositoryCredentials []*ContainerRepositoryCredentialConfig `yaml:"containerRepositoryCredentials,omitempty"`
+	Integrations                   *APIConfigIntegrations                           `yaml:"integrations,omitempty"`
+	APIServer                      *APIServerConfig                                 `yaml:"apiServer,omitempty"`
+	Database                       *DatabaseConfig                                  `yaml:"database,omitempty"`
+	ContainerRepositoryCredentials []*contracts.ContainerRepositoryCredentialConfig `yaml:"containerRepositoryCredentials,omitempty"`
 }
 
 // APIServerConfig represents configuration for the api server
@@ -72,13 +73,6 @@ type SlackConfig struct {
 	AppOAuthAccessToken    string `yaml:"appOAuthAccessToken"`
 	EventChannelBufferSize int    `yaml:"eventChannelBufferSize"`
 	MaxWorkers             int    `yaml:"maxWorkers"`
-}
-
-// ContainerRepositoryCredentialConfig is used to authenticate for (private) container repositories
-type ContainerRepositoryCredentialConfig struct {
-	Repository string `yaml:"repository"`
-	Username   string `yaml:"username"`
-	Password   string `yaml:"password"`
 }
 
 // ConfigReader reads the api config from file
