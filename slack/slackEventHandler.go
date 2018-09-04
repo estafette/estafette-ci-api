@@ -279,11 +279,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 						ReleaseName:      releaseName,
 					}
 
-					_, err = h.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
-					if err != nil {
-						c.String(http.StatusOK, fmt.Sprintf("Creating the release job failed: %v", err))
-						return
-					}
+					go h.createReleaseJob(ciBuilderParams)
 
 					c.String(http.StatusOK, fmt.Sprintf("Started releasing version %v to %v: %vpipelines/%v/%v/%v/releases/%v/logs", buildVersion, releaseName, h.apiConfig.BaseURL, build.RepoSource, build.RepoOwner, build.RepoName, insertedRelease.ID))
 					return
@@ -293,6 +289,14 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
+}
+
+func (h *eventHandlerImpl) createReleaseJob(ciBuilderParams estafette.CiBuilderParams) {
+
+	_, err := h.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+	if err != nil {
+		log.Error().Err(err).Msgf("Creating the release job failed: %v", err)
+	}
 }
 
 func (h *eventHandlerImpl) HasValidVerificationToken(slashCommand SlashCommand) bool {
