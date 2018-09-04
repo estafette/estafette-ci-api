@@ -335,24 +335,36 @@
 			"revisionTime": "2017-07-03T10:12:42Z"
 		},
 		{
-			"checksumSHA1": "Je1yw5xu6QYIBk2qJRZw1p6/3wE=",
+			"checksumSHA1": "mrk4ORwR5ejYNE44lwgYXuZmi8E=",
 			"path": "github.com/rs/zerolog",
-			"revision": "2ed2f2c974489526d10329dae76d0f175684109a",
-			"revisionTime": "2017-08-06T03:45:41Z"
+			"revision": "77db4b4f350e31be66a57c332acb7721cf9ff9bb",
+			"revisionTime": "2018-05-25T01:50:57Z",
+			"version": "v1.8.0",
+			"versionExact": "v1.8.0"
 		},
 		{
-			"checksumSHA1": "VKcpzcAOV61yG2Vo1IUFs2v8LQ4=",
+			"checksumSHA1": "xqWAq8wYO17kHy9UVbA9ifCzD3A=",
+			"path": "github.com/rs/zerolog/internal/cbor",
+			"revision": "77db4b4f350e31be66a57c332acb7721cf9ff9bb",
+			"revisionTime": "2018-05-25T01:50:57Z",
+			"version": "v1.8.0",
+			"versionExact": "v1.8.0"
+		},
+		{
+			"checksumSHA1": "aJb+KauxxfuznpChryynxtC98F0=",
 			"path": "github.com/rs/zerolog/internal/json",
-			"revision": "2ed2f2c974489526d10329dae76d0f175684109a",
-			"revisionTime": "2017-08-06T03:45:41Z"
+			"revision": "77db4b4f350e31be66a57c332acb7721cf9ff9bb",
+			"revisionTime": "2018-05-25T01:50:57Z",
+			"version": "v1.8.0",
+			"versionExact": "v1.8.0"
 		},
 		{
-			"checksumSHA1": "K8FG94sTTJSJJKmRsem1LuRwlGQ=",
+			"checksumSHA1": "GrCvxT3h3vAVIwGe8bFAilXjgVA=",
 			"path": "github.com/rs/zerolog/log",
-			"revision": "2ed2f2c974489526d10329dae76d0f175684109a",
-			"revisionTime": "2017-08-06T03:45:41Z",
-			"version": "v1.2.2",
-			"versionExact": "v1.2.2"
+			"revision": "77db4b4f350e31be66a57c332acb7721cf9ff9bb",
+			"revisionTime": "2018-05-25T01:50:57Z",
+			"version": "v1.8.0",
+			"versionExact": "v1.8.0"
 		},
 		{
 			"checksumSHA1": "Is47yO7d/2JPk+exbSEDwXTJsgo=",
