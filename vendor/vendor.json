@@ -245,10 +245,10 @@
 			"revisionTime": "2015-08-10T15:23:59Z"
 		},
 		{
-			"checksumSHA1": "s6eyIXpJ7VAU06FM27GcEBM/5lo=",
+			"checksumSHA1": "xvqMCXXlR74in/1c09UadpfXz9Y=",
 			"path": "github.com/lib/pq",
-			"revision": "90697d60dd844d5ef6ff15135d0203f65d2f53b8",
-			"revisionTime": "2018-05-23T17:54:26Z"
+			"revision": "4ded0e9383f75c197b3a2aaa6d590ac52df6fd79",
+			"revisionTime": "2018-08-23T06:29:44Z"
 		},
 		{
 			"checksumSHA1": "AU3fA8Sm33Vj9PBoRPSeYfxLRuE=",

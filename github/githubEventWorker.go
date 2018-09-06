@@ -1,6 +1,7 @@
 package github
 
 import (
+	"strconv"
 	"strings"
 	"sync"
 
@@ -173,7 +174,7 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent
 	}
 
 	// store build in db
-	err = w.cockroachDBClient.InsertBuild(contracts.Build{
+	insertedBuild, err := w.cockroachDBClient.InsertBuild(contracts.Build{
 		RepoSource:   pushEvent.GetRepoSource(),
 		RepoOwner:    pushEvent.GetRepoOwner(),
 		RepoName:     pushEvent.GetRepoName(),
@@ -187,8 +188,14 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent
 		Commits:      commits,
 	})
 	if err != nil {
-		log.Warn().Err(err).
+		log.Error().Err(err).
 			Msgf("Failed inserting build into db for Bitbucket repository %v", pushEvent.Repository.FullName)
+		return
+	}
+
+	buildID, err := strconv.Atoi(insertedBuild.ID)
+	if err != nil {
+		log.Warn().Err(err).Msgf("Failed to convert build id %v to int", insertedBuild.ID)
 	}
 
 	// define ci builder params
@@ -204,6 +211,7 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent
 		VersionNumber:        buildVersion,
 		HasValidManifest:     hasValidManifest,
 		Manifest:             mft,
+		BuildID:              buildID,
 	}
 
 	// create ci builder job

@@ -36,4 +36,5 @@ type CiBuilderParams struct {
 	Manifest             manifest.EstafetteManifest
 	ReleaseName          string
 	ReleaseID            int
+	BuildID              int
 }

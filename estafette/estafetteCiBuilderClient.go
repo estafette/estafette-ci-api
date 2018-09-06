@@ -150,6 +150,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteReleaseNameValue := ciBuilderParams.ReleaseName
 	estafetteReleaseIDName := "ESTAFETTE_RELEASE_ID"
 	estafetteReleaseIDValue := strconv.Itoa(ciBuilderParams.ReleaseID)
+	estafetteBuildIDName := "ESTAFETTE_BUILD_ID"
+	estafetteBuildIDValue := strconv.Itoa(ciBuilderParams.BuildID)
 
 	environmentVariables := []*corev1.EnvVar{
 		&corev1.EnvVar{
@@ -212,6 +214,12 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 			Name:  &estafetteRepositoryCredentialsJSONKeyName,
 			Value: &estafetteRepositoryCredentialsJSONKeyValue,
 		},
+	}
+	if ciBuilderParams.BuildID > 0 {
+		environmentVariables = append(environmentVariables, &corev1.EnvVar{
+			Name:  &estafetteBuildIDName,
+			Value: &estafetteBuildIDValue,
+		})
 	}
 
 	if ciBuilderParams.ReleaseID > 0 {
