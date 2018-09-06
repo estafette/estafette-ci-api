@@ -104,7 +104,7 @@ func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) {
 
 	} else if ciBuilderEvent.BuildStatus != "" {
 
-		err := w.cockroachDBClient.UpdateBuildStatus(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, ciBuilderEvent.RepoRevision, ciBuilderEvent.BuildStatus)
+		err := w.cockroachDBClient.UpdateBuildStatus(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, ciBuilderEvent.RepoBranch, ciBuilderEvent.RepoRevision, ciBuilderEvent.BuildStatus)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Updating build status for job %v failed", ciBuilderEvent.JobName)

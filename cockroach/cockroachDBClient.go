@@ -27,7 +27,7 @@ type DBClient interface {
 	ConnectWithDriverAndSource(string, string) error
 	GetAutoIncrement(string, string) (int, error)
 	InsertBuild(contracts.Build) error
-	UpdateBuildStatus(string, string, string, string, string) error
+	UpdateBuildStatus(string, string, string, string, string, string) error
 	InsertRelease(contracts.Release) (contracts.Release, error)
 	UpdateReleaseStatus(string, string, string, int, string) error
 	GetPipelines(int, int, map[string][]string) ([]*contracts.Pipeline, error)
@@ -229,13 +229,42 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (err error)
 	return
 }
 
-func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoName, repoRevision, buildStatus string) (err error) {
+func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoName, repoBranch, repoRevision, buildStatus string) (err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	// insert logs
-	_, err = dbc.databaseConnection.Exec(
-		`
+	if repoBranch != "" {
+		// update build status
+		_, err = dbc.databaseConnection.Exec(
+			`
+		UPDATE
+			builds
+		SET
+			build_status=$1,
+			updated_at=now()
+		WHERE
+			repo_source=$2 AND
+			repo_owner=$3 AND
+			repo_name=$4 AND
+			repo_branch=$5 AND
+			repo_revision=$6
+		`,
+			buildStatus,
+			repoSource,
+			repoOwner,
+			repoName,
+			repoBranch,
+			repoRevision,
+		)
+
+		if err != nil {
+			return
+		}
+
+	} else {
+		// update build status
+		_, err = dbc.databaseConnection.Exec(
+			`
 		UPDATE
 			builds
 		SET
@@ -247,15 +276,16 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 			repo_name=$4 AND
 			repo_revision=$5
 		`,
-		buildStatus,
-		repoSource,
-		repoOwner,
-		repoName,
-		repoRevision,
-	)
+			buildStatus,
+			repoSource,
+			repoOwner,
+			repoName,
+			repoRevision,
+		)
 
-	if err != nil {
-		return
+		if err != nil {
+			return
+		}
 	}
 
 	return
