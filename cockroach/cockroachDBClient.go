@@ -37,8 +37,9 @@ type DBClient interface {
 	GetPipelineBuilds(string, string, string, int, int) ([]*contracts.Build, error)
 	GetPipelineBuildsCount(string, string, string) (int, error)
 	GetPipelineBuild(string, string, string, string) (*contracts.Build, error)
+	GetPipelineBuildByID(string, string, string, int) (*contracts.Build, error)
 	GetPipelineBuildByVersion(string, string, string, string) (*contracts.Build, error)
-	GetPipelineBuildLogs(string, string, string, string) (*contracts.BuildLog, error)
+	GetPipelineBuildLogs(string, string, string, string, string) (*contracts.BuildLog, error)
 	GetPipelineReleases(string, string, string, int, int) ([]*contracts.Release, error)
 	GetPipelineReleasesCount(string, string, string) (int, error)
 	GetPipelineRelease(string, string, string, int) (*contracts.Release, error)
@@ -983,6 +984,112 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 	return
 }
 
+func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, repoName string, id int) (build *contracts.Build, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	rows, err := dbc.databaseConnection.Query(
+		`
+		SELECT
+			id,
+			repo_source,
+			repo_owner,
+			repo_name,
+			repo_branch,
+			repo_revision,
+			build_version,
+			build_status,
+			labels,
+			releases,
+			manifest,
+			commits,
+			inserted_at,
+			updated_at
+		FROM
+			builds
+		WHERE
+			repo_source=$1 AND
+			repo_owner=$2 AND
+			repo_name=$3 AND
+			id=$4
+		ORDER BY
+			inserted_at DESC
+		LIMIT 1
+		OFFSET 0
+		`,
+		repoSource,
+		repoOwner,
+		repoName,
+		id,
+	)
+	if err != nil {
+		return
+	}
+
+	recordExists := false
+
+	defer rows.Close()
+	recordExists = rows.Next()
+
+	if !recordExists {
+		return
+	}
+
+	var labelsData, releasesData, commitsData []uint8
+
+	build = &contracts.Build{}
+
+	if err := rows.Scan(
+		&build.ID,
+		&build.RepoSource,
+		&build.RepoOwner,
+		&build.RepoName,
+		&build.RepoBranch,
+		&build.RepoRevision,
+		&build.BuildVersion,
+		&build.BuildStatus,
+		&labelsData,
+		&releasesData,
+		&build.Manifest,
+		&commitsData,
+		&build.InsertedAt,
+		&build.UpdatedAt); err != nil {
+		return nil, err
+	}
+
+	if len(labelsData) > 0 {
+		if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
+			return nil, err
+		}
+	}
+	if len(releasesData) > 0 {
+		if err = json.Unmarshal(releasesData, &build.Releases); err != nil {
+			return
+		}
+	}
+	if len(commitsData) > 0 {
+		if err = json.Unmarshal(commitsData, &build.Commits); err != nil {
+			return nil, err
+		}
+	}
+
+	// unmarshal then marshal manifest to include defaults
+	var manifest manifest.EstafetteManifest
+	err = yaml.Unmarshal([]byte(build.Manifest), &manifest)
+	if err == nil {
+		manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+		if err == nil {
+			build.ManifestWithDefaults = string(manifestWithDefaultBytes)
+		} else {
+			log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+		}
+	} else {
+		log.Warn().Err(err).Str("manifest", build.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+	}
+
+	return
+}
+
 func (dbc *cockroachDBClientImpl) GetPipelineBuildByVersion(repoSource, repoOwner, repoName, buildVersion string) (build *contracts.Build, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1089,7 +1196,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByVersion(repoSource, repoOwne
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, repoName, repoRevision string) (buildLog *contracts.BuildLog, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, repoName, repoBranch, repoRevision string) (buildLog *contracts.BuildLog, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
@@ -1110,12 +1217,14 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 			repo_source=$1 AND
 			repo_owner=$2 AND
 			repo_name=$3 AND
-			repo_revision=$4
+			repo_branch=$4 AND
+			repo_revision=$5
 		LIMIT 1
 		`,
 		repoSource,
 		repoOwner,
 		repoName,
+		repoBranch,
 		repoRevision,
 	)
 	if err != nil {

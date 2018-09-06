@@ -181,18 +181,41 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 	source := c.Param("source")
 	owner := c.Param("owner")
 	repo := c.Param("repo")
-	revision := c.Param("revision")
+	revisionOrID := c.Param("revisionOrId")
 
-	build, err := h.cockroachDBClient.GetPipelineBuild(source, owner, repo, revision)
+	if len(revisionOrID) == 40 {
+		build, err := h.cockroachDBClient.GetPipelineBuild(source, owner, repo, revisionOrID)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
+		}
+		if build == nil {
+			c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline build not found"})
+			return
+		}
+		log.Info().Msgf("Retrieved builds for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
+
+		c.JSON(http.StatusOK, build)
+	}
+
+	id, err := strconv.Atoi(revisionOrID)
 	if err != nil {
 		log.Error().Err(err).
-			Msgf("Failed retrieving build for %v/%v/%v/%v from db", source, owner, repo, revision)
+			Msgf("Failed reading id from path parameter for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
+		c.JSON(http.StatusBadRequest, gin.H{"code": "BAD_REQUEST", "message": "Path parameter id is not of type integer"})
+		return
+	}
+
+	build, err := h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, id)
 	}
 	if build == nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline build not found"})
 		return
 	}
-	log.Info().Msgf("Retrieved builds for %v/%v/%v/%v", source, owner, repo, revision)
+	log.Info().Msgf("Retrieved builds for %v/%v/%v/builds/%v", source, owner, repo, id)
 
 	c.JSON(http.StatusOK, build)
 }
@@ -201,21 +224,51 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 	source := c.Param("source")
 	owner := c.Param("owner")
 	repo := c.Param("repo")
-	revision := c.Param("revision")
+	revisionOrID := c.Param("revisionOrId")
 
-	buildLog, err := h.cockroachDBClient.GetPipelineBuildLogs(source, owner, repo, revision)
-	if err != nil {
-		log.Error().Err(err).
-			Msgf("Failed retrieving build logs for %v/%v/%v/%v from db", source, owner, repo, revision)
+	var build *contracts.Build
+	var err error
+	if len(revisionOrID) == 40 {
+		build, err = h.cockroachDBClient.GetPipelineBuild(source, owner, repo, revisionOrID)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
+		}
+	} else {
+		id, err := strconv.Atoi(revisionOrID)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed reading id from path parameter for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
+			c.JSON(http.StatusBadRequest, gin.H{"code": "BAD_REQUEST", "message": "Path parameter id is not of type integer"})
+			return
+		}
+
+		build, err = h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, id)
+		}
 	}
-	if buildLog == nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline build log not found"})
+
+	if build == nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline build not found"})
 		return
 	}
-	log.Info().Msgf("Retrieved build logs for %v/%v/%v/%v", source, owner, repo, revision)
 
-	c.JSON(http.StatusOK, buildLog)
+	if len(revisionOrID) == 40 {
+		buildLog, err := h.cockroachDBClient.GetPipelineBuildLogs(source, owner, repo, build.RepoBranch, build.RepoRevision)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from db", source, owner, repo, revisionOrID)
+		}
+		if buildLog == nil {
+			c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline build log not found"})
+			return
+		}
+		log.Info().Msgf("Retrieved build logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
 
+		c.JSON(http.StatusOK, buildLog)
+	}
 }
 
 func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
