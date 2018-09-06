@@ -256,20 +256,18 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 		return
 	}
 
-	if len(revisionOrID) == 40 {
-		buildLog, err := h.cockroachDBClient.GetPipelineBuildLogs(source, owner, repo, build.RepoBranch, build.RepoRevision)
-		if err != nil {
-			log.Error().Err(err).
-				Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from db", source, owner, repo, revisionOrID)
-		}
-		if buildLog == nil {
-			c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline build log not found"})
-			return
-		}
-		log.Info().Msgf("Retrieved build logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
-
-		c.JSON(http.StatusOK, buildLog)
+	buildLog, err := h.cockroachDBClient.GetPipelineBuildLogs(source, owner, repo, build.RepoBranch, build.RepoRevision)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from db", source, owner, repo, revisionOrID)
 	}
+	if buildLog == nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline build log not found"})
+		return
+	}
+	log.Info().Msgf("Retrieved build logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
+
+	c.JSON(http.StatusOK, buildLog)
 }
 
 func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
