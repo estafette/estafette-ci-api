@@ -196,6 +196,7 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 		log.Info().Msgf("Retrieved builds for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
 
 		c.JSON(http.StatusOK, build)
+		return
 	}
 
 	id, err := strconv.Atoi(revisionOrID)
