@@ -300,7 +300,6 @@ spec:
       labels:
         app: estafette-ci-api
         team: tooling
-        version: ${VERSION}
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9001"
@@ -330,7 +329,7 @@ spec:
                 - "true"
       containers:
       - name: estafette-ci-api
-        image: estafette/estafette-ci-api:${GO_PIPELINE_LABEL}
+        image: estafette/estafette-ci-api:${ESTAFETTE_BUILD_VERSION}
         imagePullPolicy: Always
         resources:
           requests:
@@ -428,7 +427,7 @@ spec:
     kind: Deployment
     name: estafette-ci-api
   minReplicas: 3
-  maxReplicas: ${MAX_PODS}
+  maxReplicas: 20
   targetCPUUtilizationPercentage: 80
 ---
 apiVersion: policy/v1beta1
