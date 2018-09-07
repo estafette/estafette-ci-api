@@ -141,9 +141,19 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	repositoryCredentialsJSONBytes, err := json.Marshal(cbc.config.ContainerRepositoryCredentials)
 	estafetteRepositoryCredentialsJSONKeyValue := string(repositoryCredentialsJSONBytes)
 
-	// temporarily pass build version equal to revision from the outside until estafette supports versioning
 	estafetteBuildVersionName := "ESTAFETTE_BUILD_VERSION"
 	estafetteBuildVersionValue := ciBuilderParams.VersionNumber
+
+	// set major and minor version if semver is used
+	estafetteBuildVersionMajorName := "ESTAFETTE_BUILD_VERSION_MAJOR"
+	estafetteBuildVersionMajorValue := ""
+	estafetteBuildVersionMinorName := "ESTAFETTE_BUILD_VERSION_MINOR"
+	estafetteBuildVersionMinorValue := ""
+	if ciBuilderParams.Manifest.Version.SemVer != nil {
+		estafetteBuildVersionMajorValue = strconv.Itoa(ciBuilderParams.Manifest.Version.SemVer.Major)
+		estafetteBuildVersionMinorValue = strconv.Itoa(ciBuilderParams.Manifest.Version.SemVer.Minor)
+	}
+
 	estafetteBuildVersionPatchName := "ESTAFETTE_BUILD_VERSION_PATCH"
 	estafetteBuildVersionPatchValue := fmt.Sprint(ciBuilderParams.AutoIncrement)
 	estafetteReleaseNameName := "ESTAFETTE_RELEASE_NAME"
@@ -219,6 +229,18 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		environmentVariables = append(environmentVariables, &corev1.EnvVar{
 			Name:  &estafetteBuildIDName,
 			Value: &estafetteBuildIDValue,
+		})
+	}
+
+	// set major and minor version if semver is used
+	if ciBuilderParams.Manifest.Version.SemVer != nil {
+		environmentVariables = append(environmentVariables, &corev1.EnvVar{
+			Name:  &estafetteBuildVersionMajorName,
+			Value: &estafetteBuildVersionMajorValue,
+		})
+		environmentVariables = append(environmentVariables, &corev1.EnvVar{
+			Name:  &estafetteBuildVersionMinorName,
+			Value: &estafetteBuildVersionMinorValue,
 		})
 	}
 
