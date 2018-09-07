@@ -28,6 +28,8 @@ type APIHandler interface {
 
 	GetStatsPipelinesCount(c *gin.Context)
 	GetStatsBuildsCount(c *gin.Context)
+	GetStatsReleasesCount(c *gin.Context)
+
 	GetStatsBuildsDuration(c *gin.Context)
 }
 
@@ -473,6 +475,25 @@ func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"count": pipelinesCount,
+	})
+}
+
+func (h *apiHandlerImpl) GetStatsReleasesCount(c *gin.Context) {
+
+	// get filters (?filter[status]=running,succeeded&filter[since]=1w
+	filters := map[string][]string{}
+	filters["status"] = h.getStatusFilter(c)
+	filters["since"] = h.getSinceFilter(c)
+
+	releasesCount, err := h.cockroachDBClient.GetReleasesCount(filters)
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Failed retrieving releases count from db")
+	}
+	log.Info().Msgf("Retrieved releases count %v", releasesCount)
+
+	c.JSON(http.StatusOK, gin.H{
+		"count": releasesCount,
 	})
 }
 

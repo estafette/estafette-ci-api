@@ -46,6 +46,7 @@ type DBClient interface {
 	GetPipelineLastReleaseByName(string, string, string, string) (*contracts.Release, error)
 	GetPipelineReleaseLogs(string, string, string, int) (*contracts.ReleaseLog, error)
 	GetBuildsCount(map[string][]string) (int, error)
+	GetReleasesCount(map[string][]string) (int, error)
 	GetBuildsDuration(map[string][]string) (time.Duration, error)
 	InsertBuildLog(contracts.BuildLog) error
 	InsertReleaseLog(contracts.ReleaseLog) error
@@ -1705,6 +1706,41 @@ func (dbc *cockroachDBClientImpl) GetBuildsCount(filters map[string][]string) (t
 	return
 }
 
+func (dbc *cockroachDBClientImpl) GetReleasesCount(filters map[string][]string) (totalCount int, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("COUNT(*)").
+			From("releases")
+
+	query, err = whereClauseGeneratorForAllReleaseFilters(query, filters)
+	if err != nil {
+		return
+	}
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	recordExists := rows.Next()
+
+	if !recordExists {
+		return
+	}
+
+	if err := rows.Scan(&totalCount); err != nil {
+		return 0, err
+	}
+
+	return
+}
+
 func (dbc *cockroachDBClientImpl) GetBuildsDuration(filters map[string][]string) (totalDuration time.Duration, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1765,10 +1801,33 @@ func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, filters map[strin
 	return query, nil
 }
 
+func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	query, err := whereClauseGeneratorForReleaseStatusFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForSinceFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+
+	return query, nil
+}
+
 func whereClauseGeneratorForStatusFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "all" {
 		query = query.Where(sq.Eq{"build_status": statuses})
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForReleaseStatusFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "all" {
+		query = query.Where(sq.Eq{"release_status": statuses})
 	}
 
 	return query, nil
