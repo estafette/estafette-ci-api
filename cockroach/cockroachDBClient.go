@@ -1654,19 +1654,9 @@ func (dbc *cockroachDBClientImpl) GetBuildsCount(filters map[string][]string) (t
 		return
 	}
 
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
-	if err != nil {
-		return
-	}
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
 
-	defer rows.Close()
-	recordExists := rows.Next()
-
-	if !recordExists {
-		return
-	}
-
-	if err := rows.Scan(&totalCount); err != nil {
+	if err := row.Scan(&totalCount); err != nil {
 		return 0, err
 	}
 
@@ -1689,19 +1679,9 @@ func (dbc *cockroachDBClientImpl) GetReleasesCount(filters map[string][]string) 
 		return
 	}
 
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
-	if err != nil {
-		return
-	}
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
 
-	defer rows.Close()
-	recordExists := rows.Next()
-
-	if !recordExists {
-		return
-	}
-
-	if err := rows.Scan(&totalCount); err != nil {
+	if err := row.Scan(&totalCount); err != nil {
 		return 0, err
 	}
 
@@ -1724,21 +1704,11 @@ func (dbc *cockroachDBClientImpl) GetBuildsDuration(filters map[string][]string)
 		return
 	}
 
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
-	if err != nil {
-		return
-	}
-
-	defer rows.Close()
-	recordExists := rows.Next()
-
-	if !recordExists {
-		return
-	}
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
 
 	var totalDurationAsString string
 
-	if err := rows.Scan(&totalDurationAsString); err != nil {
+	if err := row.Scan(&totalDurationAsString); err != nil {
 		return 0, err
 	}
 
