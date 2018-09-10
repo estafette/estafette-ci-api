@@ -179,7 +179,7 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBu
 	}
 
 	// insert logs
-	rows, err := dbc.databaseConnection.Query(
+	row := dbc.databaseConnection.QueryRow(
 		`
 		INSERT INTO
 			builds
@@ -226,20 +226,9 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBu
 		commitsBytes,
 	)
 
-	if err != nil {
-		return
-	}
-
-	defer rows.Close()
-	recordExists := rows.Next()
-
-	if !recordExists {
-		return
-	}
-
 	insertedBuild = build
 
-	if err := rows.Scan(&insertedBuild.ID); err != nil {
+	if err := row.Scan(&insertedBuild.ID); err != nil {
 		return insertedBuild, err
 	}
 
@@ -1343,7 +1332,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesCount(repoSource, repoOwner
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	rows, err := dbc.databaseConnection.Query(
+	row := dbc.databaseConnection.QueryRow(
 		`
 		SELECT
 			COUNT(*)
@@ -1358,18 +1347,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesCount(repoSource, repoOwner
 		repoOwner,
 		repoName,
 	)
-	if err != nil {
-		return
-	}
 
-	defer rows.Close()
-	recordExists := rows.Next()
-
-	if !recordExists {
-		return
-	}
-
-	if err := rows.Scan(&totalCount); err != nil {
+	if err := row.Scan(&totalCount); err != nil {
 		return 0, err
 	}
 
@@ -1380,7 +1359,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	rows, err := dbc.databaseConnection.Query(
+	row := dbc.databaseConnection.QueryRow(
 		`
 		SELECT
 			id,
@@ -1408,22 +1387,10 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 		repoOwner,
 		repoName,
 	)
-	if err != nil {
-		return
-	}
-
-	recordExists := false
-
-	defer rows.Close()
-	recordExists = rows.Next()
-
-	if !recordExists {
-		return
-	}
 
 	release = &contracts.Release{}
 
-	if err := rows.Scan(
+	if err := row.Scan(
 		&id,
 		&release.RepoSource,
 		&release.RepoOwner,
