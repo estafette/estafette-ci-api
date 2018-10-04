@@ -23,6 +23,9 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "gce"
     kubernetes.io/ingress.allow-http: "false"
+    estafette.io/cloudflare-dns: "true"
+    estafette.io/cloudflare-proxy: "true"
+    estafette.io/cloudflare-hostnames: "${HOSTNAMES}"
 spec:
   tls:
   - hosts:
@@ -52,9 +55,6 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/secure-backends: "true"
-    estafette.io/cloudflare-dns: "true"
-    estafette.io/cloudflare-proxy: "true"
-    estafette.io/cloudflare-hostnames: "${HOSTNAMES}"
 spec:
   tls:
   - hosts:
