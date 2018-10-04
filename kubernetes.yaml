@@ -47,31 +47,6 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: estafette-ci-api
-  namespace: estafette
-  labels:
-    app: estafette-ci-api
-    team: tooling
-  annotations:
-    kubernetes.io/ingress.class: "nginx"
-    nginx.ingress.kubernetes.io/secure-backends: "true"
-spec:
-  tls:
-  - hosts:
-    - ${HOSTNAMES}
-    secretName: estafette-ci-api-letsencrypt-certificate
-  rules:
-  - host: ${HOSTNAMES}
-    http:
-      paths:
-      - path: /api
-        backend:
-          serviceName: estafette-ci-api
-          servicePort: https
----
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
   name: estafette-ci-api-slack
   namespace: estafette
   labels:
