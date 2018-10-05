@@ -83,6 +83,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "this is my secret", apiServerConfig.APIKey)
 		assert.Equal(t, 100, apiServerConfig.EventChannelBufferSize)
 		assert.Equal(t, 5, apiServerConfig.MaxWorkers)
+		assert.Equal(t, "/projects/***/global/backendServices/***", apiServerConfig.IAPAudience)
 	})
 
 	t.Run("ReturnsDatabaseConfig", func(t *testing.T) {

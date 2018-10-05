@@ -8,6 +8,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/config"
+	"github.com/estafette/estafette-ci-api/iap"
 	"github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -31,6 +32,8 @@ type APIHandler interface {
 	GetStatsReleasesCount(c *gin.Context)
 
 	GetStatsBuildsDuration(c *gin.Context)
+
+	GetLoggedInUser(*gin.Context)
 }
 
 type apiHandlerImpl struct {
@@ -533,6 +536,25 @@ func (h *apiHandlerImpl) GetStatsBuildsDuration(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"duration": buildsDuration,
 	})
+}
+
+func (h *apiHandlerImpl) GetLoggedInUser(c *gin.Context) {
+
+	authenticated := false
+	email := ""
+	iapJWT := c.Request.Header.Get("x-goog-iap-jwt-assertion")
+
+	if iapJWT != "" {
+		emailFromJWT, err := iap.GetEmailFromIAPJWT(iapJWT, h.config.IAPAudience)
+		if err == nil {
+			authenticated = true
+			email = emailFromJWT
+		} else {
+			log.Warn().Str("jwt", iapJWT).Err(err).Msg("Checking iap jwt failed")
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"authenticated": authenticated, "email": email})
 }
 
 func (h *apiHandlerImpl) getStatusFilter(c *gin.Context) []string {

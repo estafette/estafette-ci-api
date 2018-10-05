@@ -29,6 +29,7 @@ apiServer:
   apiKey: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
   eventChannelBufferSize: 100
   maxWorkers: 5
+  iapAudience: /projects/***/global/backendServices/***
 
 database:
   databaseName: estafette_ci_api

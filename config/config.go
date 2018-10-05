@@ -25,6 +25,7 @@ type APIServerConfig struct {
 	APIKey                 string `yaml:"apiKey"`
 	EventChannelBufferSize int    `yaml:"eventChannelBufferSize"`
 	MaxWorkers             int    `yaml:"maxWorkers"`
+	IAPAudience            string `yaml:"iapAudience"`
 }
 
 // DatabaseConfig contains config for the dabase connection

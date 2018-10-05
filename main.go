@@ -251,6 +251,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	router.GET("/api/stats/buildscount", estafetteAPIHandler.GetStatsBuildsCount)
 	router.GET("/api/stats/releasescount", estafetteAPIHandler.GetStatsReleasesCount)
 	router.GET("/api/stats/buildsduration", estafetteAPIHandler.GetStatsBuildsDuration)
+	router.GET("/api/users/me", estafetteAPIHandler.GetLoggedInUser)
 
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown
 	srv := &http.Server{

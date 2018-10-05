@@ -230,6 +230,7 @@ data:
       apiKey: ${ESTAFETTE_CI_API_KEY}
       eventChannelBufferSize: 100
       maxWorkers: 5
+      iapAudience: ${IAP_AUDIENCE}
 
     database:
       databaseName: ${COCKROACH_DATABASE}
