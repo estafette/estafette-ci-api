@@ -233,7 +233,7 @@ data:
 
     auth:
       iap:
-        enableAuthentication: true
+        enable: true
         audience: ${IAP_AUDIENCE}
 
     database:
