@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/config"
-	"github.com/estafette/estafette-ci-api/iap"
 	"github.com/estafette/estafette-ci-contracts"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
@@ -24,6 +25,7 @@ type APIHandler interface {
 	PostPipelineBuildLogs(*gin.Context)
 	GetPipelineReleases(*gin.Context)
 	GetPipelineRelease(*gin.Context)
+	CreatePipelineRelease(*gin.Context)
 	GetPipelineReleaseLogs(*gin.Context)
 	PostPipelineReleaseLogs(*gin.Context)
 
@@ -38,15 +40,24 @@ type APIHandler interface {
 
 type apiHandlerImpl struct {
 	config            config.APIServerConfig
+	authConfig        config.AuthConfig
 	cockroachDBClient cockroach.DBClient
+
+	ciBuilderClient      CiBuilderClient
+	githubJobVarsFunc    func(string, string, string) (string, string, error)
+	bitbucketJobVarsFunc func(string, string, string) (string, string, error)
 }
 
 // NewAPIHandler returns a new estafette.APIHandler
-func NewAPIHandler(config config.APIServerConfig, cockroachDBClient cockroach.DBClient) (apiHandler APIHandler) {
+func NewAPIHandler(config config.APIServerConfig, authConfig config.AuthConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error)) (apiHandler APIHandler) {
 
 	apiHandler = &apiHandlerImpl{
-		config:            config,
-		cockroachDBClient: cockroachDBClient,
+		config:               config,
+		authConfig:           authConfig,
+		cockroachDBClient:    cockroachDBClient,
+		ciBuilderClient:      ciBuilderClient,
+		githubJobVarsFunc:    githubJobVarsFunc,
+		bitbucketJobVarsFunc: bitbucketJobVarsFunc,
 	}
 
 	return
@@ -56,16 +67,16 @@ func NewAPIHandler(config config.APIServerConfig, cockroachDBClient cockroach.DB
 func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 
 	// get page number query string value or default to 1
-	pageNumberValue, pageNumberExists := c.GetQuery("page[number]")
+	pageNumberValue := c.DefaultQuery("page[number]", "1")
 	pageNumber, err := strconv.Atoi(pageNumberValue)
-	if !pageNumberExists || err != nil {
+	if err != nil {
 		pageNumber = 1
 	}
 
 	// get page number query string value or default to 20 (maximize at 100)
-	pageSizeValue, pageSizeExists := c.GetQuery("page[size]")
+	pageSizeValue := c.DefaultQuery("page[size]", "20")
 	pageSize, err := strconv.Atoi(pageSizeValue)
-	if !pageSizeExists || err != nil {
+	if err != nil {
 		pageSize = 20
 	}
 	if pageSize > 100 {
@@ -363,6 +374,157 @@ func (h *apiHandlerImpl) GetPipelineReleases(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
+
+	user := c.MustGet(gin.AuthUserKey).(auth.User)
+
+	var releaseCommand contracts.Release
+	c.BindJSON(&releaseCommand)
+
+	// match source, owner, repo with values in binded release
+	if releaseCommand.RepoSource != c.Param("source") {
+		errorMessage := fmt.Sprintf("RepoSource in path and post data do not match for pipeline %v/%v/%v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
+		log.Error().Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+	}
+	if releaseCommand.RepoOwner != c.Param("owner") {
+		errorMessage := fmt.Sprintf("RepoOwner in path and post data do not match for pipeline %v/%v/%v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
+		log.Error().Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+	}
+	if releaseCommand.RepoName != c.Param("repo") {
+		errorMessage := fmt.Sprintf("RepoName in path and post data do not match for pipeline %v/%v/%v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
+		log.Error().Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+	}
+
+	pipeline, err := h.cockroachDBClient.GetPipeline(releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving pipeline %v/%v/%v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+	if pipeline == nil {
+		errorMessage := fmt.Sprintf("No pipeline %v/%v/%v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
+		log.Error().Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+	}
+
+	// check if version exists and is valid to release
+	build, err := h.cockroachDBClient.GetPipelineBuildByVersion(releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+	if build == nil {
+		errorMessage := fmt.Sprintf("No build %v/%v/%v version %v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
+		log.Error().Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+	}
+	if build.BuildStatus != "succeeded" {
+		errorMessage := fmt.Sprintf("Build %v for pipeline %v/%v/%v has status %v for release command; only succeeded pipelines are allowed to be released", releaseCommand.ReleaseVersion, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, build.BuildStatus)
+		log.Error().Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+	}
+
+	// check if release target exists
+	releaseExists := false
+	for _, release := range build.Releases {
+		if release.Name == releaseCommand.Name {
+			releaseExists = true
+			break
+		}
+	}
+	if !releaseExists {
+		errorMessage := fmt.Sprintf("Build %v for pipeline %v/%v/%v has no release %v for release command", releaseCommand.ReleaseVersion, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.Name)
+		log.Error().Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+	}
+
+	// create release in database
+	release := contracts.Release{
+		Name:           releaseCommand.Name,
+		RepoSource:     releaseCommand.RepoSource,
+		RepoOwner:      releaseCommand.RepoOwner,
+		RepoName:       releaseCommand.RepoName,
+		ReleaseVersion: releaseCommand.ReleaseVersion,
+		ReleaseStatus:  "running",
+		TriggeredBy:    user.Email,
+	}
+	insertedRelease, err := h.cockroachDBClient.InsertRelease(release)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed creating release in database for build %v for pipeline %v/%v/%v and release %v for release command", releaseCommand.ReleaseVersion, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.Name)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	// get authenticated url
+	var authenticatedRepositoryURL string
+	var environmentVariableWithToken map[string]string
+	switch build.RepoSource {
+	case "github.com":
+		var accessToken string
+		accessToken, authenticatedRepositoryURL, err = h.githubJobVarsFunc(releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
+		if err != nil {
+			errorMessage := fmt.Sprintf("Getting access token and authenticated github url for repository %v/%v/%v failed", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
+			log.Error().Err(err).Msg(errorMessage)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		}
+		environmentVariableWithToken = map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken}
+
+	case "bitbucket.org":
+		var accessToken string
+		accessToken, authenticatedRepositoryURL, err = h.bitbucketJobVarsFunc(releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
+		if err != nil {
+			errorMessage := fmt.Sprintf("Getting access token and authenticated bitbucket url for repository %v/%v/%v failed", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
+			log.Error().Err(err).Msg(errorMessage)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		}
+		environmentVariableWithToken = map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken}
+	}
+
+	manifest, err := manifest.ReadManifest(build.Manifest)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Reading the estafette manifest for repository %v/%v/%v build %v failed", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	insertedReleaseID, err := strconv.Atoi(insertedRelease.ID)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Converting the release id to a string for repository %v/%v/%v build %v failed", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	// start release job
+	ciBuilderParams := CiBuilderParams{
+		RepoSource:           releaseCommand.RepoSource,
+		RepoFullName:         fmt.Sprintf("%v/%v", releaseCommand.RepoOwner, releaseCommand.RepoName),
+		RepoURL:              authenticatedRepositoryURL,
+		RepoBranch:           build.RepoBranch,
+		RepoRevision:         build.RepoRevision,
+		EnvironmentVariables: environmentVariableWithToken,
+		Track:                manifest.Builder.Track,
+		//AutoIncrement:    autoincrement,
+		VersionNumber:    releaseCommand.ReleaseVersion,
+		HasValidManifest: true,
+		Manifest:         manifest,
+		ReleaseID:        insertedReleaseID,
+		ReleaseName:      releaseCommand.Name,
+	}
+
+	_, err = h.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Creating release job for release id %v for repository %v/%v/%v build %v failed", insertedRelease.ID, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	c.JSON(http.StatusCreated, insertedRelease)
+}
+
 func (h *apiHandlerImpl) GetPipelineRelease(c *gin.Context) {
 	source := c.Param("source")
 	owner := c.Param("owner")
@@ -540,21 +702,9 @@ func (h *apiHandlerImpl) GetStatsBuildsDuration(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetLoggedInUser(c *gin.Context) {
 
-	authenticated := false
-	email := ""
-	iapJWT := c.Request.Header.Get("x-goog-iap-jwt-assertion")
+	user := c.MustGet(gin.AuthUserKey).(auth.User)
 
-	if iapJWT != "" {
-		emailFromJWT, err := iap.GetEmailFromIAPJWT(iapJWT, h.config.IAPAudience)
-		if err == nil {
-			authenticated = true
-			email = emailFromJWT
-		} else {
-			log.Warn().Str("jwt", iapJWT).Err(err).Msg("Checking iap jwt failed")
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{"authenticated": authenticated, "email": email})
+	c.JSON(http.StatusOK, user)
 }
 
 func (h *apiHandlerImpl) getStatusFilter(c *gin.Context) []string {

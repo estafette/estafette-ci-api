@@ -1,4 +1,4 @@
-package iap
+package auth
 
 //{ "keys" : [
 // {
@@ -24,4 +24,10 @@ type JSONWebKey struct {
 // JWKResponse as returned by https://www.gstatic.com/iap/verify/public_key-jwk
 type JWKResponse struct {
 	Keys []JSONWebKey `json:"keys"`
+}
+
+// User has the basic properties used for authentication
+type User struct {
+	Authenticated bool   `json:"authenticated"`
+	Email         string `json:"email"`
 }

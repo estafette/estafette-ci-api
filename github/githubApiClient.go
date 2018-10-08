@@ -28,6 +28,8 @@ type APIClient interface {
 	GetAuthenticatedRepositoryURL(ghcontracts.AccessToken, string) (string, error)
 	GetEstafetteManifest(ghcontracts.AccessToken, ghcontracts.PushEvent) (bool, string, error)
 	callGithubAPI(string, string, interface{}, string, string) (int, []byte, error)
+
+	JobVarsFunc() func(string, string, string) (string, string, error)
 }
 
 type apiClientImpl struct {
@@ -177,6 +179,31 @@ func (gh *apiClientImpl) GetEstafetteManifest(accessToken ghcontracts.AccessToke
 	}
 
 	return
+}
+
+// JobVarsFunc returns a function that can get an access token and authenticated url for a repository
+func (gh *apiClientImpl) JobVarsFunc() func(string, string, string) (string, string, error) {
+	return func(repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		// get installation id with just the repo owner
+		installationID, err := gh.GetInstallationID(repoOwner)
+		if err != nil {
+			return "", "", err
+		}
+
+		// get access token
+		accessToken, err := gh.GetInstallationToken(installationID)
+		if err != nil {
+			return "", "", err
+		}
+
+		// get authenticated url for the repository
+		url, err = gh.GetAuthenticatedRepositoryURL(accessToken, fmt.Sprintf("https://%v/%v/%v", repoSource, repoOwner, repoName))
+		if err != nil {
+			return "", "", err
+		}
+
+		return accessToken.Token, url, nil
+	}
 }
 
 func (gh *apiClientImpl) callGithubAPI(method, url string, params interface{}, authorizationType, token string) (statusCode int, body []byte, err error) {

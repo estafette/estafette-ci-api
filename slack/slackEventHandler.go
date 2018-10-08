@@ -6,9 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/estafette/estafette-ci-api/bitbucket"
-	"github.com/estafette/estafette-ci-api/github"
-
 	"github.com/estafette/estafette-ci-manifest"
 
 	"github.com/estafette/estafette-ci-contracts"
@@ -34,21 +31,21 @@ type eventHandlerImpl struct {
 	cockroachDBClient            cockroach.DBClient
 	apiConfig                    config.APIServerConfig
 	ciBuilderClient              estafette.CiBuilderClient
-	bitbucketAPIClient           bitbucket.APIClient
-	githubAPIClient              github.APIClient
+	githubJobVarsFunc            func(string, string, string) (string, string, error)
+	bitbucketJobVarsFunc         func(string, string, string) (string, string, error)
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewSlackEventHandler returns a new slack.EventHandler
-func NewSlackEventHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, cockroachDBClient cockroach.DBClient, apiConfig config.APIServerConfig, ciBuilderClient estafette.CiBuilderClient, bitbucketAPIClient bitbucket.APIClient, githubAPIClient github.APIClient, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewSlackEventHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, cockroachDBClient cockroach.DBClient, apiConfig config.APIServerConfig, ciBuilderClient estafette.CiBuilderClient, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error), prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		secretHelper:                 secretHelper,
 		config:                       config,
 		cockroachDBClient:            cockroachDBClient,
 		apiConfig:                    apiConfig,
 		ciBuilderClient:              ciBuilderClient,
-		bitbucketAPIClient:           bitbucketAPIClient,
-		githubAPIClient:              githubAPIClient,
+		githubJobVarsFunc:            githubJobVarsFunc,
+		bitbucketJobVarsFunc:         bitbucketJobVarsFunc,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
 }
@@ -213,41 +210,22 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					var environmentVariableWithToken map[string]string
 					switch build.RepoSource {
 					case "github.com":
-						// get installation id with just the repo owner
-						installationID, err := h.githubAPIClient.GetInstallationID(build.RepoOwner)
+						var accessToken string
+						accessToken, authenticatedRepositoryURL, err = h.githubJobVarsFunc(build.RepoSource, build.RepoOwner, build.RepoName)
 						if err != nil {
-							c.String(http.StatusOK, fmt.Sprintf("Retrieving github app installation id repository owner %v failed: %v", build.RepoOwner, err))
+							c.String(http.StatusOK, fmt.Sprintf("Retrieving access token and authenticated github url for repository %v/%v/%v failed: %v", build.RepoSource, build.RepoOwner, build.RepoName, err))
 							return
 						}
-
-						// get access token
-						accessToken, err := h.githubAPIClient.GetInstallationToken(installationID)
-						if err != nil {
-							c.String(http.StatusOK, fmt.Sprintf("Retrieving github access token for repository %v and version %v failed: %v", fullRepoName, buildVersion, err))
-							return
-						}
-						// get authenticated url for the repository
-						authenticatedRepositoryURL, err = h.githubAPIClient.GetAuthenticatedRepositoryURL(accessToken, fmt.Sprintf("https://%v/%v/%v", build.RepoSource, build.RepoOwner, build.RepoName))
-						if err != nil {
-							c.String(http.StatusOK, fmt.Sprintf("Constructing authenticated github url for repository %v and version %v failed: %v", fullRepoName, buildVersion, err))
-							return
-						}
-						environmentVariableWithToken = map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken.Token}
+						environmentVariableWithToken = map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken}
 
 					case "bitbucket.org":
-						// get access token
-						accessToken, err := h.bitbucketAPIClient.GetAccessToken()
+						var accessToken string
+						accessToken, authenticatedRepositoryURL, err = h.bitbucketJobVarsFunc(build.RepoSource, build.RepoOwner, build.RepoName)
 						if err != nil {
-							c.String(http.StatusOK, fmt.Sprintf("Retrieving bitbucket access token for repository %v and version %v failed: %v", fullRepoName, buildVersion, err))
+							c.String(http.StatusOK, fmt.Sprintf("Retrieving access token and authenticated bitbucket url for repository %v/%v/%v failed: %v", build.RepoSource, build.RepoOwner, build.RepoName, err))
 							return
 						}
-						// get authenticated url for the repository
-						authenticatedRepositoryURL, err = h.bitbucketAPIClient.GetAuthenticatedRepositoryURL(accessToken, fmt.Sprintf("https://%v/%v/%v", build.RepoSource, build.RepoOwner, build.RepoName))
-						if err != nil {
-							c.String(http.StatusOK, fmt.Sprintf("Constructing authenticated bitbucket url for repository %v and version %v failed: %v", fullRepoName, buildVersion, err))
-							return
-						}
-						environmentVariableWithToken = map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken.AccessToken}
+						environmentVariableWithToken = map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken}
 					}
 
 					manifest, err := manifest.ReadManifest(build.Manifest)

@@ -14,6 +14,7 @@ import (
 type APIConfig struct {
 	Integrations                   *APIConfigIntegrations                           `yaml:"integrations,omitempty"`
 	APIServer                      *APIServerConfig                                 `yaml:"apiServer,omitempty"`
+	Auth                           *AuthConfig                                      `yaml:"auth,omitempty"`
 	Database                       *DatabaseConfig                                  `yaml:"database,omitempty"`
 	ContainerRepositoryCredentials []*contracts.ContainerRepositoryCredentialConfig `yaml:"containerRepositoryCredentials,omitempty"`
 }
@@ -25,7 +26,17 @@ type APIServerConfig struct {
 	APIKey                 string `yaml:"apiKey"`
 	EventChannelBufferSize int    `yaml:"eventChannelBufferSize"`
 	MaxWorkers             int    `yaml:"maxWorkers"`
-	IAPAudience            string `yaml:"iapAudience"`
+}
+
+// AuthConfig determines whether to use IAP for authentication and authorization
+type AuthConfig struct {
+	IAP *IAPAuthConfig `yaml:"iap"`
+}
+
+// IAPAuthConfig sets iap config in case it's used for authentication and authorization
+type IAPAuthConfig struct {
+	Enable   bool   `yaml:"enable"`
+	Audience string `yaml:"audience"`
 }
 
 // DatabaseConfig contains config for the dabase connection

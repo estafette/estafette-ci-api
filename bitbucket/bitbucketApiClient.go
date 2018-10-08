@@ -21,6 +21,8 @@ type APIClient interface {
 	GetAccessToken() (bbcontracts.AccessToken, error)
 	GetAuthenticatedRepositoryURL(bbcontracts.AccessToken, string) (string, error)
 	GetEstafetteManifest(bbcontracts.AccessToken, bbcontracts.RepositoryPushEvent) (bool, string, error)
+
+	JobVarsFunc() func(string, string, string) (string, string, error)
 }
 
 type apiClientImpl struct {
@@ -129,4 +131,22 @@ func (bb *apiClientImpl) GetEstafetteManifest(accessToken bbcontracts.AccessToke
 	}
 
 	return
+}
+
+// JobVarsFunc returns a function that can get an access token and authenticated url for a repository
+func (bb *apiClientImpl) JobVarsFunc() func(string, string, string) (string, string, error) {
+	return func(repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		// get access token
+		accessToken, err := bb.GetAccessToken()
+		if err != nil {
+			return "", "", err
+		}
+		// get authenticated url for the repository
+		url, err = bb.GetAuthenticatedRepositoryURL(accessToken, fmt.Sprintf("https://%v/%v/%v", repoSource, repoOwner, repoName))
+		if err != nil {
+			return "", "", err
+		}
+
+		return accessToken.AccessToken, url, nil
+	}
 }

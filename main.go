@@ -14,6 +14,7 @@ import (
 	"github.com/estafette/estafette-ci-crypt"
 
 	"github.com/alecthomas/kingpin"
+	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/bitbucket"
 	bbcontracts "github.com/estafette/estafette-ci-api/bitbucket/contracts"
 	"github.com/estafette/estafette-ci-api/cockroach"
@@ -230,13 +231,13 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketPushEvents, prometheusInboundEventTotals)
 	router.POST("/api/integrations/bitbucket/events", bitbucketEventHandler.Handle)
 
-	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, cockroachDBClient, *config.APIServer, ciBuilderClient, bitbucketAPIClient, githubAPIClient, prometheusInboundEventTotals)
+	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, cockroachDBClient, *config.APIServer, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc(), prometheusInboundEventTotals)
 	router.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
 
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, estafetteCiBuilderEvents, prometheusInboundEventTotals)
 	router.POST("/api/commands", estafetteEventHandler.Handle)
 
-	estafetteAPIHandler := estafette.NewAPIHandler(*config.APIServer, cockroachDBClient)
+	estafetteAPIHandler := estafette.NewAPIHandler(*config.APIServer, *config.Auth, cockroachDBClient, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
 	router.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
 	router.GET("/api/pipelines/:source/:owner/:repo", estafetteAPIHandler.GetPipeline)
 	router.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)
@@ -251,7 +252,11 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	router.GET("/api/stats/buildscount", estafetteAPIHandler.GetStatsBuildsCount)
 	router.GET("/api/stats/releasescount", estafetteAPIHandler.GetStatsReleasesCount)
 	router.GET("/api/stats/buildsduration", estafetteAPIHandler.GetStatsBuildsDuration)
-	router.GET("/api/users/me", estafetteAPIHandler.GetLoggedInUser)
+
+	// authenticated urls
+	authMiddleware := auth.NewAuthMiddleware(*config.Auth)
+	router.Use(authMiddleware.MiddlewareFunc()).POST("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.CreatePipelineRelease)
+	router.Use(authMiddleware.MiddlewareFunc()).GET("/api/users/me", estafetteAPIHandler.GetLoggedInUser)
 
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown
 	srv := &http.Server{

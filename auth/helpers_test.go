@@ -1,4 +1,4 @@
-package iap
+package auth
 
 import (
 	"crypto/elliptic"

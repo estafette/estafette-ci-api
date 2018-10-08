@@ -83,7 +83,19 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "this is my secret", apiServerConfig.APIKey)
 		assert.Equal(t, 100, apiServerConfig.EventChannelBufferSize)
 		assert.Equal(t, 5, apiServerConfig.MaxWorkers)
-		assert.Equal(t, "/projects/***/global/backendServices/***", apiServerConfig.IAPAudience)
+	})
+
+	t.Run("ReturnsAuthConfig", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml")
+
+		authConfig := config.Auth
+
+		assert.True(t, authConfig.IAP.Enable)
+		assert.Equal(t, "/projects/***/global/backendServices/***", authConfig.IAP.Audience)
 	})
 
 	t.Run("ReturnsDatabaseConfig", func(t *testing.T) {
