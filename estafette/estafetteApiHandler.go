@@ -515,12 +515,7 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 		ReleaseName:      releaseCommand.Name,
 	}
 
-	_, err = h.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
-	if err != nil {
-		errorMessage := fmt.Sprintf("Creating release job for release id %v for repository %v/%v/%v build %v failed", insertedRelease.ID, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
-		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
-	}
+	go h.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
 
 	c.JSON(http.StatusCreated, insertedRelease)
 }
