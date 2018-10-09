@@ -1,4 +1,4 @@
-package slack
+package contracts
 
 // SlashCommand represents a slash command from Slack
 type SlashCommand struct {
@@ -14,4 +14,16 @@ type SlashCommand struct {
 	Command        string `form:"command"`
 	Text           string `form:"text"`
 	ResponseURL    string `form:"response_url"`
+}
+
+// GetUserProfileResponse represents the api response for retrieving a
+type GetUserProfileResponse struct {
+	OK      bool         `json:"ok"`
+	Profile *UserProfile `json:"profile"`
+	Error   string       `json:"error"`
+}
+
+// UserProfile represents a Slack user profile
+type UserProfile struct {
+	Email string `json:"email"`
 }

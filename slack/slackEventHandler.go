@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	slcontracts "github.com/estafette/estafette-ci-api/slack/contracts"
 	"github.com/estafette/estafette-ci-manifest"
 
 	"github.com/estafette/estafette-ci-contracts"
@@ -22,12 +23,13 @@ import (
 // EventHandler handles http events for Slack integration
 type EventHandler interface {
 	Handle(*gin.Context)
-	HasValidVerificationToken(SlashCommand) bool
+	HasValidVerificationToken(slcontracts.SlashCommand) bool
 }
 
 type eventHandlerImpl struct {
 	secretHelper                 crypt.SecretHelper
 	config                       config.SlackConfig
+	slackAPIClient               APIClient
 	cockroachDBClient            cockroach.DBClient
 	apiConfig                    config.APIServerConfig
 	ciBuilderClient              estafette.CiBuilderClient
@@ -37,10 +39,11 @@ type eventHandlerImpl struct {
 }
 
 // NewSlackEventHandler returns a new slack.EventHandler
-func NewSlackEventHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, cockroachDBClient cockroach.DBClient, apiConfig config.APIServerConfig, ciBuilderClient estafette.CiBuilderClient, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error), prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewSlackEventHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, slackAPIClient APIClient, cockroachDBClient cockroach.DBClient, apiConfig config.APIServerConfig, ciBuilderClient estafette.CiBuilderClient, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error), prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		secretHelper:                 secretHelper,
 		config:                       config,
+		slackAPIClient:               slackAPIClient,
 		cockroachDBClient:            cockroachDBClient,
 		apiConfig:                    apiConfig,
 		ciBuilderClient:              ciBuilderClient,
@@ -56,7 +59,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": "", "source": "slack"}).Inc()
 
-	var slashCommand SlashCommand
+	var slashCommand slcontracts.SlashCommand
 	// This will infer what binder to use depending on the content-type header.
 	err := c.Bind(&slashCommand)
 	if err != nil {
@@ -189,6 +192,13 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 						return
 					}
 
+					// get user profile from api to set email address for TriggeredBy
+					profile, err := h.slackAPIClient.GetUserProfile(slashCommand.UserID)
+					if err != nil {
+						c.String(http.StatusOK, fmt.Sprintf("Failed retrieving Slack user profile for user id %v: %v", slashCommand.UserID, err))
+						return
+					}
+
 					// create release in database
 					release := contracts.Release{
 						Name:           releaseName,
@@ -197,7 +207,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 						RepoName:       build.RepoName,
 						ReleaseVersion: buildVersion,
 						ReleaseStatus:  "running",
-						TriggeredBy:    slashCommand.UserName,
+						TriggeredBy:    profile.Email,
 					}
 					insertedRelease, err := h.cockroachDBClient.InsertRelease(release)
 					if err != nil {
@@ -277,6 +287,6 @@ func (h *eventHandlerImpl) createReleaseJob(ciBuilderParams estafette.CiBuilderP
 	}
 }
 
-func (h *eventHandlerImpl) HasValidVerificationToken(slashCommand SlashCommand) bool {
+func (h *eventHandlerImpl) HasValidVerificationToken(slashCommand slcontracts.SlashCommand) bool {
 	return slashCommand.Token == h.config.AppVerificationToken
 }
