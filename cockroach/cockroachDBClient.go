@@ -140,7 +140,7 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string
 		SELECT
 			auto_increment
 		FROM
-			build_versions
+			build_versions a
 		WHERE
 			repo_source=$1 AND
 			repo_full_name=$2
@@ -394,16 +394,12 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
-	innerQuery :=
-		psql.
-			Select("*, RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) AS build_version_rank").
-			From("builds")
-
 	query :=
 		psql.
-			Select("id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,releases,manifest,commits,inserted_at,updated_at").
-			FromSelect(innerQuery, "ranked_builds").
-			Where(sq.Eq{"build_version_rank": 1})
+			Select("a.id,a.repo_source,a.repo_owner,a.repo_name,a.repo_branch,a.repo_revision,a.build_version,a.build_status,a.labels,a.releases,a.manifest,a.commits,a.inserted_at,a.updated_at").
+			From("builds a").
+			LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
+			Where("b.id IS NULL")
 
 	query, err = whereClauseGeneratorForAllFilters(query, filters)
 	if err != nil {
@@ -504,17 +500,13 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
-	innerQuery :=
-		psql.
-			Select("*, RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) AS build_version_rank").
-			From("builds")
-
 	query :=
 		psql.
-			Select("id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,releases,manifest,commits,inserted_at,updated_at").
-			FromSelect(innerQuery, "ranked_builds").
-			Where(sq.Eq{"build_version_rank": 1}).
-			Where(sq.Eq{"repo_name": repoName})
+			Select("a.id,a.repo_source,a.repo_owner,a.repo_name,a.repo_branch,a.repo_revision,a.build_version,a.build_status,a.labels,a.releases,a.manifest,a.commits,a.inserted_at,a.updated_at").
+			From("builds a").
+			LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
+			Where("b.id IS NULL").
+			Where(sq.Eq{"a.repo_name": repoName})
 
 	pipelines = make([]*contracts.Pipeline, 0)
 
@@ -591,16 +583,12 @@ func (dbc *cockroachDBClientImpl) GetPipelinesCount(filters map[string][]string)
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
-	innerQuery :=
-		psql.
-			Select("*, RANK() OVER (PARTITION BY repo_source,repo_owner,repo_name ORDER BY inserted_at DESC) AS build_version_rank").
-			From("builds")
-
 	query :=
 		psql.
-			Select("COUNT(*)").
-			FromSelect(innerQuery, "ranked_builds").
-			Where(sq.Eq{"build_version_rank": 1})
+			Select("COUNT(a.id)").
+			From("builds a").
+			LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
+			Where("b.id IS NULL")
 
 	query, err = whereClauseGeneratorForAllFilters(query, filters)
 
@@ -645,7 +633,7 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 			inserted_at,
 			updated_at
 		FROM
-			builds
+			builds a
 		WHERE
 			repo_source=$1 AND
 			repo_owner=$2 AND
@@ -765,7 +753,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 			inserted_at,
 			updated_at
 		FROM
-			builds
+			builds a
 		WHERE
 			repo_source=$1 AND
 			repo_owner=$2 AND
@@ -855,7 +843,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsCount(repoSource, repoOwner, 
 		SELECT
 			COUNT(*)
 		FROM
-			builds
+			builds a
 		WHERE
 			repo_source=$1 AND
 			repo_owner=$2 AND
@@ -905,7 +893,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 			inserted_at,
 			updated_at
 		FROM
-			builds
+			builds a
 		WHERE
 			repo_source=$1 AND
 			repo_owner=$2 AND
@@ -1011,7 +999,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 			inserted_at,
 			updated_at
 		FROM
-			builds
+			builds a
 		WHERE
 			repo_source=$1 AND
 			repo_owner=$2 AND
@@ -1117,7 +1105,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByVersion(repoSource, repoOwne
 			inserted_at,
 			updated_at
 		FROM
-			builds
+			builds a
 		WHERE
 			repo_source=$1 AND
 			repo_owner=$2 AND
@@ -1217,7 +1205,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 			steps,
 			inserted_at
 		FROM
-			build_logs_v2
+			build_logs_v2 a
 		WHERE
 			repo_source=$1 AND
 			repo_owner=$2 AND
@@ -1280,7 +1268,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, rep
 			inserted_at,
 			updated_at
 		FROM
-			releases
+			releases a
 		WHERE
 			repo_source=$1 AND
 			repo_owner=$2 AND
@@ -1337,7 +1325,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesCount(repoSource, repoOwner
 		SELECT
 			COUNT(*)
 		FROM
-			releases
+			releases a
 		WHERE
 			repo_source=$1 AND
 			repo_owner=$2 AND
@@ -1373,7 +1361,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 			inserted_at,
 			updated_at
 		FROM
-			releases
+			releases a
 		WHERE
 			id=$1 AND
 			repo_source=$2 AND
@@ -1426,7 +1414,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleaseByName(repoSource, repoO
 			inserted_at,
 			updated_at
 		FROM
-			releases
+			releases a
 		WHERE
 			release=$1 AND
 			repo_source=$2 AND
@@ -1491,7 +1479,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogs(repoSource, repoOwner, 
 			steps,
 			inserted_at
 		FROM
-			release_logs
+			release_logs a
 		WHERE
 			repo_source=$1 AND
 			repo_owner=$2 AND
@@ -1647,7 +1635,7 @@ func (dbc *cockroachDBClientImpl) GetBuildsCount(filters map[string][]string) (t
 	query :=
 		psql.
 			Select("COUNT(*)").
-			From("builds")
+			From("builds a")
 
 	query, err = whereClauseGeneratorForAllFilters(query, filters)
 	if err != nil {
@@ -1672,7 +1660,7 @@ func (dbc *cockroachDBClientImpl) GetReleasesCount(filters map[string][]string) 
 	query :=
 		psql.
 			Select("COUNT(*)").
-			From("releases")
+			From("releases a")
 
 	query, err = whereClauseGeneratorForAllReleaseFilters(query, filters)
 	if err != nil {
@@ -1697,7 +1685,7 @@ func (dbc *cockroachDBClientImpl) GetBuildsDuration(filters map[string][]string)
 	query :=
 		psql.
 			Select("SUM(AGE(updated_at,inserted_at))::string").
-			From("builds")
+			From("builds a")
 
 	query, err = whereClauseGeneratorForAllFilters(query, filters)
 	if err != nil {
@@ -1755,7 +1743,7 @@ func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, filters ma
 func whereClauseGeneratorForStatusFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "all" {
-		query = query.Where(sq.Eq{"build_status": statuses})
+		query = query.Where(sq.Eq{"a.build_status": statuses})
 	}
 
 	return query, nil
@@ -1764,7 +1752,7 @@ func whereClauseGeneratorForStatusFilter(query sq.SelectBuilder, filters map[str
 func whereClauseGeneratorForReleaseStatusFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "all" {
-		query = query.Where(sq.Eq{"release_status": statuses})
+		query = query.Where(sq.Eq{"a.release_status": statuses})
 	}
 
 	return query, nil
@@ -1776,13 +1764,13 @@ func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, filters map[stri
 		sinceValue := since[0]
 		switch sinceValue {
 		case "1d":
-			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, 0, -1)})
+			query = query.Where(sq.GtOrEq{"a.inserted_at": time.Now().AddDate(0, 0, -1)})
 		case "1w":
-			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, 0, -7)})
+			query = query.Where(sq.GtOrEq{"a.inserted_at": time.Now().AddDate(0, 0, -7)})
 		case "1m":
-			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(0, -1, 0)})
+			query = query.Where(sq.GtOrEq{"a.inserted_at": time.Now().AddDate(0, -1, 0)})
 		case "1y":
-			query = query.Where(sq.GtOrEq{"inserted_at": time.Now().AddDate(-1, 0, 0)})
+			query = query.Where(sq.GtOrEq{"a.inserted_at": time.Now().AddDate(-1, 0, 0)})
 		}
 	}
 
@@ -1812,7 +1800,7 @@ func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, filters map[str
 				return query, err
 			}
 
-			query = query.Where("labels @> ?", string(bytes))
+			query = query.Where("a.labels @> ?", string(bytes))
 		}
 	}
 
