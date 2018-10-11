@@ -1252,6 +1252,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 			repo_name,
 			repo_branch,
 			repo_revision,
+			build_id,
 			steps,
 			inserted_at
 		FROM
@@ -1286,9 +1287,14 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 	buildLog = &contracts.BuildLog{}
 
 	var stepsData []uint8
+	var buildID sql.NullInt64
 
-	if err = rows.Scan(&buildLog.ID, &buildLog.RepoSource, &buildLog.RepoOwner, &buildLog.RepoName, &buildLog.RepoBranch, &buildLog.RepoRevision, &stepsData, &buildLog.InsertedAt); err != nil {
+	if err = rows.Scan(&buildLog.ID, &buildLog.RepoSource, &buildLog.RepoOwner, &buildLog.RepoName, &buildLog.RepoBranch, &buildLog.RepoRevision, buildID, &stepsData, &buildLog.InsertedAt); err != nil {
 		return
+	}
+
+	if buildID.Valid {
+		buildLog.BuildID = strconv.FormatInt(buildID.Int64, 10)
 	}
 
 	if err = json.Unmarshal(stepsData, &buildLog.Steps); err != nil {
@@ -1589,6 +1595,46 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(buildLog contracts.BuildLog) (e
 		return
 	}
 
+	buildID, err := strconv.Atoi(buildLog.BuildID)
+	if err != nil {
+		// insert logs
+		_, err = dbc.databaseConnection.Exec(
+			`
+			INSERT INTO
+				build_logs_v2
+			(
+				repo_source,
+				repo_owner,
+				repo_name,
+				repo_branch,
+				repo_revision,
+				steps
+			)
+			VALUES
+			(
+				$1,
+				$2,
+				$3,
+				$4,
+				$5,
+				$6
+			)
+			`,
+			buildLog.RepoSource,
+			buildLog.RepoOwner,
+			buildLog.RepoName,
+			buildLog.RepoBranch,
+			buildLog.RepoRevision,
+			bytes,
+		)
+
+		if err != nil {
+			return
+		}
+
+		return
+	}
+
 	// insert logs
 	_, err = dbc.databaseConnection.Exec(
 		`
@@ -1600,6 +1646,7 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(buildLog contracts.BuildLog) (e
 			repo_name,
 			repo_branch,
 			repo_revision,
+			build_id,
 			steps
 		)
 		VALUES
@@ -1609,7 +1656,8 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(buildLog contracts.BuildLog) (e
 			$3,
 			$4,
 			$5,
-			$6
+			$6,
+			$7
 		)
 		`,
 		buildLog.RepoSource,
@@ -1617,6 +1665,7 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(buildLog contracts.BuildLog) (e
 		buildLog.RepoName,
 		buildLog.RepoBranch,
 		buildLog.RepoRevision,
+		buildID,
 		bytes,
 	)
 

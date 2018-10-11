@@ -295,23 +295,35 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 	source := c.Param("source")
 	owner := c.Param("owner")
 	repo := c.Param("repo")
-	revision := c.Param("revision")
+	revisionOrID := c.Param("revisionOrId")
 
 	var buildLog contracts.BuildLog
 	err := c.Bind(&buildLog)
 	if err != nil {
 		log.Error().Err(err).
-			Msgf("Failed binding v2 logs for %v/%v/%v/%v", source, owner, repo, revision)
+			Msgf("Failed binding v2 logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
 	}
 
-	log.Info().Interface("buildLog", buildLog).Msgf("Binded v2 logs for for %v/%v/%v/%v", source, owner, repo, revision)
+	if len(revisionOrID) != 40 {
+		_, err := strconv.Atoi(revisionOrID)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed reading id from path parameter for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
+			c.JSON(http.StatusBadRequest, gin.H{"code": "BAD_REQUEST", "message": "Path parameter id is not of type integer"})
+			return
+		}
+
+		buildLog.BuildID = revisionOrID
+	}
+
+	log.Info().Interface("buildLog", buildLog).Msgf("Binded v2 logs for for %v/%v/%v/%v", source, owner, repo, revisionOrID)
 
 	err = h.cockroachDBClient.InsertBuildLog(buildLog)
 	if err != nil {
 		log.Error().Err(err).
-			Msgf("Failed inserting v2 logs for %v/%v/%v/%v", source, owner, repo, revision)
+			Msgf("Failed inserting v2 logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
 	}
-	log.Info().Msgf("Inserted v2 logs for %v/%v/%v/%v", source, owner, repo, revision)
+	log.Info().Msgf("Inserted v2 logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
 
 	c.String(http.StatusOK, "Aye aye!")
 }
