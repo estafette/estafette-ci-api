@@ -407,7 +407,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 	}
 
 	query = query.
-		OrderBy("repo_source,repo_owner,repo_name").
+		OrderBy("a.repo_source,a.repo_owner,a.repo_name").
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
@@ -1710,11 +1710,11 @@ func (dbc *cockroachDBClientImpl) GetBuildsDuration(filters map[string][]string)
 
 func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
 
-	query, err := whereClauseGeneratorForStatusFilter(query, filters)
+	query, err := whereClauseGeneratorForSinceFilter(query, filters)
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForSinceFilter(query, filters)
+	query, err = whereClauseGeneratorForStatusFilter(query, filters)
 	if err != nil {
 		return query, err
 	}
@@ -1740,24 +1740,6 @@ func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, filters ma
 	return query, nil
 }
 
-func whereClauseGeneratorForStatusFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
-
-	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "all" {
-		query = query.Where(sq.Eq{"a.build_status": statuses})
-	}
-
-	return query, nil
-}
-
-func whereClauseGeneratorForReleaseStatusFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
-
-	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "all" {
-		query = query.Where(sq.Eq{"a.release_status": statuses})
-	}
-
-	return query, nil
-}
-
 func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	if since, ok := filters["since"]; ok && len(since) > 0 && since[0] != "eternity" {
@@ -1772,6 +1754,24 @@ func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, filters map[stri
 		case "1y":
 			query = query.Where(sq.GtOrEq{"a.inserted_at": time.Now().AddDate(-1, 0, 0)})
 		}
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForStatusFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "all" {
+		query = query.Where(sq.Eq{"a.build_status": statuses})
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForReleaseStatusFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "all" {
+		query = query.Where(sq.Eq{"a.release_status": statuses})
 	}
 
 	return query, nil
