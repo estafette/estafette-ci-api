@@ -29,6 +29,7 @@ type DBClient interface {
 	GetAutoIncrement(string, string) (int, error)
 	InsertBuild(contracts.Build) (contracts.Build, error)
 	UpdateBuildStatus(string, string, string, string, string, string) error
+	UpdateBuildStatusByID(string, string, string, int, string) error
 	InsertRelease(contracts.Release) (contracts.Release, error)
 	UpdateReleaseStatus(string, string, string, int, string) error
 	GetPipelines(int, int, map[string][]string) ([]*contracts.Pipeline, error)
@@ -293,6 +294,38 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 		if err != nil {
 			return
 		}
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) UpdateBuildStatusByID(repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// update build status
+	_, err = dbc.databaseConnection.Exec(
+		`
+	UPDATE
+		builds
+	SET
+		build_status=$1,
+		updated_at=now()
+	WHERE
+		id=$5 AND
+		repo_source=$2 AND
+		repo_owner=$3 AND
+		repo_name=$4
+	`,
+		buildStatus,
+		repoSource,
+		repoOwner,
+		repoName,
+		buildID,
+	)
+
+	if err != nil {
+		return
 	}
 
 	return

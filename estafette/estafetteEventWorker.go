@@ -102,6 +102,28 @@ func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) {
 			Str("jobName", ciBuilderEvent.JobName).
 			Msgf("Updated release status for ci-builder job %v to %v", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
 
+	} else if ciBuilderEvent.BuildStatus != "" && ciBuilderEvent.BuildID != "" {
+
+		buildID, err := strconv.Atoi(ciBuilderEvent.BuildID)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Converting build id %v to integer for job %v failed", ciBuilderEvent.BuildID, ciBuilderEvent.JobName)
+
+			return
+		}
+
+		err = w.cockroachDBClient.UpdateBuildStatusByID(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, buildID, ciBuilderEvent.BuildStatus)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Updating build status for job %v failed", ciBuilderEvent.JobName)
+
+			return
+		}
+
+		log.Info().
+			Str("jobName", ciBuilderEvent.JobName).
+			Msgf("Updated build status for ci-builder job %v to %v", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
+
 	} else if ciBuilderEvent.BuildStatus != "" {
 
 		err := w.cockroachDBClient.UpdateBuildStatus(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, ciBuilderEvent.RepoBranch, ciBuilderEvent.RepoRevision, ciBuilderEvent.BuildStatus)
