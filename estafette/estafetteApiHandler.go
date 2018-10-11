@@ -420,7 +420,7 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 		return
 	}
 
-	buildLog, err := h.cockroachDBClient.GetPipelineBuildLogs(source, owner, repo, build.RepoBranch, build.RepoRevision)
+	buildLog, err := h.cockroachDBClient.GetPipelineBuildLogs(source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from db", source, owner, repo, revisionOrID)

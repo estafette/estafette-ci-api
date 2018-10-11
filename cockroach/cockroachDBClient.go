@@ -41,7 +41,7 @@ type DBClient interface {
 	GetPipelineBuild(string, string, string, string) (*contracts.Build, error)
 	GetPipelineBuildByID(string, string, string, int) (*contracts.Build, error)
 	GetPipelineBuildsByVersion(string, string, string, string) ([]*contracts.Build, error)
-	GetPipelineBuildLogs(string, string, string, string, string) (*contracts.BuildLog, error)
+	GetPipelineBuildLogs(string, string, string, string, string, string) (*contracts.BuildLog, error)
 	GetPipelineReleases(string, string, string, int, int) ([]*contracts.Release, error)
 	GetPipelineReleasesCount(string, string, string) (int, error)
 	GetPipelineRelease(string, string, string, int) (*contracts.Release, error)
@@ -1233,7 +1233,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, repoName, repoBranch, repoRevision string) (buildLog *contracts.BuildLog, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string) (buildLog *contracts.BuildLog, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
@@ -1257,7 +1257,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 			repo_name=$3 AND
 			repo_branch=$4 AND
 			repo_revision=$5
-		LIMIT 1
+		ORDER BY
+			inserted_at DESC
 		`,
 		repoSource,
 		repoOwner,
@@ -1269,30 +1270,33 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 		return
 	}
 
-	recordExists := false
-
 	defer rows.Close()
-	recordExists = rows.Next()
+	for rows.Next() {
 
-	if !recordExists {
-		return
-	}
+		buildLog = &contracts.BuildLog{}
 
-	buildLog = &contracts.BuildLog{}
+		var stepsData []uint8
+		var rowBuildID sql.NullInt64
 
-	var stepsData []uint8
-	var buildID sql.NullInt64
+		if err = rows.Scan(&buildLog.ID, &buildLog.RepoSource, &buildLog.RepoOwner, &buildLog.RepoName, &buildLog.RepoBranch, &buildLog.RepoRevision, buildID, &stepsData, &buildLog.InsertedAt); err != nil {
+			return
+		}
 
-	if err = rows.Scan(&buildLog.ID, &buildLog.RepoSource, &buildLog.RepoOwner, &buildLog.RepoName, &buildLog.RepoBranch, &buildLog.RepoRevision, buildID, &stepsData, &buildLog.InsertedAt); err != nil {
-		return
-	}
+		if err = json.Unmarshal(stepsData, &buildLog.Steps); err != nil {
+			return
+		}
 
-	if buildID.Valid {
-		buildLog.BuildID = strconv.FormatInt(buildID.Int64, 10)
-	}
+		if rowBuildID.Valid {
+			buildLog.BuildID = strconv.FormatInt(rowBuildID.Int64, 10)
 
-	if err = json.Unmarshal(stepsData, &buildLog.Steps); err != nil {
-		return
+			// if theses logs have been stored with build_id it could be a rebuild version with multiple logs, so match the supplied build id
+			if buildLog.BuildID == buildID {
+				return
+			}
+
+			// otherwise reset to make sure we don't return the wrong logs if this is still a running build?
+			// buildLog = &contracts.BuildLog{}
+		}
 	}
 
 	return
