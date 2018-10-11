@@ -160,35 +160,45 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					}
 
 					// check if version exists
-					build, err := h.cockroachDBClient.GetPipelineBuildByVersion(pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion)
-					if err == nil && build != nil && build.BuildStatus == "succeeded" {
-						// check if release target exists
-						releaseExists := false
-						for _, release := range build.Releases {
-							if release.Name == releaseName {
-								releaseExists = true
-								break
-							}
-						}
+					builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion)
 
-						if !releaseExists {
-
-							log.Debug().Interface("releases", build.Releases).Msgf("Release %v for repo name %v can't be found", releaseName, fullRepoName)
-
-							c.String(http.StatusOK, fmt.Sprintf("The release %v in your command is not defined in the manifest", releaseName))
-							return
-						}
-					}
 					if err != nil {
 						c.String(http.StatusOK, fmt.Sprintf("Retrieving the build for repository %v and version %v from the database failed: %v", fullRepoName, buildVersion, err))
 						return
 					}
+
+					var build *contracts.Build
+					// get succeeded build
+					for _, b := range builds {
+						if b.BuildStatus == "succeeded" {
+							build = b
+							break
+						}
+					}
+
 					if build == nil {
 						c.String(http.StatusOK, fmt.Sprintf("The version %v in your command does not exist", buildVersion))
 						return
 					}
 					if build.BuildStatus != "succeeded" {
 						c.String(http.StatusOK, fmt.Sprintf("The build for version %v is not successful and cannot be used", buildVersion))
+						return
+					}
+
+					// check if release target exists
+					releaseExists := false
+					for _, release := range build.Releases {
+						if release.Name == releaseName {
+							releaseExists = true
+							break
+						}
+					}
+
+					if !releaseExists {
+
+						log.Debug().Interface("releases", build.Releases).Msgf("Release %v for repo name %v can't be found", releaseName, fullRepoName)
+
+						c.String(http.StatusOK, fmt.Sprintf("The release %v in your command is not defined in the manifest", releaseName))
 						return
 					}
 

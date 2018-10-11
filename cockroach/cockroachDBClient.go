@@ -40,7 +40,7 @@ type DBClient interface {
 	GetPipelineBuildsCount(string, string, string) (int, error)
 	GetPipelineBuild(string, string, string, string) (*contracts.Build, error)
 	GetPipelineBuildByID(string, string, string, int) (*contracts.Build, error)
-	GetPipelineBuildByVersion(string, string, string, string) (*contracts.Build, error)
+	GetPipelineBuildsByVersion(string, string, string, string) ([]*contracts.Build, error)
 	GetPipelineBuildLogs(string, string, string, string, string) (*contracts.BuildLog, error)
 	GetPipelineReleases(string, string, string, int, int) ([]*contracts.Release, error)
 	GetPipelineReleasesCount(string, string, string) (int, error)
@@ -1133,8 +1133,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuildByVersion(repoSource, repoOwner, repoName, buildVersion string) (build *contracts.Build, err error) {
-
+func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwner, repoName, buildVersion string) (builds []*contracts.Build, err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	rows, err := dbc.databaseConnection.Query(
@@ -1163,8 +1162,6 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByVersion(repoSource, repoOwne
 			build_version=$4
 		ORDER BY
 			inserted_at DESC
-		LIMIT 1
-		OFFSET 0
 		`,
 		repoSource,
 		repoOwner,
@@ -1175,65 +1172,62 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByVersion(repoSource, repoOwne
 		return
 	}
 
-	recordExists := false
-
 	defer rows.Close()
-	recordExists = rows.Next()
+	for rows.Next() {
 
-	if !recordExists {
-		return
-	}
+		var labelsData, releasesData, commitsData []uint8
 
-	var labelsData, releasesData, commitsData []uint8
+		build := contracts.Build{}
 
-	build = &contracts.Build{}
-
-	if err := rows.Scan(
-		&build.ID,
-		&build.RepoSource,
-		&build.RepoOwner,
-		&build.RepoName,
-		&build.RepoBranch,
-		&build.RepoRevision,
-		&build.BuildVersion,
-		&build.BuildStatus,
-		&labelsData,
-		&releasesData,
-		&build.Manifest,
-		&commitsData,
-		&build.InsertedAt,
-		&build.UpdatedAt); err != nil {
-		return nil, err
-	}
-
-	if len(labelsData) > 0 {
-		if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
+		if err := rows.Scan(
+			&build.ID,
+			&build.RepoSource,
+			&build.RepoOwner,
+			&build.RepoName,
+			&build.RepoBranch,
+			&build.RepoRevision,
+			&build.BuildVersion,
+			&build.BuildStatus,
+			&labelsData,
+			&releasesData,
+			&build.Manifest,
+			&commitsData,
+			&build.InsertedAt,
+			&build.UpdatedAt); err != nil {
 			return nil, err
 		}
-	}
-	if len(releasesData) > 0 {
-		if err = json.Unmarshal(releasesData, &build.Releases); err != nil {
-			return
-		}
-	}
-	if len(commitsData) > 0 {
-		if err = json.Unmarshal(commitsData, &build.Commits); err != nil {
-			return nil, err
-		}
-	}
 
-	// unmarshal then marshal manifest to include defaults
-	var manifest manifest.EstafetteManifest
-	err = yaml.Unmarshal([]byte(build.Manifest), &manifest)
-	if err == nil {
-		manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+		if len(labelsData) > 0 {
+			if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
+				return nil, err
+			}
+		}
+		if len(releasesData) > 0 {
+			if err = json.Unmarshal(releasesData, &build.Releases); err != nil {
+				return
+			}
+		}
+		if len(commitsData) > 0 {
+			if err = json.Unmarshal(commitsData, &build.Commits); err != nil {
+				return nil, err
+			}
+		}
+
+		// unmarshal then marshal manifest to include defaults
+		var manifest manifest.EstafetteManifest
+		err = yaml.Unmarshal([]byte(build.Manifest), &manifest)
 		if err == nil {
-			build.ManifestWithDefaults = string(manifestWithDefaultBytes)
+			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+			if err == nil {
+				build.ManifestWithDefaults = string(manifestWithDefaultBytes)
+			} else {
+				log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+			}
 		} else {
-			log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+			log.Warn().Err(err).Str("manifest", build.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 		}
-	} else {
-		log.Warn().Err(err).Str("manifest", build.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+
+		builds = append(builds, &build)
 	}
 
 	return

@@ -265,6 +265,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	// iap protected endpoints
 	iapAuthorizedRoutes := router.Group("/", authMiddleware.MiddlewareFunc())
 	{
+		iapAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.CreatePipelineBuild)
 		iapAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.CreatePipelineRelease)
 		iapAuthorizedRoutes.GET("/api/users/me", estafetteAPIHandler.GetLoggedInUser)
 	}

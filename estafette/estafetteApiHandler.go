@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"github.com/estafette/estafette-ci-api/auth"
@@ -21,6 +22,7 @@ type APIHandler interface {
 	GetPipeline(*gin.Context)
 	GetPipelineBuilds(*gin.Context)
 	GetPipelineBuild(*gin.Context)
+	CreatePipelineBuild(*gin.Context)
 	GetPipelineBuildLogs(*gin.Context)
 	PostPipelineBuildLogs(*gin.Context)
 	GetPipelineReleases(*gin.Context)
@@ -237,6 +239,152 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 	c.JSON(http.StatusOK, build)
 }
 
+func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
+
+	user := c.MustGet(gin.AuthUserKey).(auth.User)
+
+	var buildCommand contracts.Build
+	c.BindJSON(&buildCommand)
+
+	// match source, owner, repo with values in binded release
+	if buildCommand.RepoSource != c.Param("source") {
+		errorMessage := fmt.Sprintf("RepoSource in path and post data do not match for pipeline %v/%v/%v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, user)
+		log.Error().Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+	}
+	if buildCommand.RepoOwner != c.Param("owner") {
+		errorMessage := fmt.Sprintf("RepoOwner in path and post data do not match for pipeline %v/%v/%v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, user)
+		log.Error().Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+	}
+	if buildCommand.RepoName != c.Param("repo") {
+		errorMessage := fmt.Sprintf("RepoName in path and post data do not match for pipeline %v/%v/%v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, user)
+		log.Error().Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+	}
+
+	// check if version exists and is valid to re-run
+	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion)
+
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	var failedBuild *contracts.Build
+	// ensure there's no succeeded or running builds
+	hasNonFailedBuilds := false
+	for _, b := range builds {
+		if b.BuildStatus == "failed" {
+			failedBuild = b
+		} else {
+			hasNonFailedBuilds = true
+		}
+	}
+
+	if failedBuild == nil {
+		errorMessage := fmt.Sprintf("No failed build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
+		log.Error().Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+	}
+	if hasNonFailedBuilds {
+		errorMessage := fmt.Sprintf("Version %v of pipeline %v/%v/%v has builds that are succeeded or running ; only if all builds are failed the pipeline can be re-run", buildCommand.BuildVersion, buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName)
+		log.Error().Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+	}
+
+	// store build in db
+	insertedBuild, err := h.cockroachDBClient.InsertBuild(contracts.Build{
+		RepoSource:   failedBuild.RepoSource,
+		RepoOwner:    failedBuild.RepoOwner,
+		RepoName:     failedBuild.RepoName,
+		RepoBranch:   failedBuild.RepoBranch,
+		RepoRevision: failedBuild.RepoRevision,
+		BuildVersion: failedBuild.BuildVersion,
+		BuildStatus:  "running",
+		Labels:       failedBuild.Labels,
+		Releases:     failedBuild.Releases,
+		Manifest:     failedBuild.Manifest,
+		Commits:      failedBuild.Commits,
+	})
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed inserting build into db for rebuilding version %v of repository %v/%v/%v for build command issued by %v", buildCommand.BuildVersion, buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, user)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	buildID, err := strconv.Atoi(insertedBuild.ID)
+	if err != nil {
+		log.Warn().Err(err).Msgf("Failed to convert build id %v to int for build command issued by %v", insertedBuild.ID, user)
+	}
+
+	// get authenticated url
+	var authenticatedRepositoryURL string
+	var environmentVariableWithToken map[string]string
+	switch failedBuild.RepoSource {
+	case "github.com":
+		var accessToken string
+		accessToken, authenticatedRepositoryURL, err = h.githubJobVarsFunc(buildCommand.BuildVersion, buildCommand.RepoSource, buildCommand.RepoOwner)
+		if err != nil {
+			errorMessage := fmt.Sprintf("Retrieving access token and authenticated github url for repository %v/%v/%v failed for build command issued by %v", buildCommand.BuildVersion, buildCommand.RepoSource, buildCommand.RepoOwner, user)
+			log.Error().Err(err).Msg(errorMessage)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		}
+		environmentVariableWithToken = map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken}
+
+	case "bitbucket.org":
+		var accessToken string
+		accessToken, authenticatedRepositoryURL, err = h.bitbucketJobVarsFunc(buildCommand.BuildVersion, buildCommand.RepoSource, buildCommand.RepoOwner)
+		if err != nil {
+			errorMessage := fmt.Sprintf("Retrieving access token and authenticated bitbucket url for repository %v/%v/%v failed for build command issued by %v", buildCommand.BuildVersion, buildCommand.RepoSource, buildCommand.RepoOwner, user)
+			log.Error().Err(err).Msg(errorMessage)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		}
+		environmentVariableWithToken = map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken}
+	}
+
+	manifest, err := manifest.ReadManifest(failedBuild.Manifest)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed reading manifest for rebuilding version %v of repository %v/%v/%v for build command issued by %v", buildCommand.BuildVersion, buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, user)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	// get autoincrement from build version
+	autoincrement := 0
+	if manifest.Version.SemVer != nil {
+
+		re := regexp.MustCompile(`^[0-9]+\.[0-9]+\.([0-9]+)(-[0-9a-zA-Z-/]+)?$`)
+		match := re.FindStringSubmatch(buildCommand.BuildVersion)
+
+		if len(match) > 1 {
+			autoincrement, err = strconv.Atoi(match[1])
+		}
+	}
+
+	// define ci builder params
+	ciBuilderParams := CiBuilderParams{
+		RepoSource:           failedBuild.RepoSource,
+		RepoFullName:         fmt.Sprintf("%v/%v", failedBuild.RepoOwner, failedBuild.RepoName),
+		RepoURL:              authenticatedRepositoryURL,
+		RepoBranch:           failedBuild.RepoBranch,
+		RepoRevision:         failedBuild.RepoRevision,
+		EnvironmentVariables: environmentVariableWithToken,
+		Track:                manifest.Builder.Track,
+		AutoIncrement:        autoincrement,
+		VersionNumber:        failedBuild.BuildVersion,
+		HasValidManifest:     true,
+		Manifest:             manifest,
+		BuildID:              buildID,
+	}
+
+	// create ci builder job
+	go h.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+
+	c.JSON(http.StatusCreated, insertedBuild)
+}
+
 func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 	source := c.Param("source")
 	owner := c.Param("owner")
@@ -418,12 +566,22 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 	}
 
 	// check if version exists and is valid to release
-	build, err := h.cockroachDBClient.GetPipelineBuildByVersion(releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
+	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
 		log.Error().Err(err).Msg(errorMessage)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 	}
+
+	var build *contracts.Build
+	// get succeeded build
+	for _, b := range builds {
+		if b.BuildStatus == "succeeded" {
+			build = b
+			break
+		}
+	}
+
 	if build == nil {
 		errorMessage := fmt.Sprintf("No build %v/%v/%v version %v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
 		log.Error().Msg(errorMessage)

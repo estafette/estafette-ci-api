@@ -1,6 +1,8 @@
 package cockroach
 
 import (
+	"regexp"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -113,4 +115,21 @@ func TestQueryBuilder(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "SELECT a.id,a.repo_source,a.repo_owner,a.repo_name,a.repo_branch,a.repo_revision,a.build_version,a.build_status,a.labels,a.releases,a.manifest,a.commits,a.inserted_at,a.updated_at FROM builds a LEFT JOIN builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at WHERE b.id IS NULL ORDER BY a.repo_source,a.repo_owner,a.repo_name LIMIT 2 OFFSET 20", sql)
 	})
+}
+
+func TestAutoincrement(t *testing.T) {
+
+	t.Run("TestAutoincrementRegex", func(t *testing.T) {
+
+		buildVersion := "0.0.126-MeD-1234123"
+		re := regexp.MustCompile(`^[0-9]+\.[0-9]+\.([0-9]+)(-[0-9a-zA-Z-/]+)?$`)
+		match := re.FindStringSubmatch(buildVersion)
+		autoincrement := 0
+		if len(match) > 1 {
+			autoincrement, _ = strconv.Atoi(match[1])
+		}
+
+		assert.Equal(t, 126, autoincrement)
+	})
+
 }
