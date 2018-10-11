@@ -1278,7 +1278,16 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 		var stepsData []uint8
 		var rowBuildID sql.NullInt64
 
-		if err = rows.Scan(&buildLog.ID, &buildLog.RepoSource, &buildLog.RepoOwner, &buildLog.RepoName, &buildLog.RepoBranch, &buildLog.RepoRevision, &buildID, &stepsData, &buildLog.InsertedAt); err != nil {
+		if err = rows.Scan(
+			&buildLog.ID,
+			&buildLog.RepoSource,
+			&buildLog.RepoOwner,
+			&buildLog.RepoName,
+			&buildLog.RepoBranch,
+			&buildLog.RepoRevision,
+			&buildID,
+			&stepsData,
+			&buildLog.InsertedAt); err != nil {
 			return
 		}
 
