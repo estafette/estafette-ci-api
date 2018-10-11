@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/estafette/estafette-ci-manifest"
@@ -460,20 +461,6 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 			}
 		}
 
-		// set released versions
-		updatedReleases := make([]contracts.Release, 0)
-		for _, r := range pipeline.Releases {
-			latestRelease, err := dbc.GetPipelineLastReleaseByName(pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, r.Name)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed retrieving latest release for %v/%v/%v %v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, r.Name)
-			} else if latestRelease != nil {
-				updatedReleases = append(updatedReleases, *latestRelease)
-			} else {
-				updatedReleases = append(updatedReleases, r)
-			}
-		}
-		pipeline.Releases = updatedReleases
-
 		// unmarshal then marshal manifest to include defaults
 		var manifest manifest.EstafetteManifest
 		err = yaml.Unmarshal([]byte(pipeline.Manifest), &manifest)
@@ -491,7 +478,37 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 		pipelines = append(pipelines, &pipeline)
 	}
 
+	dbc.getLatestReleasesForPipelines(pipelines)
+
 	return
+}
+
+func (dbc *cockroachDBClientImpl) getLatestReleasesForPipelines(pipelines []*contracts.Pipeline) error {
+
+	var wg sync.WaitGroup
+	wg.Add(len(pipelines))
+
+	for _, p := range pipelines {
+		go func(p *contracts.Pipeline) {
+			defer wg.Done()
+			// set released versions
+			updatedReleases := make([]contracts.Release, 0)
+			for _, r := range p.Releases {
+				latestRelease, err := dbc.GetPipelineLastReleaseByName(p.RepoSource, p.RepoOwner, p.RepoName, r.Name)
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed retrieving latest release for %v/%v/%v %v", p.RepoSource, p.RepoOwner, p.RepoName, r.Name)
+				} else if latestRelease != nil {
+					updatedReleases = append(updatedReleases, *latestRelease)
+				} else {
+					updatedReleases = append(updatedReleases, r)
+				}
+			}
+			p.Releases = updatedReleases
+		}(p)
+	}
+	wg.Wait()
+
+	return nil
 }
 
 func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipelines []*contracts.Pipeline, err error) {
