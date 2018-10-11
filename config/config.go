@@ -23,14 +23,14 @@ type APIConfig struct {
 type APIServerConfig struct {
 	BaseURL                string `yaml:"baseURL"`
 	ServiceURL             string `yaml:"serviceURL"`
-	APIKey                 string `yaml:"apiKey"`
 	EventChannelBufferSize int    `yaml:"eventChannelBufferSize"`
 	MaxWorkers             int    `yaml:"maxWorkers"`
 }
 
 // AuthConfig determines whether to use IAP for authentication and authorization
 type AuthConfig struct {
-	IAP *IAPAuthConfig `yaml:"iap"`
+	IAP    *IAPAuthConfig `yaml:"iap"`
+	APIKey string         `yaml:"apiKey"`
 }
 
 // IAPAuthConfig sets iap config in case it's used for authentication and authorization

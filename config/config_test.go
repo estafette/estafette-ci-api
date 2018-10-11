@@ -80,7 +80,6 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		assert.Equal(t, "https://ci.estafette.io/", apiServerConfig.BaseURL)
 		assert.Equal(t, "http://estafette-ci-api.estafette.svc.cluster.local/", apiServerConfig.ServiceURL)
-		assert.Equal(t, "this is my secret", apiServerConfig.APIKey)
 		assert.Equal(t, 100, apiServerConfig.EventChannelBufferSize)
 		assert.Equal(t, 5, apiServerConfig.MaxWorkers)
 	})
@@ -96,6 +95,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		assert.True(t, authConfig.IAP.Enable)
 		assert.Equal(t, "/projects/***/global/backendServices/***", authConfig.IAP.Audience)
+		assert.Equal(t, "this is my secret", authConfig.APIKey)
 	})
 
 	t.Run("ReturnsDatabaseConfig", func(t *testing.T) {

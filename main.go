@@ -226,6 +226,9 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	// create and init router
 	router := createRouter()
 
+	// middleware to handle auth for different endpoints
+	authMiddleware := auth.NewAuthMiddleware(*config.Auth)
+
 	githubEventHandler := github.NewGithubEventHandler(githubPushEvents, *config.Integrations.Github, prometheusInboundEventTotals)
 	router.POST("/api/integrations/github/events", githubEventHandler.Handle)
 
@@ -236,7 +239,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	router.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
 
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, estafetteCiBuilderEvents, prometheusInboundEventTotals)
-	router.POST("/api/commands", estafetteEventHandler.Handle)
+	router.Use(authMiddleware.APIKeyMiddlewareFunc()).POST("/api/commands", estafetteEventHandler.Handle)
 
 	estafetteAPIHandler := estafette.NewAPIHandler(*config.APIServer, *config.Auth, cockroachDBClient, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
 	router.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
@@ -244,19 +247,16 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	router.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)
 	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteAPIHandler.GetPipelineBuild)
 	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteAPIHandler.GetPipelineBuildLogs)
-	router.POST("/api/pipelines/:source/:owner/:repo/builds/:revision/logs", estafetteAPIHandler.PostPipelineBuildLogs)
+	router.Use(authMiddleware.APIKeyMiddlewareFunc()).POST("/api/pipelines/:source/:owner/:repo/builds/:revision/logs", estafetteAPIHandler.PostPipelineBuildLogs)
 	router.GET("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.GetPipelineReleases)
+	router.Use(authMiddleware.MiddlewareFunc()).POST("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.CreatePipelineRelease)
 	router.GET("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteAPIHandler.GetPipelineRelease)
 	router.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteAPIHandler.GetPipelineReleaseLogs)
-	router.POST("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteAPIHandler.PostPipelineReleaseLogs)
+	router.Use(authMiddleware.APIKeyMiddlewareFunc()).POST("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteAPIHandler.PostPipelineReleaseLogs)
 	router.GET("/api/stats/pipelinescount", estafetteAPIHandler.GetStatsPipelinesCount)
 	router.GET("/api/stats/buildscount", estafetteAPIHandler.GetStatsBuildsCount)
 	router.GET("/api/stats/releasescount", estafetteAPIHandler.GetStatsReleasesCount)
 	router.GET("/api/stats/buildsduration", estafetteAPIHandler.GetStatsBuildsDuration)
-
-	// authenticated urls
-	authMiddleware := auth.NewAuthMiddleware(*config.Auth)
-	router.Use(authMiddleware.MiddlewareFunc()).POST("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.CreatePipelineRelease)
 	router.Use(authMiddleware.MiddlewareFunc()).GET("/api/users/me", estafetteAPIHandler.GetLoggedInUser)
 
 	router.NoRoute(func(c *gin.Context) {

@@ -227,7 +227,6 @@ data:
     apiServer:
       baseURL: https://${HOSTNAMES}/
       serviceURL: http://estafette-ci-api/
-      apiKey: ${ESTAFETTE_CI_API_KEY}
       eventChannelBufferSize: 100
       maxWorkers: 5
 
@@ -235,6 +234,7 @@ data:
       iap:
         enable: true
         audience: ${IAP_AUDIENCE}
+      apiKey: ${ESTAFETTE_CI_API_KEY}
 
     database:
       databaseName: ${COCKROACH_DATABASE}

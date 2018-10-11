@@ -2,7 +2,6 @@ package estafette
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -35,13 +34,8 @@ func NewEstafetteEventHandler(config config.APIServerConfig, ciBuilderEventsChan
 
 func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
-	authorizationHeader := c.GetHeader("Authorization")
-	if authorizationHeader != fmt.Sprintf("Bearer %v", h.config.APIKey) {
-		log.Error().
-			Str("authorizationHeader", authorizationHeader).
-			Msg("Authorization header for Estafette event is incorrect")
-		c.String(http.StatusUnauthorized, "Authorization failed")
-		return
+	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
+		c.AbortWithStatus(http.StatusUnauthorized)
 	}
 
 	eventType := c.GetHeader("X-Estafette-Event")

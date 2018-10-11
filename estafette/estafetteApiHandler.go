@@ -288,13 +288,8 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 
 func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 
-	authorizationHeader := c.GetHeader("Authorization")
-	if authorizationHeader != fmt.Sprintf("Bearer %v", h.config.APIKey) {
-		log.Error().
-			Str("authorizationHeader", authorizationHeader).
-			Msg("Authorization header for Estafette v2 logs is incorrect")
-		c.String(http.StatusUnauthorized, "Authorization failed")
-		return
+	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
+		c.AbortWithStatus(http.StatusUnauthorized)
 	}
 
 	source := c.Param("source")
@@ -577,13 +572,8 @@ func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 
 func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 
-	authorizationHeader := c.GetHeader("Authorization")
-	if authorizationHeader != fmt.Sprintf("Bearer %v", h.config.APIKey) {
-		log.Error().
-			Str("authorizationHeader", authorizationHeader).
-			Msg("Authorization header for Estafette v2 logs is incorrect")
-		c.String(http.StatusUnauthorized, "Authorization failed")
-		return
+	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
+		c.AbortWithStatus(http.StatusUnauthorized)
 	}
 
 	source := c.Param("source")

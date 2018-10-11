@@ -26,7 +26,6 @@ integrations:
 apiServer:
   baseURL: https://ci.estafette.io/
   serviceURL: http://estafette-ci-api.estafette.svc.cluster.local/
-  apiKey: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
   eventChannelBufferSize: 100
   maxWorkers: 5
 
@@ -34,6 +33,7 @@ auth:
   iap:
     enable: true
     audience: /projects/***/global/backendServices/***
+  apiKey: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
 
 database:
   databaseName: estafette_ci_api

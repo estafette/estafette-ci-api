@@ -131,7 +131,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		estafetteCiServerBuilderPostLogsURLValue = strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/releases/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoFullName, ciBuilderParams.ReleaseID)
 	}
 	estafetteCiAPIKeyName := "ESTAFETTE_CI_API_KEY"
-	estafetteCiAPIKeyValue := cbc.config.APIServer.APIKey
+	estafetteCiAPIKeyValue := cbc.config.Auth.APIKey
 	estafetteCiBuilderTrackName := "ESTAFETTE_CI_BUILDER_TRACK"
 	estafetteCiBuilderTrackValue := ciBuilderParams.Track
 	estafetteManifestJSONKeyName := "ESTAFETTE_CI_MANIFEST_JSON"
