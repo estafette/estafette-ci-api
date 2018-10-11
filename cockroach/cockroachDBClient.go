@@ -1285,7 +1285,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 			&buildLog.RepoName,
 			&buildLog.RepoBranch,
 			&buildLog.RepoRevision,
-			&buildID,
+			&rowBuildID,
 			&stepsData,
 			&buildLog.InsertedAt); err != nil {
 			return
