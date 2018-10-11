@@ -247,16 +247,20 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	router.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)
 	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteAPIHandler.GetPipelineBuild)
 	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteAPIHandler.GetPipelineBuildLogs)
-	router.Use(authMiddleware.APIKeyMiddlewareFunc()).POST("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteAPIHandler.PostPipelineBuildLogs)
 	router.GET("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.GetPipelineReleases)
-	router.Use(authMiddleware.MiddlewareFunc()).POST("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.CreatePipelineRelease)
 	router.GET("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteAPIHandler.GetPipelineRelease)
 	router.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteAPIHandler.GetPipelineReleaseLogs)
-	router.Use(authMiddleware.APIKeyMiddlewareFunc()).POST("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteAPIHandler.PostPipelineReleaseLogs)
 	router.GET("/api/stats/pipelinescount", estafetteAPIHandler.GetStatsPipelinesCount)
 	router.GET("/api/stats/buildscount", estafetteAPIHandler.GetStatsBuildsCount)
 	router.GET("/api/stats/releasescount", estafetteAPIHandler.GetStatsReleasesCount)
 	router.GET("/api/stats/buildsduration", estafetteAPIHandler.GetStatsBuildsDuration)
+
+	// api key protected endpoints
+	router.Use(authMiddleware.APIKeyMiddlewareFunc()).POST("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteAPIHandler.PostPipelineBuildLogs)
+	router.Use(authMiddleware.APIKeyMiddlewareFunc()).POST("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteAPIHandler.PostPipelineReleaseLogs)
+
+	// iap protected endpoints
+	router.Use(authMiddleware.MiddlewareFunc()).POST("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.CreatePipelineRelease)
 	router.Use(authMiddleware.MiddlewareFunc()).GET("/api/users/me", estafetteAPIHandler.GetLoggedInUser)
 
 	router.NoRoute(func(c *gin.Context) {
