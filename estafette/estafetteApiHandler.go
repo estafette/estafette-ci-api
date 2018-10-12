@@ -443,11 +443,24 @@ func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
 	id := c.Param("revisionOrId")
 
 	jobName := h.ciBuilderClient.GetJobName("build", owner, repo, id)
-	err := h.ciBuilderClient.TailCiBuilderJobLogs(jobName)
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed tailing logs for job %v", jobName)
-		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+
+	logChannel := make(chan contracts.TailLogLine, 50)
+
+	go h.ciBuilderClient.TailCiBuilderJobLogs(jobName, logChannel)
+	// if err != nil {
+	// 	errorMessage := fmt.Sprintf("Failed tailing logs for job %v", jobName)
+	// 	log.Error().Err(err).Msg(errorMessage)
+	// 	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	// }
+
+	for {
+		l, more := <-logChannel
+		if more {
+			// push log line to output
+			log.Debug().Interface("logLine", l).Msgf("Tailed log line for job %v", jobName)
+		} else {
+			break
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Work in progress"})
@@ -764,11 +777,24 @@ func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
 	id := c.Param("id")
 
 	jobName := h.ciBuilderClient.GetJobName("release", owner, repo, id)
-	err := h.ciBuilderClient.TailCiBuilderJobLogs(jobName)
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed tailing logs for job %v", jobName)
-		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+
+	logChannel := make(chan contracts.TailLogLine, 50)
+
+	go h.ciBuilderClient.TailCiBuilderJobLogs(jobName, logChannel)
+	// if err != nil {
+	// 	errorMessage := fmt.Sprintf("Failed tailing logs for job %v", jobName)
+	// 	log.Error().Err(err).Msg(errorMessage)
+	// 	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	// }
+
+	for {
+		l, more := <-logChannel
+		if more {
+			// push log line to output
+			log.Debug().Interface("logLine", l).Msgf("Tailed log line for job %v", jobName)
+		} else {
+			break
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Work in progress"})

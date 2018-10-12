@@ -13,6 +13,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/docker"
+	contracts "github.com/estafette/estafette-ci-contracts"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -29,7 +30,7 @@ import (
 type CiBuilderClient interface {
 	CreateCiBuilderJob(CiBuilderParams) (*batchv1.Job, error)
 	RemoveCiBuilderJob(string) error
-	TailCiBuilderJobLogs(string) error
+	TailCiBuilderJobLogs(string, chan contracts.TailLogLine) error
 	GetJobName(string, string, string, string) string
 }
 
@@ -411,7 +412,7 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 }
 
 // TailCiBuilderJobLogs tails logs of a running job
-func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string) (err error) {
+func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel chan contracts.TailLogLine) (err error) {
 
 	labels := new(k8s.LabelSelector)
 	labels.Eq("job-name", jobName)
@@ -458,10 +459,58 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string) (err error)
 
 		if *pod.Status.Phase == "Running" {
 			log.Info().Msgf("Tailing pod %v for job %v with phase %v", *pod.Metadata.Name, jobName, *pod.Status.Phase)
+
+			// req := client.RESTClient.Get().
+			// 	Namespace(namespace).
+			// 	Name(podID).
+			// 	Resource("pods").
+			// 	SubResource("log").
+			// 	Param("follow", strconv.FormatBool(logOptions.Follow)).
+			// 	Param("container", logOptions.Container).
+			// 	Param("previous", strconv.FormatBool(logOptions.Previous)).
+			// 	Param("timestamps", strconv.FormatBool(logOptions.Timestamps))
+
+			// if logOptions.SinceSeconds != nil {
+			// 	req.Param("sinceSeconds", strconv.FormatInt(*logOptions.SinceSeconds, 10))
+			// }
+			// if logOptions.SinceTime != nil {
+			// 	req.Param("sinceTime", logOptions.SinceTime.Format(time.RFC3339))
+			// }
+			// if logOptions.LimitBytes != nil {
+			// 	req.Param("limitBytes", strconv.FormatInt(*logOptions.LimitBytes, 10))
+			// }
+			// if logOptions.TailLines != nil {
+			// 	req.Param("tailLines", strconv.FormatInt(*logOptions.TailLines, 10))
+			// }
+			// readCloser, err := req.Stream()
+			// if err != nil {
+			// 	return err
+			// }
+
+			// defer readCloser.Close()
+			// _, err = io.Copy(out, readCloser)
+			// return err
+
 		} else {
 			log.Warn().Msgf("Post %v for job %v has unsupported phase %v", *pod.Metadata.Name, jobName, *pod.Status.Phase)
 		}
+
+		// temporary send some fake data
+		for j := 1; j <= 10; j++ {
+			logChannel <- contracts.TailLogLine{
+				StepName:   "build",
+				StepStatus: "running",
+				StreamType: "stdout",
+				Timestamp:  time.Now(),
+				Text:       fmt.Sprintf("testing testing %v...", j),
+			}
+
+			time.Sleep(time.Duration(5) * time.Second)
+		}
 	}
+
+	// close channel so api handler can finish it's response
+	close(logChannel)
 
 	return
 }

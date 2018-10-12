@@ -43,3 +43,12 @@ type BuildLogLine struct {
 	StreamType string    `json:"streamType"`
 	Text       string    `json:"text"`
 }
+
+// TailLogLine returns a log line for streaming logs to gui during a build
+type TailLogLine struct {
+	StepName   string    `json:"stepName"`
+	StepStatus string    `json:"stepStatus"`
+	Timestamp  time.Time `json:"timestamp"`
+	StreamType string    `json:"streamType"`
+	Text       string    `json:"text"`
+}

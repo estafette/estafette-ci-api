@@ -69,104 +69,104 @@
 			"versionExact": "v3.2.0"
 		},
 		{
-			"checksumSHA1": "d/ckgctLC2JI8v9IVCD1nzwMCxc=",
+			"checksumSHA1": "+kwCBCDtEAU3KyS6AmfIrMtFzEQ=",
 			"path": "github.com/ericchiang/k8s",
-			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
-			"revisionTime": "2018-04-27T00:52:59Z",
-			"version": "v1.1.0",
-			"versionExact": "v1.1.0"
+			"revision": "d1bbc0cffaf9849ddcae7b9efffae33e2dd52e9a",
+			"revisionTime": "2018-07-26T01:11:48Z",
+			"version": "v1.2.0",
+			"versionExact": "v1.2.0"
 		},
 		{
 			"path": "github.com/ericchiang/k8s/api/resource",
 			"revision": "v1.1.0",
-			"version": "v1.1.0",
-			"versionExact": "v1.1.0"
+			"version": "v1.2.0",
+			"versionExact": "v1.2.0"
 		},
 		{
 			"path": "github.com/ericchiang/k8s/api/v1",
 			"revision": "v1.1.0",
-			"version": "v1.1.0",
-			"versionExact": "v1.1.0"
+			"version": "v1.2.0",
+			"versionExact": "v1.2.0"
 		},
 		{
 			"checksumSHA1": "cxdskWaHbixHV6kP4XIkhHneYOI=",
 			"path": "github.com/ericchiang/k8s/apis/apiextensions/v1beta1",
-			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
-			"revisionTime": "2018-04-27T00:52:59Z",
-			"version": "v1.1.0",
-			"versionExact": "v1.1.0"
+			"revision": "d1bbc0cffaf9849ddcae7b9efffae33e2dd52e9a",
+			"revisionTime": "2018-07-26T01:11:48Z",
+			"version": "v1.2.0",
+			"versionExact": "v1.2.0"
 		},
 		{
 			"checksumSHA1": "FryZuAxWn4Ig8zc913w9BdfYzvs=",
 			"path": "github.com/ericchiang/k8s/apis/batch/v1",
-			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
-			"revisionTime": "2018-04-27T00:52:59Z",
-			"version": "v1.1.0",
-			"versionExact": "v1.1.0"
+			"revision": "d1bbc0cffaf9849ddcae7b9efffae33e2dd52e9a",
+			"revisionTime": "2018-07-26T01:11:48Z",
+			"version": "v1.2.0",
+			"versionExact": "v1.2.0"
 		},
 		{
 			"checksumSHA1": "jlmdOx3uTUp3vgBrXjqYc28OoXA=",
 			"path": "github.com/ericchiang/k8s/apis/core/v1",
-			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
-			"revisionTime": "2018-04-27T00:52:59Z",
-			"version": "v1.1.0",
-			"versionExact": "v1.1.0"
+			"revision": "d1bbc0cffaf9849ddcae7b9efffae33e2dd52e9a",
+			"revisionTime": "2018-07-26T01:11:48Z",
+			"version": "v1.2.0",
+			"versionExact": "v1.2.0"
 		},
 		{
 			"checksumSHA1": "fBP09m6drsy/tbjTYCtRDK+yFPU=",
 			"path": "github.com/ericchiang/k8s/apis/meta/v1",
-			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
-			"revisionTime": "2018-04-27T00:52:59Z",
-			"version": "v1.1.0",
-			"versionExact": "v1.1.0"
+			"revision": "d1bbc0cffaf9849ddcae7b9efffae33e2dd52e9a",
+			"revisionTime": "2018-07-26T01:11:48Z",
+			"version": "v1.2.0",
+			"versionExact": "v1.2.0"
 		},
 		{
 			"checksumSHA1": "JirJkoeIkWJRNrbprsQvqwisxds=",
 			"path": "github.com/ericchiang/k8s/apis/resource",
-			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
-			"revisionTime": "2018-04-27T00:52:59Z",
-			"version": "v1.1.0",
-			"versionExact": "v1.1.0"
+			"revision": "d1bbc0cffaf9849ddcae7b9efffae33e2dd52e9a",
+			"revisionTime": "2018-07-26T01:11:48Z",
+			"version": "v1.2.0",
+			"versionExact": "v1.2.0"
 		},
 		{
 			"checksumSHA1": "Su6wSR8V8HL2QZsF8icJ0R9AFq8=",
 			"path": "github.com/ericchiang/k8s/runtime",
-			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
-			"revisionTime": "2018-04-27T00:52:59Z",
-			"version": "v1.1.0",
-			"versionExact": "v1.1.0"
+			"revision": "d1bbc0cffaf9849ddcae7b9efffae33e2dd52e9a",
+			"revisionTime": "2018-07-26T01:11:48Z",
+			"version": "v1.2.0",
+			"versionExact": "v1.2.0"
 		},
 		{
 			"checksumSHA1": "8ETrRvIaXPfD21N7fa8kdbumL00=",
 			"path": "github.com/ericchiang/k8s/runtime/schema",
-			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
-			"revisionTime": "2018-04-27T00:52:59Z",
-			"version": "v1.1.0",
-			"versionExact": "v1.1.0"
+			"revision": "d1bbc0cffaf9849ddcae7b9efffae33e2dd52e9a",
+			"revisionTime": "2018-07-26T01:11:48Z",
+			"version": "v1.2.0",
+			"versionExact": "v1.2.0"
 		},
 		{
 			"checksumSHA1": "cMk3HE8/81ExHuEs0F5sZCclOFs=",
 			"path": "github.com/ericchiang/k8s/util/intstr",
-			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
-			"revisionTime": "2018-04-27T00:52:59Z",
-			"version": "v1.1.0",
-			"versionExact": "v1.1.0"
+			"revision": "d1bbc0cffaf9849ddcae7b9efffae33e2dd52e9a",
+			"revisionTime": "2018-07-26T01:11:48Z",
+			"version": "v1.2.0",
+			"versionExact": "v1.2.0"
 		},
 		{
 			"checksumSHA1": "fobEKiMk5D7IGvCSwh4HdG1o98c=",
 			"path": "github.com/ericchiang/k8s/watch/versioned",
-			"revision": "677cf3318ef83bf681a38821f81a233a9be09641",
-			"revisionTime": "2018-04-27T00:52:59Z",
-			"version": "v1.1.0",
-			"versionExact": "v1.1.0"
+			"revision": "d1bbc0cffaf9849ddcae7b9efffae33e2dd52e9a",
+			"revisionTime": "2018-07-26T01:11:48Z",
+			"version": "v1.2.0",
+			"versionExact": "v1.2.0"
 		},
 		{
-			"checksumSHA1": "miHVs3LhtlNC5sgYAcyaLd6x3LI=",
+			"checksumSHA1": "uJTBLgh2jwDAOHQ6La+AJgJ1dr4=",
 			"path": "github.com/estafette/estafette-ci-contracts",
-			"revision": "fc1a0ee78bc04ca2df4cdca85b5e9439994cd183",
-			"revisionTime": "2018-10-11T11:38:55Z",
-			"version": "0.0.62",
-			"versionExact": "0.0.62"
+			"revision": "8f9c5d0b42b13c53a8b034c3f0eb0ba36c521429",
+			"revisionTime": "2018-10-12T14:27:59Z",
+			"version": "0.0.63",
+			"versionExact": "0.0.63"
 		},
 		{
 			"checksumSHA1": "R054+alU1/88dhwUwqaNyxiTMRY=",
@@ -197,28 +197,36 @@
 			"revisionTime": "2017-01-09T09:34:21Z"
 		},
 		{
-			"checksumSHA1": "cpELhz30Sco7IBwvI6FyuShnjnQ=",
+			"checksumSHA1": "90S9sFqcIo/uuwQzz1t/wYs7GEs=",
 			"path": "github.com/gin-gonic/gin",
-			"revision": "d459835d2b077e44f7c9b453505ee29881d5d12d",
-			"revisionTime": "2017-07-02T09:28:26Z",
-			"version": "v1.2",
-			"versionExact": "v1.2"
+			"revision": "b869fe1415e4b9eb52f247441830d502aece2d4d",
+			"revisionTime": "2018-08-14T08:58:52Z",
+			"version": "v1.3",
+			"versionExact": "v1.3.0"
 		},
 		{
-			"checksumSHA1": "YVt5lqmGq95m5tFdiz5pr2BF1Jo=",
+			"checksumSHA1": "BjShmaQTKI8+411rCb7LFqJkLA0=",
 			"path": "github.com/gin-gonic/gin/binding",
-			"revision": "d459835d2b077e44f7c9b453505ee29881d5d12d",
-			"revisionTime": "2017-07-02T09:28:26Z",
-			"version": "v1.2",
-			"versionExact": "v1.2"
+			"revision": "b869fe1415e4b9eb52f247441830d502aece2d4d",
+			"revisionTime": "2018-08-14T08:58:52Z",
+			"version": "v1.3",
+			"versionExact": "v1.3.0"
 		},
 		{
-			"checksumSHA1": "M3FwiqpVbXwo9t2FyI5/gKxCDKY=",
+			"checksumSHA1": "woO1qIxIeQ1bcbPSiMfAKk3r4xg=",
+			"path": "github.com/gin-gonic/gin/json",
+			"revision": "b869fe1415e4b9eb52f247441830d502aece2d4d",
+			"revisionTime": "2018-08-14T08:58:52Z",
+			"version": "v1.3",
+			"versionExact": "v1.3.0"
+		},
+		{
+			"checksumSHA1": "f1n8P2YAi3o+X0//dkoDJ822zW0=",
 			"path": "github.com/gin-gonic/gin/render",
-			"revision": "d459835d2b077e44f7c9b453505ee29881d5d12d",
-			"revisionTime": "2017-07-02T09:28:26Z",
-			"version": "v1.2",
-			"versionExact": "v1.2"
+			"revision": "b869fe1415e4b9eb52f247441830d502aece2d4d",
+			"revisionTime": "2018-08-14T08:58:52Z",
+			"version": "v1.3",
+			"versionExact": "v1.3.0"
 		},
 		{
 			"checksumSHA1": "cRxfZM32wP1Ry67s3jLRoYxAz/E=",
@@ -231,6 +239,12 @@
 			"path": "github.com/google/go-querystring/query",
 			"revision": "53e6ce116135b80d037921a7fdd5138cf32d7a8a",
 			"revisionTime": "2017-01-11T10:11:55Z"
+		},
+		{
+			"checksumSHA1": "xnz61Omintrn+UB/Rv2Hh5BgTZw=",
+			"path": "github.com/json-iterator/go",
+			"revision": "2433035e513208b0f7bd5b50d0aecd889b2c1ff8",
+			"revisionTime": "2018-09-14T01:48:43Z"
 		},
 		{
 			"checksumSHA1": "QKo3rVez8D7fh1w60CPZkxtc1qw=",
@@ -275,6 +289,18 @@
 			"path": "github.com/matttproud/golang_protobuf_extensions/pbutil",
 			"revision": "c12348ce28de40eed0136aa2b644d0ee0650e56c",
 			"revisionTime": "2016-04-24T11:30:07Z"
+		},
+		{
+			"checksumSHA1": "ZTcgWKWHsrX0RXYVXn5Xeb8Q0go=",
+			"path": "github.com/modern-go/concurrent",
+			"revision": "bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94",
+			"revisionTime": "2018-03-06T01:26:44Z"
+		},
+		{
+			"checksumSHA1": "qvH48wzTIV3QKSDqI0dLFtVjaDI=",
+			"path": "github.com/modern-go/reflect2",
+			"revision": "94122c33edd36123c84d5368cfb2b69df93a0ec8",
+			"revisionTime": "2018-07-18T01:23:57Z"
 		},
 		{
 			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
