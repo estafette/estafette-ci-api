@@ -443,7 +443,12 @@ func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
 	id := c.Param("revisionOrId")
 
 	jobName := h.ciBuilderClient.GetJobName("build", owner, repo, id)
-	h.ciBuilderClient.TailCiBuilderJobLogs(jobName)
+	err := h.ciBuilderClient.TailCiBuilderJobLogs(jobName)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed tailing logs for job %v", jobName)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Work in progress"})
 }
@@ -759,7 +764,12 @@ func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
 	id := c.Param("id")
 
 	jobName := h.ciBuilderClient.GetJobName("release", owner, repo, id)
-	h.ciBuilderClient.TailCiBuilderJobLogs(jobName)
+	err := h.ciBuilderClient.TailCiBuilderJobLogs(jobName)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed tailing logs for job %v", jobName)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Work in progress"})
 }

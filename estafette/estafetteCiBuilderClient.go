@@ -421,6 +421,8 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string) (err error)
 		return err
 	}
 
+	log.Info().Msgf("Retrieved %v pods for job %v", len(pods.Items), jobName)
+
 	for _, pod := range pods.Items {
 		log.Info().Msgf("Tailing pod %v for job %v with phase %v", *pod.Metadata.Name, jobName, *pod.Status.Phase)
 	}
