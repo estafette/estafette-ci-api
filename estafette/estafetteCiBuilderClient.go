@@ -414,6 +414,9 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 // TailCiBuilderJobLogs tails logs of a running job
 func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel chan contracts.TailLogLine) (err error) {
 
+	// close channel so api handler can finish it's response
+	defer close(logChannel)
+
 	labels := new(k8s.LabelSelector)
 	labels.Eq("job-name", jobName)
 
@@ -494,23 +497,20 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 		} else {
 			log.Warn().Msgf("Post %v for job %v has unsupported phase %v", *pod.Metadata.Name, jobName, *pod.Status.Phase)
 		}
-
-		// temporary send some fake data
-		for j := 1; j <= 10; j++ {
-			logChannel <- contracts.TailLogLine{
-				StepName:   "build",
-				StepStatus: "running",
-				StreamType: "stdout",
-				Timestamp:  time.Now(),
-				Text:       fmt.Sprintf("testing testing %v...", j),
-			}
-
-			time.Sleep(time.Duration(5) * time.Second)
-		}
 	}
 
-	// close channel so api handler can finish it's response
-	close(logChannel)
+	// temporary send some fake data
+	for j := 1; j <= 10; j++ {
+		logChannel <- contracts.TailLogLine{
+			StepName:   "build",
+			StepStatus: "running",
+			StreamType: "stdout",
+			Timestamp:  time.Now(),
+			Text:       fmt.Sprintf("testing testing %v...", j),
+		}
+
+		time.Sleep(time.Duration(5) * time.Second)
+	}
 
 	return
 }

@@ -2,6 +2,7 @@ package estafette
 
 import (
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"regexp"
@@ -447,23 +448,14 @@ func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
 	logChannel := make(chan contracts.TailLogLine, 50)
 
 	go h.ciBuilderClient.TailCiBuilderJobLogs(jobName, logChannel)
-	// if err != nil {
-	// 	errorMessage := fmt.Sprintf("Failed tailing logs for job %v", jobName)
-	// 	log.Error().Err(err).Msg(errorMessage)
-	// 	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
-	// }
 
-	for {
-		l, more := <-logChannel
-		if more {
-			// push log line to output
-			log.Debug().Interface("logLine", l).Msgf("Tailed log line for job %v", jobName)
-		} else {
-			break
+	c.Stream(func(w io.Writer) bool {
+		if ll, ok := <-logChannel; ok {
+			c.SSEvent("logLine", ll)
+			return true
 		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Work in progress"})
+		return false
+	})
 }
 
 func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
@@ -781,23 +773,14 @@ func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
 	logChannel := make(chan contracts.TailLogLine, 50)
 
 	go h.ciBuilderClient.TailCiBuilderJobLogs(jobName, logChannel)
-	// if err != nil {
-	// 	errorMessage := fmt.Sprintf("Failed tailing logs for job %v", jobName)
-	// 	log.Error().Err(err).Msg(errorMessage)
-	// 	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
-	// }
 
-	for {
-		l, more := <-logChannel
-		if more {
-			// push log line to output
-			log.Debug().Interface("logLine", l).Msgf("Tailed log line for job %v", jobName)
-		} else {
-			break
+	c.Stream(func(w io.Writer) bool {
+		if ll, ok := <-logChannel; ok {
+			c.SSEvent("logLine", ll)
+			return true
 		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Work in progress"})
+		return false
+	})
 }
 
 func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
