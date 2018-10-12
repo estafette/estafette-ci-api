@@ -29,6 +29,8 @@ import (
 type CiBuilderClient interface {
 	CreateCiBuilderJob(CiBuilderParams) (*batchv1.Job, error)
 	RemoveCiBuilderJob(string) error
+	TailCiBuilderJobLogs(string) error
+	GetJobName(string, string, string, string) string
 }
 
 type ciBuilderClientImpl struct {
@@ -91,28 +93,18 @@ func NewCiBuilderClient(config config.APIConfig, secretDecryptionKey string, pro
 func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderParams) (job *batchv1.Job, err error) {
 
 	// create job name of max 63 chars
-	re := regexp.MustCompile("[^a-zA-Z0-9]+")
-	repoName := re.ReplaceAllString(ciBuilderParams.RepoFullName, "-")
-	maxRepoNameLength := 50
-	revisionOrID := ciBuilderParams.RepoRevision[:6]
-	if ciBuilderParams.ReleaseID > 0 {
-		revisionOrID = strconv.Itoa(ciBuilderParams.ReleaseID)
-		maxRepoNameLength = 54 - len(revisionOrID)
+	id := strconv.Itoa(ciBuilderParams.BuildID)
+	if ciBuilderParams.JobType == "release" {
+		id = strconv.Itoa(ciBuilderParams.ReleaseID)
 	}
-	if len(repoName) > maxRepoNameLength {
-		repoName = repoName[:maxRepoNameLength]
-	}
-	jobType := "build"
-	if ciBuilderParams.ReleaseID > 0 {
-		jobType = "release"
-	}
-	jobName := strings.ToLower(fmt.Sprintf("%v-%v-%v", jobType, repoName, revisionOrID))
+
+	jobName := cbc.GetJobName(ciBuilderParams.JobType, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, id)
 
 	// create envvars for job
 	estafetteGitSourceName := "ESTAFETTE_GIT_SOURCE"
 	estafetteGitSourceValue := ciBuilderParams.RepoSource
 	estafetteGitNameName := "ESTAFETTE_GIT_NAME"
-	estafetteGitNameValue := ciBuilderParams.RepoFullName
+	estafetteGitNameValue := fmt.Sprintf("%v/%v", ciBuilderParams.RepoOwner, ciBuilderParams.RepoName)
 	estafetteGitURLName := "ESTAFETTE_GIT_URL"
 	estafetteGitURLValue := ciBuilderParams.RepoURL
 	estafetteGitBranchName := "ESTAFETTE_GIT_BRANCH"
@@ -126,9 +118,9 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteCiServerBuilderEventsURLName := "ESTAFETTE_CI_SERVER_BUILDER_EVENTS_URL"
 	estafetteCiServerBuilderEventsURLValue := strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + "/api/commands"
 	estafetteCiServerBuilderPostLogsURLName := "ESTAFETTE_CI_SERVER_POST_LOGS_URL"
-	estafetteCiServerBuilderPostLogsURLValue := strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoFullName, ciBuilderParams.BuildID)
+	estafetteCiServerBuilderPostLogsURLValue := strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.BuildID)
 	if ciBuilderParams.ReleaseID > 0 {
-		estafetteCiServerBuilderPostLogsURLValue = strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/releases/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoFullName, ciBuilderParams.ReleaseID)
+		estafetteCiServerBuilderPostLogsURLValue = strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/releases/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.ReleaseID)
 	}
 	estafetteCiAPIKeyName := "ESTAFETTE_CI_API_KEY"
 	estafetteCiAPIKeyValue := cbc.config.Auth.APIKey
@@ -416,4 +408,39 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 	}
 
 	return
+}
+
+// TailCiBuilderJobLogs tails logs of a running job
+func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string) (err error) {
+
+	labels := new(k8s.LabelSelector)
+	labels.Eq("job-name", jobName)
+
+	var pods corev1.PodList
+	if err := cbc.kubeClient.List(context.Background(), cbc.kubeClient.Namespace, &pods, labels.Selector()); err != nil {
+		return err
+	}
+
+	for _, pod := range pods.Items {
+		log.Info().Msgf("Tailing pod %v for job %v with phase %v", *pod.Metadata.Name, jobName, *pod.Status.Phase)
+	}
+
+	return
+}
+
+// GetJobName returns the job name for a build or release job
+func (cbc *ciBuilderClientImpl) GetJobName(jobType, repoOwner, repoSource, id string) string {
+
+	// create job name of max 63 chars
+	maxJobNameLength := 63
+
+	re := regexp.MustCompile("[^a-zA-Z0-9]+")
+	repoName := re.ReplaceAllString(fmt.Sprintf("%v/%v", repoOwner, repoSource), "-")
+
+	maxRepoNameLength := maxJobNameLength - len(jobType) - 1 - len(id) - 1
+	if len(repoName) > maxRepoNameLength {
+		repoName = repoName[:maxRepoNameLength]
+	}
+
+	return strings.ToLower(fmt.Sprintf("%v-%v-%v", jobType, repoName, id))
 }

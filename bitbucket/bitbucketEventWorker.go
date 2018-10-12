@@ -201,8 +201,10 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.Reposi
 
 	// define ci builder params
 	ciBuilderParams := estafette.CiBuilderParams{
+		JobType:              "build",
 		RepoSource:           pushEvent.GetRepoSource(),
-		RepoFullName:         pushEvent.GetRepoFullName(),
+		RepoOwner:            pushEvent.GetRepoOwner(),
+		RepoName:             pushEvent.GetRepoName(),
 		RepoURL:              authenticatedRepositoryURL,
 		RepoBranch:           pushEvent.GetRepoBranch(),
 		RepoRevision:         pushEvent.GetRepoRevision(),
@@ -210,7 +212,6 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.Reposi
 		Track:                builderTrack,
 		AutoIncrement:        autoincrement,
 		VersionNumber:        buildVersion,
-		HasValidManifest:     hasValidManifest,
 		Manifest:             mft,
 		BuildID:              buildID,
 	}
@@ -221,13 +222,13 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.Reposi
 		if err != nil {
 			log.Error().Err(err).
 				Interface("params", ciBuilderParams).
-				Msgf("Creating estafette-ci-builder job for Bitbucket repository %v revision %v failed", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
+				Msgf("Creating estafette-ci-builder job for Bitbucket repository %v/%v revision %v failed", ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.RepoRevision)
 
 			return
 		}
 
 		log.Info().
 			Interface("params", ciBuilderParams).
-			Msgf("Created estafette-ci-builder job for Bitbucket repository %v revision %v", ciBuilderParams.RepoFullName, ciBuilderParams.RepoRevision)
+			Msgf("Created estafette-ci-builder job for Bitbucket repository %v/%v revision %v", ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.RepoRevision)
 	}
 }

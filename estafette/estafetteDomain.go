@@ -24,8 +24,10 @@ type CiBuilderLogLine struct {
 
 // CiBuilderParams contains the parameters required to create a ci builder job
 type CiBuilderParams struct {
+	JobType              string
 	RepoSource           string
-	RepoFullName         string
+	RepoOwner            string
+	RepoName             string
 	RepoURL              string
 	RepoBranch           string
 	RepoRevision         string
@@ -33,9 +35,9 @@ type CiBuilderParams struct {
 	Track                string
 	AutoIncrement        int
 	VersionNumber        string
-	HasValidManifest     bool
-	Manifest             manifest.EstafetteManifest
-	ReleaseName          string
-	ReleaseID            int
-	BuildID              int
+	//HasValidManifest     bool
+	Manifest    manifest.EstafetteManifest
+	ReleaseName string
+	ReleaseID   int
+	BuildID     int
 }

@@ -262,19 +262,19 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 					// start release job
 					ciBuilderParams := estafette.CiBuilderParams{
+						JobType:              "release",
 						RepoSource:           build.RepoSource,
-						RepoFullName:         fmt.Sprintf("%v/%v", build.RepoOwner, build.RepoName),
+						RepoOwner:            build.RepoOwner,
+						RepoName:             build.RepoName,
 						RepoURL:              authenticatedRepositoryURL,
 						RepoBranch:           build.RepoBranch,
 						RepoRevision:         build.RepoRevision,
 						EnvironmentVariables: environmentVariableWithToken,
 						Track:                manifest.Builder.Track,
-						//AutoIncrement:    autoincrement,
-						VersionNumber:    buildVersion,
-						HasValidManifest: true,
-						Manifest:         manifest,
-						ReleaseID:        insertedReleaseID,
-						ReleaseName:      releaseName,
+						VersionNumber:        buildVersion,
+						Manifest:             manifest,
+						ReleaseID:            insertedReleaseID,
+						ReleaseName:          releaseName,
 					}
 
 					go h.createReleaseJob(ciBuilderParams)

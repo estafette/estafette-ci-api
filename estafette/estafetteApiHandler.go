@@ -24,11 +24,13 @@ type APIHandler interface {
 	GetPipelineBuild(*gin.Context)
 	CreatePipelineBuild(*gin.Context)
 	GetPipelineBuildLogs(*gin.Context)
+	TailPipelineBuildLogs(*gin.Context)
 	PostPipelineBuildLogs(*gin.Context)
 	GetPipelineReleases(*gin.Context)
 	GetPipelineRelease(*gin.Context)
 	CreatePipelineRelease(*gin.Context)
 	GetPipelineReleaseLogs(*gin.Context)
+	TailPipelineReleaseLogs(*gin.Context)
 	PostPipelineReleaseLogs(*gin.Context)
 
 	GetStatsPipelinesCount(c *gin.Context)
@@ -365,8 +367,10 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 
 	// define ci builder params
 	ciBuilderParams := CiBuilderParams{
+		JobType:              "build",
 		RepoSource:           failedBuild.RepoSource,
-		RepoFullName:         fmt.Sprintf("%v/%v", failedBuild.RepoOwner, failedBuild.RepoName),
+		RepoOwner:            failedBuild.RepoOwner,
+		RepoName:             failedBuild.RepoName,
 		RepoURL:              authenticatedRepositoryURL,
 		RepoBranch:           failedBuild.RepoBranch,
 		RepoRevision:         failedBuild.RepoRevision,
@@ -374,7 +378,6 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 		Track:                manifest.Builder.Track,
 		AutoIncrement:        autoincrement,
 		VersionNumber:        failedBuild.BuildVersion,
-		HasValidManifest:     true,
 		Manifest:             manifest,
 		BuildID:              buildID,
 	}
@@ -432,6 +435,17 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 	log.Info().Msgf("Retrieved build logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
 
 	c.JSON(http.StatusOK, buildLog)
+}
+
+func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	id := c.Param("id")
+
+	jobName := h.ciBuilderClient.GetJobName("build", owner, repo, id)
+	h.ciBuilderClient.TailCiBuilderJobLogs(jobName)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Work in progress"})
 }
 
 func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
@@ -665,19 +679,19 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 
 	// start release job
 	ciBuilderParams := CiBuilderParams{
+		JobType:              "release",
 		RepoSource:           releaseCommand.RepoSource,
-		RepoFullName:         fmt.Sprintf("%v/%v", releaseCommand.RepoOwner, releaseCommand.RepoName),
+		RepoOwner:            releaseCommand.RepoOwner,
+		RepoName:             releaseCommand.RepoName,
 		RepoURL:              authenticatedRepositoryURL,
 		RepoBranch:           build.RepoBranch,
 		RepoRevision:         build.RepoRevision,
 		EnvironmentVariables: environmentVariableWithToken,
 		Track:                manifest.Builder.Track,
-		//AutoIncrement:    autoincrement,
-		VersionNumber:    releaseCommand.ReleaseVersion,
-		HasValidManifest: true,
-		Manifest:         manifest,
-		ReleaseID:        insertedReleaseID,
-		ReleaseName:      releaseCommand.Name,
+		VersionNumber:        releaseCommand.ReleaseVersion,
+		Manifest:             manifest,
+		ReleaseID:            insertedReleaseID,
+		ReleaseName:          releaseCommand.Name,
 	}
 
 	go h.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
@@ -737,7 +751,17 @@ func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 	log.Info().Msgf("Retrieved release logs for %v/%v/%v/%v", source, owner, repo, id)
 
 	c.JSON(http.StatusOK, releaseLog)
+}
 
+func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	id := c.Param("id")
+
+	jobName := h.ciBuilderClient.GetJobName("release", owner, repo, id)
+	h.ciBuilderClient.TailCiBuilderJobLogs(jobName)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Work in progress"})
 }
 
 func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
