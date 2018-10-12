@@ -440,7 +440,7 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
-	id := c.Param("id")
+	id := c.Param("revisionOrId")
 
 	jobName := h.ciBuilderClient.GetJobName("build", owner, repo, id)
 	h.ciBuilderClient.TailCiBuilderJobLogs(jobName)
@@ -756,7 +756,7 @@ func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
-	id := c.Param("revisionOrId")
+	id := c.Param("id")
 
 	jobName := h.ciBuilderClient.GetJobName("release", owner, repo, id)
 	h.ciBuilderClient.TailCiBuilderJobLogs(jobName)
