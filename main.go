@@ -160,9 +160,6 @@ func createRouter() *gin.Engine {
 	// Creates a router without any middleware by default
 	router := gin.New()
 
-	// Logging middleware
-	router.Use(ZeroLogMiddleware())
-
 	// Recovery middleware recovers from any panics and writes a 500 if there was one.
 	router.Use(gin.Recovery())
 
@@ -223,8 +220,8 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	// create and init router
 	router := createRouter()
 
-	// Gzip middleware
-	gzippedRoutes := router.Group("/", gzip.Gzip(gzip.DefaultCompression))
+	// Gzip and logging middleware
+	gzippedRoutes := router.Group("/", gzip.Gzip(gzip.DefaultCompression), ZeroLogMiddleware())
 
 	// middleware to handle auth for different endpoints
 	authMiddleware := auth.NewAuthMiddleware(*config.Auth)
