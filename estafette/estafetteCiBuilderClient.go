@@ -416,6 +416,8 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string) (err error)
 	labels := new(k8s.LabelSelector)
 	labels.Eq("job-name", jobName)
 
+	log.Info().Msgf("Retrieving pods with job-name=%v in namespace %v", jobName, cbc.kubeClient.Namespace)
+
 	var pods corev1.PodList
 	if err := cbc.kubeClient.List(context.Background(), cbc.kubeClient.Namespace, &pods, labels.Selector()); err != nil {
 		return err
