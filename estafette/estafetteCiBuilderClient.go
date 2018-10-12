@@ -500,7 +500,7 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 	}
 
 	// temporary send some fake data
-	for j := 1; j <= 10; j++ {
+	for j := 1; j <= 5; j++ {
 		logChannel <- contracts.TailLogLine{
 			StepName:   "build",
 			StepStatus: "running",
@@ -509,7 +509,7 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 			Text:       fmt.Sprintf("testing testing %v...", j),
 		}
 
-		time.Sleep(time.Duration(5) * time.Second)
+		time.Sleep(time.Duration(2) * time.Second)
 	}
 
 	return

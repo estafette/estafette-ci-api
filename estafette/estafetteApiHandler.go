@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/cockroach"
@@ -449,12 +450,19 @@ func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
 
 	go h.ciBuilderClient.TailCiBuilderJobLogs(jobName, logChannel)
 
+	ticker := time.NewTicker(1 * time.Second)
+
 	c.Stream(func(w io.Writer) bool {
-		if ll, ok := <-logChannel; ok {
-			c.SSEvent("logLine", ll)
-			return true
+		select {
+		case ll, ok := <-logChannel:
+			if !ok {
+				return false
+			}
+			c.SSEvent("message", ll)
+		case <-ticker.C:
+			c.SSEvent("keepalive", "")
 		}
-		return false
+		return true
 	})
 }
 
@@ -774,12 +782,19 @@ func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
 
 	go h.ciBuilderClient.TailCiBuilderJobLogs(jobName, logChannel)
 
+	ticker := time.NewTicker(1 * time.Second)
+
 	c.Stream(func(w io.Writer) bool {
-		if ll, ok := <-logChannel; ok {
-			c.SSEvent("logLine", ll)
-			return true
+		select {
+		case ll, ok := <-logChannel:
+			if !ok {
+				return false
+			}
+			c.SSEvent("message", ll)
+		case <-ticker.C:
+			c.SSEvent("keepalive", "")
 		}
-		return false
+		return true
 	})
 }
 
