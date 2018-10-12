@@ -426,7 +426,41 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string) (err error)
 	log.Info().Msgf("Retrieved %v pods for job %v", len(pods.Items), jobName)
 
 	for _, pod := range pods.Items {
-		log.Info().Msgf("Tailing pod %v for job %v with phase %v", *pod.Metadata.Name, jobName, *pod.Status.Phase)
+
+		log.Info().Msgf("Pod %v for job %v has phase %v", *pod.Metadata.Name, jobName, *pod.Status.Phase)
+
+		if *pod.Status.Phase == "Pending" {
+			// watch for pod to go into Running state (or out of Pending state)
+
+			var pendingPod corev1.Pod
+			watcher, err := cbc.kubeClient.Watch(context.Background(), cbc.kubeClient.Namespace, &pendingPod, k8s.Timeout(time.Duration(300)*time.Second))
+			defer watcher.Close()
+
+			if err != nil {
+				return err
+			} else {
+				// wait for pod to change Phase to succeed
+				for {
+					watchedPod := new(corev1.Pod)
+					event, err := watcher.Next(watchedPod)
+					if err != nil {
+						return err
+					}
+
+					if event == k8s.EventModified && *watchedPod.Metadata.Name == *pod.Metadata.Name && *watchedPod.Status.Phase != "Pending" {
+						log.Info().Msgf("Pod %v for job %v has changed from phase Pending to %v", *watchedPod.Metadata.Name, jobName, *watchedPod.Status.Phase)
+						pod = watchedPod
+						break
+					}
+				}
+			}
+		}
+
+		if *pod.Status.Phase == "Running" {
+			log.Info().Msgf("Tailing pod %v for job %v with phase %v", *pod.Metadata.Name, jobName, *pod.Status.Phase)
+		} else {
+			log.Warn().Msgf("Post %v for job %v has unsupported phase %v", *pod.Metadata.Name, jobName, *pod.Status.Phase)
+		}
 	}
 
 	return
