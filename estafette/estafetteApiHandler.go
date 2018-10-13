@@ -450,7 +450,7 @@ func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
 
 	go h.ciBuilderClient.TailCiBuilderJobLogs(jobName, logChannel)
 
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 
 	// ensure openresty doesn't buffer this response but sends the chunks rightaway
 	c.Writer.Header().Set("X-Accel-Buffering", "no")
@@ -461,9 +461,9 @@ func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
 			if !ok {
 				return false
 			}
-			c.SSEvent("message", ll)
+			c.SSEvent("log", ll)
 		case <-ticker.C:
-			c.SSEvent("keepalive", "")
+			c.SSEvent("keepalive", true)
 		}
 		return true
 	})
@@ -785,7 +785,7 @@ func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
 
 	go h.ciBuilderClient.TailCiBuilderJobLogs(jobName, logChannel)
 
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 
 	// ensure openresty doesn't buffer this response but sends the chunks rightaway
 	c.Writer.Header().Set("X-Accel-Buffering", "no")
@@ -796,9 +796,9 @@ func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
 			if !ok {
 				return false
 			}
-			c.SSEvent("message", ll)
+			c.SSEvent("log", ll)
 		case <-ticker.C:
-			c.SSEvent("keepalive", "")
+			c.SSEvent("keepalive", true)
 		}
 		return true
 	})
