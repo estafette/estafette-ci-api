@@ -452,6 +452,9 @@ func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
 
 	ticker := time.NewTicker(1 * time.Second)
 
+	// ensure openresty doesn't buffer this response but sends the chunks rightaway
+	c.Writer.Header().Set("X-Accel-Buffering", "no")
+
 	c.Stream(func(w io.Writer) bool {
 		select {
 		case ll, ok := <-logChannel:
@@ -783,6 +786,9 @@ func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
 	go h.ciBuilderClient.TailCiBuilderJobLogs(jobName, logChannel)
 
 	ticker := time.NewTicker(1 * time.Second)
+
+	// ensure openresty doesn't buffer this response but sends the chunks rightaway
+	c.Writer.Header().Set("X-Accel-Buffering", "no")
 
 	c.Stream(func(w io.Writer) bool {
 		select {
