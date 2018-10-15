@@ -514,12 +514,15 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 				log.Warn().Err(err).Msgf("Error while reading lines from logs from pod %v for job %v", *pod.Metadata.Name, jobName)
 			}
 
-			logChannel <- contracts.TailLogLine{
-				StepName:   "build",
-				StepStatus: "running",
-				StreamType: "stdout",
-				Timestamp:  time.Now(),
-				Text:       string(line),
+			// only forward if it's a json object with property 'tailLogLine'
+			jsonMap := map[string]interface{}{}
+			err = json.Unmarshal(line, &jsonMap)
+			if err == nil {
+				if tailLogLineInterface, ok := jsonMap["tailLogLine"]; ok {
+					logChannel <- tailLogLineInterface.(contracts.TailLogLine)
+				}
+			} else {
+				log.Error().Err(err).Str("line", string(line)).Msgf("Tailed log from pod %v for job %v is not of type json", *pod.Metadata.Name, jobName)
 			}
 		}
 
