@@ -1,6 +1,9 @@
 package estafette
 
-import manifest "github.com/estafette/estafette-ci-manifest"
+import (
+	contracts "github.com/estafette/estafette-ci-contracts"
+	manifest "github.com/estafette/estafette-ci-manifest"
+)
 
 // CiBuilderEvent represents a finished estafette build
 type CiBuilderEvent struct {
@@ -40,4 +43,8 @@ type CiBuilderParams struct {
 	ReleaseName string
 	ReleaseID   int
 	BuildID     int
+}
+
+type zeroLogLine struct {
+	TailLogLine *contracts.TailLogLine `json:"tailLogLine"`
 }
