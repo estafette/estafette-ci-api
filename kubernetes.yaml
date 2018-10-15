@@ -338,7 +338,7 @@ spec:
           initialDelaySeconds: 30
           timeoutSeconds: 1
       - name: estafette-ci-api-openresty
-        image: estafette/openresty-sidecar:1.13.6.1-alpine-no-proxy-buffer
+        image: estafette/openresty-sidecar:1.13.6.2-alpine
         imagePullPolicy: Always
         resources:
           limits:

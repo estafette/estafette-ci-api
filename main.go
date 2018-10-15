@@ -278,10 +278,10 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown
 	srv := &http.Server{
-		Addr:           *apiAddress,
-		Handler:        router,
-		ReadTimeout:    30 * time.Second,
-		WriteTimeout:   30 * time.Second,
+		Addr:        *apiAddress,
+		Handler:     router,
+		ReadTimeout: 30 * time.Second,
+		//WriteTimeout:   30 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
 
