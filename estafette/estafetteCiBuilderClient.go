@@ -470,10 +470,11 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 		}
 
 		// follow logs from pod
-		//http://localhost:8001/api/v1/namespaces/estafette/pods/estafette-ci-api-575dcc7d5f-rhmwn/log?follow=true&container=estafette-ci-api
 		url := fmt.Sprintf("%v/api/v1/namespaces/%v/pods/%v/log?follow=true", cbc.kubeClient.Endpoint, cbc.kubeClient.Namespace, *pod.Metadata.Name)
 
-		ct := "text/plain"
+		log.Info().Msgf("Requesting url %v for retrieving logs from pod %v for job %v", url, *pod.Metadata.Name, jobName)
+
+		ct := "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
 
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
