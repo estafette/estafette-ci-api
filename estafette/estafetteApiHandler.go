@@ -459,11 +459,12 @@ func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
 		select {
 		case ll, ok := <-logChannel:
 			if !ok {
+				c.SSEvent("close", true)
 				return false
 			}
 			c.SSEvent("log", ll)
 		case <-ticker.C:
-			c.SSEvent("keepalive", true)
+			c.SSEvent("ping", true)
 		}
 		return true
 	})
@@ -794,11 +795,12 @@ func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
 		select {
 		case ll, ok := <-logChannel:
 			if !ok {
+				c.SSEvent("close", true)
 				return false
 			}
 			c.SSEvent("log", ll)
 		case <-ticker.C:
-			c.SSEvent("keepalive", true)
+			c.SSEvent("ping", true)
 		}
 		return true
 	})
