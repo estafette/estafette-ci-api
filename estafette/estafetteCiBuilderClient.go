@@ -519,7 +519,12 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 			err = json.Unmarshal(line, &jsonMap)
 			if err == nil {
 				if tailLogLineInterface, ok := jsonMap["tailLogLine"]; ok {
-					logChannel <- tailLogLineInterface.(contracts.TailLogLine)
+
+					if tailLogLine, aok := tailLogLineInterface.(contracts.TailLogLine); aok {
+						logChannel <- tailLogLine
+					} else {
+						log.Error().Interface("tailLog", tailLogLine).Msgf("Cannot assert type of tailLogLine property while tailing log from pod %v for job %v is not of type json", *pod.Metadata.Name, jobName)
+					}
 				}
 			} else {
 				log.Error().Err(err).Str("line", string(line)).Msgf("Tailed log from pod %v for job %v is not of type json", *pod.Metadata.Name, jobName)
