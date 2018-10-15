@@ -471,7 +471,7 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 
 		// follow logs from pod
 		//http://localhost:8001/api/v1/namespaces/estafette/pods/estafette-ci-api-575dcc7d5f-rhmwn/log?follow=true&container=estafette-ci-api
-		url := fmt.Sprintf("/api/v1/namespaces/%v/pods/%v/log?follow=true", cbc.kubeClient.Namespace, *pod.Metadata.Name)
+		url := fmt.Sprintf("%v/api/v1/namespaces/%v/pods/%v/log?follow=true", cbc.kubeClient.Endpoint, cbc.kubeClient.Namespace, *pod.Metadata.Name)
 
 		ct := "text/plain"
 
