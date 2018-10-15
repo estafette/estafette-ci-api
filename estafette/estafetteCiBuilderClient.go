@@ -1,10 +1,13 @@
 package estafette
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"regexp"
 	"strconv"
@@ -438,78 +441,83 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 
 			var pendingPod corev1.Pod
 			watcher, err := cbc.kubeClient.Watch(context.Background(), cbc.kubeClient.Namespace, &pendingPod, k8s.Timeout(time.Duration(300)*time.Second))
-			defer watcher.Close()
 
 			if err != nil {
 				return err
-			} else {
-				// wait for pod to change Phase to succeed
-				for {
-					watchedPod := new(corev1.Pod)
-					event, err := watcher.Next(watchedPod)
-					if err != nil {
-						return err
-					}
+			}
 
-					if event == k8s.EventModified && *watchedPod.Metadata.Name == *pod.Metadata.Name && *watchedPod.Status.Phase != "Pending" {
-						log.Info().Msgf("Pod %v for job %v has changed from phase Pending to %v", *watchedPod.Metadata.Name, jobName, *watchedPod.Status.Phase)
-						pod = watchedPod
-						break
-					}
+			// wait for pod to change Phase to succeed
+			defer watcher.Close()
+			for {
+				watchedPod := new(corev1.Pod)
+				event, err := watcher.Next(watchedPod)
+				if err != nil {
+					return err
+				}
+
+				if event == k8s.EventModified && *watchedPod.Metadata.Name == *pod.Metadata.Name && *watchedPod.Status.Phase != "Pending" {
+					log.Info().Msgf("Pod %v for job %v has changed from phase Pending to %v", *watchedPod.Metadata.Name, jobName, *watchedPod.Status.Phase)
+					pod = watchedPod
+					break
 				}
 			}
 		}
 
 		if *pod.Status.Phase == "Running" {
 			log.Info().Msgf("Tailing pod %v for job %v with phase %v", *pod.Metadata.Name, jobName, *pod.Status.Phase)
-
-			// req := client.RESTClient.Get().
-			// 	Namespace(namespace).
-			// 	Name(podID).
-			// 	Resource("pods").
-			// 	SubResource("log").
-			// 	Param("follow", strconv.FormatBool(logOptions.Follow)).
-			// 	Param("container", logOptions.Container).
-			// 	Param("previous", strconv.FormatBool(logOptions.Previous)).
-			// 	Param("timestamps", strconv.FormatBool(logOptions.Timestamps))
-
-			// if logOptions.SinceSeconds != nil {
-			// 	req.Param("sinceSeconds", strconv.FormatInt(*logOptions.SinceSeconds, 10))
-			// }
-			// if logOptions.SinceTime != nil {
-			// 	req.Param("sinceTime", logOptions.SinceTime.Format(time.RFC3339))
-			// }
-			// if logOptions.LimitBytes != nil {
-			// 	req.Param("limitBytes", strconv.FormatInt(*logOptions.LimitBytes, 10))
-			// }
-			// if logOptions.TailLines != nil {
-			// 	req.Param("tailLines", strconv.FormatInt(*logOptions.TailLines, 10))
-			// }
-			// readCloser, err := req.Stream()
-			// if err != nil {
-			// 	return err
-			// }
-
-			// defer readCloser.Close()
-			// _, err = io.Copy(out, readCloser)
-			// return err
-
 		} else {
 			log.Warn().Msgf("Post %v for job %v has unsupported phase %v", *pod.Metadata.Name, jobName, *pod.Status.Phase)
 		}
-	}
 
-	// temporary send some fake data
-	for j := 1; j <= 5; j++ {
-		logChannel <- contracts.TailLogLine{
-			StepName:   "build",
-			StepStatus: "running",
-			StreamType: "stdout",
-			Timestamp:  time.Now(),
-			Text:       fmt.Sprintf("testing testing %v...", j),
+		// follow logs from pod
+		//http://localhost:8001/api/v1/namespaces/estafette/pods/estafette-ci-api-575dcc7d5f-rhmwn/log?follow=true&container=estafette-ci-api
+		url := fmt.Sprintf("/api/v1/namespaces/%v/pods/%v/log?follow=true", cbc.kubeClient.Namespace, *pod.Metadata.Name)
+
+		ct := "text/plain"
+
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			return err
+		}
+		if cbc.kubeClient.SetHeaders != nil {
+			if err := cbc.kubeClient.SetHeaders(req.Header); err != nil {
+				return err
+			}
+		}
+		req = req.WithContext(context.Background())
+
+		req.Header.Set("Accept", ct)
+
+		resp, err := cbc.kubeClient.Client.Do(req)
+		if err != nil {
+			return err
 		}
 
-		time.Sleep(time.Duration(2) * time.Second)
+		if resp.StatusCode/100 != 2 {
+			if err != nil {
+				return err
+			}
+			return fmt.Errorf("error status %d", resp.StatusCode)
+		}
+
+		reader := bufio.NewReader(resp.Body)
+		for {
+			line, err := reader.ReadBytes('\n')
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Warn().Err(err).Msgf("Error while reading lines from logs from pod %v for job %v", *pod.Metadata.Name, jobName)
+			}
+
+			logChannel <- contracts.TailLogLine{
+				StepName:   "build",
+				StepStatus: "running",
+				StreamType: "stdout",
+				Timestamp:  time.Now(),
+				Text:       string(line),
+			}
+		}
 	}
 
 	return
