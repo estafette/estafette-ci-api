@@ -477,10 +477,12 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
+			log.Error().Err(err).Msgf("Failed generating request for retrieving logs from pod %v for job %v", *pod.Metadata.Name, jobName)
 			return err
 		}
 		if cbc.kubeClient.SetHeaders != nil {
 			if err := cbc.kubeClient.SetHeaders(req.Header); err != nil {
+				log.Error().Err(err).Msgf("Failed setting request headers for retrieving logs from pod %v for job %v", *pod.Metadata.Name, jobName)
 				return err
 			}
 		}
@@ -490,20 +492,21 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 
 		resp, err := cbc.kubeClient.Client.Do(req)
 		if err != nil {
+			log.Error().Err(err).Msgf("Failed performing request for retrieving logs from pod %v for job %v", *pod.Metadata.Name, jobName)
 			return err
 		}
 
 		if resp.StatusCode/100 != 2 {
-			if err != nil {
-				return err
-			}
-			return fmt.Errorf("error status %d", resp.StatusCode)
+			errorMessage := fmt.Sprintf("Request for retrieving logs from pod %v for job %v has status code %v", *pod.Metadata.Name, jobName, resp.StatusCode)
+			log.Error().Msg(errorMessage)
+			return fmt.Errorf(errorMessage)
 		}
 
 		reader := bufio.NewReader(resp.Body)
 		for {
 			line, err := reader.ReadBytes('\n')
 			if err == io.EOF {
+				log.Info().Msgf("Detected EOF in response for retrieving logs from pod %v for job %v", *pod.Metadata.Name, jobName)
 				break
 			}
 			if err != nil {
@@ -518,6 +521,8 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 				Text:       string(line),
 			}
 		}
+
+		log.Info().Msgf("Done retrieving logs from pod %v for job %v", *pod.Metadata.Name, jobName)
 	}
 
 	return
