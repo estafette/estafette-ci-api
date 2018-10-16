@@ -326,6 +326,7 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	// get authenticated url
 	var authenticatedRepositoryURL string
 	var environmentVariableWithToken map[string]string
+	var gitSource string
 	switch failedBuild.RepoSource {
 	case "github.com":
 		var accessToken string
@@ -336,6 +337,7 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		}
 		environmentVariableWithToken = map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken}
+		gitSource = "github"
 
 	case "bitbucket.org":
 		var accessToken string
@@ -346,11 +348,20 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		}
 		environmentVariableWithToken = map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken}
+		gitSource = "bitbucket"
 	}
 
 	manifest, err := manifest.ReadManifest(failedBuild.Manifest)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed reading manifest for rebuilding version %v of repository %v/%v/%v for build command issued by %v", buildCommand.BuildVersion, buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, user)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	// inject steps
+	manifest, err = InjectSteps(manifest, manifest.Builder.Track, gitSource)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed injecting steps into manifest for rebuilding version %v of repository %v/%v/%v for build command issued by %v", buildCommand.BuildVersion, buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, user)
 		log.Error().Err(err).Msg(errorMessage)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 	}
