@@ -330,7 +330,7 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	switch failedBuild.RepoSource {
 	case "github.com":
 		var accessToken string
-		accessToken, authenticatedRepositoryURL, err = h.githubJobVarsFunc(buildCommand.BuildVersion, buildCommand.RepoSource, buildCommand.RepoOwner)
+		accessToken, authenticatedRepositoryURL, err = h.githubJobVarsFunc(buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName)
 		if err != nil {
 			errorMessage := fmt.Sprintf("Retrieving access token and authenticated github url for repository %v/%v/%v failed for build command issued by %v", buildCommand.BuildVersion, buildCommand.RepoSource, buildCommand.RepoOwner, user)
 			log.Error().Err(err).Msg(errorMessage)
@@ -341,7 +341,7 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 
 	case "bitbucket.org":
 		var accessToken string
-		accessToken, authenticatedRepositoryURL, err = h.bitbucketJobVarsFunc(buildCommand.BuildVersion, buildCommand.RepoSource, buildCommand.RepoOwner)
+		accessToken, authenticatedRepositoryURL, err = h.bitbucketJobVarsFunc(buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName)
 		if err != nil {
 			errorMessage := fmt.Sprintf("Retrieving access token and authenticated bitbucket url for repository %v/%v/%v failed for build command issued by %v", buildCommand.BuildVersion, buildCommand.RepoSource, buildCommand.RepoOwner, user)
 			log.Error().Err(err).Msg(errorMessage)
