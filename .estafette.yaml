@@ -34,7 +34,6 @@ stages:
     - estafette
     path: ./publish
     copy:
-    - Dockerfile
     - /etc/ssl/certs/ca-certificates.crt
 
   push-to-docker-hub:
