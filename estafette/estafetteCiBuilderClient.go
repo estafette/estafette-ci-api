@@ -448,7 +448,7 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 				LogLine: &contracts.BuildLogLine{
 					Timestamp:  time.Now(),
 					StreamType: "stdout",
-					Text:       fmt.Sprintf("Pod %v for job %v has phase %v, waiting for pod to start running", *pod.Metadata.Name, jobName, *pod.Status.Phase),
+					Text:       fmt.Sprintf("Pod %v for job %v is pending, waiting for pod to start running", *pod.Metadata.Name, jobName),
 				},
 			}
 
