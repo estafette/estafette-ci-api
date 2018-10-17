@@ -14,19 +14,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/config"
-	"github.com/estafette/estafette-ci-api/docker"
-	contracts "github.com/estafette/estafette-ci-contracts"
-
-	yaml "gopkg.in/yaml.v2"
-
 	"github.com/ericchiang/k8s"
 	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
 	corev1 "github.com/ericchiang/k8s/apis/core/v1"
 	metav1 "github.com/ericchiang/k8s/apis/meta/v1"
 	"github.com/ericchiang/k8s/apis/resource"
+	"github.com/estafette/estafette-ci-api/config"
+	"github.com/estafette/estafette-ci-api/docker"
+	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // CiBuilderClient is the interface for running kubernetes commands specific to this application
@@ -105,6 +103,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	jobName := cbc.GetJobName(ciBuilderParams.JobType, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, id)
 
 	// create envvars for job
+	runAsJobName := "RUN_AS_JOB"
+	runAsJobValue := "true"
 	estafetteGitSourceName := "ESTAFETTE_GIT_SOURCE"
 	estafetteGitSourceValue := ciBuilderParams.RepoSource
 	estafetteGitNameName := "ESTAFETTE_GIT_NAME"
@@ -160,6 +160,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteBuildIDValue := strconv.Itoa(ciBuilderParams.BuildID)
 
 	environmentVariables := []*corev1.EnvVar{
+		&corev1.EnvVar{
+			Name:  &runAsJobName,
+			Value: &runAsJobValue,
+		},
 		&corev1.EnvVar{
 			Name:  &estafetteGitSourceName,
 			Value: &estafetteGitSourceValue,
