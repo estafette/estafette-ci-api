@@ -191,6 +191,46 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		}
 	}
 
+	localBuilderConfig.Manifest = &ciBuilderParams.Manifest
+
+	localBuilderConfig.JobName = &jobName
+	localBuilderConfig.CIServer = &contracts.CIServerConfig{
+		BaseURL:          estafetteCiServerBaseURLValue,
+		BuilderEventsURL: estafetteCiServerBuilderEventsURLValue,
+		PostLogsURL:      estafetteCiServerBuilderPostLogsURLValue,
+		APIKey:           estafetteCiAPIKeyValue,
+	}
+	if *localBuilderConfig.Action == "build" {
+		localBuilderConfig.BuildParams = &contracts.BuildParamsConfig{
+			BuildID: ciBuilderParams.BuildID,
+		}
+	}
+	if *localBuilderConfig.Action == "release" {
+		localBuilderConfig.ReleaseParams = &contracts.ReleaseParamsConfig{
+			ReleaseName: ciBuilderParams.ReleaseName,
+			ReleaseID:   ciBuilderParams.ReleaseID,
+		}
+	}
+
+	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_GITHUB_API_TOKEN"]; ok {
+		localBuilderConfig.Credentials = append(localBuilderConfig.Credentials, &contracts.CredentialConfig{
+			Name: "github-api-token",
+			Type: "github-api-token",
+			AdditionalProperties: map[string]interface{}{
+				"token": token,
+			},
+		})
+	}
+	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_BITBUCKET_API_TOKEN"]; ok {
+		localBuilderConfig.Credentials = append(localBuilderConfig.Credentials, &contracts.CredentialConfig{
+			Name: "bitbucket-api-token",
+			Type: "bitbucket-api-token",
+			AdditionalProperties: map[string]interface{}{
+				"token": token,
+			},
+		})
+	}
+
 	builderConfigName := "BUILDER_CONFIG"
 	builderConfigJSONBytes, err := json.Marshal(localBuilderConfig)
 	builderConfigValue := string(builderConfigJSONBytes)
@@ -347,8 +387,11 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 							Name:            &containerName,
 							Image:           &image,
 							ImagePullPolicy: &imagePullPolicy,
-							Args:            []string{fmt.Sprintf("--secret-decryption-key=%v", cbc.secretDecryptionKey)},
-							Env:             environmentVariables,
+							Args: []string{
+								fmt.Sprintf("--secret-decryption-key=%v", cbc.secretDecryptionKey),
+								"--run-as-job=true",
+							},
+							Env: environmentVariables,
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: &privileged,
 							},
