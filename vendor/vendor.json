@@ -185,10 +185,10 @@
 			"versionExact": "0.1.37"
 		},
 		{
-			"checksumSHA1": "J543X9cktZCbLtil2e89xc42ANI=",
+			"checksumSHA1": "TDysVqhcacAS+H/fqk5X2egtcrA=",
 			"path": "github.com/gin-contrib/gzip",
-			"revision": "f4623742155704b95c69be0017fd88ba93445808",
-			"revisionTime": "2018-10-18T03:22:12Z"
+			"revision": "ff223ab9f8e3e69d4eb333c90966e057c5a97873",
+			"revisionTime": "2017-08-07T06:36:59Z"
 		},
 		{
 			"checksumSHA1": "QeKwBtN2df+j+4stw3bQJ6yO4EY=",

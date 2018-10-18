@@ -61,20 +61,10 @@ func (g *gzipWriter) Write(data []byte) (int, error) {
 	return g.writer.Write(data)
 }
 
-// Fix: https://github.com/mholt/caddy/issues/38
-func (g *gzipWriter) WriteHeader(code int) {
-	g.Header().Del("Content-Length")
-	g.ResponseWriter.WriteHeader(code)
-}
-
 func shouldCompress(req *http.Request) bool {
-	if !strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") ||
-		strings.Contains(req.Header.Get("Connection"), "Upgrade") ||
-	        strings.Contains(req.Header.Get("Content-Type"), "text/event-stream") {
-
+	if !strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
 		return false
 	}
-
 	extension := filepath.Ext(req.URL.Path)
 	if len(extension) < 4 { // fast path
 		return true

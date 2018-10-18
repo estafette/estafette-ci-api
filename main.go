@@ -166,9 +166,6 @@ func createRouter() *gin.Engine {
 	// access logs with zerolog
 	router.Use(ZeroLogMiddleware())
 
-	// gzip response if client supports gzip
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
-
 	// liveness and readiness
 	router.GET("/liveness", func(c *gin.Context) {
 		c.String(200, "I'm alive!")
@@ -226,38 +223,41 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	// create and init router
 	router := createRouter()
 
+	// Gzip and logging middleware
+	gzippedRoutes := router.Group("/", gzip.Gzip(gzip.DefaultCompression))
+
 	// middleware to handle auth for different endpoints
 	authMiddleware := auth.NewAuthMiddleware(*config.Auth)
 
 	githubEventHandler := github.NewGithubEventHandler(githubPushEvents, *config.Integrations.Github, prometheusInboundEventTotals)
-	router.POST("/api/integrations/github/events", githubEventHandler.Handle)
+	gzippedRoutes.POST("/api/integrations/github/events", githubEventHandler.Handle)
 
 	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketPushEvents, prometheusInboundEventTotals)
-	router.POST("/api/integrations/bitbucket/events", bitbucketEventHandler.Handle)
+	gzippedRoutes.POST("/api/integrations/bitbucket/events", bitbucketEventHandler.Handle)
 
 	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, slackAPIClient, cockroachDBClient, *config.APIServer, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc(), prometheusInboundEventTotals)
-	router.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
+	gzippedRoutes.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
 
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, estafetteCiBuilderEvents, prometheusInboundEventTotals)
 
 	estafetteAPIHandler := estafette.NewAPIHandler(*config.APIServer, *config.Auth, cockroachDBClient, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
-	router.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
-	router.GET("/api/pipelines/:source/:owner/:repo", estafetteAPIHandler.GetPipeline)
-	router.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)
-	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteAPIHandler.GetPipelineBuild)
-	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteAPIHandler.GetPipelineBuildLogs)
+	gzippedRoutes.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
+	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo", estafetteAPIHandler.GetPipeline)
+	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)
+	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteAPIHandler.GetPipelineBuild)
+	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteAPIHandler.GetPipelineBuildLogs)
 	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs/tail", estafetteAPIHandler.TailPipelineBuildLogs)
-	router.GET("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.GetPipelineReleases)
-	router.GET("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteAPIHandler.GetPipelineRelease)
-	router.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteAPIHandler.GetPipelineReleaseLogs)
+	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.GetPipelineReleases)
+	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteAPIHandler.GetPipelineRelease)
+	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteAPIHandler.GetPipelineReleaseLogs)
 	router.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs/tail", estafetteAPIHandler.TailPipelineReleaseLogs)
-	router.GET("/api/stats/pipelinescount", estafetteAPIHandler.GetStatsPipelinesCount)
-	router.GET("/api/stats/buildscount", estafetteAPIHandler.GetStatsBuildsCount)
-	router.GET("/api/stats/releasescount", estafetteAPIHandler.GetStatsReleasesCount)
-	router.GET("/api/stats/buildsduration", estafetteAPIHandler.GetStatsBuildsDuration)
+	gzippedRoutes.GET("/api/stats/pipelinescount", estafetteAPIHandler.GetStatsPipelinesCount)
+	gzippedRoutes.GET("/api/stats/buildscount", estafetteAPIHandler.GetStatsBuildsCount)
+	gzippedRoutes.GET("/api/stats/releasescount", estafetteAPIHandler.GetStatsReleasesCount)
+	gzippedRoutes.GET("/api/stats/buildsduration", estafetteAPIHandler.GetStatsBuildsDuration)
 
 	// api key protected endpoints
-	apiKeyAuthorizedRoutes := router.Group("/", authMiddleware.APIKeyMiddlewareFunc())
+	apiKeyAuthorizedRoutes := gzippedRoutes.Group("/", authMiddleware.APIKeyMiddlewareFunc())
 	{
 		apiKeyAuthorizedRoutes.POST("/api/commands", estafetteEventHandler.Handle)
 		apiKeyAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteAPIHandler.PostPipelineBuildLogs)
@@ -265,7 +265,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	}
 
 	// iap protected endpoints
-	iapAuthorizedRoutes := router.Group("/", authMiddleware.MiddlewareFunc())
+	iapAuthorizedRoutes := gzippedRoutes.Group("/", authMiddleware.MiddlewareFunc())
 	{
 		iapAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.CreatePipelineBuild)
 		iapAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.CreatePipelineRelease)
