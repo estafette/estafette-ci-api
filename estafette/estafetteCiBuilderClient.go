@@ -191,26 +191,26 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		}
 	}
 
-	localBuilderConfig.Manifest = &ciBuilderParams.Manifest
+	// localBuilderConfig.Manifest = &ciBuilderParams.Manifest
 
-	localBuilderConfig.JobName = &jobName
-	localBuilderConfig.CIServer = &contracts.CIServerConfig{
-		BaseURL:          estafetteCiServerBaseURLValue,
-		BuilderEventsURL: estafetteCiServerBuilderEventsURLValue,
-		PostLogsURL:      estafetteCiServerBuilderPostLogsURLValue,
-		APIKey:           estafetteCiAPIKeyValue,
-	}
-	if *localBuilderConfig.Action == "build" {
-		localBuilderConfig.BuildParams = &contracts.BuildParamsConfig{
-			BuildID: ciBuilderParams.BuildID,
-		}
-	}
-	if *localBuilderConfig.Action == "release" {
-		localBuilderConfig.ReleaseParams = &contracts.ReleaseParamsConfig{
-			ReleaseName: ciBuilderParams.ReleaseName,
-			ReleaseID:   ciBuilderParams.ReleaseID,
-		}
-	}
+	// localBuilderConfig.JobName = &jobName
+	// localBuilderConfig.CIServer = &contracts.CIServerConfig{
+	// 	BaseURL:          estafetteCiServerBaseURLValue,
+	// 	BuilderEventsURL: estafetteCiServerBuilderEventsURLValue,
+	// 	PostLogsURL:      estafetteCiServerBuilderPostLogsURLValue,
+	// 	APIKey:           estafetteCiAPIKeyValue,
+	// }
+	// if *localBuilderConfig.Action == "build" {
+	// 	localBuilderConfig.BuildParams = &contracts.BuildParamsConfig{
+	// 		BuildID: ciBuilderParams.BuildID,
+	// 	}
+	// }
+	// if *localBuilderConfig.Action == "release" {
+	// 	localBuilderConfig.ReleaseParams = &contracts.ReleaseParamsConfig{
+	// 		ReleaseName: ciBuilderParams.ReleaseName,
+	// 		ReleaseID:   ciBuilderParams.ReleaseID,
+	// 	}
+	// }
 
 	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_GITHUB_API_TOKEN"]; ok {
 		localBuilderConfig.Credentials = append(localBuilderConfig.Credentials, &contracts.CredentialConfig{
