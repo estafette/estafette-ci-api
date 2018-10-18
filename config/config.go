@@ -17,6 +17,7 @@ type APIConfig struct {
 	Auth                           *AuthConfig                                      `yaml:"auth,omitempty"`
 	Database                       *DatabaseConfig                                  `yaml:"database,omitempty"`
 	ContainerRepositoryCredentials []*contracts.ContainerRepositoryCredentialConfig `yaml:"containerRepositoryCredentials,omitempty"`
+	Builder                        *contracts.BuilderConfig                         `yaml:"builder,omitempty"`
 }
 
 // APIServerConfig represents configuration for the api server

@@ -22,6 +22,7 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/docker"
 	contracts "github.com/estafette/estafette-ci-contracts"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
@@ -159,6 +160,41 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteBuildIDName := "ESTAFETTE_BUILD_ID"
 	estafetteBuildIDValue := strconv.Itoa(ciBuilderParams.BuildID)
 
+	// extend builder config to parameterize the builder and replace all other envvars to improve security
+	localBuilderConfig := cbc.config.Builder
+	localBuilderConfig.Action = &ciBuilderParams.JobType
+	localBuilderConfig.Track = &ciBuilderParams.Track
+	localBuilderConfig.Git = &contracts.GitConfig{
+		RepoSource:   ciBuilderParams.RepoSource,
+		RepoOwner:    ciBuilderParams.RepoOwner,
+		RepoName:     ciBuilderParams.RepoName,
+		RepoBranch:   ciBuilderParams.RepoBranch,
+		RepoRevision: ciBuilderParams.RepoRevision,
+	}
+	if ciBuilderParams.Manifest.Version.SemVer != nil {
+		patchWithLabel := ciBuilderParams.Manifest.Version.SemVer.GetPatchWithLabel(manifest.EstafetteVersionParams{
+			AutoIncrement: ciBuilderParams.AutoIncrement,
+			Branch:        ciBuilderParams.RepoBranch,
+			Revision:      ciBuilderParams.RepoRevision,
+		})
+		localBuilderConfig.BuildVersion = &contracts.BuildVersionConfig{
+			Version:       ciBuilderParams.VersionNumber,
+			Major:         &ciBuilderParams.Manifest.Version.SemVer.Major,
+			Minor:         &ciBuilderParams.Manifest.Version.SemVer.Minor,
+			Patch:         &patchWithLabel,
+			AutoIncrement: &ciBuilderParams.AutoIncrement,
+		}
+	} else {
+		localBuilderConfig.BuildVersion = &contracts.BuildVersionConfig{
+			Version:       ciBuilderParams.VersionNumber,
+			AutoIncrement: &ciBuilderParams.AutoIncrement,
+		}
+	}
+
+	builderConfigName := "BUILDER_CONFIG"
+	builderConfigJSONBytes, err := json.Marshal(localBuilderConfig)
+	builderConfigValue := string(builderConfigJSONBytes)
+
 	environmentVariables := []*corev1.EnvVar{
 		&corev1.EnvVar{
 			Name:  &runAsJobName,
@@ -223,6 +259,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		&corev1.EnvVar{
 			Name:  &estafetteRepositoryCredentialsJSONKeyName,
 			Value: &estafetteRepositoryCredentialsJSONKeyValue,
+		},
+		&corev1.EnvVar{
+			Name:  &builderConfigName,
+			Value: &builderConfigValue,
 		},
 	}
 	if ciBuilderParams.BuildID > 0 {
