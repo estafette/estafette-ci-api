@@ -318,6 +318,8 @@ data:
       - path: extensions/slack-build-status
         injectedCredentialTypes:
         - slack-webhook
+      - path: estafette/estafette-ci-builder
+        runPrivileged: true
       - path: docker
         runDocker: true
       - path: golang
