@@ -104,8 +104,6 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	jobName := cbc.GetJobName(ciBuilderParams.JobType, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, id)
 
 	// create envvars for job
-	runAsJobName := "RUN_AS_JOB"
-	runAsJobValue := "true"
 	estafetteGitSourceName := "ESTAFETTE_GIT_SOURCE"
 	estafetteGitSourceValue := ciBuilderParams.RepoSource
 	estafetteGitNameName := "ESTAFETTE_GIT_NAME"
@@ -191,26 +189,26 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		}
 	}
 
-	// localBuilderConfig.Manifest = &ciBuilderParams.Manifest
+	localBuilderConfig.Manifest = &ciBuilderParams.Manifest
 
-	// localBuilderConfig.JobName = &jobName
-	// localBuilderConfig.CIServer = &contracts.CIServerConfig{
-	// 	BaseURL:          estafetteCiServerBaseURLValue,
-	// 	BuilderEventsURL: estafetteCiServerBuilderEventsURLValue,
-	// 	PostLogsURL:      estafetteCiServerBuilderPostLogsURLValue,
-	// 	APIKey:           estafetteCiAPIKeyValue,
-	// }
-	// if *localBuilderConfig.Action == "build" {
-	// 	localBuilderConfig.BuildParams = &contracts.BuildParamsConfig{
-	// 		BuildID: ciBuilderParams.BuildID,
-	// 	}
-	// }
-	// if *localBuilderConfig.Action == "release" {
-	// 	localBuilderConfig.ReleaseParams = &contracts.ReleaseParamsConfig{
-	// 		ReleaseName: ciBuilderParams.ReleaseName,
-	// 		ReleaseID:   ciBuilderParams.ReleaseID,
-	// 	}
-	// }
+	localBuilderConfig.JobName = &jobName
+	localBuilderConfig.CIServer = &contracts.CIServerConfig{
+		BaseURL:          estafetteCiServerBaseURLValue,
+		BuilderEventsURL: estafetteCiServerBuilderEventsURLValue,
+		PostLogsURL:      estafetteCiServerBuilderPostLogsURLValue,
+		APIKey:           estafetteCiAPIKeyValue,
+	}
+	if *localBuilderConfig.Action == "build" {
+		localBuilderConfig.BuildParams = &contracts.BuildParamsConfig{
+			BuildID: ciBuilderParams.BuildID,
+		}
+	}
+	if *localBuilderConfig.Action == "release" {
+		localBuilderConfig.ReleaseParams = &contracts.ReleaseParamsConfig{
+			ReleaseName: ciBuilderParams.ReleaseName,
+			ReleaseID:   ciBuilderParams.ReleaseID,
+		}
+	}
 
 	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_GITHUB_API_TOKEN"]; ok {
 		localBuilderConfig.Credentials = append(localBuilderConfig.Credentials, &contracts.CredentialConfig{
@@ -236,10 +234,6 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	builderConfigValue := string(builderConfigJSONBytes)
 
 	environmentVariables := []*corev1.EnvVar{
-		&corev1.EnvVar{
-			Name:  &runAsJobName,
-			Value: &runAsJobValue,
-		},
 		&corev1.EnvVar{
 			Name:  &estafetteGitSourceName,
 			Value: &estafetteGitSourceValue,
@@ -389,7 +383,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 							ImagePullPolicy: &imagePullPolicy,
 							Args: []string{
 								fmt.Sprintf("--secret-decryption-key=%v", cbc.secretDecryptionKey),
-								"--run-as-job=true",
+								"--run-as-job",
 							},
 							Env: environmentVariables,
 							SecurityContext: &corev1.SecurityContext{
