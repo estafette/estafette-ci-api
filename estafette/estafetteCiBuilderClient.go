@@ -519,16 +519,6 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 
 		if *pod.Status.Phase == "Pending" {
 			// watch for pod to go into Running state (or out of Pending state)
-
-			logChannel <- contracts.TailLogLine{
-				Step: "init",
-				LogLine: &contracts.BuildLogLine{
-					Timestamp:  time.Now(),
-					StreamType: "stdout",
-					Text:       fmt.Sprintf("Pod %v for job %v is pending, waiting for pod to start running", *pod.Metadata.Name, jobName),
-				},
-			}
-
 			var pendingPod corev1.Pod
 			watcher, err := cbc.kubeClient.Watch(context.Background(), cbc.kubeClient.Namespace, &pendingPod, k8s.Timeout(time.Duration(300)*time.Second))
 
