@@ -83,6 +83,8 @@ func (w *eventWorkerImpl) RemoveJobForEstafetteBuild(ciBuilderEvent CiBuilderEve
 
 func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) (err error) {
 
+	log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("UpdateBuildStatus executing...")
+
 	// check build status for backwards compatibility of builder
 	if ciBuilderEvent.BuildStatus != "" && ciBuilderEvent.ReleaseID != "" {
 
