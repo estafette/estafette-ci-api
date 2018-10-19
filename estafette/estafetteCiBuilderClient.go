@@ -163,7 +163,11 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteBuildIDValue := strconv.Itoa(ciBuilderParams.BuildID)
 
 	// extend builder config to parameterize the builder and replace all other envvars to improve security
-	localBuilderConfig := cbc.encryptedConfig.Builder
+	localBuilderConfig := contracts.BuilderConfig{
+		Credentials:   cbc.encryptedConfig.Builder.Credentials,
+		TrustedImages: cbc.encryptedConfig.Builder.TrustedImages,
+	}
+
 	localBuilderConfig.Action = &ciBuilderParams.JobType
 	localBuilderConfig.Track = &ciBuilderParams.Track
 	localBuilderConfig.Git = &contracts.GitConfig{
@@ -213,6 +217,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 			ReleaseID:   ciBuilderParams.ReleaseID,
 		}
 	}
+
+	//"buildParams":{"buildID":392864072472756227},"releaseParams":{"releaseName":"beta","releaseID":392858389002092547}
 
 	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_GITHUB_API_TOKEN"]; ok {
 		localBuilderConfig.Credentials = append(localBuilderConfig.Credentials, &contracts.CredentialConfig{
