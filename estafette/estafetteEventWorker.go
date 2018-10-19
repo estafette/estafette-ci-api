@@ -85,7 +85,6 @@ func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) (err 
 
 	log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("UpdateBuildStatus executing...")
 
-	// check build status for backwards compatibility of builder
 	if ciBuilderEvent.BuildStatus != "" && ciBuilderEvent.ReleaseID != "" {
 
 		releaseID, err := strconv.Atoi(ciBuilderEvent.ReleaseID)
@@ -96,6 +95,8 @@ func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) (err 
 			return err
 		}
 
+		log.Debug().Msgf("Converted release id %v", releaseID)
+
 		err = w.cockroachDBClient.UpdateReleaseStatus(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, releaseID, ciBuilderEvent.BuildStatus)
 		if err != nil {
 			log.Error().Err(err).
@@ -103,6 +104,10 @@ func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) (err 
 
 			return err
 		}
+
+		log.Debug().Msgf("Updated release status for job %v", ciBuilderEvent.JobName)
+
+		return err
 
 	} else if ciBuilderEvent.BuildStatus != "" && ciBuilderEvent.BuildID != "" {
 
@@ -114,6 +119,8 @@ func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) (err 
 			return err
 		}
 
+		log.Debug().Msgf("Converted build id %v", buildID)
+
 		err = w.cockroachDBClient.UpdateBuildStatusByID(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, buildID, ciBuilderEvent.BuildStatus)
 		if err != nil {
 			log.Error().Err(err).
@@ -122,6 +129,11 @@ func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) (err 
 			return err
 		}
 
+		log.Debug().Msgf("Updated build status for job %v", ciBuilderEvent.JobName)
+
+		return err
+
+		// check build status for backwards compatibility of builder
 	} else if ciBuilderEvent.BuildStatus != "" {
 
 		err := w.cockroachDBClient.UpdateBuildStatus(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, ciBuilderEvent.RepoBranch, ciBuilderEvent.RepoRevision, ciBuilderEvent.BuildStatus)
@@ -131,6 +143,10 @@ func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) (err 
 
 			return err
 		}
+
+		log.Debug().Msgf("Updated build status for job %v", ciBuilderEvent.JobName)
+
+		return err
 	}
 
 	return fmt.Errorf("CiBuilderEvent has invalid state, not updating build status")
