@@ -90,7 +90,7 @@ type SlackConfig struct {
 
 // ConfigReader reads the api config from file
 type ConfigReader interface {
-	ReadConfigFromFile(string) (*APIConfig, error)
+	ReadConfigFromFile(string, bool) (*APIConfig, error)
 }
 
 type configReaderImpl struct {
@@ -105,7 +105,7 @@ func NewConfigReader(secretHelper crypt.SecretHelper) ConfigReader {
 }
 
 // ReadConfigFromFile is used to read configuration from a file set from a configmap
-func (h *configReaderImpl) ReadConfigFromFile(configPath string) (config *APIConfig, err error) {
+func (h *configReaderImpl) ReadConfigFromFile(configPath string, decryptSecrets bool) (config *APIConfig, err error) {
 
 	log.Info().Msgf("Reading %v file...", configPath)
 
@@ -115,7 +115,9 @@ func (h *configReaderImpl) ReadConfigFromFile(configPath string) (config *APICon
 	}
 
 	// decrypt secrets before unmarshalling
-	data = h.DecryptSecrets(data)
+	if decryptSecrets {
+		data = h.DecryptSecrets(data)
+	}
 
 	// unmarshal into structs
 	if err := yaml.Unmarshal(data, &config); err != nil {

@@ -14,7 +14,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
 
 		// act
-		_, err := configReader.ReadConfigFromFile("test-config.yaml")
+		_, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		assert.Nil(t, err)
 	})
@@ -24,7 +24,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml")
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		githubConfig := config.Integrations.Github
 
@@ -41,7 +41,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml")
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		bitbucketConfig := config.Integrations.Bitbucket
 
@@ -57,7 +57,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml")
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		slackConfig := config.Integrations.Slack
 
@@ -74,7 +74,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml")
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		apiServerConfig := config.APIServer
 
@@ -89,7 +89,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml")
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		authConfig := config.Auth
 
@@ -103,7 +103,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml")
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		databaseConfig := config.Database
 
@@ -121,7 +121,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml")
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		assert.Equal(t, "extensions", config.ContainerRepositoryCredentials[0].Repository)
 		assert.Equal(t, "username", config.ContainerRepositoryCredentials[0].Username)

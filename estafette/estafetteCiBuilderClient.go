@@ -40,12 +40,13 @@ type ciBuilderClientImpl struct {
 	kubeClient                      *k8s.Client
 	dockerHubClient                 docker.DockerHubAPIClient
 	config                          config.APIConfig
+	encryptedConfig                 config.APIConfig
 	secretDecryptionKey             string
 	PrometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
 // NewCiBuilderClient returns a new estafette.CiBuilderClient
-func NewCiBuilderClient(config config.APIConfig, secretDecryptionKey string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
+func NewCiBuilderClient(config config.APIConfig, encryptedConfig config.APIConfig, secretDecryptionKey string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
 
 	var kubeClient *k8s.Client
 
@@ -85,6 +86,7 @@ func NewCiBuilderClient(config config.APIConfig, secretDecryptionKey string, pro
 		kubeClient:                      kubeClient,
 		dockerHubClient:                 dockerHubClient,
 		config:                          config,
+		encryptedConfig:                 encryptedConfig,
 		secretDecryptionKey:             secretDecryptionKey,
 		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
@@ -161,7 +163,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	estafetteBuildIDValue := strconv.Itoa(ciBuilderParams.BuildID)
 
 	// extend builder config to parameterize the builder and replace all other envvars to improve security
-	localBuilderConfig := cbc.config.Builder
+	localBuilderConfig := cbc.encryptedConfig.Builder
 	localBuilderConfig.Action = &ciBuilderParams.JobType
 	localBuilderConfig.Track = &ciBuilderParams.Track
 	localBuilderConfig.Git = &contracts.GitConfig{

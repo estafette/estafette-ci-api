@@ -177,16 +177,21 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	secretHelper := crypt.NewSecretHelper(*secretDecryptionKey)
 	configReader := config.NewConfigReader(secretHelper)
 
-	config, err := configReader.ReadConfigFromFile(*configFilePath)
+	config, err := configReader.ReadConfigFromFile(*configFilePath, true)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed reading configuration")
+	}
+
+	encryptedConfig, err := configReader.ReadConfigFromFile(*configFilePath, false)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed reading configuration without decrypting")
 	}
 
 	githubAPIClient := github.NewGithubAPIClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
 	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
 	slackAPIClient := slack.NewSlackAPIClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
 	cockroachDBClient := cockroach.NewCockroachDBClient(*config.Database, prometheusOutboundAPICallTotals)
-	ciBuilderClient, err := estafette.NewCiBuilderClient(*config, *secretDecryptionKey, prometheusOutboundAPICallTotals)
+	ciBuilderClient, err := estafette.NewCiBuilderClient(*config, *encryptedConfig, *secretDecryptionKey, prometheusOutboundAPICallTotals)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
 	}
