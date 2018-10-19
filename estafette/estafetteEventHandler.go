@@ -34,11 +34,16 @@ func NewEstafetteEventHandler(config config.APIServerConfig, ciBuilderEventsChan
 func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
+		log.Error().Msgf("Authentication for /api/commands failed")
 		c.AbortWithStatus(http.StatusUnauthorized)
 	}
 
 	eventType := c.GetHeader("X-Estafette-Event")
+	log.Debug().Msgf("X-Estafette-Event is set to %v", eventType)
 	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "estafette"}).Inc()
+
+	eventJobname := c.GetHeader("X-Estafette-Event-Job-Name")
+	log.Debug().Msgf("X-Estafette-Event-Job-Name is set to %v", eventJobname)
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -46,6 +51,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		c.String(http.StatusInternalServerError, "Reading body from Estafette 'build finished' event failed")
 		return
 	}
+
+	log.Debug().Msgf("Read body for /api/commands for job %v", eventJobname)
 
 	switch eventType {
 	case
@@ -60,6 +67,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to CiBuilderEvent failed")
 			return
 		}
+
+		log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Unmarshaled body of /api/commands request for job %v", eventJobname)
 
 		// send via channel to worker
 		h.ciBuilderEventsChannel <- ciBuilderEvent
