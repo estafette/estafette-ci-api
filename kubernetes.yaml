@@ -324,6 +324,7 @@ data:
         runDocker: true
       - path: golang
         runDocker: true
+        allowCommands: true
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
