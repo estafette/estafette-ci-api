@@ -2,7 +2,6 @@ package config
 
 import (
 	"io/ioutil"
-	"regexp"
 
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
@@ -116,7 +115,13 @@ func (h *configReaderImpl) ReadConfigFromFile(configPath string, decryptSecrets 
 
 	// decrypt secrets before unmarshalling
 	if decryptSecrets {
-		data = h.DecryptSecrets(data)
+
+		decryptedData, err := h.secretHelper.DecryptAllEnvelopes(string(data))
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed decrypting secrets in config file")
+		}
+
+		data = []byte(decryptedData)
 	}
 
 	// unmarshal into structs
@@ -127,38 +132,4 @@ func (h *configReaderImpl) ReadConfigFromFile(configPath string, decryptSecrets 
 	log.Info().Msgf("Finished reading %v file successfully", configPath)
 
 	return
-}
-
-func (h *configReaderImpl) DecryptSecrets(data []byte) (decryptedData []byte) {
-
-	r, err := regexp.Compile(`estafette\.secret\([a-zA-Z0-9.=_-]+\)`)
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed compiling regexp")
-	}
-
-	decryptedData = r.ReplaceAllFunc(data, h.decryptSecret)
-
-	return
-}
-
-func (h *configReaderImpl) decryptSecret(encryptedValue []byte) (decryptedValue []byte) {
-
-	r, err := regexp.Compile(`^estafette\.secret\(([a-zA-Z0-9.=_-]+)\)$`)
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed compiling regexp")
-		return encryptedValue
-	}
-
-	matches := r.FindStringSubmatch(string(encryptedValue))
-	if matches == nil {
-		return encryptedValue
-	}
-
-	decryptedValueString, err := h.secretHelper.Decrypt(matches[1])
-	if err != nil {
-		log.Error().Err(err).Msg("Failed decrypting secret")
-		return encryptedValue
-	}
-
-	return []byte(decryptedValueString)
 }

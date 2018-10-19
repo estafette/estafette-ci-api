@@ -11,7 +11,7 @@ govendor fetch github.com/sethgrid/pester
 govendor fetch github.com/estafette/estafette-ci-manifest@0.1.37
 govendor fetch github.com/gin-gonic/gin/...@v1.3
 govendor fetch github.com/gin-contrib/gzip
-govendor fetch github.com/estafette/estafette-ci-crypt@0.0.2
+govendor fetch github.com/estafette/estafette-ci-crypt@0.0.10
 govendor fetch github.com/lib/pq
 govendor fetch github.com/mattn/go-sqlite3@v1.2.0
 govendor fetch github.com/estafette/estafette-ci-contracts@0.0.76
