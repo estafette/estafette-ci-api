@@ -100,14 +100,12 @@ func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 		log.Error().Err(err).
 			Msg("Failed retrieving pipelines from db")
 	}
-	log.Info().Msgf("Retrieved %v pipelines", len(pipelines))
 
 	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Failed retrieving pipelines count from db")
 	}
-	log.Info().Msgf("Retrieved pipelines count %v", pipelinesCount)
 
 	response := contracts.ListResponse{
 		Pagination: contracts.Pagination{
@@ -141,8 +139,6 @@ func (h *apiHandlerImpl) GetPipeline(c *gin.Context) {
 		return
 	}
 
-	log.Info().Msgf("Retrieved pipeline for %v/%v/%v", source, owner, repo)
-
 	c.JSON(http.StatusOK, pipeline)
 }
 
@@ -173,14 +169,12 @@ func (h *apiHandlerImpl) GetPipelineBuilds(c *gin.Context) {
 		log.Error().Err(err).
 			Msgf("Failed retrieving builds for %v/%v/%v from db", source, owner, repo)
 	}
-	log.Info().Msgf("Retrieved %v builds for %v/%v/%v", len(builds), source, owner, repo)
 
 	buildsCount, err := h.cockroachDBClient.GetPipelineBuildsCount(source, owner, repo)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving builds count for %v/%v/%v from db", source, owner, repo)
 	}
-	log.Info().Msgf("Retrieved builds count %v for %v/%v/%v", buildsCount, source, owner, repo)
 
 	response := contracts.ListResponse{
 		Pagination: contracts.Pagination{
@@ -215,7 +209,6 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline build not found"})
 			return
 		}
-		log.Info().Msgf("Retrieved builds for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
 
 		c.JSON(http.StatusOK, build)
 		return
@@ -238,7 +231,6 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline build not found"})
 		return
 	}
-	log.Info().Msgf("Retrieved builds for %v/%v/%v/builds/%v", source, owner, repo, id)
 
 	c.JSON(http.StatusOK, build)
 }
@@ -396,7 +388,12 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	}
 
 	// create ci builder job
-	go h.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+	go func(ciBuilderParams CiBuilderParams) {
+		_, err := h.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed creating rebuild job for %v/%v/%v/%v/%v version %v", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.RepoBranch, ciBuilderParams.RepoRevision, ciBuilderParams.VersionNumber)
+		}
+	}(ciBuilderParams)
 
 	c.JSON(http.StatusCreated, insertedBuild)
 }
@@ -445,7 +442,6 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline build log not found"})
 		return
 	}
-	log.Info().Msgf("Retrieved build logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
 
 	c.JSON(http.StatusOK, buildLog)
 }
@@ -511,14 +507,11 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 		buildLog.BuildID = revisionOrID
 	}
 
-	log.Info().Interface("buildLog", buildLog).Msgf("Binded v2 logs for for %v/%v/%v/%v", source, owner, repo, revisionOrID)
-
 	err = h.cockroachDBClient.InsertBuildLog(buildLog)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed inserting v2 logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
 	}
-	log.Info().Msgf("Inserted v2 logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
 
 	c.String(http.StatusOK, "Aye aye!")
 }
@@ -550,14 +543,12 @@ func (h *apiHandlerImpl) GetPipelineReleases(c *gin.Context) {
 		log.Error().Err(err).
 			Msgf("Failed retrieving releases for %v/%v/%v from db", source, owner, repo)
 	}
-	log.Info().Msgf("Retrieved %v releases for %v/%v/%v", len(releases), source, owner, repo)
 
 	releasesCount, err := h.cockroachDBClient.GetPipelineReleasesCount(source, owner, repo)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving releases count for %v/%v/%v from db", source, owner, repo)
 	}
-	log.Info().Msgf("Retrieved releases count %v for %v/%v/%v", releasesCount, source, owner, repo)
 
 	response := contracts.ListResponse{
 		Pagination: contracts.Pagination{
@@ -727,7 +718,12 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 		ReleaseName:          releaseCommand.Name,
 	}
 
-	go h.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+	go func(ciBuilderParams CiBuilderParams) {
+		_, err := h.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed creating release job for %v/%v/%v/%v/%v version %v", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.RepoBranch, ciBuilderParams.RepoRevision, ciBuilderParams.VersionNumber)
+		}
+	}(ciBuilderParams)
 
 	c.JSON(http.StatusCreated, insertedRelease)
 }
@@ -754,7 +750,6 @@ func (h *apiHandlerImpl) GetPipelineRelease(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline release not found"})
 		return
 	}
-	log.Info().Msgf("Retrieved release for %v/%v/%v/%v", source, owner, repo, id)
 
 	c.JSON(http.StatusOK, release)
 }
@@ -781,7 +776,6 @@ func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline release log not found"})
 		return
 	}
-	log.Info().Msgf("Retrieved release logs for %v/%v/%v/%v", source, owner, repo, id)
 
 	c.JSON(http.StatusOK, releaseLog)
 }
@@ -844,14 +838,11 @@ func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 		return
 	}
 
-	log.Info().Interface("releaseLog", releaseLog).Msgf("Binded release logs for for %v/%v/%v/%v", source, owner, repo, id)
-
 	err = h.cockroachDBClient.InsertReleaseLog(releaseLog)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed inserting release logs for %v/%v/%v/%v", source, owner, repo, id)
 	}
-	log.Info().Msgf("Inserted release logs for %v/%v/%v/%v", source, owner, repo, id)
 
 	c.String(http.StatusOK, "Aye aye!")
 }
@@ -868,7 +859,6 @@ func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {
 		log.Error().Err(err).
 			Msg("Failed retrieving pipelines count from db")
 	}
-	log.Info().Msgf("Retrieved pipelines count %v", pipelinesCount)
 
 	c.JSON(http.StatusOK, gin.H{
 		"count": pipelinesCount,
@@ -887,7 +877,6 @@ func (h *apiHandlerImpl) GetStatsReleasesCount(c *gin.Context) {
 		log.Error().Err(err).
 			Msg("Failed retrieving releases count from db")
 	}
-	log.Info().Msgf("Retrieved releases count %v", releasesCount)
 
 	c.JSON(http.StatusOK, gin.H{
 		"count": releasesCount,
@@ -906,7 +895,6 @@ func (h *apiHandlerImpl) GetStatsBuildsCount(c *gin.Context) {
 		log.Error().Err(err).
 			Msg("Failed retrieving builds count from db")
 	}
-	log.Info().Msgf("Retrieved builds count %v", buildsCount)
 
 	c.JSON(http.StatusOK, gin.H{
 		"count": buildsCount,
@@ -925,7 +913,6 @@ func (h *apiHandlerImpl) GetStatsBuildsDuration(c *gin.Context) {
 		log.Error().Err(err).
 			Msg("Failed retrieving builds duration from db")
 	}
-	log.Info().Msgf("Retrieved builds duration %v", buildsDuration)
 
 	c.JSON(http.StatusOK, gin.H{
 		"duration": buildsDuration,

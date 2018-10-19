@@ -68,8 +68,6 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		return
 	}
 
-	log.Debug().Interface("slashCommand", slashCommand).Msg("Deserialized slash command")
-
 	hasValidVerificationToken := h.HasValidVerificationToken(slashCommand)
 	if !hasValidVerificationToken {
 		log.Warn().Str("expectedToken", h.config.AppVerificationToken).Str("actualToken", slashCommand.Token).Msg("Verification token for Slack command is invalid")
@@ -133,7 +131,6 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
 							return
 						}
-						log.Debug().Msgf("Retrieved %v pipelines for repo name %v", len(pipelines), fullRepoName)
 						if len(pipelines) <= 0 {
 							c.String(http.StatusOK, fmt.Sprintf("The repo %v in your command does not have any estafette builds", fullRepoName))
 							return
@@ -195,9 +192,6 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					}
 
 					if !releaseExists {
-
-						log.Debug().Interface("releases", build.Releases).Msgf("Release %v for repo name %v can't be found", releaseName, fullRepoName)
-
 						c.String(http.StatusOK, fmt.Sprintf("The release %v in your command is not defined in the manifest", releaseName))
 						return
 					}
@@ -277,7 +271,12 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 						ReleaseName:          releaseName,
 					}
 
-					go h.createReleaseJob(ciBuilderParams)
+					go func(ciBuilderParams estafette.CiBuilderParams) {
+						_, err := h.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+						if err != nil {
+							log.Error().Err(err).Msgf("Failed creating release job for %v/%v/%v/%v/%v version %v", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.RepoBranch, ciBuilderParams.RepoRevision, ciBuilderParams.VersionNumber)
+						}
+					}(ciBuilderParams)
 
 					c.String(http.StatusOK, fmt.Sprintf("Started releasing version %v to %v: %vpipelines/%v/%v/%v/releases/%v/logs", buildVersion, releaseName, h.apiConfig.BaseURL, build.RepoSource, build.RepoOwner, build.RepoName, insertedRelease.ID))
 					return
@@ -287,14 +286,6 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
-}
-
-func (h *eventHandlerImpl) createReleaseJob(ciBuilderParams estafette.CiBuilderParams) {
-
-	_, err := h.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
-	if err != nil {
-		log.Error().Err(err).Msgf("Creating the release job failed: %v", err)
-	}
 }
 
 func (h *eventHandlerImpl) HasValidVerificationToken(slashCommand slcontracts.SlashCommand) bool {

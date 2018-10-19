@@ -45,7 +45,6 @@ func NewGithubEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup
 func (w *eventWorkerImpl) ListenToEventChannels() {
 	go func() {
 		// handle github events via channels
-		log.Debug().Msg("Listening to Github events channels...")
 		for {
 			// register the current worker into the worker queue.
 			w.workerPool <- w.eventsChannel
@@ -89,7 +88,6 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent
 	}
 
 	if !manifestExists {
-		log.Info().Interface("pushEvent", pushEvent).Msgf("No Estafette manifest for repo %v and revision %v, not creating a job", pushEvent.Repository.FullName, pushEvent.After)
 		return
 	}
 
@@ -102,8 +100,6 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent
 		builderTrack = mft.Builder.Track
 		hasValidManifest = true
 	}
-
-	log.Debug().Interface("pushEvent", pushEvent).Interface("manifest", mft).Msgf("Estafette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.After)
 
 	// inject steps
 	mft, err = estafette.InjectSteps(mft, builderTrack, "github")
@@ -226,9 +222,5 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent
 
 			return
 		}
-
-		log.Info().
-			Interface("params", ciBuilderParams).
-			Msgf("Created estafette-ci-builder job for Github repository %v/%v revision %v", ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.RepoRevision)
 	}
 }

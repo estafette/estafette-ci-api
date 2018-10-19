@@ -40,7 +40,7 @@ type apiClientImpl struct {
 // NewGithubAPIClient creates an github.APIClient to communicate with the Github api
 func NewGithubAPIClient(config config.GithubConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
 	return &apiClientImpl{
-		config: config,
+		config:                          config,
 		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 }
@@ -115,7 +115,6 @@ func (gh *apiClientImpl) GetInstallationID(repoOwner string) (installationID int
 		}
 	}
 
-	log.Debug().Str("body", string(body)).Msg("Response for github app installations")
 	return installationID, fmt.Errorf("Github installation of app %v with account login %v can't be found", gh.config.AppID, repoOwner)
 }
 
@@ -265,15 +264,6 @@ func (gh *apiClientImpl) callGithubAPI(method, url string, params interface{}, a
 
 		return
 	}
-
-	log.Debug().
-		Str("url", url).
-		Str("requestMethod", method).
-		Interface("requestBody", params).
-		Interface("requestHeaders", request.Header).
-		Interface("responseHeaders", response.Header).
-		Interface("responseBody", b).
-		Msgf("Received response for '%v' Github api call...", url)
 
 	return
 }

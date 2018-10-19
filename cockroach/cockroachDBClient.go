@@ -65,8 +65,8 @@ type cockroachDBClientImpl struct {
 func NewCockroachDBClient(config config.DatabaseConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) (cockroachDBClient DBClient) {
 
 	cockroachDBClient = &cockroachDBClientImpl{
-		databaseDriver: "postgres",
-		config:         config,
+		databaseDriver:                  "postgres",
+		config:                          config,
 		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 

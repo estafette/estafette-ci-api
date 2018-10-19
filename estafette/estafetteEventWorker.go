@@ -39,7 +39,6 @@ func NewEstafetteEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGr
 func (w *eventWorkerImpl) ListenToCiBuilderEventChannels() {
 	go func() {
 		// handle estafette events via channels
-		log.Debug().Msg("Listening to Estafette ci builder events channels...")
 		for {
 			// register the current worker into the worker queue.
 			w.ciBuilderWorkerPool <- w.ciBuilderEventsChannel
@@ -68,13 +67,8 @@ func (w *eventWorkerImpl) RemoveJobForEstafetteBuild(ciBuilderEvent CiBuilderEve
 		log.Error().Err(err).
 			Str("jobName", ciBuilderEvent.JobName).
 			Msgf("Removing ci-builder job %v failed", ciBuilderEvent.JobName)
-
 		return
 	}
-
-	log.Info().
-		Str("jobName", ciBuilderEvent.JobName).
-		Msgf("Removed ci-builder job %v", ciBuilderEvent.JobName)
 }
 
 func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) {
@@ -98,10 +92,6 @@ func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) {
 			return
 		}
 
-		log.Info().
-			Str("jobName", ciBuilderEvent.JobName).
-			Msgf("Updated release status for ci-builder job %v to %v", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
-
 	} else if ciBuilderEvent.BuildStatus != "" && ciBuilderEvent.BuildID != "" {
 
 		buildID, err := strconv.Atoi(ciBuilderEvent.BuildID)
@@ -120,10 +110,6 @@ func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) {
 			return
 		}
 
-		log.Info().
-			Str("jobName", ciBuilderEvent.JobName).
-			Msgf("Updated build status for ci-builder job %v to %v", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
-
 	} else if ciBuilderEvent.BuildStatus != "" {
 
 		err := w.cockroachDBClient.UpdateBuildStatus(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, ciBuilderEvent.RepoBranch, ciBuilderEvent.RepoRevision, ciBuilderEvent.BuildStatus)
@@ -133,9 +119,5 @@ func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) {
 
 			return
 		}
-
-		log.Info().
-			Str("jobName", ciBuilderEvent.JobName).
-			Msgf("Updated build status for ci-builder job %v to %v", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
 	}
 }

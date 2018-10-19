@@ -94,7 +94,7 @@ func main() {
 
 	// wait for graceful shutdown to finish
 	<-sigs // Wait for signals (this hangs until a signal arrives)
-	log.Debug().Msg("Shutting down...")
+	log.Info().Msg("Shutting down...")
 
 	// shut down gracefully
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -113,11 +113,6 @@ func main() {
 }
 
 func startPrometheus() {
-	log.Debug().
-		Str("port", *prometheusMetricsAddress).
-		Str("path", *prometheusMetricsPath).
-		Msg("Serving Prometheus metrics...")
-
 	http.Handle(*prometheusMetricsPath, promhttp.Handler())
 
 	if err := http.ListenAndServe(*prometheusMetricsAddress, nil); err != nil {
@@ -214,11 +209,6 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	estafetteCiBuilderEvents := make(chan estafette.CiBuilderEvent, config.APIServer.MaxWorkers)
 	estafetteDispatcher := estafette.NewEstafetteDispatcher(stopChannel, waitGroup, config.APIServer.MaxWorkers, ciBuilderClient, cockroachDBClient, estafetteCiBuilderEvents)
 	estafetteDispatcher.Run()
-
-	// listen to http calls
-	log.Debug().
-		Str("port", *apiAddress).
-		Msg("Serving api calls...")
 
 	// create and init router
 	router := createRouter()

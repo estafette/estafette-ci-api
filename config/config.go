@@ -149,13 +149,12 @@ func (h *configReaderImpl) decryptSecret(encryptedValue []byte) (decryptedValue 
 
 	matches := r.FindStringSubmatch(string(encryptedValue))
 	if matches == nil {
-		log.Debug().Msgf("No matches, returning %v", string(encryptedValue))
 		return encryptedValue
 	}
 
 	decryptedValueString, err := h.secretHelper.Decrypt(matches[1])
 	if err != nil {
-		log.Warn().Err(err).Msg("Failed decrypting secret")
+		log.Error().Err(err).Msg("Failed decrypting secret")
 		return encryptedValue
 	}
 

@@ -103,6 +103,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 
 	jobName := cbc.GetJobName(ciBuilderParams.JobType, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, id)
 
+	log.Info().Msgf("Creating job %v...", jobName)
+
 	// create envvars for job
 	estafetteGitSourceName := "ESTAFETTE_GIT_SOURCE"
 	estafetteGitSourceValue := ciBuilderParams.RepoSource
@@ -431,11 +433,19 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	err = cbc.kubeClient.Create(context.Background(), job)
 	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 
+	if err != nil {
+		return
+	}
+
+	log.Info().Msgf("Job %v is created", jobName)
+
 	return
 }
 
 // RemoveCiBuilderJob waits for a job to finish and then removes it
 func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
+
+	log.Info().Msgf("Deleting job %v...", jobName)
 
 	// check if job is finished
 	var job batchv1.Job
@@ -448,9 +458,7 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 	}
 
 	if err != nil || *job.Status.Succeeded != 1 {
-		log.Debug().
-			Str("jobName", jobName).
-			Msgf("Job is not done yet, watching for job %v to succeed", jobName)
+		log.Debug().Str("jobName", jobName).Msgf("Job is not done yet, watching for job %v to succeed", jobName)
 
 		// watch for job updates
 		var job batchv1.Job
@@ -478,9 +486,6 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 			}
 		}
 	}
-	log.Debug().
-		Str("jobName", jobName).
-		Msgf("Job %v is done, deleting it...", jobName)
 
 	// delete job
 	err = cbc.kubeClient.Delete(context.Background(), &job)
@@ -491,6 +496,8 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 			Msgf("Deleting job %v failed", jobName)
 		return
 	}
+
+	log.Info().Msgf("Job %v is deleted", jobName)
 
 	return
 }
@@ -504,18 +511,12 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 	labels := new(k8s.LabelSelector)
 	labels.Eq("job-name", jobName)
 
-	log.Info().Msgf("Retrieving pods with job-name=%v in namespace %v", jobName, cbc.kubeClient.Namespace)
-
 	var pods corev1.PodList
 	if err := cbc.kubeClient.List(context.Background(), cbc.kubeClient.Namespace, &pods, labels.Selector()); err != nil {
 		return err
 	}
 
-	log.Info().Msgf("Retrieved %v pods for job %v", len(pods.Items), jobName)
-
 	for _, pod := range pods.Items {
-
-		log.Info().Msgf("Pod %v for job %v has phase %v", *pod.Metadata.Name, jobName, *pod.Status.Phase)
 
 		if *pod.Status.Phase == "Pending" {
 			// watch for pod to go into Running state (or out of Pending state)
@@ -536,23 +537,18 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 				}
 
 				if event == k8s.EventModified && *watchedPod.Metadata.Name == *pod.Metadata.Name && *watchedPod.Status.Phase != "Pending" {
-					log.Info().Msgf("Pod %v for job %v has changed from phase Pending to %v", *watchedPod.Metadata.Name, jobName, *watchedPod.Status.Phase)
 					pod = watchedPod
 					break
 				}
 			}
 		}
 
-		if *pod.Status.Phase == "Running" {
-			log.Info().Msgf("Tailing pod %v for job %v with phase %v", *pod.Metadata.Name, jobName, *pod.Status.Phase)
-		} else {
+		if *pod.Status.Phase != "Running" {
 			log.Warn().Msgf("Post %v for job %v has unsupported phase %v", *pod.Metadata.Name, jobName, *pod.Status.Phase)
 		}
 
 		// follow logs from pod
 		url := fmt.Sprintf("%v/api/v1/namespaces/%v/pods/%v/log?follow=true", cbc.kubeClient.Endpoint, cbc.kubeClient.Namespace, *pod.Metadata.Name)
-
-		log.Info().Msgf("Requesting url %v for retrieving logs from pod %v for job %v", url, *pod.Metadata.Name, jobName)
 
 		ct := "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
 
@@ -587,7 +583,6 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 		for {
 			line, err := reader.ReadBytes('\n')
 			if err == io.EOF {
-				log.Info().Msgf("Detected EOF in response for retrieving logs from pod %v for job %v", *pod.Metadata.Name, jobName)
 				break
 			}
 			if err != nil {
@@ -605,8 +600,6 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel 
 				log.Error().Err(err).Str("line", string(line)).Msgf("Tailed log from pod %v for job %v is not of type json", *pod.Metadata.Name, jobName)
 			}
 		}
-
-		log.Info().Msgf("Done retrieving logs from pod %v for job %v", *pod.Metadata.Name, jobName)
 	}
 
 	return

@@ -44,7 +44,6 @@ func NewBitbucketEventWorker(stopChannel <-chan struct{}, waitGroup *sync.WaitGr
 func (w *eventWorkerImpl) ListenToEventChannels() {
 	go func() {
 		// handle github events via channels
-		log.Debug().Msg("Listening to Bitbucket events channels...")
 		for {
 			// register the current worker into the worker queue.
 			w.workerPool <- w.eventsChannel
@@ -88,7 +87,6 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.Reposi
 	}
 
 	if !manifestExists {
-		log.Info().Interface("pushEvent", pushEvent).Msgf("No Estafette manifest for repo %v and revision %v, not creating a job", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
 		return
 	}
 
@@ -101,8 +99,6 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.Reposi
 		builderTrack = mft.Builder.Track
 		hasValidManifest = true
 	}
-
-	log.Debug().Interface("pushEvent", pushEvent).Interface("manifest", mft).Msgf("Estafette manifest for repo %v and revision %v exists creating a builder job...", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
 
 	// inject steps
 	mft, err = estafette.InjectSteps(mft, builderTrack, "bitbucket")
@@ -123,7 +119,7 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.Reposi
 	// get autoincrement number
 	autoincrement, err := w.cockroachDBClient.GetAutoIncrement("bitbucket", pushEvent.Repository.FullName)
 	if err != nil {
-		log.Warn().Err(err).
+		log.Error().Err(err).
 			Msgf("Failed generating autoincrement for Bitbucket repository %v", pushEvent.Repository.FullName)
 	}
 
@@ -226,9 +222,5 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.Reposi
 
 			return
 		}
-
-		log.Info().
-			Interface("params", ciBuilderParams).
-			Msgf("Created estafette-ci-builder job for Bitbucket repository %v/%v revision %v", ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.RepoRevision)
 	}
 }
