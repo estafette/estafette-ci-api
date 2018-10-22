@@ -108,59 +108,59 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	log.Info().Msgf("Creating job %v...", jobName)
 
 	// create envvars for job
-	estafetteGitSourceName := "ESTAFETTE_GIT_SOURCE"
-	estafetteGitSourceValue := ciBuilderParams.RepoSource
-	estafetteGitNameName := "ESTAFETTE_GIT_NAME"
-	estafetteGitNameValue := fmt.Sprintf("%v/%v", ciBuilderParams.RepoOwner, ciBuilderParams.RepoName)
-	estafetteGitURLName := "ESTAFETTE_GIT_URL"
-	estafetteGitURLValue := ciBuilderParams.RepoURL
-	estafetteGitBranchName := "ESTAFETTE_GIT_BRANCH"
-	estafetteGitBranchValue := ciBuilderParams.RepoBranch
-	estafetteGitRevisionName := "ESTAFETTE_GIT_REVISION"
-	estafetteGitRevisionValue := ciBuilderParams.RepoRevision
-	estafetteBuildJobNameName := "ESTAFETTE_BUILD_JOB_NAME"
-	estafetteBuildJobNameValue := jobName
-	estafetteCiServerBaseURLName := "ESTAFETTE_CI_SERVER_BASE_URL"
-	estafetteCiServerBaseURLValue := cbc.config.APIServer.BaseURL
-	estafetteCiServerBuilderEventsURLName := "ESTAFETTE_CI_SERVER_BUILDER_EVENTS_URL"
-	estafetteCiServerBuilderEventsURLValue := strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + "/api/commands"
-	estafetteCiServerBuilderPostLogsURLName := "ESTAFETTE_CI_SERVER_POST_LOGS_URL"
-	estafetteCiServerBuilderPostLogsURLValue := strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.BuildID)
-	if ciBuilderParams.ReleaseID > 0 {
-		estafetteCiServerBuilderPostLogsURLValue = strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/releases/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.ReleaseID)
-	}
-	estafetteCiAPIKeyName := "ESTAFETTE_CI_API_KEY"
-	estafetteCiAPIKeyValue := cbc.config.Auth.APIKey
-	estafetteCiBuilderTrackName := "ESTAFETTE_CI_BUILDER_TRACK"
-	estafetteCiBuilderTrackValue := ciBuilderParams.Track
-	estafetteManifestJSONKeyName := "ESTAFETTE_CI_MANIFEST_JSON"
-	manifestJSONBytes, err := json.Marshal(ciBuilderParams.Manifest)
-	estafetteManifestJSONKeyValue := string(manifestJSONBytes)
-	estafetteRepositoryCredentialsJSONKeyName := "ESTAFETTE_CI_REPOSITORY_CREDENTIALS_JSON"
-	repositoryCredentialsJSONBytes, err := json.Marshal(cbc.config.ContainerRepositoryCredentials)
-	estafetteRepositoryCredentialsJSONKeyValue := string(repositoryCredentialsJSONBytes)
+	// estafetteGitSourceName := "ESTAFETTE_GIT_SOURCE"
+	// estafetteGitSourceValue := ciBuilderParams.RepoSource
+	// estafetteGitNameName := "ESTAFETTE_GIT_NAME"
+	// estafetteGitNameValue := fmt.Sprintf("%v/%v", ciBuilderParams.RepoOwner, ciBuilderParams.RepoName)
+	// estafetteGitURLName := "ESTAFETTE_GIT_URL"
+	// estafetteGitURLValue := ciBuilderParams.RepoURL
+	// estafetteGitBranchName := "ESTAFETTE_GIT_BRANCH"
+	// estafetteGitBranchValue := ciBuilderParams.RepoBranch
+	// estafetteGitRevisionName := "ESTAFETTE_GIT_REVISION"
+	// estafetteGitRevisionValue := ciBuilderParams.RepoRevision
+	// estafetteBuildJobNameName := "ESTAFETTE_BUILD_JOB_NAME"
+	// estafetteBuildJobNameValue := jobName
+	// estafetteCiServerBaseURLName := "ESTAFETTE_CI_SERVER_BASE_URL"
+	// estafetteCiServerBaseURLValue := cbc.config.APIServer.BaseURL
+	// estafetteCiServerBuilderEventsURLName := "ESTAFETTE_CI_SERVER_BUILDER_EVENTS_URL"
+	// estafetteCiServerBuilderEventsURLValue := strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + "/api/commands"
+	// estafetteCiServerBuilderPostLogsURLName := "ESTAFETTE_CI_SERVER_POST_LOGS_URL"
+	// estafetteCiServerBuilderPostLogsURLValue := strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.BuildID)
+	// if ciBuilderParams.ReleaseID > 0 {
+	// 	estafetteCiServerBuilderPostLogsURLValue = strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/releases/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.ReleaseID)
+	// }
+	// estafetteCiAPIKeyName := "ESTAFETTE_CI_API_KEY"
+	// estafetteCiAPIKeyValue := cbc.config.Auth.APIKey
+	// estafetteCiBuilderTrackName := "ESTAFETTE_CI_BUILDER_TRACK"
+	// estafetteCiBuilderTrackValue := ciBuilderParams.Track
+	// estafetteManifestJSONKeyName := "ESTAFETTE_CI_MANIFEST_JSON"
+	// manifestJSONBytes, err := json.Marshal(ciBuilderParams.Manifest)
+	// estafetteManifestJSONKeyValue := string(manifestJSONBytes)
+	// estafetteRepositoryCredentialsJSONKeyName := "ESTAFETTE_CI_REPOSITORY_CREDENTIALS_JSON"
+	// repositoryCredentialsJSONBytes, err := json.Marshal(cbc.config.ContainerRepositoryCredentials)
+	// estafetteRepositoryCredentialsJSONKeyValue := string(repositoryCredentialsJSONBytes)
 
-	estafetteBuildVersionName := "ESTAFETTE_BUILD_VERSION"
-	estafetteBuildVersionValue := ciBuilderParams.VersionNumber
+	// estafetteBuildVersionName := "ESTAFETTE_BUILD_VERSION"
+	// estafetteBuildVersionValue := ciBuilderParams.VersionNumber
 
-	// set major and minor version if semver is used
-	estafetteBuildVersionMajorName := "ESTAFETTE_BUILD_VERSION_MAJOR"
-	estafetteBuildVersionMajorValue := ""
-	estafetteBuildVersionMinorName := "ESTAFETTE_BUILD_VERSION_MINOR"
-	estafetteBuildVersionMinorValue := ""
-	if ciBuilderParams.Manifest.Version.SemVer != nil {
-		estafetteBuildVersionMajorValue = strconv.Itoa(ciBuilderParams.Manifest.Version.SemVer.Major)
-		estafetteBuildVersionMinorValue = strconv.Itoa(ciBuilderParams.Manifest.Version.SemVer.Minor)
-	}
+	// // set major and minor version if semver is used
+	// estafetteBuildVersionMajorName := "ESTAFETTE_BUILD_VERSION_MAJOR"
+	// estafetteBuildVersionMajorValue := ""
+	// estafetteBuildVersionMinorName := "ESTAFETTE_BUILD_VERSION_MINOR"
+	// estafetteBuildVersionMinorValue := ""
+	// if ciBuilderParams.Manifest.Version.SemVer != nil {
+	// 	estafetteBuildVersionMajorValue = strconv.Itoa(ciBuilderParams.Manifest.Version.SemVer.Major)
+	// 	estafetteBuildVersionMinorValue = strconv.Itoa(ciBuilderParams.Manifest.Version.SemVer.Minor)
+	// }
 
-	estafetteBuildVersionPatchName := "ESTAFETTE_BUILD_VERSION_PATCH"
-	estafetteBuildVersionPatchValue := fmt.Sprint(ciBuilderParams.AutoIncrement)
-	estafetteReleaseNameName := "ESTAFETTE_RELEASE_NAME"
-	estafetteReleaseNameValue := ciBuilderParams.ReleaseName
-	estafetteReleaseIDName := "ESTAFETTE_RELEASE_ID"
-	estafetteReleaseIDValue := strconv.Itoa(ciBuilderParams.ReleaseID)
-	estafetteBuildIDName := "ESTAFETTE_BUILD_ID"
-	estafetteBuildIDValue := strconv.Itoa(ciBuilderParams.BuildID)
+	// estafetteBuildVersionPatchName := "ESTAFETTE_BUILD_VERSION_PATCH"
+	// estafetteBuildVersionPatchValue := fmt.Sprint(ciBuilderParams.AutoIncrement)
+	// estafetteReleaseNameName := "ESTAFETTE_RELEASE_NAME"
+	// estafetteReleaseNameValue := ciBuilderParams.ReleaseName
+	// estafetteReleaseIDName := "ESTAFETTE_RELEASE_ID"
+	// estafetteReleaseIDValue := strconv.Itoa(ciBuilderParams.ReleaseID)
+	// estafetteBuildIDName := "ESTAFETTE_BUILD_ID"
+	// estafetteBuildIDValue := strconv.Itoa(ciBuilderParams.BuildID)
 
 	// extend builder config to parameterize the builder and replace all other envvars to improve security
 	localBuilderConfig := contracts.BuilderConfig{
@@ -201,11 +201,16 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 
 	localBuilderConfig.JobName = &jobName
 	localBuilderConfig.CIServer = &contracts.CIServerConfig{
-		BaseURL:          estafetteCiServerBaseURLValue,
-		BuilderEventsURL: estafetteCiServerBuilderEventsURLValue,
-		PostLogsURL:      estafetteCiServerBuilderPostLogsURLValue,
-		APIKey:           estafetteCiAPIKeyValue,
+		BaseURL:          cbc.config.APIServer.BaseURL,
+		BuilderEventsURL: strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + "/api/commands",
+		PostLogsURL:      strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.BuildID),
+		APIKey:           cbc.config.Auth.APIKey,
 	}
+
+	if ciBuilderParams.ReleaseID > 0 {
+		localBuilderConfig.CIServer.PostLogsURL = strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/releases/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.ReleaseID)
+	}
+
 	if *localBuilderConfig.Action == "build" {
 		localBuilderConfig.BuildParams = &contracts.BuildParamsConfig{
 			BuildID: ciBuilderParams.BuildID,
@@ -244,107 +249,108 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	builderConfigValue := string(builderConfigJSONBytes)
 
 	environmentVariables := []*corev1.EnvVar{
-		&corev1.EnvVar{
-			Name:  &estafetteGitSourceName,
-			Value: &estafetteGitSourceValue,
-		},
-		&corev1.EnvVar{
-			Name:  &estafetteGitNameName,
-			Value: &estafetteGitNameValue,
-		},
-		&corev1.EnvVar{
-			Name:  &estafetteGitURLName,
-			Value: &estafetteGitURLValue,
-		},
-		&corev1.EnvVar{
-			Name:  &estafetteGitBranchName,
-			Value: &estafetteGitBranchValue,
-		},
-		&corev1.EnvVar{
-			Name:  &estafetteGitRevisionName,
-			Value: &estafetteGitRevisionValue,
-		},
-		&corev1.EnvVar{
-			Name:  &estafetteBuildVersionName,
-			Value: &estafetteBuildVersionValue,
-		},
-		&corev1.EnvVar{
-			Name:  &estafetteBuildVersionPatchName,
-			Value: &estafetteBuildVersionPatchValue,
-		},
-		&corev1.EnvVar{
-			Name:  &estafetteBuildJobNameName,
-			Value: &estafetteBuildJobNameValue,
-		},
-		&corev1.EnvVar{
-			Name:  &estafetteCiServerBaseURLName,
-			Value: &estafetteCiServerBaseURLValue,
-		},
-		&corev1.EnvVar{
-			Name:  &estafetteCiServerBuilderEventsURLName,
-			Value: &estafetteCiServerBuilderEventsURLValue,
-		},
-		&corev1.EnvVar{
-			Name:  &estafetteCiServerBuilderPostLogsURLName,
-			Value: &estafetteCiServerBuilderPostLogsURLValue,
-		},
-		&corev1.EnvVar{
-			Name:  &estafetteCiAPIKeyName,
-			Value: &estafetteCiAPIKeyValue,
-		},
-		&corev1.EnvVar{
-			Name:  &estafetteCiBuilderTrackName,
-			Value: &estafetteCiBuilderTrackValue,
-		},
-		&corev1.EnvVar{
-			Name:  &estafetteManifestJSONKeyName,
-			Value: &estafetteManifestJSONKeyValue,
-		},
-		&corev1.EnvVar{
-			Name:  &estafetteRepositoryCredentialsJSONKeyName,
-			Value: &estafetteRepositoryCredentialsJSONKeyValue,
-		},
+		// &corev1.EnvVar{
+		// 	Name:  &estafetteGitSourceName,
+		// 	Value: &estafetteGitSourceValue,
+		// },
+		// &corev1.EnvVar{
+		// 	Name:  &estafetteGitNameName,
+		// 	Value: &estafetteGitNameValue,
+		// },
+		// &corev1.EnvVar{
+		// 	Name:  &estafetteGitURLName,
+		// 	Value: &estafetteGitURLValue,
+		// },
+		// &corev1.EnvVar{
+		// 	Name:  &estafetteGitBranchName,
+		// 	Value: &estafetteGitBranchValue,
+		// },
+		// &corev1.EnvVar{
+		// 	Name:  &estafetteGitRevisionName,
+		// 	Value: &estafetteGitRevisionValue,
+		// },
+		// &corev1.EnvVar{
+		// 	Name:  &estafetteBuildVersionName,
+		// 	Value: &estafetteBuildVersionValue,
+		// },
+		// &corev1.EnvVar{
+		// 	Name:  &estafetteBuildVersionPatchName,
+		// 	Value: &estafetteBuildVersionPatchValue,
+		// },
+		// &corev1.EnvVar{
+		// 	Name:  &estafetteBuildJobNameName,
+		// 	Value: &estafetteBuildJobNameValue,
+		// },
+		// &corev1.EnvVar{
+		// 	Name:  &estafetteCiServerBaseURLName,
+		// 	Value: &estafetteCiServerBaseURLValue,
+		// },
+		// &corev1.EnvVar{
+		// 	Name:  &estafetteCiServerBuilderEventsURLName,
+		// 	Value: &estafetteCiServerBuilderEventsURLValue,
+		// },
+		// &corev1.EnvVar{
+		// 	Name:  &estafetteCiServerBuilderPostLogsURLName,
+		// 	Value: &estafetteCiServerBuilderPostLogsURLValue,
+		// },
+		// &corev1.EnvVar{
+		// 	Name:  &estafetteCiAPIKeyName,
+		// 	Value: &estafetteCiAPIKeyValue,
+		// },
+		// &corev1.EnvVar{
+		// 	Name:  &estafetteCiBuilderTrackName,
+		// 	Value: &estafetteCiBuilderTrackValue,
+		// },
+		// &corev1.EnvVar{
+		// 	Name:  &estafetteManifestJSONKeyName,
+		// 	Value: &estafetteManifestJSONKeyValue,
+		// },
+		// &corev1.EnvVar{
+		// 	Name:  &estafetteRepositoryCredentialsJSONKeyName,
+		// 	Value: &estafetteRepositoryCredentialsJSONKeyValue,
+		// },
 		&corev1.EnvVar{
 			Name:  &builderConfigName,
 			Value: &builderConfigValue,
 		},
 	}
-	if ciBuilderParams.BuildID > 0 {
-		environmentVariables = append(environmentVariables, &corev1.EnvVar{
-			Name:  &estafetteBuildIDName,
-			Value: &estafetteBuildIDValue,
-		})
-	}
+	// if ciBuilderParams.BuildID > 0 {
+	// 	environmentVariables = append(environmentVariables, &corev1.EnvVar{
+	// 		Name:  &estafetteBuildIDName,
+	// 		Value: &estafetteBuildIDValue,
+	// 	})
+	// }
 
-	// set major and minor version if semver is used
-	if ciBuilderParams.Manifest.Version.SemVer != nil {
-		environmentVariables = append(environmentVariables, &corev1.EnvVar{
-			Name:  &estafetteBuildVersionMajorName,
-			Value: &estafetteBuildVersionMajorValue,
-		})
-		environmentVariables = append(environmentVariables, &corev1.EnvVar{
-			Name:  &estafetteBuildVersionMinorName,
-			Value: &estafetteBuildVersionMinorValue,
-		})
-	}
+	// // set major and minor version if semver is used
+	// if ciBuilderParams.Manifest.Version.SemVer != nil {
+	// 	environmentVariables = append(environmentVariables, &corev1.EnvVar{
+	// 		Name:  &estafetteBuildVersionMajorName,
+	// 		Value: &estafetteBuildVersionMajorValue,
+	// 	})
+	// 	environmentVariables = append(environmentVariables, &corev1.EnvVar{
+	// 		Name:  &estafetteBuildVersionMinorName,
+	// 		Value: &estafetteBuildVersionMinorValue,
+	// 	})
+	// }
 
-	if ciBuilderParams.ReleaseID > 0 {
-		environmentVariables = append(environmentVariables, &corev1.EnvVar{
-			Name:  &estafetteReleaseNameName,
-			Value: &estafetteReleaseNameValue,
-		})
-		environmentVariables = append(environmentVariables, &corev1.EnvVar{
-			Name:  &estafetteReleaseIDName,
-			Value: &estafetteReleaseIDValue,
-		})
-	}
+	// if ciBuilderParams.ReleaseID > 0 {
+	// 	environmentVariables = append(environmentVariables, &corev1.EnvVar{
+	// 		Name:  &estafetteReleaseNameName,
+	// 		Value: &estafetteReleaseNameValue,
+	// 	})
+	// 	environmentVariables = append(environmentVariables, &corev1.EnvVar{
+	// 		Name:  &estafetteReleaseIDName,
+	// 		Value: &estafetteReleaseIDValue,
+	// 	})
+	// }
 
-	for key, value := range ciBuilderParams.EnvironmentVariables {
-		environmentVariables = append(environmentVariables, &corev1.EnvVar{
-			Name:  &key,
-			Value: &value,
-		})
-	}
+	// sets ESTAFETTE_GITHUB_API_TOKEN or ESTAFETTE_BITBUCKET_API_TOKEN
+	// for key, value := range ciBuilderParams.EnvironmentVariables {
+	// 	environmentVariables = append(environmentVariables, &corev1.EnvVar{
+	// 		Name:  &key,
+	// 		Value: &value,
+	// 	})
+	// }
 
 	// define resource request and limit values to fit reasonably well inside a n1-highmem-4 machine
 	cpuRequest := "1.0"
