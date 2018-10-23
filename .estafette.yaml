@@ -129,6 +129,5 @@ releases:
         - gcloud config set account ${GCLOUD_SA_NAME}
         - gcloud config set project ${GCLOUD_PROJECT_NAME}
         - gcloud container clusters get-credentials ${GCLOUD_GKE_CLUSTER_NAME} --zone ${GCLOUD_GKE_ZONE}
-        - cat kubernetes.yaml | envsubst > kubernetes-subst.yaml
-        - kubectl apply -f kubernetes-subst.yaml
-        - kubectl rollout status -f kubernetes-subst.yaml
+        - cat kubernetes.yaml | envsubst | kubectl apply -f -
+        - kubectl rollout status deploy/estafette-ci-api -n estafette

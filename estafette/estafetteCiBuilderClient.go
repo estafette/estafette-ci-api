@@ -365,7 +365,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	image := fmt.Sprintf("%v:%v", repository, tag)
 	imagePullPolicy := "Always"
 	digest, err := cbc.dockerHubClient.GetDigestCached(repository, tag)
-	if err == nil {
+	if err == nil && digest.Digest != "" {
 		image = fmt.Sprintf("%v@%v", repository, digest.Digest)
 		imagePullPolicy = "IfNotPresent"
 	}
