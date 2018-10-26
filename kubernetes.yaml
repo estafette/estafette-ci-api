@@ -289,7 +289,7 @@ data:
         repository: '${CONTAINER_REPOSITORY_5}'
         username: '${CONTAINER_REPOSITORY_USERNAME_5}'
         password: '${CONTAINER_REPOSITORY_PASSWORD_5}'
-      - name: 'gke-${GKE_CLUSTER_1}'
+      - name: '${GKE_CREDENTIAL_1}'
         type: 'kubernetes-engine'
         project: ${GKE_PROJECT_1}
         cluster: ${GKE_CLUSTER_1}
@@ -297,6 +297,30 @@ data:
         zone: ${GKE_ZONE_1}
         defaultNamespace: ${GKE_DEFAULT_NAMESPACE_1}
         serviceAccountKeyfile: '${GKE_SA_KEYFILE_1}'
+      - name: '${GKE_CREDENTIAL_2}'
+        type: 'kubernetes-engine'
+        project: ${GKE_PROJECT_2}
+        cluster: ${GKE_CLUSTER_2}
+        region: ${GKE_REGION_2}
+        zone: ${GKE_ZONE_2}
+        defaultNamespace: ${GKE_DEFAULT_NAMESPACE_2}
+        serviceAccountKeyfile: '${GKE_SA_KEYFILE_2}'
+      - name: '${GKE_CREDENTIAL_3}'
+        type: 'kubernetes-engine'
+        project: ${GKE_PROJECT_3}
+        cluster: ${GKE_CLUSTER_3}
+        region: ${GKE_REGION_3}
+        zone: ${GKE_ZONE_3}
+        defaultNamespace: ${GKE_DEFAULT_NAMESPACE_3}
+        serviceAccountKeyfile: '${GKE_SA_KEYFILE_3}'
+      - name: '${GKE_CREDENTIAL_4}'
+        type: 'kubernetes-engine'
+        project: ${GKE_PROJECT_4}
+        cluster: ${GKE_CLUSTER_4}
+        region: ${GKE_REGION_4}
+        zone: ${GKE_ZONE_4}
+        defaultNamespace: ${GKE_DEFAULT_NAMESPACE_4}
+        serviceAccountKeyfile: '${GKE_SA_KEYFILE_4}'
       - name: ${SLACK_WEBHOOK_NAME_1}
         type: slack-webhook
         workspace: ${SLACK_WEBHOOK_WORKSPACE_1}
