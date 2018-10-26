@@ -428,8 +428,34 @@ func (cbc *ciBuilderClientImpl) GetBuilderConfig(ciBuilderParams CiBuilderParams
 		}
 	}
 
+	// get configured credentials
+	credentials := cbc.encryptedConfig.Builder.Credentials
+
+	// add dynamic github api token credential
+	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_GITHUB_API_TOKEN"]; ok {
+		credentials = append(credentials, &contracts.CredentialConfig{
+			Name: "github-api-token",
+			Type: "github-api-token",
+			AdditionalProperties: map[string]interface{}{
+				"token": token,
+			},
+		})
+	}
+
+	// add dynamic bitbucket api token credential
+	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_BITBUCKET_API_TOKEN"]; ok {
+		credentials = append(credentials, &contracts.CredentialConfig{
+			Name: "bitbucket-api-token",
+			Type: "bitbucket-api-token",
+			AdditionalProperties: map[string]interface{}{
+				"token": token,
+			},
+		})
+	}
+
+	// filter to only what's needed by the build/release job
 	trustedImages := contracts.FilterTrustedImages(cbc.encryptedConfig.Builder.TrustedImages, stages)
-	credentials := contracts.FilterCredentials(cbc.encryptedConfig.Builder.Credentials, trustedImages)
+	credentials = contracts.FilterCredentials(credentials, trustedImages)
 
 	localBuilderConfig := contracts.BuilderConfig{
 		Credentials:   credentials,
@@ -489,25 +515,6 @@ func (cbc *ciBuilderClientImpl) GetBuilderConfig(ciBuilderParams CiBuilderParams
 			ReleaseName: ciBuilderParams.ReleaseName,
 			ReleaseID:   ciBuilderParams.ReleaseID,
 		}
-	}
-
-	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_GITHUB_API_TOKEN"]; ok {
-		localBuilderConfig.Credentials = append(localBuilderConfig.Credentials, &contracts.CredentialConfig{
-			Name: "github-api-token",
-			Type: "github-api-token",
-			AdditionalProperties: map[string]interface{}{
-				"token": token,
-			},
-		})
-	}
-	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_BITBUCKET_API_TOKEN"]; ok {
-		localBuilderConfig.Credentials = append(localBuilderConfig.Credentials, &contracts.CredentialConfig{
-			Name: "bitbucket-api-token",
-			Type: "bitbucket-api-token",
-			AdditionalProperties: map[string]interface{}{
-				"token": token,
-			},
-		})
 	}
 
 	return localBuilderConfig
