@@ -34,6 +34,7 @@ type CiBuilderClient interface {
 	RemoveCiBuilderJob(string) error
 	TailCiBuilderJobLogs(string, chan contracts.TailLogLine) error
 	GetJobName(string, string, string, string) string
+	GetBuilderConfig(CiBuilderParams, string) contracts.BuilderConfig
 }
 
 type ciBuilderClientImpl struct {
@@ -108,86 +109,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	log.Info().Msgf("Creating job %v...", jobName)
 
 	// extend builder config to parameterize the builder and replace all other envvars to improve security
-	localBuilderConfig := contracts.BuilderConfig{
-		Credentials:   cbc.encryptedConfig.Builder.Credentials,
-		TrustedImages: cbc.encryptedConfig.Builder.TrustedImages,
-	}
-
-	localBuilderConfig.Action = &ciBuilderParams.JobType
-	localBuilderConfig.Track = &ciBuilderParams.Track
-	localBuilderConfig.Git = &contracts.GitConfig{
-		RepoSource:   ciBuilderParams.RepoSource,
-		RepoOwner:    ciBuilderParams.RepoOwner,
-		RepoName:     ciBuilderParams.RepoName,
-		RepoBranch:   ciBuilderParams.RepoBranch,
-		RepoRevision: ciBuilderParams.RepoRevision,
-	}
-	if ciBuilderParams.Manifest.Version.SemVer != nil {
-		patchWithLabel := ciBuilderParams.Manifest.Version.SemVer.GetPatchWithLabel(manifest.EstafetteVersionParams{
-			AutoIncrement: ciBuilderParams.AutoIncrement,
-			Branch:        ciBuilderParams.RepoBranch,
-			Revision:      ciBuilderParams.RepoRevision,
-		})
-		localBuilderConfig.BuildVersion = &contracts.BuildVersionConfig{
-			Version:       ciBuilderParams.VersionNumber,
-			Major:         &ciBuilderParams.Manifest.Version.SemVer.Major,
-			Minor:         &ciBuilderParams.Manifest.Version.SemVer.Minor,
-			Patch:         &patchWithLabel,
-			AutoIncrement: &ciBuilderParams.AutoIncrement,
-		}
-	} else {
-		localBuilderConfig.BuildVersion = &contracts.BuildVersionConfig{
-			Version:       ciBuilderParams.VersionNumber,
-			AutoIncrement: &ciBuilderParams.AutoIncrement,
-		}
-	}
-
-	localBuilderConfig.Manifest = &ciBuilderParams.Manifest
-
-	localBuilderConfig.JobName = &jobName
-	localBuilderConfig.CIServer = &contracts.CIServerConfig{
-		BaseURL:          cbc.config.APIServer.BaseURL,
-		BuilderEventsURL: strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + "/api/commands",
-		PostLogsURL:      strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.BuildID),
-		APIKey:           cbc.config.Auth.APIKey,
-	}
-
-	if ciBuilderParams.ReleaseID > 0 {
-		localBuilderConfig.CIServer.PostLogsURL = strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/releases/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.ReleaseID)
-	}
-
-	if *localBuilderConfig.Action == "build" {
-		localBuilderConfig.BuildParams = &contracts.BuildParamsConfig{
-			BuildID: ciBuilderParams.BuildID,
-		}
-	}
-	if *localBuilderConfig.Action == "release" {
-		localBuilderConfig.ReleaseParams = &contracts.ReleaseParamsConfig{
-			ReleaseName: ciBuilderParams.ReleaseName,
-			ReleaseID:   ciBuilderParams.ReleaseID,
-		}
-	}
-
-	//"buildParams":{"buildID":392864072472756227},"releaseParams":{"releaseName":"beta","releaseID":392858389002092547}
-
-	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_GITHUB_API_TOKEN"]; ok {
-		localBuilderConfig.Credentials = append(localBuilderConfig.Credentials, &contracts.CredentialConfig{
-			Name: "github-api-token",
-			Type: "github-api-token",
-			AdditionalProperties: map[string]interface{}{
-				"token": token,
-			},
-		})
-	}
-	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_BITBUCKET_API_TOKEN"]; ok {
-		localBuilderConfig.Credentials = append(localBuilderConfig.Credentials, &contracts.CredentialConfig{
-			Name: "bitbucket-api-token",
-			Type: "bitbucket-api-token",
-			AdditionalProperties: map[string]interface{}{
-				"token": token,
-			},
-		})
-	}
+	localBuilderConfig := cbc.GetBuilderConfig(ciBuilderParams, jobName)
 
 	builderConfigName := "BUILDER_CONFIG"
 	builderConfigJSONBytes, err := json.Marshal(localBuilderConfig)
@@ -485,4 +407,108 @@ func (cbc *ciBuilderClientImpl) GetJobName(jobType, repoOwner, repoSource, id st
 	}
 
 	return strings.ToLower(fmt.Sprintf("%v-%v-%v", jobType, repoName, id))
+}
+
+// GetJobName returns the job name for a build or release job
+func (cbc *ciBuilderClientImpl) GetBuilderConfig(ciBuilderParams CiBuilderParams, jobName string) contracts.BuilderConfig {
+
+	// retrieve stages to filter trusted images and credentials
+	stages := ciBuilderParams.Manifest.Stages
+	if ciBuilderParams.JobType == "release" {
+
+		releaseExists := false
+		for _, r := range ciBuilderParams.Manifest.Releases {
+			if r.Name == ciBuilderParams.ReleaseName {
+				releaseExists = true
+				stages = r.Stages
+			}
+		}
+		if !releaseExists {
+			stages = []*manifest.EstafetteStage{}
+		}
+	}
+
+	trustedImages := contracts.FilterTrustedImages(cbc.encryptedConfig.Builder.TrustedImages, stages)
+	credentials := contracts.FilterCredentials(cbc.encryptedConfig.Builder.Credentials, trustedImages)
+
+	localBuilderConfig := contracts.BuilderConfig{
+		Credentials:   credentials,
+		TrustedImages: trustedImages,
+	}
+
+	localBuilderConfig.Action = &ciBuilderParams.JobType
+	localBuilderConfig.Track = &ciBuilderParams.Track
+	localBuilderConfig.Git = &contracts.GitConfig{
+		RepoSource:   ciBuilderParams.RepoSource,
+		RepoOwner:    ciBuilderParams.RepoOwner,
+		RepoName:     ciBuilderParams.RepoName,
+		RepoBranch:   ciBuilderParams.RepoBranch,
+		RepoRevision: ciBuilderParams.RepoRevision,
+	}
+	if ciBuilderParams.Manifest.Version.SemVer != nil {
+		patchWithLabel := ciBuilderParams.Manifest.Version.SemVer.GetPatchWithLabel(manifest.EstafetteVersionParams{
+			AutoIncrement: ciBuilderParams.AutoIncrement,
+			Branch:        ciBuilderParams.RepoBranch,
+			Revision:      ciBuilderParams.RepoRevision,
+		})
+		localBuilderConfig.BuildVersion = &contracts.BuildVersionConfig{
+			Version:       ciBuilderParams.VersionNumber,
+			Major:         &ciBuilderParams.Manifest.Version.SemVer.Major,
+			Minor:         &ciBuilderParams.Manifest.Version.SemVer.Minor,
+			Patch:         &patchWithLabel,
+			AutoIncrement: &ciBuilderParams.AutoIncrement,
+		}
+	} else {
+		localBuilderConfig.BuildVersion = &contracts.BuildVersionConfig{
+			Version:       ciBuilderParams.VersionNumber,
+			AutoIncrement: &ciBuilderParams.AutoIncrement,
+		}
+	}
+
+	localBuilderConfig.Manifest = &ciBuilderParams.Manifest
+
+	localBuilderConfig.JobName = &jobName
+	localBuilderConfig.CIServer = &contracts.CIServerConfig{
+		BaseURL:          cbc.config.APIServer.BaseURL,
+		BuilderEventsURL: strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + "/api/commands",
+		PostLogsURL:      strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.BuildID),
+		APIKey:           cbc.config.Auth.APIKey,
+	}
+
+	if ciBuilderParams.ReleaseID > 0 {
+		localBuilderConfig.CIServer.PostLogsURL = strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/releases/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.ReleaseID)
+	}
+
+	if *localBuilderConfig.Action == "build" {
+		localBuilderConfig.BuildParams = &contracts.BuildParamsConfig{
+			BuildID: ciBuilderParams.BuildID,
+		}
+	}
+	if *localBuilderConfig.Action == "release" {
+		localBuilderConfig.ReleaseParams = &contracts.ReleaseParamsConfig{
+			ReleaseName: ciBuilderParams.ReleaseName,
+			ReleaseID:   ciBuilderParams.ReleaseID,
+		}
+	}
+
+	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_GITHUB_API_TOKEN"]; ok {
+		localBuilderConfig.Credentials = append(localBuilderConfig.Credentials, &contracts.CredentialConfig{
+			Name: "github-api-token",
+			Type: "github-api-token",
+			AdditionalProperties: map[string]interface{}{
+				"token": token,
+			},
+		})
+	}
+	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_BITBUCKET_API_TOKEN"]; ok {
+		localBuilderConfig.Credentials = append(localBuilderConfig.Credentials, &contracts.CredentialConfig{
+			Name: "bitbucket-api-token",
+			Type: "bitbucket-api-token",
+			AdditionalProperties: map[string]interface{}{
+				"token": token,
+			},
+		})
+	}
+
+	return localBuilderConfig
 }
