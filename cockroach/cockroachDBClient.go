@@ -492,6 +492,11 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 			if err = json.Unmarshal(commitsData, &pipeline.Commits); err != nil {
 				return
 			}
+
+			// remove all but the first 6 commits
+			if len(pipeline.Commits) > 6 {
+				pipeline.Commits = pipeline.Commits[:6]
+			}
 		}
 
 		// unmarshal then marshal manifest to include defaults
@@ -604,6 +609,11 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 		if len(commitsData) > 0 {
 			if err = json.Unmarshal(commitsData, &pipeline.Commits); err != nil {
 				return
+			}
+
+			// remove all but the first 6 commits
+			if len(pipeline.Commits) > 6 {
+				pipeline.Commits = pipeline.Commits[:6]
 			}
 		}
 
@@ -746,6 +756,11 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 		if err = json.Unmarshal(commitsData, &pipeline.Commits); err != nil {
 			return
 		}
+
+		// remove all but the first 6 commits
+		if len(pipeline.Commits) > 6 {
+			pipeline.Commits = pipeline.Commits[:6]
+		}
 	}
 
 	// set released versions
@@ -861,6 +876,11 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 		if len(commitsData) > 0 {
 			if err = json.Unmarshal(commitsData, &build.Commits); err != nil {
 				return
+			}
+
+			// remove all but the first 6 commits
+			if len(build.Commits) > 6 {
+				build.Commits = build.Commits[:6]
 			}
 		}
 
@@ -1008,6 +1028,11 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 		if err = json.Unmarshal(commitsData, &build.Commits); err != nil {
 			return nil, err
 		}
+
+		// remove all but the first 6 commits
+		if len(build.Commits) > 6 {
+			build.Commits = build.Commits[:6]
+		}
 	}
 
 	// unmarshal then marshal manifest to include defaults
@@ -1114,6 +1139,11 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 		if err = json.Unmarshal(commitsData, &build.Commits); err != nil {
 			return nil, err
 		}
+
+		// remove all but the first 6 commits
+		if len(build.Commits) > 6 {
+			build.Commits = build.Commits[:6]
+		}
 	}
 
 	// unmarshal then marshal manifest to include defaults
@@ -1210,6 +1240,11 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 		if len(commitsData) > 0 {
 			if err = json.Unmarshal(commitsData, &build.Commits); err != nil {
 				return nil, err
+			}
+
+			// remove all but the first 6 commits
+			if len(build.Commits) > 6 {
+				build.Commits = build.Commits[:6]
 			}
 		}
 
