@@ -14,6 +14,6 @@ govendor fetch github.com/gin-contrib/gzip
 govendor fetch github.com/estafette/estafette-ci-crypt@0.0.10
 govendor fetch github.com/lib/pq
 govendor fetch github.com/mattn/go-sqlite3@v1.2.0
-govendor fetch github.com/estafette/estafette-ci-contracts@0.0.78
+govendor fetch github.com/estafette/estafette-ci-contracts@0.0.79
 govendor fetch github.com/Masterminds/squirrel@v1.0
 govendor fetch gopkg.in/yaml.v2

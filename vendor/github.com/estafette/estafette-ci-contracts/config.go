@@ -126,7 +126,10 @@ func GetCredentialsForTrustedImage(credentials []*CredentialConfig, trustedImage
 	credentialMap := map[string][]*CredentialConfig{}
 
 	for _, filterType := range trustedImage.InjectedCredentialTypes {
-		credentialMap[filterType] = GetCredentialsByType(credentials, filterType)
+		credsByType := GetCredentialsByType(credentials, filterType)
+		if len(credsByType) > 0 {
+			credentialMap[filterType] = credsByType
+		}
 	}
 
 	return credentialMap

@@ -331,6 +331,10 @@ data:
         webhook: ${SLACK_WEBHOOK_WEBHOOK_1}
 
       trustedImages:
+      - path: extensions/git-clone
+        injectedCredentialTypes:
+        - bitbucket-api-token
+        - github-api-token
       - path: extensions/docker
         runDocker: true
         injectedCredentialTypes:
