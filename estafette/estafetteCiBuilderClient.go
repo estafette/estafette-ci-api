@@ -457,6 +457,9 @@ func (cbc *ciBuilderClientImpl) GetBuilderConfig(ciBuilderParams CiBuilderParams
 	trustedImages := contracts.FilterTrustedImages(cbc.encryptedConfig.Builder.TrustedImages, stages)
 	credentials = contracts.FilterCredentials(credentials, trustedImages)
 
+	// add container-registry credentials to allow private registry images to be used in stages
+	credentials = contracts.AddCredentialsIfNotPresent(credentials, contracts.GetCredentialsByType(cbc.encryptedConfig.Builder.Credentials, "container-registry"))
+
 	localBuilderConfig := contracts.BuilderConfig{
 		Credentials:   credentials,
 		TrustedImages: trustedImages,

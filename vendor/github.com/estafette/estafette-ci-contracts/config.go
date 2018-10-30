@@ -190,22 +190,30 @@ func FilterCredentials(credentials []*CredentialConfig, trustedImages []*Trusted
 
 		// loop all items in credmap and add to filtered credentials if they haven't been already added
 		for _, v := range credMap {
-			for _, c := range v {
-
-				alreadyAdded := false
-				for _, fc := range filteredCredentials {
-					if fc.Name == c.Name && fc.Type == c.Type {
-						alreadyAdded = true
-						break
-					}
-				}
-
-				if !alreadyAdded {
-					filteredCredentials = append(filteredCredentials, c)
-				}
-			}
+			filteredCredentials = AddCredentialsIfNotPresent(filteredCredentials, v)
 		}
 	}
 
 	return filteredCredentials
+}
+
+// AddCredentialsIfNotPresent adds new credentials to source credentials if they're not present yet
+func AddCredentialsIfNotPresent(sourceCredentials []*CredentialConfig, newCredentials []*CredentialConfig) []*CredentialConfig {
+
+	for _, c := range newCredentials {
+
+		alreadyAdded := false
+		for _, fc := range sourceCredentials {
+			if fc.Name == c.Name && fc.Type == c.Type {
+				alreadyAdded = true
+				break
+			}
+		}
+
+		if !alreadyAdded {
+			sourceCredentials = append(sourceCredentials, c)
+		}
+	}
+
+	return sourceCredentials
 }
