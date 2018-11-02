@@ -30,6 +30,7 @@ spec:
     secretName: {{.Name}}-letsencrypt-certificate
   rules:
   {{- range .Hosts}}
+  - host: {{.}}
     http:
       paths:
       - path: {{$.IngressPath}}
