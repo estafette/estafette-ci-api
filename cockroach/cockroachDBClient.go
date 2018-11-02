@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -166,6 +167,10 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string
 
 func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBuild contracts.Build, err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	sort.Slice(build.Labels, func(i, j int) bool {
+		return build.Labels[i].Key < build.Labels[j].Key
+	})
 
 	labelsBytes, err := json.Marshal(build.Labels)
 	if err != nil {
