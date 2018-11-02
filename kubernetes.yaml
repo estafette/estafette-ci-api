@@ -180,7 +180,7 @@ type: Opaque
 apiVersion: v1
 kind: Secret
 metadata:
-  name: estafette-ci-api-github-app-key
+  name: estafette-ci-api-secrets
   namespace: estafette
   labels:
     app: estafette-ci-api
@@ -192,7 +192,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: estafette-ci-api-config
+  name: estafette-ci-api-configs
   namespace: estafette
   labels:
     app: estafette-ci-api
@@ -201,7 +201,7 @@ data:
   config.yaml: |-
     integrations:
       github:
-        privateKeyPath: /github-app-key/private-key.pem
+        privateKeyPath: /secrets/private-key.pem
         appID: ${GITHUB_APP_ID}
         clientID: ${GITHUB_APP_OAUTH_CLIENT_ID}
         clientSecret: ${GITHUB_APP_OAUTH_CLIENT_SECRET}
@@ -413,10 +413,10 @@ spec:
         - name: prometheus
           containerPort: 9001
         volumeMounts:
-        - name: github-app-key
-          mountPath: /github-app-key
-        - name: estafette-ci-api-config
-          mountPath: /config
+        - name: estafette-ci-api-secrets
+          mountPath: /secrets
+        - name: estafette-ci-api-configs
+          mountPath: /configs
         livenessProbe:
           httpGet:
             path: /liveness
@@ -472,12 +472,12 @@ spec:
       - name: ssl-certificate
         secret:
           secretName: estafette-ci-api-letsencrypt-certificate
-      - name: github-app-key
+      - name: estafette-ci-api-secrets
         secret:
-          secretName: estafette-ci-api-github-app-key
-      - name: estafette-ci-api-config
+          secretName: estafette-ci-api-secrets
+      - name: estafette-ci-api-configs
         configMap:
-          name: estafette-ci-api-config
+          name: estafette-ci-api-configs
 ---
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler

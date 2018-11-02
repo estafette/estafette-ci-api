@@ -44,7 +44,7 @@ var (
 	prometheusMetricsAddress = kingpin.Flag("metrics-listen-address", "The address to listen on for Prometheus metrics requests.").Default(":9001").String()
 	prometheusMetricsPath    = kingpin.Flag("metrics-path", "The path to listen for Prometheus metrics requests.").Default("/metrics").String()
 	apiAddress               = kingpin.Flag("api-listen-address", "The address to listen on for api HTTP requests.").Default(":5000").String()
-	configFilePath           = kingpin.Flag("config-file-path", "The path to yaml config file configuring this application.").Default("/config/config.yaml").String()
+	configFilePath           = kingpin.Flag("config-file-path", "The path to yaml config file configuring this application.").Default("/configs/config.yaml").String()
 	secretDecryptionKey      = kingpin.Flag("secret-decryption-key", "The AES-256 key used to decrypt secrets that have been encrypted with it.").Envar("SECRET_DECRYPTION_KEY").String()
 
 	// prometheusInboundEventTotals is the prometheus timeline serie that keeps track of inbound events

@@ -1,0 +1,43 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{.Name}}
+  namespace: {{.Namespace}}
+  labels:
+    {{- range $key, $value := .Labels}}
+    {{$key}}: {{$value}}
+    {{- end}}
+  annotations:
+    {{- if .UseNginxIngress}}
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    {{- end}}
+    {{- if .UseGCEIngress}}
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.allow-http: "false"
+    {{- end}}
+    {{- if .UseDNSAnnotationsOnIngress}}  
+    estafette.io/cloudflare-dns: "true"
+    estafette.io/cloudflare-proxy: "true"
+    estafette.io/cloudflare-hostnames: "{{.HostsJoined}}"
+    {{- end}}
+spec:
+  tls:
+  - hosts:
+    {{- range .Hosts}}
+    - {{.}}
+    {{- end}}
+    secretName: {{.Name}}-letsencrypt-certificate
+  rules:
+  {{- range .Hosts}}
+    http:
+      paths:
+      - path: {{$.IngressPath}}
+        backend:
+          serviceName: {{$.Name}}
+          servicePort: https
+      - path: /*
+        backend:
+          serviceName: estafette-ci-web
+          servicePort: https          
+  {{- end}}
