@@ -340,6 +340,8 @@ data:
     - path: golang
       runDocker: true
       allowCommands: true
+
+    registryMirror: ${REGISTRY_MIRROR}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment

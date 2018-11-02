@@ -155,4 +155,17 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "bitbucket-api-token", trustedImagesConfig[6].InjectedCredentialTypes[0])
 		assert.Equal(t, "github-api-token", trustedImagesConfig[6].InjectedCredentialTypes[1])
 	})
+
+	t.Run("ReturnsRegistryMirror", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		registryMirrorConfig := config.RegistryMirror
+
+		assert.NotNil(t, registryMirrorConfig)
+		assert.Equal(t, "https://mirror.gcr.io", *registryMirrorConfig)
+	})
 }

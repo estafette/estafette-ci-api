@@ -461,8 +461,9 @@ func (cbc *ciBuilderClientImpl) GetBuilderConfig(ciBuilderParams CiBuilderParams
 	credentials = contracts.AddCredentialsIfNotPresent(credentials, contracts.GetCredentialsByType(cbc.encryptedConfig.Credentials, "container-registry"))
 
 	localBuilderConfig := contracts.BuilderConfig{
-		Credentials:   credentials,
-		TrustedImages: trustedImages,
+		Credentials:    credentials,
+		TrustedImages:  trustedImages,
+		RegistryMirror: cbc.config.RegistryMirror,
 	}
 
 	localBuilderConfig.Action = &ciBuilderParams.JobType

@@ -15,8 +15,9 @@ type ContainerRepositoryCredentialConfig struct {
 
 // BuilderConfig parameterizes a build/release job
 type BuilderConfig struct {
-	Action *string `json:"action,omitempty"`
-	Track  *string `json:"track,omitempty"`
+	Action         *string `json:"action,omitempty"`
+	Track          *string `json:"track,omitempty"`
+	RegistryMirror *string `json:"registryMirror,omitempty"`
 
 	Manifest *manifest.EstafetteManifest `json:"manifest,omitempty"`
 

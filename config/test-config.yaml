@@ -103,3 +103,5 @@ trustedImages:
   injectedCredentialTypes:
   - bitbucket-api-token
   - github-api-token
+
+registryMirror: https://mirror.gcr.io
