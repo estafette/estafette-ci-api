@@ -245,102 +245,101 @@ data:
       user: ${COCKROACH_USER}
       password: ${COCKROACH_PASSWORD}
 
-    builder:
-      credentials:
-      - name: 'container-registry-${CONTAINER_REPOSITORY_1}'
-        type: 'container-registry'
-        repository: '${CONTAINER_REPOSITORY_1}'
-        username: '${CONTAINER_REPOSITORY_USERNAME_1}'
-        password: '${CONTAINER_REPOSITORY_PASSWORD_1}'
-      - name: 'container-registry-${CONTAINER_REPOSITORY_2}'
-        type: 'container-registry'
-        repository: '${CONTAINER_REPOSITORY_2}'
-        username: '${CONTAINER_REPOSITORY_USERNAME_2}'
-        password: '${CONTAINER_REPOSITORY_PASSWORD_2}'
-      - name: 'container-registry-${CONTAINER_REPOSITORY_3}'
-        type: 'container-registry'
-        repository: '${CONTAINER_REPOSITORY_3}'
-        username: '${CONTAINER_REPOSITORY_USERNAME_3}'
-        password: '${CONTAINER_REPOSITORY_PASSWORD_3}'
-      - name: 'container-registry-${CONTAINER_REPOSITORY_4}'
-        type: 'container-registry'
-        repository: '${CONTAINER_REPOSITORY_4}'
-        username: '${CONTAINER_REPOSITORY_USERNAME_4}'
-        password: '${CONTAINER_REPOSITORY_PASSWORD_4}'
-      - name: 'container-registry-${CONTAINER_REPOSITORY_5}'
-        type: 'container-registry'
-        repository: '${CONTAINER_REPOSITORY_5}'
-        username: '${CONTAINER_REPOSITORY_USERNAME_5}'
-        password: '${CONTAINER_REPOSITORY_PASSWORD_5}'
-      - name: '${GKE_CREDENTIAL_1}'
-        type: 'kubernetes-engine'
-        project: ${GKE_PROJECT_1}
-        cluster: ${GKE_CLUSTER_1}
-        region: ${GKE_REGION_1}
-        zone: ${GKE_ZONE_1}
-        defaultNamespace: ${GKE_DEFAULT_NAMESPACE_1}
-        serviceAccountKeyfile: '${GKE_SA_KEYFILE_1}'
-      - name: '${GKE_CREDENTIAL_2}'
-        type: 'kubernetes-engine'
-        project: ${GKE_PROJECT_2}
-        cluster: ${GKE_CLUSTER_2}
-        region: ${GKE_REGION_2}
-        zone: ${GKE_ZONE_2}
-        defaultNamespace: ${GKE_DEFAULT_NAMESPACE_2}
-        serviceAccountKeyfile: '${GKE_SA_KEYFILE_2}'
-      - name: '${GKE_CREDENTIAL_3}'
-        type: 'kubernetes-engine'
-        project: ${GKE_PROJECT_3}
-        cluster: ${GKE_CLUSTER_3}
-        region: ${GKE_REGION_3}
-        zone: ${GKE_ZONE_3}
-        defaultNamespace: ${GKE_DEFAULT_NAMESPACE_3}
-        serviceAccountKeyfile: '${GKE_SA_KEYFILE_3}'
-      - name: '${GKE_CREDENTIAL_4}'
-        type: 'kubernetes-engine'
-        project: ${GKE_PROJECT_4}
-        cluster: ${GKE_CLUSTER_4}
-        region: ${GKE_REGION_4}
-        zone: ${GKE_ZONE_4}
-        defaultNamespace: ${GKE_DEFAULT_NAMESPACE_4}
-        serviceAccountKeyfile: '${GKE_SA_KEYFILE_4}'
-      - name: ${SLACK_WEBHOOK_NAME_1}
-        type: slack-webhook
-        workspace: ${SLACK_WEBHOOK_WORKSPACE_1}
-        webhook: ${SLACK_WEBHOOK_WEBHOOK_1}
-      - name: ${SLACK_WEBHOOK_NAME_1}
-        type: slack-webhook
-        workspace: ${SLACK_WEBHOOK_WORKSPACE_1}
-        webhook: ${SLACK_WEBHOOK_WEBHOOK_1}
+    credentials:
+    - name: 'container-registry-${CONTAINER_REPOSITORY_1}'
+      type: 'container-registry'
+      repository: '${CONTAINER_REPOSITORY_1}'
+      username: '${CONTAINER_REPOSITORY_USERNAME_1}'
+      password: '${CONTAINER_REPOSITORY_PASSWORD_1}'
+    - name: 'container-registry-${CONTAINER_REPOSITORY_2}'
+      type: 'container-registry'
+      repository: '${CONTAINER_REPOSITORY_2}'
+      username: '${CONTAINER_REPOSITORY_USERNAME_2}'
+      password: '${CONTAINER_REPOSITORY_PASSWORD_2}'
+    - name: 'container-registry-${CONTAINER_REPOSITORY_3}'
+      type: 'container-registry'
+      repository: '${CONTAINER_REPOSITORY_3}'
+      username: '${CONTAINER_REPOSITORY_USERNAME_3}'
+      password: '${CONTAINER_REPOSITORY_PASSWORD_3}'
+    - name: 'container-registry-${CONTAINER_REPOSITORY_4}'
+      type: 'container-registry'
+      repository: '${CONTAINER_REPOSITORY_4}'
+      username: '${CONTAINER_REPOSITORY_USERNAME_4}'
+      password: '${CONTAINER_REPOSITORY_PASSWORD_4}'
+    - name: 'container-registry-${CONTAINER_REPOSITORY_5}'
+      type: 'container-registry'
+      repository: '${CONTAINER_REPOSITORY_5}'
+      username: '${CONTAINER_REPOSITORY_USERNAME_5}'
+      password: '${CONTAINER_REPOSITORY_PASSWORD_5}'
+    - name: '${GKE_CREDENTIAL_1}'
+      type: 'kubernetes-engine'
+      project: ${GKE_PROJECT_1}
+      cluster: ${GKE_CLUSTER_1}
+      region: ${GKE_REGION_1}
+      zone: ${GKE_ZONE_1}
+      defaultNamespace: ${GKE_DEFAULT_NAMESPACE_1}
+      serviceAccountKeyfile: '${GKE_SA_KEYFILE_1}'
+    - name: '${GKE_CREDENTIAL_2}'
+      type: 'kubernetes-engine'
+      project: ${GKE_PROJECT_2}
+      cluster: ${GKE_CLUSTER_2}
+      region: ${GKE_REGION_2}
+      zone: ${GKE_ZONE_2}
+      defaultNamespace: ${GKE_DEFAULT_NAMESPACE_2}
+      serviceAccountKeyfile: '${GKE_SA_KEYFILE_2}'
+    - name: '${GKE_CREDENTIAL_3}'
+      type: 'kubernetes-engine'
+      project: ${GKE_PROJECT_3}
+      cluster: ${GKE_CLUSTER_3}
+      region: ${GKE_REGION_3}
+      zone: ${GKE_ZONE_3}
+      defaultNamespace: ${GKE_DEFAULT_NAMESPACE_3}
+      serviceAccountKeyfile: '${GKE_SA_KEYFILE_3}'
+    - name: '${GKE_CREDENTIAL_4}'
+      type: 'kubernetes-engine'
+      project: ${GKE_PROJECT_4}
+      cluster: ${GKE_CLUSTER_4}
+      region: ${GKE_REGION_4}
+      zone: ${GKE_ZONE_4}
+      defaultNamespace: ${GKE_DEFAULT_NAMESPACE_4}
+      serviceAccountKeyfile: '${GKE_SA_KEYFILE_4}'
+    - name: ${SLACK_WEBHOOK_NAME_1}
+      type: slack-webhook
+      workspace: ${SLACK_WEBHOOK_WORKSPACE_1}
+      webhook: ${SLACK_WEBHOOK_WEBHOOK_1}
+    - name: ${SLACK_WEBHOOK_NAME_1}
+      type: slack-webhook
+      workspace: ${SLACK_WEBHOOK_WORKSPACE_1}
+      webhook: ${SLACK_WEBHOOK_WEBHOOK_1}
 
-      trustedImages:
-      - path: extensions/git-clone
-        injectedCredentialTypes:
-        - bitbucket-api-token
-        - github-api-token
-      - path: extensions/docker
-        runDocker: true
-        injectedCredentialTypes:
-        - container-registry
-      - path: extensions/gke
-        injectedCredentialTypes:
-        - kubernetes-engine
-      - path: extensions/bitbucket-status
-        injectedCredentialTypes:
-        - bitbucket-api-token
-      - path: extensions/github-status
-        injectedCredentialTypes:
-        - github-api-token
-      - path: extensions/slack-build-status
-        injectedCredentialTypes:
-        - slack-webhook
-      - path: estafette/estafette-ci-builder
-        runPrivileged: true
-      - path: docker
-        runDocker: true
-      - path: golang
-        runDocker: true
-        allowCommands: true
+    trustedImages:
+    - path: extensions/git-clone
+      injectedCredentialTypes:
+      - bitbucket-api-token
+      - github-api-token
+    - path: extensions/docker
+      runDocker: true
+      injectedCredentialTypes:
+      - container-registry
+    - path: extensions/gke
+      injectedCredentialTypes:
+      - kubernetes-engine
+    - path: extensions/bitbucket-status
+      injectedCredentialTypes:
+      - bitbucket-api-token
+    - path: extensions/github-status
+      injectedCredentialTypes:
+      - github-api-token
+    - path: extensions/slack-build-status
+      injectedCredentialTypes:
+      - slack-webhook
+    - path: estafette/estafette-ci-builder
+      runPrivileged: true
+    - path: docker
+      runDocker: true
+    - path: golang
+      runDocker: true
+      allowCommands: true
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment

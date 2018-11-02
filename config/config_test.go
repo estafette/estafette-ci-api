@@ -115,4 +115,44 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "myuser", databaseConfig.User)
 		assert.Equal(t, "this is my secret", databaseConfig.Password)
 	})
+
+	t.Run("ReturnsCredentialsConfig", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		credentialsConfig := config.Credentials
+
+		assert.Equal(t, 7, len(credentialsConfig))
+		assert.Equal(t, "container-registry-extensions", credentialsConfig[0].Name)
+		assert.Equal(t, "container-registry", credentialsConfig[0].Type)
+		assert.Equal(t, "extensions", credentialsConfig[0].AdditionalProperties["repository"])
+		assert.Equal(t, "slack-webhook-estafette", credentialsConfig[6].Name)
+		assert.Equal(t, "slack-webhook", credentialsConfig[6].Type)
+		assert.Equal(t, "estafette", credentialsConfig[6].AdditionalProperties["workspace"])
+	})
+
+	t.Run("ReturnsTrustedImagesConfig", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		trustedImagesConfig := config.TrustedImages
+
+		assert.Equal(t, 7, len(trustedImagesConfig))
+		assert.Equal(t, "extensions/docker", trustedImagesConfig[0].ImagePath)
+		assert.True(t, trustedImagesConfig[0].RunDocker)
+		assert.Equal(t, 1, len(trustedImagesConfig[0].InjectedCredentialTypes))
+		assert.Equal(t, "container-registry", trustedImagesConfig[0].InjectedCredentialTypes[0])
+
+		assert.Equal(t, "multiple-git-sources-test", trustedImagesConfig[6].ImagePath)
+		assert.False(t, trustedImagesConfig[6].RunDocker)
+		assert.Equal(t, 2, len(trustedImagesConfig[6].InjectedCredentialTypes))
+		assert.Equal(t, "bitbucket-api-token", trustedImagesConfig[6].InjectedCredentialTypes[0])
+		assert.Equal(t, "github-api-token", trustedImagesConfig[6].InjectedCredentialTypes[1])
+	})
 }

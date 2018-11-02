@@ -429,7 +429,7 @@ func (cbc *ciBuilderClientImpl) GetBuilderConfig(ciBuilderParams CiBuilderParams
 	}
 
 	// get configured credentials
-	credentials := cbc.encryptedConfig.Builder.Credentials
+	credentials := cbc.encryptedConfig.Credentials
 
 	// add dynamic github api token credential
 	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_GITHUB_API_TOKEN"]; ok {
@@ -454,11 +454,11 @@ func (cbc *ciBuilderClientImpl) GetBuilderConfig(ciBuilderParams CiBuilderParams
 	}
 
 	// filter to only what's needed by the build/release job
-	trustedImages := contracts.FilterTrustedImages(cbc.encryptedConfig.Builder.TrustedImages, stages)
+	trustedImages := contracts.FilterTrustedImages(cbc.encryptedConfig.TrustedImages, stages)
 	credentials = contracts.FilterCredentials(credentials, trustedImages)
 
 	// add container-registry credentials to allow private registry images to be used in stages
-	credentials = contracts.AddCredentialsIfNotPresent(credentials, contracts.GetCredentialsByType(cbc.encryptedConfig.Builder.Credentials, "container-registry"))
+	credentials = contracts.AddCredentialsIfNotPresent(credentials, contracts.GetCredentialsByType(cbc.encryptedConfig.Credentials, "container-registry"))
 
 	localBuilderConfig := contracts.BuilderConfig{
 		Credentials:   credentials,
