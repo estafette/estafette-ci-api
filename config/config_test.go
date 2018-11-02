@@ -115,20 +115,4 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "myuser", databaseConfig.User)
 		assert.Equal(t, "this is my secret", databaseConfig.Password)
 	})
-
-	t.Run("ReturnsPrivateContainerRegistryConfigs", func(t *testing.T) {
-
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
-
-		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
-
-		assert.Equal(t, "extensions", config.ContainerRepositoryCredentials[0].Repository)
-		assert.Equal(t, "username", config.ContainerRepositoryCredentials[0].Username)
-		assert.Equal(t, "this is my secret", config.ContainerRepositoryCredentials[0].Password)
-
-		assert.Equal(t, "estafette", config.ContainerRepositoryCredentials[1].Repository)
-		assert.Equal(t, "username", config.ContainerRepositoryCredentials[1].Username)
-		assert.Equal(t, "this is my secret", config.ContainerRepositoryCredentials[1].Password)
-	})
 }

@@ -11,12 +11,11 @@ import (
 
 // APIConfig represent the configuration for the entire api application
 type APIConfig struct {
-	Integrations                   *APIConfigIntegrations                           `yaml:"integrations,omitempty"`
-	APIServer                      *APIServerConfig                                 `yaml:"apiServer,omitempty"`
-	Auth                           *AuthConfig                                      `yaml:"auth,omitempty"`
-	Database                       *DatabaseConfig                                  `yaml:"database,omitempty"`
-	ContainerRepositoryCredentials []*contracts.ContainerRepositoryCredentialConfig `yaml:"containerRepositoryCredentials,omitempty"`
-	Builder                        *contracts.BuilderConfig                         `yaml:"builder,omitempty"`
+	Integrations *APIConfigIntegrations   `yaml:"integrations,omitempty"`
+	APIServer    *APIServerConfig         `yaml:"apiServer,omitempty"`
+	Auth         *AuthConfig              `yaml:"auth,omitempty"`
+	Database     *DatabaseConfig          `yaml:"database,omitempty"`
+	Builder      *contracts.BuilderConfig `yaml:"builder,omitempty"`
 }
 
 // APIServerConfig represents configuration for the api server

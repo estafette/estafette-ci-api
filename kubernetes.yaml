@@ -245,23 +245,6 @@ data:
       user: ${COCKROACH_USER}
       password: ${COCKROACH_PASSWORD}
 
-    containerRepositoryCredentials:
-    - repository: '${CONTAINER_REPOSITORY_1}'
-      username: '${CONTAINER_REPOSITORY_USERNAME_1}'
-      password: '${CONTAINER_REPOSITORY_PASSWORD_1}'
-    - repository: '${CONTAINER_REPOSITORY_2}'
-      username: '${CONTAINER_REPOSITORY_USERNAME_2}'
-      password: '${CONTAINER_REPOSITORY_PASSWORD_2}'
-    - repository: '${CONTAINER_REPOSITORY_3}'
-      username: '${CONTAINER_REPOSITORY_USERNAME_3}'
-      password: '${CONTAINER_REPOSITORY_PASSWORD_3}'
-    - repository: '${CONTAINER_REPOSITORY_4}'
-      username: '${CONTAINER_REPOSITORY_USERNAME_4}'
-      password: '${CONTAINER_REPOSITORY_PASSWORD_4}'
-    - repository: '${CONTAINER_REPOSITORY_5}'
-      username: '${CONTAINER_REPOSITORY_USERNAME_5}'
-      password: '${CONTAINER_REPOSITORY_PASSWORD_5}'
-
     builder:
       credentials:
       - name: 'container-registry-${CONTAINER_REPOSITORY_1}'

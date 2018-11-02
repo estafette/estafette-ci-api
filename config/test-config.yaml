@@ -44,14 +44,6 @@ database:
   user: myuser
   password: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
 
-containerRepositoryCredentials:
-- repository: 'extensions'
-  username: 'username'
-  password: 'estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)'
-- repository: 'estafette'
-  username: 'username'
-  password: 'estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)'
-
 builder:
   credentials:
   - name: container-registry-extensions
