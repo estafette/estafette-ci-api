@@ -1,7 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: {{.Name}}
+  name: estafette-ci
   namespace: {{.Namespace}}
   labels:
     {{- range $key, $value := .Labels}}

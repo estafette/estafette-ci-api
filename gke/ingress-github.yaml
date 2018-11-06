@@ -1,0 +1,29 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{.Name}}-github
+  namespace: {{.Namespace}}
+  labels:
+    {{- range $key, $value := .Labels}}
+    {{$key}}: {{$value}}
+    {{- end}}
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "192.30.252.0/22,185.199.108.0/22"
+    estafette.io/cloudflare-dns: "true"
+    estafette.io/cloudflare-proxy: "true"
+    estafette.io/cloudflare-hostnames: "{{.ManifestData.IntegrationsHostname}}"
+spec:
+  tls:
+  - hosts:
+    - {{.ManifestData.IntegrationsHostname}}
+    secretName: {{.Name}}-integrations-letsencrypt-certificate
+  rules:
+  - host: {{.ManifestData.IntegrationsHostname}}
+    http:
+      paths:
+      - path: /api/integrations/github
+        backend:
+          serviceName: {{.Name}}
+          servicePort: https
