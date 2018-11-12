@@ -931,7 +931,7 @@ func (h *apiHandlerImpl) GetStatsBuildsAdoption(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"buildTimes": buildTimes,
+		"datetimes": buildTimes,
 	})
 }
 
@@ -944,7 +944,7 @@ func (h *apiHandlerImpl) GetStatsReleasesAdoption(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"releaseTimes": releaseTimes,
+		"datetimes": releaseTimes,
 	})
 }
 
