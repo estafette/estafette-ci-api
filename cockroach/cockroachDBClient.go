@@ -51,6 +51,8 @@ type DBClient interface {
 	GetBuildsCount(map[string][]string) (int, error)
 	GetReleasesCount(map[string][]string) (int, error)
 	GetBuildsDuration(map[string][]string) (time.Duration, error)
+	GetFirstBuildTimes() ([]time.Time, error)
+	GetFirstReleaseTimes() ([]time.Time, error)
 	InsertBuildLog(contracts.BuildLog) error
 	InsertReleaseLog(contracts.ReleaseLog) error
 }
@@ -1849,6 +1851,82 @@ func (dbc *cockroachDBClientImpl) GetBuildsDuration(filters map[string][]string)
 	totalDuration, err = time.ParseDuration(totalDurationAsString)
 	if err != nil {
 		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetFirstBuildTimes() (buildTimes []time.Time, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("a.inserted_at").
+			From("builds a").
+			LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at > b.inserted_at").
+			Where("b.id IS NULL").
+			OrderBy("a.inserted_at")
+
+	buildTimes = make([]time.Time, 0)
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		insertedAt := time.Time{}
+
+		if err := rows.Scan(
+			&insertedAt); err != nil {
+			return nil, err
+		}
+
+		buildTimes = append(buildTimes, insertedAt)
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetFirstReleaseTimes() (releaseTimes []time.Time, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("a.inserted_at").
+			From("releases a").
+			LeftJoin("releases b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at > b.inserted_at").
+			Where("b.id IS NULL").
+			OrderBy("a.inserted_at")
+
+	releaseTimes = make([]time.Time, 0)
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		insertedAt := time.Time{}
+
+		if err := rows.Scan(
+			&insertedAt); err != nil {
+			return nil, err
+		}
+
+		releaseTimes = append(releaseTimes, insertedAt)
 	}
 
 	return

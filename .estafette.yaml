@@ -163,4 +163,3 @@ releases:
           - gke/integrations-certificate-secret.yaml
           data:
             IntegrationsHostname: estafette.secret(mtSBdLZLTVske7fE.3XCz5ZChlXXK72BMFL4PFuOgQz8W11Wh0PR0f5xzJumtkI5ctsTbIcQE2pPcs8PHtQ==)
-        dryrun: true

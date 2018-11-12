@@ -40,6 +40,8 @@ type APIHandler interface {
 	GetStatsReleasesCount(c *gin.Context)
 
 	GetStatsBuildsDuration(c *gin.Context)
+	GetStatsBuildsAdoption(c *gin.Context)
+	GetStatsReleasesAdoption(c *gin.Context)
 
 	GetLoggedInUser(*gin.Context)
 }
@@ -916,6 +918,33 @@ func (h *apiHandlerImpl) GetStatsBuildsDuration(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"duration": buildsDuration,
+	})
+}
+
+func (h *apiHandlerImpl) GetStatsBuildsAdoption(c *gin.Context) {
+
+	buildTimes, err := h.cockroachDBClient.GetFirstBuildTimes()
+	if err != nil {
+		errorMessage := "Failed retrieving first build times from db"
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"buildTimes": buildTimes,
+	})
+}
+
+func (h *apiHandlerImpl) GetStatsReleasesAdoption(c *gin.Context) {
+	releaseTimes, err := h.cockroachDBClient.GetFirstReleaseTimes()
+	if err != nil {
+		errorMessage := "Failed retrieving first release times from db"
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"releaseTimes": releaseTimes,
 	})
 }
 
