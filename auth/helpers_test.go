@@ -12,13 +12,13 @@ func TestRetrievingIAPJSONWebKeys(t *testing.T) {
 	t.Run("ReturnsKeyByKeyID", func(t *testing.T) {
 
 		// act
-		publicKey, err := GetCachedIAPJsonWebKey("5PuDqQ")
+		publicKey, err := GetCachedIAPJsonWebKey("s3nVXQ")
 
 		expectedX := new(big.Int)
-		expectedX, _ = expectedX.SetString("63039552722302819348206200606933896063831791935654903087537299012735652396152", 10)
+		expectedX, _ = expectedX.SetString("37309719193135926924790436712650528418311291758574183688166423972208868774419", 10)
 
 		expectedY := new(big.Int)
-		expectedY, _ = expectedY.SetString("111903340683282919336642547020912254592535012546741170292622780461811063949446", 10)
+		expectedY, _ = expectedY.SetString("80216437109621353502341424837685742005288420423223052354044301043659735172060", 10)
 
 		if assert.Nil(t, err) {
 			assert.Equal(t, elliptic.P256(), publicKey.Curve)
