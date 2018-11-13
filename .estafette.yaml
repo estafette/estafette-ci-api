@@ -43,11 +43,11 @@ stages:
 
   slack-notify:
     image: extensions/slack-build-status:dev
-    webhook: estafette.secret(08UOJSF6Fvdz9u2X.lzsCArDpf97g7i2Vx-3UTyWsxCB81e05jthdY_AI3OffXBA-NurQePraQqzNf-9IhdoDvr1Akg0yom4S2kHjvWLhRC8Y7xgheK8MR6qPu2oi3QvlYbnNtTTOOjMi)
-    name: ${ESTAFETTE_LABEL_APP}
+    workspace: estafette
     channels:
     - '#build-status'
     when:
+      status == 'succeeded' ||
       status == 'failed'
 
 releases:
@@ -163,3 +163,12 @@ releases:
           - gke/integrations-certificate-secret.yaml
           data:
             IntegrationsHostname: estafette.secret(mtSBdLZLTVske7fE.3XCz5ZChlXXK72BMFL4PFuOgQz8W11Wh0PR0f5xzJumtkI5ctsTbIcQE2pPcs8PHtQ==)
+
+      slack-notify:
+        image: extensions/slack-build-status:dev
+        workspace: estafette
+        channels:
+        - '#build-status'
+        when:
+          status == 'succeeded' ||
+          status == 'failed'
