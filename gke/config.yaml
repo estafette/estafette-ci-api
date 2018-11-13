@@ -111,10 +111,10 @@ credentials:
   type: slack-webhook
   workspace: {{.SLACK_WEBHOOK_WORKSPACE_1}}
   webhook: {{.SLACK_WEBHOOK_WEBHOOK_1}}
-- name: {{.SLACK_WEBHOOK_NAME_1}}
+- name: {{.SLACK_WEBHOOK_NAME_2}}
   type: slack-webhook
-  workspace: {{.SLACK_WEBHOOK_WORKSPACE_1}}
-  webhook: {{.SLACK_WEBHOOK_WEBHOOK_1}}
+  workspace: {{.SLACK_WEBHOOK_WORKSPACE_2}}
+  webhook: {{.SLACK_WEBHOOK_WEBHOOK_2}}
 
 trustedImages:
 - path: extensions/git-clone
