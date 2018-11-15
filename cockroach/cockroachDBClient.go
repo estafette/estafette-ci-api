@@ -37,14 +37,14 @@ type DBClient interface {
 	GetPipelinesByRepoName(string) ([]*contracts.Pipeline, error)
 	GetPipelinesCount(map[string][]string) (int, error)
 	GetPipeline(string, string, string) (*contracts.Pipeline, error)
-	GetPipelineBuilds(string, string, string, int, int) ([]*contracts.Build, error)
-	GetPipelineBuildsCount(string, string, string) (int, error)
+	GetPipelineBuilds(string, string, string, int, int, map[string][]string) ([]*contracts.Build, error)
+	GetPipelineBuildsCount(string, string, string, map[string][]string) (int, error)
 	GetPipelineBuild(string, string, string, string) (*contracts.Build, error)
 	GetPipelineBuildByID(string, string, string, int) (*contracts.Build, error)
 	GetPipelineBuildsByVersion(string, string, string, string) ([]*contracts.Build, error)
 	GetPipelineBuildLogs(string, string, string, string, string, string) (*contracts.BuildLog, error)
-	GetPipelineReleases(string, string, string, int, int) ([]*contracts.Release, error)
-	GetPipelineReleasesCount(string, string, string) (int, error)
+	GetPipelineReleases(string, string, string, int, int, map[string][]string) ([]*contracts.Release, error)
+	GetPipelineReleasesCount(string, string, string, map[string][]string) (int, error)
 	GetPipelineRelease(string, string, string, int) (*contracts.Release, error)
 	GetPipelineLastReleaseByName(string, string, string, string) (*contracts.Release, error)
 	GetPipelineReleaseLogs(string, string, string, int) (*contracts.ReleaseLog, error)
@@ -658,20 +658,12 @@ func (dbc *cockroachDBClientImpl) GetPipelinesCount(filters map[string][]string)
 			Where("b.id IS NULL")
 
 	query, err = whereClauseGeneratorForAllFilters(query, filters)
-
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
 	if err != nil {
 		return
 	}
 
-	defer rows.Close()
-	recordExists := rows.Next()
-
-	if !recordExists {
-		return
-	}
-
-	if err := rows.Scan(&totalCount); err != nil {
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	if err := row.Scan(&totalCount); err != nil {
 		return 0, err
 	}
 
@@ -801,49 +793,33 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoName string, pageNumber, pageSize int) (builds []*contracts.Build, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string) (builds []*contracts.Build, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	builds = make([]*contracts.Build, 0)
 
-	rows, err := dbc.databaseConnection.Query(
-		`
-		SELECT
-			id,
-			repo_source,
-			repo_owner,
-			repo_name,
-			repo_branch,
-			repo_revision,
-			build_version,
-			build_status,
-			labels,
-			releases,
-			manifest,
-			commits,
-			inserted_at,
-			updated_at
-		FROM
-			builds a
-		WHERE
-			repo_source=$1 AND
-			repo_owner=$2 AND
-			repo_name=$3
-		ORDER BY
-			inserted_at DESC
-		LIMIT $4
-		OFFSET $5
-		`,
-		repoSource,
-		repoOwner,
-		repoName,
-		pageSize,
-		(pageNumber-1)*pageSize,
-	)
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,releases,manifest,commits,inserted_at,updated_at").
+			From("builds a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName})
+
+	query, err = whereClauseGeneratorForAllFilters(query, filters)
 	if err != nil {
 		return
 	}
+
+	query = query.
+		OrderBy("inserted_at DESC").
+		Limit(uint64(pageSize)).
+		Offset(uint64((pageNumber - 1) * pageSize))
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
 
 	defer rows.Close()
 	for rows.Next() {
@@ -911,37 +887,27 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuildsCount(repoSource, repoOwner, repoName string) (totalCount int, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuildsCount(repoSource, repoOwner, repoName string, filters map[string][]string) (totalCount int, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	rows, err := dbc.databaseConnection.Query(
-		`
-		SELECT
-			COUNT(*)
-		FROM
-			builds a
-		WHERE
-			repo_source=$1 AND
-			repo_owner=$2 AND
-			repo_name=$3
-		`,
-		repoSource,
-		repoOwner,
-		repoName,
-	)
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("COUNT(*)").
+			From("builds a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName})
+
+	query, err = whereClauseGeneratorForAllFilters(query, filters)
 	if err != nil {
 		return
 	}
 
-	defer rows.Close()
-	recordExists := rows.Next()
-
-	if !recordExists {
-		return
-	}
-
-	if err := rows.Scan(&totalCount); err != nil {
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	if err := row.Scan(&totalCount); err != nil {
 		return 0, err
 	}
 
@@ -1354,42 +1320,33 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, repoName string, pageNumber, pageSize int) (releases []*contracts.Release, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string) (releases []*contracts.Release, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	releases = make([]*contracts.Release, 0)
 
-	rows, err := dbc.databaseConnection.Query(
-		`
-		SELECT
-			id,
-			repo_source,
-			repo_owner,
-			repo_name,
-			release,
-			release_version,
-			release_status,
-			triggered_by,
-			inserted_at,
-			updated_at
-		FROM
-			releases a
-		WHERE
-			repo_source=$1 AND
-			repo_owner=$2 AND
-			repo_name=$3
-		ORDER BY
-			inserted_at DESC
-		LIMIT $4
-		OFFSET $5
-		`,
-		repoSource,
-		repoOwner,
-		repoName,
-		pageSize,
-		(pageNumber-1)*pageSize,
-	)
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("id,repo_source,repo_owner,repo_name,release,release_version,release_status,triggered_by,inserted_at,updated_at").
+			From("releases a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName})
+
+	query, err = whereClauseGeneratorForAllFilters(query, filters)
+	if err != nil {
+		return
+	}
+
+	query = query.
+		OrderBy("inserted_at DESC").
+		Limit(uint64(pageSize)).
+		Offset(uint64((pageNumber - 1) * pageSize))
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
 	if err != nil {
 		return
 	}
@@ -1422,26 +1379,26 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, rep
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineReleasesCount(repoSource, repoOwner, repoName string) (totalCount int, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineReleasesCount(repoSource, repoOwner, repoName string, filters map[string][]string) (totalCount int, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	row := dbc.databaseConnection.QueryRow(
-		`
-		SELECT
-			COUNT(*)
-		FROM
-			releases a
-		WHERE
-			repo_source=$1 AND
-			repo_owner=$2 AND
-			repo_name=$3
-		`,
-		repoSource,
-		repoOwner,
-		repoName,
-	)
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
+	query :=
+		psql.
+			Select("COUNT(*)").
+			From("releases a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName})
+
+	query, err = whereClauseGeneratorForAllFilters(query, filters)
+	if err != nil {
+		return
+	}
+
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if err := row.Scan(&totalCount); err != nil {
 		return 0, err
 	}
@@ -1794,7 +1751,6 @@ func (dbc *cockroachDBClientImpl) GetBuildsCount(filters map[string][]string) (t
 	}
 
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-
 	if err := row.Scan(&totalCount); err != nil {
 		return 0, err
 	}
@@ -1819,7 +1775,6 @@ func (dbc *cockroachDBClientImpl) GetReleasesCount(filters map[string][]string) 
 	}
 
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-
 	if err := row.Scan(&totalCount); err != nil {
 		return 0, err
 	}

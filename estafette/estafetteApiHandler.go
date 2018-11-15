@@ -167,13 +167,19 @@ func (h *apiHandlerImpl) GetPipelineBuilds(c *gin.Context) {
 		pageSize = 100
 	}
 
-	builds, err := h.cockroachDBClient.GetPipelineBuilds(source, owner, repo, pageNumber, pageSize)
+	// get filters (?filter[status]=running,succeeded&filter[since]=1w&filter[labels]=team%3Destafette-team)
+	filters := map[string][]string{}
+	filters["status"] = h.getStatusFilter(c)
+	filters["since"] = h.getSinceFilter(c)
+	filters["labels"] = h.getLabelsFilter(c)
+
+	builds, err := h.cockroachDBClient.GetPipelineBuilds(source, owner, repo, pageNumber, pageSize, filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving builds for %v/%v/%v from db", source, owner, repo)
 	}
 
-	buildsCount, err := h.cockroachDBClient.GetPipelineBuildsCount(source, owner, repo)
+	buildsCount, err := h.cockroachDBClient.GetPipelineBuildsCount(source, owner, repo, filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving builds count for %v/%v/%v from db", source, owner, repo)
@@ -582,13 +588,19 @@ func (h *apiHandlerImpl) GetPipelineReleases(c *gin.Context) {
 		pageSize = 100
 	}
 
-	releases, err := h.cockroachDBClient.GetPipelineReleases(source, owner, repo, pageNumber, pageSize)
+	// get filters (?filter[status]=running,succeeded&filter[since]=1w&filter[labels]=team%3Destafette-team)
+	filters := map[string][]string{}
+	filters["status"] = h.getStatusFilter(c)
+	filters["since"] = h.getSinceFilter(c)
+	filters["labels"] = h.getLabelsFilter(c)
+
+	releases, err := h.cockroachDBClient.GetPipelineReleases(source, owner, repo, pageNumber, pageSize, filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving releases for %v/%v/%v from db", source, owner, repo)
 	}
 
-	releasesCount, err := h.cockroachDBClient.GetPipelineReleasesCount(source, owner, repo)
+	releasesCount, err := h.cockroachDBClient.GetPipelineReleasesCount(source, owner, repo, filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving releases count for %v/%v/%v from db", source, owner, repo)
