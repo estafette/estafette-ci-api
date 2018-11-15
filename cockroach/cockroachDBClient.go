@@ -1336,7 +1336,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, rep
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
 			Where(sq.Eq{"a.repo_name": repoName})
 
-	query, err = whereClauseGeneratorForAllFilters(query, filters)
+	query, err = whereClauseGeneratorForAllReleaseFilters(query, filters)
 	if err != nil {
 		return
 	}
@@ -1393,7 +1393,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesCount(repoSource, repoOwner
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
 			Where(sq.Eq{"a.repo_name": repoName})
 
-	query, err = whereClauseGeneratorForAllFilters(query, filters)
+	query, err = whereClauseGeneratorForAllReleaseFilters(query, filters)
 	if err != nil {
 		return
 	}
