@@ -32,6 +32,7 @@ import (
 type CiBuilderClient interface {
 	CreateCiBuilderJob(CiBuilderParams) (*batchv1.Job, error)
 	RemoveCiBuilderJob(string) error
+	CancelCiBuilderJob(string) error
 	TailCiBuilderJobLogs(string, chan contracts.TailLogLine) error
 	GetJobName(string, string, string, string) string
 	GetBuilderConfig(CiBuilderParams, string) contracts.BuilderConfig
@@ -285,6 +286,37 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 	}
 
 	log.Info().Msgf("Job %v is deleted", jobName)
+
+	return
+}
+
+// CancelCiBuilderJob removes a job and its pods to cancel a build/release
+func (cbc *ciBuilderClientImpl) CancelCiBuilderJob(jobName string) (err error) {
+
+	log.Info().Msgf("Canceling job %v...", jobName)
+
+	// check if job is finished
+	var job batchv1.Job
+	err = cbc.kubeClient.Get(context.Background(), cbc.kubeClient.Namespace, jobName, &job)
+	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	if err != nil {
+		log.Error().Err(err).
+			Str("jobName", jobName).
+			Msgf("Get call for job %v failed", jobName)
+		return
+	}
+
+	// delete job
+	err = cbc.kubeClient.Delete(context.Background(), &job)
+	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	if err != nil {
+		log.Error().Err(err).
+			Str("jobName", jobName).
+			Msgf("Canceling job %v failed", jobName)
+		return
+	}
+
+	log.Info().Msgf("Job %v is canceled", jobName)
 
 	return
 }

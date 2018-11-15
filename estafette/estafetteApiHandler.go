@@ -25,12 +25,14 @@ type APIHandler interface {
 	GetPipelineBuilds(*gin.Context)
 	GetPipelineBuild(*gin.Context)
 	CreatePipelineBuild(*gin.Context)
+	CancelPipelineBuild(*gin.Context)
 	GetPipelineBuildLogs(*gin.Context)
 	TailPipelineBuildLogs(*gin.Context)
 	PostPipelineBuildLogs(*gin.Context)
 	GetPipelineReleases(*gin.Context)
 	GetPipelineRelease(*gin.Context)
 	CreatePipelineRelease(*gin.Context)
+	CancelPipelineRelease(*gin.Context)
 	GetPipelineReleaseLogs(*gin.Context)
 	TailPipelineReleaseLogs(*gin.Context)
 	PostPipelineReleaseLogs(*gin.Context)
@@ -137,8 +139,7 @@ func (h *apiHandlerImpl) GetPipeline(c *gin.Context) {
 			Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
 	}
 	if pipeline == nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline not found"})
-		return
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline not found"})
 	}
 
 	c.JSON(http.StatusOK, pipeline)
@@ -208,8 +209,7 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
 		}
 		if build == nil {
-			c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline build not found"})
-			return
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline not found"})
 		}
 
 		c.JSON(http.StatusOK, build)
@@ -220,8 +220,7 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed reading id from path parameter for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
-		c.JSON(http.StatusBadRequest, gin.H{"code": "BAD_REQUEST", "message": "Path parameter id is not of type integer"})
-		return
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
 	}
 
 	build, err := h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id)
@@ -230,8 +229,7 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 			Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, id)
 	}
 	if build == nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline build not found"})
-		return
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
 	}
 
 	c.JSON(http.StatusOK, build)
@@ -400,6 +398,49 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	c.JSON(http.StatusCreated, insertedBuild)
 }
 
+func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
+
+	user := c.MustGet(gin.AuthUserKey).(auth.User)
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	revisionOrID := c.Param("revisionOrId")
+
+	id, err := strconv.Atoi(revisionOrID)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed reading id from path parameter for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+	}
+
+	// retrieve build
+	build, err := h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Retrieving pipeline build failed"})
+	}
+	if build == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
+	}
+	if build.BuildStatus != "running" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": fmt.Sprintf("Build with status %v cannot be canceled", build.BuildStatus)})
+
+	}
+
+	// this build can be canceled, set status 'canceling' and cancel the build job
+	err = h.cockroachDBClient.UpdateBuildStatusByID(build.RepoSource, build.RepoOwner, build.RepoName, id, "canceling")
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed updating build status for %v/%v/%v/builds/%v in db", source, owner, repo, revisionOrID)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline build status to canceling"})
+	}
+
+	jobName := h.ciBuilderClient.GetJobName("build", build.RepoOwner, build.RepoName, build.ID)
+	h.ciBuilderClient.CancelCiBuilderJob(jobName)
+
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", user.Email)})
+}
+
 func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 	source := c.Param("source")
 	owner := c.Param("owner")
@@ -419,8 +460,7 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed reading id from path parameter for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
-			c.JSON(http.StatusBadRequest, gin.H{"code": "BAD_REQUEST", "message": "Path parameter id is not of type integer"})
-			return
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
 		}
 
 		build, err = h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id)
@@ -431,8 +471,7 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 	}
 
 	if build == nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline build not found"})
-		return
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
 	}
 
 	buildLog, err := h.cockroachDBClient.GetPipelineBuildLogs(source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID)
@@ -441,8 +480,7 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 			Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from db", source, owner, repo, revisionOrID)
 	}
 	if buildLog == nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline build log not found"})
-		return
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build log not found"})
 	}
 
 	c.JSON(http.StatusOK, buildLog)
@@ -502,7 +540,7 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed reading id from path parameter for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
-			c.JSON(http.StatusBadRequest, gin.H{"code": "BAD_REQUEST", "message": "Path parameter id is not of type integer"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
 			return
 		}
 
@@ -730,6 +768,45 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 	c.JSON(http.StatusCreated, insertedRelease)
 }
 
+func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
+
+	user := c.MustGet(gin.AuthUserKey).(auth.User)
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	idValue := c.Param("id")
+	id, err := strconv.Atoi(idValue)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, idValue)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+	}
+
+	release, err := h.cockroachDBClient.GetPipelineRelease(source, owner, repo, id)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed retrieving release for %v/%v/%v/%v from db", source, owner, repo, id)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Retrieving pipeline release failed"})
+	}
+	if release == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline release not found"})
+	}
+	if release.ReleaseStatus != "running" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": fmt.Sprintf("Release with status %v cannot be canceled", release.ReleaseStatus)})
+	}
+
+	// this release can be canceled, set status 'canceling' and cancel the release job
+	err = h.cockroachDBClient.UpdateReleaseStatus(release.RepoSource, release.RepoOwner, release.RepoName, id, "canceling")
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed updating release status for %v/%v/%v/builds/%v in db", source, owner, repo, id)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline release status to canceling"})
+	}
+
+	jobName := h.ciBuilderClient.GetJobName("release", release.RepoOwner, release.RepoName, release.ID)
+	h.ciBuilderClient.CancelCiBuilderJob(jobName)
+
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", user.Email)})
+}
+
 func (h *apiHandlerImpl) GetPipelineRelease(c *gin.Context) {
 	source := c.Param("source")
 	owner := c.Param("owner")
@@ -739,8 +816,7 @@ func (h *apiHandlerImpl) GetPipelineRelease(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, idValue)
-		c.JSON(http.StatusBadRequest, gin.H{"code": "BAD_REQUEST", "message": "Path parameter id is not of type integer"})
-		return
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
 	}
 
 	release, err := h.cockroachDBClient.GetPipelineRelease(source, owner, repo, id)
@@ -749,8 +825,7 @@ func (h *apiHandlerImpl) GetPipelineRelease(c *gin.Context) {
 			Msgf("Failed retrieving release for %v/%v/%v/%v from db", source, owner, repo, id)
 	}
 	if release == nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline release not found"})
-		return
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline release not found"})
 	}
 
 	c.JSON(http.StatusOK, release)
@@ -765,8 +840,7 @@ func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, idValue)
-		c.JSON(http.StatusBadRequest, gin.H{"code": "BAD_REQUEST", "message": "Path parameter id is not of type integer"})
-		return
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
 	}
 
 	releaseLog, err := h.cockroachDBClient.GetPipelineReleaseLogs(source, owner, repo, id)
@@ -775,8 +849,7 @@ func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 			Msgf("Failed retrieving release logs for %v/%v/%v/%v from db", source, owner, repo, id)
 	}
 	if releaseLog == nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": "PAGE_NOT_FOUND", "message": "Pipeline release log not found"})
-		return
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline release log not found"})
 	}
 
 	c.JSON(http.StatusOK, releaseLog)
@@ -827,8 +900,7 @@ func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, idValue)
-		c.JSON(http.StatusBadRequest, gin.H{"code": "BAD_REQUEST", "message": "Path parameter id is not of type integer"})
-		return
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
 	}
 
 	var releaseLog contracts.ReleaseLog
