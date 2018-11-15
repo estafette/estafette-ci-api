@@ -444,11 +444,6 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 		return
 	}
 
-	query, err = whereClauseGeneratorForSinceFilter(query, "b", filters)
-	if err != nil {
-		return
-	}
-
 	query = query.
 		OrderBy("a.repo_source,a.repo_owner,a.repo_name").
 		Limit(uint64(pageSize)).
