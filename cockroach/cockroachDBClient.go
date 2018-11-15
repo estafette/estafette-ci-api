@@ -10,17 +10,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/estafette/estafette-ci-manifest"
-	"gopkg.in/yaml.v2"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-contracts"
+	"github.com/estafette/estafette-ci-manifest"
+	_ "github.com/lib/pq" // use postgres client library to connect to cockroachdb
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
-
-	// use postgres client library to connect to cockroachdb
-	_ "github.com/lib/pq"
+	"gopkg.in/yaml.v2"
 )
 
 // DBClient is the interface for communicating with CockroachDB
@@ -442,7 +439,12 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 			LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
 			Where("b.id IS NULL")
 
-	query, err = whereClauseGeneratorForAllFilters(query, filters)
+	query, err = whereClauseGeneratorForAllFilters(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForSinceFilter(query, "b", filters)
 	if err != nil {
 		return
 	}
@@ -657,7 +659,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesCount(filters map[string][]string)
 			LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
 			Where("b.id IS NULL")
 
-	query, err = whereClauseGeneratorForAllFilters(query, filters)
+	query, err = whereClauseGeneratorForAllFilters(query, "a", filters)
 	if err != nil {
 		return
 	}
@@ -809,7 +811,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
 			Where(sq.Eq{"a.repo_name": repoName})
 
-	query, err = whereClauseGeneratorForAllFilters(query, filters)
+	query, err = whereClauseGeneratorForAllFilters(query, "a", filters)
 	if err != nil {
 		return
 	}
@@ -901,7 +903,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsCount(repoSource, repoOwner, 
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
 			Where(sq.Eq{"a.repo_name": repoName})
 
-	query, err = whereClauseGeneratorForAllFilters(query, filters)
+	query, err = whereClauseGeneratorForAllFilters(query, "a", filters)
 	if err != nil {
 		return
 	}
@@ -1336,7 +1338,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, rep
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
 			Where(sq.Eq{"a.repo_name": repoName})
 
-	query, err = whereClauseGeneratorForAllReleaseFilters(query, filters)
+	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", filters)
 	if err != nil {
 		return
 	}
@@ -1393,7 +1395,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesCount(repoSource, repoOwner
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
 			Where(sq.Eq{"a.repo_name": repoName})
 
-	query, err = whereClauseGeneratorForAllReleaseFilters(query, filters)
+	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", filters)
 	if err != nil {
 		return
 	}
@@ -1745,7 +1747,7 @@ func (dbc *cockroachDBClientImpl) GetBuildsCount(filters map[string][]string) (t
 			Select("COUNT(*)").
 			From("builds a")
 
-	query, err = whereClauseGeneratorForAllFilters(query, filters)
+	query, err = whereClauseGeneratorForAllFilters(query, "a", filters)
 	if err != nil {
 		return
 	}
@@ -1769,7 +1771,7 @@ func (dbc *cockroachDBClientImpl) GetReleasesCount(filters map[string][]string) 
 			Select("COUNT(*)").
 			From("releases a")
 
-	query, err = whereClauseGeneratorForAllReleaseFilters(query, filters)
+	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", filters)
 	if err != nil {
 		return
 	}
@@ -1793,7 +1795,7 @@ func (dbc *cockroachDBClientImpl) GetBuildsDuration(filters map[string][]string)
 			Select("SUM(AGE(updated_at,inserted_at))::string").
 			From("builds a")
 
-	query, err = whereClauseGeneratorForAllFilters(query, filters)
+	query, err = whereClauseGeneratorForAllFilters(query, "a", filters)
 	if err != nil {
 		return
 	}
@@ -1890,31 +1892,17 @@ func (dbc *cockroachDBClientImpl) GetFirstReleaseTimes() (releaseTimes []time.Ti
 	return
 }
 
-func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
 
-	query, err := whereClauseGeneratorForSinceFilter(query, filters)
+	query, err := whereClauseGeneratorForSinceFilter(query, alias, filters)
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForStatusFilter(query, filters)
+	query, err = whereClauseGeneratorForStatusFilter(query, alias, filters)
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForLabelsFilter(query, filters)
-	if err != nil {
-		return query, err
-	}
-
-	return query, nil
-}
-
-func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
-
-	query, err := whereClauseGeneratorForReleaseStatusFilter(query, filters)
-	if err != nil {
-		return query, err
-	}
-	query, err = whereClauseGeneratorForSinceFilter(query, filters)
+	query, err = whereClauseGeneratorForLabelsFilter(query, alias, filters)
 	if err != nil {
 		return query, err
 	}
@@ -1922,44 +1910,58 @@ func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, filters ma
 	return query, nil
 }
 
-func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	query, err := whereClauseGeneratorForReleaseStatusFilter(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForSinceFilter(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	if since, ok := filters["since"]; ok && len(since) > 0 && since[0] != "eternity" {
 		sinceValue := since[0]
 		switch sinceValue {
 		case "1d":
-			query = query.Where(sq.GtOrEq{"a.inserted_at": time.Now().AddDate(0, 0, -1)})
+			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.inserted_at", alias): time.Now().AddDate(0, 0, -1)})
 		case "1w":
-			query = query.Where(sq.GtOrEq{"a.inserted_at": time.Now().AddDate(0, 0, -7)})
+			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.inserted_at", alias): time.Now().AddDate(0, 0, -7)})
 		case "1m":
-			query = query.Where(sq.GtOrEq{"a.inserted_at": time.Now().AddDate(0, -1, 0)})
+			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.inserted_at", alias): time.Now().AddDate(0, -1, 0)})
 		case "1y":
-			query = query.Where(sq.GtOrEq{"a.inserted_at": time.Now().AddDate(-1, 0, 0)})
+			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.inserted_at", alias): time.Now().AddDate(-1, 0, 0)})
 		}
 	}
 
 	return query, nil
 }
 
-func whereClauseGeneratorForStatusFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForStatusFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "all" {
-		query = query.Where(sq.Eq{"a.build_status": statuses})
+		query = query.Where(sq.Eq{fmt.Sprintf("%v.build_status", alias): statuses})
 	}
 
 	return query, nil
 }
 
-func whereClauseGeneratorForReleaseStatusFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForReleaseStatusFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "all" {
-		query = query.Where(sq.Eq{"a.release_status": statuses})
+		query = query.Where(sq.Eq{fmt.Sprintf("%v.release_status", alias): statuses})
 	}
 
 	return query, nil
 }
 
-func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	if labels, ok := filters["labels"]; ok && len(labels) > 0 {
 
@@ -1982,7 +1984,7 @@ func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, filters map[str
 				return query, err
 			}
 
-			query = query.Where("a.labels @> ?", string(bytes))
+			query = query.Where(fmt.Sprintf("%v.labels @> ?", alias), string(bytes))
 		}
 	}
 

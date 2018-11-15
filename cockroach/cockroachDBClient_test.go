@@ -5,9 +5,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	sq "github.com/Masterminds/squirrel"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestQueryBuilder(t *testing.T) {
@@ -20,7 +19,7 @@ func TestQueryBuilder(t *testing.T) {
 				Select("*").
 				From("builds a")
 
-		query, _ = whereClauseGeneratorForAllFilters(query, map[string][]string{})
+		query, _ = whereClauseGeneratorForAllFilters(query, "a", map[string][]string{})
 
 		// act
 		sql, _, err := query.ToSql()
@@ -38,7 +37,7 @@ func TestQueryBuilder(t *testing.T) {
 				Select("*").
 				From("builds a")
 
-		query, _ = whereClauseGeneratorForAllFilters(query, map[string][]string{
+		query, _ = whereClauseGeneratorForAllFilters(query, "a", map[string][]string{
 			"status": []string{
 				"succeeded",
 			},
@@ -60,7 +59,7 @@ func TestQueryBuilder(t *testing.T) {
 				Select("*").
 				From("builds a")
 
-		query, _ = whereClauseGeneratorForAllFilters(query, map[string][]string{
+		query, _ = whereClauseGeneratorForAllFilters(query, "a", map[string][]string{
 			"since": []string{
 				"1d",
 			},
@@ -82,7 +81,7 @@ func TestQueryBuilder(t *testing.T) {
 				Select("*").
 				From("builds a")
 
-		query, _ = whereClauseGeneratorForAllFilters(query, map[string][]string{
+		query, _ = whereClauseGeneratorForAllFilters(query, "a", map[string][]string{
 			"labels": []string{
 				"key=value",
 			},
