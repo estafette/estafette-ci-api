@@ -272,7 +272,7 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	// ensure there's no succeeded or running builds
 	hasNonFailedBuilds := false
 	for _, b := range builds {
-		if b.BuildStatus == "failed" {
+		if b.BuildStatus == "failed" || b.BuildStatus == "canceled" {
 			failedBuild = b
 		} else {
 			hasNonFailedBuilds = true
