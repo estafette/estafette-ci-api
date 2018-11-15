@@ -1301,6 +1301,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 			repo_revision=$5
 		ORDER BY
 			inserted_at DESC
+		LIMIT 1
 		`,
 		repoSource,
 		repoOwner,
@@ -1590,6 +1591,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogs(repoSource, repoOwner, 
 			repo_owner=$2 AND
 			repo_name=$3 AND
 			release_id=$4
+		ORDER BY
+			inserted_at DESC
 		LIMIT 1
 		`,
 		repoSource,
