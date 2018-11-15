@@ -58,7 +58,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	case
 		"builder:nomanifest",
 		"builder:succeeded",
-		"builder:failed":
+		"builder:failed",
+		"builder:canceled":
 
 		// unmarshal json body
 		var ciBuilderEvent CiBuilderEvent

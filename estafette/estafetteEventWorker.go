@@ -51,7 +51,7 @@ func (w *eventWorkerImpl) ListenToCiBuilderEventChannels() {
 					err := w.UpdateBuildStatus(ciBuilderEvent)
 					if err != nil {
 						log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Failed updating build status for job %v to %v, not removing the job", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
-					} else {
+					} else if ciBuilderEvent.BuildStatus != "canceled" {
 						err = w.RemoveJobForEstafetteBuild(ciBuilderEvent)
 						if err != nil {
 							log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Failed removing job %v", ciBuilderEvent.JobName)
