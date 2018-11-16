@@ -55,6 +55,14 @@
 			"revisionTime": "2016-08-04T10:47:26Z"
 		},
 		{
+			"checksumSHA1": "wJu+LI2AmCiamn9Pg0upEKJptdM=",
+			"path": "github.com/buildkite/yaml",
+			"revision": "0caa5f0796e36057e59d6782832a9c774f457842",
+			"revisionTime": "2018-10-16T23:27:59Z",
+			"version": "v2.2.0",
+			"versionExact": "v2.2.0"
+		},
+		{
 			"checksumSHA1": "mrz/kicZiUaHxkyfvC/DyQcr8Do=",
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "adab96458c51a58dc1783b3335dcce5461522e75",
@@ -177,12 +185,12 @@
 			"versionExact": "0.0.10"
 		},
 		{
-			"checksumSHA1": "Re6OAE1RGQBZ0wyTfHVo9OUL/uc=",
+			"checksumSHA1": "zkvhBNZEVvJFRQ4UKnexR8h2YW0=",
 			"path": "github.com/estafette/estafette-ci-manifest",
-			"revision": "5ba01e3964137f1f06ec41460853cc12693b4f65",
-			"revisionTime": "2018-10-26T06:09:16Z",
-			"version": "0.1.38",
-			"versionExact": "0.1.38"
+			"revision": "e7995f6abfd65c735d32c27fee4a90e1e81d71cb",
+			"revisionTime": "2018-11-16T14:13:54Z",
+			"version": "0.1.41",
+			"versionExact": "0.1.41"
 		},
 		{
 			"checksumSHA1": "TDysVqhcacAS+H/fqk5X2egtcrA=",

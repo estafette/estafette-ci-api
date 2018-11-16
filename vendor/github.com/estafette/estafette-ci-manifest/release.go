@@ -1,7 +1,7 @@
 package manifest
 
 import (
-	yaml "gopkg.in/yaml.v2"
+	yaml "github.com/buildkite/yaml"
 )
 
 // EstafetteRelease represents a release action that in itself contains one or multiple stages
