@@ -256,7 +256,8 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 			builds
 		SET
 			build_status=$1,
-			updated_at=now()
+			updated_at=now(),
+			duration=age(now(), inserted_at)
 		WHERE
 			repo_source=$2 AND
 			repo_owner=$3 AND
@@ -284,7 +285,8 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 			builds
 		SET
 			build_status=$1,
-			updated_at=now()
+			updated_at=now(),
+			duration=age(now(), inserted_at)
 		WHERE
 			repo_source=$2 AND
 			repo_owner=$3 AND
@@ -317,7 +319,8 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatusByID(repoSource, repoOwner, r
 		builds
 	SET
 		build_status=$1,
-		updated_at=now()
+		updated_at=now(),
+		duration=age(now(), inserted_at)
 	WHERE
 		id=$5 AND
 		repo_source=$2 AND
@@ -408,7 +411,8 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(repoSource, repoOwner, rep
 			releases
 		SET
 			release_status=$1,
-			updated_at=now()
+			updated_at=now(),
+			duration=age(now(), inserted_at)
 		WHERE
 			id=$2 AND
 			repo_source=$3 AND
