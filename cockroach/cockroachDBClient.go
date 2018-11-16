@@ -17,7 +17,6 @@ import (
 	_ "github.com/lib/pq" // use postgres client library to connect to cockroachdb
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
-	"github.com/teepark/pqinterval"
 	"gopkg.in/yaml.v2"
 )
 
@@ -439,7 +438,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 
 	query :=
 		psql.
-			Select("a.id,a.repo_source,a.repo_owner,a.repo_name,a.repo_branch,a.repo_revision,a.build_version,a.build_status,a.labels,a.releases,a.manifest,a.commits,a.inserted_at,a.updated_at,a.duration").
+			Select("a.id,a.repo_source,a.repo_owner,a.repo_name,a.repo_branch,a.repo_revision,a.build_version,a.build_status,a.labels,a.releases,a.manifest,a.commits,a.inserted_at,a.updated_at,a.duration::INT").
 			From("builds a").
 			LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
 			Where("b.id IS NULL")
@@ -468,7 +467,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 		var labelsData, releasesData, commitsData []uint8
 
 		pipeline := contracts.Pipeline{}
-		var interval pqinterval.Interval
+		var seconds int
 
 		if err := rows.Scan(
 			&pipeline.ID,
@@ -485,14 +484,11 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 			&commitsData,
 			&pipeline.InsertedAt,
 			&pipeline.UpdatedAt,
-			&interval); err != nil {
+			&seconds); err != nil {
 			return nil, err
 		}
 
-		pipeline.Duration, err = interval.Duration()
-		if err != nil {
-			log.Warn().Err(err).Msg("Failed mapping postgres interval to golang duration")
-		}
+		pipeline.Duration = time.Duration(seconds) * time.Second
 
 		if len(labelsData) > 0 {
 			if err = json.Unmarshal(labelsData, &pipeline.Labels); err != nil {
@@ -573,7 +569,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 
 	query :=
 		psql.
-			Select("a.id,a.repo_source,a.repo_owner,a.repo_name,a.repo_branch,a.repo_revision,a.build_version,a.build_status,a.labels,a.releases,a.manifest,a.commits,a.inserted_at,a.updated_at,a.duration").
+			Select("a.id,a.repo_source,a.repo_owner,a.repo_name,a.repo_branch,a.repo_revision,a.build_version,a.build_status,a.labels,a.releases,a.manifest,a.commits,a.inserted_at,a.updated_at,a.duration::INT").
 			From("builds a").
 			LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
 			Where("b.id IS NULL").
@@ -593,7 +589,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 		var labelsData, releasesData, commitsData []uint8
 
 		pipeline := contracts.Pipeline{}
-		var interval pqinterval.Interval
+		var seconds int
 
 		if err := rows.Scan(
 			&pipeline.ID,
@@ -610,14 +606,11 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 			&commitsData,
 			&pipeline.InsertedAt,
 			&pipeline.UpdatedAt,
-			&interval); err != nil {
+			&seconds); err != nil {
 			return nil, err
 		}
 
-		pipeline.Duration, err = interval.Duration()
-		if err != nil {
-			log.Warn().Err(err).Msg("Failed mapping postgres interval to golang duration")
-		}
+		pipeline.Duration = time.Duration(seconds) * time.Second
 
 		if len(labelsData) > 0 {
 			if err = json.Unmarshal(labelsData, &pipeline.Labels); err != nil {
@@ -707,7 +700,7 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 			commits,
 			inserted_at,
 			updated_at,
-			duration
+			duration::INT
 		FROM
 			builds a
 		WHERE
@@ -739,7 +732,7 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 	var labelsData, releasesData, commitsData []uint8
 
 	pipeline = &contracts.Pipeline{}
-	var interval pqinterval.Interval
+	var seconds int
 
 	if err := rows.Scan(
 		&pipeline.ID,
@@ -756,14 +749,11 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 		&commitsData,
 		&pipeline.InsertedAt,
 		&pipeline.UpdatedAt,
-		&interval); err != nil {
+		&seconds); err != nil {
 		return nil, err
 	}
 
-	pipeline.Duration, err = interval.Duration()
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed mapping postgres interval to golang duration")
-	}
+	pipeline.Duration = time.Duration(seconds) * time.Second
 
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &pipeline.Labels); err != nil {
@@ -827,7 +817,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 
 	query :=
 		psql.
-			Select("id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,releases,manifest,commits,inserted_at,updated_at,duration").
+			Select("id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,releases,manifest,commits,inserted_at,updated_at,duration::INT").
 			From("builds a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -851,7 +841,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 		var labelsData, releasesData, commitsData []uint8
 
 		build := contracts.Build{}
-		var interval pqinterval.Interval
+		var seconds int
 
 		if err := rows.Scan(
 			&build.ID,
@@ -868,14 +858,11 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 			&commitsData,
 			&build.InsertedAt,
 			&build.UpdatedAt,
-			&interval); err != nil {
+			&seconds); err != nil {
 			return nil, err
 		}
 
-		build.Duration, err = interval.Duration()
-		if err != nil {
-			log.Warn().Err(err).Msg("Failed mapping postgres interval to golang duration")
-		}
+		build.Duration = time.Duration(seconds) * time.Second
 
 		if len(labelsData) > 0 {
 			if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
@@ -966,7 +953,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 			commits,
 			inserted_at,
 			updated_at,
-			duration
+			duration::INT
 		FROM
 			builds a
 		WHERE
@@ -1000,7 +987,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 	var labelsData, releasesData, commitsData []uint8
 
 	build = &contracts.Build{}
-	var interval pqinterval.Interval
+	var seconds int
 
 	if err := rows.Scan(
 		&build.ID,
@@ -1017,14 +1004,11 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 		&commitsData,
 		&build.InsertedAt,
 		&build.UpdatedAt,
-		&interval); err != nil {
+		&seconds); err != nil {
 		return nil, err
 	}
 
-	build.Duration, err = interval.Duration()
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed mapping postgres interval to golang duration")
-	}
+	build.Duration = time.Duration(seconds) * time.Second
 
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
@@ -1085,7 +1069,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 			commits,
 			inserted_at,
 			updated_at,
-			duration
+			duration::INT
 		FROM
 			builds a
 		WHERE
@@ -1119,7 +1103,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 	var labelsData, releasesData, commitsData []uint8
 
 	build = &contracts.Build{}
-	var interval pqinterval.Interval
+	var seconds int
 
 	if err := rows.Scan(
 		&build.ID,
@@ -1136,14 +1120,11 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 		&commitsData,
 		&build.InsertedAt,
 		&build.UpdatedAt,
-		&interval); err != nil {
+		&seconds); err != nil {
 		return nil, err
 	}
 
-	build.Duration, err = interval.Duration()
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed mapping postgres interval to golang duration")
-	}
+	build.Duration = time.Duration(seconds) * time.Second
 
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
@@ -1203,7 +1184,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 			commits,
 			inserted_at,
 			updated_at,
-			duration
+			duration::INT
 		FROM
 			builds a
 		WHERE
@@ -1229,7 +1210,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 		var labelsData, releasesData, commitsData []uint8
 
 		build := contracts.Build{}
-		var interval pqinterval.Interval
+		var seconds int
 
 		if err := rows.Scan(
 			&build.ID,
@@ -1246,14 +1227,11 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 			&commitsData,
 			&build.InsertedAt,
 			&build.UpdatedAt,
-			&interval); err != nil {
+			&seconds); err != nil {
 			return nil, err
 		}
 
-		build.Duration, err = interval.Duration()
-		if err != nil {
-			log.Warn().Err(err).Msg("Failed mapping postgres interval to golang duration")
-		}
+		build.Duration = time.Duration(seconds) * time.Second
 
 		if len(labelsData) > 0 {
 			if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
@@ -1385,7 +1363,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, rep
 
 	query :=
 		psql.
-			Select("id,repo_source,repo_owner,repo_name,release,release_version,release_status,triggered_by,inserted_at,updated_at,duration").
+			Select("id,repo_source,repo_owner,repo_name,release,release_version,release_status,triggered_by,inserted_at,updated_at,duration::INT").
 			From("releases a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -1410,7 +1388,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, rep
 	for rows.Next() {
 
 		release := contracts.Release{}
-		var interval pqinterval.Interval
+		var seconds int
 		var id int
 
 		if err := rows.Scan(
@@ -1424,16 +1402,12 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, rep
 			&release.TriggeredBy,
 			&release.InsertedAt,
 			&release.UpdatedAt,
-			&interval); err != nil {
+			&seconds); err != nil {
 			return nil, err
 		}
 
-		duration, err := interval.Duration()
-		if err != nil {
-			log.Warn().Err(err).Msg("Failed mapping postgres interval to golang duration")
-		} else {
-			release.Duration = &duration
-		}
+		duration := time.Duration(seconds) * time.Second
+		release.Duration = &duration
 
 		release.ID = strconv.Itoa(id)
 
@@ -1487,7 +1461,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 			triggered_by,
 			inserted_at,
 			updated_at,
-			duration
+			duration::INT
 		FROM
 			releases a
 		WHERE
@@ -1505,7 +1479,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 	)
 
 	release = &contracts.Release{}
-	var interval pqinterval.Interval
+	var seconds int
 
 	if err := row.Scan(
 		&id,
@@ -1518,17 +1492,13 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 		&release.TriggeredBy,
 		&release.InsertedAt,
 		&release.UpdatedAt,
-		&interval); err != nil {
+		&seconds); err != nil {
 		return nil, err
 	}
 	release.ID = strconv.Itoa(id)
 
-	duration, err := interval.Duration()
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed mapping postgres interval to golang duration")
-	} else {
-		release.Duration = &duration
-	}
+	duration := time.Duration(seconds) * time.Second
+	release.Duration = &duration
 
 	return
 }
@@ -1550,7 +1520,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleaseByName(repoSource, repoO
 			triggered_by,
 			inserted_at,
 			updated_at,
-			duration
+			duration::INT
 		FROM
 			releases a
 		WHERE
@@ -1582,7 +1552,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleaseByName(repoSource, repoO
 	}
 
 	release = &contracts.Release{}
-	var interval pqinterval.Interval
+	var seconds int
 	var id int
 
 	if err := rows.Scan(
@@ -1596,17 +1566,13 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleaseByName(repoSource, repoO
 		&release.TriggeredBy,
 		&release.InsertedAt,
 		&release.UpdatedAt,
-		&interval); err != nil {
+		&seconds); err != nil {
 		return nil, err
 	}
 	release.ID = strconv.Itoa(id)
 
-	duration, err := interval.Duration()
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed mapping postgres interval to golang duration")
-	} else {
-		release.Duration = &duration
-	}
+	duration := time.Duration(seconds) * time.Second
+	release.Duration = &duration
 
 	return
 }
