@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	yaml "github.com/buildkite/yaml"
 	"github.com/ericchiang/k8s"
 	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
 	corev1 "github.com/ericchiang/k8s/apis/core/v1"
@@ -25,7 +26,6 @@ import (
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
-	yaml "gopkg.in/yaml.v2"
 )
 
 // CiBuilderClient is the interface for running kubernetes commands specific to this application

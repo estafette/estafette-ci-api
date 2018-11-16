@@ -3,10 +3,10 @@ package config
 import (
 	"io/ioutil"
 
+	yaml "github.com/buildkite/yaml"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	"github.com/rs/zerolog/log"
-	yaml "gopkg.in/yaml.v2"
 )
 
 // APIConfig represent the configuration for the entire api application
