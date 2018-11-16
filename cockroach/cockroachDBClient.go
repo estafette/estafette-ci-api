@@ -438,7 +438,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 
 	query :=
 		psql.
-			Select("a.id,a.repo_source,a.repo_owner,a.repo_name,a.repo_branch,a.repo_revision,a.build_version,a.build_status,a.labels,a.releases,a.manifest,a.commits,a.inserted_at,a.updated_at").
+			Select("a.id,a.repo_source,a.repo_owner,a.repo_name,a.repo_branch,a.repo_revision,a.build_version,a.build_status,a.labels,a.releases,a.manifest,a.commits,a.inserted_at,a.updated_at,a.duration").
 			From("builds a").
 			LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
 			Where("b.id IS NULL")
@@ -482,7 +482,8 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 			&pipeline.Manifest,
 			&commitsData,
 			&pipeline.InsertedAt,
-			&pipeline.UpdatedAt); err != nil {
+			&pipeline.UpdatedAt,
+			&pipeline.Duration); err != nil {
 			return nil, err
 		}
 
@@ -565,7 +566,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 
 	query :=
 		psql.
-			Select("a.id,a.repo_source,a.repo_owner,a.repo_name,a.repo_branch,a.repo_revision,a.build_version,a.build_status,a.labels,a.releases,a.manifest,a.commits,a.inserted_at,a.updated_at").
+			Select("a.id,a.repo_source,a.repo_owner,a.repo_name,a.repo_branch,a.repo_revision,a.build_version,a.build_status,a.labels,a.releases,a.manifest,a.commits,a.inserted_at,a.updated_at,a.duration").
 			From("builds a").
 			LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
 			Where("b.id IS NULL").
@@ -600,7 +601,8 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 			&pipeline.Manifest,
 			&commitsData,
 			&pipeline.InsertedAt,
-			&pipeline.UpdatedAt); err != nil {
+			&pipeline.UpdatedAt,
+			&pipeline.Duration); err != nil {
 			return nil, err
 		}
 
@@ -691,7 +693,8 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 			manifest,
 			commits,
 			inserted_at,
-			updated_at
+			updated_at,
+			duration
 		FROM
 			builds a
 		WHERE
@@ -738,7 +741,8 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 		&pipeline.Manifest,
 		&commitsData,
 		&pipeline.InsertedAt,
-		&pipeline.UpdatedAt); err != nil {
+		&pipeline.UpdatedAt,
+		&pipeline.Duration); err != nil {
 		return nil, err
 	}
 
@@ -804,7 +808,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 
 	query :=
 		psql.
-			Select("id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,releases,manifest,commits,inserted_at,updated_at").
+			Select("id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,releases,manifest,commits,inserted_at,updated_at,duration").
 			From("builds a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -843,7 +847,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 			&build.Manifest,
 			&commitsData,
 			&build.InsertedAt,
-			&build.UpdatedAt); err != nil {
+			&build.UpdatedAt,
+			&build.Duration); err != nil {
 			return nil, err
 		}
 
@@ -935,7 +940,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 			manifest,
 			commits,
 			inserted_at,
-			updated_at
+			updated_at,
+			duration
 		FROM
 			builds a
 		WHERE
@@ -984,7 +990,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 		&build.Manifest,
 		&commitsData,
 		&build.InsertedAt,
-		&build.UpdatedAt); err != nil {
+		&build.UpdatedAt,
+		&build.Duration); err != nil {
 		return nil, err
 	}
 
@@ -1046,7 +1053,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 			manifest,
 			commits,
 			inserted_at,
-			updated_at
+			updated_at,
+			duration
 		FROM
 			builds a
 		WHERE
@@ -1095,7 +1103,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 		&build.Manifest,
 		&commitsData,
 		&build.InsertedAt,
-		&build.UpdatedAt); err != nil {
+		&build.UpdatedAt,
+		&build.Duration); err != nil {
 		return nil, err
 	}
 
@@ -1156,7 +1165,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 			manifest,
 			commits,
 			inserted_at,
-			updated_at
+			updated_at,
+			duration
 		FROM
 			builds a
 		WHERE
@@ -1197,7 +1207,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 			&build.Manifest,
 			&commitsData,
 			&build.InsertedAt,
-			&build.UpdatedAt); err != nil {
+			&build.UpdatedAt,
+			&build.Duration); err != nil {
 			return nil, err
 		}
 
@@ -1331,7 +1342,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, rep
 
 	query :=
 		psql.
-			Select("id,repo_source,repo_owner,repo_name,release,release_version,release_status,triggered_by,inserted_at,updated_at").
+			Select("id,repo_source,repo_owner,repo_name,release,release_version,release_status,triggered_by,inserted_at,updated_at,duration").
 			From("releases a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -1368,7 +1379,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, rep
 			&release.ReleaseStatus,
 			&release.TriggeredBy,
 			&release.InsertedAt,
-			&release.UpdatedAt); err != nil {
+			&release.UpdatedAt,
+			&release.Duration); err != nil {
 			return nil, err
 		}
 
@@ -1423,7 +1435,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 			release_status,
 			triggered_by,
 			inserted_at,
-			updated_at
+			updated_at,
+			duration
 		FROM
 			releases a
 		WHERE
@@ -1452,7 +1465,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 		&release.ReleaseStatus,
 		&release.TriggeredBy,
 		&release.InsertedAt,
-		&release.UpdatedAt); err != nil {
+		&release.UpdatedAt,
+		&release.Duration); err != nil {
 		return nil, err
 	}
 	release.ID = strconv.Itoa(id)
@@ -1476,7 +1490,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleaseByName(repoSource, repoO
 			release_status,
 			triggered_by,
 			inserted_at,
-			updated_at
+			updated_at,
+			duration
 		FROM
 			releases a
 		WHERE
@@ -1520,7 +1535,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleaseByName(repoSource, repoO
 		&release.ReleaseStatus,
 		&release.TriggeredBy,
 		&release.InsertedAt,
-		&release.UpdatedAt); err != nil {
+		&release.UpdatedAt,
+		&release.Duration); err != nil {
 		return nil, err
 	}
 	release.ID = strconv.Itoa(id)
