@@ -421,6 +421,14 @@
 			"versionExact": "v1.1.4"
 		},
 		{
+			"checksumSHA1": "B7ZxFFHn321oIY8+0Z3uzVFIWpQ=",
+			"path": "github.com/teepark/pqinterval",
+			"revision": "cebbdc68e7aa88ab33347a12e002a4fb821cc988",
+			"revisionTime": "2017-09-12T13:28:32Z",
+			"version": "0.1.0",
+			"versionExact": "0.1.0"
+		},
+		{
 			"checksumSHA1": "9Zw986fuQM/hCoVd8vmHoSM+8sU=",
 			"path": "github.com/ugorji/go/codec",
 			"revision": "5efa3251c7f7d05e5d9704a69a984ec9f1386a40",

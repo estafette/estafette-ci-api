@@ -17,6 +17,7 @@ import (
 	_ "github.com/lib/pq" // use postgres client library to connect to cockroachdb
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
+	"github.com/teepark/pqinterval"
 	"gopkg.in/yaml.v2"
 )
 
@@ -467,6 +468,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 		var labelsData, releasesData, commitsData []uint8
 
 		pipeline := contracts.Pipeline{}
+		duration := (*pqinterval.Duration)(&pipeline.Duration)
 
 		if err := rows.Scan(
 			&pipeline.ID,
@@ -483,7 +485,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 			&commitsData,
 			&pipeline.InsertedAt,
 			&pipeline.UpdatedAt,
-			&pipeline.Duration); err != nil {
+			duration); err != nil {
 			return nil, err
 		}
 
@@ -586,6 +588,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 		var labelsData, releasesData, commitsData []uint8
 
 		pipeline := contracts.Pipeline{}
+		duration := (*pqinterval.Duration)(&pipeline.Duration)
 
 		if err := rows.Scan(
 			&pipeline.ID,
@@ -602,7 +605,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 			&commitsData,
 			&pipeline.InsertedAt,
 			&pipeline.UpdatedAt,
-			&pipeline.Duration); err != nil {
+			duration); err != nil {
 			return nil, err
 		}
 
@@ -726,6 +729,7 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 	var labelsData, releasesData, commitsData []uint8
 
 	pipeline = &contracts.Pipeline{}
+	duration := (*pqinterval.Duration)(&pipeline.Duration)
 
 	if err := rows.Scan(
 		&pipeline.ID,
@@ -742,7 +746,7 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 		&commitsData,
 		&pipeline.InsertedAt,
 		&pipeline.UpdatedAt,
-		&pipeline.Duration); err != nil {
+		duration); err != nil {
 		return nil, err
 	}
 
@@ -832,6 +836,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 		var labelsData, releasesData, commitsData []uint8
 
 		build := contracts.Build{}
+		duration := (*pqinterval.Duration)(&build.Duration)
 
 		if err := rows.Scan(
 			&build.ID,
@@ -848,7 +853,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 			&commitsData,
 			&build.InsertedAt,
 			&build.UpdatedAt,
-			&build.Duration); err != nil {
+			duration); err != nil {
 			return nil, err
 		}
 
@@ -975,6 +980,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 	var labelsData, releasesData, commitsData []uint8
 
 	build = &contracts.Build{}
+	duration := (*pqinterval.Duration)(&build.Duration)
 
 	if err := rows.Scan(
 		&build.ID,
@@ -991,7 +997,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 		&commitsData,
 		&build.InsertedAt,
 		&build.UpdatedAt,
-		&build.Duration); err != nil {
+		duration); err != nil {
 		return nil, err
 	}
 
@@ -1088,6 +1094,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 	var labelsData, releasesData, commitsData []uint8
 
 	build = &contracts.Build{}
+	duration := (*pqinterval.Duration)(&build.Duration)
 
 	if err := rows.Scan(
 		&build.ID,
@@ -1104,7 +1111,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 		&commitsData,
 		&build.InsertedAt,
 		&build.UpdatedAt,
-		&build.Duration); err != nil {
+		duration); err != nil {
 		return nil, err
 	}
 
@@ -1149,6 +1156,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwner, repoName, buildVersion string) (builds []*contracts.Build, err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
+	//converting driver.Value type []uint8 (\"0s\") to a int64: invalid syntax
+
 	rows, err := dbc.databaseConnection.Query(
 		`
 		SELECT
@@ -1192,6 +1201,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 		var labelsData, releasesData, commitsData []uint8
 
 		build := contracts.Build{}
+		duration := (*pqinterval.Duration)(&build.Duration)
 
 		if err := rows.Scan(
 			&build.ID,
@@ -1208,7 +1218,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 			&commitsData,
 			&build.InsertedAt,
 			&build.UpdatedAt,
-			&build.Duration); err != nil {
+			duration); err != nil {
 			return nil, err
 		}
 
@@ -1367,6 +1377,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, rep
 	for rows.Next() {
 
 		release := contracts.Release{}
+		duration := (*pqinterval.Duration)(release.Duration)
 		var id int
 
 		if err := rows.Scan(
@@ -1380,7 +1391,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, rep
 			&release.TriggeredBy,
 			&release.InsertedAt,
 			&release.UpdatedAt,
-			&release.Duration); err != nil {
+			duration); err != nil {
 			return nil, err
 		}
 
@@ -1454,6 +1465,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 	)
 
 	release = &contracts.Release{}
+	duration := (*pqinterval.Duration)(release.Duration)
 
 	if err := row.Scan(
 		&id,
@@ -1466,7 +1478,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 		&release.TriggeredBy,
 		&release.InsertedAt,
 		&release.UpdatedAt,
-		&release.Duration); err != nil {
+		duration); err != nil {
 		return nil, err
 	}
 	release.ID = strconv.Itoa(id)
@@ -1523,6 +1535,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleaseByName(repoSource, repoO
 	}
 
 	release = &contracts.Release{}
+	duration := (*pqinterval.Duration)(release.Duration)
 	var id int
 
 	if err := rows.Scan(
@@ -1536,7 +1549,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleaseByName(repoSource, repoO
 		&release.TriggeredBy,
 		&release.InsertedAt,
 		&release.UpdatedAt,
-		&release.Duration); err != nil {
+		duration); err != nil {
 		return nil, err
 	}
 	release.ID = strconv.Itoa(id)
