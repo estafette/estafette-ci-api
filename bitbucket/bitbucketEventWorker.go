@@ -101,11 +101,13 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.Reposi
 	}
 
 	// inject steps
-	mft, err = estafette.InjectSteps(mft, builderTrack, "bitbucket")
-	if err != nil {
-		log.Error().Err(err).
-			Msg("Failed injecting steps")
-		return
+	if hasValidManifest {
+		mft, err = estafette.InjectSteps(mft, builderTrack, "bitbucket")
+		if err != nil {
+			log.Error().Err(err).
+				Msg("Failed injecting steps")
+			return
+		}
 	}
 
 	// get authenticated url for the repository

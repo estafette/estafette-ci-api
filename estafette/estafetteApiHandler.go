@@ -721,6 +721,7 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 	// get authenticated url
 	var authenticatedRepositoryURL string
 	var environmentVariableWithToken map[string]string
+	var gitSource string
 	switch build.RepoSource {
 	case "github.com":
 		var accessToken string
@@ -731,6 +732,7 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		}
 		environmentVariableWithToken = map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken}
+		gitSource = "github"
 
 	case "bitbucket.org":
 		var accessToken string
@@ -741,11 +743,20 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		}
 		environmentVariableWithToken = map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken}
+		gitSource = "bitbucket"
 	}
 
 	manifest, err := manifest.ReadManifest(build.Manifest)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Reading the estafette manifest for repository %v/%v/%v build %v failed", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	// inject steps
+	manifest, err = InjectSteps(manifest, manifest.Builder.Track, gitSource)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed injecting steps into manifest for %v/%v/%v version %v", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
 		log.Error().Err(err).Msg(errorMessage)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 	}

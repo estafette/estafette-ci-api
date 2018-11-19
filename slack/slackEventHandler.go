@@ -222,6 +222,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					// get authenticated url
 					var authenticatedRepositoryURL string
 					var environmentVariableWithToken map[string]string
+					var gitSource string
 					switch build.RepoSource {
 					case "github.com":
 						var accessToken string
@@ -231,6 +232,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 							return
 						}
 						environmentVariableWithToken = map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken}
+						gitSource = "github"
 
 					case "bitbucket.org":
 						var accessToken string
@@ -240,12 +242,19 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 							return
 						}
 						environmentVariableWithToken = map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken}
+						gitSource = "bitbucket"
 					}
 
 					manifest, err := manifest.ReadManifest(build.Manifest)
 					if err != nil {
 						c.String(http.StatusOK, fmt.Sprintf("Reading the manifest from the build failed: %v", err))
 						return
+					}
+
+					// inject steps
+					manifest, err = estafette.InjectSteps(manifest, manifest.Builder.Track, gitSource)
+					if err != nil {
+						c.String(http.StatusOK, fmt.Sprintf("Failed injecting steps into manifest for %v/%v/%v version %v: %v", build.RepoSource, build.RepoOwner, build.RepoName, buildVersion, err))
 					}
 
 					insertedReleaseID, err := strconv.Atoi(insertedRelease.ID)
