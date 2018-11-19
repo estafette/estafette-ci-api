@@ -112,6 +112,7 @@ releases:
         image: extensions/deploy-to-kubernetes-engine:beta
 
   production:
+    clone: true
     stages:
       deploy:
         image: extensions/deploy-to-kubernetes-engine:stable

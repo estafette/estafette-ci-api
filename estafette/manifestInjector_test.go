@@ -23,6 +23,45 @@ func TestInjectSteps(t *testing.T) {
 		assert.Equal(t, "extensions/git-clone:beta", injectedManifest.Stages[1].ContainerImage)
 	})
 
+	t.Run("PrependGitCloneStepToReleaseStagesIfCloneRepositoryIsTrue", func(t *testing.T) {
+
+		mft := getManifestWithoutBuildStatusSteps()
+
+		// act
+		injectedManifest, err := InjectSteps(mft, "beta", "github")
+
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(injectedManifest.Releases[1].Stages))
+		assert.Equal(t, "git-clone", injectedManifest.Releases[1].Stages[0].Name)
+		assert.Equal(t, "extensions/git-clone:beta", injectedManifest.Releases[1].Stages[0].ContainerImage)
+	})
+
+	t.Run("DoNotPrependGitCloneStepToReleaseStagesIfCloneRepositoryIsFalse", func(t *testing.T) {
+
+		mft := getManifestWithoutBuildStatusSteps()
+
+		// act
+		injectedManifest, err := InjectSteps(mft, "beta", "github")
+
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages))
+		assert.Equal(t, "deploy", injectedManifest.Releases[0].Stages[0].Name)
+		assert.Equal(t, "extensions/gke", injectedManifest.Releases[0].Stages[0].ContainerImage)
+	})
+
+	t.Run("DoNotPrependGitCloneStepToReleaseStagesIfCloneRepositoryIsTrueButStageAlreadyExists", func(t *testing.T) {
+
+		mft := getManifestWithBuildStatusSteps()
+
+		// act
+		injectedManifest, err := InjectSteps(mft, "beta", "github")
+
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(injectedManifest.Releases[0].Stages))
+		assert.Equal(t, "git-clone", injectedManifest.Releases[0].Stages[0].Name)
+		assert.Equal(t, "extensions/git-clone:stable", injectedManifest.Releases[0].Stages[0].ContainerImage)
+	})
+
 	t.Run("PrependSetPendingBuildStatusStep", func(t *testing.T) {
 
 		mft := getManifestWithoutBuildStatusSteps()
@@ -117,6 +156,32 @@ func getManifestWithoutBuildStatusSteps() manifest.EstafetteManifest {
 				When:             "status == 'succeeded'",
 			},
 		},
+		Releases: []*manifest.EstafetteRelease{
+			&manifest.EstafetteRelease{
+				Name:            "staging",
+				CloneRepository: false,
+				Stages: []*manifest.EstafetteStage{
+					&manifest.EstafetteStage{
+						Name:           "deploy",
+						ContainerImage: "extensions/gke",
+						Shell:          "/bin/sh",
+						When:           "status == 'succeeded'",
+					},
+				},
+			},
+			&manifest.EstafetteRelease{
+				Name:            "production",
+				CloneRepository: true,
+				Stages: []*manifest.EstafetteStage{
+					&manifest.EstafetteStage{
+						Name:           "deploy",
+						ContainerImage: "extensions/gke",
+						Shell:          "/bin/sh",
+						When:           "status == 'succeeded'",
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -160,6 +225,26 @@ func getManifestWithBuildStatusSteps() manifest.EstafetteManifest {
 				Shell:            "/bin/sh",
 				WorkingDirectory: "/estafette-work",
 				When:             "status == 'succeeded' || status == 'failed'",
+			},
+		},
+		Releases: []*manifest.EstafetteRelease{
+			&manifest.EstafetteRelease{
+				Name:            "production",
+				CloneRepository: true,
+				Stages: []*manifest.EstafetteStage{
+					&manifest.EstafetteStage{
+						Name:           "git-clone",
+						ContainerImage: "extensions/git-clone:stable",
+						Shell:          "/bin/sh",
+						When:           "status == 'succeeded'",
+					},
+					&manifest.EstafetteStage{
+						Name:           "deploy",
+						ContainerImage: "extensions/gke",
+						Shell:          "/bin/sh",
+						When:           "status == 'succeeded'",
+					},
+				},
 			},
 		},
 	}
