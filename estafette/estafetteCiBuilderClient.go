@@ -548,9 +548,9 @@ func (cbc *ciBuilderClientImpl) GetBuilderConfig(ciBuilderParams CiBuilderParams
 	}
 	if *localBuilderConfig.Action == "release" {
 		localBuilderConfig.ReleaseParams = &contracts.ReleaseParamsConfig{
-			ReleaseName:  ciBuilderParams.ReleaseName,
-			ReleaseID:    ciBuilderParams.ReleaseID,
-			ReleasAction: ciBuilderParams.ReleaseAction,
+			ReleaseName:   ciBuilderParams.ReleaseName,
+			ReleaseID:     ciBuilderParams.ReleaseID,
+			ReleaseAction: ciBuilderParams.ReleaseAction,
 		}
 	}
 
