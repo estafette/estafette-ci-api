@@ -906,6 +906,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 			&build.BuildStatus,
 			&labelsData,
 			&releasesData,
+			&releaseTargetsData,
 			&build.Manifest,
 			&commitsData,
 			&build.InsertedAt,
