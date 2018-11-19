@@ -52,10 +52,8 @@ stages:
 
 releases:
   tooling:
+    clone: true
     stages:
-      git-clone:
-        image: extensions/git-clone:dev
-
       deploy:
         image: extensions/gke:dev
         namespace: estafette
