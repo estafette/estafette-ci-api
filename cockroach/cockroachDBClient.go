@@ -587,7 +587,7 @@ func (dbc *cockroachDBClientImpl) getLatestReleasesForPipelines(pipelines []*con
 			updatedReleaseTargets := make([]contracts.ReleaseTarget, 0)
 			for _, rt := range p.ReleaseTargets {
 				if latestRelease, ok := releasesMap[rt.Name]; ok {
-					rt.ActiveReleases = append(rt.ActiveReleases, latestRelease)
+					rt.ActiveReleases = append(rt.ActiveReleases, *latestRelease)
 				}
 				updatedReleaseTargets = append(updatedReleaseTargets, rt)
 			}
