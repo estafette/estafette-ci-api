@@ -704,6 +704,7 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 	// create release in database
 	release := contracts.Release{
 		Name:           releaseCommand.Name,
+		Action:         releaseCommand.Action,
 		RepoSource:     releaseCommand.RepoSource,
 		RepoOwner:      releaseCommand.RepoOwner,
 		RepoName:       releaseCommand.RepoName,
@@ -783,6 +784,7 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 		Manifest:             manifest,
 		ReleaseID:            insertedReleaseID,
 		ReleaseName:          releaseCommand.Name,
+		ReleaseAction:        releaseCommand.Action,
 	}
 
 	go func(ciBuilderParams CiBuilderParams) {

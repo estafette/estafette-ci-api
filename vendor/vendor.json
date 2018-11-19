@@ -169,12 +169,12 @@
 			"versionExact": "v1.2.0"
 		},
 		{
-			"checksumSHA1": "ywA4u6wDT9AU/uiYPMT+dJAtvyU=",
+			"checksumSHA1": "mtqGvHKs8WO0xEYS+EY+OYiFc4k=",
 			"path": "github.com/estafette/estafette-ci-contracts",
-			"revision": "2bf58cda11fc3489e2b3418342240130b41fdc31",
-			"revisionTime": "2018-11-16T07:29:16Z",
-			"version": "0.0.86",
-			"versionExact": "0.0.86"
+			"revision": "bac740f99b6743c46b8907787517ced119f2e31f",
+			"revisionTime": "2018-11-19T14:24:52Z",
+			"version": "0.0.89",
+			"versionExact": "0.0.89"
 		},
 		{
 			"checksumSHA1": "P4YSXU1SxBKzlTMI4Bq1wNUlPtc=",
@@ -185,12 +185,12 @@
 			"versionExact": "0.0.10"
 		},
 		{
-			"checksumSHA1": "UbIUdTyHBv6J6NuI07D+rQCLUKk=",
+			"checksumSHA1": "ws7wzjyR/1yJpWZkf97KPYOlnyU=",
 			"path": "github.com/estafette/estafette-ci-manifest",
-			"revision": "86b4f694fad382fa29d6cfbce7bec67205edcdee",
-			"revisionTime": "2018-11-19T10:38:06Z",
-			"version": "0.1.42",
-			"versionExact": "0.1.42"
+			"revision": "56bd39fe4008b32555857dadc1f29e8dd7279da0",
+			"revisionTime": "2018-11-19T12:53:23Z",
+			"version": "0.1.43",
+			"versionExact": "0.1.43"
 		},
 		{
 			"checksumSHA1": "TDysVqhcacAS+H/fqk5X2egtcrA=",

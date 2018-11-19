@@ -8,13 +8,13 @@ govendor fetch github.com/dgrijalva/jwt-go@v3.2.0
 govendor fetch github.com/stretchr/testify/assert@v1.1.4
 govendor fetch github.com/stretchr/testify/mock@v1.1.4
 govendor fetch github.com/sethgrid/pester
-govendor fetch github.com/estafette/estafette-ci-manifest@0.1.42
+govendor fetch github.com/estafette/estafette-ci-manifest@0.1.43
 govendor fetch github.com/gin-gonic/gin/...@v1.3
 govendor fetch github.com/gin-contrib/gzip
 govendor fetch github.com/estafette/estafette-ci-crypt@0.0.10
 govendor fetch github.com/lib/pq
 govendor fetch github.com/mattn/go-sqlite3@v1.2.0
-govendor fetch github.com/estafette/estafette-ci-contracts@0.0.86
+govendor fetch github.com/estafette/estafette-ci-contracts@0.0.89
 govendor fetch github.com/Masterminds/squirrel@v1.0
 govendor fetch gopkg.in/yaml.v2
 govendor fetch github.com/buildkite/yaml@v2.2.0
