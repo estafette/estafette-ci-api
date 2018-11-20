@@ -184,8 +184,10 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 					// check if release target exists
 					releaseExists := false
-					for _, release := range build.Releases {
-						if release.Name == releaseName {
+					for _, releaseTarget := range build.ReleaseTargets {
+						if releaseTarget.Name == releaseName {
+							// todo support release action
+
 							releaseExists = true
 							break
 						}

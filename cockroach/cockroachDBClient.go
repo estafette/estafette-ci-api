@@ -43,7 +43,7 @@ type DBClient interface {
 	GetPipelineReleases(string, string, string, int, int, map[string][]string) ([]*contracts.Release, error)
 	GetPipelineReleasesCount(string, string, string, map[string][]string) (int, error)
 	GetPipelineRelease(string, string, string, int) (*contracts.Release, error)
-	GetPipelineLastReleaseByName(string, string, string, string) (*contracts.Release, error)
+	GetPipelineLastReleasesByName(string, string, string, string) ([]contracts.Release, error)
 	GetPipelineReleaseLogs(string, string, string, int) (*contracts.ReleaseLog, error)
 	GetBuildsCount(map[string][]string) (int, error)
 	GetReleasesCount(map[string][]string) (int, error)
@@ -175,10 +175,6 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBu
 	if err != nil {
 		return
 	}
-	releasesBytes, err := json.Marshal(build.Releases)
-	if err != nil {
-		return
-	}
 	releaseTargetsBytes, err := json.Marshal(build.ReleaseTargets)
 	if err != nil {
 		return
@@ -202,7 +198,6 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBu
 			build_version,
 			build_status,
 			labels,
-			releases,
 			release_targets,
 			manifest,
 			commits
@@ -219,8 +214,7 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBu
 			$8,
 			$9,
 			$10,
-			$11,
-			$12
+			$11
 		)
 		RETURNING
 			id
@@ -233,7 +227,6 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBu
 		build.BuildVersion,
 		build.BuildStatus,
 		labelsBytes,
-		releasesBytes,
 		releaseTargetsBytes,
 		build.Manifest,
 		commitsBytes,
@@ -448,7 +441,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 
 	query :=
 		psql.
-			Select("a.id,a.repo_source,a.repo_owner,a.repo_name,a.repo_branch,a.repo_revision,a.build_version,a.build_status,a.labels,a.releases,a.release_targets,a.manifest,a.commits,a.inserted_at,a.updated_at,a.duration::INT").
+			Select("a.id,a.repo_source,a.repo_owner,a.repo_name,a.repo_branch,a.repo_revision,a.build_version,a.build_status,a.labels,a.release_targets,a.manifest,a.commits,a.inserted_at,a.updated_at,a.duration::INT").
 			From("builds a").
 			LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
 			Where("b.id IS NULL")
@@ -474,7 +467,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 	defer rows.Close()
 	for rows.Next() {
 
-		var labelsData, releasesData, releaseTargetsData, commitsData []uint8
+		var labelsData, releaseTargetsData, commitsData []uint8
 
 		pipeline := contracts.Pipeline{}
 		var seconds int
@@ -489,7 +482,6 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 			&pipeline.BuildVersion,
 			&pipeline.BuildStatus,
 			&labelsData,
-			&releasesData,
 			&releaseTargetsData,
 			&pipeline.Manifest,
 			&commitsData,
@@ -501,7 +493,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 
 		pipeline.Duration = time.Duration(seconds) * time.Second
 
-		dbc.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releasesData, releaseTargetsData, commitsData)
+		dbc.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releaseTargetsData, commitsData)
 
 		// clear some properties for reduced size and improved performance over the network
 		pipeline.Manifest = ""
@@ -549,15 +541,10 @@ func (dbc *cockroachDBClientImpl) enrichBuild(build *contracts.Build) {
 	dbc.getLatestReleasesForBuild(build)
 }
 
-func (dbc *cockroachDBClientImpl) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, labelsData, releasesData, releaseTargetsData, commitsData []uint8) (err error) {
+func (dbc *cockroachDBClientImpl) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, labelsData, releaseTargetsData, commitsData []uint8) (err error) {
 
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &pipeline.Labels); err != nil {
-			return
-		}
-	}
-	if len(releasesData) > 0 {
-		if err = json.Unmarshal(releasesData, &pipeline.Releases); err != nil {
 			return
 		}
 	}
@@ -594,15 +581,10 @@ func (dbc *cockroachDBClientImpl) setPipelinePropertiesFromJSONB(pipeline *contr
 	return
 }
 
-func (dbc *cockroachDBClientImpl) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData, releasesData, releaseTargetsData, commitsData []uint8) (err error) {
+func (dbc *cockroachDBClientImpl) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData, releaseTargetsData, commitsData []uint8) (err error) {
 
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
-			return
-		}
-	}
-	if len(releasesData) > 0 {
-		if err = json.Unmarshal(releasesData, &build.Releases); err != nil {
 			return
 		}
 	}
@@ -640,55 +622,30 @@ func (dbc *cockroachDBClientImpl) setBuildPropertiesFromJSONB(build *contracts.B
 }
 
 func (dbc *cockroachDBClientImpl) getLatestReleasesForPipeline(pipeline *contracts.Pipeline) {
-	pipeline.Releases, pipeline.ReleaseTargets = dbc.getLatestReleases(pipeline.Releases, pipeline.ReleaseTargets, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
+	pipeline.ReleaseTargets = dbc.getLatestReleases(pipeline.ReleaseTargets, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
 }
 
 func (dbc *cockroachDBClientImpl) getLatestReleasesForBuild(build *contracts.Build) {
-	build.Releases, build.ReleaseTargets = dbc.getLatestReleases(build.Releases, build.ReleaseTargets, build.RepoSource, build.RepoOwner, build.RepoName)
+	build.ReleaseTargets = dbc.getLatestReleases(build.ReleaseTargets, build.RepoSource, build.RepoOwner, build.RepoName)
 }
 
-func (dbc *cockroachDBClientImpl) getLatestReleases(releases []contracts.Release, releaseTargets []contracts.ReleaseTarget, repoSource, repoOwner, repoName string) ([]contracts.Release, []contracts.ReleaseTarget) {
+func (dbc *cockroachDBClientImpl) getLatestReleases(releaseTargets []contracts.ReleaseTarget, repoSource, repoOwner, repoName string) []contracts.ReleaseTarget {
 
-	// set released versions
-	updatedReleases := make([]contracts.Release, 0)
-	releasesMap := map[string]*contracts.Release{}
-	for _, r := range releases {
-		latestRelease, err := dbc.GetPipelineLastReleaseByName(repoSource, repoOwner, repoName, r.Name)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed retrieving latest release for %v/%v/%v %v", repoSource, repoOwner, repoName, r.Name)
-		} else if latestRelease != nil {
-			updatedReleases = append(updatedReleases, *latestRelease)
-			releasesMap[r.Name] = latestRelease
-		} else {
-			updatedReleases = append(updatedReleases, r)
-		}
-	}
-	releases = updatedReleases
+	// todo retrieve all latest releases per action
 
-	if len(releaseTargets) == 0 {
-		for _, r := range updatedReleases {
-			releaseTargets = append(releaseTargets, contracts.ReleaseTarget{
-				Name: r.Name,
-			})
-		}
-	}
-
-	// set release targets new style (with actions and possibly multiple active released versions)
+	// set latest release version per release targets
 	updatedReleaseTargets := make([]contracts.ReleaseTarget, 0)
 	for _, rt := range releaseTargets {
-		if rt.Actions == nil {
-			rt.Actions = []manifest.EstafetteReleaseAction{}
-		}
-		if rt.ActiveReleases == nil {
-			rt.ActiveReleases = []contracts.Release{}
-		}
-		if latestRelease, ok := releasesMap[rt.Name]; ok {
-			rt.ActiveReleases = append(rt.ActiveReleases, *latestRelease)
+		latestReleases, err := dbc.GetPipelineLastReleasesByName(repoSource, repoOwner, repoName, rt.Name)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed retrieving latest release for %v/%v/%v %v", repoSource, repoOwner, repoName, rt.Name)
+		} else {
+			rt.ActiveReleases = latestReleases
 		}
 		updatedReleaseTargets = append(updatedReleaseTargets, rt)
 	}
 
-	return releases, updatedReleaseTargets
+	return updatedReleaseTargets
 }
 
 func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipelines []*contracts.Pipeline, err error) {
@@ -699,7 +656,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 
 	query :=
 		psql.
-			Select("a.id,a.repo_source,a.repo_owner,a.repo_name,a.repo_branch,a.repo_revision,a.build_version,a.build_status,a.labels,a.releases,a.release_targets,a.manifest,a.commits,a.inserted_at,a.updated_at,a.duration::INT").
+			Select("a.id,a.repo_source,a.repo_owner,a.repo_name,a.repo_branch,a.repo_revision,a.build_version,a.build_status,a.labels,a.release_targets,a.manifest,a.commits,a.inserted_at,a.updated_at,a.duration::INT").
 			From("builds a").
 			LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
 			Where("b.id IS NULL").
@@ -716,7 +673,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 	defer rows.Close()
 	for rows.Next() {
 
-		var labelsData, releasesData, releaseTargetsData, commitsData []uint8
+		var labelsData, releaseTargetsData, commitsData []uint8
 
 		pipeline := contracts.Pipeline{}
 		var seconds int
@@ -731,7 +688,6 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 			&pipeline.BuildVersion,
 			&pipeline.BuildStatus,
 			&labelsData,
-			&releasesData,
 			&releaseTargetsData,
 			&pipeline.Manifest,
 			&commitsData,
@@ -743,7 +699,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 
 		pipeline.Duration = time.Duration(seconds) * time.Second
 
-		dbc.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releasesData, releaseTargetsData, commitsData)
+		dbc.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releaseTargetsData, commitsData)
 
 		pipelines = append(pipelines, &pipeline)
 	}
@@ -795,7 +751,6 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 			build_version,
 			build_status,
 			labels,
-			releases,
 			release_targets,
 			manifest,
 			commits,
@@ -830,7 +785,7 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 		return
 	}
 
-	var labelsData, releasesData, releaseTargetsData, commitsData []uint8
+	var labelsData, releaseTargetsData, commitsData []uint8
 
 	pipeline = &contracts.Pipeline{}
 	var seconds int
@@ -845,7 +800,6 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 		&pipeline.BuildVersion,
 		&pipeline.BuildStatus,
 		&labelsData,
-		&releasesData,
 		&releaseTargetsData,
 		&pipeline.Manifest,
 		&commitsData,
@@ -857,7 +811,7 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 
 	pipeline.Duration = time.Duration(seconds) * time.Second
 
-	dbc.setPipelinePropertiesFromJSONB(pipeline, labelsData, releasesData, releaseTargetsData, commitsData)
+	dbc.setPipelinePropertiesFromJSONB(pipeline, labelsData, releaseTargetsData, commitsData)
 
 	// set released versions
 	dbc.enrichPipeline(pipeline)
@@ -875,7 +829,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 
 	query :=
 		psql.
-			Select("id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,releases,release_targets,manifest,commits,inserted_at,updated_at,duration::INT").
+			Select("id,repo_source,repo_owner,repo_name,repo_branch,repo_revision,build_version,build_status,labels,release_targets,manifest,commits,inserted_at,updated_at,duration::INT").
 			From("builds a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -896,7 +850,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 	defer rows.Close()
 	for rows.Next() {
 
-		var labelsData, releasesData, releaseTargetsData, commitsData []uint8
+		var labelsData, releaseTargetsData, commitsData []uint8
 
 		build := contracts.Build{}
 		var seconds int
@@ -911,7 +865,6 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 			&build.BuildVersion,
 			&build.BuildStatus,
 			&labelsData,
-			&releasesData,
 			&releaseTargetsData,
 			&build.Manifest,
 			&commitsData,
@@ -923,7 +876,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 
 		build.Duration = time.Duration(seconds) * time.Second
 
-		dbc.setBuildPropertiesFromJSONB(&build, labelsData, releasesData, releaseTargetsData, commitsData)
+		dbc.setBuildPropertiesFromJSONB(&build, labelsData, releaseTargetsData, commitsData)
 
 		// clear some properties for reduced size and improved performance over the network
 		build.Manifest = ""
@@ -978,7 +931,6 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 			build_version,
 			build_status,
 			labels,
-			releases,
 			release_targets,
 			manifest,
 			commits,
@@ -1015,7 +967,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 		return
 	}
 
-	var labelsData, releasesData, releaseTargetsData, commitsData []uint8
+	var labelsData, releaseTargetsData, commitsData []uint8
 
 	build = &contracts.Build{}
 	var seconds int
@@ -1030,7 +982,6 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 		&build.BuildVersion,
 		&build.BuildStatus,
 		&labelsData,
-		&releasesData,
 		&releaseTargetsData,
 		&build.Manifest,
 		&commitsData,
@@ -1042,7 +993,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 
 	build.Duration = time.Duration(seconds) * time.Second
 
-	dbc.setBuildPropertiesFromJSONB(build, labelsData, releasesData, releaseTargetsData, commitsData)
+	dbc.setBuildPropertiesFromJSONB(build, labelsData, releaseTargetsData, commitsData)
 
 	// set released versions
 	dbc.enrichBuild(build)
@@ -1066,7 +1017,6 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 			build_version,
 			build_status,
 			labels,
-			releases,
 			release_targets,
 			manifest,
 			commits,
@@ -1103,7 +1053,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 		return
 	}
 
-	var labelsData, releasesData, releaseTargetsData, commitsData []uint8
+	var labelsData, releaseTargetsData, commitsData []uint8
 
 	build = &contracts.Build{}
 	var seconds int
@@ -1118,7 +1068,6 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 		&build.BuildVersion,
 		&build.BuildStatus,
 		&labelsData,
-		&releasesData,
 		&releaseTargetsData,
 		&build.Manifest,
 		&commitsData,
@@ -1130,7 +1079,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 
 	build.Duration = time.Duration(seconds) * time.Second
 
-	dbc.setBuildPropertiesFromJSONB(build, labelsData, releasesData, releaseTargetsData, commitsData)
+	dbc.setBuildPropertiesFromJSONB(build, labelsData, releaseTargetsData, commitsData)
 
 	// set released versions
 	dbc.enrichBuild(build)
@@ -1153,7 +1102,6 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 			build_version,
 			build_status,
 			labels,
-			releases,
 			release_targets,
 			manifest,
 			commits,
@@ -1182,7 +1130,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 	defer rows.Close()
 	for rows.Next() {
 
-		var labelsData, releasesData, releaseTargetsData, commitsData []uint8
+		var labelsData, releaseTargetsData, commitsData []uint8
 
 		build := contracts.Build{}
 		var seconds int
@@ -1197,7 +1145,6 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 			&build.BuildVersion,
 			&build.BuildStatus,
 			&labelsData,
-			&releasesData,
 			&releaseTargetsData,
 			&build.Manifest,
 			&commitsData,
@@ -1209,7 +1156,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 
 		build.Duration = time.Duration(seconds) * time.Second
 
-		dbc.setBuildPropertiesFromJSONB(&build, labelsData, releasesData, releaseTargetsData, commitsData)
+		dbc.setBuildPropertiesFromJSONB(&build, labelsData, releaseTargetsData, commitsData)
 
 		// don't clear some properties since they're used for rebuilding and releasing
 
@@ -1453,36 +1400,38 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineLastReleaseByName(repoSource, repoOwner, repoName, releaseName string) (release *contracts.Release, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineLastReleasesByName(repoSource, repoOwner, repoName, releaseName string) (releases []contracts.Release, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	releases = make([]contracts.Release, 0)
 
 	rows, err := dbc.databaseConnection.Query(
 		`
 		SELECT
-			id,
-			repo_source,
-			repo_owner,
-			repo_name,
-			release,
-			release_action,
-			release_version,
-			release_status,
-			triggered_by,
-			inserted_at,
-			updated_at,
-			duration::INT
+			a.id,
+			a.repo_source,
+			a.repo_owner,
+			a.repo_name,
+			a.release,
+			a.release_action,
+			a.release_version,
+			a.release_status,
+			a.triggered_by,
+			a.inserted_at,
+			a.updated_at,
+			a.duration::INT
 		FROM
 			releases a
+			LEFT JOIN releases b on a.release=b.release AND a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.release_action=b.release_action AND a.inserted_at > b.inserted_at
 		WHERE
-			release=$1 AND
-			repo_source=$2 AND
-			repo_owner=$3 AND
-			repo_name=$4
+			a.release=$1 AND
+			a.repo_source=$2 AND
+			a.repo_owner=$3 AND
+			a.repo_name=$4 AND
+			b.id IS NULL
 		ORDER BY
-			inserted_at DESC
-		LIMIT 1
-		OFFSET 0
+			a.inserted_at DESC
 		`,
 		releaseName,
 		repoSource,
@@ -1493,38 +1442,36 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleaseByName(repoSource, repoO
 		return
 	}
 
-	recordExists := false
-
 	defer rows.Close()
-	recordExists = rows.Next()
+	for rows.Next() {
 
-	if !recordExists {
-		return
+		release := contracts.Release{}
+		var seconds int
+		var id int
+
+		if err := rows.Scan(
+			&id,
+			&release.RepoSource,
+			&release.RepoOwner,
+			&release.RepoName,
+			&release.Name,
+			&release.Action,
+			&release.ReleaseVersion,
+			&release.ReleaseStatus,
+			&release.TriggeredBy,
+			&release.InsertedAt,
+			&release.UpdatedAt,
+			&seconds); err != nil {
+			return nil, err
+		}
+
+		duration := time.Duration(seconds) * time.Second
+		release.Duration = &duration
+
+		release.ID = strconv.Itoa(id)
+
+		releases = append(releases, release)
 	}
-
-	release = &contracts.Release{}
-	var seconds int
-	var id int
-
-	if err := rows.Scan(
-		&id,
-		&release.RepoSource,
-		&release.RepoOwner,
-		&release.RepoName,
-		&release.Name,
-		&release.Action,
-		&release.ReleaseVersion,
-		&release.ReleaseStatus,
-		&release.TriggeredBy,
-		&release.InsertedAt,
-		&release.UpdatedAt,
-		&seconds); err != nil {
-		return nil, err
-	}
-	release.ID = strconv.Itoa(id)
-
-	duration := time.Duration(seconds) * time.Second
-	release.Duration = &duration
 
 	return
 }

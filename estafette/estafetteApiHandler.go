@@ -306,7 +306,6 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 		BuildVersion:   failedBuild.BuildVersion,
 		BuildStatus:    "running",
 		Labels:         failedBuild.Labels,
-		Releases:       failedBuild.Releases,
 		ReleaseTargets: failedBuild.ReleaseTargets,
 		Manifest:       failedBuild.Manifest,
 		Commits:        failedBuild.Commits,

@@ -148,13 +148,9 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent
 		}
 	}
 
-	var releases []contracts.Release
 	var releaseTargets []contracts.ReleaseTarget
 	if hasValidManifest {
 		for _, r := range mft.Releases {
-			releases = append(releases, contracts.Release{
-				Name: r.Name,
-			})
 			releaseTarget := contracts.ReleaseTarget{
 				Name:    r.Name,
 				Actions: make([]manifest.EstafetteReleaseAction, 0),
@@ -192,7 +188,6 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent
 		BuildVersion:   buildVersion,
 		BuildStatus:    buildStatus,
 		Labels:         labels,
-		Releases:       releases,
 		ReleaseTargets: releaseTargets,
 		Manifest:       manifestString,
 		Commits:        commits,
