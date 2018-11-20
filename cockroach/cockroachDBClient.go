@@ -658,8 +658,6 @@ func getActionNamesFromReleaseTarget(releaseTarget contracts.ReleaseTarget) (act
 		for _, a := range releaseTarget.Actions {
 			actions = append(actions, a.Name)
 		}
-	} else {
-		actions = append(actions, "")
 	}
 
 	return
@@ -1433,7 +1431,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleasesByName(repoSource, repo
 		psql.
 			Select("a.id,a.repo_source,a.repo_owner,a.repo_name,a.release,a.release_action,a.release_version,a.release_status,a.triggered_by,a.inserted_at,a.updated_at,a.duration::INT").
 			From("releases a").
-			LeftJoin("LEFT JOIN releases b on a.release=b.release AND a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.release_action=b.release_action AND a.inserted_at < b.inserted_at").
+			LeftJoin("releases b on a.release=b.release AND a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.release_action=b.release_action AND a.inserted_at < b.inserted_at").
 			Where(sq.Eq{"a.release": releaseName}).
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -1443,6 +1441,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleasesByName(repoSource, repo
 
 	if len(actions) > 0 {
 		query = query.Where(sq.Eq{"a.release_action": actions})
+	} else {
+		query = query.Where(sq.Eq{"a.release_action": ""})
 	}
 
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
