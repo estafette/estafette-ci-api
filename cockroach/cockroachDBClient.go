@@ -43,7 +43,7 @@ type DBClient interface {
 	GetPipelineReleases(string, string, string, int, int, map[string][]string) ([]*contracts.Release, error)
 	GetPipelineReleasesCount(string, string, string, map[string][]string) (int, error)
 	GetPipelineRelease(string, string, string, int) (*contracts.Release, error)
-	GetPipelineLastReleasesByName(string, string, string, string) ([]contracts.Release, error)
+	GetPipelineLastReleasesByName(string, string, string, string, []string) ([]contracts.Release, error)
 	GetPipelineReleaseLogs(string, string, string, int) (*contracts.ReleaseLog, error)
 	GetBuildsCount(map[string][]string) (int, error)
 	GetReleasesCount(map[string][]string) (int, error)
@@ -636,7 +636,9 @@ func (dbc *cockroachDBClientImpl) getLatestReleases(releaseTargets []contracts.R
 	// set latest release version per release targets
 	updatedReleaseTargets := make([]contracts.ReleaseTarget, 0)
 	for _, rt := range releaseTargets {
-		latestReleases, err := dbc.GetPipelineLastReleasesByName(repoSource, repoOwner, repoName, rt.Name)
+
+		actions := getActionNamesFromReleaseTarget(rt)
+		latestReleases, err := dbc.GetPipelineLastReleasesByName(repoSource, repoOwner, repoName, rt.Name, actions)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed retrieving latest release for %v/%v/%v %v", repoSource, repoOwner, repoName, rt.Name)
 		} else {
@@ -646,6 +648,21 @@ func (dbc *cockroachDBClientImpl) getLatestReleases(releaseTargets []contracts.R
 	}
 
 	return updatedReleaseTargets
+}
+
+func getActionNamesFromReleaseTarget(releaseTarget contracts.ReleaseTarget) (actions []string) {
+
+	actions = []string{}
+
+	if releaseTarget.Actions != nil && len(releaseTarget.Actions) > 0 {
+		for _, a := range releaseTarget.Actions {
+			actions = append(actions, a.Name)
+		}
+	} else {
+		actions = append(actions, "")
+	}
+
+	return
 }
 
 func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipelines []*contracts.Pipeline, err error) {
@@ -1404,44 +1421,32 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineLastReleasesByName(repoSource, repoOwner, repoName, releaseName string) (releases []contracts.Release, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineLastReleasesByName(repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	releases = make([]contracts.Release, 0)
 
-	rows, err := dbc.databaseConnection.Query(
-		`
-		SELECT
-			a.id,
-			a.repo_source,
-			a.repo_owner,
-			a.repo_name,
-			a.release,
-			a.release_action,
-			a.release_version,
-			a.release_status,
-			a.triggered_by,
-			a.inserted_at,
-			a.updated_at,
-			a.duration::INT
-		FROM
-			releases a
-			LEFT JOIN releases b on a.release=b.release AND a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.release_action=b.release_action AND a.inserted_at < b.inserted_at
-		WHERE
-			a.release=$1 AND
-			a.repo_source=$2 AND
-			a.repo_owner=$3 AND
-			a.repo_name=$4 AND
-			b.id IS NULL
-		ORDER BY
-			a.inserted_at DESC
-		`,
-		releaseName,
-		repoSource,
-		repoOwner,
-		repoName,
-	)
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("a.id,a.repo_source,a.repo_owner,a.repo_name,a.release,a.release_action,a.release_version,a.release_status,a.triggered_by,a.inserted_at,a.updated_at,a.duration::INT").
+			From("releases a").
+			LeftJoin("LEFT JOIN releases b on a.release=b.release AND a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.release_action=b.release_action AND a.inserted_at < b.inserted_at").
+			Where(sq.Eq{"a.release": releaseName}).
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName}).
+			Where("b.id IS NULL").
+			OrderBy("a.inserted_at DESC")
+
+	if len(actions) > 0 {
+		query = query.Where(sq.Eq{"a.release_action": actions})
+	}
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+
 	if err != nil {
 		return
 	}
