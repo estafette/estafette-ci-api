@@ -559,49 +559,55 @@ func (dbc *cockroachDBClientImpl) getLatestReleasesForPipelines(pipelines []*con
 	for _, p := range pipelines {
 		go func(p *contracts.Pipeline) {
 			defer wg.Done()
-			// set released versions
-			updatedReleases := make([]contracts.Release, 0)
-			releasesMap := map[string]*contracts.Release{}
-			for _, r := range p.Releases {
-				latestRelease, err := dbc.GetPipelineLastReleaseByName(p.RepoSource, p.RepoOwner, p.RepoName, r.Name)
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed retrieving latest release for %v/%v/%v %v", p.RepoSource, p.RepoOwner, p.RepoName, r.Name)
-				} else if latestRelease != nil {
-					updatedReleases = append(updatedReleases, *latestRelease)
-					releasesMap[r.Name] = latestRelease
-				} else {
-					updatedReleases = append(updatedReleases, r)
-				}
-			}
-			p.Releases = updatedReleases
-
-			if len(p.ReleaseTargets) == 0 {
-				for _, r := range p.Releases {
-					p.ReleaseTargets = append(p.ReleaseTargets, contracts.ReleaseTarget{
-						Name: r.Name,
-					})
-				}
-			}
-
-			// set release targets new style (with actions and possibly multiple active released versions)
-			updatedReleaseTargets := make([]contracts.ReleaseTarget, 0)
-			for _, rt := range p.ReleaseTargets {
-				if rt.Actions == nil {
-					rt.Actions = []manifest.EstafetteReleaseAction{}
-				}
-				if rt.ActiveReleases == nil {
-					rt.ActiveReleases = []contracts.Release{}
-				}
-				if latestRelease, ok := releasesMap[rt.Name]; ok {
-					rt.ActiveReleases = append(rt.ActiveReleases, *latestRelease)
-				}
-				updatedReleaseTargets = append(updatedReleaseTargets, rt)
-			}
-			p.ReleaseTargets = updatedReleaseTargets
-
+			dbc.getLatestReleasesForPipeline(p)
 		}(p)
 	}
 	wg.Wait()
+
+	return nil
+}
+
+func (dbc *cockroachDBClientImpl) getLatestReleasesForPipeline(pipeline *contracts.Pipeline) error {
+
+	// set released versions
+	updatedReleases := make([]contracts.Release, 0)
+	releasesMap := map[string]*contracts.Release{}
+	for _, r := range pipeline.Releases {
+		latestRelease, err := dbc.GetPipelineLastReleaseByName(pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, r.Name)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed retrieving latest release for %v/%v/%v %v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, r.Name)
+		} else if latestRelease != nil {
+			updatedReleases = append(updatedReleases, *latestRelease)
+			releasesMap[r.Name] = latestRelease
+		} else {
+			updatedReleases = append(updatedReleases, r)
+		}
+	}
+	pipeline.Releases = updatedReleases
+
+	if len(pipeline.ReleaseTargets) == 0 {
+		for _, r := range pipeline.Releases {
+			pipeline.ReleaseTargets = append(pipeline.ReleaseTargets, contracts.ReleaseTarget{
+				Name: r.Name,
+			})
+		}
+	}
+
+	// set release targets new style (with actions and possibly multiple active released versions)
+	updatedReleaseTargets := make([]contracts.ReleaseTarget, 0)
+	for _, rt := range pipeline.ReleaseTargets {
+		if rt.Actions == nil {
+			rt.Actions = []manifest.EstafetteReleaseAction{}
+		}
+		if rt.ActiveReleases == nil {
+			rt.ActiveReleases = []contracts.Release{}
+		}
+		if latestRelease, ok := releasesMap[rt.Name]; ok {
+			rt.ActiveReleases = append(rt.ActiveReleases, *latestRelease)
+		}
+		updatedReleaseTargets = append(updatedReleaseTargets, rt)
+	}
+	pipeline.ReleaseTargets = updatedReleaseTargets
 
 	return nil
 }
@@ -700,6 +706,8 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 
 		pipelines = append(pipelines, &pipeline)
 	}
+
+	dbc.getLatestReleasesForPipelines(pipelines)
 
 	return
 }
@@ -835,18 +843,7 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 	}
 
 	// set released versions
-	updatedReleases := make([]contracts.Release, 0)
-	for _, r := range pipeline.Releases {
-		latestRelease, err := dbc.GetPipelineLastReleaseByName(pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, r.Name)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed retrieving latest release for %v/%v/%v %v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, r.Name)
-		} else if latestRelease != nil {
-			updatedReleases = append(updatedReleases, *latestRelease)
-		} else {
-			updatedReleases = append(updatedReleases, r)
-		}
-	}
-	pipeline.Releases = updatedReleases
+	dbc.getLatestReleasesForPipeline(pipeline)
 
 	// unmarshal then marshal manifest to include defaults
 	var manifest manifest.EstafetteManifest
