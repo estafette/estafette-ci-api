@@ -532,6 +532,19 @@ func (dbc *cockroachDBClientImpl) enrichPipeline(pipeline *contracts.Pipeline) {
 	dbc.getLatestReleasesForPipeline(pipeline)
 }
 
+func (dbc *cockroachDBClientImpl) enrichBuilds(builds []*contracts.Build) {
+	var wg sync.WaitGroup
+	wg.Add(len(builds))
+
+	for _, b := range builds {
+		go func(b *contracts.Build) {
+			defer wg.Done()
+			dbc.enrichBuild(b)
+		}(b)
+	}
+	wg.Wait()
+}
+
 func (dbc *cockroachDBClientImpl) enrichBuild(build *contracts.Build) {
 	dbc.getLatestReleasesForBuild(build)
 }
@@ -1202,6 +1215,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 
 		builds = append(builds, &build)
 	}
+
+	dbc.enrichBuilds(builds)
 
 	return
 }
