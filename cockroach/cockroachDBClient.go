@@ -816,6 +816,10 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 	// set released versions
 	dbc.enrichPipeline(pipeline)
 
+	// clear some properties for reduced size and improved performance over the network
+	pipeline.Manifest = ""
+	pipeline.ManifestWithDefaults = ""
+
 	return
 }
 
