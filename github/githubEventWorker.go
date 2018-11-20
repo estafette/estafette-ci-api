@@ -149,11 +149,22 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent
 	}
 
 	var releases []contracts.Release
+	var releaseTargets []contracts.ReleaseTarget
 	if hasValidManifest {
 		for _, r := range mft.Releases {
 			releases = append(releases, contracts.Release{
 				Name: r.Name,
 			})
+			releaseTarget := contracts.ReleaseTarget{
+				Name:    r.Name,
+				Actions: make([]manifest.EstafetteReleaseAction, 0),
+			}
+			if r.Actions != nil && len(r.Actions) > 0 {
+				for _, a := range r.Actions {
+					releaseTarget.Actions = append(releaseTarget.Actions, *a)
+				}
+			}
+			releaseTargets = append(releaseTargets, releaseTarget)
 		}
 	}
 
@@ -173,17 +184,18 @@ func (w *eventWorkerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent
 
 	// store build in db
 	insertedBuild, err := w.cockroachDBClient.InsertBuild(contracts.Build{
-		RepoSource:   pushEvent.GetRepoSource(),
-		RepoOwner:    pushEvent.GetRepoOwner(),
-		RepoName:     pushEvent.GetRepoName(),
-		RepoBranch:   pushEvent.GetRepoBranch(),
-		RepoRevision: pushEvent.GetRepoRevision(),
-		BuildVersion: buildVersion,
-		BuildStatus:  buildStatus,
-		Labels:       labels,
-		Releases:     releases,
-		Manifest:     manifestString,
-		Commits:      commits,
+		RepoSource:     pushEvent.GetRepoSource(),
+		RepoOwner:      pushEvent.GetRepoOwner(),
+		RepoName:       pushEvent.GetRepoName(),
+		RepoBranch:     pushEvent.GetRepoBranch(),
+		RepoRevision:   pushEvent.GetRepoRevision(),
+		BuildVersion:   buildVersion,
+		BuildStatus:    buildStatus,
+		Labels:         labels,
+		Releases:       releases,
+		ReleaseTargets: releaseTargets,
+		Manifest:       manifestString,
+		Commits:        commits,
 	})
 	if err != nil {
 		log.Error().Err(err).

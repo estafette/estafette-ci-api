@@ -298,17 +298,18 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 
 	// store build in db
 	insertedBuild, err := h.cockroachDBClient.InsertBuild(contracts.Build{
-		RepoSource:   failedBuild.RepoSource,
-		RepoOwner:    failedBuild.RepoOwner,
-		RepoName:     failedBuild.RepoName,
-		RepoBranch:   failedBuild.RepoBranch,
-		RepoRevision: failedBuild.RepoRevision,
-		BuildVersion: failedBuild.BuildVersion,
-		BuildStatus:  "running",
-		Labels:       failedBuild.Labels,
-		Releases:     failedBuild.Releases,
-		Manifest:     failedBuild.Manifest,
-		Commits:      failedBuild.Commits,
+		RepoSource:     failedBuild.RepoSource,
+		RepoOwner:      failedBuild.RepoOwner,
+		RepoName:       failedBuild.RepoName,
+		RepoBranch:     failedBuild.RepoBranch,
+		RepoRevision:   failedBuild.RepoRevision,
+		BuildVersion:   failedBuild.BuildVersion,
+		BuildStatus:    "running",
+		Labels:         failedBuild.Labels,
+		Releases:       failedBuild.Releases,
+		ReleaseTargets: failedBuild.ReleaseTargets,
+		Manifest:       failedBuild.Manifest,
+		Commits:        failedBuild.Commits,
 	})
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed inserting build into db for rebuilding version %v of repository %v/%v/%v for build command issued by %v", buildCommand.BuildVersion, buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, user)
@@ -692,11 +693,9 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 	actionExists := false
 	for _, releaseTarget := range build.ReleaseTargets {
 		if releaseTarget.Name == releaseCommand.Name {
-
 			if len(releaseTarget.Actions) == 0 && releaseCommand.Action == "" {
 				actionExists = true
-			}
-			if len(releaseTarget.Actions) > 0 {
+			} else if len(releaseTarget.Actions) > 0 {
 				for _, a := range releaseTarget.Actions {
 					if a.Name == releaseCommand.Action {
 						actionExists = true
