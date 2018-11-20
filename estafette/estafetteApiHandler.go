@@ -689,14 +689,35 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 
 	// check if release target exists
 	releaseExists := false
-	for _, release := range build.Releases {
-		if release.Name == releaseCommand.Name {
+	actionExists := false
+	for _, releaseTarget := range build.ReleaseTargets {
+		if releaseTarget.Name == releaseCommand.Name {
+
+			if len(releaseTarget.Actions) == 0 && releaseCommand.Action == "" {
+				actionExists = true
+			}
+			if len(releaseTarget.Actions) > 0 {
+				for _, a := range releaseTarget.Actions {
+					if a.Name == releaseCommand.Action {
+						actionExists = true
+						break
+					}
+				}
+			}
+
 			releaseExists = true
 			break
 		}
 	}
 	if !releaseExists {
 		errorMessage := fmt.Sprintf("Build %v for pipeline %v/%v/%v has no release %v for release command", releaseCommand.ReleaseVersion, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.Name)
+		log.Error().Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+	}
+
+	// check if action is defined
+	if !actionExists {
+		errorMessage := fmt.Sprintf("Build %v for pipeline %v/%v/%v has no action %v for release action", releaseCommand.ReleaseVersion, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.Action)
 		log.Error().Msg(errorMessage)
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 	}

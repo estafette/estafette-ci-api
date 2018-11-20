@@ -501,70 +501,129 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 
 		pipeline.Duration = time.Duration(seconds) * time.Second
 
-		if len(labelsData) > 0 {
-			if err = json.Unmarshal(labelsData, &pipeline.Labels); err != nil {
-				return
-			}
-		}
-		if len(releasesData) > 0 {
-			if err = json.Unmarshal(releasesData, &pipeline.Releases); err != nil {
-				return
-			}
-		}
-		if len(releaseTargetsData) > 0 {
-			if err = json.Unmarshal(releaseTargetsData, &pipeline.ReleaseTargets); err != nil {
-				return
-			}
-		}
-		if len(commitsData) > 0 {
-			if err = json.Unmarshal(commitsData, &pipeline.Commits); err != nil {
-				return
-			}
+		dbc.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releasesData, releaseTargetsData, commitsData)
 
-			// remove all but the first 6 commits
-			if len(pipeline.Commits) > 6 {
-				pipeline.Commits = pipeline.Commits[:6]
-			}
-		}
-
-		// unmarshal then marshal manifest to include defaults
-		var manifest manifest.EstafetteManifest
-		err = yaml.Unmarshal([]byte(pipeline.Manifest), &manifest)
-		if err == nil {
-			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
-			if err == nil {
-				pipeline.ManifestWithDefaults = string(manifestWithDefaultBytes)
-			} else {
-				log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
-			}
-		} else {
-			log.Warn().Err(err).Str("manifest", pipeline.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
-		}
+		// clear some properties for reduced size and improved performance over the network
+		pipeline.Manifest = ""
+		pipeline.ManifestWithDefaults = ""
 
 		pipelines = append(pipelines, &pipeline)
 	}
 
-	dbc.getLatestReleasesForPipelines(pipelines)
+	dbc.enrichPipelines(pipelines)
 
 	return
 }
 
-func (dbc *cockroachDBClientImpl) getLatestReleasesForPipelines(pipelines []*contracts.Pipeline) error {
-
-	// todo support multiple active versions at the same time for canary releases, etc
-
+func (dbc *cockroachDBClientImpl) enrichPipelines(pipelines []*contracts.Pipeline) {
 	var wg sync.WaitGroup
 	wg.Add(len(pipelines))
 
 	for _, p := range pipelines {
 		go func(p *contracts.Pipeline) {
 			defer wg.Done()
-			dbc.getLatestReleasesForPipeline(p)
+			dbc.enrichPipeline(p)
 		}(p)
 	}
 	wg.Wait()
+}
 
-	return nil
+func (dbc *cockroachDBClientImpl) enrichPipeline(pipeline *contracts.Pipeline) {
+	dbc.getLatestReleasesForPipeline(pipeline)
+}
+
+func (dbc *cockroachDBClientImpl) enrichBuild(build *contracts.Build) {
+	dbc.getLatestReleasesForBuild(build)
+}
+
+func (dbc *cockroachDBClientImpl) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, labelsData, releasesData, releaseTargetsData, commitsData []uint8) (err error) {
+
+	if len(labelsData) > 0 {
+		if err = json.Unmarshal(labelsData, &pipeline.Labels); err != nil {
+			return
+		}
+	}
+	if len(releasesData) > 0 {
+		if err = json.Unmarshal(releasesData, &pipeline.Releases); err != nil {
+			return
+		}
+	}
+	if len(releaseTargetsData) > 0 {
+		if err = json.Unmarshal(releaseTargetsData, &pipeline.ReleaseTargets); err != nil {
+			return
+		}
+	}
+	if len(commitsData) > 0 {
+		if err = json.Unmarshal(commitsData, &pipeline.Commits); err != nil {
+			return
+		}
+
+		// remove all but the first 6 commits
+		if len(pipeline.Commits) > 6 {
+			pipeline.Commits = pipeline.Commits[:6]
+		}
+	}
+
+	// unmarshal then marshal manifest to include defaults
+	var manifest manifest.EstafetteManifest
+	err = yaml.Unmarshal([]byte(pipeline.Manifest), &manifest)
+	if err == nil {
+		manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+		if err == nil {
+			pipeline.ManifestWithDefaults = string(manifestWithDefaultBytes)
+		} else {
+			log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
+		}
+	} else {
+		log.Warn().Err(err).Str("manifest", pipeline.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData, releasesData, releaseTargetsData, commitsData []uint8) (err error) {
+
+	if len(labelsData) > 0 {
+		if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
+			return
+		}
+	}
+	if len(releasesData) > 0 {
+		if err = json.Unmarshal(releasesData, &build.Releases); err != nil {
+			return
+		}
+	}
+	if len(releaseTargetsData) > 0 {
+		if err = json.Unmarshal(releaseTargetsData, &build.ReleaseTargets); err != nil {
+			return
+		}
+	}
+	if len(commitsData) > 0 {
+		if err = json.Unmarshal(commitsData, &build.Commits); err != nil {
+			return
+		}
+
+		// remove all but the first 6 commits
+		if len(build.Commits) > 6 {
+			build.Commits = build.Commits[:6]
+		}
+	}
+
+	// unmarshal then marshal manifest to include defaults
+	var manifest manifest.EstafetteManifest
+	err = yaml.Unmarshal([]byte(build.Manifest), &manifest)
+	if err == nil {
+		manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+		if err == nil {
+			build.ManifestWithDefaults = string(manifestWithDefaultBytes)
+		} else {
+			log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+		}
+	} else {
+		log.Warn().Err(err).Str("manifest", build.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+	}
+
+	return
 }
 
 func (dbc *cockroachDBClientImpl) getLatestReleasesForPipeline(pipeline *contracts.Pipeline) {
@@ -671,50 +730,12 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 
 		pipeline.Duration = time.Duration(seconds) * time.Second
 
-		if len(labelsData) > 0 {
-			if err = json.Unmarshal(labelsData, &pipeline.Labels); err != nil {
-				return
-			}
-		}
-		if len(releasesData) > 0 {
-			if err = json.Unmarshal(releasesData, &pipeline.Releases); err != nil {
-				return
-			}
-		}
-		if len(releaseTargetsData) > 0 {
-			if err = json.Unmarshal(releaseTargetsData, &pipeline.ReleaseTargets); err != nil {
-				return
-			}
-		}
-		if len(commitsData) > 0 {
-			if err = json.Unmarshal(commitsData, &pipeline.Commits); err != nil {
-				return
-			}
-
-			// remove all but the first 6 commits
-			if len(pipeline.Commits) > 6 {
-				pipeline.Commits = pipeline.Commits[:6]
-			}
-		}
-
-		// unmarshal then marshal manifest to include defaults
-		var manifest manifest.EstafetteManifest
-		err = yaml.Unmarshal([]byte(pipeline.Manifest), &manifest)
-		if err == nil {
-			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
-			if err == nil {
-				pipeline.ManifestWithDefaults = string(manifestWithDefaultBytes)
-			} else {
-				log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
-			}
-		} else {
-			log.Warn().Err(err).Str("manifest", pipeline.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
-		}
+		dbc.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releasesData, releaseTargetsData, commitsData)
 
 		pipelines = append(pipelines, &pipeline)
 	}
 
-	dbc.getLatestReleasesForPipelines(pipelines)
+	dbc.enrichPipelines(pipelines)
 
 	return
 }
@@ -823,48 +844,10 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 
 	pipeline.Duration = time.Duration(seconds) * time.Second
 
-	if len(labelsData) > 0 {
-		if err = json.Unmarshal(labelsData, &pipeline.Labels); err != nil {
-			return
-		}
-	}
-	if len(releasesData) > 0 {
-		if err = json.Unmarshal(releasesData, &pipeline.Releases); err != nil {
-			return
-		}
-	}
-	if len(releaseTargetsData) > 0 {
-		if err = json.Unmarshal(releaseTargetsData, &pipeline.ReleaseTargets); err != nil {
-			return
-		}
-	}
-	if len(commitsData) > 0 {
-		if err = json.Unmarshal(commitsData, &pipeline.Commits); err != nil {
-			return
-		}
-
-		// remove all but the first 6 commits
-		if len(pipeline.Commits) > 6 {
-			pipeline.Commits = pipeline.Commits[:6]
-		}
-	}
+	dbc.setPipelinePropertiesFromJSONB(pipeline, labelsData, releasesData, releaseTargetsData, commitsData)
 
 	// set released versions
-	dbc.getLatestReleasesForPipeline(pipeline)
-
-	// unmarshal then marshal manifest to include defaults
-	var manifest manifest.EstafetteManifest
-	err = yaml.Unmarshal([]byte(pipeline.Manifest), &manifest)
-	if err == nil {
-		manifestWithDefaultBytes, err := yaml.Marshal(manifest)
-		if err == nil {
-			pipeline.ManifestWithDefaults = string(manifestWithDefaultBytes)
-		} else {
-			log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
-		}
-	} else {
-		log.Warn().Err(err).Str("manifest", pipeline.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
-	}
+	dbc.enrichPipeline(pipeline)
 
 	return
 }
@@ -927,45 +910,11 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 
 		build.Duration = time.Duration(seconds) * time.Second
 
-		if len(labelsData) > 0 {
-			if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
-				return
-			}
-		}
-		if len(releasesData) > 0 {
-			if err = json.Unmarshal(releasesData, &build.Releases); err != nil {
-				return
-			}
-		}
-		if len(releaseTargetsData) > 0 {
-			if err = json.Unmarshal(releaseTargetsData, &build.ReleaseTargets); err != nil {
-				return
-			}
-		}
-		if len(commitsData) > 0 {
-			if err = json.Unmarshal(commitsData, &build.Commits); err != nil {
-				return
-			}
+		dbc.setBuildPropertiesFromJSONB(&build, labelsData, releasesData, releaseTargetsData, commitsData)
 
-			// remove all but the first 6 commits
-			if len(build.Commits) > 6 {
-				build.Commits = build.Commits[:6]
-			}
-		}
-
-		// unmarshal then marshal manifest to include defaults
-		var manifest manifest.EstafetteManifest
-		err = yaml.Unmarshal([]byte(build.Manifest), &manifest)
-		if err == nil {
-			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
-			if err == nil {
-				build.ManifestWithDefaults = string(manifestWithDefaultBytes)
-			} else {
-				log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
-			}
-		} else {
-			log.Warn().Err(err).Str("manifest", build.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
-		}
+		// clear some properties for reduced size and improved performance over the network
+		build.Manifest = ""
+		build.ManifestWithDefaults = ""
 
 		builds = append(builds, &build)
 	}
@@ -1080,48 +1029,10 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 
 	build.Duration = time.Duration(seconds) * time.Second
 
-	if len(labelsData) > 0 {
-		if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
-			return nil, err
-		}
-	}
-	if len(releasesData) > 0 {
-		if err = json.Unmarshal(releasesData, &build.Releases); err != nil {
-			return
-		}
-	}
-	if len(releaseTargetsData) > 0 {
-		if err = json.Unmarshal(releaseTargetsData, &build.ReleaseTargets); err != nil {
-			return
-		}
-	}
-	if len(commitsData) > 0 {
-		if err = json.Unmarshal(commitsData, &build.Commits); err != nil {
-			return nil, err
-		}
-
-		// remove all but the first 6 commits
-		if len(build.Commits) > 6 {
-			build.Commits = build.Commits[:6]
-		}
-	}
+	dbc.setBuildPropertiesFromJSONB(build, labelsData, releasesData, releaseTargetsData, commitsData)
 
 	// set released versions
-	dbc.getLatestReleasesForBuild(build)
-
-	// unmarshal then marshal manifest to include defaults
-	var manifest manifest.EstafetteManifest
-	err = yaml.Unmarshal([]byte(build.Manifest), &manifest)
-	if err == nil {
-		manifestWithDefaultBytes, err := yaml.Marshal(manifest)
-		if err == nil {
-			build.ManifestWithDefaults = string(manifestWithDefaultBytes)
-		} else {
-			log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
-		}
-	} else {
-		log.Warn().Err(err).Str("manifest", build.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
-	}
+	dbc.enrichBuild(build)
 
 	return
 }
@@ -1206,45 +1117,10 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 
 	build.Duration = time.Duration(seconds) * time.Second
 
-	if len(labelsData) > 0 {
-		if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
-			return nil, err
-		}
-	}
-	if len(releasesData) > 0 {
-		if err = json.Unmarshal(releasesData, &build.Releases); err != nil {
-			return
-		}
-	}
-	if len(releaseTargetsData) > 0 {
-		if err = json.Unmarshal(releaseTargetsData, &build.ReleaseTargets); err != nil {
-			return
-		}
-	}
-	if len(commitsData) > 0 {
-		if err = json.Unmarshal(commitsData, &build.Commits); err != nil {
-			return nil, err
-		}
+	dbc.setBuildPropertiesFromJSONB(build, labelsData, releasesData, releaseTargetsData, commitsData)
 
-		// remove all but the first 6 commits
-		if len(build.Commits) > 6 {
-			build.Commits = build.Commits[:6]
-		}
-	}
-
-	// unmarshal then marshal manifest to include defaults
-	var manifest manifest.EstafetteManifest
-	err = yaml.Unmarshal([]byte(build.Manifest), &manifest)
-	if err == nil {
-		manifestWithDefaultBytes, err := yaml.Marshal(manifest)
-		if err == nil {
-			build.ManifestWithDefaults = string(manifestWithDefaultBytes)
-		} else {
-			log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
-		}
-	} else {
-		log.Warn().Err(err).Str("manifest", build.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
-	}
+	// set released versions
+	dbc.enrichBuild(build)
 
 	return
 }
@@ -1320,45 +1196,9 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 
 		build.Duration = time.Duration(seconds) * time.Second
 
-		if len(labelsData) > 0 {
-			if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
-				return nil, err
-			}
-		}
-		if len(releasesData) > 0 {
-			if err = json.Unmarshal(releasesData, &build.Releases); err != nil {
-				return
-			}
-		}
-		if len(releaseTargetsData) > 0 {
-			if err = json.Unmarshal(releaseTargetsData, &build.ReleaseTargets); err != nil {
-				return
-			}
-		}
-		if len(commitsData) > 0 {
-			if err = json.Unmarshal(commitsData, &build.Commits); err != nil {
-				return nil, err
-			}
+		dbc.setBuildPropertiesFromJSONB(&build, labelsData, releasesData, releaseTargetsData, commitsData)
 
-			// remove all but the first 6 commits
-			if len(build.Commits) > 6 {
-				build.Commits = build.Commits[:6]
-			}
-		}
-
-		// unmarshal then marshal manifest to include defaults
-		var manifest manifest.EstafetteManifest
-		err = yaml.Unmarshal([]byte(build.Manifest), &manifest)
-		if err == nil {
-			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
-			if err == nil {
-				build.ManifestWithDefaults = string(manifestWithDefaultBytes)
-			} else {
-				log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
-			}
-		} else {
-			log.Warn().Err(err).Str("manifest", build.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
-		}
+		// don't clear some properties since they're used for rebuilding and releasing
 
 		builds = append(builds, &build)
 	}
