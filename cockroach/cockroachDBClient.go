@@ -1423,7 +1423,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleasesByName(repoSource, repo
 			a.duration::INT
 		FROM
 			releases a
-			LEFT JOIN releases b on a.release=b.release AND a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.release_action=b.release_action AND a.inserted_at > b.inserted_at
+			LEFT JOIN releases b on a.release=b.release AND a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.release_action=b.release_action AND a.inserted_at < b.inserted_at
 		WHERE
 			a.release=$1 AND
 			a.repo_source=$2 AND
