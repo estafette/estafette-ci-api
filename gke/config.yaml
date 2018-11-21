@@ -115,6 +115,10 @@ credentials:
   type: slack-webhook
   workspace: {{.SLACK_WEBHOOK_WORKSPACE_2}}
   webhook: {{.SLACK_WEBHOOK_WEBHOOK_2}}
+- name: {{.NUGET_SERVER_NAME_1}}
+  type: nuget-server
+  apiUrl: {{.NUGET_SERVER_API_URL_1}}
+  apiKey: {{.NUGET_SERVER_API_KEY_1}}
 
 trustedImages:
 - path: extensions/git-clone
@@ -137,6 +141,9 @@ trustedImages:
 - path: extensions/slack-build-status
   injectedCredentialTypes:
   - slack-webhook
+- path: extensions/dotnet
+  injectedCredentialTypes:
+  - nuget-server
 - path: estafette/estafette-ci-builder
   runPrivileged: true
 - path: docker
