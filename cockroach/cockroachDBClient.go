@@ -11,13 +11,13 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	yaml "github.com/buildkite/yaml"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-contracts"
 	"github.com/estafette/estafette-ci-manifest"
 	_ "github.com/lib/pq" // use postgres client library to connect to cockroachdb
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // DBClient is the interface for communicating with CockroachDB

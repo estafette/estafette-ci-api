@@ -55,14 +55,6 @@
 			"revisionTime": "2016-08-04T10:47:26Z"
 		},
 		{
-			"checksumSHA1": "wJu+LI2AmCiamn9Pg0upEKJptdM=",
-			"path": "github.com/buildkite/yaml",
-			"revision": "0caa5f0796e36057e59d6782832a9c774f457842",
-			"revisionTime": "2018-10-16T23:27:59Z",
-			"version": "v2.2.0",
-			"versionExact": "v2.2.0"
-		},
-		{
 			"checksumSHA1": "mrz/kicZiUaHxkyfvC/DyQcr8Do=",
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "adab96458c51a58dc1783b3335dcce5461522e75",
@@ -169,12 +161,12 @@
 			"versionExact": "v1.2.0"
 		},
 		{
-			"checksumSHA1": "tTU99zbrKHeUsakbwiIIm+Dx7xY=",
+			"checksumSHA1": "ofJ+q6xQrvONVA7xw/e+EdvLgz4=",
 			"path": "github.com/estafette/estafette-ci-contracts",
-			"revision": "26fc04cc85cbc03df07964e71d6d85f15969ed0b",
-			"revisionTime": "2018-11-22T16:02:24Z",
-			"version": "0.0.95",
-			"versionExact": "0.0.95"
+			"revision": "f90e104504181cb5c320e8199ea1a5518e9a0b34",
+			"revisionTime": "2018-11-22T16:17:59Z",
+			"version": "0.0.96",
+			"versionExact": "0.0.96"
 		},
 		{
 			"checksumSHA1": "P4YSXU1SxBKzlTMI4Bq1wNUlPtc=",
@@ -185,12 +177,12 @@
 			"versionExact": "0.0.10"
 		},
 		{
-			"checksumSHA1": "WK73gBiEgjeaoboFqI6VCt+qcCo=",
+			"checksumSHA1": "6IH15KR+vNiQDy6r/IGAy/O/Sbo=",
 			"path": "github.com/estafette/estafette-ci-manifest",
-			"revision": "cbf211e35867182333613191d5a8ce6fd2ac5e08",
-			"revisionTime": "2018-11-22T10:32:06Z",
-			"version": "0.1.45",
-			"versionExact": "0.1.45"
+			"revision": "d3f54c85b0b9809640464887399bcec399c329df",
+			"revisionTime": "2018-11-22T16:13:42Z",
+			"version": "0.1.46",
+			"versionExact": "0.1.46"
 		},
 		{
 			"checksumSHA1": "TDysVqhcacAS+H/fqk5X2egtcrA=",
