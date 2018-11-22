@@ -52,6 +52,10 @@ stages:
 
 releases:
   tooling:
+    actions:
+    - name: deploy-canary
+    - name: deploy-stable
+    - name: rollback-canary
     clone: true
     stages:
       deploy:
