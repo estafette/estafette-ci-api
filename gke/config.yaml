@@ -83,6 +83,8 @@ credentials:
   zone: {{.GKE_ZONE_1}}
   defaultNamespace: {{.GKE_DEFAULT_NAMESPACE_1}}
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_1}}'
+  defaults:
+    namespace: {{.GKE_DEFAULT_NAMESPACE_1}}
 - name: '{{.GKE_CREDENTIAL_2}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_2}}
@@ -91,6 +93,15 @@ credentials:
   zone: {{.GKE_ZONE_2}}
   defaultNamespace: {{.GKE_DEFAULT_NAMESPACE_2}}
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_2}}'
+  defaults:
+    namespace: {{.GKE_DEFAULT_NAMESPACE_2}}
+    container:
+      repository: {{.GKE_DEFAULT_REPOSITORY_2}}
+    sidecar:
+      type: openresty
+      image: {{.GKE_DEFAULT_SIDECAR_IMAGE_2}}
+    autoscale:
+      min: 1
 - name: '{{.GKE_CREDENTIAL_3}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_3}}
@@ -99,6 +110,15 @@ credentials:
   zone: {{.GKE_ZONE_3}}
   defaultNamespace: {{.GKE_DEFAULT_NAMESPACE_3}}
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_3}}'
+  defaults:
+    namespace: {{.GKE_DEFAULT_NAMESPACE_3}}
+    container:
+      repository: {{.GKE_DEFAULT_REPOSITORY_3}}
+    sidecar:
+      type: openresty
+      image: {{.GKE_DEFAULT_SIDECAR_IMAGE_3}}
+    autoscale:
+      min: 2
 - name: '{{.GKE_CREDENTIAL_4}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_4}}
@@ -107,6 +127,15 @@ credentials:
   zone: {{.GKE_ZONE_4}}
   defaultNamespace: {{.GKE_DEFAULT_NAMESPACE_4}}
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_4}}'
+  defaults:
+    namespace: {{.GKE_DEFAULT_NAMESPACE_4}}
+    container:
+      repository: {{.GKE_DEFAULT_REPOSITORY_4}}
+    sidecar:
+      type: openresty
+      image: {{.GKE_DEFAULT_SIDECAR_IMAGE_4}}
+    autoscale:
+      min: 3
 - name: {{.SLACK_WEBHOOK_NAME_1}}
   type: slack-webhook
   workspace: {{.SLACK_WEBHOOK_WORKSPACE_1}}
