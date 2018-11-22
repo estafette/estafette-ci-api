@@ -81,7 +81,6 @@ credentials:
   cluster: {{.GKE_CLUSTER_1}}
   region: {{.GKE_REGION_1}}
   zone: {{.GKE_ZONE_1}}
-  defaultNamespace: {{.GKE_DEFAULT_NAMESPACE_1}}
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_1}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_1}}
@@ -91,7 +90,6 @@ credentials:
   cluster: {{.GKE_CLUSTER_2}}
   region: {{.GKE_REGION_2}}
   zone: {{.GKE_ZONE_2}}
-  defaultNamespace: {{.GKE_DEFAULT_NAMESPACE_2}}
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_2}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_2}}
@@ -108,7 +106,6 @@ credentials:
   cluster: {{.GKE_CLUSTER_3}}
   region: {{.GKE_REGION_3}}
   zone: {{.GKE_ZONE_3}}
-  defaultNamespace: {{.GKE_DEFAULT_NAMESPACE_3}}
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_3}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_3}}
@@ -125,7 +122,6 @@ credentials:
   cluster: {{.GKE_CLUSTER_4}}
   region: {{.GKE_REGION_4}}
   zone: {{.GKE_ZONE_4}}
-  defaultNamespace: {{.GKE_DEFAULT_NAMESPACE_4}}
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_4}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_4}}

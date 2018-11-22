@@ -182,6 +182,6 @@ func TestReadConfigFromFile(t *testing.T) {
 		bytes, err := json.Marshal(credentialsConfig[2])
 
 		assert.Nil(t, err)
-		assert.Equal(t, "{\"name\":\"gke-estafette-production\",\"type\":\"kubernetes-engine\",\"additionalProperties\":{\"cluster\":\"production-europe-west2\",\"defaultNamespace\":\"estafette\",\"defaults\":{\"autoscale\":{\"min\":\"2\"},\"container\":{\"repository\":\"estafette\"},\"namespace\":\"estafette\",\"sidecar\":{\"image\":\"estafette/openresty-sidecar:1.13.6.1-alpine\",\"type\":\"openresty\"}},\"project\":\"estafette-production\",\"region\":\"europe-west2\",\"serviceAccountKeyfile\":\"{}\"}}", string(bytes))
+		assert.Equal(t, "{\"name\":\"gke-estafette-production\",\"type\":\"kubernetes-engine\",\"additionalProperties\":{\"cluster\":\"production-europe-west2\",\"defaults\":{\"autoscale\":{\"min\":\"2\"},\"container\":{\"repository\":\"estafette\"},\"namespace\":\"estafette\",\"sidecar\":{\"image\":\"estafette/openresty-sidecar:1.13.6.1-alpine\",\"type\":\"openresty\"}},\"project\":\"estafette-production\",\"region\":\"europe-west2\",\"serviceAccountKeyfile\":\"{}\"}}", string(bytes))
 	})
 }

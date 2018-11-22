@@ -60,7 +60,6 @@ credentials:
   project: estafette-production
   region: europe-west2
   cluster: production-europe-west2
-  defaultNamespace: estafette
   serviceAccountKeyfile: '{}'
   defaults:
     namespace: estafette
@@ -76,7 +75,6 @@ credentials:
   project: estafette-development
   cluster: development-europe-west2
   region: europe-west2
-  defaultNamespace: estafette
   serviceAccountKeyfile: '{}'
 - name: bitbucket-api-token
   type: bitbucket-api-token
