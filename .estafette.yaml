@@ -56,14 +56,8 @@ releases:
     - name: deploy-canary
     - name: deploy-stable
     - name: rollback-canary
-    clone: false
+    clone: true
     stages:
-      git-clone:
-        image: extensions/git-clone:dev
-        when:
-          action == 'deploy-canary' ||
-          action == 'deploy-stable'
-
       deploy:
         image: extensions/gke:dev
         namespace: estafette
