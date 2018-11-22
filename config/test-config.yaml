@@ -62,6 +62,15 @@ credentials:
   cluster: production-europe-west2
   defaultNamespace: estafette
   serviceAccountKeyfile: '{}'
+  defaults:
+    namespace: estafette
+    container:
+      repository: estafette
+    sidecar:
+      type: openresty
+      image: estafette/openresty-sidecar:1.13.6.1-alpine
+    autoscale:
+      min: 2
 - name: gke-estafette-development
   type: kubernetes-engine
   project: estafette-development

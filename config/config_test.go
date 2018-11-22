@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"testing"
 
 	crypt "github.com/estafette/estafette-ci-crypt"
@@ -167,5 +168,20 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		assert.NotNil(t, registryMirrorConfig)
 		assert.Equal(t, "https://mirror.gcr.io", *registryMirrorConfig)
+	})
+
+	t.Run("AllowsCredentialConfigWithComplexAdditionalPropertiesToBeJSONMarshalled", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		credentialsConfig := config.Credentials
+
+		bytes, err := json.Marshal(credentialsConfig[2])
+
+		assert.Nil(t, err)
+		assert.Equal(t, "{\"name\":\"gke-estafette-production\",\"type\":\"kubernetes-engine\",\"additionalProperties\":{\"cluster\":\"production-europe-west2\",\"defaultNamespace\":\"estafette\",\"defaults\":{\"autoscale\":{\"min\":\"2\"},\"container\":{\"repository\":\"estafette\"},\"namespace\":\"estafette\",\"sidecar\":{\"image\":\"estafette/openresty-sidecar:1.13.6.1-alpine\",\"type\":\"openresty\"}},\"project\":\"estafette-production\",\"region\":\"europe-west2\",\"serviceAccountKeyfile\":\"{}\"}}", string(bytes))
 	})
 }
