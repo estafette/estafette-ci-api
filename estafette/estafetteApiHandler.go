@@ -1090,7 +1090,7 @@ func (h *apiHandlerImpl) UpdateComputedPipelines(c *gin.Context) {
 	filters["since"] = h.getSinceFilter(c)
 	filters["labels"] = h.getLabelsFilter(c)
 
-	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(filters)
+	pipelinesCount, err := h.cockroachDBClient.GetPipelinesFromBuildsCount(filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Failed retrieving pipelines count from db")
@@ -1100,7 +1100,7 @@ func (h *apiHandlerImpl) UpdateComputedPipelines(c *gin.Context) {
 	totalPages := int(math.Ceil(float64(pipelinesCount) / float64(pageSize)))
 
 	for pageNumber := 1; pageNumber <= totalPages; pageNumber++ {
-		pipelines, err := h.cockroachDBClient.GetPipelines(pageNumber, pageSize, filters, false)
+		pipelines, err := h.cockroachDBClient.GetPipelinesFromBuilds(pageNumber, pageSize, filters, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msg("Failed retrieving pipelines from db")

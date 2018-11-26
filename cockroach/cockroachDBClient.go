@@ -58,8 +58,14 @@ type DBClient interface {
 	GetFirstBuildTimes() ([]time.Time, error)
 	GetFirstReleaseTimes() ([]time.Time, error)
 
+	GetPipelinesFromBuilds(int, int, map[string][]string, bool) ([]*contracts.Pipeline, error)
+	GetPipelinesFromBuildsByRepoName(string, bool) ([]*contracts.Pipeline, error)
+	GetPipelinesFromBuildsCount(map[string][]string) (int, error)
+	GetPipelineFromBuilds(string, string, string, bool) (*contracts.Pipeline, error)
+
 	selectBuildsQuery() sq.SelectBuilder
 	selectPipelinesQuery() sq.SelectBuilder
+	selectPipelinesFromBuildsQuery() sq.SelectBuilder
 	selectReleasesQuery() sq.SelectBuilder
 }
 
@@ -659,8 +665,6 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 
 	// generate query
 	query := dbc.selectPipelinesQuery().
-		LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
-		Where("b.id IS NULL").
 		OrderBy("a.repo_source,a.repo_owner,a.repo_name").
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
@@ -691,8 +695,6 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string, optimi
 
 	// generate query
 	query := dbc.selectPipelinesQuery().
-		LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
-		Where("b.id IS NULL").
 		Where(sq.Eq{"a.repo_name": repoName})
 
 	// execute query
@@ -717,9 +719,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesCount(filters map[string][]string)
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Select("COUNT(a.id)").
-			From("builds a").
-			LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
-			Where("b.id IS NULL")
+			From("computed_pipelines a")
 
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", filters)
@@ -1286,6 +1286,110 @@ func (dbc *cockroachDBClientImpl) GetFirstReleaseTimes() (releaseTimes []time.Ti
 	return
 }
 
+func (dbc *cockroachDBClientImpl) GetPipelinesFromBuilds(pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query := dbc.selectPipelinesFromBuildsQuery().
+		LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
+		Where("b.id IS NULL").
+		OrderBy("a.repo_source,a.repo_owner,a.repo_name").
+		Limit(uint64(pageSize)).
+		Offset(uint64((pageNumber - 1) * pageSize))
+
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForAllFilters(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	// execute query
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+
+	// read rows
+	if pipelines, err = dbc.scanPipelines(rows, optimized); err != nil {
+		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelinesFromBuildsByRepoName(repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query := dbc.selectPipelinesFromBuildsQuery().
+		LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
+		Where("b.id IS NULL").
+		Where(sq.Eq{"a.repo_name": repoName})
+
+	// execute query
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+
+	// read rows
+	if pipelines, err = dbc.scanPipelines(rows, optimized); err != nil {
+		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelinesFromBuildsCount(filters map[string][]string) (totalCount int, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("COUNT(a.id)").
+			From("builds a").
+			LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
+			Where("b.id IS NULL")
+
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForAllFilters(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	// execute query
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	if err = row.Scan(&totalCount); err != nil {
+		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineFromBuilds(repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query := dbc.selectPipelinesFromBuildsQuery().
+		Where(sq.Eq{"a.repo_source": repoSource}).
+		Where(sq.Eq{"a.repo_owner": repoOwner}).
+		Where(sq.Eq{"a.repo_name": repoName}).
+		OrderBy("a.inserted_at DESC").
+		Limit(uint64(1))
+
+	// execute query
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	if pipeline, err = dbc.scanPipeline(row, optimized); err != nil {
+		return
+	}
+
+	return
+}
+
 func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	query, err := whereClauseGeneratorForSinceFilter(query, alias, filters)
@@ -1644,6 +1748,14 @@ func (dbc *cockroachDBClientImpl) selectBuildsQuery() sq.SelectBuilder {
 }
 
 func (dbc *cockroachDBClientImpl) selectPipelinesQuery() sq.SelectBuilder {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	return psql.
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.inserted_at, a.updated_at, a.duration::INT").
+		From("computed_pipelines a")
+}
+
+func (dbc *cockroachDBClientImpl) selectPipelinesFromBuildsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
