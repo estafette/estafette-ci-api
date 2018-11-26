@@ -239,8 +239,8 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBu
 
 	insertedBuild = build
 
-	if err := row.Scan(&insertedBuild.ID); err != nil {
-		return insertedBuild, err
+	if err = row.Scan(&insertedBuild.ID); err != nil {
+		return
 	}
 
 	// update computed_pipeline table
@@ -338,8 +338,8 @@ func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (inse
 
 	insertedRelease = release
 
-	if err := rows.Scan(&insertedRelease.ID); err != nil {
-		return insertedRelease, err
+	if err = rows.Scan(&insertedRelease.ID); err != nil {
+		return
 	}
 
 	go dbc.UpsertComputedPipelineByRepo(insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName)
@@ -653,8 +653,6 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	pipelines = make([]*contracts.Pipeline, 0)
-
 	// generate query
 	query := dbc.selectPipelinesQuery().
 		LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
@@ -676,7 +674,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 	}
 
 	// read rows
-	if err = dbc.scanPipelines(rows, pipelines); err != nil {
+	if pipelines, err = dbc.scanPipelines(rows); err != nil {
 		return
 	}
 
@@ -686,8 +684,6 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipelines []*contracts.Pipeline, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
-	pipelines = make([]*contracts.Pipeline, 0)
 
 	// generate query
 	query := dbc.selectPipelinesQuery().
@@ -702,7 +698,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 	}
 
 	// read rows
-	if err = dbc.scanPipelines(rows, pipelines); err != nil {
+	if pipelines, err = dbc.scanPipelines(rows); err != nil {
 		return
 	}
 
@@ -729,8 +725,8 @@ func (dbc *cockroachDBClientImpl) GetPipelinesCount(filters map[string][]string)
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if err := row.Scan(&totalCount); err != nil {
-		return 0, err
+	if err = row.Scan(&totalCount); err != nil {
+		return
 	}
 
 	return
@@ -750,7 +746,7 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if err := dbc.scanPipeline(row, pipeline); err != nil {
+	if pipeline, err = dbc.scanPipeline(row); err != nil {
 		return nil, err
 	}
 
@@ -760,8 +756,6 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string) (builds []*contracts.Build, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
-	builds = make([]*contracts.Build, 0)
 
 	// generate query
 	query := dbc.selectBuildsQuery().
@@ -785,7 +779,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 	}
 
 	// read rows
-	if err = dbc.scanBuilds(rows, builds); err != nil {
+	if builds, err = dbc.scanBuilds(rows); err != nil {
 		return
 	}
 
@@ -835,8 +829,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if err := dbc.scanBuild(row, build); err != nil {
-		return nil, err
+	if build, err = dbc.scanBuild(row); err != nil {
+		return
 	}
 
 	return
@@ -857,7 +851,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if err = dbc.scanBuild(row, build); err != nil {
+	if build, err = dbc.scanBuild(row); err != nil {
 		return
 	}
 
@@ -878,7 +872,7 @@ func (dbc *cockroachDBClientImpl) GetLastPipelineBuild(repoSource, repoOwner, re
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if err = dbc.scanBuild(row, build); err != nil {
+	if build, err = dbc.scanBuild(row); err != nil {
 		return
 	}
 
@@ -903,7 +897,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 	}
 
 	// read rows
-	if err = dbc.scanBuilds(rows, builds); err != nil {
+	if builds, err = dbc.scanBuilds(rows); err != nil {
 		return
 	}
 
@@ -965,8 +959,6 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, rep
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	releases = make([]*contracts.Release, 0)
-
 	// generate query
 	query := dbc.selectReleasesQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
@@ -989,7 +981,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, rep
 	}
 
 	// read rows
-	if err = dbc.scanReleases(rows, releases); err != nil {
+	if releases, err = dbc.scanReleases(rows); err != nil {
 		return
 	}
 
@@ -1017,8 +1009,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesCount(repoSource, repoOwner
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if err := row.Scan(&totalCount); err != nil {
-		return 0, err
+	if err = row.Scan(&totalCount); err != nil {
+		return
 	}
 
 	return
@@ -1039,7 +1031,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if err = dbc.scanRelease(row, release); err != nil {
+	if release, err = dbc.scanRelease(row); err != nil {
 		return
 	}
 
@@ -1049,8 +1041,6 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(repoSource, repoOwner, repo
 func (dbc *cockroachDBClientImpl) GetPipelineLastReleasesByName(repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
-	releases = make([]contracts.Release, 0)
 
 	// generate query
 	query := dbc.selectReleasesQuery().
@@ -1076,11 +1066,12 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleasesByName(repoSource, repo
 
 	// read rows
 	releasesPointers := []*contracts.Release{}
-	if err = dbc.scanReleases(rows, releasesPointers); err != nil {
-		return
+	if releasesPointers, err = dbc.scanReleases(rows); err != nil {
+		return releases, err
 	}
 
 	// copy pointer values
+	releases = make([]contracts.Release, 0)
 	for _, r := range releasesPointers {
 		releases = append(releases, *r)
 	}
@@ -1145,8 +1136,8 @@ func (dbc *cockroachDBClientImpl) GetBuildsCount(filters map[string][]string) (t
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if err := row.Scan(&totalCount); err != nil {
-		return 0, err
+	if err = row.Scan(&totalCount); err != nil {
+		return
 	}
 
 	return
@@ -1198,8 +1189,8 @@ func (dbc *cockroachDBClientImpl) GetBuildsDuration(filters map[string][]string)
 
 	var totalDurationAsString string
 
-	if err := row.Scan(&totalDurationAsString); err != nil {
-		return 0, err
+	if err = row.Scan(&totalDurationAsString); err != nil {
+		return
 	}
 
 	totalDuration, err = time.ParseDuration(totalDurationAsString)
@@ -1237,9 +1228,9 @@ func (dbc *cockroachDBClientImpl) GetFirstBuildTimes() (buildTimes []time.Time, 
 
 		insertedAt := time.Time{}
 
-		if err := rows.Scan(
+		if err = rows.Scan(
 			&insertedAt); err != nil {
-			return nil, err
+			return
 		}
 
 		buildTimes = append(buildTimes, insertedAt)
@@ -1274,9 +1265,9 @@ func (dbc *cockroachDBClientImpl) GetFirstReleaseTimes() (releaseTimes []time.Ti
 
 		insertedAt := time.Time{}
 
-		if err := rows.Scan(
+		if err = rows.Scan(
 			&insertedAt); err != nil {
-			return nil, err
+			return
 		}
 
 		releaseTimes = append(releaseTimes, insertedAt)
@@ -1384,13 +1375,13 @@ func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, alias string, f
 	return query, nil
 }
 
-func (dbc *cockroachDBClientImpl) scanBuild(row sq.RowScanner, build *contracts.Build) error {
+func (dbc *cockroachDBClientImpl) scanBuild(row sq.RowScanner) (build *contracts.Build, err error) {
 
 	var labelsData, releaseTargetsData, commitsData []uint8
 
 	var seconds int
 
-	if err := row.Scan(
+	if err = row.Scan(
 		&build.ID,
 		&build.RepoSource,
 		&build.RepoOwner,
@@ -1406,8 +1397,7 @@ func (dbc *cockroachDBClientImpl) scanBuild(row sq.RowScanner, build *contracts.
 		&build.InsertedAt,
 		&build.UpdatedAt,
 		&seconds); err != nil {
-		build = nil
-		return err
+		return
 	}
 
 	build.Duration = time.Duration(seconds) * time.Second
@@ -1418,10 +1408,12 @@ func (dbc *cockroachDBClientImpl) scanBuild(row sq.RowScanner, build *contracts.
 	build.Manifest = ""
 	build.ManifestWithDefaults = ""
 
-	return nil
+	return
 }
 
-func (dbc *cockroachDBClientImpl) scanBuilds(rows *sql.Rows, builds []*contracts.Build) error {
+func (dbc *cockroachDBClientImpl) scanBuilds(rows *sql.Rows) (builds []*contracts.Build, err error) {
+
+	builds = make([]*contracts.Build, 0)
 
 	defer rows.Close()
 	for rows.Next() {
@@ -1430,7 +1422,7 @@ func (dbc *cockroachDBClientImpl) scanBuilds(rows *sql.Rows, builds []*contracts
 		var labelsData, releaseTargetsData, commitsData []uint8
 		var seconds int
 
-		if err := rows.Scan(
+		if err = rows.Scan(
 			&build.ID,
 			&build.RepoSource,
 			&build.RepoOwner,
@@ -1446,7 +1438,7 @@ func (dbc *cockroachDBClientImpl) scanBuilds(rows *sql.Rows, builds []*contracts
 			&build.InsertedAt,
 			&build.UpdatedAt,
 			&seconds); err != nil {
-			return err
+			return
 		}
 
 		build.Duration = time.Duration(seconds) * time.Second
@@ -1462,17 +1454,15 @@ func (dbc *cockroachDBClientImpl) scanBuilds(rows *sql.Rows, builds []*contracts
 
 	dbc.enrichBuilds(builds)
 
-	return nil
+	return
 }
 
-func (dbc *cockroachDBClientImpl) scanPipeline(row sq.RowScanner, pipeline *contracts.Pipeline) error {
+func (dbc *cockroachDBClientImpl) scanPipeline(row sq.RowScanner) (pipeline *contracts.Pipeline, err error) {
 
 	var labelsData, releaseTargetsData, commitsData []uint8
-
-	pipeline = &contracts.Pipeline{}
 	var seconds int
 
-	if err := row.Scan(
+	if err = row.Scan(
 		&pipeline.ID,
 		&pipeline.RepoSource,
 		&pipeline.RepoOwner,
@@ -1489,7 +1479,7 @@ func (dbc *cockroachDBClientImpl) scanPipeline(row sq.RowScanner, pipeline *cont
 		&pipeline.UpdatedAt,
 		&seconds); err != nil {
 		pipeline = nil
-		return err
+		return
 	}
 
 	pipeline.Duration = time.Duration(seconds) * time.Second
@@ -1503,10 +1493,12 @@ func (dbc *cockroachDBClientImpl) scanPipeline(row sq.RowScanner, pipeline *cont
 	pipeline.Manifest = ""
 	pipeline.ManifestWithDefaults = ""
 
-	return nil
+	return
 }
 
-func (dbc *cockroachDBClientImpl) scanPipelines(rows *sql.Rows, pipelines []*contracts.Pipeline) error {
+func (dbc *cockroachDBClientImpl) scanPipelines(rows *sql.Rows) (pipelines []*contracts.Pipeline, err error) {
+
+	pipelines = make([]*contracts.Pipeline, 0)
 
 	defer rows.Close()
 	for rows.Next() {
@@ -1515,7 +1507,7 @@ func (dbc *cockroachDBClientImpl) scanPipelines(rows *sql.Rows, pipelines []*con
 		var labelsData, releaseTargetsData, commitsData []uint8
 		var seconds int
 
-		if err := rows.Scan(
+		if err = rows.Scan(
 			&pipeline.ID,
 			&pipeline.RepoSource,
 			&pipeline.RepoOwner,
@@ -1531,7 +1523,7 @@ func (dbc *cockroachDBClientImpl) scanPipelines(rows *sql.Rows, pipelines []*con
 			&pipeline.InsertedAt,
 			&pipeline.UpdatedAt,
 			&seconds); err != nil {
-			return err
+			return
 		}
 
 		pipeline.Duration = time.Duration(seconds) * time.Second
@@ -1547,15 +1539,15 @@ func (dbc *cockroachDBClientImpl) scanPipelines(rows *sql.Rows, pipelines []*con
 
 	dbc.enrichPipelines(pipelines)
 
-	return nil
+	return
 }
 
-func (dbc *cockroachDBClientImpl) scanRelease(row sq.RowScanner, release *contracts.Release) error {
+func (dbc *cockroachDBClientImpl) scanRelease(row sq.RowScanner) (release *contracts.Release, err error) {
 
 	var seconds int
 	var id int
 
-	if err := row.Scan(
+	if err = row.Scan(
 		&id,
 		&release.RepoSource,
 		&release.RepoOwner,
@@ -1568,17 +1560,19 @@ func (dbc *cockroachDBClientImpl) scanRelease(row sq.RowScanner, release *contra
 		&release.InsertedAt,
 		&release.UpdatedAt,
 		&seconds); err != nil {
-		return err
+		return
 	}
 
 	duration := time.Duration(seconds) * time.Second
 	release.Duration = &duration
 	release.ID = strconv.Itoa(id)
 
-	return nil
+	return
 }
 
-func (dbc *cockroachDBClientImpl) scanReleases(rows *sql.Rows, releases []*contracts.Release) error {
+func (dbc *cockroachDBClientImpl) scanReleases(rows *sql.Rows) (releases []*contracts.Release, err error) {
+
+	releases = make([]*contracts.Release, 0)
 
 	defer rows.Close()
 	for rows.Next() {
@@ -1587,7 +1581,7 @@ func (dbc *cockroachDBClientImpl) scanReleases(rows *sql.Rows, releases []*contr
 		var seconds int
 		var id int
 
-		if err := rows.Scan(
+		if err = rows.Scan(
 			&id,
 			&release.RepoSource,
 			&release.RepoOwner,
@@ -1600,7 +1594,7 @@ func (dbc *cockroachDBClientImpl) scanReleases(rows *sql.Rows, releases []*contr
 			&release.InsertedAt,
 			&release.UpdatedAt,
 			&seconds); err != nil {
-			return err
+			return
 		}
 
 		duration := time.Duration(seconds) * time.Second
@@ -1610,7 +1604,7 @@ func (dbc *cockroachDBClientImpl) scanReleases(rows *sql.Rows, releases []*contr
 		releases = append(releases, &release)
 	}
 
-	return nil
+	return
 }
 
 func (dbc *cockroachDBClientImpl) selectBuildsQuery() sq.SelectBuilder {
