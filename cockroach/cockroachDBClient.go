@@ -526,9 +526,11 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipelineByRepo(repoSource, repoO
 	// get computed pipeline
 	lastBuild, err := dbc.GetLastPipelineBuild(repoSource, repoOwner, repoName)
 	if err != nil {
+		log.Error().Err(err).Msgf("Failed getting last build for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
 		return
 	}
 	if lastBuild == nil {
+		log.Error().Msgf("Failed getting last build for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
 		return
 	}
 
@@ -549,14 +551,17 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(pipeline *contracts.Pip
 
 	labelsBytes, err := json.Marshal(upsertedPipeline.Labels)
 	if err != nil {
+		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
 		return
 	}
 	releaseTargetsBytes, err := json.Marshal(upsertedPipeline.ReleaseTargets)
 	if err != nil {
+		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
 		return
 	}
 	commitsBytes, err := json.Marshal(upsertedPipeline.Commits)
 	if err != nil {
+		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
 		return
 	}
 
@@ -637,6 +642,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(pipeline *contracts.Pip
 		upsertedPipeline.Duration,
 	)
 	if err != nil {
+		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
 		return
 	}
 
