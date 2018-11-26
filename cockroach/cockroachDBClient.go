@@ -44,6 +44,7 @@ type DBClient interface {
 	GetPipelineBuildsCount(string, string, string, map[string][]string) (int, error)
 	GetPipelineBuild(string, string, string, string) (*contracts.Build, error)
 	GetPipelineBuildByID(string, string, string, int) (*contracts.Build, error)
+	GetLastPipelineBuild(string, string, string) (*contracts.Build, error)
 	GetPipelineBuildsByVersion(string, string, string, string) ([]*contracts.Build, error)
 	GetPipelineBuildLogs(string, string, string, string, string, string) (*contracts.BuildLog, error)
 	GetPipelineReleases(string, string, string, int, int, map[string][]string) ([]*contracts.Release, error)
@@ -523,13 +524,16 @@ func (dbc *cockroachDBClientImpl) InsertReleaseLog(releaseLog contracts.ReleaseL
 func (dbc *cockroachDBClientImpl) UpsertComputedPipelineByRepo(repoSource, repoOwner, repoName string) (upsertedPipeline *contracts.Pipeline, err error) {
 
 	// get computed pipeline
-	upsertedPipeline, err = dbc.GetPipeline(repoSource, repoOwner, repoName)
+	lastBuild, err := dbc.GetLastPipelineBuild(repoSource, repoOwner, repoName)
 	if err != nil {
+		return
+	}
+	if lastBuild == nil {
 		return
 	}
 
 	// get build for release
-	return dbc.UpsertComputedPipeline(upsertedPipeline)
+	return dbc.UpsertComputedPipeline(dbc.mapBuildToPipeline(lastBuild))
 }
 
 func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(pipeline *contracts.Pipeline) (upsertedPipeline *contracts.Pipeline, err error) {
@@ -839,6 +843,27 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 	// generate query
 	query := dbc.selectBuildsQuery().
 		Where(sq.Eq{"a.id": id}).
+		Where(sq.Eq{"a.repo_source": repoSource}).
+		Where(sq.Eq{"a.repo_owner": repoOwner}).
+		Where(sq.Eq{"a.repo_name": repoName}).
+		OrderBy("a.inserted_at DESC").
+		Limit(uint64(1))
+
+	// execute query
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	if err = dbc.scanBuild(row, build); err != nil {
+		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetLastPipelineBuild(repoSource, repoOwner, repoName string) (build *contracts.Build, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query := dbc.selectBuildsQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
