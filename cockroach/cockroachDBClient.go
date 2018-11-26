@@ -1663,17 +1663,7 @@ func (dbc *cockroachDBClientImpl) selectReleaseLogsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select(`
-			a.id,
-			a.repo_source,
-			a.repo_owner,
-			a.repo_name,
-			a.repo_branch,
-			a.repo_revision,
-			a.build_id,
-			a.steps,
-			a.inserted_at
-			`).
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release_id, a.steps, a.inserted_at").
 		From("release_logs a")
 }
 
