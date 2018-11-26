@@ -937,6 +937,9 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 		&rowBuildID,
 		&stepsData,
 		&buildLog.InsertedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return
 	}
 
@@ -1110,6 +1113,9 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogs(repoSource, repoOwner, 
 		&releaseID,
 		&stepsData,
 		&releaseLog.InsertedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return
 	}
 
