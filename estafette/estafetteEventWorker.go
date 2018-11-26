@@ -104,24 +104,12 @@ func (w *eventWorkerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) (err 
 
 		log.Debug().Msgf("Converted build id %v", buildID)
 
-		err = w.cockroachDBClient.UpdateBuildStatusByID(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, buildID, ciBuilderEvent.BuildStatus)
+		err = w.cockroachDBClient.UpdateBuildStatus(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, buildID, ciBuilderEvent.BuildStatus)
 		if err != nil {
 			return err
 		}
 
 		log.Debug().Msgf("Updated build status for job %v to %v", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
-
-		return err
-
-		// check build status for backwards compatibility of builder
-	} else if ciBuilderEvent.BuildStatus != "" {
-
-		err := w.cockroachDBClient.UpdateBuildStatus(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, ciBuilderEvent.RepoBranch, ciBuilderEvent.RepoRevision, ciBuilderEvent.BuildStatus)
-		if err != nil {
-			return err
-		}
-
-		log.Debug().Msgf("Updated build status for job %v", ciBuilderEvent.JobName)
 
 		return err
 	}

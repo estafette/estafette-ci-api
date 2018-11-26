@@ -442,7 +442,8 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 		// job might not have created a builder yet, so set status to canceled straightaway
 		buildStatus = "canceled"
 	}
-	err = h.cockroachDBClient.UpdateBuildStatusByID(build.RepoSource, build.RepoOwner, build.RepoName, id, buildStatus)
+	build.BuildStatus = buildStatus
+	err = h.cockroachDBClient.UpdateBuildStatus(build.RepoSource, build.RepoOwner, build.RepoName, id, buildStatus)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed updating build status for %v/%v/%v/builds/%v in db", source, owner, repo, revisionOrID)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline build status to canceling"})
