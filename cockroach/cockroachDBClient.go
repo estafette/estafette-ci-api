@@ -1673,7 +1673,7 @@ func (dbc *cockroachDBClientImpl) selectReleasesQuery() sq.SelectBuilder {
 			a.updated_at,
 			a.duration::INT
 			`).
-		From("release a")
+		From("releases a")
 }
 
 func (dbc *cockroachDBClientImpl) selectBuildLogsQuery() sq.SelectBuilder {
