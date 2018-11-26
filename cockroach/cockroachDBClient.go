@@ -751,7 +751,7 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if pipeline, err = dbc.scanPipeline(row); err != nil {
-		return nil, err
+		return
 	}
 
 	return
@@ -1381,8 +1381,8 @@ func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, alias string, f
 
 func (dbc *cockroachDBClientImpl) scanBuild(row sq.RowScanner) (build *contracts.Build, err error) {
 
+	build = &contracts.Build{}
 	var labelsData, releaseTargetsData, commitsData []uint8
-
 	var seconds int
 
 	if err = row.Scan(
@@ -1401,6 +1401,9 @@ func (dbc *cockroachDBClientImpl) scanBuild(row sq.RowScanner) (build *contracts
 		&build.InsertedAt,
 		&build.UpdatedAt,
 		&seconds); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return
 	}
 
@@ -1463,6 +1466,7 @@ func (dbc *cockroachDBClientImpl) scanBuilds(rows *sql.Rows) (builds []*contract
 
 func (dbc *cockroachDBClientImpl) scanPipeline(row sq.RowScanner) (pipeline *contracts.Pipeline, err error) {
 
+	pipeline = &contracts.Pipeline{}
 	var labelsData, releaseTargetsData, commitsData []uint8
 	var seconds int
 
@@ -1482,7 +1486,9 @@ func (dbc *cockroachDBClientImpl) scanPipeline(row sq.RowScanner) (pipeline *con
 		&pipeline.InsertedAt,
 		&pipeline.UpdatedAt,
 		&seconds); err != nil {
-		pipeline = nil
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return
 	}
 
@@ -1548,6 +1554,7 @@ func (dbc *cockroachDBClientImpl) scanPipelines(rows *sql.Rows) (pipelines []*co
 
 func (dbc *cockroachDBClientImpl) scanRelease(row sq.RowScanner) (release *contracts.Release, err error) {
 
+	release = &contracts.Release{}
 	var seconds int
 	var id int
 
@@ -1564,6 +1571,9 @@ func (dbc *cockroachDBClientImpl) scanRelease(row sq.RowScanner) (release *contr
 		&release.InsertedAt,
 		&release.UpdatedAt,
 		&seconds); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return
 	}
 
