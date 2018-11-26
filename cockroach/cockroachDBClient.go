@@ -573,7 +573,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(pipeline *contracts.Pip
 	_, err = dbc.databaseConnection.Exec(
 		`
 		INSERT INTO
-			computed_pipeline
+			computed_pipelines
 		(
 			pipeline_id,
 			repo_source,
