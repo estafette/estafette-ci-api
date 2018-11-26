@@ -613,7 +613,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(pipeline *contracts.Pip
 		(
 			repo_source,
 			repo_owner,
-			repo_name,
+			repo_name
 		)
 		DO UPDATE SET
 			pipeline_id = excluded.pipeline_id,
