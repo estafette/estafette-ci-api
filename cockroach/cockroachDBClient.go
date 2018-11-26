@@ -57,6 +57,10 @@ type DBClient interface {
 	GetBuildsDuration(map[string][]string) (time.Duration, error)
 	GetFirstBuildTimes() ([]time.Time, error)
 	GetFirstReleaseTimes() ([]time.Time, error)
+
+	selectBuildsQuery() sq.SelectBuilder
+	selectPipelinesQuery() sq.SelectBuilder
+	selectReleasesQuery() sq.SelectBuilder
 }
 
 type cockroachDBClientImpl struct {
@@ -762,7 +766,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
-		OrderBy("inserted_at DESC").
+		OrderBy("a.inserted_at DESC").
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
@@ -1611,23 +1615,7 @@ func (dbc *cockroachDBClientImpl) selectBuildsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select(`
-			a.id,
-			a.repo_source,
-			a.repo_owner,
-			a.repo_name,
-			a.repo_branch,
-			a.repo_revision,
-			a.build_version,
-			a.build_status,
-			a.labels,
-			a.release_targets,
-			a.manifest,
-			a.commits,
-			a.inserted_at,
-			a.updated_at,
-			a.duration::INT
-			`).
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.inserted_at, a.updated_at, a.duration::INT").
 		From("builds a")
 }
 
@@ -1635,23 +1623,7 @@ func (dbc *cockroachDBClientImpl) selectPipelinesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select(`
-			a.id,
-			a.repo_source,
-			a.repo_owner,
-			a.repo_name,
-			a.repo_branch,
-			a.repo_revision,
-			a.build_version,
-			a.build_status,
-			a.labels,
-			a.release_targets,
-			a.manifest,
-			a.commits,
-			a.inserted_at,
-			a.updated_at,
-			a.duration::INT
-			`).
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.inserted_at, a.updated_at, a.duration::INT").
 		From("builds a")
 }
 
@@ -1659,20 +1631,7 @@ func (dbc *cockroachDBClientImpl) selectReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select(`
-			a.id,
-			a.repo_source,
-			a.repo_owner,
-			a.repo_name,
-			a.release,
-			a.release_action,
-			a.release_version,
-			a.release_status,
-			a.triggered_by,
-			a.inserted_at,
-			a.updated_at,
-			a.duration::INT
-			`).
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.triggered_by, a.inserted_at, a.updated_at, a.duration::INT").
 		From("releases a")
 }
 
@@ -1680,17 +1639,7 @@ func (dbc *cockroachDBClientImpl) selectBuildLogsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select(`
-			a.id,
-			a.repo_source,
-			a.repo_owner,
-			a.repo_name,
-			a.repo_branch,
-			a.repo_revision,
-			a.build_id,
-			a.steps,
-			a.inserted_at
-			`).
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_id, a.steps, a.inserted_at").
 		From("build_logs_v2 a")
 }
 
