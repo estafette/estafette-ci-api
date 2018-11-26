@@ -125,7 +125,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 					var pipeline *contracts.Pipeline
 					if len(fullRepoNameArray) == 1 {
-						pipelines, err := h.cockroachDBClient.GetPipelinesByRepoName(fullRepoName)
+						pipelines, err := h.cockroachDBClient.GetPipelinesByRepoName(fullRepoName, false)
 						if err != nil {
 							log.Error().Err(err).Msgf("Failed retrieving pipelines for repo name %v by name", fullRepoName)
 							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
@@ -145,7 +145,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 						}
 						pipeline = pipelines[0]
 					} else {
-						pipeline, err := h.cockroachDBClient.GetPipeline(fullRepoNameArray[0], fullRepoNameArray[1], fullRepoNameArray[2])
+						pipeline, err := h.cockroachDBClient.GetPipeline(fullRepoNameArray[0], fullRepoNameArray[1], fullRepoNameArray[2], false)
 						if err != nil {
 							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
 							return
@@ -157,7 +157,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					}
 
 					// check if version exists
-					builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion)
+					builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion, false)
 
 					if err != nil {
 						c.String(http.StatusOK, fmt.Sprintf("Retrieving the build for repository %v and version %v from the database failed: %v", fullRepoName, buildVersion, err))

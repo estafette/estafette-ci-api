@@ -100,7 +100,7 @@ func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 	filters["since"] = h.getSinceFilter(c)
 	filters["labels"] = h.getLabelsFilter(c)
 
-	pipelines, err := h.cockroachDBClient.GetPipelines(pageNumber, pageSize, filters)
+	pipelines, err := h.cockroachDBClient.GetPipelines(pageNumber, pageSize, filters, true)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Failed retrieving pipelines from db")
@@ -134,7 +134,7 @@ func (h *apiHandlerImpl) GetPipeline(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	pipeline, err := h.cockroachDBClient.GetPipeline(source, owner, repo)
+	pipeline, err := h.cockroachDBClient.GetPipeline(source, owner, repo, true)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
@@ -174,7 +174,7 @@ func (h *apiHandlerImpl) GetPipelineBuilds(c *gin.Context) {
 	filters["since"] = h.getSinceFilter(c)
 	filters["labels"] = h.getLabelsFilter(c)
 
-	builds, err := h.cockroachDBClient.GetPipelineBuilds(source, owner, repo, pageNumber, pageSize, filters)
+	builds, err := h.cockroachDBClient.GetPipelineBuilds(source, owner, repo, pageNumber, pageSize, filters, true)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving builds for %v/%v/%v from db", source, owner, repo)
@@ -210,7 +210,7 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 	revisionOrID := c.Param("revisionOrId")
 
 	if len(revisionOrID) == 40 {
-		build, err := h.cockroachDBClient.GetPipelineBuild(source, owner, repo, revisionOrID)
+		build, err := h.cockroachDBClient.GetPipelineBuild(source, owner, repo, revisionOrID, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
@@ -230,7 +230,7 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
 	}
 
-	build, err := h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id)
+	build, err := h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id, false)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, id)
@@ -267,7 +267,7 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	}
 
 	// check if version exists and is valid to re-run
-	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion)
+	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, false)
 
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
@@ -422,7 +422,7 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 	}
 
 	// retrieve build
-	build, err := h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id)
+	build, err := h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Retrieving pipeline build failed"})
@@ -462,7 +462,7 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 	var build *contracts.Build
 	var err error
 	if len(revisionOrID) == 40 {
-		build, err = h.cockroachDBClient.GetPipelineBuild(source, owner, repo, revisionOrID)
+		build, err = h.cockroachDBClient.GetPipelineBuild(source, owner, repo, revisionOrID, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
@@ -475,7 +475,7 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
 		}
 
-		build, err = h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id)
+		build, err = h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, id)
@@ -649,7 +649,7 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 	}
 
-	pipeline, err := h.cockroachDBClient.GetPipeline(releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
+	pipeline, err := h.cockroachDBClient.GetPipeline(releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving pipeline %v/%v/%v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
 		log.Error().Err(err).Msg(errorMessage)
@@ -662,7 +662,7 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 	}
 
 	// check if version exists and is valid to release
-	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
+	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
 		log.Error().Err(err).Msg(errorMessage)
@@ -1100,7 +1100,7 @@ func (h *apiHandlerImpl) UpdateComputedPipelines(c *gin.Context) {
 	totalPages := int(math.Ceil(float64(pipelinesCount) / float64(pageSize)))
 
 	for pageNumber := 1; pageNumber <= totalPages; pageNumber++ {
-		pipelines, err := h.cockroachDBClient.GetPipelines(pageNumber, pageSize, filters)
+		pipelines, err := h.cockroachDBClient.GetPipelines(pageNumber, pageSize, filters, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msg("Failed retrieving pipelines from db")

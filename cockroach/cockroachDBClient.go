@@ -36,16 +36,16 @@ type DBClient interface {
 	UpsertComputedPipelineByRepo(string, string, string) (*contracts.Pipeline, error)
 	UpsertComputedPipeline(*contracts.Pipeline) (*contracts.Pipeline, error)
 
-	GetPipelines(int, int, map[string][]string) ([]*contracts.Pipeline, error)
-	GetPipelinesByRepoName(string) ([]*contracts.Pipeline, error)
+	GetPipelines(int, int, map[string][]string, bool) ([]*contracts.Pipeline, error)
+	GetPipelinesByRepoName(string, bool) ([]*contracts.Pipeline, error)
 	GetPipelinesCount(map[string][]string) (int, error)
-	GetPipeline(string, string, string) (*contracts.Pipeline, error)
-	GetPipelineBuilds(string, string, string, int, int, map[string][]string) ([]*contracts.Build, error)
+	GetPipeline(string, string, string, bool) (*contracts.Pipeline, error)
+	GetPipelineBuilds(string, string, string, int, int, map[string][]string, bool) ([]*contracts.Build, error)
 	GetPipelineBuildsCount(string, string, string, map[string][]string) (int, error)
-	GetPipelineBuild(string, string, string, string) (*contracts.Build, error)
-	GetPipelineBuildByID(string, string, string, int) (*contracts.Build, error)
-	GetLastPipelineBuild(string, string, string) (*contracts.Build, error)
-	GetPipelineBuildsByVersion(string, string, string, string) ([]*contracts.Build, error)
+	GetPipelineBuild(string, string, string, string, bool) (*contracts.Build, error)
+	GetPipelineBuildByID(string, string, string, int, bool) (*contracts.Build, error)
+	GetLastPipelineBuild(string, string, string, bool) (*contracts.Build, error)
+	GetPipelineBuildsByVersion(string, string, string, string, bool) ([]*contracts.Build, error)
 	GetPipelineBuildLogs(string, string, string, string, string, string) (*contracts.BuildLog, error)
 	GetPipelineReleases(string, string, string, int, int, map[string][]string) ([]*contracts.Release, error)
 	GetPipelineReleasesCount(string, string, string, map[string][]string) (int, error)
@@ -528,7 +528,7 @@ func (dbc *cockroachDBClientImpl) InsertReleaseLog(releaseLog contracts.ReleaseL
 func (dbc *cockroachDBClientImpl) UpsertComputedPipelineByRepo(repoSource, repoOwner, repoName string) (upsertedPipeline *contracts.Pipeline, err error) {
 
 	// get computed pipeline
-	lastBuild, err := dbc.GetLastPipelineBuild(repoSource, repoOwner, repoName)
+	lastBuild, err := dbc.GetLastPipelineBuild(repoSource, repoOwner, repoName, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last build for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
 		return
@@ -653,7 +653,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(pipeline *contracts.Pip
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters map[string][]string) (pipelines []*contracts.Pipeline, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
@@ -678,14 +678,14 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 	}
 
 	// read rows
-	if pipelines, err = dbc.scanPipelines(rows); err != nil {
+	if pipelines, err = dbc.scanPipelines(rows, optimized); err != nil {
 		return
 	}
 
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipelines []*contracts.Pipeline, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
@@ -702,7 +702,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(repoName string) (pipel
 	}
 
 	// read rows
-	if pipelines, err = dbc.scanPipelines(rows); err != nil {
+	if pipelines, err = dbc.scanPipelines(rows, optimized); err != nil {
 		return
 	}
 
@@ -736,7 +736,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesCount(filters map[string][]string)
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName string) (pipeline *contracts.Pipeline, err error) {
+func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
@@ -750,14 +750,14 @@ func (dbc *cockroachDBClientImpl) GetPipeline(repoSource, repoOwner, repoName st
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if pipeline, err = dbc.scanPipeline(row); err != nil {
+	if pipeline, err = dbc.scanPipeline(row, optimized); err != nil {
 		return
 	}
 
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string) (builds []*contracts.Build, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, optimized bool) (builds []*contracts.Build, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
@@ -783,7 +783,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 	}
 
 	// read rows
-	if builds, err = dbc.scanBuilds(rows); err != nil {
+	if builds, err = dbc.scanBuilds(rows, optimized); err != nil {
 		return
 	}
 
@@ -818,7 +818,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsCount(repoSource, repoOwner, 
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoName, repoRevision string) (build *contracts.Build, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoName, repoRevision string, optimized bool) (build *contracts.Build, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
@@ -833,14 +833,14 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if build, err = dbc.scanBuild(row); err != nil {
+	if build, err = dbc.scanBuild(row, optimized); err != nil {
 		return
 	}
 
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, repoName string, id int) (build *contracts.Build, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, repoName string, id int, optimized bool) (build *contracts.Build, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
@@ -855,14 +855,14 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if build, err = dbc.scanBuild(row); err != nil {
+	if build, err = dbc.scanBuild(row, optimized); err != nil {
 		return
 	}
 
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetLastPipelineBuild(repoSource, repoOwner, repoName string) (build *contracts.Build, err error) {
+func (dbc *cockroachDBClientImpl) GetLastPipelineBuild(repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
@@ -876,14 +876,14 @@ func (dbc *cockroachDBClientImpl) GetLastPipelineBuild(repoSource, repoOwner, re
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if build, err = dbc.scanBuild(row); err != nil {
+	if build, err = dbc.scanBuild(row, optimized); err != nil {
 		return
 	}
 
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwner, repoName, buildVersion string) (builds []*contracts.Build, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwner, repoName, buildVersion string, optimized bool) (builds []*contracts.Build, err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
@@ -901,7 +901,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(repoSource, repoOwn
 	}
 
 	// read rows
-	if builds, err = dbc.scanBuilds(rows); err != nil {
+	if builds, err = dbc.scanBuilds(rows, optimized); err != nil {
 		return
 	}
 
@@ -1385,7 +1385,7 @@ func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, alias string, f
 	return query, nil
 }
 
-func (dbc *cockroachDBClientImpl) scanBuild(row sq.RowScanner) (build *contracts.Build, err error) {
+func (dbc *cockroachDBClientImpl) scanBuild(row sq.RowScanner, optimized bool) (build *contracts.Build, err error) {
 
 	build = &contracts.Build{}
 	var labelsData, releaseTargetsData, commitsData []uint8
@@ -1415,16 +1415,18 @@ func (dbc *cockroachDBClientImpl) scanBuild(row sq.RowScanner) (build *contracts
 
 	build.Duration = time.Duration(seconds) * time.Second
 
-	dbc.setBuildPropertiesFromJSONB(build, labelsData, releaseTargetsData, commitsData)
+	dbc.setBuildPropertiesFromJSONB(build, labelsData, releaseTargetsData, commitsData, optimized)
 
-	// clear some properties for reduced size and improved performance over the network
-	build.Manifest = ""
-	build.ManifestWithDefaults = ""
+	if optimized {
+		// clear some properties for reduced size and improved performance over the network
+		build.Manifest = ""
+		build.ManifestWithDefaults = ""
+	}
 
 	return
 }
 
-func (dbc *cockroachDBClientImpl) scanBuilds(rows *sql.Rows) (builds []*contracts.Build, err error) {
+func (dbc *cockroachDBClientImpl) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contracts.Build, err error) {
 
 	builds = make([]*contracts.Build, 0)
 
@@ -1456,11 +1458,13 @@ func (dbc *cockroachDBClientImpl) scanBuilds(rows *sql.Rows) (builds []*contract
 
 		build.Duration = time.Duration(seconds) * time.Second
 
-		dbc.setBuildPropertiesFromJSONB(&build, labelsData, releaseTargetsData, commitsData)
+		dbc.setBuildPropertiesFromJSONB(&build, labelsData, releaseTargetsData, commitsData, optimized)
 
-		// clear some properties for reduced size and improved performance over the network
-		build.Manifest = ""
-		build.ManifestWithDefaults = ""
+		if optimized {
+			// clear some properties for reduced size and improved performance over the network
+			build.Manifest = ""
+			build.ManifestWithDefaults = ""
+		}
 
 		builds = append(builds, &build)
 	}
@@ -1470,7 +1474,7 @@ func (dbc *cockroachDBClientImpl) scanBuilds(rows *sql.Rows) (builds []*contract
 	return
 }
 
-func (dbc *cockroachDBClientImpl) scanPipeline(row sq.RowScanner) (pipeline *contracts.Pipeline, err error) {
+func (dbc *cockroachDBClientImpl) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *contracts.Pipeline, err error) {
 
 	pipeline = &contracts.Pipeline{}
 	var labelsData, releaseTargetsData, commitsData []uint8
@@ -1500,19 +1504,21 @@ func (dbc *cockroachDBClientImpl) scanPipeline(row sq.RowScanner) (pipeline *con
 
 	pipeline.Duration = time.Duration(seconds) * time.Second
 
-	dbc.setPipelinePropertiesFromJSONB(pipeline, labelsData, releaseTargetsData, commitsData)
+	dbc.setPipelinePropertiesFromJSONB(pipeline, labelsData, releaseTargetsData, commitsData, optimized)
 
 	// set released versions
 	dbc.enrichPipeline(pipeline)
 
-	// clear some properties for reduced size and improved performance over the network
-	pipeline.Manifest = ""
-	pipeline.ManifestWithDefaults = ""
+	if optimized {
+		// clear some properties for reduced size and improved performance over the network
+		pipeline.Manifest = ""
+		pipeline.ManifestWithDefaults = ""
+	}
 
 	return
 }
 
-func (dbc *cockroachDBClientImpl) scanPipelines(rows *sql.Rows) (pipelines []*contracts.Pipeline, err error) {
+func (dbc *cockroachDBClientImpl) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 
 	pipelines = make([]*contracts.Pipeline, 0)
 
@@ -1544,11 +1550,13 @@ func (dbc *cockroachDBClientImpl) scanPipelines(rows *sql.Rows) (pipelines []*co
 
 		pipeline.Duration = time.Duration(seconds) * time.Second
 
-		dbc.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releaseTargetsData, commitsData)
+		dbc.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releaseTargetsData, commitsData, optimized)
 
-		// clear some properties for reduced size and improved performance over the network
-		pipeline.Manifest = ""
-		pipeline.ManifestWithDefaults = ""
+		if optimized {
+			// clear some properties for reduced size and improved performance over the network
+			pipeline.Manifest = ""
+			pipeline.ManifestWithDefaults = ""
+		}
 
 		pipelines = append(pipelines, &pipeline)
 	}
@@ -1701,7 +1709,7 @@ func (dbc *cockroachDBClientImpl) enrichBuild(build *contracts.Build) {
 	dbc.getLatestReleasesForBuild(build)
 }
 
-func (dbc *cockroachDBClientImpl) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, labelsData, releaseTargetsData, commitsData []uint8) (err error) {
+func (dbc *cockroachDBClientImpl) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, labelsData, releaseTargetsData, commitsData []uint8, optimized bool) (err error) {
 
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &pipeline.Labels); err != nil {
@@ -1724,24 +1732,26 @@ func (dbc *cockroachDBClientImpl) setPipelinePropertiesFromJSONB(pipeline *contr
 		}
 	}
 
-	// unmarshal then marshal manifest to include defaults
-	var manifest manifest.EstafetteManifest
-	err = yaml.Unmarshal([]byte(pipeline.Manifest), &manifest)
-	if err == nil {
-		manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+	if !optimized {
+		// unmarshal then marshal manifest to include defaults
+		var manifest manifest.EstafetteManifest
+		err = yaml.Unmarshal([]byte(pipeline.Manifest), &manifest)
 		if err == nil {
-			pipeline.ManifestWithDefaults = string(manifestWithDefaultBytes)
+			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+			if err == nil {
+				pipeline.ManifestWithDefaults = string(manifestWithDefaultBytes)
+			} else {
+				log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
+			}
 		} else {
-			log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
+			log.Warn().Err(err).Str("manifest", pipeline.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
 		}
-	} else {
-		log.Warn().Err(err).Str("manifest", pipeline.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
 	}
 
 	return
 }
 
-func (dbc *cockroachDBClientImpl) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData, releaseTargetsData, commitsData []uint8) (err error) {
+func (dbc *cockroachDBClientImpl) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData, releaseTargetsData, commitsData []uint8, optimized bool) (err error) {
 
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
@@ -1764,18 +1774,20 @@ func (dbc *cockroachDBClientImpl) setBuildPropertiesFromJSONB(build *contracts.B
 		}
 	}
 
-	// unmarshal then marshal manifest to include defaults
-	var manifest manifest.EstafetteManifest
-	err = yaml.Unmarshal([]byte(build.Manifest), &manifest)
-	if err == nil {
-		manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+	if !optimized {
+		// unmarshal then marshal manifest to include defaults
+		var manifest manifest.EstafetteManifest
+		err = yaml.Unmarshal([]byte(build.Manifest), &manifest)
 		if err == nil {
-			build.ManifestWithDefaults = string(manifestWithDefaultBytes)
+			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+			if err == nil {
+				build.ManifestWithDefaults = string(manifestWithDefaultBytes)
+			} else {
+				log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+			}
 		} else {
-			log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+			log.Warn().Err(err).Str("manifest", build.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 		}
-	} else {
-		log.Warn().Err(err).Str("manifest", build.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 	}
 
 	return
