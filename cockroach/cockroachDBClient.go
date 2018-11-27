@@ -1022,7 +1022,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(repoSource, repoOwner, repoNa
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if build, err = dbc.scanBuild(row, optimized); err != nil {
+	if build, err = dbc.scanBuild(row, optimized, true); err != nil {
 		return
 	}
 
@@ -1044,7 +1044,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(repoSource, repoOwner, re
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if build, err = dbc.scanBuild(row, optimized); err != nil {
+	if build, err = dbc.scanBuild(row, optimized, true); err != nil {
 		return
 	}
 
@@ -1065,7 +1065,7 @@ func (dbc *cockroachDBClientImpl) GetLastPipelineBuild(repoSource, repoOwner, re
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if build, err = dbc.scanBuild(row, optimized); err != nil {
+	if build, err = dbc.scanBuild(row, optimized, false); err != nil {
 		return
 	}
 
@@ -1086,7 +1086,7 @@ func (dbc *cockroachDBClientImpl) GetFirstPipelineBuild(repoSource, repoOwner, r
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if build, err = dbc.scanBuild(row, optimized); err != nil {
+	if build, err = dbc.scanBuild(row, optimized, false); err != nil {
 		return
 	}
 
@@ -1636,7 +1636,7 @@ func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, alias string, f
 	return query, nil
 }
 
-func (dbc *cockroachDBClientImpl) scanBuild(row sq.RowScanner, optimized bool) (build *contracts.Build, err error) {
+func (dbc *cockroachDBClientImpl) scanBuild(row sq.RowScanner, optimized, enriched bool) (build *contracts.Build, err error) {
 
 	build = &contracts.Build{}
 	var labelsData, releaseTargetsData, commitsData []uint8
@@ -1667,6 +1667,10 @@ func (dbc *cockroachDBClientImpl) scanBuild(row sq.RowScanner, optimized bool) (
 	build.Duration = time.Duration(seconds) * time.Second
 
 	dbc.setBuildPropertiesFromJSONB(build, labelsData, releaseTargetsData, commitsData, optimized)
+
+	if enriched {
+		dbc.enrichBuild(build)
+	}
 
 	if optimized {
 		// clear some properties for reduced size and improved performance over the network
@@ -1754,9 +1758,6 @@ func (dbc *cockroachDBClientImpl) scanPipeline(row sq.RowScanner, optimized bool
 	pipeline.Duration = time.Duration(seconds) * time.Second
 
 	dbc.setPipelinePropertiesFromJSONB(pipeline, labelsData, releaseTargetsData, commitsData, optimized)
-
-	// set released versions
-	dbc.enrichPipeline(pipeline)
 
 	if optimized {
 		// clear some properties for reduced size and improved performance over the network
@@ -2031,8 +2032,6 @@ func (dbc *cockroachDBClientImpl) getLatestReleasesForBuild(build *contracts.Bui
 }
 
 func (dbc *cockroachDBClientImpl) getLatestReleases(releaseTargets []contracts.ReleaseTarget, repoSource, repoOwner, repoName string) []contracts.ReleaseTarget {
-
-	// todo retrieve all latest releases per action
 
 	// set latest release version per release targets
 	updatedReleaseTargets := make([]contracts.ReleaseTarget, 0)
