@@ -430,7 +430,7 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(buildLog contracts.BuildLog) (e
 		_, err = dbc.databaseConnection.Exec(
 			`
 			INSERT INTO
-				build_logs_v2
+				build_logs
 			(
 				repo_source,
 				repo_owner,
@@ -468,7 +468,7 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(buildLog contracts.BuildLog) (e
 	_, err = dbc.databaseConnection.Exec(
 		`
 		INSERT INTO
-			build_logs_v2
+			build_logs
 		(
 			repo_source,
 			repo_owner,
@@ -2011,7 +2011,7 @@ func (dbc *cockroachDBClientImpl) selectBuildLogsQuery() sq.SelectBuilder {
 
 	return psql.
 		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_id, a.steps, a.inserted_at").
-		From("build_logs_v2 a")
+		From("build_logs a")
 }
 
 func (dbc *cockroachDBClientImpl) selectReleaseLogsQuery() sq.SelectBuilder {
