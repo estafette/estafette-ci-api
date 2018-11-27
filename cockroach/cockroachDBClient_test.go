@@ -120,22 +120,6 @@ func TestQueryBuilder(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "SELECT a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.inserted_at, a.updated_at, a.duration::INT FROM computed_pipelines a ORDER BY a.repo_source,a.repo_owner,a.repo_name LIMIT 2 OFFSET 20", sql)
 	})
-
-	t.Run("GeneratesGetPipelinesFromBuildsQuery", func(t *testing.T) {
-
-		query := cdbClient.selectPipelinesFromBuildsQuery().
-			LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at").
-			Where("b.id IS NULL").
-			OrderBy("a.repo_source,a.repo_owner,a.repo_name").
-			Limit(uint64(2)).
-			Offset(uint64((2 - 1) * 20))
-
-		// act
-		sql, _, err := query.ToSql()
-
-		assert.Nil(t, err)
-		assert.Equal(t, "SELECT a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.inserted_at, a.updated_at, a.duration::INT FROM builds a LEFT JOIN builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at < b.inserted_at WHERE b.id IS NULL ORDER BY a.repo_source,a.repo_owner,a.repo_name LIMIT 2 OFFSET 20", sql)
-	})
 }
 
 func TestAutoincrement(t *testing.T) {

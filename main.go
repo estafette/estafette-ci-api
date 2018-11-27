@@ -11,8 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/estafette/estafette-ci-crypt"
-
 	"github.com/alecthomas/kingpin"
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/bitbucket"
@@ -23,6 +21,7 @@ import (
 	"github.com/estafette/estafette-ci-api/github"
 	ghcontracts "github.com/estafette/estafette-ci-api/github/contracts"
 	"github.com/estafette/estafette-ci-api/slack"
+	"github.com/estafette/estafette-ci-crypt"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
@@ -269,7 +268,6 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		iapAuthorizedRoutes.DELETE("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteAPIHandler.CancelPipelineBuild)
 		iapAuthorizedRoutes.DELETE("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteAPIHandler.CancelPipelineRelease)
 		iapAuthorizedRoutes.GET("/api/users/me", estafetteAPIHandler.GetLoggedInUser)
-		iapAuthorizedRoutes.GET("/api/update-computed-pipelines", estafetteAPIHandler.UpdateComputedPipelines)
 	}
 
 	router.NoRoute(func(c *gin.Context) {
