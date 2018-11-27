@@ -1472,11 +1472,9 @@ func (dbc *cockroachDBClientImpl) GetFirstBuildTimes() (buildTimes []time.Time, 
 	// generate query
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("a.inserted_at").
-			From("builds a").
-			LeftJoin("builds b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at > b.inserted_at").
-			Where("b.id IS NULL").
-			OrderBy("a.inserted_at")
+			Select("a.first_inserted_at").
+			From("computed_pipelines a").
+			OrderBy("a.first_inserted_at")
 
 	buildTimes = make([]time.Time, 0)
 
@@ -1510,11 +1508,10 @@ func (dbc *cockroachDBClientImpl) GetFirstReleaseTimes() (releaseTimes []time.Ti
 	// generate query
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("a.inserted_at").
-			From("releases a").
-			LeftJoin("releases b ON a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.inserted_at > b.inserted_at").
-			Where("b.id IS NULL").
-			OrderBy("a.inserted_at")
+			Select("MIN(a.first_inserted_at)").
+			From("computed_releases a").
+			GroupBy("a.repo_source,a.repo_owner,a.repo_name").
+			OrderBy("MIN(a.first_inserted_at)")
 
 	releaseTimes = make([]time.Time, 0)
 
