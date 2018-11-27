@@ -1588,7 +1588,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(repoSource, repoO
 	// generate query
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("a.inserted_at, a.duration::INT").
+			Select("a.inserted_at, a.release, a.release_action, a.duration::INT").
 			From("releases a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -1607,10 +1607,11 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(repoSource, repoO
 	for rows.Next() {
 
 		var insertedAt time.Time
+		var releaseName, releaseAction string
 		var seconds int
 
 		if err = rows.Scan(
-			&insertedAt, &seconds); err != nil {
+			&insertedAt, &releaseName, &releaseAction, &seconds); err != nil {
 			return
 		}
 
@@ -1618,6 +1619,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(repoSource, repoO
 
 		durations = append(durations, map[string]interface{}{
 			"insertedAt": insertedAt,
+			"name":       releaseName,
+			"action":     releaseAction,
 			"duration":   duration,
 		})
 	}
