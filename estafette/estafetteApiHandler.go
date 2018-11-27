@@ -46,6 +46,7 @@ type APIHandler interface {
 	GetStatsReleasesAdoption(c *gin.Context)
 
 	GetLoggedInUser(*gin.Context)
+	UpdateComputedTables(*gin.Context)
 }
 
 type apiHandlerImpl struct {
@@ -1076,6 +1077,46 @@ func (h *apiHandlerImpl) GetStatsReleasesAdoption(c *gin.Context) {
 func (h *apiHandlerImpl) GetLoggedInUser(c *gin.Context) {
 
 	user := c.MustGet(gin.AuthUserKey).(auth.User)
+
+	c.JSON(http.StatusOK, user)
+}
+
+func (h *apiHandlerImpl) UpdateComputedTables(c *gin.Context) {
+
+	user := c.MustGet(gin.AuthUserKey).(auth.User)
+
+	filters := map[string][]string{}
+	filters["status"] = h.getStatusFilter(c)
+	filters["since"] = h.getSinceFilter(c)
+	filters["labels"] = h.getLabelsFilter(c)
+	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(filters)
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Failed retrieving pipelines count from db")
+	}
+	pageSize := 20
+	totalPages := int(math.Ceil(float64(pipelinesCount) / float64(pageSize)))
+	for pageNumber := 1; pageNumber <= totalPages; pageNumber++ {
+		pipelines, err := h.cockroachDBClient.GetPipelines(pageNumber, pageSize, filters, false)
+		if err != nil {
+			log.Error().Err(err).
+				Msg("Failed retrieving pipelines from db")
+		}
+		for _, p := range pipelines {
+			manifest, err := manifest.ReadManifest(p.Manifest)
+			if err == nil {
+				for _, r := range manifest.Releases {
+					if len(r.Actions) > 0 {
+						for _, a := range r.Actions {
+							h.cockroachDBClient.UpsertComputedRelease(p.RepoSource, p.RepoOwner, p.RepoName, r.Name, a.Name)
+						}
+					} else {
+						h.cockroachDBClient.UpsertComputedRelease(p.RepoSource, p.RepoOwner, p.RepoName, r.Name, "")
+					}
+				}
+			}
+		}
+	}
 
 	c.JSON(http.StatusOK, user)
 }
