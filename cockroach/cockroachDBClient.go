@@ -61,6 +61,8 @@ type DBClient interface {
 	GetBuildsDuration(map[string][]string) (time.Duration, error)
 	GetFirstBuildTimes() ([]time.Time, error)
 	GetFirstReleaseTimes() ([]time.Time, error)
+	GetPipelineBuildsDurations(string, string, string) ([]map[string]interface{}, error)
+	GetPipelineReleasesDurations(string, string, string) ([]map[string]interface{}, error)
 
 	selectBuildsQuery() sq.SelectBuilder
 	selectPipelinesQuery() sq.SelectBuilder
@@ -1532,6 +1534,92 @@ func (dbc *cockroachDBClientImpl) GetFirstReleaseTimes() (releaseTimes []time.Ti
 		}
 
 		releaseTimes = append(releaseTimes, insertedAt)
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineBuildsDurations(repoSource, repoOwner, repoName string) (durations []map[string]interface{}, err error) {
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("a.inserted_at, a.duration::INT").
+			From("builds a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName}).
+			OrderBy("a.inserted_at")
+
+	durations = make([]map[string]interface{}, 0)
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		var insertedAt time.Time
+		var seconds int
+
+		if err = rows.Scan(
+			&insertedAt, &seconds); err != nil {
+			return
+		}
+
+		duration := time.Duration(seconds) * time.Second
+
+		durations = append(durations, map[string]interface{}{
+			"inserted_at": insertedAt,
+			"duration":    duration,
+		})
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(repoSource, repoOwner, repoName string) (durations []map[string]interface{}, err error) {
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("a.inserted_at, a.duration::INT").
+			From("releases a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName}).
+			OrderBy("a.inserted_at")
+
+	durations = make([]map[string]interface{}, 0)
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		var insertedAt time.Time
+		var seconds int
+
+		if err = rows.Scan(
+			&insertedAt, &seconds); err != nil {
+			return
+		}
+
+		duration := time.Duration(seconds) * time.Second
+
+		durations = append(durations, map[string]interface{}{
+			"inserted_at": insertedAt,
+			"duration":    duration,
+		})
 	}
 
 	return

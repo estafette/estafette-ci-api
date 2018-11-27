@@ -37,13 +37,16 @@ type APIHandler interface {
 	TailPipelineReleaseLogs(*gin.Context)
 	PostPipelineReleaseLogs(*gin.Context)
 
-	GetStatsPipelinesCount(c *gin.Context)
-	GetStatsBuildsCount(c *gin.Context)
-	GetStatsReleasesCount(c *gin.Context)
+	GetPipelineStatsBuildsDurations(*gin.Context)
+	GetPipelineStatsReleasesDurations(*gin.Context)
 
-	GetStatsBuildsDuration(c *gin.Context)
-	GetStatsBuildsAdoption(c *gin.Context)
-	GetStatsReleasesAdoption(c *gin.Context)
+	GetStatsPipelinesCount(*gin.Context)
+	GetStatsBuildsCount(*gin.Context)
+	GetStatsReleasesCount(*gin.Context)
+
+	GetStatsBuildsDuration(*gin.Context)
+	GetStatsBuildsAdoption(*gin.Context)
+	GetStatsReleasesAdoption(*gin.Context)
 
 	GetLoggedInUser(*gin.Context)
 	UpdateComputedTables(*gin.Context)
@@ -973,6 +976,42 @@ func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
+}
+
+func (h *apiHandlerImpl) GetPipelineStatsBuildsDurations(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(source, owner, repo)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving build durations from db for %v/%v/%v", source, owner, repo)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"durations": durations,
+	})
+}
+
+func (h *apiHandlerImpl) GetPipelineStatsReleasesDurations(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	durations, err := h.cockroachDBClient.GetPipelineReleasesDurations(source, owner, repo)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving releases durations from db for %v/%v/%v", source, owner, repo)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"durations": durations,
+	})
 }
 
 func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {
