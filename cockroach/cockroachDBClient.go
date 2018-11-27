@@ -1574,8 +1574,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsDurations(repoSource, repoOwn
 		duration := time.Duration(seconds) * time.Second
 
 		durations = append(durations, map[string]interface{}{
-			"inserted_at": insertedAt,
-			"duration":    duration,
+			"insertedAt": insertedAt,
+			"duration":   duration,
 		})
 	}
 
@@ -1617,8 +1617,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(repoSource, repoO
 		duration := time.Duration(seconds) * time.Second
 
 		durations = append(durations, map[string]interface{}{
-			"inserted_at": insertedAt,
-			"duration":    duration,
+			"insertedAt": insertedAt,
+			"duration":   duration,
 		})
 	}
 
