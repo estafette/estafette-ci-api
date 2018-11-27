@@ -1174,13 +1174,11 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleasesByName(repoSource, repo
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectReleasesQuery().
-		LeftJoin("releases b on a.release=b.release AND a.repo_source=b.repo_source AND a.repo_owner=b.repo_owner AND a.repo_name=b.repo_name AND a.release_action=b.release_action AND a.inserted_at < b.inserted_at").
+	query := dbc.selectComputedReleasesQuery().
 		Where(sq.Eq{"a.release": releaseName}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
-		Where("b.id IS NULL").
 		OrderBy("a.inserted_at DESC")
 
 	if len(actions) > 0 {
@@ -1777,6 +1775,14 @@ func (dbc *cockroachDBClientImpl) selectReleasesQuery() sq.SelectBuilder {
 	return psql.
 		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.triggered_by, a.inserted_at, a.updated_at, a.duration::INT").
 		From("releases a")
+}
+
+func (dbc *cockroachDBClientImpl) selectComputedReleasesQuery() sq.SelectBuilder {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	return psql.
+		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.triggered_by, a.inserted_at, a.updated_at, a.duration::INT").
+		From("computed_releases a")
 }
 
 func (dbc *cockroachDBClientImpl) selectBuildLogsQuery() sq.SelectBuilder {
