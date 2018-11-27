@@ -32,7 +32,8 @@ type DBClient interface {
 	InsertBuildLog(contracts.BuildLog) error
 	InsertReleaseLog(contracts.ReleaseLog) error
 
-	UpsertComputedPipeline(string, string, string) (*contracts.Pipeline, error)
+	UpsertComputedPipeline(string, string, string) error
+	UpsertComputedRelease(string, string, string, string, string) error
 
 	GetPipelines(int, int, map[string][]string, bool) ([]*contracts.Pipeline, error)
 	GetPipelinesByRepoName(string, bool) ([]*contracts.Pipeline, error)
@@ -43,6 +44,7 @@ type DBClient interface {
 	GetPipelineBuild(string, string, string, string, bool) (*contracts.Build, error)
 	GetPipelineBuildByID(string, string, string, int, bool) (*contracts.Build, error)
 	GetLastPipelineBuild(string, string, string, bool) (*contracts.Build, error)
+	GetLastPipelineRelease(string, string, string, string, string) (*contracts.Release, error)
 	GetPipelineBuildsByVersion(string, string, string, string, bool) ([]*contracts.Build, error)
 	GetPipelineBuildLogs(string, string, string, string, string, string) (*contracts.BuildLog, error)
 	GetPipelineReleases(string, string, string, int, int, map[string][]string) ([]*contracts.Release, error)
@@ -245,7 +247,7 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBu
 		return
 	}
 
-	// update computed_pipeline table
+	// update computed tables
 	go dbc.UpsertComputedPipeline(insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName)
 
 	return
@@ -280,6 +282,7 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 		return
 	}
 
+	// update computed tables
 	go dbc.UpsertComputedPipeline(repoSource, repoOwner, repoName)
 
 	return
@@ -339,12 +342,15 @@ func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (inse
 	}
 
 	insertedRelease = release
-
 	if err = rows.Scan(&insertedRelease.ID); err != nil {
 		return
 	}
 
-	go dbc.UpsertComputedPipeline(insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName)
+	// update computed tables
+	go func() {
+		dbc.UpsertComputedRelease(insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.Name, insertedRelease.Action)
+		dbc.UpsertComputedPipeline(insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName)
+	}()
 
 	return
 }
@@ -353,8 +359,8 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(repoSource, repoOwner, rep
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	// insert logs
-	_, err = dbc.databaseConnection.Exec(
+	// generate query
+	row := dbc.databaseConnection.QueryRow(
 		`
 		UPDATE
 			releases
@@ -367,6 +373,19 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(repoSource, repoOwner, rep
 			repo_source=$3 AND
 			repo_owner=$4 AND
 			repo_name=$5
+		RETURNING
+			id,
+			repo_source,
+			repo_owner,
+			repo_name,
+			release,
+			release_action,
+			release_version,
+			release_status,
+			triggered_by,
+			inserted_at,
+			updated_at,
+			duration::INT
 		`,
 		releaseStatus,
 		id,
@@ -375,11 +394,17 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(repoSource, repoOwner, rep
 		repoName,
 	)
 
+	// execute query
+	insertedRelease, err := dbc.scanRelease(row)
 	if err != nil {
 		return
 	}
 
-	go dbc.UpsertComputedPipeline(repoSource, repoOwner, repoName)
+	// update computed tables
+	go func() {
+		dbc.UpsertComputedRelease(insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.Name, insertedRelease.Action)
+		dbc.UpsertComputedPipeline(repoSource, repoOwner, repoName)
+	}()
 
 	return
 }
@@ -523,10 +548,10 @@ func (dbc *cockroachDBClientImpl) InsertReleaseLog(releaseLog contracts.ReleaseL
 	return
 }
 
-func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, repoName string) (upsertedPipeline *contracts.Pipeline, err error) {
+func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, repoName string) (err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	// get computed pipeline
+	// get last build
 	lastBuild, err := dbc.GetLastPipelineBuild(repoSource, repoOwner, repoName, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last build for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
@@ -537,7 +562,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 		return
 	}
 
-	upsertedPipeline = dbc.mapBuildToPipeline(lastBuild)
+	upsertedPipeline := dbc.mapBuildToPipeline(lastBuild)
 
 	dbc.enrichPipeline(upsertedPipeline)
 
@@ -641,6 +666,94 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
+		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) UpsertComputedRelease(repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error) {
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// get last release
+	lastRelease, err := dbc.GetLastPipelineRelease(repoSource, repoOwner, repoName, releaseName, releaseAction)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed getting last release for upserting computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
+		return
+	}
+	if lastRelease == nil {
+		log.Error().Msgf("Failed getting last release for upserting computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
+		return
+	}
+
+	// upsert computed release
+	_, err = dbc.databaseConnection.Exec(
+		`
+		INSERT INTO
+			computed_releases
+		(
+			release_id,
+			repo_source,
+			repo_owner,
+			repo_name,
+			release,
+			release_version,
+			release_status,
+			inserted_at,
+			first_inserted_at,
+			updated_at,
+			triggered_by,
+			duration,
+			release_action
+		)
+		VALUES
+		(
+			$1,
+			$2,
+			$3,
+			$4,
+			$5,
+			$6,
+			$7,
+			$8,
+			$8,
+			$9,
+			$10,
+			$11,
+			$12
+		)
+		ON CONFLICT
+		(
+			repo_source,
+			repo_owner,
+			repo_name,
+			release,
+			release_action
+		)
+		DO UPDATE SET
+			release_id = excluded.release_id,
+			release_version = excluded.release_version,
+			release_status = excluded.release_status,
+			inserted_at = excluded.inserted_at,
+			updated_at = excluded.updated_at,
+			triggered_by = excluded.triggered_by,
+			duration = excluded.duration
+		`,
+		lastRelease.ID,
+		lastRelease.RepoSource,
+		lastRelease.RepoOwner,
+		lastRelease.RepoName,
+		lastRelease.Name,
+		lastRelease.ReleaseVersion,
+		lastRelease.ReleaseStatus,
+		lastRelease.InsertedAt,
+		lastRelease.UpdatedAt,
+		lastRelease.TriggeredBy,
+		lastRelease.Duration,
+		lastRelease.Action,
+	)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed upserting computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
 		return
 	}
 
@@ -865,6 +978,29 @@ func (dbc *cockroachDBClientImpl) GetLastPipelineBuild(repoSource, repoOwner, re
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if build, err = dbc.scanBuild(row, optimized); err != nil {
+		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetLastPipelineRelease(repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query := dbc.selectReleasesQuery().
+		Where(sq.Eq{"a.repo_source": repoSource}).
+		Where(sq.Eq{"a.repo_owner": repoOwner}).
+		Where(sq.Eq{"a.repo_name": repoName}).
+		Where(sq.Eq{"a.release": releaseName}).
+		Where(sq.Eq{"a.release_action": releaseAction}).
+		OrderBy("a.inserted_at DESC").
+		Limit(uint64(1))
+
+	// execute query
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	if release, err = dbc.scanRelease(row); err != nil {
 		return
 	}
 
