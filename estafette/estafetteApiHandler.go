@@ -1107,7 +1107,7 @@ func (h *apiHandlerImpl) UpdateComputedPipelines(c *gin.Context) {
 		}
 
 		for _, p := range pipelines {
-			h.cockroachDBClient.UpsertComputedPipeline(p)
+			h.cockroachDBClient.UpsertComputedPipeline(p.RepoSource, p.RepoOwner, p.RepoName)
 		}
 	}
 

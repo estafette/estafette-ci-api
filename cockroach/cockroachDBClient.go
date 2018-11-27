@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -33,8 +32,7 @@ type DBClient interface {
 	InsertBuildLog(contracts.BuildLog) error
 	InsertReleaseLog(contracts.ReleaseLog) error
 
-	UpsertComputedPipelineByRepo(string, string, string) (*contracts.Pipeline, error)
-	UpsertComputedPipeline(*contracts.Pipeline) (*contracts.Pipeline, error)
+	UpsertComputedPipeline(string, string, string) (*contracts.Pipeline, error)
 
 	GetPipelines(int, int, map[string][]string, bool) ([]*contracts.Pipeline, error)
 	GetPipelinesByRepoName(string, bool) ([]*contracts.Pipeline, error)
@@ -254,7 +252,7 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBu
 	}
 
 	// update computed_pipeline table
-	go dbc.UpsertComputedPipeline(dbc.mapBuildToPipeline(&insertedBuild))
+	go dbc.UpsertComputedPipeline(insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName)
 
 	return
 }
@@ -288,7 +286,7 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 		return
 	}
 
-	go dbc.UpsertComputedPipelineByRepo(repoSource, repoOwner, repoName)
+	go dbc.UpsertComputedPipeline(repoSource, repoOwner, repoName)
 
 	return
 }
@@ -352,7 +350,7 @@ func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (inse
 		return
 	}
 
-	go dbc.UpsertComputedPipelineByRepo(insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName)
+	go dbc.UpsertComputedPipeline(insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName)
 
 	return
 }
@@ -387,7 +385,7 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(repoSource, repoOwner, rep
 		return
 	}
 
-	go dbc.UpsertComputedPipelineByRepo(repoSource, repoOwner, repoName)
+	go dbc.UpsertComputedPipeline(repoSource, repoOwner, repoName)
 
 	return
 }
@@ -531,7 +529,8 @@ func (dbc *cockroachDBClientImpl) InsertReleaseLog(releaseLog contracts.ReleaseL
 	return
 }
 
-func (dbc *cockroachDBClientImpl) UpsertComputedPipelineByRepo(repoSource, repoOwner, repoName string) (upsertedPipeline *contracts.Pipeline, err error) {
+func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, repoName string) (upsertedPipeline *contracts.Pipeline, err error) {
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// get computed pipeline
 	lastBuild, err := dbc.GetLastPipelineBuild(repoSource, repoOwner, repoName, false)
@@ -544,14 +543,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipelineByRepo(repoSource, repoO
 		return
 	}
 
-	// get build for release
-	return dbc.UpsertComputedPipeline(dbc.mapBuildToPipeline(lastBuild))
-}
-
-func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(pipeline *contracts.Pipeline) (upsertedPipeline *contracts.Pipeline, err error) {
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
-	upsertedPipeline = pipeline
+	upsertedPipeline = dbc.mapBuildToPipeline(lastBuild)
 
 	dbc.enrichPipeline(upsertedPipeline)
 
@@ -561,17 +553,17 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(pipeline *contracts.Pip
 
 	labelsBytes, err := json.Marshal(upsertedPipeline.Labels)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
+		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
 		return
 	}
 	releaseTargetsBytes, err := json.Marshal(upsertedPipeline.ReleaseTargets)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
+		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
 		return
 	}
 	commitsBytes, err := json.Marshal(upsertedPipeline.Commits)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
+		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
 		return
 	}
 
@@ -594,6 +586,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(pipeline *contracts.Pip
 			manifest,
 			commits,
 			inserted_at,
+			first_inserted_at,
 			updated_at,
 			duration
 		)
@@ -611,6 +604,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(pipeline *contracts.Pip
 			$10,
 			$11,
 			$12,
+			$13,
 			$13,
 			$14,
 			$15
@@ -652,7 +646,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(pipeline *contracts.Pip
 		upsertedPipeline.Duration,
 	)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
+		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
 		return
 	}
 
@@ -1573,8 +1567,6 @@ func (dbc *cockroachDBClientImpl) scanBuilds(rows *sql.Rows, optimized bool) (bu
 		builds = append(builds, &build)
 	}
 
-	dbc.enrichBuilds(builds)
-
 	return
 }
 
@@ -1664,8 +1656,6 @@ func (dbc *cockroachDBClientImpl) scanPipelines(rows *sql.Rows, optimized bool) 
 
 		pipelines = append(pipelines, &pipeline)
 	}
-
-	dbc.enrichPipelines(pipelines)
 
 	return
 }
@@ -1787,34 +1777,8 @@ func (dbc *cockroachDBClientImpl) selectReleaseLogsQuery() sq.SelectBuilder {
 		From("release_logs a")
 }
 
-func (dbc *cockroachDBClientImpl) enrichPipelines(pipelines []*contracts.Pipeline) {
-	var wg sync.WaitGroup
-	wg.Add(len(pipelines))
-
-	for _, p := range pipelines {
-		go func(p *contracts.Pipeline) {
-			defer wg.Done()
-			dbc.enrichPipeline(p)
-		}(p)
-	}
-	wg.Wait()
-}
-
 func (dbc *cockroachDBClientImpl) enrichPipeline(pipeline *contracts.Pipeline) {
 	dbc.getLatestReleasesForPipeline(pipeline)
-}
-
-func (dbc *cockroachDBClientImpl) enrichBuilds(builds []*contracts.Build) {
-	var wg sync.WaitGroup
-	wg.Add(len(builds))
-
-	for _, b := range builds {
-		go func(b *contracts.Build) {
-			defer wg.Done()
-			dbc.enrichBuild(b)
-		}(b)
-	}
-	wg.Wait()
 }
 
 func (dbc *cockroachDBClientImpl) enrichBuild(build *contracts.Build) {
