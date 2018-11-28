@@ -11,8 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/estafette/estafette-ci-crypt"
-
 	"github.com/alecthomas/kingpin"
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/bitbucket"
@@ -23,6 +21,7 @@ import (
 	"github.com/estafette/estafette-ci-api/github"
 	ghcontracts "github.com/estafette/estafette-ci-api/github/contracts"
 	"github.com/estafette/estafette-ci-api/slack"
+	"github.com/estafette/estafette-ci-crypt"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
@@ -235,7 +234,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, estafetteCiBuilderEvents, prometheusInboundEventTotals)
 
-	estafetteAPIHandler := estafette.NewAPIHandler(*config.APIServer, *config.Auth, cockroachDBClient, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
+	estafetteAPIHandler := estafette.NewAPIHandler(*config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
 	gzippedRoutes.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
 	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo", estafetteAPIHandler.GetPipeline)
 	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)
@@ -271,6 +270,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		iapAuthorizedRoutes.DELETE("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteAPIHandler.CancelPipelineBuild)
 		iapAuthorizedRoutes.DELETE("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteAPIHandler.CancelPipelineRelease)
 		iapAuthorizedRoutes.GET("/api/users/me", estafetteAPIHandler.GetLoggedInUser)
+		iapAuthorizedRoutes.GET("/api/config", estafetteAPIHandler.GetConfig)
 		// iapAuthorizedRoutes.GET("/api/update-computed-tables", estafetteAPIHandler.UpdateComputedTables)
 	}
 

@@ -16,6 +16,7 @@ import (
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // APIHandler handles all api calls
@@ -50,11 +51,13 @@ type APIHandler interface {
 
 	GetLoggedInUser(*gin.Context)
 	UpdateComputedTables(*gin.Context)
+	GetConfig(*gin.Context)
 }
 
 type apiHandlerImpl struct {
 	config            config.APIServerConfig
 	authConfig        config.AuthConfig
+	encryptedConfig   config.APIConfig
 	cockroachDBClient cockroach.DBClient
 
 	ciBuilderClient      CiBuilderClient
@@ -63,11 +66,12 @@ type apiHandlerImpl struct {
 }
 
 // NewAPIHandler returns a new estafette.APIHandler
-func NewAPIHandler(config config.APIServerConfig, authConfig config.AuthConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error)) (apiHandler APIHandler) {
+func NewAPIHandler(config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error)) (apiHandler APIHandler) {
 
 	apiHandler = &apiHandlerImpl{
 		config:               config,
 		authConfig:           authConfig,
+		encryptedConfig:      encryptedConfig,
 		cockroachDBClient:    cockroachDBClient,
 		ciBuilderClient:      ciBuilderClient,
 		githubJobVarsFunc:    githubJobVarsFunc,
@@ -1160,6 +1164,32 @@ func (h *apiHandlerImpl) UpdateComputedTables(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, user)
+}
+
+func (h *apiHandlerImpl) GetConfig(c *gin.Context) {
+
+	_ = c.MustGet(gin.AuthUserKey).(auth.User)
+
+	configBytes, err := yaml.Marshal(h.encryptedConfig)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed marshalling encrypted config")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	r, err := regexp.Compile(`estafette\.secret\(([a-zA-Z0-9.=_-]+)\)`)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed compiling regex")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	// obfuscate all secrets
+	configString := r.ReplaceAllLiteralString(string(configBytes), "***")
+
+	// add extra whitespace after each top-level item
+	addWhitespaceRegex := regexp.MustCompile(`\n([a-z])`)
+	configString = addWhitespaceRegex.ReplaceAllString(configString, "\n\n$1")
+
+	c.JSON(http.StatusOK, gin.H{"config": configString})
 }
 
 func (h *apiHandlerImpl) getStatusFilter(c *gin.Context) []string {
