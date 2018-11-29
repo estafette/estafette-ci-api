@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net/http"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"time"
@@ -1266,7 +1267,7 @@ func (h *apiHandlerImpl) getStatusFilter(c *gin.Context) []string {
 
 func (h *apiHandlerImpl) GetManifestTemplates(c *gin.Context) {
 
-	configFiles, err := ioutil.ReadDir(h.configFilePath)
+	configFiles, err := ioutil.ReadDir(filepath.Dir(h.configFilePath))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed listing config files directory")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
