@@ -1,0 +1,138 @@
+# https://estafette.io/usage/manifest/#labels
+labels:
+  app: {{.ApplicationPlaceholder}}
+  team: {{.TeamPlaceholder}}
+  language: nodejs
+
+# https://estafette.io/usage/manifest/#versioning
+version:
+  semver:
+    major: 0
+    minor: 0
+
+# https://estafette.io/usage/manifest/#build-stages
+stages:
+  restore:
+    image: node:11.3.0-alpine
+    commands:
+    - npm install
+
+  build:
+    image: node:11.3.0-alpine
+    commands:
+    - npm run build
+
+  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-docker
+  bake:
+    image: extensions/docker:stable
+    action: build
+    repositories:
+    - {{.DefaultDockerRepository}}
+    path: ./publish
+    copy:
+    - /etc/ssl/certs/ca-certificates.crt
+
+  push-to-docker-hub:
+    image: extensions/docker:stable
+    action: push
+    repositories:
+    - {{.DefaultDockerRepository}}
+
+  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-slack-build-status
+  slack-notify:
+    image: extensions/slack-build-status:stable
+    workspace: {{.SlackWorkspace}}
+    channels:
+    - '#build-${ESTAFETTE_LABEL_TEAM}'
+    when:
+      status == 'succeeded' ||
+      status == 'failed'
+
+# https://estafette.io/usage/manifest/#releases
+releases:
+  development:
+    stages:
+      deploy:
+        image: extensions/gke:stable
+        visibility: private
+        container:
+          port: 5000
+          env:
+            ENV1: value
+          cpu:
+            request: 100m
+            limit: 100m
+          memory:
+            request: 256Mi
+            limit: 256Mi
+        hosts:
+        - ${ESTAFETTE_LABEL_APP}.{{.TopLevelDomain}}
+
+      slack-notify:
+        image: extensions/slack-build-status:stable
+        workspace: {{.SlackWorkspace}}
+        channels:
+        - '#build-${ESTAFETTE_LABEL_TEAM}'
+        when:
+          status == 'succeeded' ||
+          status == 'failed'
+
+  staging:
+    stages:
+      # https://estafette.io/usage/extensions/estafette-extensions/#extensions-gke
+      deploy:
+        image: extensions/gke:stable
+        visibility: private
+        container:
+          port: 5000
+          env:
+            ENV1: value
+          cpu:
+            request: 100m
+            limit: 100m
+          memory:
+            request: 256Mi
+            limit: 256Mi
+        hosts:
+        - ${ESTAFETTE_LABEL_APP}.{{.TopLevelDomain}}
+
+      slack-notify:
+        image: extensions/slack-build-status:stable
+        workspace: {{.SlackWorkspace}}
+        channels:
+        - '#build-${ESTAFETTE_LABEL_TEAM}'
+        when:
+          status == 'succeeded' ||
+          status == 'failed'
+
+  production:
+    # https://estafette.io/usage/manifest/#release-actions
+    actions:
+    - name: deploy-canary
+    - name: deploy-stable
+    - name: rollback-canary
+    stages:
+      deploy:
+        image: extensions/gke:stable
+        visibility: private
+        container:
+          port: 5000
+          env:
+            ENV1: value
+          cpu:
+            request: 100m
+            limit: 100m
+          memory:
+            request: 256Mi
+            limit: 256Mi
+        hosts:
+        - ${ESTAFETTE_LABEL_APP}.{{.TopLevelDomain}}
+
+      slack-notify:
+        image: extensions/slack-build-status:stable
+        workspace: {{.SlackWorkspace}}
+        channels:
+        - '#build-${ESTAFETTE_LABEL_TEAM}'
+        when:
+          status == 'succeeded' ||
+          status == 'failed'

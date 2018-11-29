@@ -234,7 +234,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, estafetteCiBuilderEvents, prometheusInboundEventTotals)
 
-	estafetteAPIHandler := estafette.NewAPIHandler(*config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
+	estafetteAPIHandler := estafette.NewAPIHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
 	gzippedRoutes.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
 	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo", estafetteAPIHandler.GetPipeline)
 	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)
@@ -253,6 +253,9 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	gzippedRoutes.GET("/api/stats/buildsduration", estafetteAPIHandler.GetStatsBuildsDuration)
 	gzippedRoutes.GET("/api/stats/buildsadoption", estafetteAPIHandler.GetStatsBuildsAdoption)
 	gzippedRoutes.GET("/api/stats/releasesadoption", estafetteAPIHandler.GetStatsReleasesAdoption)
+	gzippedRoutes.GET("/api/manifest/templates", estafetteAPIHandler.GetManifestTemplates)
+	gzippedRoutes.POST("/api/manifest/generate", estafetteAPIHandler.GenerateManifest)
+	gzippedRoutes.POST("/api/manifest/validate", estafetteAPIHandler.ValidateManifest)
 
 	// api key protected endpoints
 	apiKeyAuthorizedRoutes := gzippedRoutes.Group("/", authMiddleware.APIKeyMiddlewareFunc())

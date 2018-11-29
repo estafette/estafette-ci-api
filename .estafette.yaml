@@ -82,6 +82,8 @@ releases:
           - gke/config.yaml
           # manifest templates
           - gke/templates/manifest-golang.tmpl
+          - gke/templates/manifest-node.tmpl
+          - gke/templates/manifest-dotnet.tmpl
           data:
             HOSTNAMES: estafette.secret(z6C9Piz4EhMxWMc8.uxcITmg39HiLJuuqSyPRM06PTWNd6S1x1QxfYYeyGoBLcgkM)
             GITHUB_APP_ID: estafette.secret(Mgn-xOhOXSVa0ECR.wJ5SqSvEkGbi9E85ghqWmRH71ys=)
@@ -170,6 +172,8 @@ releases:
             DefaultDockerRepository: estafette.secret(eQFt74Lor9Cn9g3C.4W4k895O3KF4a4ids4qhJmZOq39XcR64dlO96ARpef13nKFK)
             SlackWorkspace: estafette.secret(i6NZxbK7RV6oWQ-K.QpCrnzKj9z_GGl4kONni4rkRa_UHWw==)
             TopLevelDomain: estafette.secret(9eQhs7FOHZZF9Szm.ZII93qRNS0tBL6pskzdxLYA2ZBwBLCMoV7M=)
+            ProjectNamePlaceholder: '{{.ProjectName}}'
+            PrivateNugetSource: estafette.secret(1gEdTRZxX9v0SYYt.a30ACgxUYqpzYI0txfjthYRO7Xo-fM1kZa4g-Qq7aSC-pWNVYhmaYe5cs2jStTnFBtnrfu7nKQjdZo0a3X_ExDkm1qRDGbIvrLKqNwcrzdUxXtzdD7kZ7HJeD-zjC0azaCwFOLeojVRDYGyWkSvySNWkU6b8cZE5tvS-FEmTU9A_ssdNi2xpgwaY-jXQHIGWZZF5mHB1KDbDzkUaupsUZEoNFckhY7A_Vpt2XGUKKbxkIGZLd3zGyxkydpxRLcmUGhjESVrtuQ==)
         hosts:
         - estafette.secret(z6C9Piz4EhMxWMc8.uxcITmg39HiLJuuqSyPRM06PTWNd6S1x1QxfYYeyGoBLcgkM)
         basepath: /api

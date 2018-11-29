@@ -3,6 +3,7 @@ package estafette
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"net/http"
 	"regexp"
@@ -55,9 +56,14 @@ type APIHandler interface {
 	GetConfig(*gin.Context)
 	GetConfigCredentials(*gin.Context)
 	GetConfigTrustedImages(*gin.Context)
+
+	GetManifestTemplates(*gin.Context)
+	GenerateManifest(*gin.Context)
+	ValidateManifest(*gin.Context)
 }
 
 type apiHandlerImpl struct {
+	configFilePath    string
 	config            config.APIServerConfig
 	authConfig        config.AuthConfig
 	encryptedConfig   config.APIConfig
@@ -69,9 +75,10 @@ type apiHandlerImpl struct {
 }
 
 // NewAPIHandler returns a new estafette.APIHandler
-func NewAPIHandler(config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error)) (apiHandler APIHandler) {
+func NewAPIHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error)) (apiHandler APIHandler) {
 
 	apiHandler = &apiHandlerImpl{
+		configFilePath:       configFilePath,
 		config:               config,
 		authConfig:           authConfig,
 		encryptedConfig:      encryptedConfig,
@@ -1255,6 +1262,30 @@ func (h *apiHandlerImpl) getStatusFilter(c *gin.Context) []string {
 	}
 
 	return []string{}
+}
+
+func (h *apiHandlerImpl) GetManifestTemplates(c *gin.Context) {
+
+	configFiles, err := ioutil.ReadDir(h.configFilePath)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed listing config files directory")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	configFileNames := []string{}
+	for _, f := range configFiles {
+		configFileNames = append(configFileNames, f.Name())
+	}
+
+	c.JSON(http.StatusOK, gin.H{"templates": configFileNames})
+}
+
+func (h *apiHandlerImpl) GenerateManifest(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
+func (h *apiHandlerImpl) ValidateManifest(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
 }
 
 func (h *apiHandlerImpl) getSinceFilter(c *gin.Context) []string {

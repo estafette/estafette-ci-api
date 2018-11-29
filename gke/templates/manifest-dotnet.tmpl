@@ -1,0 +1,143 @@
+# https://estafette.io/usage/manifest/#labels
+labels:
+  app: {{.ApplicationPlaceholder}}
+  team: {{.TeamPlaceholder}}
+  language: dotnet-core
+
+# https://estafette.io/usage/manifest/#versioning
+version:
+  semver:
+    major: 0
+    minor: 0
+
+# https://estafette.io/usage/manifest/#build-stages
+stages:
+  restore:
+    image: microsoft/dotnet:2.1-sdk
+    env:
+      PRIVATE_NUGET_SOURCE: {{.PrivateNugetSource}}
+    commands:
+    - dotnet restore --source https://www.nuget.org/api/v1 --source ${PRIVATE_NUGET_SOURCE} --packages .nuget/packages
+
+  build:
+    image: microsoft/dotnet:2.1-sdk
+    commands:
+    - dotnet build --configuration Release /p:Version=${ESTAFETTE_BUILD_VERSION} --no-restore
+
+  publish:
+    image: microsoft/dotnet:2.1-sdk
+    commands:
+    - dotnet publish src/{{.ProjectNamePlaceholder}} --configuration Release --runtime linux-x64 /p:Version=${ESTAFETTE_BUILD_VERSION} --output ./publish --no-restore
+
+  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-docker
+  bake:
+    image: extensions/docker:stable
+    action: build
+    repositories:
+    - {{.DefaultDockerRepository}}
+    path: ./src/{{.ProjectNamePlaceholder}}/publish
+
+  push-to-docker-hub:
+    image: extensions/docker:stable
+    action: push
+    repositories:
+    - {{.DefaultDockerRepository}}
+
+  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-slack-build-status
+  slack-notify:
+    image: extensions/slack-build-status:stable
+    workspace: {{.SlackWorkspace}}
+    channels:
+    - '#build-${ESTAFETTE_LABEL_TEAM}'
+    when:
+      status == 'succeeded' ||
+      status == 'failed'
+
+# https://estafette.io/usage/manifest/#releases
+releases:
+  development:
+    stages:
+      deploy:
+        image: extensions/gke:stable
+        visibility: private
+        container:
+          port: 5000
+          env:
+            ENV1: value
+          cpu:
+            request: 100m
+            limit: 100m
+          memory:
+            request: 256Mi
+            limit: 256Mi
+        hosts:
+        - ${ESTAFETTE_LABEL_APP}.{{.TopLevelDomain}}
+
+      slack-notify:
+        image: extensions/slack-build-status:stable
+        workspace: {{.SlackWorkspace}}
+        channels:
+        - '#build-${ESTAFETTE_LABEL_TEAM}'
+        when:
+          status == 'succeeded' ||
+          status == 'failed'
+
+  staging:
+    stages:
+      # https://estafette.io/usage/extensions/estafette-extensions/#extensions-gke
+      deploy:
+        image: extensions/gke:stable
+        visibility: private
+        container:
+          port: 5000
+          env:
+            ENV1: value
+          cpu:
+            request: 100m
+            limit: 100m
+          memory:
+            request: 256Mi
+            limit: 256Mi
+        hosts:
+        - ${ESTAFETTE_LABEL_APP}.{{.TopLevelDomain}}
+
+      slack-notify:
+        image: extensions/slack-build-status:stable
+        workspace: {{.SlackWorkspace}}
+        channels:
+        - '#build-${ESTAFETTE_LABEL_TEAM}'
+        when:
+          status == 'succeeded' ||
+          status == 'failed'
+
+  production:
+    # https://estafette.io/usage/manifest/#release-actions
+    actions:
+    - name: deploy-canary
+    - name: deploy-stable
+    - name: rollback-canary
+    stages:
+      deploy:
+        image: extensions/gke:stable
+        visibility: private
+        container:
+          port: 5000
+          env:
+            ENV1: value
+          cpu:
+            request: 100m
+            limit: 100m
+          memory:
+            request: 256Mi
+            limit: 256Mi
+        hosts:
+        - ${ESTAFETTE_LABEL_APP}.{{.TopLevelDomain}}
+
+      slack-notify:
+        image: extensions/slack-build-status:stable
+        workspace: {{.SlackWorkspace}}
+        channels:
+        - '#build-${ESTAFETTE_LABEL_TEAM}'
+        when:
+          status == 'succeeded' ||
+          status == 'failed'
