@@ -1273,12 +1273,38 @@ func (h *apiHandlerImpl) GetManifestTemplates(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 	}
 
-	configFileNames := []string{}
+	templates := []interface{}{}
 	for _, f := range configFiles {
-		configFileNames = append(configFileNames, f.Name())
+
+		configfileName := f.Name()
+
+		// check if it's a manifest template
+		re := regexp.MustCompile(`^manifest-(.+)\.tmpl`)
+		match := re.FindStringSubmatch(configfileName)
+
+		if len(match) == 2 {
+
+			// read template file
+			templateFilePath := filepath.Join(filepath.Dir(h.configFilePath), configfileName)
+			data, err := ioutil.ReadFile(templateFilePath)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed reading template file %v", templateFilePath)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+			}
+
+			placeholderRegex := regexp.MustCompile(`{{\.([a-zA-Z0-9]+)}}`)
+			placeholderMatches := placeholderRegex.FindAllStringSubmatch(string(data), -1)
+
+			templateData := map[string]interface{}{
+				"template":     match[1],
+				"placeholders": placeholderMatches,
+			}
+
+			templates = append(templates, templateData)
+		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"templates": configFileNames})
+	c.JSON(http.StatusOK, gin.H{"templates": templates})
 }
 
 func (h *apiHandlerImpl) GenerateManifest(c *gin.Context) {
