@@ -1363,7 +1363,26 @@ func (h *apiHandlerImpl) GenerateManifest(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) ValidateManifest(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+
+	var aux struct {
+		Template string `json:"template"`
+	}
+
+	err := c.BindJSON(&aux)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed binding json body")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	_, err = manifest.ReadManifest(aux.Template)
+	status := "succeeded"
+	errorString := ""
+	if err != nil {
+		status = "failed"
+		errorString = err.Error()
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": status, "errors": errorString})
 }
 
 func (h *apiHandlerImpl) getSinceFilter(c *gin.Context) []string {
