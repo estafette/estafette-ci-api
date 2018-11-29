@@ -24,10 +24,20 @@ stages:
     commands:
     - dotnet build --configuration Release /p:Version=${ESTAFETTE_BUILD_VERSION} --no-restore
 
+  unit-tests:
+    image: microsoft/dotnet:2.1-sdk
+    commands:
+    - dotnet test --configuration Release --no-build test/**/*.UnitTests.csproj
+
+  integration-tests:
+    image: microsoft/dotnet:2.1-sdk
+    commands:
+    - dotnet test --configuration Release --no-build test/**/*.IntegrationTests.csproj
+
   publish:
     image: microsoft/dotnet:2.1-sdk
     commands:
-    - dotnet publish src/{{.ProjectNamePlaceholder}} --configuration Release --runtime linux-x64 /p:Version=${ESTAFETTE_BUILD_VERSION} --output ./publish --no-restore
+    - dotnet publish src/*.WebService --configuration Release --runtime linux-x64 /p:Version=${ESTAFETTE_BUILD_VERSION} --output ${PWD}/publish --no-restore
 
   # https://estafette.io/usage/extensions/estafette-extensions/#extensions-docker
   bake:
@@ -35,7 +45,7 @@ stages:
     action: build
     repositories:
     - {{.DefaultDockerRepository}}
-    path: ./src/{{.ProjectNamePlaceholder}}/publish
+    path: ./publish
 
   push-to-docker-hub:
     image: extensions/docker:stable
