@@ -80,6 +80,8 @@ releases:
         configs:
           files: 
           - gke/config.yaml
+          # manifest templates
+          - gke/templates/manifest-golang.tmpl
           data:
             HOSTNAMES: estafette.secret(z6C9Piz4EhMxWMc8.uxcITmg39HiLJuuqSyPRM06PTWNd6S1x1QxfYYeyGoBLcgkM)
             GITHUB_APP_ID: estafette.secret(Mgn-xOhOXSVa0ECR.wJ5SqSvEkGbi9E85ghqWmRH71ys=)
@@ -161,6 +163,13 @@ releases:
             COCKROACH_USER: estafette.secret(O4uXorr5vFlFQoYu.QQFEtau1WrWXciu6o-YgET2MXU3OTIp9dNbsb_vAq_0=)
             COCKROACH_PASSWORD: estafette.secret(HGGRDWiTTYs5P_Je.-1ZXZtWI95cCSlv_4wlN024G8KNc0WYLeSzYlLHrukEx3crXjIx1ZHAkr07M5uhFOFim7tWnwo3e2ujFd81fBalGFaZmZwRFPMFmKkZUS5N3-j0BaQZVoFAdnPbuW854l0ALKnyBl7rvY8Zwsc8V1Qhcpw==)
             REGISTRY_MIRROR: https://mirror.gcr.io
+
+            # manifest templates
+            ApplicationPlaceholder: '{{.Application}}'
+            TeamPlaceholder: '{{.Team}}'
+            DefaultDockerRepository: estafette.secret(eQFt74Lor9Cn9g3C.4W4k895O3KF4a4ids4qhJmZOq39XcR64dlO96ARpef13nKFK)
+            SlackWorkspace: estafette.secret(i6NZxbK7RV6oWQ-K.QpCrnzKj9z_GGl4kONni4rkRa_UHWw==)
+            TopLevelDomain: estafette.secret(9eQhs7FOHZZF9Szm.ZII93qRNS0tBL6pskzdxLYA2ZBwBLCMoV7M=)
         hosts:
         - estafette.secret(z6C9Piz4EhMxWMc8.uxcITmg39HiLJuuqSyPRM06PTWNd6S1x1QxfYYeyGoBLcgkM)
         basepath: /api
