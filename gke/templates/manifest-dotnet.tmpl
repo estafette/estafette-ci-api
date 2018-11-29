@@ -71,7 +71,7 @@ releases:
             request: 256Mi
             limit: 256Mi
         hosts:
-        - ${ESTAFETTE_LABEL_APP}.{{.TopLevelDomain}}
+        - ${ESTAFETTE_LABEL_APP}.development.{{.TopLevelDomain}}
 
       slack-notify:
         image: extensions/slack-build-status:stable
@@ -99,7 +99,7 @@ releases:
             request: 256Mi
             limit: 256Mi
         hosts:
-        - ${ESTAFETTE_LABEL_APP}.{{.TopLevelDomain}}
+        - ${ESTAFETTE_LABEL_APP}.staging.{{.TopLevelDomain}}
 
       slack-notify:
         image: extensions/slack-build-status:stable
