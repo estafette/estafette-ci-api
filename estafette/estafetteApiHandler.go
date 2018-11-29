@@ -1,6 +1,7 @@
 package estafette
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"text/template"
 	"time"
 
 	"github.com/estafette/estafette-ci-api/auth"
@@ -1295,9 +1297,17 @@ func (h *apiHandlerImpl) GetManifestTemplates(c *gin.Context) {
 			placeholderRegex := regexp.MustCompile(`{{\.([a-zA-Z0-9]+)}}`)
 			placeholderMatches := placeholderRegex.FindAllStringSubmatch(string(data), -1)
 
+			// reduce and deduplicate [["{{.Application}}","Application"],["{{.Team}}","Team"],["{{.ProjectName}}","ProjectName"],["{{.ProjectName}}","ProjectName"]] to ["Application","Team","ProjectName"]
+			placeholders := []string{}
+			for _, m := range placeholderMatches {
+				if len(m) == 2 && !stringArrayContains(placeholders, m[1]) {
+					placeholders = append(placeholders, m[1])
+				}
+			}
+
 			templateData := map[string]interface{}{
 				"template":     match[1],
-				"placeholders": placeholderMatches,
+				"placeholders": placeholders,
 			}
 
 			templates = append(templates, templateData)
@@ -1307,8 +1317,49 @@ func (h *apiHandlerImpl) GetManifestTemplates(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"templates": templates})
 }
 
+func stringArrayContains(array []string, value string) bool {
+	for _, v := range array {
+		if v == value {
+			return true
+		}
+	}
+	return false
+}
+
 func (h *apiHandlerImpl) GenerateManifest(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+
+	var aux struct {
+		Template     string            `json:"template"`
+		Placeholders map[string]string `json:"placeholders,omitempty"`
+	}
+
+	err := c.BindJSON(&aux)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed binding json body")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	templateFilePath := filepath.Join(filepath.Dir(h.configFilePath), fmt.Sprintf("manifest-%v.tmpl", aux.Template))
+	data, err := ioutil.ReadFile(templateFilePath)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed reading template file %v", templateFilePath)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	tmpl, err := template.New(".estafette.yaml").Parse(string(data))
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed parsing template file %v", templateFilePath)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	var renderedTemplate bytes.Buffer
+	err = tmpl.Execute(&renderedTemplate, aux.Placeholders)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed rendering template file %v", templateFilePath)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"manifest": renderedTemplate.String()})
 }
 
 func (h *apiHandlerImpl) ValidateManifest(c *gin.Context) {
