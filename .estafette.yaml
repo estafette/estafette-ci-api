@@ -84,6 +84,8 @@ releases:
           - gke/templates/manifest-golang.tmpl
           - gke/templates/manifest-node.tmpl
           - gke/templates/manifest-dotnet.tmpl
+          - gke/templates/manifest-java.tmpl
+          - gke/templates/manifest-python.tmpl
           data:
             HOSTNAMES: estafette.secret(z6C9Piz4EhMxWMc8.uxcITmg39HiLJuuqSyPRM06PTWNd6S1x1QxfYYeyGoBLcgkM)
             GITHUB_APP_ID: estafette.secret(Mgn-xOhOXSVa0ECR.wJ5SqSvEkGbi9E85ghqWmRH71ys=)
