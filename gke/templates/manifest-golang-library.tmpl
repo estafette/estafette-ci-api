@@ -1,0 +1,39 @@
+# https://estafette.io/usage/manifest/#labels
+labels:
+  app: {{.ApplicationNamePlaceholder}}
+  team: {{.TeamNamePlaceholder}}
+  language: golang
+
+# https://estafette.io/usage/manifest/#versioning
+version:
+  semver:
+    major: 0
+    minor: 0
+
+# https://estafette.io/usage/manifest/#build-stages
+stages:
+  build:
+    image: golang:1.11.2-alpine3.8
+    workDir: /go/src/${ESTAFETTE_GIT_SOURCE}/${ESTAFETTE_GIT_OWNER}/${ESTAFETTE_GIT_NAME}
+    env:
+      CGO_ENABLED: 0
+      GOOS: linux
+    commands:
+    - go test `go list ./... | grep -v /vendor/`
+
+  tag-revision:
+    image: golang:1.11.2-alpine3.8
+    commands:
+    - apk --no-cache add git
+    - git tag ${ESTAFETTE_BUILD_VERSION}
+    - git push origin ${ESTAFETTE_BUILD_VERSION}
+
+  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-slack-build-status
+  slack-notify:
+    image: extensions/slack-build-status:stable
+    workspace: {{.SlackWorkspace}}
+    channels:
+    - '#builds-${ESTAFETTE_LABEL_TEAM}'
+    when:
+      status == 'succeeded' ||
+      status == 'failed'

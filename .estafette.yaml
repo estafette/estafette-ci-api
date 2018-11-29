@@ -82,6 +82,7 @@ releases:
           - gke/config.yaml
           # manifest templates
           - gke/templates/manifest-golang.tmpl
+          - gke/templates/manifest-golang-library.tmpl
           - gke/templates/manifest-node.tmpl
           - gke/templates/manifest-dotnet.tmpl
           - gke/templates/manifest-dotnet-library.tmpl
@@ -195,7 +196,7 @@ releases:
         image: extensions/slack-build-status:dev
         workspace: estafette
         channels:
-        - '#build-status'
+        - '#release-status'
         when:
           status == 'succeeded' ||
           status == 'failed'
