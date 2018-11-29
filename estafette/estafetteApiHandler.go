@@ -51,7 +51,10 @@ type APIHandler interface {
 
 	GetLoggedInUser(*gin.Context)
 	UpdateComputedTables(*gin.Context)
+
 	GetConfig(*gin.Context)
+	GetConfigCredentials(*gin.Context)
+	GetConfigTrustedImages(*gin.Context)
 }
 
 type apiHandlerImpl struct {
@@ -1171,6 +1174,58 @@ func (h *apiHandlerImpl) GetConfig(c *gin.Context) {
 	_ = c.MustGet(gin.AuthUserKey).(auth.User)
 
 	configBytes, err := yaml.Marshal(h.encryptedConfig)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed marshalling encrypted config")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	r, err := regexp.Compile(`estafette\.secret\(([a-zA-Z0-9.=_-]+)\)`)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed compiling regex")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	// obfuscate all secrets
+	configString := r.ReplaceAllLiteralString(string(configBytes), "***")
+
+	// add extra whitespace after each top-level item
+	addWhitespaceRegex := regexp.MustCompile(`\n([a-z])`)
+	configString = addWhitespaceRegex.ReplaceAllString(configString, "\n\n$1")
+
+	c.JSON(http.StatusOK, gin.H{"config": configString})
+}
+
+func (h *apiHandlerImpl) GetConfigCredentials(c *gin.Context) {
+
+	_ = c.MustGet(gin.AuthUserKey).(auth.User)
+
+	configBytes, err := yaml.Marshal(h.encryptedConfig.Credentials)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed marshalling encrypted config")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	r, err := regexp.Compile(`estafette\.secret\(([a-zA-Z0-9.=_-]+)\)`)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed compiling regex")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	// obfuscate all secrets
+	configString := r.ReplaceAllLiteralString(string(configBytes), "***")
+
+	// add extra whitespace after each top-level item
+	addWhitespaceRegex := regexp.MustCompile(`\n([a-z])`)
+	configString = addWhitespaceRegex.ReplaceAllString(configString, "\n\n$1")
+
+	c.JSON(http.StatusOK, gin.H{"config": configString})
+}
+
+func (h *apiHandlerImpl) GetConfigTrustedImages(c *gin.Context) {
+
+	_ = c.MustGet(gin.AuthUserKey).(auth.User)
+
+	configBytes, err := yaml.Marshal(h.encryptedConfig.TrustedImages)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed marshalling encrypted config")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
