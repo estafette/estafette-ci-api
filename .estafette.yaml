@@ -84,6 +84,7 @@ releases:
           - gke/templates/manifest-golang.tmpl
           - gke/templates/manifest-node.tmpl
           - gke/templates/manifest-dotnet.tmpl
+          - gke/templates/manifest-dotnet-library.tmpl
           - gke/templates/manifest-java.tmpl
           - gke/templates/manifest-python.tmpl
           data:
