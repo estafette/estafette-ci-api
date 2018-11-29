@@ -2,7 +2,7 @@
 labels:
   app: {{.ApplicationNamePlaceholder}}
   team: {{.TeamNamePlaceholder}}
-  language: dotnet-core
+  language: python
 
 # https://estafette.io/usage/manifest/#versioning
 version:
@@ -12,32 +12,10 @@ version:
 
 # https://estafette.io/usage/manifest/#build-stages
 stages:
-  restore:
-    image: microsoft/dotnet:2.1-sdk
-    env:
-      PRIVATE_NUGET_SOURCE: {{.PrivateNugetSource}}
-    commands:
-    - dotnet restore --source https://www.nuget.org/api/v1 --source ${PRIVATE_NUGET_SOURCE} --packages .nuget/packages
-
   build:
-    image: microsoft/dotnet:2.1-sdk
+    image: python:3.7.1-alpine3.8
     commands:
-    - dotnet build --configuration Release /p:Version=${ESTAFETTE_BUILD_VERSION} --no-restore
-
-  unit-tests:
-    image: microsoft/dotnet:2.1-sdk
-    commands:
-    - dotnet test --configuration Release --no-build test/**/*.UnitTests.csproj
-
-  integration-tests:
-    image: microsoft/dotnet:2.1-sdk
-    commands:
-    - dotnet test --configuration Release --no-build test/**/*.IntegrationTests.csproj
-
-  publish:
-    image: microsoft/dotnet:2.1-sdk
-    commands:
-    - dotnet publish src/*.WebService --configuration Release --runtime linux-x64 /p:Version=${ESTAFETTE_BUILD_VERSION} --output ${PWD}/publish --no-restore
+    - python -m compileall
 
   # https://estafette.io/usage/extensions/estafette-extensions/#extensions-docker
   bake:
@@ -45,7 +23,6 @@ stages:
     action: build
     repositories:
     - {{.DefaultDockerRepository}}
-    path: ./publish
 
   push-to-docker-hub:
     image: extensions/docker:stable

@@ -43,7 +43,7 @@ stages:
     image: extensions/slack-build-status:stable
     workspace: {{.SlackWorkspace}}
     channels:
-    - '#build-${ESTAFETTE_LABEL_TEAM}'
+    - '#builds-${ESTAFETTE_LABEL_TEAM}'
     when:
       status == 'succeeded' ||
       status == 'failed'
@@ -72,7 +72,7 @@ releases:
         image: extensions/slack-build-status:stable
         workspace: {{.SlackWorkspace}}
         channels:
-        - '#build-${ESTAFETTE_LABEL_TEAM}'
+        - '#releases-${ESTAFETTE_LABEL_TEAM}'
         when:
           status == 'succeeded' ||
           status == 'failed'
@@ -100,7 +100,7 @@ releases:
         image: extensions/slack-build-status:stable
         workspace: {{.SlackWorkspace}}
         channels:
-        - '#build-${ESTAFETTE_LABEL_TEAM}'
+        - '#releases-${ESTAFETTE_LABEL_TEAM}'
         when:
           status == 'succeeded' ||
           status == 'failed'
@@ -132,7 +132,7 @@ releases:
         image: extensions/slack-build-status:stable
         workspace: {{.SlackWorkspace}}
         channels:
-        - '#build-${ESTAFETTE_LABEL_TEAM}'
+        - '#releases-${ESTAFETTE_LABEL_TEAM}'
         when:
           status == 'succeeded' ||
           status == 'failed'
