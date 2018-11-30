@@ -100,6 +100,7 @@ credentials:
       image: {{.GKE_DEFAULT_SIDECAR_IMAGE_2}}
     autoscale:
       min: 1
+      max: 5
 - name: '{{.GKE_CREDENTIAL_3}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_3}}
@@ -116,6 +117,7 @@ credentials:
       image: {{.GKE_DEFAULT_SIDECAR_IMAGE_3}}
     autoscale:
       min: 2
+      max: 10
 - name: '{{.GKE_CREDENTIAL_4}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_4}}
