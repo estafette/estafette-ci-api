@@ -1078,7 +1078,7 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 		if durationInSeconds > 300.0 {
 			warnings = append(warnings, contracts.Warning{
 				Status:  "danger",
-				Message: fmt.Sprintf("The median build time of this pipeline is %v. This is too slow, please optimize your build speed by using smaller images or running less intensive steps to ensure it finishes at least within 5 minutes, but preferably within 2 minutes.", duration),
+				Message: fmt.Sprintf("The median build time of this pipeline is **%v**. This is too slow, please optimize your build speed by using smaller images or running less intensive steps to ensure it finishes at least within 5 minutes, but preferably within 2 minutes.", duration),
 			})
 		} else if durationInSeconds > 120.0 {
 			warnings = append(warnings, contracts.Warning{
