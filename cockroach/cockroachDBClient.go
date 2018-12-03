@@ -668,7 +668,6 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 		commitsBytes,
 		upsertedPipeline.InsertedAt,
 		upsertedPipeline.UpdatedAt,
-		upsertedPipeline.Duration,
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
@@ -766,8 +765,8 @@ func (dbc *cockroachDBClientImpl) UpsertComputedRelease(repoSource, repoOwner, r
 			$8,
 			$9,
 			$10,
-			$11,
-			$12
+			AGE($9,$8),
+			$11
 		)
 		ON CONFLICT
 		(
@@ -784,7 +783,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedRelease(repoSource, repoOwner, r
 			inserted_at = excluded.inserted_at,
 			updated_at = excluded.updated_at,
 			triggered_by = excluded.triggered_by,
-			duration = excluded.duration
+			duration = AGE(excluded.updated_at,excluded.inserted_at)
 		`,
 		lastRelease.ID,
 		lastRelease.RepoSource,
@@ -796,7 +795,6 @@ func (dbc *cockroachDBClientImpl) UpsertComputedRelease(repoSource, repoOwner, r
 		lastRelease.InsertedAt,
 		lastRelease.UpdatedAt,
 		lastRelease.TriggeredBy,
-		lastRelease.Duration,
 		lastRelease.Action,
 	)
 	if err != nil {
