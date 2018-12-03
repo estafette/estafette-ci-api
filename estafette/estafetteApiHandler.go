@@ -1048,7 +1048,7 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline not found"})
 	}
 
-	warnings := []string{}
+	warnings := []contracts.Warning{}
 
 	// unmarshal then marshal manifest to include defaults
 	var manifest manifest.EstafetteManifest
@@ -1083,7 +1083,10 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 		}
 
 		if len(stagesUsingLatestTag) > 0 {
-			warnings = append(warnings, fmt.Sprintf("The manifest has one or more stages that use the latest tag of a container image: %v; it's best practice to pin specific versions of an image so you don't run into nasty surprises when the latest version of a used image changes and breaks your build or release.", strings.Join(stagesUsingLatestTag, ", ")))
+			warnings = append(warnings, contracts.Warning{
+				Status:  "warning",
+				Message: fmt.Sprintf("The manifest has one or more stages that use the latest tag of a container image: %v; it's best practice to pin specific versions of an image so you don't run into nasty surprises when the latest version of a used image changes and breaks your build or release.", strings.Join(stagesUsingLatestTag, ", ")),
+			})
 		}
 	}
 
