@@ -1003,7 +1003,11 @@ func (h *apiHandlerImpl) GetPipelineStatsBuildsDurations(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(source, owner, repo)
+	// get filters (?filter[last]=100)
+	filters := map[string][]string{}
+	filters["last"] = h.getLastFilter(c)
+
+	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build durations from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
@@ -1021,7 +1025,11 @@ func (h *apiHandlerImpl) GetPipelineStatsReleasesDurations(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	durations, err := h.cockroachDBClient.GetPipelineReleasesDurations(source, owner, repo)
+	// get filters (?filter[last]=100)
+	filters := map[string][]string{}
+	filters["last"] = h.getLastFilter(c)
+
+	durations, err := h.cockroachDBClient.GetPipelineReleasesDurations(source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving releases durations from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
@@ -1038,6 +1046,10 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 	source := c.Param("source")
 	owner := c.Param("owner")
 	repo := c.Param("repo")
+
+	// get filters (?filter[last]=100)
+	filters := map[string][]string{}
+	filters["last"] = h.getLastFilter(c)
 
 	pipeline, err := h.cockroachDBClient.GetPipeline(source, owner, repo, false)
 	if err != nil {
@@ -1078,7 +1090,7 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 		}
 	}
 
-	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(source, owner, repo)
+	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build durations from db for pipeline %v/%v/%v warnings", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
@@ -1479,6 +1491,16 @@ func (h *apiHandlerImpl) getSinceFilter(c *gin.Context) []string {
 	}
 
 	return []string{"eternity"}
+}
+
+func (h *apiHandlerImpl) getLastFilter(c *gin.Context) []string {
+
+	filterLastValues, filterLastExist := c.GetQueryArray("filter[last]")
+	if filterLastExist {
+		return filterLastValues
+	}
+
+	return []string{"100"}
 }
 
 func (h *apiHandlerImpl) getLabelsFilter(c *gin.Context) []string {

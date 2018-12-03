@@ -61,8 +61,8 @@ type DBClient interface {
 	GetBuildsDuration(map[string][]string) (time.Duration, error)
 	GetFirstBuildTimes() ([]time.Time, error)
 	GetFirstReleaseTimes() ([]time.Time, error)
-	GetPipelineBuildsDurations(string, string, string) ([]map[string]interface{}, error)
-	GetPipelineReleasesDurations(string, string, string) ([]map[string]interface{}, error)
+	GetPipelineBuildsDurations(string, string, string, map[string][]string) ([]map[string]interface{}, error)
+	GetPipelineReleasesDurations(string, string, string, map[string][]string) ([]map[string]interface{}, error)
 
 	selectBuildsQuery() sq.SelectBuilder
 	selectPipelinesQuery() sq.SelectBuilder
@@ -1539,17 +1539,28 @@ func (dbc *cockroachDBClientImpl) GetFirstReleaseTimes() (releaseTimes []time.Ti
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuildsDurations(repoSource, repoOwner, repoName string) (durations []map[string]interface{}, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuildsDurations(repoSource, repoOwner, repoName string, filters map[string][]string) (durations []map[string]interface{}, err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query :=
+	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Select("a.inserted_at, a.duration::INT").
 			From("builds a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
 			Where(sq.Eq{"a.repo_name": repoName}).
+			OrderBy("a.inserted_at DESC")
+
+	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
+	if err != nil {
+		return
+	}
+
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("*").
+			FromSelect(innerquery, "a").
 			OrderBy("a.duration")
 
 	durations = make([]map[string]interface{}, 0)
@@ -1582,17 +1593,28 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsDurations(repoSource, repoOwn
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(repoSource, repoOwner, repoName string) (durations []map[string]interface{}, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(repoSource, repoOwner, repoName string, filters map[string][]string) (durations []map[string]interface{}, err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query :=
+	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Select("a.inserted_at, a.release, a.release_action, a.duration::INT").
 			From("releases a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
 			Where(sq.Eq{"a.repo_name": repoName}).
+			OrderBy("a.inserted_at DESC")
+
+	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
+	if err != nil {
+		return
+	}
+
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("*").
+			FromSelect(innerquery, "a").
 			OrderBy("a.duration")
 
 	durations = make([]map[string]interface{}, 0)
@@ -1722,6 +1744,21 @@ func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, alias string, f
 
 			query = query.Where(fmt.Sprintf("%v.labels @> ?", alias), string(bytes))
 		}
+	}
+
+	return query, nil
+}
+
+func limitClauseGeneratorForLastFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if last, ok := filters["last"]; ok && len(last) == 1 {
+		lastValue := last[0]
+		limitSize, err := strconv.ParseUint(lastValue, 10, 64)
+		if err != nil {
+			return query, err
+		}
+
+		query = query.Limit(limitSize)
 	}
 
 	return query, nil
