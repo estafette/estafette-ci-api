@@ -1062,6 +1062,32 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 
 	warnings := []contracts.Warning{}
 
+	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(source, owner, repo, filters)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving build durations from db for pipeline %v/%v/%v warnings", source, owner, repo)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	if len(durations) > 0 {
+		// pick the item at half of the length
+		medianIndex := len(durations)/2 - 1
+		duration := durations[medianIndex]["duration"].(time.Duration)
+		durationInSeconds := duration.Seconds()
+
+		if durationInSeconds > 300.0 {
+			warnings = append(warnings, contracts.Warning{
+				Status:  "danger",
+				Message: fmt.Sprintf("The median build time of this pipeline is %v. This is far too slow, please optimize your build speed by using smaller images or running less intensive steps to ensure it finishes at least within 5 minutes, but preferably within 2 minutes.", duration),
+			})
+		} else if durationInSeconds > 120.0 {
+			warnings = append(warnings, contracts.Warning{
+				Status:  "warning",
+				Message: fmt.Sprintf("The median build time of this pipeline is %v. This is a bit too slow, please optimize your build speed by using smaller images or running less intensive steps to ensure it finishes within 2 minutes.", duration),
+			})
+		}
+	}
+
 	// unmarshal then marshal manifest to include defaults
 	if pipeline.ManifestObject != nil {
 		// check all build and release stages to have a pinned version
@@ -1086,32 +1112,6 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 			warnings = append(warnings, contracts.Warning{
 				Status:  "warning",
 				Message: fmt.Sprintf("This pipeline has one or more stages that use the latest tag for a container image: %v; it is best practice to pin stage images to specific versions so you don't spend hours tracking down build failures because the used image has changed.", strings.Join(stagesUsingLatestTag, ", ")),
-			})
-		}
-	}
-
-	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(source, owner, repo, filters)
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed retrieving build durations from db for pipeline %v/%v/%v warnings", source, owner, repo)
-		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
-	}
-
-	if len(durations) > 0 {
-		// pick the item at half of the length
-		medianIndex := len(durations)/2 - 1
-		duration := durations[medianIndex]["duration"].(time.Duration)
-		durationInSeconds := duration.Seconds()
-
-		if durationInSeconds > 300.0 {
-			warnings = append(warnings, contracts.Warning{
-				Status:  "danger",
-				Message: fmt.Sprintf("The median build time of this pipeline is %v. This is far too slow, please optimize your build speed by using smaller images or running less intensive steps to ensure it finishes at least within 5 minutes, but preferably within 2 minutes.", duration),
-			})
-		} else if durationInSeconds > 120.0 {
-			warnings = append(warnings, contracts.Warning{
-				Status:  "warning",
-				Message: fmt.Sprintf("The median build time of this pipeline is %v. This is a bit too slow, please optimize your build speed by using smaller images or running less intensive steps to ensure it finishes within 2 minutes.", duration),
 			})
 		}
 	}
