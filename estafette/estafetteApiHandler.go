@@ -1087,7 +1087,7 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 		if len(stagesUsingLatestTag) > 0 {
 			warnings = append(warnings, contracts.Warning{
 				Status:  "warning",
-				Message: fmt.Sprintf("The manifest has one or more stages that use the latest tag of a container image: %v; it's best practice to pin specific versions of an image so you don't run into nasty surprises when the latest version of a used image changes and breaks your build or release.", strings.Join(stagesUsingLatestTag, ", ")),
+				Message: fmt.Sprintf("This pipeline has one or more stages that use the latest tag for a container image: %v; it is best practice to pin stage images to specific versions so you don't spend hours tracking down build failures because the used image has changed.", strings.Join(stagesUsingLatestTag, ", ")),
 			})
 		}
 	}
