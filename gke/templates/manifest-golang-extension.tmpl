@@ -1,0 +1,93 @@
+# https://estafette.io/usage/manifest/#labels
+labels:
+  app: {{.ApplicationNamePlaceholder}}
+  team: {{.TeamNamePlaceholder}}
+  language: golang
+
+# https://estafette.io/usage/manifest/#versioning
+version:
+  semver:
+    major: 0
+    minor: 0
+
+# https://estafette.io/usage/manifest/#build-stages
+stages:
+  build:
+    image: golang:1.11.2-alpine3.8
+    workDir: /go/src/${ESTAFETTE_GIT_SOURCE}/${ESTAFETTE_GIT_OWNER}/${ESTAFETTE_GIT_NAME}
+    env:
+      CGO_ENABLED: 0
+      GOOS: linux
+    commands:
+    - go test `go list ./... | grep -v /vendor/`
+
+  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-docker
+  bake:
+    image: extensions/docker:stable
+    action: build
+    repositories:
+    - {{.DefaultDockerRepository}}
+    path: ./publish
+    copy:
+    - /etc/ssl/certs/ca-certificates.crt
+
+  # test the container before pushing it
+  integration-test:
+    image: {{.DefaultDockerRepository}}/${ESTAFETTE_LABEL_APP}:${ESTAFETTE_BUILD_VERSION}
+
+  push-to-docker-registry:
+    image: extensions/docker:stable
+    action: push
+    repositories:
+    - {{.DefaultDockerRepository}}
+
+  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-slack-build-status
+  slack-notify:
+    image: extensions/slack-build-status:stable
+    workspace: {{.SlackWorkspace}}
+    channels:
+    - '#builds-${ESTAFETTE_LABEL_TEAM}'
+    when:
+      status == 'succeeded' ||
+      status == 'failed'
+
+# https://estafette.io/usage/manifest/#releases
+releases:
+  beta:
+    stages:
+      tag-container-image:
+        image: extensions/docker:stable
+        action: tag
+        repositories:
+        - {{.DefaultDockerRepository}}
+        tags:
+        - beta
+
+      slack-notify:
+        image: extensions/slack-build-status:stable
+        workspace: estafette
+        channels:
+        - '#build-status'
+        when:
+          status == 'succeeded' ||
+          status == 'failed'
+
+  stable:
+    stages:
+      tag-container-image:
+        image: extensions/docker:stable
+        action: tag
+        repositories:
+        - {{.DefaultDockerRepository}}
+        tags:
+        - stable
+        - latest
+
+      slack-notify:
+        image: extensions/slack-build-status:stable
+        workspace: estafette
+        channels:
+        - '#build-status'
+        when:
+          status == 'succeeded' ||
+          status == 'failed'

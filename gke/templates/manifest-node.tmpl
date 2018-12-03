@@ -32,7 +32,7 @@ stages:
     copy:
     - /etc/ssl/certs/ca-certificates.crt
 
-  push-to-docker-hub:
+  push-to-docker-registry:
     image: extensions/docker:stable
     action: push
     repositories:

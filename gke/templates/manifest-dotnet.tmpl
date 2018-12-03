@@ -47,7 +47,7 @@ stages:
     - {{.DefaultDockerRepository}}
     path: ./publish
 
-  push-to-docker-hub:
+  push-to-docker-registry:
     image: extensions/docker:stable
     action: push
     repositories:

@@ -83,6 +83,7 @@ releases:
           # manifest templates
           - gke/templates/manifest-golang.tmpl
           - gke/templates/manifest-golang-library.tmpl
+          - gke/templates/manifest-golang-extension.tmpl
           - gke/templates/manifest-node.tmpl
           - gke/templates/manifest-dotnet.tmpl
           - gke/templates/manifest-dotnet-library.tmpl
