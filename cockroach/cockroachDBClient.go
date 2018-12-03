@@ -632,7 +632,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 			$13,
 			$13,
 			$14,
-			$15
+			AGE($14,$13)
 		)
 		ON CONFLICT
 		(
@@ -652,7 +652,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 			commits = excluded.commits,
 			inserted_at = excluded.inserted_at,
 			updated_at = excluded.updated_at,
-			duration = excluded.duration
+			duration = AGE(excluded.updated_at,excluded.inserted_at)
 		`,
 		upsertedPipeline.ID,
 		upsertedPipeline.RepoSource,
