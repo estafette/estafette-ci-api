@@ -1051,12 +1051,10 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 	warnings := []contracts.Warning{}
 
 	// unmarshal then marshal manifest to include defaults
-	var manifest manifest.EstafetteManifest
-	err = yaml.Unmarshal([]byte(pipeline.Manifest), &manifest)
-	stagesUsingLatestTag := []string{}
-	if err != nil {
+	if pipeline.ManifestObject != nil {
 		// check all build and release stages to have a pinned version
-		for _, s := range manifest.Stages {
+		stagesUsingLatestTag := []string{}
+		for _, s := range pipeline.ManifestObject.Stages {
 			containerImageArray := strings.Split(s.ContainerImage, ":")
 			containerImageTag := "latest"
 			if len(containerImageArray) > 1 {
@@ -1068,7 +1066,7 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 			}
 		}
 
-		for _, r := range manifest.Releases {
+		for _, r := range pipeline.ManifestObject.Releases {
 			for _, s := range r.Stages {
 				containerImageArray := strings.Split(s.ContainerImage, ":")
 				containerImageTag := "latest"
