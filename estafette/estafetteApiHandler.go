@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"text/template"
 	"time"
 
@@ -44,6 +45,7 @@ type APIHandler interface {
 
 	GetPipelineStatsBuildsDurations(*gin.Context)
 	GetPipelineStatsReleasesDurations(*gin.Context)
+	GetPipelineWarnings(*gin.Context)
 
 	GetStatsPipelinesCount(*gin.Context)
 	GetStatsBuildsCount(*gin.Context)
@@ -1029,6 +1031,63 @@ func (h *apiHandlerImpl) GetPipelineStatsReleasesDurations(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"durations": durations,
 	})
+}
+
+func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	pipeline, err := h.cockroachDBClient.GetPipeline(source, owner, repo, false)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
+	}
+	if pipeline == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline not found"})
+	}
+
+	warnings := []string{}
+
+	// unmarshal then marshal manifest to include defaults
+	var manifest manifest.EstafetteManifest
+	err = yaml.Unmarshal([]byte(pipeline.Manifest), &manifest)
+	stagesUsingLatestTag := []string{}
+	if err != nil {
+		// check all build and release stages to have a pinned version
+		for _, s := range manifest.Stages {
+			containerImageArray := strings.Split(s.ContainerImage, ":")
+			containerImageTag := "latest"
+			if len(containerImageArray) > 1 {
+				containerImageTag = containerImageArray[1]
+			}
+
+			if containerImageTag == "latest" {
+				stagesUsingLatestTag = append(stagesUsingLatestTag, s.Name)
+			}
+		}
+
+		for _, r := range manifest.Releases {
+			for _, s := range r.Stages {
+				containerImageArray := strings.Split(s.ContainerImage, ":")
+				containerImageTag := "latest"
+				if len(containerImageArray) > 1 {
+					containerImageTag = containerImageArray[1]
+				}
+
+				if containerImageTag == "latest" {
+					stagesUsingLatestTag = append(stagesUsingLatestTag, fmt.Sprintf("%v/%v", r.Name, s.Name))
+				}
+			}
+		}
+
+		if len(stagesUsingLatestTag) > 0 {
+			warnings = append(warnings, fmt.Sprintf("The manifest has one or more stages that use the latest tag of a container image: %v; it's best practice to pin specific versions of an image so you don't run into nasty surprises when the latest version of a used image changes and breaks your build or release.", strings.Join(stagesUsingLatestTag, ", ")))
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"warnings": warnings})
 }
 
 func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {
