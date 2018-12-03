@@ -10,7 +10,8 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-    nginx.ingress.kubernetes.io/whitelist-source-range: "104.192.136.0/21,34.198.203.127/32,34.198.178.64/32,34.198.32.85/32"
+    # the list of bitbucket's ip addresses is too large and too dynamic, so allowing all traffic for now (https://bitbucket.org/blog/update-to-outgoing-webhook-ip-addresses)
+    nginx.ingress.kubernetes.io/whitelist-source-range: "0.0.0.0/0"
     estafette.io/cloudflare-dns: "true"
     estafette.io/cloudflare-proxy: "true"
     estafette.io/cloudflare-hostnames: "{{.ManifestData.IntegrationsHostname}}"
