@@ -1061,6 +1061,8 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 				containerImageTag = containerImageArray[1]
 			}
 
+			log.Debug().Str("stage", s.Name).Str("image", s.ContainerImage).Str("tag", containerImageTag).Msgf("Checking image tags for pipeline %v/%v/%v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
+
 			if containerImageTag == "latest" {
 				stagesUsingLatestTag = append(stagesUsingLatestTag, s.Name)
 			}
@@ -1073,6 +1075,8 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 				if len(containerImageArray) > 1 {
 					containerImageTag = containerImageArray[1]
 				}
+
+				log.Debug().Str("release", r.Name).Str("stage", s.Name).Str("image", s.ContainerImage).Str("tag", containerImageTag).Msgf("Checking image tags for pipeline %v/%v/%v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
 
 				if containerImageTag == "latest" {
 					stagesUsingLatestTag = append(stagesUsingLatestTag, fmt.Sprintf("%v/%v", r.Name, s.Name))
