@@ -1005,7 +1005,7 @@ func (h *apiHandlerImpl) GetPipelineStatsBuildsDurations(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["last"] = h.getLastFilter(c)
+	filters["last"] = h.getLastFilter(c, 100)
 
 	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(source, owner, repo, filters)
 	if err != nil {
@@ -1027,7 +1027,7 @@ func (h *apiHandlerImpl) GetPipelineStatsReleasesDurations(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["last"] = h.getLastFilter(c)
+	filters["last"] = h.getLastFilter(c, 100)
 
 	durations, err := h.cockroachDBClient.GetPipelineReleasesDurations(source, owner, repo, filters)
 	if err != nil {
@@ -1049,7 +1049,7 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["last"] = h.getLastFilter(c)
+	filters["last"] = h.getLastFilter(c, 25)
 
 	pipeline, err := h.cockroachDBClient.GetPipeline(source, owner, repo, false)
 	if err != nil {
@@ -1496,14 +1496,14 @@ func (h *apiHandlerImpl) getSinceFilter(c *gin.Context) []string {
 	return []string{"eternity"}
 }
 
-func (h *apiHandlerImpl) getLastFilter(c *gin.Context) []string {
+func (h *apiHandlerImpl) getLastFilter(c *gin.Context, defaultValue int) []string {
 
 	filterLastValues, filterLastExist := c.GetQueryArray("filter[last]")
 	if filterLastExist {
 		return filterLastValues
 	}
 
-	return []string{"100"}
+	return []string{strconv.Itoa(defaultValue)}
 }
 
 func (h *apiHandlerImpl) getLabelsFilter(c *gin.Context) []string {
