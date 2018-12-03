@@ -1258,15 +1258,18 @@ func (h *apiHandlerImpl) UpdateComputedTables(c *gin.Context) {
 		}
 		for _, p := range pipelines {
 
+			h.cockroachDBClient.UpsertComputedPipeline(p.RepoSource, p.RepoOwner, p.RepoName)
 			h.cockroachDBClient.UpdateComputedPipelineFirstInsertedAt(p.RepoSource, p.RepoOwner, p.RepoName)
 			manifest, err := manifest.ReadManifest(p.Manifest)
 			if err == nil {
 				for _, r := range manifest.Releases {
 					if len(r.Actions) > 0 {
 						for _, a := range r.Actions {
+							h.cockroachDBClient.UpsertComputedRelease(p.RepoSource, p.RepoOwner, p.RepoName, r.Name, a.Name)
 							h.cockroachDBClient.UpdateComputedReleaseFirstInsertedAt(p.RepoSource, p.RepoOwner, p.RepoName, r.Name, a.Name)
 						}
 					} else {
+						h.cockroachDBClient.UpsertComputedRelease(p.RepoSource, p.RepoOwner, p.RepoName, r.Name, "")
 						h.cockroachDBClient.UpdateComputedReleaseFirstInsertedAt(p.RepoSource, p.RepoOwner, p.RepoName, r.Name, "")
 					}
 				}
