@@ -1550,7 +1550,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsDurations(repoSource, repoOwn
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
 			Where(sq.Eq{"a.repo_name": repoName}).
-			OrderBy("a.inserted_at")
+			OrderBy("a.duration")
 
 	durations = make([]map[string]interface{}, 0)
 
@@ -1593,7 +1593,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(repoSource, repoO
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
 			Where(sq.Eq{"a.repo_name": repoName}).
-			OrderBy("a.inserted_at")
+			OrderBy("a.duration")
 
 	durations = make([]map[string]interface{}, 0)
 

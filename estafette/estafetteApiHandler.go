@@ -1055,14 +1055,7 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 		// check all build and release stages to have a pinned version
 		stagesUsingLatestTag := []string{}
 		for _, s := range pipeline.ManifestObject.Stages {
-			containerImageArray := strings.Split(s.ContainerImage, ":")
-			containerImageTag := "latest"
-			if len(containerImageArray) > 1 {
-				containerImageTag = containerImageArray[1]
-			}
-
-			log.Debug().Str("stage", s.Name).Str("image", s.ContainerImage).Str("tag", containerImageTag).Msgf("Checking image tags for pipeline %v/%v/%v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
-
+			containerImageTag := getContainerImageTag(s.ContainerImage)
 			if containerImageTag == "latest" {
 				stagesUsingLatestTag = append(stagesUsingLatestTag, s.Name)
 			}
@@ -1070,14 +1063,7 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 
 		for _, r := range pipeline.ManifestObject.Releases {
 			for _, s := range r.Stages {
-				containerImageArray := strings.Split(s.ContainerImage, ":")
-				containerImageTag := "latest"
-				if len(containerImageArray) > 1 {
-					containerImageTag = containerImageArray[1]
-				}
-
-				log.Debug().Str("release", r.Name).Str("stage", s.Name).Str("image", s.ContainerImage).Str("tag", containerImageTag).Msgf("Checking image tags for pipeline %v/%v/%v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
-
+				containerImageTag := getContainerImageTag(s.ContainerImage)
 				if containerImageTag == "latest" {
 					stagesUsingLatestTag = append(stagesUsingLatestTag, fmt.Sprintf("%v/%v", r.Name, s.Name))
 				}
@@ -1092,7 +1078,43 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 		}
 	}
 
+	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(source, owner, repo)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving build durations from db for pipeline %v/%v/%v warnings", source, owner, repo)
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	if len(durations) > 0 {
+		// pick the item at half of the length
+		medianIndex := len(durations)/2 - 1
+		duration := durations[medianIndex]["duration"].(time.Duration)
+		durationInSeconds := duration.Seconds()
+
+		if durationInSeconds > 300.0 {
+			warnings = append(warnings, contracts.Warning{
+				Status:  "danger",
+				Message: fmt.Sprintf("The median build time of this pipeline is %v. This is far too slow, please optimize your build speed by using smaller images or running less intensive steps to ensure it finishes at least within 5 minutes, but preferably within 2 minutes.", duration),
+			})
+		} else if durationInSeconds > 120.0 {
+			warnings = append(warnings, contracts.Warning{
+				Status:  "warning",
+				Message: fmt.Sprintf("The median build time of this pipeline is %v. This is a bit too slow, please optimize your build speed by using smaller images or running less intensive steps to ensure it finishes within 2 minutes.", duration),
+			})
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{"warnings": warnings})
+}
+
+func getContainerImageTag(containerImage string) string {
+	containerImageArray := strings.Split(containerImage, ":")
+	containerImageTag := "latest"
+	if len(containerImageArray) > 1 {
+		containerImageTag = containerImageArray[1]
+	}
+
+	return containerImageTag
 }
 
 func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {
