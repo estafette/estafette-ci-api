@@ -35,6 +35,7 @@ type APIHandler interface {
 	GetPipelineBuildLogs(*gin.Context)
 	TailPipelineBuildLogs(*gin.Context)
 	PostPipelineBuildLogs(*gin.Context)
+	GetPipelineBuildWarnings(*gin.Context)
 	GetPipelineReleases(*gin.Context)
 	GetPipelineRelease(*gin.Context)
 	CreatePipelineRelease(*gin.Context)
@@ -68,19 +69,19 @@ type APIHandler interface {
 }
 
 type apiHandlerImpl struct {
-	configFilePath    string
-	config            config.APIServerConfig
-	authConfig        config.AuthConfig
-	encryptedConfig   config.APIConfig
-	cockroachDBClient cockroach.DBClient
-
+	configFilePath       string
+	config               config.APIServerConfig
+	authConfig           config.AuthConfig
+	encryptedConfig      config.APIConfig
+	cockroachDBClient    cockroach.DBClient
 	ciBuilderClient      CiBuilderClient
+	warningHelper        WarningHelper
 	githubJobVarsFunc    func(string, string, string) (string, string, error)
 	bitbucketJobVarsFunc func(string, string, string) (string, string, error)
 }
 
 // NewAPIHandler returns a new estafette.APIHandler
-func NewAPIHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error)) (apiHandler APIHandler) {
+func NewAPIHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, warningHelper WarningHelper, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error)) (apiHandler APIHandler) {
 
 	apiHandler = &apiHandlerImpl{
 		configFilePath:       configFilePath,
@@ -89,6 +90,7 @@ func NewAPIHandler(configFilePath string, config config.APIServerConfig, authCon
 		encryptedConfig:      encryptedConfig,
 		cockroachDBClient:    cockroachDBClient,
 		ciBuilderClient:      ciBuilderClient,
+		warningHelper:        warningHelper,
 		githubJobVarsFunc:    githubJobVarsFunc,
 		bitbucketJobVarsFunc: bitbucketJobVarsFunc,
 	}
@@ -590,6 +592,39 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
+func (h *apiHandlerImpl) GetPipelineBuildWarnings(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	revisionOrID := c.Param("revisionOrId")
+
+	id, err := strconv.Atoi(revisionOrID)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed reading id from path parameter for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+	}
+
+	build, err := h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id, false)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, id)
+	}
+	if build == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
+	}
+
+	warnings, err := h.warningHelper.GetManifestWarnings(build.ManifestObject)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed getting warnings for %v/%v/%v/builds/%v manifest", source, owner, repo, revisionOrID)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed getting warnings for manifest"})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"warnings": warnings})
+}
+
 func (h *apiHandlerImpl) GetPipelineReleases(c *gin.Context) {
 	source := c.Param("source")
 	owner := c.Param("owner")
@@ -1088,33 +1123,13 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 		}
 	}
 
-	// unmarshal then marshal manifest to include defaults
-	if pipeline.ManifestObject != nil {
-		// check all build and release stages to have a pinned version
-		stagesUsingLatestTag := []string{}
-		for _, s := range pipeline.ManifestObject.Stages {
-			containerImageTag := getContainerImageTag(s.ContainerImage)
-			if containerImageTag == "latest" {
-				stagesUsingLatestTag = append(stagesUsingLatestTag, s.Name)
-			}
-		}
-
-		for _, r := range pipeline.ManifestObject.Releases {
-			for _, s := range r.Stages {
-				containerImageTag := getContainerImageTag(s.ContainerImage)
-				if containerImageTag == "latest" {
-					stagesUsingLatestTag = append(stagesUsingLatestTag, fmt.Sprintf("%v/%v", r.Name, s.Name))
-				}
-			}
-		}
-
-		if len(stagesUsingLatestTag) > 0 {
-			warnings = append(warnings, contracts.Warning{
-				Status:  "warning",
-				Message: fmt.Sprintf("This pipeline has one or more stages that use **latest** or no tag for its container image: `%v`; it is [best practice](https://estafette.io/usage/best-practices/#pin-image-versions) to pin stage images to specific versions so you don't spend hours tracking down build failures because the used image has changed.", strings.Join(stagesUsingLatestTag, ", ")),
-			})
-		}
+	manifestWarnings, err := h.warningHelper.GetManifestWarnings(pipeline.ManifestObject)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed getting warnings for %v/%v/%v manifest", source, owner, repo)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed getting warnings for manifest"})
 	}
+	warnings = append(warnings, manifestWarnings...)
 
 	c.JSON(http.StatusOK, gin.H{"warnings": warnings})
 }
