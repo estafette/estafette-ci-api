@@ -1078,12 +1078,12 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 		if durationInSeconds > 300.0 {
 			warnings = append(warnings, contracts.Warning{
 				Status:  "danger",
-				Message: fmt.Sprintf("The median build time of this pipeline is %v. This is far too slow, please optimize your build speed by using smaller images or running less intensive steps to ensure it finishes at least within 5 minutes, but preferably within 2 minutes.", duration),
+				Message: fmt.Sprintf("The median build time of this pipeline is %v. This is too slow, please optimize your build speed by using smaller images or running less intensive steps to ensure it finishes at least within 5 minutes, but preferably within 2 minutes.", duration),
 			})
 		} else if durationInSeconds > 120.0 {
 			warnings = append(warnings, contracts.Warning{
 				Status:  "warning",
-				Message: fmt.Sprintf("The median build time of this pipeline is %v. This is a bit too slow, please optimize your build speed by using smaller images or running less intensive steps to ensure it finishes within 2 minutes.", duration),
+				Message: fmt.Sprintf("The median build time of this pipeline is %v. This is too slow, please optimize your build speed by using smaller images or running less intensive steps to ensure it finishes within 2 minutes.", duration),
 			})
 		}
 	}
@@ -1111,7 +1111,7 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 		if len(stagesUsingLatestTag) > 0 {
 			warnings = append(warnings, contracts.Warning{
 				Status:  "warning",
-				Message: fmt.Sprintf("This pipeline has one or more stages that use the latest tag for a container image: %v; it is best practice to pin stage images to specific versions so you don't spend hours tracking down build failures because the used image has changed.", strings.Join(stagesUsingLatestTag, ", ")),
+				Message: fmt.Sprintf("This pipeline has one or more stages that use 'latest' or no tag for its container image: %v; it is best practice to pin stage images to specific versions so you don't spend hours tracking down build failures because the used image has changed.", strings.Join(stagesUsingLatestTag, ", ")),
 			})
 		}
 	}
