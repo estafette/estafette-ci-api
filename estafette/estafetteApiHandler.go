@@ -2,6 +2,7 @@ package estafette
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,6 +19,7 @@ import (
 	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-contracts"
+	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -66,6 +68,7 @@ type APIHandler interface {
 	GetManifestTemplates(*gin.Context)
 	GenerateManifest(*gin.Context)
 	ValidateManifest(*gin.Context)
+	EncryptSecret(*gin.Context)
 }
 
 type apiHandlerImpl struct {
@@ -76,12 +79,13 @@ type apiHandlerImpl struct {
 	cockroachDBClient    cockroach.DBClient
 	ciBuilderClient      CiBuilderClient
 	warningHelper        WarningHelper
+	secretHelper         crypt.SecretHelper
 	githubJobVarsFunc    func(string, string, string) (string, string, error)
 	bitbucketJobVarsFunc func(string, string, string) (string, string, error)
 }
 
 // NewAPIHandler returns a new estafette.APIHandler
-func NewAPIHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, warningHelper WarningHelper, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error)) (apiHandler APIHandler) {
+func NewAPIHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, warningHelper WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error)) (apiHandler APIHandler) {
 
 	apiHandler = &apiHandlerImpl{
 		configFilePath:       configFilePath,
@@ -91,6 +95,7 @@ func NewAPIHandler(configFilePath string, config config.APIServerConfig, authCon
 		cockroachDBClient:    cockroachDBClient,
 		ciBuilderClient:      ciBuilderClient,
 		warningHelper:        warningHelper,
+		secretHelper:         secretHelper,
 		githubJobVarsFunc:    githubJobVarsFunc,
 		bitbucketJobVarsFunc: bitbucketJobVarsFunc,
 	}
@@ -1506,6 +1511,34 @@ func (h *apiHandlerImpl) ValidateManifest(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": status, "errors": errorString})
+}
+
+func (h *apiHandlerImpl) EncryptSecret(c *gin.Context) {
+
+	var aux struct {
+		Base64Encode bool   `json:"base64"`
+		Value        string `json:"value"`
+	}
+
+	err := c.BindJSON(&aux)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed binding json body")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	value := aux.Value
+	if aux.Base64Encode {
+		value = base64.URLEncoding.EncodeToString([]byte(value))
+	}
+
+	encryptedString, err := h.secretHelper.EncryptEnvelope(value)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed encrypting secret")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"secret": encryptedString})
 }
 
 func (h *apiHandlerImpl) getSinceFilter(c *gin.Context) []string {

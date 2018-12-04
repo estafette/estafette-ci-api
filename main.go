@@ -236,7 +236,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 
 	warningHelper := estafette.NewWarningHelper()
 
-	estafetteAPIHandler := estafette.NewAPIHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, ciBuilderClient, warningHelper, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
+	estafetteAPIHandler := estafette.NewAPIHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, ciBuilderClient, warningHelper, secretHelper, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
 	gzippedRoutes.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
 	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo", estafetteAPIHandler.GetPipeline)
 	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)
@@ -260,6 +260,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	gzippedRoutes.GET("/api/manifest/templates", estafetteAPIHandler.GetManifestTemplates)
 	gzippedRoutes.POST("/api/manifest/generate", estafetteAPIHandler.GenerateManifest)
 	gzippedRoutes.POST("/api/manifest/validate", estafetteAPIHandler.ValidateManifest)
+	gzippedRoutes.POST("/api/manifest/encrypt", estafetteAPIHandler.EncryptSecret)
 
 	// api key protected endpoints
 	apiKeyAuthorizedRoutes := gzippedRoutes.Group("/", authMiddleware.APIKeyMiddlewareFunc())
