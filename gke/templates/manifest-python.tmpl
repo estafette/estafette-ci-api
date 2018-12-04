@@ -37,7 +37,6 @@ stages:
     channels:
     - '#builds-${ESTAFETTE_LABEL_TEAM}'
     when:
-      status == 'succeeded' ||
       status == 'failed'
 
 # https://estafette.io/usage/manifest/#releases
@@ -66,7 +65,6 @@ releases:
         channels:
         - '#releases-${ESTAFETTE_LABEL_TEAM}'
         when:
-          status == 'succeeded' ||
           status == 'failed'
 
   staging:
@@ -94,7 +92,6 @@ releases:
         channels:
         - '#releases-${ESTAFETTE_LABEL_TEAM}'
         when:
-          status == 'succeeded' ||
           status == 'failed'
 
   production:
