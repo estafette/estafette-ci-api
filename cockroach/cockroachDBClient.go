@@ -1550,6 +1550,11 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsDurations(repoSource, repoOwn
 			Where(sq.Eq{"a.repo_name": repoName}).
 			OrderBy("a.inserted_at DESC")
 
+	innerquery, err = whereClauseGeneratorForStatusFilter(innerquery, "a", filters)
+	if err != nil {
+		return
+	}
+
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
 		return
@@ -1603,6 +1608,11 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(repoSource, repoO
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
 			Where(sq.Eq{"a.repo_name": repoName}).
 			OrderBy("a.inserted_at DESC")
+
+	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
+	if err != nil {
+		return
+	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {

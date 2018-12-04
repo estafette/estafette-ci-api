@@ -1040,6 +1040,7 @@ func (h *apiHandlerImpl) GetPipelineStatsBuildsDurations(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
+	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
 	filters["last"] = h.getLastFilter(c, 100)
 
 	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(source, owner, repo, filters)
@@ -1062,6 +1063,7 @@ func (h *apiHandlerImpl) GetPipelineStatsReleasesDurations(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
+	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
 	filters["last"] = h.getLastFilter(c, 100)
 
 	durations, err := h.cockroachDBClient.GetPipelineReleasesDurations(source, owner, repo, filters)
@@ -1084,6 +1086,7 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
+	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
 	filters["last"] = h.getLastFilter(c, 25)
 
 	pipeline, err := h.cockroachDBClient.GetPipeline(source, owner, repo, false)
@@ -1374,13 +1377,17 @@ func (h *apiHandlerImpl) GetConfigTrustedImages(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) getStatusFilter(c *gin.Context) []string {
+	return h.getStatusFilterWithDefault(c, []string{})
+}
+
+func (h *apiHandlerImpl) getStatusFilterWithDefault(c *gin.Context, defaultStatuses []string) []string {
 
 	filterStatusValues, filterStatusExist := c.GetQueryArray("filter[status]")
 	if filterStatusExist && len(filterStatusValues) > 0 && filterStatusValues[0] != "" {
 		return filterStatusValues
 	}
 
-	return []string{}
+	return defaultStatuses
 }
 
 func (h *apiHandlerImpl) GetManifestTemplates(c *gin.Context) {
