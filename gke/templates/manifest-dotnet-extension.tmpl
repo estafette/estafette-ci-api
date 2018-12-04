@@ -1,0 +1,109 @@
+# https://estafette.io/usage/manifest/#labels
+labels:
+  app: {{.ApplicationNamePlaceholder}}
+  team: {{.TeamNamePlaceholder}}
+  language: dotnet-core
+
+# https://estafette.io/usage/manifest/#versioning
+version:
+  semver:
+    major: 0
+    minor: 0
+
+# https://estafette.io/usage/manifest/#build-stages
+stages:
+  restore:
+    image: microsoft/dotnet:2.1-sdk
+    env:
+      PRIVATE_NUGET_SOURCE: {{.PrivateNugetSource}}
+    commands:
+    - dotnet restore --source https://www.nuget.org/api/v1 --source ${PRIVATE_NUGET_SOURCE} --packages .nuget/packages
+
+  build:
+    image: microsoft/dotnet:2.1-sdk
+    commands:
+    - dotnet build --configuration Release /p:Version=${ESTAFETTE_BUILD_VERSION} --no-restore
+
+  unit-tests:
+    image: microsoft/dotnet:2.1-sdk
+    commands:
+    - dotnet test --configuration Release --no-build test/**/*.UnitTests.csproj
+
+  integration-tests:
+    image: microsoft/dotnet:2.1-sdk
+    commands:
+    - dotnet test --configuration Release --no-build test/**/*.IntegrationTests.csproj
+
+  publish:
+    image: microsoft/dotnet:2.1-sdk
+    commands:
+    - dotnet publish src/*.WebService --configuration Release --runtime linux-x64 /p:Version=${ESTAFETTE_BUILD_VERSION} --output ${PWD}/publish --no-restore
+
+  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-docker
+  bake:
+    image: extensions/docker:stable
+    action: build
+    repositories:
+    - {{.DefaultDockerRepository}}
+    path: ./publish
+
+  # test the container before pushing it
+  integration-test:
+    image: {{.DefaultDockerRepository}}/${ESTAFETTE_LABEL_APP}:${ESTAFETTE_BUILD_VERSION}
+
+  push-to-docker-registry:
+    image: extensions/docker:stable
+    action: push
+    repositories:
+    - {{.DefaultDockerRepository}}
+
+  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-slack-build-status
+  slack-notify:
+    image: extensions/slack-build-status:stable
+    workspace: {{.SlackWorkspace}}
+    channels:
+    - '#builds-${ESTAFETTE_LABEL_TEAM}'
+    when:
+      status == 'succeeded' ||
+      status == 'failed'
+
+# https://estafette.io/usage/manifest/#releases
+releases:
+  beta:
+    stages:
+      tag-container-image:
+        image: extensions/docker:stable
+        action: tag
+        repositories:
+        - {{.DefaultDockerRepository}}
+        tags:
+        - beta
+
+      slack-notify:
+        image: extensions/slack-build-status:stable
+        workspace: estafette
+        channels:
+        - '#build-status'
+        when:
+          status == 'succeeded' ||
+          status == 'failed'
+
+  stable:
+    stages:
+      tag-container-image:
+        image: extensions/docker:stable
+        action: tag
+        repositories:
+        - {{.DefaultDockerRepository}}
+        tags:
+        - stable
+        - latest
+
+      slack-notify:
+        image: extensions/slack-build-status:stable
+        workspace: estafette
+        channels:
+        - '#build-status'
+        when:
+          status == 'succeeded' ||
+          status == 'failed'

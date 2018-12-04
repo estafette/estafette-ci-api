@@ -134,6 +134,7 @@ credentials:
       image: {{.GKE_DEFAULT_SIDECAR_IMAGE_4}}
     autoscale:
       min: 3
+      max: 500
 - name: {{.SLACK_WEBHOOK_NAME_1}}
   type: slack-webhook
   workspace: {{.SLACK_WEBHOOK_WORKSPACE_1}}
