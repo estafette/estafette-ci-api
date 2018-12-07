@@ -180,7 +180,6 @@ releases:
             TeamNamePlaceholder: '{{.TeamName}}'
             DefaultDockerRepository: estafette.secret(cA_SpNWW3F1GgqOH.nBx5oIyIVc3kGWJdWHlN7fKOW_HPfuNr4X0LpOgEI7hsU854)
             SlackWorkspace: estafette.secret(i6NZxbK7RV6oWQ-K.QpCrnzKj9z_GGl4kONni4rkRa_UHWw==)
-            TopLevelDomain: estafette.secret(9eQhs7FOHZZF9Szm.ZII93qRNS0tBL6pskzdxLYA2ZBwBLCMoV7M=)
             ProjectNamePlaceholder: '{{.ProjectName}}'
             PrivateNugetSource: estafette.secret(1gEdTRZxX9v0SYYt.a30ACgxUYqpzYI0txfjthYRO7Xo-fM1kZa4g-Qq7aSC-pWNVYhmaYe5cs2jStTnFBtnrfu7nKQjdZo0a3X_ExDkm1qRDGbIvrLKqNwcrzdUxXtzdD7kZ7HJeD-zjC0azaCwFOLeojVRDYGyWkSvySNWkU6b8cZE5tvS-FEmTU9A_ssdNi2xpgwaY-jXQHIGWZZF5mHB1KDbDzkUaupsUZEoNFckhY7A_Vpt2XGUKKbxkIGZLd3zGyxkydpxRLcmUGhjESVrtuQ==)
         hosts:
