@@ -10,7 +10,8 @@ import (
 
 // WarningHelper checks whether any warnings should be issued
 type WarningHelper interface {
-	GetManifestWarnings(*manifest.EstafetteManifest) ([]contracts.Warning, error)
+	GetManifestWarnings(*manifest.EstafetteManifest, string) ([]contracts.Warning, error)
+	GetContainerImageParts(string) (string, string, string)
 }
 
 type warningHelperImpl struct {
@@ -24,7 +25,7 @@ func NewWarningHelper() (warningHelper WarningHelper) {
 	return
 }
 
-func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteManifest) (warnings []contracts.Warning, err error) {
+func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteManifest, gitOwner string) (warnings []contracts.Warning, err error) {
 	warnings = []contracts.Warning{}
 
 	// unmarshal then marshal manifest to include defaults
@@ -33,22 +34,22 @@ func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteMani
 		stagesUsingLatestTag := []string{}
 		stagesUsingDevTag := []string{}
 		for _, s := range manifest.Stages {
-			containerImageTag := getContainerImageTag(s.ContainerImage)
+			containerImageRepo, _, containerImageTag := w.GetContainerImageParts(s.ContainerImage)
 			if containerImageTag == "latest" {
 				stagesUsingLatestTag = append(stagesUsingLatestTag, s.Name)
 			}
-			if containerImageTag == "dev" {
+			if containerImageTag == "dev" && containerImageRepo == "extensions" && gitOwner != "estafette" {
 				stagesUsingDevTag = append(stagesUsingDevTag, s.Name)
 			}
 		}
 
 		for _, r := range manifest.Releases {
 			for _, s := range r.Stages {
-				containerImageTag := getContainerImageTag(s.ContainerImage)
+				containerImageRepo, _, containerImageTag := w.GetContainerImageParts(s.ContainerImage)
 				if containerImageTag == "latest" {
 					stagesUsingLatestTag = append(stagesUsingLatestTag, fmt.Sprintf("%v/%v", r.Name, s.Name))
 				}
-				if containerImageTag == "dev" {
+				if containerImageTag == "dev" && containerImageRepo == "extensions" && gitOwner != "estafette" {
 					stagesUsingDevTag = append(stagesUsingDevTag, s.Name)
 				}
 			}
@@ -65,6 +66,21 @@ func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteMani
 				Status:  "warning",
 				Message: fmt.Sprintf("This pipeline has one or more stages that use the **dev** tag for its container image: `%v`; it is [best practice](https://estafette.io/usage/best-practices/#avoid-using-estafette-s-dev-or-beta-tags) to avoid the dev tag alltogether, since it can be broken at any time.", strings.Join(stagesUsingDevTag, ", ")),
 			})
+		}
+	}
+
+	return
+}
+
+func (w *warningHelperImpl) GetContainerImageParts(containerImage string) (repo, name, tag string) {
+	containerImageArray := strings.Split(containerImage, ":")
+	tag = "latest"
+	if len(containerImageArray) > 1 {
+		tag = containerImageArray[1]
+		containerImageArray = strings.Split(containerImageArray[0], "/")
+		if len(containerImageArray) > 0 {
+			name = containerImageArray[len(containerImageArray)-1]
+			repo = strings.Join(containerImageArray[:len(containerImageArray)-1], "/")
 		}
 	}
 

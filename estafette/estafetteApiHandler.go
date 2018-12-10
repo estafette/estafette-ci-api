@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
-	"strings"
 	"text/template"
 	"time"
 
@@ -620,7 +619,7 @@ func (h *apiHandlerImpl) GetPipelineBuildWarnings(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
 	}
 
-	warnings, err := h.warningHelper.GetManifestWarnings(build.ManifestObject)
+	warnings, err := h.warningHelper.GetManifestWarnings(build.ManifestObject, build.RepoOwner)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed getting warnings for %v/%v/%v/builds/%v manifest", source, owner, repo, revisionOrID)
@@ -1131,7 +1130,7 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 		}
 	}
 
-	manifestWarnings, err := h.warningHelper.GetManifestWarnings(pipeline.ManifestObject)
+	manifestWarnings, err := h.warningHelper.GetManifestWarnings(pipeline.ManifestObject, pipeline.RepoOwner)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed getting warnings for %v/%v/%v manifest", source, owner, repo)
@@ -1140,16 +1139,6 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 	warnings = append(warnings, manifestWarnings...)
 
 	c.JSON(http.StatusOK, gin.H{"warnings": warnings})
-}
-
-func getContainerImageTag(containerImage string) string {
-	containerImageArray := strings.Split(containerImage, ":")
-	containerImageTag := "latest"
-	if len(containerImageArray) > 1 {
-		containerImageTag = containerImageArray[1]
-	}
-
-	return containerImageTag
 }
 
 func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {
