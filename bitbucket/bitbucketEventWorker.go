@@ -199,6 +199,8 @@ func (w *eventWorkerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.Reposi
 		return
 	}
 
+	// fire triggers
+
 	buildID, err := strconv.Atoi(insertedBuild.ID)
 	if err != nil {
 		log.Warn().Err(err).Msgf("Failed to convert build id %v to int", insertedBuild.ID)

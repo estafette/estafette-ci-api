@@ -15,6 +15,7 @@ type EstafetteManifest struct {
 	Labels        map[string]string   `yaml:"labels,omitempty"`
 	Version       EstafetteVersion    `yaml:"version,omitempty"`
 	GlobalEnvVars map[string]string   `yaml:"env,omitempty"`
+	Triggers      []*EstafetteTrigger `yaml:"triggers,omitempty"`
 	Stages        []*EstafetteStage   `yaml:"-" json:"Pipelines,omitempty"`
 	Releases      []*EstafetteRelease `yaml:"-"`
 }
@@ -23,13 +24,14 @@ type EstafetteManifest struct {
 func (c *EstafetteManifest) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
 
 	var aux struct {
-		Builder             EstafetteBuilder  `yaml:"builder"`
-		Labels              map[string]string `yaml:"labels"`
-		Version             EstafetteVersion  `yaml:"version"`
-		GlobalEnvVars       map[string]string `yaml:"env"`
-		DeprecatedPipelines yaml.MapSlice     `yaml:"pipelines"`
-		Stages              yaml.MapSlice     `yaml:"stages"`
-		Releases            yaml.MapSlice     `yaml:"releases"`
+		Builder             EstafetteBuilder    `yaml:"builder"`
+		Labels              map[string]string   `yaml:"labels"`
+		Version             EstafetteVersion    `yaml:"version"`
+		GlobalEnvVars       map[string]string   `yaml:"env"`
+		Triggers            []*EstafetteTrigger `yaml:"triggers,omitempty"`
+		DeprecatedPipelines yaml.MapSlice       `yaml:"pipelines"`
+		Stages              yaml.MapSlice       `yaml:"stages"`
+		Releases            yaml.MapSlice       `yaml:"releases"`
 	}
 
 	// unmarshal to auxiliary type
@@ -42,6 +44,7 @@ func (c *EstafetteManifest) UnmarshalYAML(unmarshal func(interface{}) error) (er
 	c.Version = aux.Version
 	c.Labels = aux.Labels
 	c.GlobalEnvVars = aux.GlobalEnvVars
+	c.Triggers = aux.Triggers
 
 	// provide backwards compatibility for the deprecated pipelines section now renamed to stages
 	if len(aux.Stages) == 0 && len(aux.DeprecatedPipelines) > 0 {
@@ -96,18 +99,20 @@ func (c *EstafetteManifest) UnmarshalYAML(unmarshal func(interface{}) error) (er
 // MarshalYAML customizes marshalling an EstafetteManifest
 func (c EstafetteManifest) MarshalYAML() (out interface{}, err error) {
 	var aux struct {
-		Builder       EstafetteBuilder  `yaml:"builder,omitempty"`
-		Labels        map[string]string `yaml:"labels,omitempty"`
-		Version       EstafetteVersion  `yaml:"version,omitempty"`
-		GlobalEnvVars map[string]string `yaml:"env,omitempty"`
-		Stages        yaml.MapSlice     `yaml:"stages,omitempty"`
-		Releases      yaml.MapSlice     `yaml:"releases,omitempty"`
+		Builder       EstafetteBuilder    `yaml:"builder,omitempty"`
+		Labels        map[string]string   `yaml:"labels,omitempty"`
+		Version       EstafetteVersion    `yaml:"version,omitempty"`
+		GlobalEnvVars map[string]string   `yaml:"env,omitempty"`
+		Triggers      []*EstafetteTrigger `yaml:"triggers,omitempty"`
+		Stages        yaml.MapSlice       `yaml:"stages,omitempty"`
+		Releases      yaml.MapSlice       `yaml:"releases,omitempty"`
 	}
 
 	aux.Builder = c.Builder
 	aux.Labels = c.Labels
 	aux.Version = c.Version
 	aux.GlobalEnvVars = c.GlobalEnvVars
+	aux.Triggers = c.Triggers
 
 	for _, stage := range c.Stages {
 		aux.Stages = append(aux.Stages, yaml.MapItem{
