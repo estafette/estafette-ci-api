@@ -339,7 +339,8 @@ func (s *buildServiceImpl) getAuthenticatedRepositoryURL(repoSource, repoOwner, 
 			return
 		}
 		environmentVariableWithToken = map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken}
+		return
 	}
 
-	return authenticatedRepositoryURL, environmentVariableWithToken, fmt.Errorf("Source %v not supported for generatnig authenticated repository url", repoSource)
+	return authenticatedRepositoryURL, environmentVariableWithToken, fmt.Errorf("Source %v not supported for generating authenticated repository url", repoSource)
 }
