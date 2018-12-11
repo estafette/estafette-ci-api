@@ -76,7 +76,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 			return
 		}
 
-		log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Unmarshaled body of /api/commands request for job %v", eventJobname)
+		log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Unmarshaled body of /api/commands event %v for job %v", eventType, eventJobname)
 
 		err := h.UpdateBuildStatus(ciBuilderEvent)
 		if err != nil {
