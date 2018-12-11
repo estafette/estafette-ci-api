@@ -11,7 +11,9 @@ import (
 	"strings"
 
 	"github.com/estafette/estafette-ci-api/config"
+	"github.com/estafette/estafette-ci-api/estafette"
 	ghcontracts "github.com/estafette/estafette-ci-api/github/contracts"
+	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -20,20 +22,22 @@ import (
 // EventHandler handles http events for Github integration
 type EventHandler interface {
 	Handle(*gin.Context)
-	HandlePushEvent(ghcontracts.PushEvent)
+	CreateJobForGithubPush(ghcontracts.PushEvent)
 	HasValidSignature([]byte, string) (bool, error)
 }
 
 type eventHandlerImpl struct {
-	eventsChannel                chan ghcontracts.PushEvent
+	apiClient                    APIClient
+	buildService                 estafette.BuildService
 	config                       config.GithubConfig
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewGithubEventHandler returns a github.EventHandler to handle incoming webhook events
-func NewGithubEventHandler(eventsChannel chan ghcontracts.PushEvent, config config.GithubConfig, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewGithubEventHandler(apiClient APIClient, buildService estafette.BuildService, config config.GithubConfig, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
-		eventsChannel:                eventsChannel,
+		apiClient:                    apiClient,
+		buildService:                 buildService,
 		config:                       config,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
@@ -76,7 +80,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 			return
 		}
 
-		h.HandlePushEvent(pushEvent)
+		h.CreateJobForGithubPush(pushEvent)
 
 	case
 		"commit_comment",                        // Any time a Commit is commented on.
@@ -120,9 +124,62 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
-func (h *eventHandlerImpl) HandlePushEvent(pushEvent ghcontracts.PushEvent) {
-	// test making api calls for github app in the background
-	h.eventsChannel <- pushEvent
+func (h *eventHandlerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent) {
+
+	// check to see that it's a cloneable event
+	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
+		return
+	}
+
+	// get access token
+	accessToken, err := h.apiClient.GetInstallationToken(pushEvent.Installation.ID)
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Retrieving access token failed")
+		return
+	}
+
+	// get manifest file
+	manifestExists, manifestString, err := h.apiClient.GetEstafetteManifest(accessToken, pushEvent)
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Retrieving Estafettte manifest failed")
+		return
+	}
+
+	if !manifestExists {
+		return
+	}
+
+	var commits []contracts.GitCommit
+	for _, c := range pushEvent.Commits {
+		commits = append(commits, contracts.GitCommit{
+			Author: contracts.GitAuthor{
+				Email:    c.Author.Email,
+				Name:     c.Author.Name,
+				Username: c.Author.UserName,
+			},
+			Message: c.Message,
+		})
+	}
+
+	// create build object and hand off to build service
+	_, err = h.buildService.CreateBuild(contracts.Build{
+		RepoSource:   pushEvent.GetRepoSource(),
+		RepoOwner:    pushEvent.GetRepoOwner(),
+		RepoName:     pushEvent.GetRepoName(),
+		RepoBranch:   pushEvent.GetRepoBranch(),
+		RepoRevision: pushEvent.GetRepoRevision(),
+		Manifest:     manifestString,
+		Commits:      commits,
+	}, false)
+
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed creating build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
+		return
+	}
+
+	log.Info().Msgf("Created build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
 }
 
 func (h *eventHandlerImpl) HasValidSignature(body []byte, signatureHeader string) (bool, error) {

@@ -3,11 +3,9 @@ package slack
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	slcontracts "github.com/estafette/estafette-ci-api/slack/contracts"
-	"github.com/estafette/estafette-ci-manifest"
 
 	"github.com/estafette/estafette-ci-contracts"
 
@@ -32,21 +30,21 @@ type eventHandlerImpl struct {
 	slackAPIClient               APIClient
 	cockroachDBClient            cockroach.DBClient
 	apiConfig                    config.APIServerConfig
-	ciBuilderClient              estafette.CiBuilderClient
+	buildService                 estafette.BuildService
 	githubJobVarsFunc            func(string, string, string) (string, string, error)
 	bitbucketJobVarsFunc         func(string, string, string) (string, string, error)
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewSlackEventHandler returns a new slack.EventHandler
-func NewSlackEventHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, slackAPIClient APIClient, cockroachDBClient cockroach.DBClient, apiConfig config.APIServerConfig, ciBuilderClient estafette.CiBuilderClient, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error), prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewSlackEventHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, slackAPIClient APIClient, cockroachDBClient cockroach.DBClient, apiConfig config.APIServerConfig, buildService estafette.BuildService, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error), prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		secretHelper:                 secretHelper,
 		config:                       config,
 		slackAPIClient:               slackAPIClient,
 		cockroachDBClient:            cockroachDBClient,
 		apiConfig:                    apiConfig,
-		ciBuilderClient:              ciBuilderClient,
+		buildService:                 buildService,
 		githubJobVarsFunc:            githubJobVarsFunc,
 		bitbucketJobVarsFunc:         bitbucketJobVarsFunc,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
@@ -64,15 +62,13 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	err := c.Bind(&slashCommand)
 	if err != nil {
 		log.Error().Err(err).Msg("Binding form data from Slack command webhook failed")
-		c.String(http.StatusInternalServerError, "Binding form data from Slack command webhook failed")
-		return
+		c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("Binding form data from Slack command webhook failed"))
 	}
 
 	hasValidVerificationToken := h.HasValidVerificationToken(slashCommand)
 	if !hasValidVerificationToken {
 		log.Warn().Str("expectedToken", h.config.AppVerificationToken).Str("actualToken", slashCommand.Token).Msg("Verification token for Slack command is invalid")
-		c.String(http.StatusBadRequest, "Verification token for Slack command is invalid")
-		return
+		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("Verification token for Slack command is invalid"))
 	}
 
 	if slashCommand.Command == "/estafette" {
@@ -87,12 +83,10 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					encryptedString, err := h.secretHelper.Encrypt(strings.Join(arguments, " "))
 					if err != nil {
 						log.Error().Err(err).Interface("slashCommand", slashCommand).Msg("Failed to encrypt secret")
-						c.String(http.StatusOK, "Incorrect usage of /estafette encrypt!")
-						return
+						c.AbortWithError(http.StatusOK, fmt.Errorf("Incorrect usage of /estafette encrypt"))
 					}
 
-					c.String(http.StatusOK, fmt.Sprintf("estafette.secret(%v)", encryptedString))
-					return
+					c.AbortWithError(http.StatusOK, fmt.Errorf("estafette.secret(%v)", encryptedString))
 
 				case "release":
 
@@ -108,8 +102,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					// /estafette release github.com/estafette/estafette-ci-api beta 0.0.130
 
 					if len(arguments) < 3 {
-						c.String(http.StatusOK, "You have to few arguments, the command has to be of type /estafette release <repo> <release> <version>")
-						return
+						c.AbortWithError(http.StatusOK, fmt.Errorf("You have to few arguments, the command has to be of type /estafette release <repo> <release> <version>"))
 					}
 
 					// retrieve pipeline with first argument
@@ -119,8 +112,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 					fullRepoNameArray := strings.Split(fullRepoName, "/")
 					if len(fullRepoNameArray) != 1 && len(fullRepoNameArray) != 3 {
-						c.String(http.StatusOK, "Your repository needs to be of the form <repo name> or <repo source>/<repo owner>/<repo name>")
-						return
+						c.AbortWithError(http.StatusOK, fmt.Errorf("Your repository needs to be of the form <repo name> or <repo source>/<repo owner>/<repo name>"))
 					}
 
 					var pipeline *contracts.Pipeline
@@ -128,31 +120,26 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 						pipelines, err := h.cockroachDBClient.GetPipelinesByRepoName(fullRepoName, false)
 						if err != nil {
 							log.Error().Err(err).Msgf("Failed retrieving pipelines for repo name %v by name", fullRepoName)
-							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
-							return
+							c.AbortWithError(http.StatusOK, fmt.Errorf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
 						}
 						if len(pipelines) <= 0 {
-							c.String(http.StatusOK, fmt.Sprintf("The repo %v in your command does not have any estafette builds", fullRepoName))
-							return
+							c.AbortWithError(http.StatusOK, fmt.Errorf("The repo %v in your command does not have any estafette builds", fullRepoName))
 						}
 						if len(pipelines) > 1 {
 							commandsExample := ""
 							for _, p := range pipelines {
 								commandsExample += fmt.Sprintf("/estafette release %v/%v/%v %v %v\n", p.RepoSource, p.RepoOwner, p.RepoName, releaseName, buildVersion)
 							}
-							c.String(http.StatusOK, fmt.Sprintf("There are multiple pipelines with name %v, use the full name instead:\n%v", fullRepoName, commandsExample))
-							return
+							c.AbortWithError(http.StatusOK, fmt.Errorf("There are multiple pipelines with name %v, use the full name instead:\n%v", fullRepoName, commandsExample))
 						}
 						pipeline = pipelines[0]
 					} else {
 						pipeline, err := h.cockroachDBClient.GetPipeline(fullRepoNameArray[0], fullRepoNameArray[1], fullRepoNameArray[2], false)
 						if err != nil {
-							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
-							return
+							c.AbortWithError(http.StatusOK, fmt.Errorf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
 						}
 						if pipeline == nil {
-							c.String(http.StatusOK, fmt.Sprintf("The repo %v in your command does not have any estafette builds", fullRepoName))
-							return
+							c.AbortWithError(http.StatusOK, fmt.Errorf("The repo %v in your command does not have any estafette builds", fullRepoName))
 						}
 					}
 
@@ -160,8 +147,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion, false)
 
 					if err != nil {
-						c.String(http.StatusOK, fmt.Sprintf("Retrieving the build for repository %v and version %v from the database failed: %v", fullRepoName, buildVersion, err))
-						return
+						c.AbortWithError(http.StatusOK, fmt.Errorf("Retrieving the build for repository %v and version %v from the database failed: %v", fullRepoName, buildVersion, err))
 					}
 
 					var build *contracts.Build
@@ -174,12 +160,10 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					}
 
 					if build == nil {
-						c.String(http.StatusOK, fmt.Sprintf("The version %v in your command does not exist", buildVersion))
-						return
+						c.AbortWithError(http.StatusOK, fmt.Errorf("The version %v in your command does not exist", buildVersion))
 					}
 					if build.BuildStatus != "succeeded" {
-						c.String(http.StatusOK, fmt.Sprintf("The build for version %v is not successful and cannot be used", buildVersion))
-						return
+						c.AbortWithError(http.StatusOK, fmt.Errorf("The build for version %v is not successful and cannot be used", buildVersion))
 					}
 
 					// check if release target exists
@@ -194,103 +178,33 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					}
 
 					if !releaseExists {
-						c.String(http.StatusOK, fmt.Sprintf("The release %v in your command is not defined in the manifest", releaseName))
-						return
+						c.AbortWithError(http.StatusOK, fmt.Errorf("The release %v in your command is not defined in the manifest", releaseName))
 					}
 
 					// get user profile from api to set email address for TriggeredBy
 					profile, err := h.slackAPIClient.GetUserProfile(slashCommand.UserID)
 					if err != nil {
-						c.String(http.StatusOK, fmt.Sprintf("Failed retrieving Slack user profile for user id %v: %v", slashCommand.UserID, err))
-						return
+						c.AbortWithError(http.StatusOK, fmt.Errorf("Failed retrieving Slack user profile for user id %v: %v", slashCommand.UserID, err))
 					}
 
-					// create release in database
-					release := contracts.Release{
+					// create release object and hand off to build service
+					createdRelease, err := h.buildService.CreateRelease(contracts.Release{
 						Name:           releaseName,
+						Action:         "", // no support for releas action yet
 						RepoSource:     build.RepoSource,
 						RepoOwner:      build.RepoOwner,
 						RepoName:       build.RepoName,
 						ReleaseVersion: buildVersion,
-						ReleaseStatus:  "running",
 						TriggeredBy:    profile.Email,
-					}
-					insertedRelease, err := h.cockroachDBClient.InsertRelease(release)
+					}, *build.ManifestObject, build.RepoBranch, build.RepoRevision, false)
+
 					if err != nil {
-						c.String(http.StatusOK, fmt.Sprintf("Inserting the release into the database failed: %v", err))
-						return
+						errorMessage := fmt.Sprintf("Failed creating release %v for pipeline %v/%v/%v version %v for release command issued by %v", releaseName, build.RepoSource, build.RepoOwner, build.RepoName, buildVersion, profile.Email)
+						log.Error().Err(err).Msg(errorMessage)
+						c.AbortWithError(http.StatusOK, fmt.Errorf("Inserting starting the release: %v", err))
 					}
 
-					// get authenticated url
-					var authenticatedRepositoryURL string
-					var environmentVariableWithToken map[string]string
-					var gitSource string
-					switch build.RepoSource {
-					case "github.com":
-						var accessToken string
-						accessToken, authenticatedRepositoryURL, err = h.githubJobVarsFunc(build.RepoSource, build.RepoOwner, build.RepoName)
-						if err != nil {
-							c.String(http.StatusOK, fmt.Sprintf("Retrieving access token and authenticated github url for repository %v/%v/%v failed: %v", build.RepoSource, build.RepoOwner, build.RepoName, err))
-							return
-						}
-						environmentVariableWithToken = map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken}
-						gitSource = "github"
-
-					case "bitbucket.org":
-						var accessToken string
-						accessToken, authenticatedRepositoryURL, err = h.bitbucketJobVarsFunc(build.RepoSource, build.RepoOwner, build.RepoName)
-						if err != nil {
-							c.String(http.StatusOK, fmt.Sprintf("Retrieving access token and authenticated bitbucket url for repository %v/%v/%v failed: %v", build.RepoSource, build.RepoOwner, build.RepoName, err))
-							return
-						}
-						environmentVariableWithToken = map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken}
-						gitSource = "bitbucket"
-					}
-
-					manifest, err := manifest.ReadManifest(build.Manifest)
-					if err != nil {
-						c.String(http.StatusOK, fmt.Sprintf("Reading the manifest from the build failed: %v", err))
-						return
-					}
-
-					// inject steps
-					manifest, err = estafette.InjectSteps(manifest, manifest.Builder.Track, gitSource)
-					if err != nil {
-						c.String(http.StatusOK, fmt.Sprintf("Failed injecting steps into manifest for %v/%v/%v version %v: %v", build.RepoSource, build.RepoOwner, build.RepoName, buildVersion, err))
-					}
-
-					insertedReleaseID, err := strconv.Atoi(insertedRelease.ID)
-					if err != nil {
-						c.String(http.StatusOK, fmt.Sprintf("Converting the release id to a string failed: %v", err))
-						return
-					}
-
-					// start release job
-					ciBuilderParams := estafette.CiBuilderParams{
-						JobType:              "release",
-						RepoSource:           build.RepoSource,
-						RepoOwner:            build.RepoOwner,
-						RepoName:             build.RepoName,
-						RepoURL:              authenticatedRepositoryURL,
-						RepoBranch:           build.RepoBranch,
-						RepoRevision:         build.RepoRevision,
-						EnvironmentVariables: environmentVariableWithToken,
-						Track:                manifest.Builder.Track,
-						VersionNumber:        buildVersion,
-						Manifest:             manifest,
-						ReleaseID:            insertedReleaseID,
-						ReleaseName:          releaseName,
-					}
-
-					go func(ciBuilderParams estafette.CiBuilderParams) {
-						_, err := h.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
-						if err != nil {
-							log.Error().Err(err).Msgf("Failed creating release job for %v/%v/%v/%v/%v version %v", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.RepoBranch, ciBuilderParams.RepoRevision, ciBuilderParams.VersionNumber)
-						}
-					}(ciBuilderParams)
-
-					c.String(http.StatusOK, fmt.Sprintf("Started releasing version %v to %v: %vpipelines/%v/%v/%v/releases/%v/logs", buildVersion, releaseName, h.apiConfig.BaseURL, build.RepoSource, build.RepoOwner, build.RepoName, insertedRelease.ID))
-					return
+					c.AbortWithError(http.StatusOK, fmt.Errorf("Started releasing version %v to %v: %vpipelines/%v/%v/%v/releases/%v/logs", buildVersion, releaseName, h.apiConfig.BaseURL, build.RepoSource, build.RepoOwner, build.RepoName, createdRelease.ID))
 				}
 			}
 		}

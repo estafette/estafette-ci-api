@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	bbcontracts "github.com/estafette/estafette-ci-api/bitbucket/contracts"
+	"github.com/estafette/estafette-ci-api/estafette"
+	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -14,18 +16,20 @@ import (
 // EventHandler handles http events for Bitbucket integration
 type EventHandler interface {
 	Handle(*gin.Context)
-	HandlePushEvent(pushEvent bbcontracts.RepositoryPushEvent)
+	CreateJobForBitbucketPush(bbcontracts.RepositoryPushEvent)
 }
 
 type eventHandlerImpl struct {
-	eventsChannel                chan bbcontracts.RepositoryPushEvent
+	apiClient                    APIClient
+	buildService                 estafette.BuildService
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewBitbucketEventHandler returns a new bitbucket.EventHandler
-func NewBitbucketEventHandler(eventsChannel chan bbcontracts.RepositoryPushEvent, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewBitbucketEventHandler(apiClient APIClient, buildService estafette.BuildService, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
-		eventsChannel:                eventsChannel,
+		apiClient:                    apiClient,
+		buildService:                 buildService,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
 }
@@ -55,7 +59,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 			return
 		}
 
-		h.HandlePushEvent(pushEvent)
+		h.CreateJobForBitbucketPush(pushEvent)
 
 	case
 		"repo:fork",
@@ -86,8 +90,61 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
-func (h *eventHandlerImpl) HandlePushEvent(pushEvent bbcontracts.RepositoryPushEvent) {
+func (h *eventHandlerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.RepositoryPushEvent) {
 
-	// test making api calls for bitbucket app in the background
-	h.eventsChannel <- pushEvent
+	// check to see that it's a cloneable event
+	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil || pushEvent.Push.Changes[0].New.Type != "branch" || len(pushEvent.Push.Changes[0].New.Target.Hash) == 0 {
+		return
+	}
+
+	// get access token
+	accessToken, err := h.apiClient.GetAccessToken()
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Retrieving Estafettte manifest failed")
+		return
+	}
+
+	// get manifest file
+	manifestExists, manifestString, err := h.apiClient.GetEstafetteManifest(accessToken, pushEvent)
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Retrieving Estafettte manifest failed")
+		return
+	}
+
+	if !manifestExists {
+		return
+	}
+
+	var commits []contracts.GitCommit
+	for _, c := range pushEvent.Push.Changes {
+		if len(c.Commits) > 0 {
+			commits = append(commits, contracts.GitCommit{
+				Author: contracts.GitAuthor{
+					Email:    c.Commits[0].Author.GetEmailAddress(),
+					Name:     c.Commits[0].Author.GetName(),
+					Username: c.Commits[0].Author.Username,
+				},
+				Message: c.Commits[0].GetCommitMessage(),
+			})
+		}
+	}
+
+	// create build object and hand off to build service
+	_, err = h.buildService.CreateBuild(contracts.Build{
+		RepoSource:   pushEvent.GetRepoSource(),
+		RepoOwner:    pushEvent.GetRepoOwner(),
+		RepoName:     pushEvent.GetRepoName(),
+		RepoBranch:   pushEvent.GetRepoBranch(),
+		RepoRevision: pushEvent.GetRepoRevision(),
+		Manifest:     manifestString,
+		Commits:      commits,
+	}, false)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed creating build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
+		return
+	}
+
+	log.Info().Msgf("Created build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
 }

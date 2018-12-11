@@ -22,10 +22,8 @@ type APIConfig struct {
 
 // APIServerConfig represents configuration for the api server
 type APIServerConfig struct {
-	BaseURL                string `yaml:"baseURL"`
-	ServiceURL             string `yaml:"serviceURL"`
-	EventChannelBufferSize int    `yaml:"eventChannelBufferSize"`
-	MaxWorkers             int    `yaml:"maxWorkers"`
+	BaseURL    string `yaml:"baseURL"`
+	ServiceURL string `yaml:"serviceURL"`
 }
 
 // AuthConfig determines whether to use IAP for authentication and authorization
@@ -60,32 +58,26 @@ type APIConfigIntegrations struct {
 
 // GithubConfig is used to configure github integration
 type GithubConfig struct {
-	PrivateKeyPath         string `yaml:"privateKeyPath"`
-	AppID                  string `yaml:"appID"`
-	ClientID               string `yaml:"clientID"`
-	ClientSecret           string `yaml:"clientSecret"`
-	WebhookSecret          string `yaml:"webhookSecret"`
-	EventChannelBufferSize int    `yaml:"eventChannelBufferSize"`
-	MaxWorkers             int    `yaml:"maxWorkers"`
+	PrivateKeyPath string `yaml:"privateKeyPath"`
+	AppID          string `yaml:"appID"`
+	ClientID       string `yaml:"clientID"`
+	ClientSecret   string `yaml:"clientSecret"`
+	WebhookSecret  string `yaml:"webhookSecret"`
 }
 
 // BitbucketConfig is used to configure bitbucket integration
 type BitbucketConfig struct {
-	APIKey                 string `yaml:"apiKey"`
-	AppOAuthKey            string `yaml:"appOAuthKey"`
-	AppOAuthSecret         string `yaml:"appOAuthSecret"`
-	EventChannelBufferSize int    `yaml:"eventChannelBufferSize"`
-	MaxWorkers             int    `yaml:"maxWorkers"`
+	APIKey         string `yaml:"apiKey"`
+	AppOAuthKey    string `yaml:"appOAuthKey"`
+	AppOAuthSecret string `yaml:"appOAuthSecret"`
 }
 
 // SlackConfig is used to configure slack integration
 type SlackConfig struct {
-	ClientID               string `yaml:"clientID"`
-	ClientSecret           string `yaml:"clientSecret"`
-	AppVerificationToken   string `yaml:"appVerificationToken"`
-	AppOAuthAccessToken    string `yaml:"appOAuthAccessToken"`
-	EventChannelBufferSize int    `yaml:"eventChannelBufferSize"`
-	MaxWorkers             int    `yaml:"maxWorkers"`
+	ClientID             string `yaml:"clientID"`
+	ClientSecret         string `yaml:"clientSecret"`
+	AppVerificationToken string `yaml:"appVerificationToken"`
+	AppOAuthAccessToken  string `yaml:"appOAuthAccessToken"`
 }
 
 // ConfigReader reads the api config from file

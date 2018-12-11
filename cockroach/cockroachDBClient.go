@@ -23,11 +23,11 @@ import (
 type DBClient interface {
 	Connect() error
 	ConnectWithDriverAndSource(string, string) error
-	GetAutoIncrement(string, string) (int, error)
+	GetAutoIncrement(shortRepoSource, repoOwner, repoName string) (int, error)
 
-	InsertBuild(contracts.Build) (contracts.Build, error)
+	InsertBuild(contracts.Build) (*contracts.Build, error)
 	UpdateBuildStatus(string, string, string, int, string) error
-	InsertRelease(contracts.Release) (contracts.Release, error)
+	InsertRelease(contracts.Release) (*contracts.Release, error)
 	UpdateReleaseStatus(string, string, string, int, string) error
 	InsertBuildLog(contracts.BuildLog) error
 	InsertReleaseLog(contracts.ReleaseLog) error
@@ -119,9 +119,11 @@ func (dbc *cockroachDBClientImpl) ConnectWithDriverAndSource(driverName string, 
 }
 
 // GetAutoIncrement returns the autoincrement number for a pipeline
-func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string) (autoincrement int, err error) {
+func (dbc *cockroachDBClientImpl) GetAutoIncrement(shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	repoFullName := fmt.Sprintf("%v/%v", repoOwner, repoName)
 
 	// insert or increment if record for repo_source and repo_full_name combination already exists
 	_, err = dbc.databaseConnection.Exec(
@@ -146,8 +148,8 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string
 			auto_increment = build_versions.auto_increment + 1,
 			updated_at = now()
 		`,
-		gitSource,
-		gitFullname,
+		shortRepoSource,
+		repoFullName,
 	)
 	if err != nil {
 		return
@@ -166,8 +168,8 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string
 			repo_source=$1 AND
 			repo_full_name=$2
 		`,
-		gitSource,
-		gitFullname,
+		shortRepoSource,
+		repoFullName,
 	)
 	if err != nil {
 		return
@@ -183,7 +185,7 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string
 	return
 }
 
-func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBuild contracts.Build, err error) {
+func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBuild *contracts.Build, err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	sort.Slice(build.Labels, func(i, j int) bool {
@@ -251,7 +253,7 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBu
 		commitsBytes,
 	)
 
-	insertedBuild = build
+	insertedBuild = &build
 
 	if err = row.Scan(&insertedBuild.ID); err != nil {
 		return
@@ -298,7 +300,7 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 	return
 }
 
-func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (insertedRelease contracts.Release, err error) {
+func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (insertedRelease *contracts.Release, err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// insert logs
@@ -351,7 +353,7 @@ func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (inse
 		return
 	}
 
-	insertedRelease = release
+	insertedRelease = &release
 	if err = rows.Scan(&insertedRelease.ID); err != nil {
 		return
 	}

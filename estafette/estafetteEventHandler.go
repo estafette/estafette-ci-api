@@ -2,9 +2,12 @@ package estafette
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
+	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
@@ -14,19 +17,23 @@ import (
 // EventHandler handles events from estafette components
 type EventHandler interface {
 	Handle(*gin.Context)
+	RemoveJobForEstafetteBuild(CiBuilderEvent) error
+	UpdateBuildStatus(CiBuilderEvent) error
 }
 
 type eventHandlerImpl struct {
 	config                       config.APIServerConfig
-	ciBuilderEventsChannel       chan CiBuilderEvent
+	ciBuilderClient              CiBuilderClient
+	cockroachDBClient            cockroach.DBClient
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewEstafetteEventHandler returns a new estafette.EventHandler
-func NewEstafetteEventHandler(config config.APIServerConfig, ciBuilderEventsChannel chan CiBuilderEvent, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewEstafetteEventHandler(config config.APIServerConfig, ciBuilderClient CiBuilderClient, cockroachDBClient cockroach.DBClient, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		config:                       config,
-		ciBuilderEventsChannel:       ciBuilderEventsChannel,
+		ciBuilderClient:              ciBuilderClient,
+		cockroachDBClient:            cockroachDBClient,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
 }
@@ -71,12 +78,69 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 		log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Unmarshaled body of /api/commands request for job %v", eventJobname)
 
-		// send via channel to worker
-		h.ciBuilderEventsChannel <- ciBuilderEvent
+		err := h.UpdateBuildStatus(ciBuilderEvent)
+		if err != nil {
+			log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Failed updating build status for job %v to %v, not removing the job", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
+		} else if ciBuilderEvent.BuildStatus != "canceled" {
+			err = h.RemoveJobForEstafetteBuild(ciBuilderEvent)
+			if err != nil {
+				log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Failed removing job %v", ciBuilderEvent.JobName)
+			}
+		}
 
 	default:
 		log.Warn().Str("event", eventType).Msgf("Unsupported Estafette event of type '%v'", eventType)
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
+}
+
+func (h *eventHandlerImpl) RemoveJobForEstafetteBuild(ciBuilderEvent CiBuilderEvent) (err error) {
+
+	// create ci builder job
+	return h.ciBuilderClient.RemoveCiBuilderJob(ciBuilderEvent.JobName)
+}
+
+func (h *eventHandlerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) (err error) {
+
+	log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("UpdateBuildStatus executing...")
+
+	if ciBuilderEvent.BuildStatus != "" && ciBuilderEvent.ReleaseID != "" {
+
+		releaseID, err := strconv.Atoi(ciBuilderEvent.ReleaseID)
+		if err != nil {
+			return err
+		}
+
+		log.Debug().Msgf("Converted release id %v", releaseID)
+
+		err = h.cockroachDBClient.UpdateReleaseStatus(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, releaseID, ciBuilderEvent.BuildStatus)
+		if err != nil {
+			return err
+		}
+
+		log.Debug().Msgf("Updated release status for job %v to %v", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
+
+		return err
+
+	} else if ciBuilderEvent.BuildStatus != "" && ciBuilderEvent.BuildID != "" {
+
+		buildID, err := strconv.Atoi(ciBuilderEvent.BuildID)
+		if err != nil {
+			return err
+		}
+
+		log.Debug().Msgf("Converted build id %v", buildID)
+
+		err = h.cockroachDBClient.UpdateBuildStatus(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, buildID, ciBuilderEvent.BuildStatus)
+		if err != nil {
+			return err
+		}
+
+		log.Debug().Msgf("Updated build status for job %v to %v", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
+
+		return err
+	}
+
+	return fmt.Errorf("CiBuilderEvent has invalid state, not updating build status")
 }
