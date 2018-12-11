@@ -144,6 +144,12 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 		build.ReleaseTargets = releaseTargets
 	}
 
+	// get authenticated url
+	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(build.RepoSource, build.RepoOwner, build.RepoName)
+	if err != nil {
+		return
+	}
+
 	// store build in db
 	createdBuild, err = s.cockroachDBClient.InsertBuild(contracts.Build{
 		RepoSource:     build.RepoSource,
@@ -163,12 +169,6 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 	}
 
 	buildID, err := strconv.Atoi(createdBuild.ID)
-	if err != nil {
-		return
-	}
-
-	// get authenticated url
-	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(build.RepoSource, build.RepoOwner, build.RepoName)
 	if err != nil {
 		return
 	}
@@ -246,6 +246,12 @@ func (s *buildServiceImpl) CreateRelease(release contracts.Release, mft manifest
 		log.Warn().Err(err).Str("releaseversion", release.ReleaseVersion).Msgf("Failed extracting autoincrement from build version %v for pipeline %v/%v/%v", release.ReleaseVersion, release.RepoSource, release.RepoOwner, release.RepoName)
 	}
 
+	// get authenticated url
+	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(release.RepoSource, release.RepoOwner, release.RepoName)
+	if err != nil {
+		return
+	}
+
 	// create release in database
 	createdRelease, err = s.cockroachDBClient.InsertRelease(contracts.Release{
 		Name:           release.Name,
@@ -262,12 +268,6 @@ func (s *buildServiceImpl) CreateRelease(release contracts.Release, mft manifest
 	}
 
 	insertedReleaseID, err := strconv.Atoi(createdRelease.ID)
-	if err != nil {
-		return
-	}
-
-	// get authenticated url
-	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(release.RepoSource, release.RepoOwner, release.RepoName)
 	if err != nil {
 		return
 	}
