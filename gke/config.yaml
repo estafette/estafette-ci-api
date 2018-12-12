@@ -5,29 +5,21 @@ integrations:
     clientID: {{.GITHUB_APP_OAUTH_CLIENT_ID}}
     clientSecret: {{.GITHUB_APP_OAUTH_CLIENT_SECRET}}
     webhookSecret: {{.GITHUB_WEBHOOK_SECRET}}
-    eventChannelBufferSize: 100
-    maxWorkers: 5
 
   bitbucket:
     apiKey: {{.BITBUCKET_API_KEY}}
     appOAuthKey: {{.BITBUCKET_APP_OAUTH_KEY}}
     appOAuthSecret: {{.BITBUCKET_APP_OAUTH_SECRET}}
-    eventChannelBufferSize: 100
-    maxWorkers: 5
 
   slack:
     clientID: {{.SLACK_APP_CLIENT_ID}}
     clientSecret: {{.SLACK_APP_CLIENT_SECRET}}
     appVerificationToken: {{.SLACK_APP_VERIFICATION_TOKEN}}
     appOAuthAccessToken: {{.SLACK_APP_OAUTH_ACCESS_TOKEN}}
-    eventChannelBufferSize: 100
-    maxWorkers: 5
 
 apiServer:
   baseURL: https://{{.HOSTNAMES}}/
   serviceURL: http://estafette-ci-api/
-  eventChannelBufferSize: 100
-  maxWorkers: 5
 
 auth:
   iap:

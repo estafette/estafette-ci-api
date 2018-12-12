@@ -14,12 +14,10 @@ import (
 	"github.com/alecthomas/kingpin"
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/bitbucket"
-	bbcontracts "github.com/estafette/estafette-ci-api/bitbucket/contracts"
 	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/estafette"
 	"github.com/estafette/estafette-ci-api/github"
-	ghcontracts "github.com/estafette/estafette-ci-api/github/contracts"
 	"github.com/estafette/estafette-ci-api/slack"
 	"github.com/estafette/estafette-ci-crypt"
 	"github.com/gin-contrib/gzip"
@@ -201,19 +199,6 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		log.Fatal().Err(err).Msg("Failed connecting to CockroachDB")
 	}
 
-	// listen to channels for push events
-	githubPushEvents := make(chan ghcontracts.PushEvent, config.Integrations.Github.EventChannelBufferSize)
-	githubDispatcher := github.NewGithubDispatcher(stopChannel, waitGroup, config.Integrations.Github.MaxWorkers, githubAPIClient, ciBuilderClient, cockroachDBClient, githubPushEvents)
-	githubDispatcher.Run()
-
-	bitbucketPushEvents := make(chan bbcontracts.RepositoryPushEvent, config.Integrations.Bitbucket.EventChannelBufferSize)
-	bitbucketDispatcher := bitbucket.NewBitbucketDispatcher(stopChannel, waitGroup, config.Integrations.Bitbucket.MaxWorkers, bitbucketAPIClient, ciBuilderClient, cockroachDBClient, bitbucketPushEvents)
-	bitbucketDispatcher.Run()
-
-	estafetteCiBuilderEvents := make(chan estafette.CiBuilderEvent, config.APIServer.MaxWorkers)
-	estafetteDispatcher := estafette.NewEstafetteDispatcher(stopChannel, waitGroup, config.APIServer.MaxWorkers, ciBuilderClient, cockroachDBClient, estafetteCiBuilderEvents)
-	estafetteDispatcher.Run()
-
 	// create and init router
 	router := createRouter()
 
@@ -223,20 +208,21 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	// middleware to handle auth for different endpoints
 	authMiddleware := auth.NewAuthMiddleware(*config.Auth)
 
-	githubEventHandler := github.NewGithubEventHandler(githubPushEvents, *config.Integrations.Github, prometheusInboundEventTotals)
+	estafetteBuildService := estafette.NewBuildService(cockroachDBClient, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
+
+	githubEventHandler := github.NewGithubEventHandler(githubAPIClient, estafetteBuildService, *config.Integrations.Github, prometheusInboundEventTotals)
 	gzippedRoutes.POST("/api/integrations/github/events", githubEventHandler.Handle)
 
-	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketPushEvents, prometheusInboundEventTotals)
+	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketAPIClient, estafetteBuildService, prometheusInboundEventTotals)
 	gzippedRoutes.POST("/api/integrations/bitbucket/events", bitbucketEventHandler.Handle)
 
-	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, slackAPIClient, cockroachDBClient, *config.APIServer, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc(), prometheusInboundEventTotals)
+	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, slackAPIClient, cockroachDBClient, *config.APIServer, estafetteBuildService, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc(), prometheusInboundEventTotals)
 	gzippedRoutes.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
 
-	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, estafetteCiBuilderEvents, prometheusInboundEventTotals)
-
+	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, ciBuilderClient, cockroachDBClient, prometheusInboundEventTotals)
 	warningHelper := estafette.NewWarningHelper()
 
-	estafetteAPIHandler := estafette.NewAPIHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, ciBuilderClient, warningHelper, secretHelper, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
+	estafetteAPIHandler := estafette.NewAPIHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, ciBuilderClient, estafetteBuildService, warningHelper, secretHelper, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
 	gzippedRoutes.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
 	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo", estafetteAPIHandler.GetPipeline)
 	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)

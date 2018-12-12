@@ -18,6 +18,27 @@ env:
   VAR_A: Greetings
   VAR_B: World
 
+triggers:
+- event: pipeline-build-finished
+  filter:
+    pipeline: github.com/estafette/estafette-ci-manifest
+    status: succeeded
+    branch: master|release
+  run:
+    branch: master
+- event: pipeline-build-started
+  filter:
+    pipeline: github.com/estafette/estafette-ci-contracts
+    branch: master|release
+  run:
+    branch: master
+- event: docker-image-pushed
+  filter:
+    image: golang
+    tag: 1\.8\..+
+  run:
+    branch: master
+
 # automatically executed stages on a push to the repository
 stages:
   build:
@@ -102,11 +123,34 @@ releases:
         - beta
 
   development:
+    triggers:
+    - event: pipeline-build-finished
+      filter:
+        status: succeeded
+        branch: .+
+      run:
+        branch: .+
+    - event: cron
+      filter:
+        cron: '*/5 * * * *'
+      run:
+        branch: master
+
     stages:
       deploy:
         image: extensions/deploy-to-kubernetes-engine:dev
 
   staging:
+    triggers:
+    - event: pipeline-release-finished
+      filter:
+        pipeline: this
+        target: development
+        status: succeeded
+        branch: master
+      run:
+        branch: master
+
     stages:
       deploy:
         image: extensions/gke:beta
@@ -129,6 +173,16 @@ releases:
     - name: deploy-canary
     - name: rollback-canary
     - name: deploy-stable
+
+    triggers:
+    - event: pipeline-release-finished
+      filter:
+        target: staging
+        status: succeeded
+        branch: master
+      run:
+        branch: master
+        action: deploy-canary
 
     clone: true
     stages:

@@ -23,11 +23,11 @@ import (
 type DBClient interface {
 	Connect() error
 	ConnectWithDriverAndSource(string, string) error
-	GetAutoIncrement(string, string) (int, error)
+	GetAutoIncrement(shortRepoSource, repoOwner, repoName string) (int, error)
 
-	InsertBuild(contracts.Build) (contracts.Build, error)
+	InsertBuild(contracts.Build) (*contracts.Build, error)
 	UpdateBuildStatus(string, string, string, int, string) error
-	InsertRelease(contracts.Release) (contracts.Release, error)
+	InsertRelease(contracts.Release) (*contracts.Release, error)
 	UpdateReleaseStatus(string, string, string, int, string) error
 	InsertBuildLog(contracts.BuildLog) error
 	InsertReleaseLog(contracts.ReleaseLog) error
@@ -47,6 +47,7 @@ type DBClient interface {
 	GetPipelineBuildByID(string, string, string, int, bool) (*contracts.Build, error)
 	GetLastPipelineBuild(string, string, string, bool) (*contracts.Build, error)
 	GetFirstPipelineBuild(string, string, string, bool) (*contracts.Build, error)
+	GetLastPipelineBuildForBranch(string, string, string, string) (*contracts.Build, error)
 	GetLastPipelineRelease(string, string, string, string, string) (*contracts.Release, error)
 	GetFirstPipelineRelease(string, string, string, string, string) (*contracts.Release, error)
 	GetPipelineBuildsByVersion(string, string, string, string, bool) ([]*contracts.Build, error)
@@ -63,6 +64,9 @@ type DBClient interface {
 	GetFirstReleaseTimes() ([]time.Time, error)
 	GetPipelineBuildsDurations(string, string, string, map[string][]string) ([]map[string]interface{}, error)
 	GetPipelineReleasesDurations(string, string, string, map[string][]string) ([]map[string]interface{}, error)
+
+	InsertTrigger(pipeline contracts.Pipeline, trigger manifest.EstafetteTrigger) error
+	GetTriggers(repoSource, repoOwner, repoName, event string) ([]*EstafetteTriggerDb, error)
 
 	selectBuildsQuery() sq.SelectBuilder
 	selectPipelinesQuery() sq.SelectBuilder
@@ -115,9 +119,11 @@ func (dbc *cockroachDBClientImpl) ConnectWithDriverAndSource(driverName string, 
 }
 
 // GetAutoIncrement returns the autoincrement number for a pipeline
-func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string) (autoincrement int, err error) {
+func (dbc *cockroachDBClientImpl) GetAutoIncrement(shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	repoFullName := fmt.Sprintf("%v/%v", repoOwner, repoName)
 
 	// insert or increment if record for repo_source and repo_full_name combination already exists
 	_, err = dbc.databaseConnection.Exec(
@@ -142,8 +148,8 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string
 			auto_increment = build_versions.auto_increment + 1,
 			updated_at = now()
 		`,
-		gitSource,
-		gitFullname,
+		shortRepoSource,
+		repoFullName,
 	)
 	if err != nil {
 		return
@@ -162,8 +168,8 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string
 			repo_source=$1 AND
 			repo_full_name=$2
 		`,
-		gitSource,
-		gitFullname,
+		shortRepoSource,
+		repoFullName,
 	)
 	if err != nil {
 		return
@@ -179,7 +185,7 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(gitSource, gitFullname string
 	return
 }
 
-func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBuild contracts.Build, err error) {
+func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBuild *contracts.Build, err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	sort.Slice(build.Labels, func(i, j int) bool {
@@ -247,7 +253,7 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBu
 		commitsBytes,
 	)
 
-	insertedBuild = build
+	insertedBuild = &build
 
 	if err = row.Scan(&insertedBuild.ID); err != nil {
 		return
@@ -294,7 +300,7 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 	return
 }
 
-func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (insertedRelease contracts.Release, err error) {
+func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (insertedRelease *contracts.Release, err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// insert logs
@@ -347,7 +353,7 @@ func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (inse
 		return
 	}
 
-	insertedRelease = release
+	insertedRelease = &release
 	if err = rows.Scan(&insertedRelease.ID); err != nil {
 		return
 	}
@@ -1087,6 +1093,28 @@ func (dbc *cockroachDBClientImpl) GetFirstPipelineBuild(repoSource, repoOwner, r
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if build, err = dbc.scanBuild(row, optimized, false); err != nil {
+		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetLastPipelineBuildForBranch(repoSource, repoOwner, repoName, branch string) (build *contracts.Build, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query := dbc.selectBuildsQuery().
+		Where(sq.Eq{"a.repo_source": repoSource}).
+		Where(sq.Eq{"a.repo_owner": repoOwner}).
+		Where(sq.Eq{"a.repo_name": repoName}).
+		Where(sq.Eq{"a.repo_branch": branch}).
+		OrderBy("a.inserted_at DESC").
+		Limit(uint64(1))
+
+	// execute query
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	if build, err = dbc.scanBuild(row, false, false); err != nil {
 		return
 	}
 
@@ -2019,6 +2047,117 @@ func (dbc *cockroachDBClientImpl) scanReleases(rows *sql.Rows) (releases []*cont
 	return
 }
 
+func (dbc *cockroachDBClientImpl) scanTriggers(rows *sql.Rows) (triggers []*EstafetteTriggerDb, err error) {
+
+	triggers = make([]*EstafetteTriggerDb, 0)
+
+	defer rows.Close()
+	for rows.Next() {
+
+		trigger := EstafetteTriggerDb{
+			Trigger: &manifest.EstafetteTrigger{},
+		}
+		var filterData, runData []uint8
+
+		if err = rows.Scan(
+			&trigger.ID,
+			&trigger.RepoSource,
+			&trigger.RepoOwner,
+			&trigger.RepoName,
+			&trigger.Trigger.Event,
+			&filterData,
+			&runData,
+			&trigger.InsertedAt,
+			&trigger.UpdatedAt); err != nil {
+			return
+		}
+
+		if len(filterData) > 0 {
+			if err = json.Unmarshal(filterData, &trigger.Trigger.Filter); err != nil {
+				return
+			}
+		}
+		if len(runData) > 0 {
+			if err = json.Unmarshal(runData, &trigger.Trigger.Run); err != nil {
+				return
+			}
+		}
+
+		triggers = append(triggers, &trigger)
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) InsertTrigger(pipeline contracts.Pipeline, trigger manifest.EstafetteTrigger) (err error) {
+
+	filterBytes, err := json.Marshal(trigger.Filter)
+	if err != nil {
+		return
+	}
+	runBytes, err := json.Marshal(trigger.Run)
+	if err != nil {
+		return
+	}
+
+	// upsert computed pipeline
+	_, err = dbc.databaseConnection.Exec(
+		`
+		INSERT INTO
+		pipeline_triggers
+		(
+			repo_source,
+			repo_owner,
+			repo_name,
+			trigger_event,
+			trigger_filter,
+			trigger_run
+		)
+		VALUES
+		(
+			$1,
+			$2,
+			$3,
+			$4,
+			$5,
+			$6
+		)
+		`,
+		pipeline.RepoSource,
+		pipeline.RepoOwner,
+		pipeline.RepoName,
+		trigger.Event,
+		filterBytes,
+		runBytes,
+	)
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetTriggers(repoSource, repoOwner, repoName, event string) (triggers []*EstafetteTriggerDb, err error) {
+	triggers = make([]*EstafetteTriggerDb, 0)
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query := dbc.selectPipelineTriggersQuery().
+		Where("a.trigger_event", event).
+		Where("a.trigger_filter->>'pipeline'", fmt.Sprintf("%v/%v/%v", repoSource, repoOwner, repoName))
+
+	// execute query
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+
+	// read rows
+	if triggers, err = dbc.scanTriggers(rows); err != nil {
+		return
+	}
+
+	return
+}
+
 func (dbc *cockroachDBClientImpl) selectBuildsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -2065,6 +2204,14 @@ func (dbc *cockroachDBClientImpl) selectReleaseLogsQuery() sq.SelectBuilder {
 	return psql.
 		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release_id, a.steps, a.inserted_at").
 		From("release_logs a")
+}
+
+func (dbc *cockroachDBClientImpl) selectPipelineTriggersQuery() sq.SelectBuilder {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	return psql.
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.trigger_event, a.trigger_filter, a.trigger_run, a.inserted_at, a.updated_at").
+		From("pipeline_triggers a")
 }
 
 func (dbc *cockroachDBClientImpl) enrichPipeline(pipeline *contracts.Pipeline) {

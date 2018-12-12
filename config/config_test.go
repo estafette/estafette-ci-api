@@ -33,8 +33,6 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "15", githubConfig.AppID)
 		assert.Equal(t, "asdas2342", githubConfig.ClientID)
 		assert.Equal(t, "this is my secret", githubConfig.ClientSecret)
-		assert.Equal(t, 100, githubConfig.EventChannelBufferSize)
-		assert.Equal(t, 5, githubConfig.MaxWorkers)
 	})
 
 	t.Run("ReturnsBitbucketConfig", func(t *testing.T) {
@@ -49,8 +47,6 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "sd9ewiwuejkwejkewk", bitbucketConfig.APIKey)
 		assert.Equal(t, "2390w3e90jdsk", bitbucketConfig.AppOAuthKey)
 		assert.Equal(t, "this is my secret", bitbucketConfig.AppOAuthSecret)
-		assert.Equal(t, 100, bitbucketConfig.EventChannelBufferSize)
-		assert.Equal(t, 5, bitbucketConfig.MaxWorkers)
 	})
 
 	t.Run("ReturnsSlackConfig", func(t *testing.T) {
@@ -66,8 +62,6 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "this is my secret", slackConfig.ClientSecret)
 		assert.Equal(t, "this is my secret", slackConfig.AppVerificationToken)
 		assert.Equal(t, "this is my secret", slackConfig.AppOAuthAccessToken)
-		assert.Equal(t, 100, slackConfig.EventChannelBufferSize)
-		assert.Equal(t, 5, slackConfig.MaxWorkers)
 	})
 
 	t.Run("ReturnsAPIServerConfig", func(t *testing.T) {
@@ -81,8 +75,6 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		assert.Equal(t, "https://ci.estafette.io/", apiServerConfig.BaseURL)
 		assert.Equal(t, "http://estafette-ci-api.estafette.svc.cluster.local/", apiServerConfig.ServiceURL)
-		assert.Equal(t, 100, apiServerConfig.EventChannelBufferSize)
-		assert.Equal(t, 5, apiServerConfig.MaxWorkers)
 	})
 
 	t.Run("ReturnsAuthConfig", func(t *testing.T) {

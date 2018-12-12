@@ -5,29 +5,21 @@ integrations:
     clientID: asdas2342
     clientSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
     webhookSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
-    eventChannelBufferSize: 100
-    maxWorkers: 5
 
   bitbucket:
     apiKey: sd9ewiwuejkwejkewk
     appOAuthKey: 2390w3e90jdsk
     appOAuthSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
-    eventChannelBufferSize: 100
-    maxWorkers: 5
 
   slack:
     clientID: d9ew90weoijewjke
     clientSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
     appVerificationToken: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
     appOAuthAccessToken: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
-    eventChannelBufferSize: 100
-    maxWorkers: 5
 
 apiServer:
   baseURL: https://ci.estafette.io/
   serviceURL: http://estafette-ci-api.estafette.svc.cluster.local/
-  eventChannelBufferSize: 100
-  maxWorkers: 5
 
 auth:
   iap:

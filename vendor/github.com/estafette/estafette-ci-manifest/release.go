@@ -9,6 +9,7 @@ type EstafetteRelease struct {
 	Name            string                    `yaml:"-"`
 	CloneRepository bool                      `yaml:"clone,omitempty"`
 	Actions         []*EstafetteReleaseAction `yaml:"actions,omitempty"`
+	Triggers        []*EstafetteTrigger       `yaml:"triggers,omitempty"`
 	Stages          []*EstafetteStage         `yaml:"-"`
 }
 
@@ -19,6 +20,7 @@ func (release *EstafetteRelease) UnmarshalYAML(unmarshal func(interface{}) error
 		Name            string                    `yaml:"-"`
 		CloneRepository bool                      `yaml:"clone,omitempty"`
 		Actions         []*EstafetteReleaseAction `yaml:"actions,omitempty"`
+		Triggers        []*EstafetteTrigger       `yaml:"triggers,omitempty"`
 		Stages          yaml.MapSlice             `yaml:"stages"`
 	}
 
@@ -30,6 +32,7 @@ func (release *EstafetteRelease) UnmarshalYAML(unmarshal func(interface{}) error
 	// map auxiliary properties
 	release.CloneRepository = aux.CloneRepository
 	release.Actions = aux.Actions
+	release.Triggers = aux.Triggers
 
 	for _, mi := range aux.Stages {
 
@@ -58,9 +61,17 @@ func (release *EstafetteRelease) UnmarshalYAML(unmarshal func(interface{}) error
 func (release EstafetteRelease) MarshalYAML() (out interface{}, err error) {
 
 	var aux struct {
-		Name   string        `yaml:"-"`
-		Stages yaml.MapSlice `yaml:"stages"`
+		Name            string                    `yaml:"-"`
+		CloneRepository bool                      `yaml:"clone,omitempty"`
+		Actions         []*EstafetteReleaseAction `yaml:"actions,omitempty"`
+		Triggers        []*EstafetteTrigger       `yaml:"triggers,omitempty"`
+		Stages          yaml.MapSlice             `yaml:"stages"`
 	}
+
+	// map release properties
+	aux.CloneRepository = release.CloneRepository
+	aux.Actions = release.Actions
+	aux.Triggers = release.Triggers
 
 	for _, stage := range release.Stages {
 		aux.Stages = append(aux.Stages, yaml.MapItem{
