@@ -101,6 +101,8 @@ credentials:
     autoscale:
       min: 1
       max: 5
+    hosts:
+    - ${ESTAFETTE_LABEL_APP}.development.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_2}}
 - name: '{{.GKE_CREDENTIAL_3}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_3}}
@@ -118,6 +120,8 @@ credentials:
     autoscale:
       min: 2
       max: 10
+    hosts:
+    - ${ESTAFETTE_LABEL_APP}.staging.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_3}}
 - name: '{{.GKE_CREDENTIAL_4}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_4}}
@@ -135,6 +139,8 @@ credentials:
     autoscale:
       min: 3
       max: 500
+    hosts:
+    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_4}}
 - name: {{.SLACK_WEBHOOK_NAME_1}}
   type: slack-webhook
   workspace: {{.SLACK_WEBHOOK_WORKSPACE_1}}
