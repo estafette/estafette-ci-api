@@ -1,0 +1,43 @@
+# https://estafette.io/usage/manifest/#labels
+labels:
+  app: {{.ApplicationNamePlaceholder}}
+  team: {{.TeamNamePlaceholder}}
+  language: docker
+
+# https://estafette.io/usage/manifest/#versioning
+version:
+  semver:
+    major: 0
+    minor: 0
+
+# https://estafette.io/usage/manifest/#build-stages
+stages:
+  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-docker
+  bake:
+    image: extensions/docker:stable
+    action: build
+    container: ${ESTAFETTE_LABEL_APP}
+    repositories:
+    - {{.DefaultDockerRepository}}
+
+  # test the container before pushing it
+  integration-test:
+    image: {{.DefaultDockerRepository}}/${ESTAFETTE_LABEL_APP}:${ESTAFETTE_BUILD_VERSION}
+
+  push-to-docker-registry:
+    image: extensions/docker:stable
+    action: push
+    container: ${ESTAFETTE_LABEL_APP}
+    repositories:
+    - {{.DefaultDockerRepository}}
+    tags:
+    - ${ESTAFETTE_GIT_BRANCH}
+
+  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-slack-build-status
+  slack-notify:
+    image: extensions/slack-build-status:stable
+    workspace: {{.SlackWorkspace}}
+    channels:
+    - '#builds-${ESTAFETTE_LABEL_TEAM}'
+    when:
+      status == 'failed'
