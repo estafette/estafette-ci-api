@@ -67,6 +67,13 @@ func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteMani
 				Message: fmt.Sprintf("This pipeline has one or more stages that use the **dev** tag for its container image: `%v`; it is [best practice](https://estafette.io/usage/best-practices/#avoid-using-estafette-s-dev-or-beta-tags) to avoid the dev tag alltogether, since it can be broken at any time.", strings.Join(stagesUsingDevTag, ", ")),
 			})
 		}
+
+		if manifest.Builder.Track == "dev" && gitOwner != "estafette" {
+			warnings = append(warnings, contracts.Warning{
+				Status:  "warning",
+				Message: "This pipeline uses the **dev** track for the builder; it is [best practice](https://estafette.io/usage/best-practices/#avoid-using-estafette-s-builder-dev-track) to avoid the dev track, since it can be broken at any time.",
+			})
+		}
 	}
 
 	return

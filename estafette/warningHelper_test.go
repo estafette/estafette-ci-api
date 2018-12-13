@@ -127,6 +127,23 @@ func TestGetManifestWarnings(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(warnings))
 	})
+
+	t.Run("ReturnsWarningIfBuilderTrackIsSetToDev", func(t *testing.T) {
+
+		mft := &manifest.EstafetteManifest{
+			Builder: manifest.EstafetteBuilder{
+				Track: "dev",
+			},
+		}
+
+		// act
+		warnings, err := helper.GetManifestWarnings(mft, "extensions")
+
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(warnings))
+		assert.Equal(t, "warning", warnings[0].Status)
+		assert.Equal(t, "This pipeline uses the **dev** track for the builder; it is [best practice](https://estafette.io/usage/best-practices/#avoid-using-estafette-s-builder-dev-track) to avoid the dev track, since it can be broken at any time.", warnings[0].Message)
+	})
 }
 
 func TestGetContainerImageParts(t *testing.T) {
