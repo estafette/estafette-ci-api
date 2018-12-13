@@ -80,12 +80,35 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 		err := h.UpdateBuildStatus(ciBuilderEvent)
 		if err != nil {
-			log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Failed updating build status for job %v to %v, not removing the job", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
+			errorMessage := fmt.Sprintf("Failed updating build status for job %v to %v, not removing the job", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
+			log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)
+			c.AbortWithError(http.StatusInternalServerError, fmt.Errorf(errorMessage))
 		} else if ciBuilderEvent.BuildStatus != "canceled" {
 			err = h.RemoveJobForEstafetteBuild(ciBuilderEvent)
 			if err != nil {
-				log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Failed removing job %v", ciBuilderEvent.JobName)
+				errorMessage := fmt.Sprintf("Failed removing job %v", ciBuilderEvent.JobName)
+				log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)
+				c.AbortWithError(http.StatusInternalServerError, fmt.Errorf(errorMessage))
 			}
+		}
+
+	case "builder:clean":
+
+		// unmarshal json body
+		var ciBuilderEvent CiBuilderEvent
+		err = json.Unmarshal(body, &ciBuilderEvent)
+		if err != nil {
+			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to CiBuilderEvent failed")
+			return
+		}
+
+		log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Unmarshaled body of /api/commands event %v for job %v", eventType, eventJobname)
+
+		err = h.RemoveJobForEstafetteBuild(ciBuilderEvent)
+		if err != nil {
+			errorMessage := fmt.Sprintf("Failed removing job %v", ciBuilderEvent.JobName)
+			log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)
+			c.AbortWithError(http.StatusInternalServerError, fmt.Errorf(errorMessage))
 		}
 
 	default:
