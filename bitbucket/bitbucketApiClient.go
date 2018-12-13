@@ -56,7 +56,7 @@ func (bb *apiClientImpl) GetAccessToken() (accessToken bbcontracts.AccessToken, 
 	client.MaxRetries = 3
 	client.Backoff = pester.ExponentialJitterBackoff
 	client.KeepLog = true
-	client.Timeout = time.Duration(10) * time.Second
+	client.Timeout = time.Second * 10
 	request, err := http.NewRequest("POST", "https://bitbucket.org/site/oauth2/access_token", bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		return
@@ -106,7 +106,7 @@ func (bb *apiClientImpl) GetEstafetteManifest(accessToken bbcontracts.AccessToke
 	client.MaxRetries = 3
 	client.Backoff = pester.ExponentialJitterBackoff
 	client.KeepLog = true
-	client.Timeout = time.Duration(10) * time.Second
+	client.Timeout = time.Second * 10
 	request, err := http.NewRequest("GET", fmt.Sprintf("https://api.bitbucket.org/1.0/repositories/%v/raw/%v/.estafette.yaml", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash), nil)
 	if err != nil {
 		return

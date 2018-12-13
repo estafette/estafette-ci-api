@@ -45,7 +45,7 @@ func (sl *apiClientImpl) GetUserProfile(userID string) (profile *slcontracts.Use
 	client.MaxRetries = 3
 	client.Backoff = pester.ExponentialJitterBackoff
 	client.KeepLog = true
-	client.Timeout = time.Duration(10) * time.Second
+	client.Timeout = time.Second * 10
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return

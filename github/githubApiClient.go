@@ -225,7 +225,7 @@ func (gh *apiClientImpl) callGithubAPI(method, url string, params interface{}, a
 	client.MaxRetries = 3
 	client.Backoff = pester.ExponentialJitterBackoff
 	client.KeepLog = true
-	client.Timeout = time.Duration(10) * time.Second
+	client.Timeout = time.Second * 10
 	request, err := http.NewRequest(method, url, requestBody)
 	if err != nil {
 		return
