@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/estafette/estafette-ci-api/config"
 	slcontracts "github.com/estafette/estafette-ci-api/slack/contracts"
@@ -26,7 +27,7 @@ type apiClientImpl struct {
 // NewSlackAPIClient creates an slack.APIClient to communicate with the Slack api
 func NewSlackAPIClient(config config.SlackConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
 	return &apiClientImpl{
-		config: config,
+		config:                          config,
 		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 }
@@ -44,6 +45,7 @@ func (sl *apiClientImpl) GetUserProfile(userID string) (profile *slcontracts.Use
 	client.MaxRetries = 3
 	client.Backoff = pester.ExponentialJitterBackoff
 	client.KeepLog = true
+	client.Timeout = time.Duration(10) * time.Second
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return

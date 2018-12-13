@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	bbcontracts "github.com/estafette/estafette-ci-api/bitbucket/contracts"
 	"github.com/estafette/estafette-ci-api/config"
@@ -33,7 +34,7 @@ type apiClientImpl struct {
 // NewBitbucketAPIClient returns a new bitbucket.APIClient
 func NewBitbucketAPIClient(config config.BitbucketConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
 	return &apiClientImpl{
-		config: config,
+		config:                          config,
 		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 }
@@ -55,6 +56,7 @@ func (bb *apiClientImpl) GetAccessToken() (accessToken bbcontracts.AccessToken, 
 	client.MaxRetries = 3
 	client.Backoff = pester.ExponentialJitterBackoff
 	client.KeepLog = true
+	client.Timeout = time.Duration(10) * time.Second
 	request, err := http.NewRequest("POST", "https://bitbucket.org/site/oauth2/access_token", bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		return
@@ -104,6 +106,7 @@ func (bb *apiClientImpl) GetEstafetteManifest(accessToken bbcontracts.AccessToke
 	client.MaxRetries = 3
 	client.Backoff = pester.ExponentialJitterBackoff
 	client.KeepLog = true
+	client.Timeout = time.Duration(10) * time.Second
 	request, err := http.NewRequest("GET", fmt.Sprintf("https://api.bitbucket.org/1.0/repositories/%v/raw/%v/.estafette.yaml", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash), nil)
 	if err != nil {
 		return

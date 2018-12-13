@@ -64,6 +64,7 @@ func (cl *dockerHubAPIClientImpl) GetDigest(token DockerHubToken, repository str
 	client.MaxRetries = 3
 	client.Backoff = pester.ExponentialJitterBackoff
 	client.KeepLog = true
+	client.Timeout = time.Duration(10) * time.Second
 	request, err := http.NewRequest("HEAD", url, nil)
 	if err != nil {
 		return
