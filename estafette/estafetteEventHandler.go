@@ -83,13 +83,6 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 			errorMessage := fmt.Sprintf("Failed updating build status for job %v to %v, not removing the job", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
 			log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)
 			c.AbortWithError(http.StatusInternalServerError, fmt.Errorf(errorMessage))
-		} else if ciBuilderEvent.BuildStatus != "canceled" {
-			err = h.RemoveJobForEstafetteBuild(ciBuilderEvent)
-			if err != nil {
-				errorMessage := fmt.Sprintf("Failed removing job %v", ciBuilderEvent.JobName)
-				log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)
-				c.AbortWithError(http.StatusInternalServerError, fmt.Errorf(errorMessage))
-			}
 		}
 
 	case "builder:clean":
@@ -104,11 +97,13 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 		log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Unmarshaled body of /api/commands event %v for job %v", eventType, eventJobname)
 
-		err = h.RemoveJobForEstafetteBuild(ciBuilderEvent)
-		if err != nil {
-			errorMessage := fmt.Sprintf("Failed removing job %v", ciBuilderEvent.JobName)
-			log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)
-			c.AbortWithError(http.StatusInternalServerError, fmt.Errorf(errorMessage))
+		if ciBuilderEvent.BuildStatus != "canceled" {
+			err = h.RemoveJobForEstafetteBuild(ciBuilderEvent)
+			if err != nil {
+				errorMessage := fmt.Sprintf("Failed removing job %v", ciBuilderEvent.JobName)
+				log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)
+				c.AbortWithError(http.StatusInternalServerError, fmt.Errorf(errorMessage))
+			}
 		}
 
 	default:
