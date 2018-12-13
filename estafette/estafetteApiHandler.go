@@ -1341,8 +1341,9 @@ func (h *apiHandlerImpl) ValidateManifest(c *gin.Context) {
 func (h *apiHandlerImpl) EncryptSecret(c *gin.Context) {
 
 	var aux struct {
-		Base64Encode bool   `json:"base64"`
-		Value        string `json:"value"`
+		Base64Encode  bool   `json:"base64"`
+		DoubleEncrypt bool   `json:"double"`
+		Value         string `json:"value"`
 	}
 
 	err := c.BindJSON(&aux)
@@ -1361,6 +1362,15 @@ func (h *apiHandlerImpl) EncryptSecret(c *gin.Context) {
 		log.Error().Err(err).Msg("Failed encrypting secret")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 		return
+	}
+
+	if aux.DoubleEncrypt {
+		encryptedString, err = h.secretHelper.EncryptEnvelope(encryptedString)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed encrypting secret")
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"secret": encryptedString})
