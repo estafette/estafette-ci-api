@@ -22,7 +22,7 @@ import (
 // DBClient is the interface for communicating with CockroachDB
 type DBClient interface {
 	Connect() error
-	ConnectWithDriverAndSource(string, string) error
+	ConnectWithDriverAndSource(driverName, dataSourceName string) error
 	GetAutoIncrement(shortRepoSource, repoOwner, repoName string) (int, error)
 
 	InsertBuild(contracts.Build) (*contracts.Build, error)
@@ -64,6 +64,9 @@ type DBClient interface {
 	GetFirstReleaseTimes() ([]time.Time, error)
 	GetPipelineBuildsDurations(string, string, string, map[string][]string) ([]map[string]interface{}, error)
 	GetPipelineReleasesDurations(string, string, string, map[string][]string) ([]map[string]interface{}, error)
+
+	GetPipelinesWithMostBuilds(pageNumber, pageSize int, filters map[string][]string) ([]map[string]interface{}, error)
+	GetPipelinesWithMostReleases(pageNumber, pageSize int, filters map[string][]string) ([]map[string]interface{}, error)
 
 	InsertTrigger(pipeline contracts.Pipeline, trigger manifest.EstafetteTrigger) error
 	GetTriggers(repoSource, repoOwner, repoName, event string) ([]*EstafetteTriggerDb, error)
@@ -108,7 +111,7 @@ func (dbc *cockroachDBClientImpl) Connect() (err error) {
 }
 
 // ConnectWithDriverAndSource set up a connection with any database
-func (dbc *cockroachDBClientImpl) ConnectWithDriverAndSource(driverName string, dataSourceName string) (err error) {
+func (dbc *cockroachDBClientImpl) ConnectWithDriverAndSource(driverName, dataSourceName string) (err error) {
 
 	dbc.databaseConnection, err = sql.Open(driverName, dataSourceName)
 	if err != nil {
@@ -1578,7 +1581,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsDurations(repoSource, repoOwn
 			Where(sq.Eq{"a.repo_name": repoName}).
 			OrderBy("a.inserted_at DESC")
 
-	innerquery, err = whereClauseGeneratorForStatusFilter(innerquery, "a", filters)
+	innerquery, err = whereClauseGeneratorForBuildStatusFilter(innerquery, "a", filters)
 	if err != nil {
 		return
 	}
@@ -1686,13 +1689,133 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(repoSource, repoO
 	return
 }
 
+func (dbc *cockroachDBClientImpl) GetPipelinesWithMostBuilds(pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("a.repo_source, a.repo_owner, a.repo_name, count(a.id) as nr_records").
+			From("builds a").
+			GroupBy("a.repo_source, a.repo_owner, a.repo_name").
+			OrderBy("nr_records DESC, a.repo_source, a.repo_owner, a.repo_name").
+			Limit(uint64(pageSize)).
+			Offset(uint64((pageNumber - 1) * pageSize))
+
+	query, err = whereClauseGeneratorForSinceFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForBuildStatusFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	pipelines = make([]map[string]interface{}, 0)
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+
+	cols, _ := rows.Columns()
+	for rows.Next() {
+		// Create a slice of interface{}'s to represent each column,
+		// and a second slice to contain pointers to each item in the columns slice.
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+
+		// Scan the result into the column pointers...
+		if err = rows.Scan(columnPointers...); err != nil {
+			return nil, err
+		}
+
+		// Create our map, and retrieve the value for each column from the pointers slice,
+		// storing it in the map with the name of the column as the key.
+		m := make(map[string]interface{})
+		for i, colName := range cols {
+			val := columnPointers[i].(*interface{})
+			m[colName] = *val
+		}
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelinesWithMostReleases(pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("a.repo_source, a.repo_owner, a.repo_name, count(a.id) as nr_records").
+			From("releases a").
+			GroupBy("a.repo_source, a.repo_owner, a.repo_name").
+			OrderBy("nr_records DESC, a.repo_source, a.repo_owner, a.repo_name").
+			Limit(uint64(pageSize)).
+			Offset(uint64((pageNumber - 1) * pageSize))
+
+	query, err = whereClauseGeneratorForSinceFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForReleaseStatusFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	pipelines = make([]map[string]interface{}, 0)
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+
+	cols, _ := rows.Columns()
+	for rows.Next() {
+		// Create a slice of interface{}'s to represent each column,
+		// and a second slice to contain pointers to each item in the columns slice.
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+
+		// Scan the result into the column pointers...
+		if err = rows.Scan(columnPointers...); err != nil {
+			return nil, err
+		}
+
+		// Create our map, and retrieve the value for each column from the pointers slice,
+		// storing it in the map with the name of the column as the key.
+		m := make(map[string]interface{})
+		for i, colName := range cols {
+			val := columnPointers[i].(*interface{})
+			m[colName] = *val
+		}
+	}
+
+	return
+}
+
 func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	query, err := whereClauseGeneratorForSinceFilter(query, alias, filters)
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForStatusFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForBuildStatusFilter(query, alias, filters)
 	if err != nil {
 		return query, err
 	}
@@ -1737,7 +1860,7 @@ func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, alias string, fi
 	return query, nil
 }
 
-func whereClauseGeneratorForStatusFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForBuildStatusFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "all" {
 		query = query.Where(sq.Eq{fmt.Sprintf("%v.build_status", alias): statuses})

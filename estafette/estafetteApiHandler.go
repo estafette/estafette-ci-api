@@ -53,6 +53,9 @@ type APIHandler interface {
 	GetStatsBuildsCount(*gin.Context)
 	GetStatsReleasesCount(*gin.Context)
 
+	GetStatsMostBuilds(*gin.Context)
+	GetStatsMostReleases(*gin.Context)
+
 	GetStatsBuildsDuration(*gin.Context)
 	GetStatsBuildsAdoption(*gin.Context)
 	GetStatsReleasesAdoption(*gin.Context)
@@ -107,28 +110,7 @@ func NewAPIHandler(configFilePath string, config config.APIServerConfig, authCon
 
 func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 
-	// get page number query string value or default to 1
-	pageNumberValue := c.DefaultQuery("page[number]", "1")
-	pageNumber, err := strconv.Atoi(pageNumberValue)
-	if err != nil {
-		pageNumber = 1
-	}
-
-	// get page number query string value or default to 20 (maximize at 100)
-	pageSizeValue := c.DefaultQuery("page[size]", "20")
-	pageSize, err := strconv.Atoi(pageSizeValue)
-	if err != nil {
-		pageSize = 20
-	}
-	if pageSize > 100 {
-		pageSize = 100
-	}
-
-	// get filters (?filter[status]=running,succeeded&filter[since]=1w&filter[labels]=team%3Destafette-team)
-	filters := map[string][]string{}
-	filters["status"] = h.getStatusFilter(c)
-	filters["since"] = h.getSinceFilter(c)
-	filters["labels"] = h.getLabelsFilter(c)
+	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
 	pipelines, err := h.cockroachDBClient.GetPipelines(pageNumber, pageSize, filters, true)
 	if err != nil {
@@ -181,28 +163,7 @@ func (h *apiHandlerImpl) GetPipelineBuilds(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	// get page number query string value or default to 1
-	pageNumberValue, pageNumberExists := c.GetQuery("page[number]")
-	pageNumber, err := strconv.Atoi(pageNumberValue)
-	if !pageNumberExists || err != nil {
-		pageNumber = 1
-	}
-
-	// get page number query string value or default to 20 (maximize at 100)
-	pageSizeValue, pageSizeExists := c.GetQuery("page[size]")
-	pageSize, err := strconv.Atoi(pageSizeValue)
-	if !pageSizeExists || err != nil {
-		pageSize = 20
-	}
-	if pageSize > 100 {
-		pageSize = 100
-	}
-
-	// get filters (?filter[status]=running,succeeded&filter[since]=1w&filter[labels]=team%3Destafette-team)
-	filters := map[string][]string{}
-	filters["status"] = h.getStatusFilter(c)
-	filters["since"] = h.getSinceFilter(c)
-	filters["labels"] = h.getLabelsFilter(c)
+	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
 	builds, err := h.cockroachDBClient.GetPipelineBuilds(source, owner, repo, pageNumber, pageSize, filters, true)
 	if err != nil {
@@ -538,28 +499,7 @@ func (h *apiHandlerImpl) GetPipelineReleases(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	// get page number query string value or default to 1
-	pageNumberValue, pageNumberExists := c.GetQuery("page[number]")
-	pageNumber, err := strconv.Atoi(pageNumberValue)
-	if !pageNumberExists || err != nil {
-		pageNumber = 1
-	}
-
-	// get page number query string value or default to 20 (maximize at 100)
-	pageSizeValue, pageSizeExists := c.GetQuery("page[size]")
-	pageSize, err := strconv.Atoi(pageSizeValue)
-	if !pageSizeExists || err != nil {
-		pageSize = 20
-	}
-	if pageSize > 100 {
-		pageSize = 100
-	}
-
-	// get filters (?filter[status]=running,succeeded&filter[since]=1w&filter[labels]=team%3Destafette-team)
-	filters := map[string][]string{}
-	filters["status"] = h.getStatusFilter(c)
-	filters["since"] = h.getSinceFilter(c)
-	filters["labels"] = h.getLabelsFilter(c)
+	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
 	releases, err := h.cockroachDBClient.GetPipelineReleases(source, owner, repo, pageNumber, pageSize, filters)
 	if err != nil {
@@ -1023,6 +963,74 @@ func (h *apiHandlerImpl) GetStatsBuildsCount(c *gin.Context) {
 	})
 }
 
+func (h *apiHandlerImpl) GetStatsMostBuilds(c *gin.Context) {
+
+	pageNumber, pageSize, filters := h.getQueryParameters(c)
+
+	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostBuilds(pageNumber, pageSize, filters)
+	if err != nil {
+		errorMessage := "Failed retrieving pipelines with most builds from db"
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(filters)
+	if err != nil {
+		errorMessage := "Failed retrieving pipelines count from db"
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	response := contracts.ListResponse{
+		Pagination: contracts.Pagination{
+			Page:       pageNumber,
+			Size:       pageSize,
+			TotalItems: pipelinesCount,
+			TotalPages: int(math.Ceil(float64(pipelinesCount) / float64(pageSize))),
+		},
+	}
+
+	response.Items = make([]interface{}, len(pipelines))
+	for i := range pipelines {
+		response.Items[i] = pipelines[i]
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *apiHandlerImpl) GetStatsMostReleases(c *gin.Context) {
+
+	pageNumber, pageSize, filters := h.getQueryParameters(c)
+
+	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostReleases(pageNumber, pageSize, filters)
+	if err != nil {
+		errorMessage := "Failed retrieving pipelines with most builds from db"
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(filters)
+	if err != nil {
+		errorMessage := "Failed retrieving pipelines count from db"
+		log.Error().Err(err).Msg(errorMessage)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+	}
+
+	response := contracts.ListResponse{
+		Pagination: contracts.Pagination{
+			Page:       pageNumber,
+			Size:       pageSize,
+			TotalItems: pipelinesCount,
+			TotalPages: int(math.Ceil(float64(pipelinesCount) / float64(pageSize))),
+		},
+	}
+
+	response.Items = make([]interface{}, len(pipelines))
+	for i := range pipelines {
+		response.Items[i] = pipelines[i]
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 func (h *apiHandlerImpl) GetStatsBuildsDuration(c *gin.Context) {
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
@@ -1385,4 +1393,43 @@ func (h *apiHandlerImpl) getLabelsFilter(c *gin.Context) []string {
 	}
 
 	return []string{}
+}
+
+func (h *apiHandlerImpl) getQueryParameters(c *gin.Context) (int, int, map[string][]string) {
+	return h.getPageNumber(c), h.getPageSize(c), h.getFilters(c)
+}
+
+func (h *apiHandlerImpl) getPageNumber(c *gin.Context) int {
+	// get page number query string value or default to 1
+	pageNumberValue := c.DefaultQuery("page[number]", "1")
+	pageNumber, err := strconv.Atoi(pageNumberValue)
+	if err != nil {
+		pageNumber = 1
+	}
+
+	return pageNumber
+}
+
+func (h *apiHandlerImpl) getPageSize(c *gin.Context) int {
+	// get page number query string value or default to 20 (maximize at 100)
+	pageSizeValue := c.DefaultQuery("page[size]", "20")
+	pageSize, err := strconv.Atoi(pageSizeValue)
+	if err != nil {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
+	return pageSize
+}
+
+func (h *apiHandlerImpl) getFilters(c *gin.Context) map[string][]string {
+	// get filters (?filter[status]=running,succeeded&filter[since]=1w&filter[labels]=team%3Destafette-team)
+	filters := map[string][]string{}
+	filters["status"] = h.getStatusFilter(c)
+	filters["since"] = h.getSinceFilter(c)
+	filters["labels"] = h.getLabelsFilter(c)
+
+	return filters
 }

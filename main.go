@@ -243,6 +243,8 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	gzippedRoutes.GET("/api/stats/buildsduration", estafetteAPIHandler.GetStatsBuildsDuration)
 	gzippedRoutes.GET("/api/stats/buildsadoption", estafetteAPIHandler.GetStatsBuildsAdoption)
 	gzippedRoutes.GET("/api/stats/releasesadoption", estafetteAPIHandler.GetStatsReleasesAdoption)
+	gzippedRoutes.GET("/api/stats/mostbuilds", estafetteAPIHandler.GetStatsMostBuilds)
+	gzippedRoutes.GET("/api/stats/mostreleases", estafetteAPIHandler.GetStatsMostReleases)
 	gzippedRoutes.GET("/api/manifest/templates", estafetteAPIHandler.GetManifestTemplates)
 	gzippedRoutes.POST("/api/manifest/generate", estafetteAPIHandler.GenerateManifest)
 	gzippedRoutes.POST("/api/manifest/validate", estafetteAPIHandler.ValidateManifest)
