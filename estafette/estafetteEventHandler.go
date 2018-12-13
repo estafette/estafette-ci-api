@@ -17,7 +17,6 @@ import (
 // EventHandler handles events from estafette components
 type EventHandler interface {
 	Handle(*gin.Context)
-	RemoveJobForEstafetteBuild(CiBuilderEvent) error
 	UpdateBuildStatus(CiBuilderEvent) error
 }
 
@@ -80,7 +79,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 		err := h.UpdateBuildStatus(ciBuilderEvent)
 		if err != nil {
-			errorMessage := fmt.Sprintf("Failed updating build status for job %v to %v, not removing the job", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
+			errorMessage := fmt.Sprintf("Failed updating build status for job %v to %v, not removing the job", eventJobname, ciBuilderEvent.BuildStatus)
 			log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)
 			c.AbortWithError(http.StatusInternalServerError, fmt.Errorf(errorMessage))
 		}
@@ -98,12 +97,14 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Unmarshaled body of /api/commands event %v for job %v", eventType, eventJobname)
 
 		if ciBuilderEvent.BuildStatus != "canceled" {
-			err = h.RemoveJobForEstafetteBuild(ciBuilderEvent)
+			err = h.ciBuilderClient.RemoveCiBuilderJob(eventJobname)
 			if err != nil {
-				errorMessage := fmt.Sprintf("Failed removing job %v", ciBuilderEvent.JobName)
+				errorMessage := fmt.Sprintf("Failed removing job %v", eventJobname)
 				log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)
 				c.AbortWithError(http.StatusInternalServerError, fmt.Errorf(errorMessage))
 			}
+		} else {
+			log.Info().Msgf("Job %v is already removed by cancellation, no need to remove for event %v", eventJobname, eventType)
 		}
 
 	default:
@@ -111,12 +112,6 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
-}
-
-func (h *eventHandlerImpl) RemoveJobForEstafetteBuild(ciBuilderEvent CiBuilderEvent) (err error) {
-
-	// create ci builder job
-	return h.ciBuilderClient.RemoveCiBuilderJob(ciBuilderEvent.JobName)
 }
 
 func (h *eventHandlerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) (err error) {
