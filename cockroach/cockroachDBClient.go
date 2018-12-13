@@ -1744,6 +1744,8 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostBuilds(pageNumber, pageSiz
 			val := columnPointers[i].(*interface{})
 			m[colName] = *val
 		}
+
+		pipelines = append(pipelines, m)
 	}
 
 	return
@@ -1804,6 +1806,8 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostReleases(pageNumber, pageS
 			val := columnPointers[i].(*interface{})
 			m[colName] = *val
 		}
+
+		pipelines = append(pipelines, m)
 	}
 
 	return
