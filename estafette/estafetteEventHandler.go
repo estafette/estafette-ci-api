@@ -97,12 +97,13 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Unmarshaled body of /api/commands event %v for job %v", eventType, eventJobname)
 
 		if ciBuilderEvent.BuildStatus != "canceled" {
-			err = h.ciBuilderClient.RemoveCiBuilderJob(eventJobname)
-			if err != nil {
-				errorMessage := fmt.Sprintf("Failed removing job %v", eventJobname)
-				log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)
-				c.AbortWithError(http.StatusInternalServerError, fmt.Errorf(errorMessage))
-			}
+			go func(eventJobname string) {
+				err = h.ciBuilderClient.RemoveCiBuilderJob(eventJobname)
+				if err != nil {
+					errorMessage := fmt.Sprintf("Failed removing job %v", eventJobname)
+					log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)
+				}
+			}(eventJobname)
 		} else {
 			log.Info().Msgf("Job %v is already removed by cancellation, no need to remove for event %v", eventJobname, eventType)
 		}
