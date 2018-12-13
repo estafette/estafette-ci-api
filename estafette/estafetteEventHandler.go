@@ -100,7 +100,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 			go func(eventJobname string) {
 				err = h.ciBuilderClient.RemoveCiBuilderJob(eventJobname)
 				if err != nil {
-					errorMessage := fmt.Sprintf("Failed removing job %v", eventJobname)
+					errorMessage := fmt.Sprintf("Failed removing job %v for event %v", eventJobname, eventType)
 					log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)
 				}
 			}(eventJobname)
