@@ -973,7 +973,7 @@ func (h *apiHandlerImpl) GetStatsMostBuilds(c *gin.Context) {
 		log.Error().Err(err).Msg(errorMessage)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 	}
-	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(filters)
+	pipelinesCount, err := h.cockroachDBClient.GetPipelinesWithMostBuildsCount(filters)
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines count from db"
 		log.Error().Err(err).Msg(errorMessage)
@@ -1007,7 +1007,7 @@ func (h *apiHandlerImpl) GetStatsMostReleases(c *gin.Context) {
 		log.Error().Err(err).Msg(errorMessage)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 	}
-	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(filters)
+	pipelinesCount, err := h.cockroachDBClient.GetPipelinesWithMostReleasesCount(filters)
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines count from db"
 		log.Error().Err(err).Msg(errorMessage)

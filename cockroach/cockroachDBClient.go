@@ -66,7 +66,9 @@ type DBClient interface {
 	GetPipelineReleasesDurations(string, string, string, map[string][]string) ([]map[string]interface{}, error)
 
 	GetPipelinesWithMostBuilds(pageNumber, pageSize int, filters map[string][]string) ([]map[string]interface{}, error)
+	GetPipelinesWithMostBuildsCount(filters map[string][]string) (int, error)
 	GetPipelinesWithMostReleases(pageNumber, pageSize int, filters map[string][]string) ([]map[string]interface{}, error)
+	GetPipelinesWithMostReleasesCount(filters map[string][]string) (int, error)
 
 	InsertTrigger(pipeline contracts.Pipeline, trigger manifest.EstafetteTrigger) error
 	GetTriggers(repoSource, repoOwner, repoName, event string) ([]*EstafetteTriggerDb, error)
@@ -1712,6 +1714,11 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostBuilds(pageNumber, pageSiz
 		return
 	}
 
+	query, err = whereClauseGeneratorForLabelsFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
 	pipelines = make([]map[string]interface{}, 0)
 
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
@@ -1749,6 +1756,10 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostBuilds(pageNumber, pageSiz
 	}
 
 	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelinesWithMostBuildsCount(filters map[string][]string) (totalCount int, err error) {
+	return dbc.GetPipelinesCount(filters)
 }
 
 func (dbc *cockroachDBClientImpl) GetPipelinesWithMostReleases(pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
@@ -1808,6 +1819,41 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostReleases(pageNumber, pageS
 		}
 
 		pipelines = append(pipelines, m)
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelinesWithMostReleasesCount(filters map[string][]string) (totalCount int, err error) {
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	innerquery :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("a.repo_source, a.repo_owner, a.repo_name").
+			From("releases a").
+			GroupBy("a.repo_source, a.repo_owner, a.repo_name")
+
+	innerquery, err = whereClauseGeneratorForSinceFilter(innerquery, "a", filters)
+	if err != nil {
+		return
+	}
+
+	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("count(*)").
+			FromSelect(innerquery, "a")
+
+	// execute query
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	if err = row.Scan(&totalCount); err != nil {
+		return
 	}
 
 	return
