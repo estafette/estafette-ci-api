@@ -289,6 +289,7 @@ func (s *buildServiceImpl) CreateRelease(release contracts.Release, mft manifest
 		ReleaseID:            insertedReleaseID,
 		ReleaseName:          release.Name,
 		ReleaseAction:        release.Action,
+		ReleaseTriggeredBy:   release.TriggeredBy,
 	}
 
 	// create ci release job

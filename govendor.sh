@@ -16,4 +16,4 @@ govendor fetch github.com/Masterminds/squirrel@v1.0
 govendor fetch gopkg.in/yaml.v2
 govendor fetch github.com/estafette/estafette-ci-crypt@0.0.10
 govendor fetch github.com/estafette/estafette-ci-manifest@0.1.57-explore-trigger-definition
-govendor fetch github.com/estafette/estafette-ci-contracts@0.0.99
+govendor fetch github.com/estafette/estafette-ci-contracts@0.0.100

@@ -39,11 +39,12 @@ type CiBuilderParams struct {
 	AutoIncrement        int
 	VersionNumber        string
 	//HasValidManifest     bool
-	Manifest      manifest.EstafetteManifest
-	ReleaseName   string
-	ReleaseAction string
-	ReleaseID     int
-	BuildID       int
+	Manifest           manifest.EstafetteManifest
+	ReleaseName        string
+	ReleaseAction      string
+	ReleaseID          int
+	ReleaseTriggeredBy string
+	BuildID            int
 }
 
 type zeroLogLine struct {

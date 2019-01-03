@@ -551,6 +551,7 @@ func (cbc *ciBuilderClientImpl) GetBuilderConfig(ciBuilderParams CiBuilderParams
 			ReleaseName:   ciBuilderParams.ReleaseName,
 			ReleaseID:     ciBuilderParams.ReleaseID,
 			ReleaseAction: ciBuilderParams.ReleaseAction,
+			TriggeredBy:   ciBuilderParams.ReleaseTriggeredBy,
 		}
 	}
 
