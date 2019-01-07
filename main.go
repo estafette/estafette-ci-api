@@ -91,7 +91,8 @@ func main() {
 
 	// wait for graceful shutdown to finish
 	<-sigs // Wait for signals (this hangs until a signal arrives)
-	log.Info().Msg("Shutting down...")
+	log.Info().Msg("Shutting down in 5 seconds...")
+	time.Sleep(5000 * time.Millisecond)
 
 	// shut down gracefully
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
