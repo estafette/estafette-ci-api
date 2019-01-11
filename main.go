@@ -38,11 +38,12 @@ var (
 
 var (
 	// flags
-	prometheusMetricsAddress = kingpin.Flag("metrics-listen-address", "The address to listen on for Prometheus metrics requests.").Default(":9001").String()
-	prometheusMetricsPath    = kingpin.Flag("metrics-path", "The path to listen for Prometheus metrics requests.").Default("/metrics").String()
-	apiAddress               = kingpin.Flag("api-listen-address", "The address to listen on for api HTTP requests.").Default(":5000").String()
-	configFilePath           = kingpin.Flag("config-file-path", "The path to yaml config file configuring this application.").Default("/configs/config.yaml").String()
-	secretDecryptionKey      = kingpin.Flag("secret-decryption-key", "The AES-256 key used to decrypt secrets that have been encrypted with it.").Envar("SECRET_DECRYPTION_KEY").String()
+	prometheusMetricsAddress     = kingpin.Flag("metrics-listen-address", "The address to listen on for Prometheus metrics requests.").Default(":9001").String()
+	prometheusMetricsPath        = kingpin.Flag("metrics-path", "The path to listen for Prometheus metrics requests.").Default("/metrics").String()
+	apiAddress                   = kingpin.Flag("api-listen-address", "The address to listen on for api HTTP requests.").Default(":5000").String()
+	configFilePath               = kingpin.Flag("config-file-path", "The path to yaml config file configuring this application.").Default("/configs/config.yaml").String()
+	secretDecryptionKey          = kingpin.Flag("secret-decryption-key", "The AES-256 key used to decrypt secrets that have been encrypted with it.").Envar("SECRET_DECRYPTION_KEY").String()
+	gracefulShutdownDelaySeconds = kingpin.Flag("graceful-shutdown-delay-seconds", "The number of seconds to wait with graceful shutdown in order to let endpoints update propagation finish.").Default("15").OverrideDefaultFromEnvar("GRACEFUL_SHUTDOWN_DELAY_SECONDS").Int()
 
 	// prometheusInboundEventTotals is the prometheus timeline serie that keeps track of inbound events
 	prometheusInboundEventTotals = prometheus.NewCounterVec(
@@ -91,8 +92,8 @@ func main() {
 
 	// wait for graceful shutdown to finish
 	<-sigs // Wait for signals (this hangs until a signal arrives)
-	log.Info().Msg("Shutting down in 5 seconds...")
-	time.Sleep(5000 * time.Millisecond)
+	log.Info().Msgf("Shutting down in %v seconds...", *gracefulShutdownDelaySeconds)
+	time.Sleep(time.Duration(*gracefulShutdownDelaySeconds) * 1000 * time.Millisecond)
 
 	// shut down gracefully
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
