@@ -218,9 +218,6 @@ releases:
             PrivateNugetSource: estafette.secret(1gEdTRZxX9v0SYYt.a30ACgxUYqpzYI0txfjthYRO7Xo-fM1kZa4g-Qq7aSC-pWNVYhmaYe5cs2jStTnFBtnrfu7nKQjdZo0a3X_ExDkm1qRDGbIvrLKqNwcrzdUxXtzdD7kZ7HJeD-zjC0azaCwFOLeojVRDYGyWkSvySNWkU6b8cZE5tvS-FEmTU9A_ssdNi2xpgwaY-jXQHIGWZZF5mHB1KDbDzkUaupsUZEoNFckhY7A_Vpt2XGUKKbxkIGZLd3zGyxkydpxRLcmUGhjESVrtuQ==)
         hosts:
         - estafette.secret(z6C9Piz4EhMxWMc8.uxcITmg39HiLJuuqSyPRM06PTWNd6S1x1QxfYYeyGoBLcgkM)
-        - abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl.estafette.io
-        - ab.abcdefghijklmnopqrstuvwxyz.abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz.abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz.abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz.abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz.estafette.io
-        - gke_site.estafette.io
         basepath: /api
         chaosproof: true
         manifests:
