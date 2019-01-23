@@ -19,7 +19,7 @@ integrations:
 
 apiServer:
   baseURL: https://{{.HOSTNAMES}}/
-  serviceURL: {{.INTERNAL_HOSTNAME}}
+  serviceURL: https://{{.INTERNAL_HOSTNAME}}/
 
 auth:
   iap:

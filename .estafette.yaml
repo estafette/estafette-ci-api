@@ -108,7 +108,7 @@ releases:
           - gke/templates/manifest-python.tmpl
           data:
             HOSTNAMES: estafette.secret(z6C9Piz4EhMxWMc8.uxcITmg39HiLJuuqSyPRM06PTWNd6S1x1QxfYYeyGoBLcgkM)
-            INTERNAL_HOSTNAME: estafette.secret(v1IU28mZpV6VW-Ik.5ih6gBZ31iEY9J1Mt0bBPFZxpGkUVLIBBAwhTp-SNc70TZzy5BWCd6biltyfU4qvRyuCkq0KtR9M8I0bSrUfBSI=)
+            INTERNAL_HOSTNAME: estafette.secret(Bdqhw3--ehnz7X9a.Suom33egEkXByz3Xu7cA3Bz7w4v7wF9-GaPzm4PlekoLhqeYDR1qQaoJtGy5jFFI12t8Cw==)
             GITHUB_APP_ID: estafette.secret(Mgn-xOhOXSVa0ECR.wJ5SqSvEkGbi9E85ghqWmRH71ys=)
             GITHUB_APP_OAUTH_CLIENT_ID: estafette.secret(M1za9ghNm6lH2D0n.agXm0B-INyVaF_DNLlNnHIGqJWSM4Dvh21-Y_d2LNuLRm6qD)
             GITHUB_APP_OAUTH_CLIENT_SECRET: estafette.secret(kefi3m0OkQlt7aYw.-4zC3Ze1q8QkwGA2oYLzzNRVLxi5ondNT1FpgX-yGH3TSUaZ7_eZIzrzVbcECzqnk_b7SHLAFd_lseqY4WwZ1vF0PDXIVS0PoJe0QJOreAbcR3wKwXHQEST-E1U171P3OeNoe0TmJJ1JgDVVRNGOpe-RqHGeVH-KoG4R1C399g==)
