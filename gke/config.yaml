@@ -133,6 +133,8 @@ credentials:
       max: 500
     hosts:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_4}}
+    internalhosts:
+    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_4}}
 - name: '{{.GKE_CREDENTIAL_5}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_5}}
@@ -151,6 +153,8 @@ credentials:
       max: 50
     hosts:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_5}}
+    internalhosts:
+    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_5}}
 - name: '{{.GKE_CREDENTIAL_6}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_6}}
@@ -169,6 +173,8 @@ credentials:
       max: 50
     hosts:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_6}}
+    internalhosts:
+    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_6}}
 - name: {{.SLACK_WEBHOOK_NAME_1}}
   type: slack-webhook
   workspace: {{.SLACK_WEBHOOK_WORKSPACE_1}}
