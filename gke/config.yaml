@@ -95,6 +95,8 @@ credentials:
       max: 5
     hosts:
     - ${ESTAFETTE_LABEL_APP}.development.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_2}}
+    internalhosts:
+    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_2}}
 - name: '{{.GKE_CREDENTIAL_3}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_3}}
@@ -114,6 +116,8 @@ credentials:
       max: 10
     hosts:
     - ${ESTAFETTE_LABEL_APP}.staging.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_3}}
+    internalhosts:
+    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_3}}
 - name: '{{.GKE_CREDENTIAL_4}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_4}}
@@ -153,8 +157,6 @@ credentials:
       max: 50
     hosts:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_5}}
-    internalhosts:
-    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_5}}
 - name: '{{.GKE_CREDENTIAL_6}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_6}}
