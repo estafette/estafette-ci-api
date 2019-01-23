@@ -19,7 +19,7 @@ integrations:
 
 apiServer:
   baseURL: https://{{.HOSTNAMES}}/
-  serviceURL: http://estafette-ci-api/
+  serviceURL: {{.INTERNAL_HOSTNAME}}
 
 auth:
   iap:
