@@ -79,11 +79,11 @@ releases:
           env:
             SECRET_DECRYPTION_KEY: estafette.secret(fCU10Q2CM5_7eWgl.SE2omebYoaDWQo41QYalKjoCB8FZVXFj63QwHLy1GkDpvq89FjJUkC-ngE3DNMqt)
           cpu:
-            request: 10m
+            request: 100m
             limit: 200m
           memory:
-            request: 15Mi
-            limit: 512Mi
+            request: 64Mi
+            limit: 128Mi
           metrics:
             port: 9001
           lifecycle:
