@@ -67,6 +67,12 @@ credentials:
   private: true
   username: '{{.CONTAINER_REPOSITORY_USERNAME_5}}'
   password: '{{.CONTAINER_REPOSITORY_PASSWORD_5}}'
+- name: 'container-registry-{{.CONTAINER_REPOSITORY_6}}'
+  type: 'container-registry'
+  repository: '{{.CONTAINER_REPOSITORY_6}}'
+  private: true
+  username: '{{.CONTAINER_REPOSITORY_USERNAME_6}}'
+  password: '{{.CONTAINER_REPOSITORY_PASSWORD_6}}'
 - name: '{{.GKE_CREDENTIAL_1}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_1}}
