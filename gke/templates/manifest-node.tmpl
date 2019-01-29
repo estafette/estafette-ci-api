@@ -12,13 +12,23 @@ version:
 
 # https://estafette.io/usage/manifest/#build-stages
 stages:
-  restore:
-    image: node:11.3.0-alpine
+  audit:
+    image: node:11.7.0-alpine
     commands:
-    - npm install
+    - npm audit
+
+  restore:
+    image: node:11.7.0-alpine
+    commands:
+    - npm ci
+
+  lint:
+    image: node:11.7.0-alpine
+    commands:
+    - npm run lint
 
   build:
-    image: node:11.3.0-alpine
+    image: node:11.7.0-alpine
     commands:
     - npm run build
 
@@ -29,8 +39,6 @@ stages:
     repositories:
     - {{.DefaultDockerRepository}}
     path: ./publish
-    copy:
-    - /etc/ssl/certs/ca-certificates.crt
 
   push-to-docker-registry:
     image: extensions/docker:stable
