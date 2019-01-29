@@ -13,13 +13,14 @@ version:
 # https://estafette.io/usage/manifest/#build-stages
 stages:
   build:
-    image: golang:1.11.2-alpine3.8
+    image: golang:1.11.5-alpine3.8
     workDir: /go/src/${ESTAFETTE_GIT_SOURCE}/${ESTAFETTE_GIT_OWNER}/${ESTAFETTE_GIT_NAME}
     env:
       CGO_ENABLED: 0
       GOOS: linux
     commands:
     - go test `go list ./... | grep -v /vendor/`
+    - go build -a -installsuffix cgo -o ./publish/${ESTAFETTE_LABEL_APP} .
 
   # https://estafette.io/usage/extensions/estafette-extensions/#extensions-docker
   bake:

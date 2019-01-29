@@ -20,7 +20,7 @@ func TestGetManifestWarnings(t *testing.T) {
 			Stages: []*manifest.EstafetteStage{
 				&manifest.EstafetteStage{
 					Name:           "build",
-					ContainerImage: "golang:1.11.2-alpine3.8",
+					ContainerImage: "golang:1.11.5-alpine3.8",
 				},
 			},
 		}
@@ -150,7 +150,7 @@ func TestGetContainerImageParts(t *testing.T) {
 
 	t.Run("ReturnsEmptyRepoIfOfficialDockerHubImage", func(t *testing.T) {
 
-		containerImage := "golang:1.11.2-alpine3.8"
+		containerImage := "golang:1.11.5-alpine3.8"
 
 		// act
 		repo, _, _ := helper.GetContainerImageParts(containerImage)
@@ -160,7 +160,7 @@ func TestGetContainerImageParts(t *testing.T) {
 
 	t.Run("ReturnsPathAsNameIfOfficialDockerHubImage", func(t *testing.T) {
 
-		containerImage := "golang:1.11.2-alpine3.8"
+		containerImage := "golang:1.11.5-alpine3.8"
 
 		// act
 		_, name, _ := helper.GetContainerImageParts(containerImage)
@@ -170,12 +170,12 @@ func TestGetContainerImageParts(t *testing.T) {
 
 	t.Run("ReturnsTagIfProvidedForOfficialDockerHubImage", func(t *testing.T) {
 
-		containerImage := "golang:1.11.2-alpine3.8"
+		containerImage := "golang:1.11.5-alpine3.8"
 
 		// act
 		_, _, tag := helper.GetContainerImageParts(containerImage)
 
-		assert.Equal(t, "1.11.2-alpine3.8", tag)
+		assert.Equal(t, "1.11.5-alpine3.8", tag)
 	})
 
 	t.Run("ReturnsLatestTagIfNoTagProvidedForOfficialDockerHubImage", func(t *testing.T) {

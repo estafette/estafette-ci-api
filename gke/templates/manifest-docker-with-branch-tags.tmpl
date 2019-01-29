@@ -1,6 +1,7 @@
 # https://estafette.io/usage/manifest/#labels
 labels:
   app: {{.ApplicationNamePlaceholder}}
+  container: {{.ContainerNamePlaceholder}}
   team: {{.TeamNamePlaceholder}}
   language: docker
 
@@ -16,22 +17,37 @@ stages:
   bake:
     image: extensions/docker:stable
     action: build
-    container: ${ESTAFETTE_LABEL_APP}
+    container: ${ESTAFETTE_LABEL_CONTAINER}
     repositories:
     - {{.DefaultDockerRepository}}
 
   # test the container before pushing it
   integration-test:
-    image: {{.DefaultDockerRepository}}/${ESTAFETTE_LABEL_APP}:${ESTAFETTE_BUILD_VERSION}
+    image: {{.DefaultDockerRepository}}/${ESTAFETTE_LABEL_CONTAINER}:${ESTAFETTE_BUILD_VERSION}
 
-  push-to-docker-registry:
+  push-to-docker-registry-for-branch:
     image: extensions/docker:stable
     action: push
-    container: ${ESTAFETTE_LABEL_APP}
+    container: ${ESTAFETTE_LABEL_CONTAINER}
     repositories:
     - {{.DefaultDockerRepository}}
     tags:
     - ${ESTAFETTE_GIT_BRANCH}
+    when:
+      status == 'succeeded' &&
+      branch != 'master
+
+  push-to-docker-registry-for-master:
+    image: extensions/docker:stable
+    action: push
+    container: ${ESTAFETTE_LABEL_CONTAINER}
+    repositories:
+    - {{.DefaultDockerRepository}}
+    tags:
+    - latest
+    when:
+      status == 'succeeded' &&
+      branch == 'master
 
   # https://estafette.io/usage/extensions/estafette-extensions/#extensions-slack-build-status
   slack-notify:

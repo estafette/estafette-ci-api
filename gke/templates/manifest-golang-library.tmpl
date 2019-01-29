@@ -13,7 +13,7 @@ version:
 # https://estafette.io/usage/manifest/#build-stages
 stages:
   build:
-    image: golang:1.11.2-alpine3.8
+    image: golang:1.11.5-alpine3.8
     workDir: /go/src/${ESTAFETTE_GIT_SOURCE}/${ESTAFETTE_GIT_OWNER}/${ESTAFETTE_GIT_NAME}
     env:
       CGO_ENABLED: 0
@@ -22,7 +22,7 @@ stages:
     - go test `go list ./... | grep -v /vendor/`
 
   tag-revision:
-    image: golang:1.11.2-alpine3.8
+    image: golang:1.11.5-alpine3.8
     commands:
     - apk --no-cache add git
     - git tag ${ESTAFETTE_BUILD_VERSION}

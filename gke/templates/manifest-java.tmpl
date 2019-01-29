@@ -13,7 +13,7 @@ version:
 # https://estafette.io/usage/manifest/#build-stages
 stages:
   build:
-    image: maven:3.6.0-jdk-12-alpine
+    image: maven:3.6.0-jdk-13-alpine
     commands:
     - mvn package -DoutputDirectory=./publish
 
