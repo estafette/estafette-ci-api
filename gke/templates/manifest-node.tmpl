@@ -13,22 +13,22 @@ version:
 # https://estafette.io/usage/manifest/#build-stages
 stages:
   audit:
-    image: node:11.7.0-alpine
+    image: node:11.8.0-alpine
     commands:
     - npm audit
 
   restore:
-    image: node:11.7.0-alpine
+    image: node:11.8.0-alpine
     commands:
     - npm ci
 
   lint:
-    image: node:11.7.0-alpine
+    image: node:11.8.0-alpine
     commands:
     - npm run lint
 
   build:
-    image: node:11.7.0-alpine
+    image: node:11.8.0-alpine
     commands:
     - npm run build
 
