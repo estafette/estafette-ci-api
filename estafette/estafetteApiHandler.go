@@ -230,6 +230,18 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
 	}
 
+	// obfuscate all secrets
+	build.Manifest, err = h.obfuscateSecrets(build.Manifest)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed obfuscating secrets")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+	build.ManifestWithDefaults, err = h.obfuscateSecrets(build.ManifestWithDefaults)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed obfuscating secrets")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
 	c.JSON(http.StatusOK, build)
 }
 
@@ -1138,14 +1150,12 @@ func (h *apiHandlerImpl) GetConfig(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 	}
 
-	r, err := regexp.Compile(`estafette\.secret\(([a-zA-Z0-9.=_-]+)\)`)
+	// obfuscate all secrets
+	configString, err := h.obfuscateSecrets(string(configBytes))
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed compiling regex")
+		log.Error().Err(err).Msgf("Failed obfuscating secrets")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 	}
-
-	// obfuscate all secrets
-	configString := r.ReplaceAllLiteralString(string(configBytes), "***")
 
 	// add extra whitespace after each top-level item
 	addWhitespaceRegex := regexp.MustCompile(`\n([a-z])`)
@@ -1164,14 +1174,12 @@ func (h *apiHandlerImpl) GetConfigCredentials(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 	}
 
-	r, err := regexp.Compile(`estafette\.secret\(([a-zA-Z0-9.=_-]+)\)`)
+	// obfuscate all secrets
+	configString, err := h.obfuscateSecrets(string(configBytes))
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed compiling regex")
+		log.Error().Err(err).Msgf("Failed obfuscating secrets")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 	}
-
-	// obfuscate all secrets
-	configString := r.ReplaceAllLiteralString(string(configBytes), "***")
 
 	// add extra whitespace after each top-level item
 	addWhitespaceRegex := regexp.MustCompile(`\n([a-z])`)
@@ -1190,14 +1198,12 @@ func (h *apiHandlerImpl) GetConfigTrustedImages(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 	}
 
-	r, err := regexp.Compile(`estafette\.secret\(([a-zA-Z0-9.=_-]+)\)`)
+	// obfuscate all secrets
+	configString, err := h.obfuscateSecrets(string(configBytes))
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed compiling regex")
+		log.Error().Err(err).Msgf("Failed obfuscating secrets")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 	}
-
-	// obfuscate all secrets
-	configString := r.ReplaceAllLiteralString(string(configBytes), "***")
 
 	// add extra whitespace after each top-level item
 	addWhitespaceRegex := regexp.MustCompile(`\n([a-z])`)
@@ -1442,4 +1448,15 @@ func (h *apiHandlerImpl) getFilters(c *gin.Context) map[string][]string {
 	filters["labels"] = h.getLabelsFilter(c)
 
 	return filters
+}
+
+func (h *apiHandlerImpl) obfuscateSecrets(input string) (string, error) {
+
+	r, err := regexp.Compile(`estafette\.secret\(([a-zA-Z0-9.=_-]+)\)`)
+	if err != nil {
+		return "", err
+	}
+
+	// obfuscate all secrets
+	return r.ReplaceAllLiteralString(input, "***"), nil
 }
