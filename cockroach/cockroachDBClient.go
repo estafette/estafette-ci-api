@@ -11,8 +11,8 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/estafette/estafette-ci-api/config"
-	"github.com/estafette/estafette-ci-contracts"
-	"github.com/estafette/estafette-ci-manifest"
+	contracts "github.com/estafette/estafette-ci-contracts"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	_ "github.com/lib/pq" // use postgres client library to connect to cockroachdb
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -1201,8 +1201,14 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(repoSource, repoOwner, re
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
+	buildIDAsInt, err := strconv.Atoi(buildID)
+	if err != nil {
+		return nil, err
+	}
+
 	// generate query
 	query := dbc.selectBuildLogsQuery().
+		Where(sq.Eq{"a.build_id": buildIDAsInt}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -1379,10 +1385,10 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogs(repoSource, repoOwner, 
 
 	// generate query
 	query := dbc.selectReleaseLogsQuery().
+		Where(sq.Eq{"a.release_id": id}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
-		Where(sq.Eq{"a.release_id": id}).
 		OrderBy("a.inserted_at DESC").
 		Limit(uint64(1))
 
