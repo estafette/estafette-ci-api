@@ -894,6 +894,9 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 	if len(durations) > 0 {
 		// pick the item at half of the length
 		medianIndex := len(durations)/2 - 1
+		if medianIndex < 0 {
+			medianIndex = 0
+		}
 		duration := durations[medianIndex]["duration"].(time.Duration)
 		durationInSeconds := duration.Seconds()
 
