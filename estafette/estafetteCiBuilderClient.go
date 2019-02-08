@@ -150,6 +150,32 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	preemptibleAffinityKey := "cloud.google.com/gke-preemptible"
 	preemptibleAffinityOperator := "In"
 
+	volumeMounts := []*corev1.VolumeMount{}
+	volumes := []*corev1.Volume{}
+	if ciBuilderParams.Manifest.Builder.InMemoryWorkingDirectory {
+		volumeName := "workdir"
+		volumePath := "/estafette-work"
+		volumeMedium := "Memory"
+
+		volumeMounts = []*corev1.VolumeMount{
+			&corev1.VolumeMount{
+				Name:      &volumeName,
+				MountPath: &volumePath,
+			},
+		}
+
+		volumes = []*corev1.Volume{
+			&corev1.Volume{
+				Name: &volumeName,
+				VolumeSource: &corev1.VolumeSource{
+					EmptyDir: &corev1.EmptyDirVolumeSource{
+						Medium: &volumeMedium,
+					},
+				},
+			},
+		}
+	}
+
 	job = &batchv1.Job{
 		Metadata: &metav1.ObjectMeta{
 			Name:      &jobName,
@@ -189,9 +215,12 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 									"memory": &resource.Quantity{String_: &memoryLimit},
 								},
 							},
+							VolumeMounts: volumeMounts,
 						},
 					},
 					RestartPolicy: &restartPolicy,
+
+					Volumes: volumes,
 
 					Affinity: &corev1.Affinity{
 						NodeAffinity: &corev1.NodeAffinity{
