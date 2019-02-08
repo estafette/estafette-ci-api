@@ -508,16 +508,19 @@ func (cbc *ciBuilderClientImpl) GetBuilderConfig(ciBuilderParams CiBuilderParams
 		RepoRevision: ciBuilderParams.RepoRevision,
 	}
 	if ciBuilderParams.Manifest.Version.SemVer != nil {
-		patchWithLabel := ciBuilderParams.Manifest.Version.SemVer.GetPatchWithLabel(manifest.EstafetteVersionParams{
+		versionParams := manifest.EstafetteVersionParams{
 			AutoIncrement: ciBuilderParams.AutoIncrement,
 			Branch:        ciBuilderParams.RepoBranch,
 			Revision:      ciBuilderParams.RepoRevision,
-		})
+		}
+		patchWithLabel := ciBuilderParams.Manifest.Version.SemVer.GetPatchWithLabel(versionParams)
+		label := ciBuilderParams.Manifest.Version.SemVer.GetLabel(versionParams)
 		localBuilderConfig.BuildVersion = &contracts.BuildVersionConfig{
 			Version:       ciBuilderParams.VersionNumber,
 			Major:         &ciBuilderParams.Manifest.Version.SemVer.Major,
 			Minor:         &ciBuilderParams.Manifest.Version.SemVer.Minor,
 			Patch:         &patchWithLabel,
+			Label:         &label,
 			AutoIncrement: &ciBuilderParams.AutoIncrement,
 		}
 	} else {

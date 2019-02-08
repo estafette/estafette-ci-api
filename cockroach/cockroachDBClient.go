@@ -70,8 +70,8 @@ type DBClient interface {
 	GetPipelinesWithMostReleases(pageNumber, pageSize int, filters map[string][]string) ([]map[string]interface{}, error)
 	GetPipelinesWithMostReleasesCount(filters map[string][]string) (int, error)
 
-	InsertTrigger(pipeline contracts.Pipeline, trigger manifest.EstafetteTrigger) error
-	GetTriggers(repoSource, repoOwner, repoName, event string) ([]*EstafetteTriggerDb, error)
+	// InsertTrigger(pipeline contracts.Pipeline, trigger manifest.EstafetteTrigger) error
+	// GetTriggers(repoSource, repoOwner, repoName, event string) ([]*EstafetteTriggerDb, error)
 
 	selectBuildsQuery() sq.SelectBuilder
 	selectPipelinesQuery() sq.SelectBuilder
@@ -2226,116 +2226,116 @@ func (dbc *cockroachDBClientImpl) scanReleases(rows *sql.Rows) (releases []*cont
 	return
 }
 
-func (dbc *cockroachDBClientImpl) scanTriggers(rows *sql.Rows) (triggers []*EstafetteTriggerDb, err error) {
+// func (dbc *cockroachDBClientImpl) scanTriggers(rows *sql.Rows) (triggers []*EstafetteTriggerDb, err error) {
 
-	triggers = make([]*EstafetteTriggerDb, 0)
+// 	triggers = make([]*EstafetteTriggerDb, 0)
 
-	defer rows.Close()
-	for rows.Next() {
+// 	defer rows.Close()
+// 	for rows.Next() {
 
-		trigger := EstafetteTriggerDb{
-			Trigger: &manifest.EstafetteTrigger{},
-		}
-		var filterData, runData []uint8
+// 		trigger := EstafetteTriggerDb{
+// 			Trigger: &manifest.EstafetteTrigger{},
+// 		}
+// 		var filterData, runData []uint8
 
-		if err = rows.Scan(
-			&trigger.ID,
-			&trigger.RepoSource,
-			&trigger.RepoOwner,
-			&trigger.RepoName,
-			&trigger.Trigger.Event,
-			&filterData,
-			&runData,
-			&trigger.InsertedAt,
-			&trigger.UpdatedAt); err != nil {
-			return
-		}
+// 		if err = rows.Scan(
+// 			&trigger.ID,
+// 			&trigger.RepoSource,
+// 			&trigger.RepoOwner,
+// 			&trigger.RepoName,
+// 			&trigger.Trigger.Event,
+// 			&filterData,
+// 			&runData,
+// 			&trigger.InsertedAt,
+// 			&trigger.UpdatedAt); err != nil {
+// 			return
+// 		}
 
-		if len(filterData) > 0 {
-			if err = json.Unmarshal(filterData, &trigger.Trigger.Filter); err != nil {
-				return
-			}
-		}
-		if len(runData) > 0 {
-			if err = json.Unmarshal(runData, &trigger.Trigger.Run); err != nil {
-				return
-			}
-		}
+// 		if len(filterData) > 0 {
+// 			if err = json.Unmarshal(filterData, &trigger.Trigger.Filter); err != nil {
+// 				return
+// 			}
+// 		}
+// 		if len(runData) > 0 {
+// 			if err = json.Unmarshal(runData, &trigger.Trigger.Run); err != nil {
+// 				return
+// 			}
+// 		}
 
-		triggers = append(triggers, &trigger)
-	}
+// 		triggers = append(triggers, &trigger)
+// 	}
 
-	return
-}
+// 	return
+// }
 
-func (dbc *cockroachDBClientImpl) InsertTrigger(pipeline contracts.Pipeline, trigger manifest.EstafetteTrigger) (err error) {
+// func (dbc *cockroachDBClientImpl) InsertTrigger(pipeline contracts.Pipeline, trigger manifest.EstafetteTrigger) (err error) {
 
-	filterBytes, err := json.Marshal(trigger.Filter)
-	if err != nil {
-		return
-	}
-	runBytes, err := json.Marshal(trigger.Run)
-	if err != nil {
-		return
-	}
+// 	filterBytes, err := json.Marshal(trigger.Filter)
+// 	if err != nil {
+// 		return
+// 	}
+// 	runBytes, err := json.Marshal(trigger.Run)
+// 	if err != nil {
+// 		return
+// 	}
 
-	// upsert computed pipeline
-	_, err = dbc.databaseConnection.Exec(
-		`
-		INSERT INTO
-		pipeline_triggers
-		(
-			repo_source,
-			repo_owner,
-			repo_name,
-			trigger_event,
-			trigger_filter,
-			trigger_run
-		)
-		VALUES
-		(
-			$1,
-			$2,
-			$3,
-			$4,
-			$5,
-			$6
-		)
-		`,
-		pipeline.RepoSource,
-		pipeline.RepoOwner,
-		pipeline.RepoName,
-		trigger.Event,
-		filterBytes,
-		runBytes,
-	)
+// 	// upsert computed pipeline
+// 	_, err = dbc.databaseConnection.Exec(
+// 		`
+// 		INSERT INTO
+// 		pipeline_triggers
+// 		(
+// 			repo_source,
+// 			repo_owner,
+// 			repo_name,
+// 			trigger_event,
+// 			trigger_filter,
+// 			trigger_run
+// 		)
+// 		VALUES
+// 		(
+// 			$1,
+// 			$2,
+// 			$3,
+// 			$4,
+// 			$5,
+// 			$6
+// 		)
+// 		`,
+// 		pipeline.RepoSource,
+// 		pipeline.RepoOwner,
+// 		pipeline.RepoName,
+// 		trigger.Event,
+// 		filterBytes,
+// 		runBytes,
+// 	)
 
-	return
-}
+// 	return
+// }
 
-func (dbc *cockroachDBClientImpl) GetTriggers(repoSource, repoOwner, repoName, event string) (triggers []*EstafetteTriggerDb, err error) {
-	triggers = make([]*EstafetteTriggerDb, 0)
+// func (dbc *cockroachDBClientImpl) GetTriggers(repoSource, repoOwner, repoName, event string) (triggers []*EstafetteTriggerDb, err error) {
+// 	triggers = make([]*EstafetteTriggerDb, 0)
 
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+// 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	// generate query
-	query := dbc.selectPipelineTriggersQuery().
-		Where("a.trigger_event", event).
-		Where("a.trigger_filter->>'pipeline'", fmt.Sprintf("%v/%v/%v", repoSource, repoOwner, repoName))
+// 	// generate query
+// 	query := dbc.selectPipelineTriggersQuery().
+// 		Where("a.trigger_event", event).
+// 		Where("a.trigger_filter->>'pipeline'", fmt.Sprintf("%v/%v/%v", repoSource, repoOwner, repoName))
 
-	// execute query
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
-	if err != nil {
-		return
-	}
+// 	// execute query
+// 	rows, err := query.RunWith(dbc.databaseConnection).Query()
+// 	if err != nil {
+// 		return
+// 	}
 
-	// read rows
-	if triggers, err = dbc.scanTriggers(rows); err != nil {
-		return
-	}
+// 	// read rows
+// 	if triggers, err = dbc.scanTriggers(rows); err != nil {
+// 		return
+// 	}
 
-	return
-}
+// 	return
+// }
 
 func (dbc *cockroachDBClientImpl) selectBuildsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
