@@ -98,7 +98,7 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 		// get autoincrement from build version
 		autoincrementCandidate := build.BuildVersion
 		if hasValidManifest && mft.Version.SemVer != nil {
-			re := regexp.MustCompile(`^[0-9]+\.[0-9]+\.([0-9]+)(-[0-9a-zA-Z-/]+)?$`)
+			re := regexp.MustCompile(`^[0-9]+\.[0-9]+\.([0-9]+)(-[0-9a-z-]+)?$`)
 			match := re.FindStringSubmatch(build.BuildVersion)
 
 			if len(match) > 1 {
