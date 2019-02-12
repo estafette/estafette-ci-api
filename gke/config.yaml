@@ -194,7 +194,7 @@ credentials:
       type: openresty
       image: {{.GKE_DEFAULT_SIDECAR_IMAGE_7}}
     autoscale:
-      min: 3
+      min: 2
       max: 50
     hosts:
     - ${ESTAFETTE_LABEL_APP}.staging.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_7}}
@@ -212,7 +212,7 @@ credentials:
       image: {{.GKE_DEFAULT_SIDECAR_IMAGE_8}}
     autoscale:
       min: 3
-      max: 50
+      max: 100
     hosts:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_8}}
 - name: {{.SLACK_WEBHOOK_NAME_1}}
