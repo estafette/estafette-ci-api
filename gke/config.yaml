@@ -233,6 +233,10 @@ trustedImages:
   injectedCredentialTypes:
   - bitbucket-api-token
   - github-api-token
+- path: extensions/git-trigger
+  injectedCredentialTypes:
+  - bitbucket-api-token
+  - github-api-token
 - path: extensions/docker
   runDocker: true
   injectedCredentialTypes:
