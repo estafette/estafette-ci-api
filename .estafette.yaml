@@ -226,6 +226,8 @@ releases:
             NUGET_SERVER_NAME_1: estafette.secret(rqiE6C-ERUUVJmCV.gMkeEbM_Yg9LZKc5iUZDgT7ex8zL)
             NUGET_SERVER_API_URL_1: estafette.secret(3OUEIMVDDp8fNPOY.hxVJFjCOtNNh_lC07UOLLB-0tgPxG0stU1HCKivhYsrgZllDvF1YZAa2K9VjeMGDHQ_hjPclkZjQZrA4rRjb_DsyrukTevE5JhvV)
             NUGET_SERVER_API_KEY_1: estafette.secret(5LATymzeDMswkRp3.fqf4AAlTNmEKXMn1wMK7yB4QqnKsR_ea4Xgbreu6Ll3__SNnSOYhvzZM0-3_usmX9JDQgeH2fC52Wq74MvF6QFcM5mZgsBFqFbp31lS5yxo3wasIXyJJK0YUruhe4dHu1rbBej000zQ1KCQc6R44j3B90E2veMUuq90_)
+            SONARQUBE_SERVER_NAME_1: estafette.secret(FFG9tecqq8uxd2bd.BLfXmc505mIKVaX9vNDUhs706M8-PEH9PA71lHMrpuznpWd1YW6h)
+            SONARQUBE_SERVER_API_URL_1: estafette.secret(5e5DQPFjO6DMYOkv.SgA-4PAmM7PuhhLwE86SRgCs2kY_Bx4WNKL7HMqGDm5XHIiMbngvNnN0Tv3-ZGlhuRU6ZoVEGjxCXqBn)
             COCKROACH_DATABASE: estafette.secret(FMiqFetD_wlJM9mB.2_kprGMxMtllfDzFI-95itWfvAeb70ibG-6-CDs4P6A=)
             COCKROACH_HOST: estafette.secret(NBbU-NviD2kCo6t7.BNARNwmU-Lfa4erBVxjeRbz9c4xh9bos4UyO5eMvdQgK1JofvD9GCLDkUJEMdJbbQxbOjUnzw70fopt_mus=)
             COCKROACH_INSECURE: estafette.secret(zH4TA8KlflUEIhXA.pEC3hEnqCTPOGC8C0Z2wKHk139w=)
