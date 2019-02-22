@@ -227,6 +227,9 @@ credentials:
   type: nuget-server
   apiUrl: {{.NUGET_SERVER_API_URL_1}}
   apiKey: {{.NUGET_SERVER_API_KEY_1}}
+- name: {{.SONARQUBE_SERVER_NAME_1}}
+  type: sonarqube-server
+  apiUrl: {{.SONARQUBE_SERVER_API_URL_1}}
 
 trustedImages:
 - path: extensions/git-clone
@@ -256,6 +259,7 @@ trustedImages:
 - path: extensions/dotnet
   injectedCredentialTypes:
   - nuget-server
+  - sonarqube-server
 - path: estafette/estafette-ci-builder
   runPrivileged: true
 - path: docker

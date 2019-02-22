@@ -82,6 +82,9 @@ credentials:
   type: nuget-server
   apiUrl: https://my-nuget-server.com
   apiKey: my-nuget-key
+- name: my-sonarqube-server
+  type: sonarqube-server
+  apiUrl: https://my-sonarqube-server.com
 
 trustedImages:
 - path: extensions/docker
@@ -103,6 +106,7 @@ trustedImages:
 - path: extensions/dotnet
   injectedCredentialTypes:
   - nuget-server
+  - sonarqube-server
 - path: docker
   runDocker: true
 - path: multiple-git-sources-test
