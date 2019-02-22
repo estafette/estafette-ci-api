@@ -118,7 +118,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		credentialsConfig := config.Credentials
 
-		assert.Equal(t, 8, len(credentialsConfig))
+		assert.Equal(t, 9, len(credentialsConfig))
 		assert.Equal(t, "container-registry-extensions", credentialsConfig[0].Name)
 		assert.Equal(t, "container-registry", credentialsConfig[0].Type)
 		assert.Equal(t, "extensions", credentialsConfig[0].AdditionalProperties["repository"])
