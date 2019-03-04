@@ -10,7 +10,8 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-    nginx.ingress.kubernetes.io/whitelist-source-range: "192.30.252.0/22,185.199.108.0/22"
+    # see https://api.github.com/meta for githubs outbound ip addresses for hooks
+    nginx.ingress.kubernetes.io/whitelist-source-range: "192.30.252.0/22,185.199.108.0/22,140.82.112.0/20"
     estafette.io/cloudflare-dns: "true"
     estafette.io/cloudflare-proxy: "true"
     estafette.io/cloudflare-hostnames: "{{.ManifestData.IntegrationsHostname}}"
