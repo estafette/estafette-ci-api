@@ -1,0 +1,101 @@
+# github.com/Masterminds/squirrel v0.0.0-20170825200431-a6b93000bd21
+github.com/Masterminds/squirrel
+# github.com/alecthomas/kingpin v2.2.5+incompatible
+github.com/alecthomas/kingpin
+# github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc
+github.com/alecthomas/template
+github.com/alecthomas/template/parse
+# github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf
+github.com/alecthomas/units
+# github.com/beorn7/perks v0.0.0-20160804104726-4c0e84591b9a
+github.com/beorn7/perks/quantile
+# github.com/davecgh/go-spew v1.1.1
+github.com/davecgh/go-spew/spew
+# github.com/dgrijalva/jwt-go v3.2.0+incompatible
+github.com/dgrijalva/jwt-go
+# github.com/ericchiang/k8s v1.2.0
+github.com/ericchiang/k8s
+github.com/ericchiang/k8s/apis/batch/v1
+github.com/ericchiang/k8s/apis/core/v1
+github.com/ericchiang/k8s/apis/meta/v1
+github.com/ericchiang/k8s/apis/resource
+github.com/ericchiang/k8s/runtime
+github.com/ericchiang/k8s/watch/versioned
+github.com/ericchiang/k8s/runtime/schema
+github.com/ericchiang/k8s/util/intstr
+github.com/ericchiang/k8s/apis/apiextensions/v1beta1
+# github.com/estafette/estafette-ci-contracts v0.0.107
+github.com/estafette/estafette-ci-contracts
+# github.com/estafette/estafette-ci-crypt v0.0.19
+github.com/estafette/estafette-ci-crypt
+# github.com/estafette/estafette-ci-manifest v0.1.71
+github.com/estafette/estafette-ci-manifest
+# github.com/gin-contrib/gzip v0.0.0-20170807063659-ff223ab9f8e3
+github.com/gin-contrib/gzip
+# github.com/gin-contrib/sse v0.0.0-20170109093832-22d885f9ecc7
+github.com/gin-contrib/sse
+# github.com/gin-gonic/gin v1.3.0
+github.com/gin-gonic/gin
+github.com/gin-gonic/gin/binding
+github.com/gin-gonic/gin/json
+github.com/gin-gonic/gin/render
+# github.com/golang/protobuf v0.0.0-20170726212829-748d386b5c1e
+github.com/golang/protobuf/proto
+# github.com/json-iterator/go v0.0.0-20180914014843-2433035e5132
+github.com/json-iterator/go
+# github.com/lann/builder v0.0.0-20180216234317-1b87b36280d0
+github.com/lann/builder
+# github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0
+github.com/lann/ps
+# github.com/lib/pq v1.0.0
+github.com/lib/pq
+github.com/lib/pq/oid
+# github.com/mattn/go-isatty v0.0.2
+github.com/mattn/go-isatty
+# github.com/matttproud/golang_protobuf_extensions v1.0.1
+github.com/matttproud/golang_protobuf_extensions/pbutil
+# github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
+github.com/modern-go/concurrent
+# github.com/modern-go/reflect2 v1.0.1
+github.com/modern-go/reflect2
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
+# github.com/prometheus/client_golang v0.8.0
+github.com/prometheus/client_golang/prometheus
+github.com/prometheus/client_golang/prometheus/promhttp
+# github.com/prometheus/client_model v0.0.0-20170216185247-6f3806018612
+github.com/prometheus/client_model/go
+# github.com/prometheus/common v0.0.0-20170731114204-61f87aac8082
+github.com/prometheus/common/expfmt
+github.com/prometheus/common/model
+github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
+# github.com/prometheus/procfs v0.0.0-20170703101242-e645f4e5aaa8
+github.com/prometheus/procfs
+github.com/prometheus/procfs/xfs
+# github.com/rs/zerolog v1.8.0
+github.com/rs/zerolog
+github.com/rs/zerolog/log
+github.com/rs/zerolog/internal/cbor
+github.com/rs/zerolog/internal/json
+# github.com/sethgrid/pester v0.0.0-20170816164208-a86a2d88f4dc
+github.com/sethgrid/pester
+# github.com/stretchr/testify v1.1.4
+github.com/stretchr/testify/assert
+# github.com/ugorji/go v0.0.0-20170620104852-5efa3251c7f7
+github.com/ugorji/go/codec
+# golang.org/x/net v0.0.0-20170809000501-1c05540f6879
+golang.org/x/net/http2
+golang.org/x/net/http2/hpack
+golang.org/x/net/idna
+golang.org/x/net/lex/httplex
+# golang.org/x/sys v0.0.0-20170821093353-07c182904dbd
+golang.org/x/sys/unix
+# golang.org/x/text v0.0.0-20170730040918-3bd178b88a81
+golang.org/x/text/secure/bidirule
+golang.org/x/text/unicode/norm
+golang.org/x/text/transform
+golang.org/x/text/unicode/bidi
+# gopkg.in/go-playground/validator.v8 v8.18.2
+gopkg.in/go-playground/validator.v8
+# gopkg.in/yaml.v2 v2.2.1
+gopkg.in/yaml.v2
