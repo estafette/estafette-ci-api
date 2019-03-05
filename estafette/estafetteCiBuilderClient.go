@@ -182,6 +182,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 			Namespace: &cbc.kubeClient.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
+				"jobType": ciBuilderParams.JobType,
 			},
 		},
 		Spec: &batchv1.JobSpec{
@@ -189,6 +190,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 				Metadata: &metav1.ObjectMeta{
 					Labels: map[string]string{
 						"createdBy": "estafette",
+						"jobType": ciBuilderParams.JobType,
 					},
 				},
 				Spec: &corev1.PodSpec{
