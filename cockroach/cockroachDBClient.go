@@ -1902,6 +1902,8 @@ func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, alias string, fi
 	if since, ok := filters["since"]; ok && len(since) > 0 && since[0] != "eternity" {
 		sinceValue := since[0]
 		switch sinceValue {
+		case "1h":
+			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.inserted_at", alias): time.Now().Add(time.Duration(-1) * time.Hour)})
 		case "1d":
 			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.inserted_at", alias): time.Now().AddDate(0, 0, -1)})
 		case "1w":
