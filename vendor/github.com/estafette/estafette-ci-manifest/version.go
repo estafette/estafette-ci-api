@@ -126,12 +126,21 @@ func (v *EstafetteSemverVersion) GetLabel(params EstafetteVersionParams) string 
 
 	label := parseTemplate(v.LabelTemplate, params.GetFuncMap())
 
-	tidiedLabel := v.tidyLabel(label)
-	if tidiedLabel != "" {
-		return tidiedLabel
+	if startsWithNumber, _ := regexp.Match(`^[0-9]`, []byte(label)); startsWithNumber {
+
+		// get first placeholder from label template to use as prefix
+		re := regexp.MustCompile(`{{([^}]+)}}`)
+		match := re.FindStringSubmatch(v.LabelTemplate)
+
+		prefix := "label-"
+		if len(match) > 1 {
+			prefix = match[1] + "-"
+		}
+
+		return v.tidyLabel(prefix + label)
 	}
 
-	return v.tidyLabel("branch-" + label)
+	return v.tidyLabel(label)
 }
 
 func (v *EstafetteSemverVersion) tidyLabel(label string) string {
