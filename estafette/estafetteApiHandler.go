@@ -1414,6 +1414,15 @@ func (h *apiHandlerImpl) getLabelsFilter(c *gin.Context) []string {
 	return []string{}
 }
 
+func (h *apiHandlerImpl) getSearchFilter(c *gin.Context) []string {
+	filterSearchValues, filterSearchExist := c.GetQueryArray("filter[search]")
+	if filterSearchExist {
+		return filterSearchValues
+	}
+
+	return []string{}
+}
+
 func (h *apiHandlerImpl) getQueryParameters(c *gin.Context) (int, int, map[string][]string) {
 	return h.getPageNumber(c), h.getPageSize(c), h.getFilters(c)
 }
@@ -1449,6 +1458,7 @@ func (h *apiHandlerImpl) getFilters(c *gin.Context) map[string][]string {
 	filters["status"] = h.getStatusFilter(c)
 	filters["since"] = h.getSinceFilter(c)
 	filters["labels"] = h.getLabelsFilter(c)
+	filters["search"] = h.getSearchFilter(c)
 
 	return filters
 }
