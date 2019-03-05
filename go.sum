@@ -1,5 +1,5 @@
-github.com/Masterminds/squirrel v0.0.0-20170825200431-a6b93000bd21 h1:7+Xpo0TxPIBqSHVktrR1VYU2LSNTrJ3B79nVzE74nPA=
-github.com/Masterminds/squirrel v0.0.0-20170825200431-a6b93000bd21/go.mod h1:xnKTFzjGUiZtiOagBsfnvomW+nJg2usB1ZpordQWqNM=
+github.com/Masterminds/squirrel v1.1.0 h1:baP1qLdoQCeTw3ifCdOq2dkYc6vGcmRdaociKLbEJXs=
+github.com/Masterminds/squirrel v1.1.0/go.mod h1:yaPeOnPG5ZRwL9oKdTsO/prlkPbXWZlRVMQ/gGlzIuA=
 github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38 h1:smF2tmSOzy2Mm+0dGI2AIUHY+w0BUc+4tn40djz7+6U=
 github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38/go.mod h1:r7bzyVFMNntcxPZXK3/+KdruV1H5KSlyVY0gc+NgInI=
 github.com/alecthomas/colour v0.0.0-20160524082231-60882d9e2721 h1:JHZL0hZKJ1VENNfmXvHbgYlbUOvpzYzvy2aZU5gXVeo=
@@ -41,8 +41,8 @@ github.com/golang/protobuf v0.0.0-20170726212829-748d386b5c1e h1:lDgkE81VC1S0yet
 github.com/golang/protobuf v0.0.0-20170726212829-748d386b5c1e/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/json-iterator/go v0.0.0-20180914014843-2433035e5132 h1:iRdNmFu7aSZLOiWsUJwpdZuiti7CcGRELZbSz5r+tHI=
 github.com/json-iterator/go v0.0.0-20180914014843-2433035e5132/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=
-github.com/lann/builder v0.0.0-20180216234317-1b87b36280d0 h1:2KbkALbvz9OAr38ObGXxhv+RsCZqrM+9LnEnyP+7bqU=
-github.com/lann/builder v0.0.0-20180216234317-1b87b36280d0/go.mod h1:dXGbAdH5GtBTC4WfIxhKZfyBF/HBFgRZSWwZ9g/He9o=
+github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 h1:SOEGU9fKiNWd/HOJuq6+3iTQz8KNCLtVX6idSoTLdUw=
+github.com/lann/builder v0.0.0-20180802200727-47ae307949d0/go.mod h1:dXGbAdH5GtBTC4WfIxhKZfyBF/HBFgRZSWwZ9g/He9o=
 github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 h1:P6pPBnrTSX3DEVR4fDembhRWSsG5rVo6hYhAB/ADZrk=
 github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0/go.mod h1:vmVJ0l/dxyfGW6FmdpVm2joNMFikkuWg0EoCKLGUMNw=
 github.com/lib/pq v1.0.0 h1:X5PMW56eZitiTeO7tKzZxFCSpbFZJtkMMooicw2us9A=
@@ -75,6 +75,8 @@ github.com/sethgrid/pester v0.0.0-20170816164208-a86a2d88f4dc h1:fpe8AiNbjeFqjm9
 github.com/sethgrid/pester v0.0.0-20170816164208-a86a2d88f4dc/go.mod h1:Ad7IjTpvzZO8Fl0vh9AzQ+j/jYZfyp2diGwI8m5q+ns=
 github.com/stretchr/testify v1.1.4 h1:ToftOQTytwshuOSj6bDSolVUa3GINfJP/fg3OkkOzQQ=
 github.com/stretchr/testify v1.1.4/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
+github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=
+github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/ugorji/go v0.0.0-20170620104852-5efa3251c7f7 h1:VtqNxrWGmleRhhDwCE2E98hD6Qn47lM06TOq4NTF9h0=
 github.com/ugorji/go v0.0.0-20170620104852-5efa3251c7f7/go.mod h1:hnLbHMwcvSihnDhEfx2/BzKp2xb0Y+ErdfYcrs9tkJQ=
 golang.org/x/net v0.0.0-20170809000501-1c05540f6879 h1:0rFa7EaCGdQPmZVbo9F7MNF65b8dyzS6EUnXjs9Cllk=

@@ -1918,6 +1918,16 @@ func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, alias string, fi
 	return query, nil
 }
 
+func whereClauseGeneratorForSearchFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if search, ok := filters["search"]; ok && len(search) > 0 && search[0] != "" {
+		searchValue := search[0]
+		query = query.Where("%v.repo_name LIKE ?", fmt.Sprint("%", searchValue, "%"))
+	}
+
+	return query, nil
+}
+
 func whereClauseGeneratorForBuildStatusFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	if statuses, ok := filters["status"]; ok && len(statuses) > 0 && statuses[0] != "all" {

@@ -1,4 +1,4 @@
-# github.com/Masterminds/squirrel v0.0.0-20170825200431-a6b93000bd21
+# github.com/Masterminds/squirrel v1.1.0
 github.com/Masterminds/squirrel
 # github.com/alecthomas/kingpin v2.2.5+incompatible
 github.com/alecthomas/kingpin
@@ -43,7 +43,7 @@ github.com/gin-gonic/gin/render
 github.com/golang/protobuf/proto
 # github.com/json-iterator/go v0.0.0-20180914014843-2433035e5132
 github.com/json-iterator/go
-# github.com/lann/builder v0.0.0-20180216234317-1b87b36280d0
+# github.com/lann/builder v0.0.0-20180802200727-47ae307949d0
 github.com/lann/builder
 # github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0
 github.com/lann/ps
@@ -79,7 +79,7 @@ github.com/rs/zerolog/internal/cbor
 github.com/rs/zerolog/internal/json
 # github.com/sethgrid/pester v0.0.0-20170816164208-a86a2d88f4dc
 github.com/sethgrid/pester
-# github.com/stretchr/testify v1.1.4
+# github.com/stretchr/testify v1.2.2
 github.com/stretchr/testify/assert
 # github.com/ugorji/go v0.0.0-20170620104852-5efa3251c7f7
 github.com/ugorji/go/codec

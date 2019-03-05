@@ -3,7 +3,7 @@ module github.com/estafette/estafette-ci-api
 go 1.12
 
 require (
-	github.com/Masterminds/squirrel v0.0.0-20170825200431-a6b93000bd21
+	github.com/Masterminds/squirrel v1.1.0
 	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38 // indirect
 	github.com/alecthomas/colour v0.0.0-20160524082231-60882d9e2721 // indirect
 	github.com/alecthomas/kingpin v2.2.5+incompatible
@@ -22,8 +22,6 @@ require (
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
 	github.com/golang/protobuf v0.0.0-20170726212829-748d386b5c1e // indirect
 	github.com/json-iterator/go v0.0.0-20180914014843-2433035e5132 // indirect
-	github.com/lann/builder v0.0.0-20180216234317-1b87b36280d0 // indirect
-	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/lib/pq v1.0.0
 	github.com/mattn/go-isatty v0.0.2 // indirect
 	github.com/mattn/go-sqlite3 v1.2.0 // indirect
@@ -37,7 +35,7 @@ require (
 	github.com/rs/zerolog v1.8.0
 	github.com/sergi/go-diff v1.0.0 // indirect
 	github.com/sethgrid/pester v0.0.0-20170816164208-a86a2d88f4dc
-	github.com/stretchr/testify v1.1.4
+	github.com/stretchr/testify v1.2.2
 	github.com/ugorji/go v0.0.0-20170620104852-5efa3251c7f7 // indirect
 	golang.org/x/net v0.0.0-20170809000501-1c05540f6879 // indirect
 	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6 // indirect
