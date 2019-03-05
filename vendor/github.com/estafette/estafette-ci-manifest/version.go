@@ -108,7 +108,7 @@ func (v *EstafetteSemverVersion) GetPatchWithLabel(params EstafetteVersionParams
 	patch := v.GetPatch(params)
 	label := v.GetLabel(params)
 
-	if v.ReleaseBranch.Contains(params.Branch) {
+	if v.ReleaseBranch.Contains(params.Branch) || label == "" {
 		return patch
 	}
 
@@ -126,7 +126,12 @@ func (v *EstafetteSemverVersion) GetLabel(params EstafetteVersionParams) string 
 
 	label := parseTemplate(v.LabelTemplate, params.GetFuncMap())
 
-	return v.tidyLabel(label)
+	tidiedLabel := v.tidyLabel(label)
+	if tidiedLabel != "" {
+		return tidiedLabel
+	}
+
+	return v.tidyLabel("branch-" + label)
 }
 
 func (v *EstafetteSemverVersion) tidyLabel(label string) string {
