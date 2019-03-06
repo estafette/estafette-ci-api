@@ -1926,7 +1926,7 @@ func whereClauseGeneratorForSearchFilter(query sq.SelectBuilder, alias string, f
 
 	if search, ok := filters["search"]; ok && len(search) > 0 && search[0] != "" {
 		searchValue := search[0]
-		query = query.Where("%v.repo_name LIKE ?", fmt.Sprint("%", searchValue, "%"))
+		query = query.Where(sq.Like{fmt.Sprintf("%v.repo_name", alias): fmt.Sprint("%", searchValue, "%")})
 	}
 
 	return query, nil
