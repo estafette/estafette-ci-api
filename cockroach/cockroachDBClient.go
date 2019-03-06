@@ -1879,6 +1879,10 @@ func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias string, fil
 	if err != nil {
 		return query, err
 	}
+	query, err = whereClauseGeneratorForSearchFilter(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
 
 	return query, nil
 }
