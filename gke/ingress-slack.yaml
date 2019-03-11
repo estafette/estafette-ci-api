@@ -12,6 +12,7 @@ metadata:
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     # slack doesn't have a fixed list of exit ips, they run on AWS without using any form of predictable exit ips
     nginx.ingress.kubernetes.io/whitelist-source-range: "0.0.0.0/0"
+    nginx.ingress.kubernetes.io/client-body-buffer-size: "{{.NginxIngressClientBodyBufferSize}}"
     nginx.ingress.kubernetes.io/proxy-body-size: "{{.NginxIngressProxyBodySize}}"
     nginx.ingress.kubernetes.io/proxy-buffer-size: "{{.NginxIngressProxyBufferSize}}"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "{{.NginxIngressProxyConnectTimeout}}"
