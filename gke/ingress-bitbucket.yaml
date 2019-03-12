@@ -19,7 +19,6 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "{{.NginxIngressProxyConnectTimeout}}"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "{{.NginxIngressProxySendTimeout}}"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "{{.NginxIngressProxyReadTimeout}}"
-    nginx.ingress.kubernetes.io/default-backend: "{{.Name}}"
     estafette.io/cloudflare-dns: "true"
     estafette.io/cloudflare-proxy: "true"
     estafette.io/cloudflare-hostnames: "{{.ManifestData.IntegrationsHostname}}"
