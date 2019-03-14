@@ -19,7 +19,7 @@ import (
 	"github.com/estafette/estafette-ci-api/estafette"
 	"github.com/estafette/estafette-ci-api/github"
 	"github.com/estafette/estafette-ci-api/slack"
-	"github.com/estafette/estafette-ci-crypt"
+	crypt "github.com/estafette/estafette-ci-crypt"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
@@ -251,6 +251,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	gzippedRoutes.POST("/api/manifest/generate", estafetteAPIHandler.GenerateManifest)
 	gzippedRoutes.POST("/api/manifest/validate", estafetteAPIHandler.ValidateManifest)
 	gzippedRoutes.POST("/api/manifest/encrypt", estafetteAPIHandler.EncryptSecret)
+	gzippedRoutes.POST("/api/labels/frequent", estafetteAPIHandler.GetFrequentLabels)
 
 	// api key protected endpoints
 	apiKeyAuthorizedRoutes := gzippedRoutes.Group("/", authMiddleware.APIKeyMiddlewareFunc())

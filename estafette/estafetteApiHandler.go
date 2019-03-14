@@ -44,6 +44,7 @@ type APIHandler interface {
 	GetPipelineReleaseLogs(*gin.Context)
 	TailPipelineReleaseLogs(*gin.Context)
 	PostPipelineReleaseLogs(*gin.Context)
+	GetFrequentLabels(*gin.Context)
 
 	GetPipelineStatsBuildsDurations(*gin.Context)
 	GetPipelineStatsReleasesDurations(*gin.Context)
@@ -901,6 +902,27 @@ func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
+}
+
+func (h *apiHandlerImpl) GetFrequentLabels(c *gin.Context) {
+
+	filters := h.getFilters(c)
+
+	labels, err := h.cockroachDBClient.GetFrequentLabels(filters)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving frequent labels from db")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	response := contracts.ListResponse{
+		Items: make([]interface{}, len(labels)),
+	}
+
+	for i := range labels {
+		response.Items[i] = labels[i]
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *apiHandlerImpl) GetPipelineStatsBuildsDurations(c *gin.Context) {
