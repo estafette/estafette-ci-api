@@ -113,10 +113,10 @@ func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
 	// run 2 database queries in parallel and return their result via channels
-	pipelinesChannel := make(chan []*contracts.Pipeline)
-	pipelinesErrorChannel := make(chan error)
-	pipelinesCountChannel := make(chan int)
-	pipelinesCountErrorChannel := make(chan error)
+	pipelinesChannel := make(chan []*contracts.Pipeline, 1)
+	pipelinesErrorChannel := make(chan error, 1)
+	pipelinesCountChannel := make(chan int, 1)
+	pipelinesCountErrorChannel := make(chan error, 1)
 
 	go func() {
 		defer close(pipelinesChannel)
@@ -124,10 +124,13 @@ func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 
 		pipelines, err := h.cockroachDBClient.GetPipelines(pageNumber, pageSize, filters, true)
 		if err != nil {
-				pipelinesErrorChannel <- err
+			pipelinesErrorChannel <- err
 		} else {
 			pipelinesChannel <- pipelines
 		}
+
+		close(pipelinesChannel)
+		close(pipelinesErrorChannel)
 	}()
 
 	go func() {
@@ -136,7 +139,7 @@ func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 
 		pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(filters)
 		if err != nil {
-				pipelinesCountErrorChannel <- err
+			pipelinesCountErrorChannel <- err
 		} else {
 			pipelinesCountChannel <- pipelinesCount
 		}
