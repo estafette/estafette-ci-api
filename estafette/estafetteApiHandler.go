@@ -17,7 +17,7 @@ import (
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/config"
-	"github.com/estafette/estafette-ci-contracts"
+	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
@@ -114,11 +114,11 @@ func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 
 	type PipelinesResult struct {
 		pipelines []*contracts.Pipeline
-		err error
+		err       error
 	}
 	type PipelinesCountResult struct {
 		pipelinesCount int
-		err error
+		err            error
 	}
 
 	// run 2 database queries in parallel and return their result via channels
@@ -194,30 +194,59 @@ func (h *apiHandlerImpl) GetPipelineBuilds(c *gin.Context) {
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
-	builds, err := h.cockroachDBClient.GetPipelineBuilds(source, owner, repo, pageNumber, pageSize, filters, true)
-	if err != nil {
-		log.Error().Err(err).
-			Msgf("Failed retrieving builds for %v/%v/%v from db", source, owner, repo)
+	type BuildsResult struct {
+		builds []*contracts.Build
+		err    error
+	}
+	type BuildsCountResult struct {
+		buildsCount int
+		err         error
 	}
 
-	buildsCount, err := h.cockroachDBClient.GetPipelineBuildsCount(source, owner, repo, filters)
-	if err != nil {
-		log.Error().Err(err).
-			Msgf("Failed retrieving builds count for %v/%v/%v from db", source, owner, repo)
+	// run 2 database queries in parallel and return their result via channels
+	buildsChannel := make(chan BuildsResult)
+	buildsCountChannel := make(chan BuildsCountResult)
+
+	go func() {
+		defer close(buildsChannel)
+		builds, err := h.cockroachDBClient.GetPipelineBuilds(source, owner, repo, pageNumber, pageSize, filters, true)
+
+		buildsChannel <- BuildsResult{builds, err}
+	}()
+
+	go func() {
+		defer close(buildsCountChannel)
+		buildsCount, err := h.cockroachDBClient.GetPipelineBuildsCount(source, owner, repo, filters)
+
+		buildsCountChannel <- BuildsCountResult{buildsCount, err}
+	}()
+
+	// wait for GetPipelineBuilds to finish and check for errors
+	buildsResult := <-buildsChannel
+	if buildsResult.err != nil {
+		log.Error().Err(buildsResult.err).Msgf("Failed retrieving builds for %v/%v/%v from db", source, owner, repo)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	// wait for GetPipelineBuildsCount to finish and check for errors
+	buildsCountResult := <-buildsCountChannel
+	if buildsCountResult.err != nil {
+		log.Error().Err(buildsCountResult.err).Msgf("Failed retrieving builds count for %v/%v/%v from db", source, owner, repo)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 	}
 
 	response := contracts.ListResponse{
 		Pagination: contracts.Pagination{
 			Page:       pageNumber,
 			Size:       pageSize,
-			TotalItems: buildsCount,
-			TotalPages: int(math.Ceil(float64(buildsCount) / float64(pageSize))),
+			TotalItems: buildsCountResult.buildsCount,
+			TotalPages: int(math.Ceil(float64(buildsCountResult.buildsCount) / float64(pageSize))),
 		},
 	}
 
-	response.Items = make([]interface{}, len(builds))
-	for i := range builds {
-		response.Items[i] = builds[i]
+	response.Items = make([]interface{}, len(buildsResult.builds))
+	for i := range buildsResult.builds {
+		response.Items[i] = buildsResult.builds[i]
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -542,30 +571,59 @@ func (h *apiHandlerImpl) GetPipelineReleases(c *gin.Context) {
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
-	releases, err := h.cockroachDBClient.GetPipelineReleases(source, owner, repo, pageNumber, pageSize, filters)
-	if err != nil {
-		log.Error().Err(err).
-			Msgf("Failed retrieving releases for %v/%v/%v from db", source, owner, repo)
+	type ReleasesResult struct {
+		releases []*contracts.Release
+		err      error
+	}
+	type ReleasesCountResult struct {
+		releasesCount int
+		err           error
 	}
 
-	releasesCount, err := h.cockroachDBClient.GetPipelineReleasesCount(source, owner, repo, filters)
-	if err != nil {
-		log.Error().Err(err).
-			Msgf("Failed retrieving releases count for %v/%v/%v from db", source, owner, repo)
+	// run 2 database queries in parallel and return their result via channels
+	releasesChannel := make(chan ReleasesResult)
+	releasesCountChannel := make(chan ReleasesCountResult)
+
+	go func() {
+		defer close(releasesChannel)
+		releases, err := h.cockroachDBClient.GetPipelineReleases(source, owner, repo, pageNumber, pageSize, filters)
+
+		releasesChannel <- ReleasesResult{releases, err}
+	}()
+
+	go func() {
+		defer close(releasesCountChannel)
+		releasesCount, err := h.cockroachDBClient.GetPipelineReleasesCount(source, owner, repo, filters)
+
+		releasesCountChannel <- ReleasesCountResult{releasesCount, err}
+	}()
+
+	// wait for GetPipelineReleases to finish and check for errors
+	releasesResult := <-releasesChannel
+	if releasesResult.err != nil {
+		log.Error().Err(releasesResult.err).Msgf("Failed retrieving releases for %v/%v/%v from db", source, owner, repo)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	// wait for GetPipelineReleasesCount to finish and check for errors
+	releasesCountResult := <-releasesCountChannel
+	if releasesCountResult.err != nil {
+		log.Error().Err(releasesCountResult.err).Msgf("Failed retrieving releases count for %v/%v/%v from db", source, owner, repo)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 	}
 
 	response := contracts.ListResponse{
 		Pagination: contracts.Pagination{
 			Page:       pageNumber,
 			Size:       pageSize,
-			TotalItems: releasesCount,
-			TotalPages: int(math.Ceil(float64(releasesCount) / float64(pageSize))),
+			TotalItems: releasesCountResult.releasesCount,
+			TotalPages: int(math.Ceil(float64(releasesCountResult.releasesCount) / float64(pageSize))),
 		},
 	}
 
-	response.Items = make([]interface{}, len(releases))
-	for i := range releases {
-		response.Items[i] = releases[i]
+	response.Items = make([]interface{}, len(releasesResult.releases))
+	for i := range releasesResult.releases {
+		response.Items[i] = releasesResult.releases[i]
 	}
 
 	c.JSON(http.StatusOK, response)
