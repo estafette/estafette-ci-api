@@ -112,65 +112,59 @@ func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
+	type PipelinesResult struct {
+		pipelines []*contracts.Pipeline
+		err error
+	}
+	type PipelinesCountResult struct {
+		pipelinesCount int
+		err error
+	}
+
 	// run 2 database queries in parallel and return their result via channels
-	pipelinesChannel := make(chan []*contracts.Pipeline, 1)
-	pipelinesErrorChannel := make(chan error, 1)
-	pipelinesCountChannel := make(chan int, 1)
-	pipelinesCountErrorChannel := make(chan error, 1)
+	pipelinesChannel := make(chan PipelinesResult)
+	pipelinesCountChannel := make(chan PipelinesCountResult)
 
 	go func() {
 		defer close(pipelinesChannel)
-		defer close(pipelinesErrorChannel)
-
 		pipelines, err := h.cockroachDBClient.GetPipelines(pageNumber, pageSize, filters, true)
-		if err != nil {
-			pipelinesErrorChannel <- err
-		} else {
-			pipelinesChannel <- pipelines
-		}
 
-		close(pipelinesChannel)
-		close(pipelinesErrorChannel)
+		pipelinesChannel <- PipelinesResult{pipelines, err}
 	}()
 
 	go func() {
 		defer close(pipelinesCountChannel)
-		defer close(pipelinesCountErrorChannel)
-
 		pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(filters)
-		if err != nil {
-			pipelinesCountErrorChannel <- err
-		} else {
-			pipelinesCountChannel <- pipelinesCount
-		}
+
+		pipelinesCountChannel <- PipelinesCountResult{pipelinesCount, err}
 	}()
 
 	// wait for GetPipelines to finish and check for errors
-	if err, open := <- pipelinesErrorChannel; open {
-		log.Error().Err(err).Msg("Failed retrieving pipelines from db")
+	pipelinesResult := <-pipelinesChannel
+	if pipelinesResult.err != nil {
+		log.Error().Err(pipelinesResult.err).Msg("Failed retrieving pipelines from db")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 	}
-	pipelines := <-pipelinesChannel
 
 	// wait for GetPipelinesCount to finish and check for errors
-	if err, open := <- pipelinesCountErrorChannel; open {
-		log.Error().Err(err).Msg("Failed retrieving pipelines count from db")
+	pipelinesCountResult := <-pipelinesCountChannel
+	if pipelinesCountResult.err != nil {
+		log.Error().Err(pipelinesCountResult.err).Msg("Failed retrieving pipelines count from db")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 	}
-	pipelinesCount := <-pipelinesCountChannel
 
 	response := contracts.ListResponse{
 		Pagination: contracts.Pagination{
 			Page:       pageNumber,
 			Size:       pageSize,
-			TotalItems: pipelinesCount,
-			TotalPages: int(math.Ceil(float64(pipelinesCount) / float64(pageSize))),
+			TotalItems: pipelinesCountResult.pipelinesCount,
+			TotalPages: int(math.Ceil(float64(pipelinesCountResult.pipelinesCount) / float64(pageSize))),
 		},
 	}
 
-	response.Items = make([]interface{}, len(pipelines))
-	for i := range pipelines {
-		response.Items[i] = pipelines[i]
+	response.Items = make([]interface{}, len(pipelinesResult.pipelines))
+	for i := range pipelinesResult.pipelines {
+		response.Items[i] = pipelinesResult.pipelines[i]
 	}
 
 	c.JSON(http.StatusOK, response)
