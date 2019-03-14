@@ -112,17 +112,49 @@ func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
-	pipelines, err := h.cockroachDBClient.GetPipelines(pageNumber, pageSize, filters, true)
-	if err != nil {
-		log.Error().Err(err).
-			Msg("Failed retrieving pipelines from db")
-	}
+	// run 2 database queries in parallel and return their result via channels
+	pipelinesChannel := make(chan []*contracts.Pipeline)
+	pipelinesErrorChannel := make(chan error)
+	pipelinesCountChannel := make(chan int)
+	pipelinesCountErrorChannel := make(chan error)
 
-	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(filters)
-	if err != nil {
-		log.Error().Err(err).
-			Msg("Failed retrieving pipelines count from db")
+	go func() {
+		defer close(pipelinesChannel)
+		defer close(pipelinesErrorChannel)
+
+		pipelines, err := h.cockroachDBClient.GetPipelines(pageNumber, pageSize, filters, true)
+		if err != nil {
+				pipelinesErrorChannel <- err
+		} else {
+			pipelinesChannel <- pipelines
+		}
+	}()
+
+	go func() {
+		defer close(pipelinesCountChannel)
+		defer close(pipelinesCountErrorChannel)
+
+		pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(filters)
+		if err != nil {
+				pipelinesCountErrorChannel <- err
+		} else {
+			pipelinesCountChannel <- pipelinesCount
+		}
+	}()
+
+	// wait for GetPipelines to finish and check for errors
+	if err, open := <- pipelinesErrorChannel; open {
+		log.Error().Err(err).Msg("Failed retrieving pipelines from db")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 	}
+	pipelines := <-pipelinesChannel
+
+	// wait for GetPipelinesCount to finish and check for errors
+	if err, open := <- pipelinesCountErrorChannel; open {
+		log.Error().Err(err).Msg("Failed retrieving pipelines count from db")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+	pipelinesCount := <-pipelinesCountChannel
 
 	response := contracts.ListResponse{
 		Pagination: contracts.Pagination{
