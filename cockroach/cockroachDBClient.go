@@ -1704,7 +1704,7 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(filters map[string][]string)
 	// generate query; cockroachdb can't group jsonb arrays yet, so doing the group by in code
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("json_array_elements(a.labels)->'key' as key, json_array_elements(a.labels)->'value' as value").
+			Select("json_array_elements(a.labels)->>'key' as key, json_array_elements(a.labels)->>'value' as value").
 			From("computed_pipelines a")
 
 	query, err = whereClauseGeneratorForSinceFilter(query, "a", filters)
