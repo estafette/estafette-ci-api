@@ -251,7 +251,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	gzippedRoutes.POST("/api/manifest/generate", estafetteAPIHandler.GenerateManifest)
 	gzippedRoutes.POST("/api/manifest/validate", estafetteAPIHandler.ValidateManifest)
 	gzippedRoutes.POST("/api/manifest/encrypt", estafetteAPIHandler.EncryptSecret)
-	gzippedRoutes.POST("/api/labels/frequent", estafetteAPIHandler.GetFrequentLabels)
+	gzippedRoutes.GET("/api/labels/frequent", estafetteAPIHandler.GetFrequentLabels)
 
 	// api key protected endpoints
 	apiKeyAuthorizedRoutes := gzippedRoutes.Group("/", authMiddleware.APIKeyMiddlewareFunc())
