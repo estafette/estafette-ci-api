@@ -64,6 +64,7 @@ type DBClient interface {
 	GetFirstReleaseTimes() ([]time.Time, error)
 	GetPipelineBuildsDurations(string, string, string, map[string][]string) ([]map[string]interface{}, error)
 	GetPipelineReleasesDurations(string, string, string, map[string][]string) ([]map[string]interface{}, error)
+	GetFrequentLabels(map[string][]string) ([]map[string]interface{}, error)
 
 	GetPipelinesWithMostBuilds(pageNumber, pageSize int, filters map[string][]string) ([]map[string]interface{}, error)
 	GetPipelinesWithMostBuildsCount(filters map[string][]string) (int, error)
@@ -1695,6 +1696,101 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(repoSource, repoO
 	}
 
 	return
+}
+
+func (dbc *cockroachDBClientImpl) GetFrequentLabels(filters map[string][]string) (labels []map[string]interface{}, err error) {
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query; cockroachdb can't group jsonb arrays yet, so doing the group by in code
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("json_array_elements(a.labels)->>'key' as key, json_array_elements(a.labels)->>'value' as value").
+			From("computed_pipelines a")
+
+	query, err = whereClauseGeneratorForSinceFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForBuildStatusFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForLabelsFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	type labelCount struct {
+		key   string
+		value string
+		count int
+	}
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+
+	labelCountMap := map[string]*labelCount{}
+
+	for rows.Next() {
+		var key string
+		var value string
+
+		if err = rows.Scan(
+			&key, &value); err != nil {
+			return
+		}
+
+		if val, ok := labelCountMap[key+"="+value]; ok {
+			// increment count
+			val.count++
+		} else {
+			labelCountMap[key+"="+value] = &labelCount{key, value, 1}
+		}
+	}
+
+	// sort descending by count into array
+	labelCountArray := []*labelCount{}
+	for _, v := range labelCountMap {
+		labelCountArray = append(labelCountArray, v)
+	}
+
+	sort.Slice(labelCountArray, func(i, j int) bool {
+		// sort on descending count
+		if labelCountArray[i].count != labelCountArray[j].count {
+			return labelCountArray[i].count > labelCountArray[j].count
+		}
+		// then sort on key
+		if labelCountArray[i].key != labelCountArray[j].key {
+			return labelCountArray[i].key < labelCountArray[j].key
+		}
+		// then sort on value
+		return labelCountArray[i].value < labelCountArray[j].value
+	})
+
+	labels = make([]map[string]interface{}, 0)
+
+	for _, l := range labelCountArray {
+
+		// Create our map, and retrieve the value for each column from the pointers slice,
+		// storing it in the map with the name of the column as the key.
+		m := make(map[string]interface{})
+
+		m["key"] = l.key
+		m["value"] = l.value
+		m["count"] = l.count
+
+		labels = append(labels, m)
+	}
+
+	return
+
 }
 
 func (dbc *cockroachDBClientImpl) GetPipelinesWithMostBuilds(pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
