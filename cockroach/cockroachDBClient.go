@@ -1762,7 +1762,16 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(filters map[string][]string)
 	}
 
 	sort.Slice(labelCountArray, func(i, j int) bool {
-		return labelCountArray[i].count > labelCountArray[j].count && labelCountArray[i].key < labelCountArray[j].key && labelCountArray[i].value < labelCountArray[j].value
+		// sort on descending count
+		if labelCountArray[i].count != labelCountArray[j].count {
+			return labelCountArray[i].count > labelCountArray[j].count
+		}
+		// then sort on key
+		if labelCountArray[i].key != labelCountArray[j].key {
+			return labelCountArray[i].key < labelCountArray[j].key
+		}
+		// then sort on value
+		return labelCountArray[i].value < labelCountArray[j].value
 	})
 
 	labels = make([]map[string]interface{}, 0)
