@@ -1730,7 +1730,8 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(filters map[string][]string)
 	arrayElementsQuery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Select("a.id, jsonb_array_elements(a.labels) AS l").
-			From("computed_pipelines a")
+			From("computed_pipelines a").
+			Where("jsonb_typeof(labels) = 'array'")
 
 	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
@@ -1750,8 +1751,7 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(filters map[string][]string)
 	selectCountQuery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Select("l->>'key' AS key, l->>'value' AS value, id").
-			FromSelect(arrayElementsQuery, "b").
-			Where("jsonb_typeof(labels) = 'array'")
+			FromSelect(arrayElementsQuery, "b")
 
 	groupByQuery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
