@@ -1754,16 +1754,16 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(filters map[string][]string)
 
 	groupByQuery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("key, value, count(DISTINCT id) AS nr_computed_pipelines").
+			Select("key, value, count(DISTINCT id) AS nr_pipelines").
 			FromSelect(selectCountQuery, "c").
 			GroupBy("key, value")
 
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("key, value, nr_computed_pipelines").
+			Select("key, value, nr_pipelines").
 			FromSelect(groupByQuery, "d").
-			Where(sq.Gt{"nr_computed_pipelines": 1}).
-			OrderBy("nr_computed_pipelines DESC, key, value").
+			Where(sq.Gt{"nr_pipelines": 1}).
+			OrderBy("nr_pipelines DESC, key, value").
 			Limit(uint64(1))
 
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
