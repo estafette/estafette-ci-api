@@ -93,8 +93,8 @@ credentials:
     namespace: {{.GKE_DEFAULT_NAMESPACE_2}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_2}}
-    sidecar:
-      type: openresty
+    sidecars:
+    - type: openresty
       image: {{.GKE_DEFAULT_SIDECAR_IMAGE_2}}
     autoscale:
       min: 1
@@ -114,8 +114,8 @@ credentials:
     namespace: {{.GKE_DEFAULT_NAMESPACE_3}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_3}}
-    sidecar:
-      type: openresty
+    sidecars:
+    - type: openresty
       image: {{.GKE_DEFAULT_SIDECAR_IMAGE_3}}
     autoscale:
       min: 2
@@ -135,8 +135,8 @@ credentials:
     namespace: {{.GKE_DEFAULT_NAMESPACE_4}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_4}}
-    sidecar:
-      type: openresty
+    sidecars:
+    - type: openresty
       image: {{.GKE_DEFAULT_SIDECAR_IMAGE_4}}
     autoscale:
       min: 3
@@ -155,8 +155,8 @@ credentials:
   defaults:
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_5}}
-    sidecar:
-      type: openresty
+    sidecars:
+    - type: openresty
       image: {{.GKE_DEFAULT_SIDECAR_IMAGE_5}}
     autoscale:
       min: 3
@@ -173,8 +173,8 @@ credentials:
   defaults:
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_6}}
-    sidecar:
-      type: openresty
+    sidecars:
+    - type: openresty
       image: {{.GKE_DEFAULT_SIDECAR_IMAGE_6}}
     autoscale:
       min: 3
@@ -190,8 +190,8 @@ credentials:
   defaults:
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_7}}
-    sidecar:
-      type: openresty
+    sidecars:
+    - type: openresty
       image: {{.GKE_DEFAULT_SIDECAR_IMAGE_7}}
     autoscale:
       min: 2
@@ -207,8 +207,8 @@ credentials:
   defaults:
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_8}}
-    sidecar:
-      type: openresty
+    sidecars:
+    - type: openresty
       image: {{.GKE_DEFAULT_SIDECAR_IMAGE_8}}
     autoscale:
       min: 3

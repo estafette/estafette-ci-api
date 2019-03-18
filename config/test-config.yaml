@@ -57,8 +57,8 @@ credentials:
     namespace: estafette
     container:
       repository: estafette
-    sidecar:
-      type: openresty
+    sidecars:
+    - type: openresty
       image: estafette/openresty-sidecar:1.13.6.1-alpine
     autoscale:
       min: 2
