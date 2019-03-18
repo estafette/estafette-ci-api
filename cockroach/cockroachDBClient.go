@@ -1703,31 +1703,68 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(filters map[string][]string)
 
 	// see https://github.com/cockroachdb/cockroach/issues/35848
 
-	query :=
+	// for time being run following query, where the dynamic where clause is in the innermost select query:
+
+	// SELECT
+	// 		key, value, nr_computed_pipelines
+	// FROM
+	// 		(
+	// 				SELECT
+	// 						key, value, count(DISTINCT id) AS nr_computed_pipelines
+	// 				FROM
+	// 						(
+	// 								SELECT
+	// 										l->>'key' AS key, l->>'value' AS value, id
+	// 								FROM
+	// 										(SELECT id, jsonb_array_elements(labels) AS l FROM computed_pipelines where jsonb_typeof(labels) = 'array')
+	// 						)
+	// 				GROUP BY
+	// 						key, value
+	// 		)
+	// WHERE
+	// 		nr_computed_pipelines > 1
+	// ORDER BY
+	// 		nr_computed_pipelines DESC, key, value
+	// LIMIT 10;
+
+	arrayElementsQuery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("json_array_elements(a.labels)->>'key' as key, json_array_elements(a.labels)->>'value' as value").
+			Select("a.id, jsonb_array_elements(a.labels) AS l").
 			From("computed_pipelines a")
 
-	query, err = whereClauseGeneratorForSinceFilter(query, "a", filters)
+	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
 		return
 	}
 
-	query, err = whereClauseGeneratorForBuildStatusFilter(query, "a", filters)
+	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
 		return
 	}
 
-	query, err = whereClauseGeneratorForLabelsFilter(query, "a", filters)
+	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
 		return
 	}
 
-	type labelCount struct {
-		key   string
-		value string
-		count int
-	}
+	selectCountQuery :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("l->>'key' AS key, l->>'value' AS value, id").
+			FromSelect(arrayElementsQuery, "b")
+
+	groupByQuery :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("key, value, count(DISTINCT id) AS nr_computed_pipelines").
+			FromSelect(selectCountQuery, "c").
+			GroupBy("key, value")
+
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("key, value, nr_computed_pipelines").
+			FromSelect(groupByQuery, "d").
+			Where(sq.Gt{"nr_computed_pipelines": 1}).
+			OrderBy("nr_computed_pipelines DESC, key, value").
+			Limit(uint64(1))
 
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 
@@ -1737,61 +1774,33 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(filters map[string][]string)
 
 	defer rows.Close()
 
-	labelCountMap := map[string]*labelCount{}
-
+	cols, _ := rows.Columns()
 	for rows.Next() {
-		var key string
-		var value string
-
-		if err = rows.Scan(
-			&key, &value); err != nil {
-			return
+		// Create a slice of interface{}'s to represent each column,
+		// and a second slice to contain pointers to each item in the columns slice.
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
 		}
 
-		if val, ok := labelCountMap[key+"="+value]; ok {
-			// increment count
-			val.count++
-		} else {
-			labelCountMap[key+"="+value] = &labelCount{key, value, 1}
+		// Scan the result into the column pointers...
+		if err = rows.Scan(columnPointers...); err != nil {
+			return nil, err
 		}
-	}
-
-	// sort descending by count into array
-	labelCountArray := []*labelCount{}
-	for _, v := range labelCountMap {
-		labelCountArray = append(labelCountArray, v)
-	}
-
-	sort.Slice(labelCountArray, func(i, j int) bool {
-		// sort on descending count
-		if labelCountArray[i].count != labelCountArray[j].count {
-			return labelCountArray[i].count > labelCountArray[j].count
-		}
-		// then sort on key
-		if labelCountArray[i].key != labelCountArray[j].key {
-			return labelCountArray[i].key < labelCountArray[j].key
-		}
-		// then sort on value
-		return labelCountArray[i].value < labelCountArray[j].value
-	})
-
-	labels = make([]map[string]interface{}, 0)
-
-	for _, l := range labelCountArray {
 
 		// Create our map, and retrieve the value for each column from the pointers slice,
 		// storing it in the map with the name of the column as the key.
 		m := make(map[string]interface{})
-
-		m["key"] = l.key
-		m["value"] = l.value
-		m["count"] = l.count
+		for i, colName := range cols {
+			val := columnPointers[i].(*interface{})
+			m[colName] = *val
+		}
 
 		labels = append(labels, m)
 	}
 
 	return
-
 }
 
 func (dbc *cockroachDBClientImpl) GetPipelinesWithMostBuilds(pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
