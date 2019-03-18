@@ -1701,27 +1701,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(repoSource, repoO
 func (dbc *cockroachDBClientImpl) GetFrequentLabels(filters map[string][]string) (labels []map[string]interface{}, err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	// generate query; cockroachdb can't group jsonb arrays yet, so doing the group by in code
-	// see https://github.com/cockroachdb/cockroach/issues/24676
-
-	// after this is supported we would hopefully be able to do something like
-
-	// select
-	// 	b->>'key' as key,
-	// 	b->>'value' as value,
-	// 	count(*) as number_of_pipelines
-	// from
-	// 	computed_pipelines a,
-	// 	json_array_elements(computed_pipelines.labels) b
-	// group by
-	// 	b->>'key',
-	// 	b->>'value'
-	// having
-	// 	number_of_pipelines > 1
-	// order by
-	// 	number_of_pipelines desc,
-	// 	key,
-	// 	value
+	// see https://github.com/cockroachdb/cockroach/issues/35848
 
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
