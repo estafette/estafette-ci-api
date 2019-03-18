@@ -64,7 +64,7 @@ type DBClient interface {
 	GetFirstReleaseTimes() ([]time.Time, error)
 	GetPipelineBuildsDurations(string, string, string, map[string][]string) ([]map[string]interface{}, error)
 	GetPipelineReleasesDurations(string, string, string, map[string][]string) ([]map[string]interface{}, error)
-	GetFrequentLabels(map[string][]string) ([]map[string]interface{}, error)
+	GetFrequentLabels(int, int, map[string][]string) ([]map[string]interface{}, error)
 
 	GetPipelinesWithMostBuilds(pageNumber, pageSize int, filters map[string][]string) ([]map[string]interface{}, error)
 	GetPipelinesWithMostBuildsCount(filters map[string][]string) (int, error)
@@ -1698,7 +1698,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(repoSource, repoO
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetFrequentLabels(filters map[string][]string) (labels []map[string]interface{}, err error) {
+func (dbc *cockroachDBClientImpl) GetFrequentLabels(pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// see https://github.com/cockroachdb/cockroach/issues/35848
@@ -1765,7 +1765,7 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(filters map[string][]string)
 			FromSelect(groupByQuery, "d").
 			Where("pipelinesCount > 1").
 			OrderBy("pipelinesCount DESC, key, value").
-			Limit(uint64(7))
+			Limit(uint64(pageSize))
 
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 

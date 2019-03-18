@@ -906,9 +906,9 @@ func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetFrequentLabels(c *gin.Context) {
 
-	filters := h.getFilters(c)
+	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
-	labels, err := h.cockroachDBClient.GetFrequentLabels(filters)
+	labels, err := h.cockroachDBClient.GetFrequentLabels(pageNumber, pageSize, filters)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed retrieving frequent labels from db")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
