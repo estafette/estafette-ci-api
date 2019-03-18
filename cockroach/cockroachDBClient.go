@@ -1750,7 +1750,8 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(filters map[string][]string)
 	selectCountQuery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Select("l->>'key' AS key, l->>'value' AS value, id").
-			FromSelect(arrayElementsQuery, "b")
+			FromSelect(arrayElementsQuery, "b").
+			Where("jsonb_typeof(labels) = 'array'")
 
 	groupByQuery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
@@ -1762,9 +1763,9 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(filters map[string][]string)
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Select("key, value, pipelinesCount").
 			FromSelect(groupByQuery, "d").
-			Where(sq.Gt{"pipelinesCount": 1}).
+			Where("pipelinesCount > 1").
 			OrderBy("pipelinesCount DESC, key, value").
-			Limit(uint64(1))
+			Limit(uint64(7))
 
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 
