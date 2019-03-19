@@ -85,7 +85,6 @@ releases:
             port: 9001
           lifecycle:
             prestopsleep: false
-        injecthttpproxysidecar: false
         request:
           timeout: 120s
           maxbodysize: 128M
