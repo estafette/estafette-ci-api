@@ -85,7 +85,7 @@ releases:
             port: 9001
           lifecycle:
             prestopsleep: false
-        sidecars
+        sidecars:
         - type: openresty
           image: estafette/openresty-sidecar:1.13.6.2-alpine-cors-support
         request:
