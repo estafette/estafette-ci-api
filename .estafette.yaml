@@ -88,6 +88,8 @@ releases:
         sidecars:
         - type: openresty
           image: estafette/openresty-sidecar:1.13.6.2-alpine-cors-support
+          env:
+            SETUP_CORS: true
         request:
           timeout: 120s
           maxbodysize: 128M
