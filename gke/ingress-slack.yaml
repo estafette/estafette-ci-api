@@ -8,7 +8,7 @@ metadata:
     {{$key}}: {{$value}}
     {{- end}}
   annotations:
-    kubernetes.io/ingress.class: "nginx"
+    kubernetes.io/ingress.class: "nginx-public"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     # slack doesn't have a fixed list of exit ips, they run on AWS without using any form of predictable exit ips
     nginx.ingress.kubernetes.io/whitelist-source-range: "0.0.0.0/0"
