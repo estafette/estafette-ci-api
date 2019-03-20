@@ -908,18 +908,59 @@ func (h *apiHandlerImpl) GetFrequentLabels(c *gin.Context) {
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
-	labels, err := h.cockroachDBClient.GetFrequentLabels(pageNumber, pageSize, filters)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed retrieving frequent labels from db")
+	type LabelsResult struct {
+		labels []map[string]interface{}
+		err       error
+	}
+	type LabelsCountResult struct {
+		labelsCount int
+		err            error
+	}
+
+	// run 2 database queries in parallel and return their result via channels
+	labelsChannel := make(chan LabelsResult)
+	labelsCountChannel := make(chan LabelsCountResult)
+
+	go func() {
+		defer close(labelsChannel)
+		labels, err := h.cockroachDBClient.GetFrequentLabels(pageNumber, pageSize, filters)
+
+		labelsChannel <- LabelsResult{labels, err}
+	}()
+
+	go func() {
+		defer close(labelsCountChannel)
+		labelsCount, err := h.cockroachDBClient.GetFrequentLabelsCount(filters)
+
+		labelsCountChannel <- LabelsCountResult{labelsCount, err}
+	}()
+
+	// wait for GetPipelines to finish and check for errors
+	labelsResult := <-labelsChannel
+	if labelsResult.err != nil {
+		log.Error().Err(labelsResult.err).Msg("Failed retrieving frequent labels from db")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	}
+
+	// wait for GetPipelinesCount to finish and check for errors
+	labelsCountResult := <-labelsCountChannel
+	if labelsCountResult.err != nil {
+		log.Error().Err(labelsCountResult.err).Msg("Failed retrieving frequent labels count from db")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 	}
 
 	response := contracts.ListResponse{
-		Items: make([]interface{}, len(labels)),
+		Items: make([]interface{}, len(labelsResult.labels)),
+		Pagination: contracts.Pagination{
+			Page:       pageNumber,
+			Size:       pageSize,
+			TotalItems: labelsCountResult.labelsCount,
+			TotalPages: int(math.Ceil(float64(labelsCountResult.labelsCount) / float64(pageSize))),
+		},
 	}
 
-	for i := range labels {
-		response.Items[i] = labels[i]
+	for i := range labelsResult.labels {
+		response.Items[i] = labelsResult.labels[i]
 	}
 
 	c.JSON(http.StatusOK, response)

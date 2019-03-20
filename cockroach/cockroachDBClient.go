@@ -65,6 +65,7 @@ type DBClient interface {
 	GetPipelineBuildsDurations(string, string, string, map[string][]string) ([]map[string]interface{}, error)
 	GetPipelineReleasesDurations(string, string, string, map[string][]string) ([]map[string]interface{}, error)
 	GetFrequentLabels(int, int, map[string][]string) ([]map[string]interface{}, error)
+	GetFrequentLabelsCount(map[string][]string) (int, error)
 
 	GetPipelinesWithMostBuilds(pageNumber, pageSize int, filters map[string][]string) ([]map[string]interface{}, error)
 	GetPipelinesWithMostBuildsCount(filters map[string][]string) (int, error)
@@ -1799,6 +1800,82 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(pageNumber, pageSize int, fi
 		}
 
 		labels = append(labels, m)
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetFrequentLabelsCount(filters map[string][]string) (totalCount int, err error) {
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// see https://github.com/cockroachdb/cockroach/issues/35848
+
+	// for time being run following query, where the dynamic where clause is in the innermost select query:
+
+	// SELECT
+	// 		key, value, nr_computed_pipelines
+	// FROM
+	// 		(
+	// 				SELECT
+	// 						key, value, count(DISTINCT id) AS nr_computed_pipelines
+	// 				FROM
+	// 						(
+	// 								SELECT
+	// 										l->>'key' AS key, l->>'value' AS value, id
+	// 								FROM
+	// 										(SELECT id, jsonb_array_elements(labels) AS l FROM computed_pipelines where jsonb_typeof(labels) = 'array')
+	// 						)
+	// 				GROUP BY
+	// 						key, value
+	// 		)
+	// WHERE
+	// 		nr_computed_pipelines > 1
+	// ORDER BY
+	// 		nr_computed_pipelines DESC, key, value
+	// LIMIT 10;
+
+	arrayElementsQuery :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("a.id, jsonb_array_elements(a.labels) AS l").
+			From("computed_pipelines a").
+			Where("jsonb_typeof(labels) = 'array'")
+
+	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+		return
+	}
+
+	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+		return
+	}
+
+	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+		return
+	}
+
+	selectCountQuery :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("l->>'key' AS key, l->>'value' AS value, id").
+			FromSelect(arrayElementsQuery, "b")
+
+	groupByQuery :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("key, value, count(DISTINCT id) AS pipelinesCount").
+			FromSelect(selectCountQuery, "c").
+			GroupBy("key, value")
+
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("COUNT(key)").
+			FromSelect(groupByQuery, "d").
+			Where("pipelinesCount > 1")
+
+	// execute query
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	if err = row.Scan(&totalCount); err != nil {
+		return
 	}
 
 	return
