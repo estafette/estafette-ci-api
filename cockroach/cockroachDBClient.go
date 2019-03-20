@@ -1766,7 +1766,8 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(pageNumber, pageSize int, fi
 			FromSelect(groupByQuery, "d").
 			Where("pipelinesCount > 1").
 			OrderBy("pipelinesCount DESC, key, value").
-			Limit(uint64(pageSize))
+			Limit(uint64(pageSize)).
+			Offset(uint64((pageNumber - 1) * pageSize))
 
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 
