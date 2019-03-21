@@ -1729,7 +1729,7 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(pageNumber, pageSize int, fi
 	// LIMIT 10;
 
 	arrayElementsQuery :=
-		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		sq.StatementBuilder.
 			Select("a.id, jsonb_array_elements(a.labels) AS l").
 			From("computed_pipelines a").
 			Where("jsonb_typeof(labels) = 'array'")
@@ -1750,12 +1750,12 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(pageNumber, pageSize int, fi
 	}
 
 	selectCountQuery :=
-		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		sq.StatementBuilder.
 			Select("l->>'key' AS key, l->>'value' AS value, id").
 			FromSelect(arrayElementsQuery, "b")
 
 	groupByQuery :=
-		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		sq.StatementBuilder.
 			Select("key, value, count(DISTINCT id) AS pipelinesCount").
 			FromSelect(selectCountQuery, "c").
 			GroupBy("key, value")
@@ -1764,7 +1764,7 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(pageNumber, pageSize int, fi
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Select("key, value, pipelinesCount").
 			FromSelect(groupByQuery, "d").
-			Where("pipelinesCount > 1").
+			Where(sq.Gt{"pipelinesCount": 1}).
 			OrderBy("pipelinesCount DESC, key, value").
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
@@ -1836,7 +1836,7 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabelsCount(filters map[string][]st
 	// LIMIT 10;
 
 	arrayElementsQuery :=
-		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		sq.StatementBuilder.
 			Select("a.id, jsonb_array_elements(a.labels) AS l").
 			From("computed_pipelines a").
 			Where("jsonb_typeof(labels) = 'array'")
@@ -1857,12 +1857,12 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabelsCount(filters map[string][]st
 	}
 
 	selectCountQuery :=
-		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		sq.StatementBuilder.
 			Select("l->>'key' AS key, l->>'value' AS value, id").
 			FromSelect(arrayElementsQuery, "b")
 
 	groupByQuery :=
-		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		sq.StatementBuilder.
 			Select("key, value, count(DISTINCT id) AS pipelinesCount").
 			FromSelect(selectCountQuery, "c").
 			GroupBy("key, value")
@@ -1871,7 +1871,7 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabelsCount(filters map[string][]st
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Select("COUNT(key)").
 			FromSelect(groupByQuery, "d").
-			Where("pipelinesCount > 1")
+			Where(sq.Gt{"pipelinesCount": 1})
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()

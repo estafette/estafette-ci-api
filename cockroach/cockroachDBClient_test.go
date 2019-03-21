@@ -127,7 +127,7 @@ func TestQueryBuilder(t *testing.T) {
 	t.Run("GeneratesFrequentLabelsQuery", func(t *testing.T) {
 
 		arrayElementsQuery :=
-			sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			sq.StatementBuilder.
 				Select("a.id, jsonb_array_elements(a.labels) AS l").
 				From("computed_pipelines a").
 				Where("jsonb_typeof(labels) = 'array'")
@@ -137,12 +137,12 @@ func TestQueryBuilder(t *testing.T) {
 		arrayElementsQuery = arrayElementsQuery.Where(fmt.Sprintf("%v.labels @> ?", "a"), "{\"group\":\"group-a\"}")
 
 		selectCountQuery :=
-			sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			sq.StatementBuilder.
 				Select("l->>'key' AS key, l->>'value' AS value, id").
 				FromSelect(arrayElementsQuery, "b")
 
 		groupByQuery :=
-			sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			sq.StatementBuilder.
 				Select("key, value, count(DISTINCT id) AS pipelinesCount").
 				FromSelect(selectCountQuery, "c").
 				GroupBy("key, value")
@@ -151,7 +151,7 @@ func TestQueryBuilder(t *testing.T) {
 			sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 				Select("key, value, pipelinesCount").
 				FromSelect(groupByQuery, "d").
-				Where("pipelinesCount > 1").
+				Where(sq.Gt{"pipelinesCount": 1}).
 				OrderBy("pipelinesCount DESC, key, value").
 				Limit(uint64(7))
 
@@ -159,7 +159,7 @@ func TestQueryBuilder(t *testing.T) {
 		sql, _, err := query.ToSql()
 
 		assert.Nil(t, err)
-		assert.Equal(t, "SELECT key, value, pipelinesCount FROM (SELECT key, value, count(DISTINCT id) AS pipelinesCount FROM (SELECT l->>'key' AS key, l->>'value' AS value, id FROM (SELECT a.id, jsonb_array_elements(a.labels) AS l FROM computed_pipelines a WHERE jsonb_typeof(labels) = 'array' AND a.inserted_at >= $1 AND a.build_status IN ($2) AND a.labels @> $3) AS b) AS c GROUP BY key, value) AS d WHERE pipelinesCount > 1 ORDER BY pipelinesCount DESC, key, value LIMIT 7", sql)
+		assert.Equal(t, "SELECT key, value, pipelinesCount FROM (SELECT key, value, count(DISTINCT id) AS pipelinesCount FROM (SELECT l->>'key' AS key, l->>'value' AS value, id FROM (SELECT a.id, jsonb_array_elements(a.labels) AS l FROM computed_pipelines a WHERE jsonb_typeof(labels) = 'array' AND a.inserted_at >= $1 AND a.build_status IN ($2) AND a.labels @> $3) AS b) AS c GROUP BY key, value) AS d WHERE pipelinesCount > $4 ORDER BY pipelinesCount DESC, key, value LIMIT 7", sql)
 	})
 }
 
