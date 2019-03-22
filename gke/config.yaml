@@ -235,6 +235,9 @@ trustedImages:
 - path: extensions/slack-build-status
   injectedCredentialTypes:
   - slack-webhook
+- path: extensions/npm-audit
+  injectedCredentialTypes:
+  - slack-webhook
 - path: extensions/dotnet
   injectedCredentialTypes:
   - nuget-server
