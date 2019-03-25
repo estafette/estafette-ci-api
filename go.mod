@@ -15,7 +15,7 @@ require (
 	github.com/ericchiang/k8s v1.2.0
 	github.com/estafette/estafette-ci-contracts v0.0.112
 	github.com/estafette/estafette-ci-crypt v0.0.19
-	github.com/estafette/estafette-ci-manifest v0.1.74
+	github.com/estafette/estafette-ci-manifest v0.1.75
 	github.com/gin-contrib/gzip v0.0.0-20170807063659-ff223ab9f8e3
 	github.com/gin-contrib/sse v0.0.0-20170109093832-22d885f9ecc7 // indirect
 	github.com/gin-gonic/gin v1.3.0

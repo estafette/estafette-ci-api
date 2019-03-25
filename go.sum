@@ -29,6 +29,8 @@ github.com/estafette/estafette-ci-crypt v0.0.19 h1:a1sRH/ETgs7HtwVSjhsacvDTwmCyI
 github.com/estafette/estafette-ci-crypt v0.0.19/go.mod h1:yODzGbzW7Jj0xEFjAv1Is+FHcYaugHUtrPdkJdHV8/c=
 github.com/estafette/estafette-ci-manifest v0.1.74 h1:jiR24eRo9PFsvRAho6XpqCQYPyvX7T9MN9glq024mpM=
 github.com/estafette/estafette-ci-manifest v0.1.74/go.mod h1:u+q8CliqPuK87sSh/FAknAPLtMIlBNs/NGzTWvmxniA=
+github.com/estafette/estafette-ci-manifest v0.1.75 h1:7CdC8ZaBOyslvFcjtnRsnEC4rpQ4p4UzdXcTwjraygw=
+github.com/estafette/estafette-ci-manifest v0.1.75/go.mod h1:u+q8CliqPuK87sSh/FAknAPLtMIlBNs/NGzTWvmxniA=
 github.com/gin-contrib/gzip v0.0.0-20170807063659-ff223ab9f8e3 h1:2YR0fssOmEtQa11ZzEE1QkpjJPBHir/O71d2gue1qGQ=
 github.com/gin-contrib/gzip v0.0.0-20170807063659-ff223ab9f8e3/go.mod h1:Xp4LajbnAl27NCdps5OWT+HTKYKWScmzTCli8Kjs7LE=
 github.com/gin-contrib/sse v0.0.0-20170109093832-22d885f9ecc7 h1:AzN37oI0cOS+cougNAV9szl6CVoj2RYwzS3DpUQNtlY=
