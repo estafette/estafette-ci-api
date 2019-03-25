@@ -226,6 +226,9 @@ trustedImages:
 - path: extensions/gke
   injectedCredentialTypes:
   - kubernetes-engine
+- path: extensions/gcs
+  injectedCredentialTypes:
+  - kubernetes-engine
 - path: extensions/bitbucket-status
   injectedCredentialTypes:
   - bitbucket-api-token
