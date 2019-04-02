@@ -213,6 +213,11 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 				}
 			}(ciBuilderParams)
 		}
+
+		// handle triggers
+		go func() {
+			s.FirePipelineTriggers(build, "started")
+		}()
 	}
 
 	return
@@ -334,6 +339,11 @@ func (s *buildServiceImpl) CreateRelease(release contracts.Release, mft manifest
 			}
 		}(ciBuilderParams)
 	}
+
+	// handle triggers
+	go func() {
+		s.FireReleaseTriggers(release, "started")
+	}()
 
 	return
 }
