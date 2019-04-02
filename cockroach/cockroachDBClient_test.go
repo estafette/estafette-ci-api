@@ -177,5 +177,4 @@ func TestAutoincrement(t *testing.T) {
 
 		assert.Equal(t, 126, autoincrement)
 	})
-
 }

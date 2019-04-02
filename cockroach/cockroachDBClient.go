@@ -2802,6 +2802,7 @@ func (dbc *cockroachDBClientImpl) mapBuildToPipeline(build *contracts.Build) (pi
 		Manifest:             build.Manifest,
 		ManifestWithDefaults: build.ManifestWithDefaults,
 		Commits:              build.Commits,
+		Triggers:             build.Triggers,
 		InsertedAt:           build.InsertedAt,
 		UpdatedAt:            build.UpdatedAt,
 		Duration:             build.Duration,

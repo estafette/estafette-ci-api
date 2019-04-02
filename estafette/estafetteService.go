@@ -219,7 +219,7 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 }
 
 func (s *buildServiceImpl) FinishBuild(repoSource, repoOwner, repoName string, buildID int, buildStatus string) error {
-	return s.cockroachDBClient.UpdateReleaseStatus(repoSource, repoOwner, repoName, buildID, buildStatus)
+	return s.cockroachDBClient.UpdateBuildStatus(repoSource, repoOwner, repoName, buildID, buildStatus)
 }
 
 func (s *buildServiceImpl) CreateRelease(release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (createdRelease *contracts.Release, err error) {

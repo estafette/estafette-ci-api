@@ -147,11 +147,24 @@ func (c *EstafetteManifest) setDefaults() {
 }
 
 // GetAllTriggers returns both build and release triggers as one list
-func (c *EstafetteManifest) GetAllTriggers() []*EstafetteTrigger {
+func (c *EstafetteManifest) GetAllTriggers() []EstafetteTrigger {
 	// collect both build and release triggers
-	triggers := c.Triggers
+	triggers := make([]EstafetteTrigger, 0)
+
+	// add all build triggers
+	for _, t := range c.Triggers {
+		if t != nil {
+			triggers = append(triggers, *t)
+		}
+	}
+
+	// add all release triggers
 	for _, r := range c.Releases {
-		triggers = append(triggers, r.Triggers...)
+		for _, t := range r.Triggers {
+			if t != nil {
+				triggers = append(triggers, *t)
+			}
+		}
 	}
 
 	return triggers
