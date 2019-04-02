@@ -664,7 +664,8 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 			$13,
 			$14,
 			$15,
-			AGE($15,$14)
+			$16,
+			AGE($16,$15)
 		)
 		ON CONFLICT
 		(
@@ -700,6 +701,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 		upsertedPipeline.Manifest,
 		commitsBytes,
 		triggersBytes,
+		upsertedPipeline.InsertedAt,
 		upsertedPipeline.InsertedAt,
 		upsertedPipeline.UpdatedAt,
 	)
