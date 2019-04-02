@@ -403,7 +403,7 @@ func (s *buildServiceImpl) FinishRelease(repoSource, repoOwner, repoName string,
 
 func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event string) error {
 
-	log.Info().Msgf("Checking if triggers for pipeline %v/%v/%v, event %v need to be fired...", build.RepoSource, build.RepoOwner, build.RepoName, event)
+	log.Info().Msgf("Checking if triggers for pipeline '%v/%v/%v', event '%v' need to be fired...", build.RepoSource, build.RepoOwner, build.RepoName, event)
 
 	// retrieve all pipeline triggers
 	pipelines, err := s.cockroachDBClient.GetPipelineTriggers(build, event)
@@ -429,7 +429,22 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 			}
 			if t.Pipeline.Fires(&pe) {
 				// create new build for t.Run
-				log.Info().Msgf("Firing %v because of pipeline %v/%v/%v, event %v", pe, build.RepoSource, build.RepoOwner, build.RepoName, event)
+				log.Info().Msgf("Firing '%v' because of pipeline '%v/%v/%v', event '%v'", pe, build.RepoSource, build.RepoOwner, build.RepoName, event)
+
+				switch t.Run.TriggerType {
+				case "build":
+					break
+
+				case "release":
+
+					err := s.fireRelease(*p, t)
+					if err != nil {
+						log.Error().Err(err).Msgf("Failed creating release for event '%v' fired because of pipeline '%v/%v/%v', event '%v'", pe, build.RepoSource, build.RepoOwner, build.RepoName, event)
+					}
+
+					break
+				}
+
 			}
 		}
 	}
@@ -439,7 +454,7 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 
 func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event string) error {
 
-	log.Info().Msgf("Checking if triggers for pipeline %v/%v/%v, release target %v, event %v need to be fired...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
+	log.Info().Msgf("Checking if triggers for pipeline '%v/%v/%v', release target '%v', event '%v' need to be fired...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
 
 	pipelines, err := s.cockroachDBClient.GetReleaseTriggers(release, event)
 	if err != nil {
@@ -464,11 +479,41 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 			}
 			if t.Release.Fires(&re) {
 				// create new release for t.Run
-				log.Info().Msgf("Firing %v because of pipeline %v/%v/%v, release target %v, event %v", re, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
+				log.Info().Msgf("Firing '%v' because of pipeline '%v/%v/%v', release target '%v', event '%v'", re, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
+
+				switch t.Run.TriggerType {
+				case "build":
+					break
+
+				case "release":
+
+					err := s.fireRelease(*p, t)
+					if err != nil {
+						log.Error().Err(err).Msgf("Failed creating release for event '%v' fired because of pipeline '%v/%v/%v', release target '%v', event '%v'", re, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
+					}
+
+					break
+				}
 			}
 		}
 	}
 
+	return nil
+}
+
+func (s *buildServiceImpl) fireRelease(p contracts.Pipeline, t manifest.EstafetteTrigger) error {
+	_, err := s.CreateRelease(contracts.Release{
+		Name:           t.Run.TargetName,
+		Action:         t.Run.ActionToRelease,
+		RepoSource:     p.RepoSource,
+		RepoOwner:      p.RepoOwner,
+		RepoName:       p.RepoName,
+		ReleaseVersion: p.BuildVersion,
+		TriggeredBy:    "trigger",
+	}, *p.ManifestObject, p.RepoBranch, p.RepoRevision, true)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
