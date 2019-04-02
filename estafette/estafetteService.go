@@ -19,7 +19,6 @@ type BuildService interface {
 	CreateRelease(release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (*contracts.Release, error)
 	FinishRelease(repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) error
 
-	UpdateTriggers(repoSource, repoOwner, repoName string, manifest manifest.EstafetteManifest) error
 	FirePipelineTriggers(build contracts.Build, event string) error
 	FireReleaseTriggers(release contracts.Release, event string) error
 }
@@ -213,11 +212,6 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 				}
 			}(ciBuilderParams)
 		}
-	}
-
-	// update triggers from manifest
-	if hasValidManifest {
-		s.UpdateTriggers(build.RepoSource, build.RepoOwner, build.RepoName, mft)
 	}
 
 	return
