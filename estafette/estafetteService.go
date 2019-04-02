@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/estafette/estafette-ci-api/cockroach"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -48,9 +49,9 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 
 	// validate manifest
 	hasValidManifest := false
-	mft, err := manifest.ReadManifest(build.Manifest)
-	if err != nil {
-		log.Warn().Err(err).Str("manifest", build.Manifest).Msgf("Deserializing Estafette manifest for pipeline %v/%v/%v and revision %v failed, continuing though so developer gets useful feedback", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+	mft, manifestError := manifest.ReadManifest(build.Manifest)
+	if manifestError != nil {
+		log.Warn().Err(manifestError).Str("manifest", build.Manifest).Msgf("Deserializing Estafette manifest for pipeline %v/%v/%v and revision %v failed, continuing though so developer gets useful feedback", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 	} else {
 		hasValidManifest = true
 	}
@@ -218,6 +219,38 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 		go func() {
 			s.FirePipelineTriggers(build, "started")
 		}()
+	} else if manifestError != nil {
+		// store log with manifest unmarshalling error
+		buildLog := contracts.BuildLog{
+			RepoSource:   build.RepoSource,
+			RepoOwner:    build.RepoOwner,
+			RepoName:     build.RepoName,
+			RepoBranch:   build.RepoBranch,
+			RepoRevision: build.RepoRevision,
+			Steps: []contracts.BuildLogStep{
+				contracts.BuildLogStep{
+					Step:         "validate-manifest",
+					Image:        nil,
+					ExitCode:     1,
+					Status:       "failed",
+					AutoInjected: true,
+					RunIndex:     0,
+					LogLines: []contracts.BuildLogLine{
+						contracts.BuildLogLine{
+							LineNumber: 1,
+							Timestamp:  time.Now().UTC(),
+							StreamType: "stderr",
+							Text:       manifestError.Error(),
+						},
+					},
+				},
+			},
+		}
+
+		err = s.cockroachDBClient.InsertBuildLog(buildLog)
+		if err != nil {
+			log.Warn().Err(err).Msgf("Failed inserting build log for invalid manifest")
+		}
 	}
 
 	return
