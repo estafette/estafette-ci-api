@@ -72,14 +72,10 @@ type DBClient interface {
 	GetPipelinesWithMostReleases(pageNumber, pageSize int, filters map[string][]string) ([]map[string]interface{}, error)
 	GetPipelinesWithMostReleasesCount(filters map[string][]string) (int, error)
 
-	UpsertTrigger(triggerType, identifier, event string, triggers []*manifest.EstafetteTrigger) error
-	GetTriggers(triggerType, identifier, event string) ([]*manifest.EstafetteTrigger, error)
-	UpsertPipelineTrigger(build contracts.Build, event string, triggers []*manifest.EstafetteTrigger) error
-	GetPipelineTriggers(build contracts.Build, event string) ([]*manifest.EstafetteTrigger, error)
-	UpsertReleaseTrigger(release contracts.Release, event string, triggers []*manifest.EstafetteTrigger) error
-	GetReleaseTriggers(release contracts.Release, event string) ([]*manifest.EstafetteTrigger, error)
-	UpsertCronTrigger(triggers []*manifest.EstafetteTrigger) error
-	GetCronTriggers() ([]*manifest.EstafetteTrigger, error)
+	GetTriggers(triggerType, identifier, event string) ([]*contracts.Pipeline, error)
+	GetPipelineTriggers(build contracts.Build, event string) ([]*contracts.Pipeline, error)
+	GetReleaseTriggers(release contracts.Release, event string) ([]*contracts.Pipeline, error)
+	GetCronTriggers() ([]*contracts.Pipeline, error)
 
 	selectBuildsQuery() sq.SelectBuilder
 	selectPipelinesQuery() sq.SelectBuilder
@@ -2454,60 +2450,45 @@ func (dbc *cockroachDBClientImpl) scanReleases(rows *sql.Rows) (releases []*cont
 	return
 }
 
-func (dbc *cockroachDBClientImpl) UpsertTrigger(triggerType, identifier, event string, triggers []*manifest.EstafetteTrigger) (err error) {
+func (dbc *cockroachDBClientImpl) GetTriggers(triggerType, identifier, event string) (pipelines []*contracts.Pipeline, err error) {
 
-	triggersBytes, err := json.Marshal(triggers)
-	if err != nil {
-		return
+	// generate query
+	query := dbc.selectPipelinesQuery()
+
+	trigger := manifest.EstafetteTrigger{}
+
+	switch triggerType {
+	case "pipeline":
+
+		trigger.Pipeline = &manifest.EstafettePipelineTrigger{
+			Event: event,
+			Name:  identifier,
+		}
+
+		break
+
+	case "release":
+
+		trigger.Release = &manifest.EstafetteReleaseTrigger{
+			Event: event,
+			Name:  identifier,
+		}
+
+		break
+
+	case "cron":
+
+		trigger.Cron = &manifest.EstafetteCronTrigger{}
+
+		break
 	}
 
-	// upsert triggers
-	_, err = dbc.databaseConnection.Exec(
-		`
-		INSERT INTO
-			triggers
-		(
-			trigger_type,
-			identifier,
-			event_name,
-			triggers
-		)
-		VALUES
-		(
-			$1,
-			$2,
-			$3,
-			$4
-		)
-		ON CONFLICT
-		(
-			trigger_type,
-			identifier,
-			event_name
-		)
-		DO UPDATE SET
-			triggers = excluded.triggers
-		`,
-		triggerType,
-		identifier,
-		event,
-		triggersBytes,
-	)
+	bytes, err := json.Marshal([]manifest.EstafetteTrigger{trigger})
 	if err != nil {
-		return err
+		return pipelines, err
 	}
 
-	return
-}
-
-func (dbc *cockroachDBClientImpl) GetTriggers(triggerType, identifier, event string) (triggers []*manifest.EstafetteTrigger, err error) {
-
-	query := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-		Select("a.triggers").
-		From("triggers a").
-		Where(sq.Eq{"a.trigger_type": triggerType}).
-		Where(sq.Eq{"a.identifier": identifier}).
-		Where(sq.Eq{"a.event_name": event})
+	query = query.Where("a.triggers @> ?", string(bytes))
 
 	// execute query
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
@@ -2515,78 +2496,35 @@ func (dbc *cockroachDBClientImpl) GetTriggers(triggerType, identifier, event str
 		return
 	}
 
-	triggers = make([]*manifest.EstafetteTrigger, 0)
-
-	defer rows.Close()
-	for rows.Next() {
-
-		triggersPerRecord := []*manifest.EstafetteTrigger{}
-		var triggersData []uint8
-
-		if err = rows.Scan(&triggersData); err != nil {
-			return
-		}
-
-		if len(triggersData) > 0 {
-			if err = json.Unmarshal(triggersData, &triggersPerRecord); err != nil {
-				return
-			}
-		}
-
-		triggers = append(triggers, triggersPerRecord...)
+	// read rows
+	if pipelines, err = dbc.scanPipelines(rows, false); err != nil {
+		return
 	}
 
 	return
 }
 
-func (dbc *cockroachDBClientImpl) UpsertPipelineTrigger(build contracts.Build, event string, triggers []*manifest.EstafetteTrigger) error {
+func (dbc *cockroachDBClientImpl) GetPipelineTriggers(build contracts.Build, event string) ([]*contracts.Pipeline, error) {
 
 	triggerType := "pipeline"
-	identifier := fmt.Sprintf("%v/%v/%v", build.RepoSource, build.RepoOwner, build.RepoName)
+	name := fmt.Sprintf("%v/%v/%v", build.RepoSource, build.RepoOwner, build.RepoName)
 
-	return dbc.UpsertTrigger(triggerType, identifier, event, triggers)
+	return dbc.GetTriggers(triggerType, name, event)
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineTriggers(build contracts.Build, event string) ([]*manifest.EstafetteTrigger, error) {
-
-	triggerType := "pipeline"
-	identifier := fmt.Sprintf("%v/%v/%v", build.RepoSource, build.RepoOwner, build.RepoName)
-
-	return dbc.GetTriggers(triggerType, identifier, event)
-}
-
-func (dbc *cockroachDBClientImpl) UpsertReleaseTrigger(release contracts.Release, event string, triggers []*manifest.EstafetteTrigger) error {
+func (dbc *cockroachDBClientImpl) GetReleaseTriggers(release contracts.Release, event string) ([]*contracts.Pipeline, error) {
 
 	triggerType := "release"
-	identifier := fmt.Sprintf("%v/%v/%v/%v", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
+	name := fmt.Sprintf("%v/%v/%v", release.RepoSource, release.RepoOwner, release.RepoName)
 
-	return dbc.UpsertTrigger(triggerType, identifier, event, triggers)
+	return dbc.GetTriggers(triggerType, name, event)
 }
 
-func (dbc *cockroachDBClientImpl) GetReleaseTriggers(release contracts.Release, event string) ([]*manifest.EstafetteTrigger, error) {
-
-	triggerType := "release"
-	identifier := fmt.Sprintf("%v/%v/%v/%v", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
-
-	return dbc.GetTriggers(triggerType, identifier, event)
-}
-
-func (dbc *cockroachDBClientImpl) UpsertCronTrigger(triggers []*manifest.EstafetteTrigger) error {
+func (dbc *cockroachDBClientImpl) GetCronTriggers() ([]*contracts.Pipeline, error) {
 
 	triggerType := "cron"
-	identifier := "tick"
-	event := "tock"
 
-	return dbc.UpsertTrigger(triggerType, identifier, event, triggers)
-}
-
-func (dbc *cockroachDBClientImpl) GetCronTriggers() ([]*manifest.EstafetteTrigger, error) {
-
-	triggerType := "cron"
-	identifier := "tick"
-	event := "tock"
-
-	return dbc.GetTriggers(triggerType, identifier, event)
+	return dbc.GetTriggers(triggerType, "", "")
 }
 
 func (dbc *cockroachDBClientImpl) selectBuildsQuery() sq.SelectBuilder {

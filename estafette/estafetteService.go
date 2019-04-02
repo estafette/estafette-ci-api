@@ -219,7 +219,24 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 }
 
 func (s *buildServiceImpl) FinishBuild(repoSource, repoOwner, repoName string, buildID int, buildStatus string) error {
-	return s.cockroachDBClient.UpdateBuildStatus(repoSource, repoOwner, repoName, buildID, buildStatus)
+
+	err := s.cockroachDBClient.UpdateBuildStatus(repoSource, repoOwner, repoName, buildID, buildStatus)
+	if err != nil {
+		return err
+	}
+
+	// handle triggers
+	go func() {
+		build, err := s.cockroachDBClient.GetPipelineBuildByID(repoSource, repoOwner, repoName, buildID, false)
+		if err != nil {
+			return
+		}
+		if build != nil {
+			s.FirePipelineTriggers(*build, "finished")
+		}
+	}()
+
+	return nil
 }
 
 func (s *buildServiceImpl) CreateRelease(release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (createdRelease *contracts.Release, err error) {
@@ -322,13 +339,31 @@ func (s *buildServiceImpl) CreateRelease(release contracts.Release, mft manifest
 }
 
 func (s *buildServiceImpl) FinishRelease(repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) error {
-	return s.cockroachDBClient.UpdateReleaseStatus(repoSource, repoOwner, repoName, releaseID, releaseStatus)
+	err := s.cockroachDBClient.UpdateReleaseStatus(repoSource, repoOwner, repoName, releaseID, releaseStatus)
+	if err != nil {
+		return err
+	}
+
+	// handle triggers
+	go func() {
+		release, err := s.cockroachDBClient.GetPipelineRelease(repoSource, repoOwner, repoName, releaseID)
+		if err != nil {
+			return
+		}
+		if release != nil {
+			s.FireReleaseTriggers(*release, "finished")
+		}
+	}()
+
+	return nil
 }
 
 func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event string) error {
 
+	log.Info().Msgf("Checking if triggers for pipeline %v/%v/%v, event %v need to be fired...", build.RepoSource, build.RepoOwner, build.RepoName, event)
+
 	// retrieve all pipeline triggers
-	triggers, err := s.cockroachDBClient.GetPipelineTriggers(build, event)
+	pipelines, err := s.cockroachDBClient.GetPipelineTriggers(build, event)
 	if err != nil {
 		return err
 	}
@@ -344,12 +379,15 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 	}
 
 	// check for each whether it should fire
-	for _, t := range triggers {
-		if t.Pipeline == nil {
-			return fmt.Errorf("Retrieved trigger does not have pipeline property: %v", t)
-		}
-		if t.Pipeline.Fires(&pe) {
-			// create new build for t.Run
+	for _, p := range pipelines {
+		for _, t := range p.Triggers {
+			if t.Pipeline == nil {
+				continue
+			}
+			if t.Pipeline.Fires(&pe) {
+				// create new build for t.Run
+				log.Info().Msgf("Firing %v because of pipeline %v/%v/%v, event %v", pe, build.RepoSource, build.RepoOwner, build.RepoName, event)
+			}
 		}
 	}
 
@@ -358,7 +396,9 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 
 func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event string) error {
 
-	triggers, err := s.cockroachDBClient.GetReleaseTriggers(release, event)
+	log.Info().Msgf("Checking if triggers for pipeline %v/%v/%v, release target %v, event %v need to be fired...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
+
+	pipelines, err := s.cockroachDBClient.GetReleaseTriggers(release, event)
 	if err != nil {
 		return err
 	}
@@ -374,12 +414,15 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 	}
 
 	// check for each whether it should fire
-	for _, t := range triggers {
-		if t.Release == nil {
-			return fmt.Errorf("Retrieved trigger does not have release property: %v", t)
-		}
-		if t.Release.Fires(&re) {
-			// create new release for t.Run
+	for _, p := range pipelines {
+		for _, t := range p.Triggers {
+			if t.Release == nil {
+				continue
+			}
+			if t.Release.Fires(&re) {
+				// create new release for t.Run
+				log.Info().Msgf("Firing %v because of pipeline %v/%v/%v, release target %v, event %v", re, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
+			}
 		}
 	}
 
@@ -388,7 +431,9 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 
 func (s *buildServiceImpl) FireCronTriggers() error {
 
-	triggers, err := s.cockroachDBClient.GetCronTriggers()
+	log.Info().Msgf("Checking if triggers for cron need to be fired...")
+
+	pipelines, err := s.cockroachDBClient.GetCronTriggers()
 	if err != nil {
 		return err
 	}
@@ -397,12 +442,15 @@ func (s *buildServiceImpl) FireCronTriggers() error {
 	ce := manifest.EstafetteCronEvent{}
 
 	// check for each whether it should fire
-	for _, t := range triggers {
-		if t.Cron == nil {
-			return fmt.Errorf("Retrieved trigger does not have cron property: %v", t)
-		}
-		if t.Cron.Fires(&ce) {
-			// create new release for t.Run
+	for _, p := range pipelines {
+		for _, t := range p.Triggers {
+			if t.Cron == nil {
+				continue
+			}
+			if t.Cron.Fires(&ce) {
+				// create new release for t.Run
+				log.Info().Msgf("Firing %v because of cron", ce)
+			}
 		}
 	}
 

@@ -8,55 +8,55 @@ import (
 
 // EstafetteTrigger represents a trigger of any supported type and what action to take if the trigger fired
 type EstafetteTrigger struct {
-	Pipeline *EstafettePipelineTrigger `yaml:"pipeline,omitempty"`
-	Release  *EstafetteReleaseTrigger  `yaml:"release,omitempty"`
-	Git      *EstafetteGitTrigger      `yaml:"git,omitempty"`
-	Docker   *EstafetteDockerTrigger   `yaml:"docker,omitempty"`
-	Cron     *EstafetteCronTrigger     `yaml:"cron,omitempty"`
-	Run      EstafetteTriggerRun       `yaml:"run,omitempty"`
+	Pipeline *EstafettePipelineTrigger `yaml:"pipeline,omitempty" json:"pipeline,omitempty"`
+	Release  *EstafetteReleaseTrigger  `yaml:"release,omitempty" json:"release,omitempty"`
+	Git      *EstafetteGitTrigger      `yaml:"git,omitempty" json:"git,omitempty"`
+	Docker   *EstafetteDockerTrigger   `yaml:"docker,omitempty" json:"docker,omitempty"`
+	Cron     *EstafetteCronTrigger     `yaml:"cron,omitempty" json:"cron,omitempty"`
+	Run      EstafetteTriggerRun       `yaml:"run,omitempty" json:"run,omitempty"`
 }
 
 // EstafettePipelineTrigger fires for pipeline changes and applies filtering to limit when this results in an action
 type EstafettePipelineTrigger struct {
-	Event  string `yaml:"event,omitempty"`
-	Status string `yaml:"status,omitempty"`
-	Name   string `yaml:"name,omitempty"`
-	Branch string `yaml:"branch,omitempty"`
+	Event  string `yaml:"event,omitempty" json:"event,omitempty"`
+	Status string `yaml:"status,omitempty" json:"status,omitempty"`
+	Name   string `yaml:"name,omitempty" json:"name,omitempty"`
+	Branch string `yaml:"branch,omitempty" json:"branch,omitempty"`
 }
 
 // EstafetteReleaseTrigger fires for pipeline releases and applies filtering to limit when this results in an action
 type EstafetteReleaseTrigger struct {
-	Event  string `yaml:"event,omitempty"`
-	Status string `yaml:"status,omitempty"`
-	Name   string `yaml:"name,omitempty"`
-	Target string `yaml:"target,omitempty"`
+	Event  string `yaml:"event,omitempty" json:"event,omitempty"`
+	Status string `yaml:"status,omitempty" json:"status,omitempty"`
+	Name   string `yaml:"name,omitempty" json:"name,omitempty"`
+	Target string `yaml:"target,omitempty" json:"target,omitempty"`
 }
 
 // EstafetteGitTrigger fires for git repository changes and applies filtering to limit when this results in an action
 type EstafetteGitTrigger struct {
-	Event      string `yaml:"event,omitempty"`
-	Repository string `yaml:"repository,omitempty"`
-	Branch     string `yaml:"branch,omitempty"`
+	Event      string `yaml:"event,omitempty" json:"event,omitempty"`
+	Repository string `yaml:"repository,omitempty" json:"repository,omitempty"`
+	Branch     string `yaml:"branch,omitempty" json:"branch,omitempty"`
 }
 
 // EstafetteDockerTrigger fires for docker image changes and applies filtering to limit when this results in an action
 type EstafetteDockerTrigger struct {
-	Event string `yaml:"event,omitempty"`
-	Image string `yaml:"image,omitempty"`
-	Tag   string `yaml:"tag,omitempty"`
+	Event string `yaml:"event,omitempty" json:"event,omitempty"`
+	Image string `yaml:"image,omitempty" json:"image,omitempty"`
+	Tag   string `yaml:"tag,omitempty" json:"tag,omitempty"`
 }
 
 // EstafetteCronTrigger fires at intervals specified by the cron expression
 type EstafetteCronTrigger struct {
-	Expression string `yaml:"expression,omitempty"`
+	Expression string `yaml:"expression,omitempty" json:"expression,omitempty"`
 }
 
 // EstafetteTriggerRun determines what builds/releases when
 type EstafetteTriggerRun struct {
-	TriggerType     string `yaml:"type,omitempty"`
-	TargetName      string `yaml:"target,omitempty"`
-	BranchToBuild   string `yaml:"branch,omitempty"`
-	ActionToRelease string `yaml:"action,omitempty"`
+	TriggerType     string `yaml:"type,omitempty" json:"type,omitempty"`
+	TargetName      string `yaml:"target,omitempty" json:"target,omitempty"`
+	BranchToBuild   string `yaml:"branch,omitempty" json:"branch,omitempty"`
+	ActionToRelease string `yaml:"action,omitempty" json:"action,omitempty"`
 }
 
 // SetDefaults sets defaults for EstafetteTrigger
