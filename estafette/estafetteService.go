@@ -334,10 +334,12 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 
 	// create event object
 	pe := manifest.EstafettePipelineEvent{
-		Event:  event,
-		Status: build.BuildStatus,
-		Name:   fmt.Sprintf("%v/%v/%v", build.RepoSource, build.RepoOwner, build.RepoName),
-		Branch: build.RepoBranch,
+		RepoSource: build.RepoSource,
+		RepoOwner:  build.RepoOwner,
+		RepoName:   build.RepoName,
+		Branch:     build.RepoBranch,
+		Status:     build.BuildStatus,
+		Event:      event,
 	}
 
 	// check for each whether it should fire
@@ -359,10 +361,12 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 
 	// create event object
 	re := manifest.EstafetteReleaseEvent{
-		Event:  event,
-		Status: release.ReleaseStatus,
-		Name:   fmt.Sprintf("%v/%v/%v", release.RepoSource, release.RepoOwner, release.RepoName),
-		Target: release.Name,
+		RepoSource: release.RepoSource,
+		RepoOwner:  release.RepoOwner,
+		RepoName:   release.RepoName,
+		Target:     release.Name,
+		Status:     release.ReleaseStatus,
+		Event:      event,
 	}
 
 	// check for each whether it should fire

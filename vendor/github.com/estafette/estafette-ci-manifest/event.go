@@ -2,18 +2,22 @@ package manifest
 
 // EstafettePipelineEvent fires for pipeline changes
 type EstafettePipelineEvent struct {
-	Event  string
-	Status string
-	Name   string
-	Branch string
+	RepoSource string
+	RepoOwner  string
+	RepoName   string
+	Branch     string
+	Status     string
+	Event      string
 }
 
 // EstafetteReleaseEvent fires for pipeline releases
 type EstafetteReleaseEvent struct {
-	Event  string
-	Status string
-	Name   string
-	Target string
+	RepoSource string
+	RepoOwner  string
+	RepoName   string
+	Target     string
+	Status     string
+	Event      string
 }
 
 // EstafetteGitEvent fires for git repository changes

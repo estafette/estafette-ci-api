@@ -266,7 +266,7 @@ func (p *EstafettePipelineTrigger) Fires(e *EstafettePipelineEvent) bool {
 	}
 
 	// compare name case insensitive
-	nameMatches := strings.EqualFold(p.Name, e.Name)
+	nameMatches := strings.EqualFold(p.Name, fmt.Sprintf("%v/%v/%v", e.RepoSource, e.RepoOwner, e.RepoName))
 	if !nameMatches {
 		return false
 	}
@@ -297,7 +297,7 @@ func (r *EstafetteReleaseTrigger) Fires(e *EstafetteReleaseEvent) bool {
 	}
 
 	// compare name case insensitive
-	nameMatches := strings.EqualFold(r.Name, e.Name)
+	nameMatches := strings.EqualFold(r.Name, fmt.Sprintf("%v/%v/%v", e.RepoSource, e.RepoOwner, e.RepoName))
 	if !nameMatches {
 		return false
 	}
