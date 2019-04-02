@@ -21,6 +21,7 @@ type BuildService interface {
 
 	FirePipelineTriggers(build contracts.Build, event string) error
 	FireReleaseTriggers(release contracts.Release, event string) error
+	FireCronTriggers() error
 }
 
 type buildServiceImpl struct {
@@ -344,6 +345,9 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 
 	// check for each whether it should fire
 	for _, t := range triggers {
+		if t.Pipeline == nil {
+			return fmt.Errorf("Retrieved trigger does not have pipeline property: %v", t)
+		}
 		if t.Pipeline.Fires(&pe) {
 			// create new build for t.Run
 		}
@@ -371,13 +375,38 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 
 	// check for each whether it should fire
 	for _, t := range triggers {
+		if t.Release == nil {
+			return fmt.Errorf("Retrieved trigger does not have release property: %v", t)
+		}
 		if t.Release.Fires(&re) {
 			// create new release for t.Run
 		}
 	}
 
 	return nil
+}
 
+func (s *buildServiceImpl) FireCronTriggers() error {
+
+	triggers, err := s.cockroachDBClient.GetCronTriggers()
+	if err != nil {
+		return err
+	}
+
+	// create event object
+	ce := manifest.EstafetteCronEvent{}
+
+	// check for each whether it should fire
+	for _, t := range triggers {
+		if t.Cron == nil {
+			return fmt.Errorf("Retrieved trigger does not have cron property: %v", t)
+		}
+		if t.Cron.Fires(&ce) {
+			// create new release for t.Run
+		}
+	}
+
+	return nil
 }
 
 func (s *buildServiceImpl) getShortRepoSource(repoSource string) string {
