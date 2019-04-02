@@ -662,7 +662,6 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 			$11,
 			$12,
 			$13,
-			$13,
 			$14,
 			$15,
 			AGE($15,$14)
