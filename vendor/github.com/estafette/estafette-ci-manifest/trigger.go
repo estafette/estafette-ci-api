@@ -53,12 +53,14 @@ type EstafetteCronTrigger struct {
 
 // EstafetteTriggerRun determines what builds/releases when
 type EstafetteTriggerRun struct {
+	TriggerType     string `yaml:"type,omitempty"`
+	TargetName      string `yaml:"target,omitempty"`
 	BranchToBuild   string `yaml:"branch,omitempty"`
 	ActionToRelease string `yaml:"action,omitempty"`
 }
 
 // SetDefaults sets defaults for EstafetteTrigger
-func (t *EstafetteTrigger) SetDefaults() {
+func (t *EstafetteTrigger) SetDefaults(triggerType, targetName string) {
 	if t.Pipeline != nil {
 		t.Pipeline.SetDefaults()
 	}
@@ -75,7 +77,7 @@ func (t *EstafetteTrigger) SetDefaults() {
 		t.Cron.SetDefaults()
 	}
 
-	t.Run.SetDefaults()
+	t.Run.SetDefaults(triggerType, targetName)
 }
 
 // SetDefaults sets defaults for EstafettePipelineTrigger
@@ -120,7 +122,9 @@ func (c *EstafetteCronTrigger) SetDefaults() {
 }
 
 // SetDefaults sets defaults for EstafetteTriggerRun
-func (r *EstafetteTriggerRun) SetDefaults() {
+func (r *EstafetteTriggerRun) SetDefaults(triggerType, targetName string) {
+	r.TriggerType = triggerType
+	r.TargetName = targetName
 	if r.BranchToBuild == "" {
 		r.BranchToBuild = "master"
 	}

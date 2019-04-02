@@ -136,14 +136,25 @@ func (c *EstafetteManifest) setDefaults() {
 	c.Version.setDefaults()
 
 	for _, t := range c.Triggers {
-		t.SetDefaults()
+		t.SetDefaults("build", "")
 	}
 
 	for _, r := range c.Releases {
 		for _, t := range r.Triggers {
-			t.SetDefaults()
+			t.SetDefaults("release", r.Name)
 		}
 	}
+}
+
+// GetAllTriggers returns both build and release triggers as one list
+func (c *EstafetteManifest) GetAllTriggers() []*EstafetteTrigger {
+	// collect both build and release triggers
+	triggers := c.Triggers
+	for _, r := range c.Releases {
+		triggers = append(triggers, r.Triggers...)
+	}
+
+	return triggers
 }
 
 // Exists checks whether the .estafette.yaml exists

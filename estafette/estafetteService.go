@@ -15,7 +15,13 @@ import (
 // BuildService encapsulates build and release creation and re-triggering
 type BuildService interface {
 	CreateBuild(build contracts.Build, waitForJobToStart bool) (*contracts.Build, error)
+	FinishBuild(repoSource, repoOwner, repoName string, buildID int, buildStatus string) error
 	CreateRelease(release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (*contracts.Release, error)
+	FinishRelease(repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) error
+
+	UpdateTriggers(repoSource, repoOwner, repoName string, manifest manifest.EstafetteManifest) error
+	FirePipelineTriggers(build contracts.Build, event string) error
+	FireReleaseTriggers(release contracts.Release, event string) error
 }
 
 type buildServiceImpl struct {
@@ -163,6 +169,7 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 		ReleaseTargets: build.ReleaseTargets,
 		Manifest:       build.Manifest,
 		Commits:        build.Commits,
+		Triggers:       mft.GetAllTriggers(),
 	})
 	if err != nil {
 		return
@@ -208,7 +215,16 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 		}
 	}
 
+	// update triggers from manifest
+	if hasValidManifest {
+		s.UpdateTriggers(build.RepoSource, build.RepoOwner, build.RepoName, mft)
+	}
+
 	return
+}
+
+func (s *buildServiceImpl) FinishBuild(repoSource, repoOwner, repoName string, buildID int, buildStatus string) error {
+	return s.cockroachDBClient.UpdateReleaseStatus(repoSource, repoOwner, repoName, buildID, buildStatus)
 }
 
 func (s *buildServiceImpl) CreateRelease(release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (createdRelease *contracts.Release, err error) {
@@ -308,6 +324,62 @@ func (s *buildServiceImpl) CreateRelease(release contracts.Release, mft manifest
 	}
 
 	return
+}
+
+func (s *buildServiceImpl) FinishRelease(repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) error {
+	return s.cockroachDBClient.UpdateReleaseStatus(repoSource, repoOwner, repoName, releaseID, releaseStatus)
+}
+
+func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event string) error {
+
+	// retrieve all pipeline triggers
+	triggers, err := s.cockroachDBClient.GetPipelineTriggers(build, event)
+	if err != nil {
+		return err
+	}
+
+	// create event object
+	pe := manifest.EstafettePipelineEvent{
+		Event:  event,
+		Status: build.BuildStatus,
+		Name:   fmt.Sprintf("%v/%v/%v", build.RepoSource, build.RepoOwner, build.RepoName),
+		Branch: build.RepoBranch,
+	}
+
+	// check for each whether it should fire
+	for _, t := range triggers {
+		if t.Pipeline.Fires(&pe) {
+			// create new build for t.Run
+		}
+	}
+
+	return nil
+}
+
+func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event string) error {
+
+	triggers, err := s.cockroachDBClient.GetReleaseTriggers(release, event)
+	if err != nil {
+		return err
+	}
+
+	// create event object
+	re := manifest.EstafetteReleaseEvent{
+		Event:  event,
+		Status: release.ReleaseStatus,
+		Name:   fmt.Sprintf("%v/%v/%v", release.RepoSource, release.RepoOwner, release.RepoName),
+		Target: release.Name,
+	}
+
+	// check for each whether it should fire
+	for _, t := range triggers {
+		if t.Release.Fires(&re) {
+			// create new release for t.Run
+		}
+	}
+
+	return nil
+
 }
 
 func (s *buildServiceImpl) getShortRepoSource(repoSource string) string {
