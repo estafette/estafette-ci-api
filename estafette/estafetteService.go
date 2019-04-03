@@ -441,7 +441,7 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 					}
 				} else if t.ReleaseAction != nil {
 					log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(*p, t)
+					err := s.fireRelease(*p, t, fmt.Sprintf("trigger.pipeline { name: %v/%v/%v, event: %v }", build.RepoSource, build.RepoOwner, build.RepoName, event))
 					if err != nil {
 						log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
@@ -491,7 +491,7 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 					}
 				} else if t.ReleaseAction != nil {
 					log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(*p, t)
+					err := s.fireRelease(*p, t, fmt.Sprintf("trigger.release { name: %v/%v/%v, target: %v, event: %v }", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event))
 					if err != nil {
 						log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
@@ -525,7 +525,7 @@ func (s *buildServiceImpl) fireBuild(p contracts.Pipeline, t manifest.EstafetteT
 	return nil
 }
 
-func (s *buildServiceImpl) fireRelease(p contracts.Pipeline, t manifest.EstafetteTrigger) error {
+func (s *buildServiceImpl) fireRelease(p contracts.Pipeline, t manifest.EstafetteTrigger, triggeredBy string) error {
 	if t.ReleaseAction == nil {
 		return fmt.Errorf("Trigger to fire does not have a 'releases' property, shouldn't get to here")
 	}
@@ -537,7 +537,7 @@ func (s *buildServiceImpl) fireRelease(p contracts.Pipeline, t manifest.Estafett
 		RepoOwner:      p.RepoOwner,
 		RepoName:       p.RepoName,
 		ReleaseVersion: p.BuildVersion,
-		TriggeredBy:    "trigger",
+		TriggeredBy:    triggeredBy,
 	}, *p.ManifestObject, p.RepoBranch, p.RepoRevision, true)
 	if err != nil {
 		return err
