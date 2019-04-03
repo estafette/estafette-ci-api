@@ -424,9 +424,13 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 	// check for each whether it should fire
 	for _, p := range pipelines {
 		for _, t := range p.Triggers {
+
+			log.Debug().Interface("event", pe).Interface("trigger", t).Msgf("[trigger:pipeline(%v/%v/%v:%v)] Checking if pipeline '%v/%v/%v' trigger should fire...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName)
+
 			if t.Pipeline == nil {
 				continue
 			}
+
 			if t.Pipeline.Fires(&pe) {
 				// create new build for t.Run
 				if t.BuildAction != nil {
@@ -471,9 +475,13 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 	// check for each whether it should fire
 	for _, p := range pipelines {
 		for _, t := range p.Triggers {
+
+			log.Debug().Interface("event", re).Interface("trigger", t).Msgf("[trigger:release(%v/%v/%v-%v:%v)] Checking if pipeline '%v/%v/%v' trigger should fire...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName)
+
 			if t.Release == nil {
 				continue
 			}
+
 			if t.Release.Fires(&re) {
 				if t.BuildAction != nil {
 					log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
