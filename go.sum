@@ -23,12 +23,12 @@ github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumC
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/ericchiang/k8s v1.2.0 h1:vxrMwEzY43oxu8aZyD/7b1s8tsBM+xoUoxjWECWFbPI=
 github.com/ericchiang/k8s v1.2.0/go.mod h1:/OmBgSq2cd9IANnsGHGlEz27nwMZV2YxlpXuQtU3Bz4=
-github.com/estafette/estafette-ci-contracts v0.0.118 h1:N4TS2p0b5BF/xo/c3cb6iL8FLA5m2PkWrKixKVqHgn4=
-github.com/estafette/estafette-ci-contracts v0.0.118/go.mod h1:/jUZuqDBS/Yz1o4GEv4BqsLu4Z/uDn395HnEoVYN0WA=
+github.com/estafette/estafette-ci-contracts v0.0.119 h1:Kpbzd2X0CM0O9+A3XurXxRxZLo7V6d6LwXpQJ15FQ0I=
+github.com/estafette/estafette-ci-contracts v0.0.119/go.mod h1:OdHqIDH2HygTeJQL+rNYgtKW9iWUSEfRTnY98G8eGFg=
 github.com/estafette/estafette-ci-crypt v0.0.19 h1:a1sRH/ETgs7HtwVSjhsacvDTwmCyIvyySEB9rinkaAQ=
 github.com/estafette/estafette-ci-crypt v0.0.19/go.mod h1:yODzGbzW7Jj0xEFjAv1Is+FHcYaugHUtrPdkJdHV8/c=
-github.com/estafette/estafette-ci-manifest v0.1.92 h1:JjXiFsN6Spt4fYYePubrijowHMxhGn1HkeI3lwu9Rbw=
-github.com/estafette/estafette-ci-manifest v0.1.92/go.mod h1:u+q8CliqPuK87sSh/FAknAPLtMIlBNs/NGzTWvmxniA=
+github.com/estafette/estafette-ci-manifest v0.1.93 h1:BcsSZ4ef+45fEqdxmCSWvwk3fqx65XwAGJo8NgtK+Ko=
+github.com/estafette/estafette-ci-manifest v0.1.93/go.mod h1:u+q8CliqPuK87sSh/FAknAPLtMIlBNs/NGzTWvmxniA=
 github.com/gin-contrib/gzip v0.0.0-20170807063659-ff223ab9f8e3 h1:2YR0fssOmEtQa11ZzEE1QkpjJPBHir/O71d2gue1qGQ=
 github.com/gin-contrib/gzip v0.0.0-20170807063659-ff223ab9f8e3/go.mod h1:Xp4LajbnAl27NCdps5OWT+HTKYKWScmzTCli8Kjs7LE=
 github.com/gin-contrib/sse v0.0.0-20170109093832-22d885f9ecc7 h1:AzN37oI0cOS+cougNAV9szl6CVoj2RYwzS3DpUQNtlY=

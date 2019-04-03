@@ -306,14 +306,14 @@ func (r *EstafetteTriggerReleaseAction) Validate(targetName string) (err error) 
 func (p *EstafettePipelineTrigger) Fires(e *EstafettePipelineEvent) bool {
 
 	// compare event as regex
-	eventMatched, err := regexp.MatchString(p.Event, fmt.Sprintf("^%v$", e.Event))
+	eventMatched, err := regexMatch(p.Event, e.Event)
 	if err != nil || !eventMatched {
 		return false
 	}
 
 	if p.Event == "finished" {
 		// compare status as regex
-		statusMatched, err := regexp.MatchString(p.Status, fmt.Sprintf("^%v$", e.Status))
+		statusMatched, err := regexMatch(p.Status, e.Status)
 		if err != nil || !statusMatched {
 			return false
 		}
@@ -326,7 +326,7 @@ func (p *EstafettePipelineTrigger) Fires(e *EstafettePipelineEvent) bool {
 	}
 
 	// compare branch as regex
-	branchMatched, err := regexp.MatchString(p.Branch, fmt.Sprintf("^%v$", e.Branch))
+	branchMatched, err := regexMatch(p.Branch, e.Branch)
 	if err != nil || !branchMatched {
 		return false
 	}
@@ -337,14 +337,14 @@ func (p *EstafettePipelineTrigger) Fires(e *EstafettePipelineEvent) bool {
 // Fires indicates whether EstafetteReleaseTrigger fires for an EstafetteReleaseEvent
 func (r *EstafetteReleaseTrigger) Fires(e *EstafetteReleaseEvent) bool {
 	// compare event as regex
-	eventMatched, err := regexp.MatchString(r.Event, fmt.Sprintf("^%v$", e.Event))
+	eventMatched, err := regexMatch(r.Event, e.Event)
 	if err != nil || !eventMatched {
 		return false
 	}
 
 	if r.Event == "finished" {
 		// compare status as regex
-		statusMatched, err := regexp.MatchString(r.Status, fmt.Sprintf("^%v$", e.Status))
+		statusMatched, err := regexMatch(r.Status, e.Status)
 		if err != nil || !statusMatched {
 			return false
 		}
@@ -357,7 +357,7 @@ func (r *EstafetteReleaseTrigger) Fires(e *EstafetteReleaseEvent) bool {
 	}
 
 	// compare branch as regex
-	branchMatched, err := regexp.MatchString(r.Target, fmt.Sprintf("^%v$", e.Target))
+	branchMatched, err := regexMatch(r.Target, e.Target)
 	if err != nil || !branchMatched {
 		return false
 	}
@@ -378,4 +378,34 @@ func (d *EstafetteDockerTrigger) Fires(e *EstafetteDockerEvent) bool {
 // Fires indicates whether EstafetteCronTrigger fires for an EstafetteCronEvent
 func (c *EstafetteCronTrigger) Fires(e *EstafetteCronEvent) bool {
 	return false
+}
+
+func regexMatch(pattern, value string) (bool, error) {
+
+	// check to see if the pattern starts with any of the promql regex operators, so we can do negations
+	// =~ : Select labels that regex-match the provided string (or substring).
+	// !~ : Select labels that do not regex-match the provided string (or substring).
+
+	negativeMatching := false
+	if strings.HasPrefix(pattern, "=~") {
+		negativeMatching = false
+		pattern = strings.TrimPrefix(pattern, "=~")
+	} else if strings.HasPrefix(pattern, "!~") {
+		negativeMatching = true
+		pattern = strings.TrimPrefix(pattern, "!~")
+	}
+
+	pattern = fmt.Sprintf("^%v$", strings.TrimSpace(pattern))
+
+	match, err := regexp.MatchString(pattern, value)
+
+	if err != nil {
+		return false, err
+	}
+
+	if negativeMatching {
+		return !match, nil
+	}
+
+	return match, nil
 }
