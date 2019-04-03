@@ -403,7 +403,7 @@ func (s *buildServiceImpl) FinishRelease(repoSource, repoOwner, repoName string,
 
 func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event string) error {
 
-	log.Info().Msgf("[%v/%v/%v:%v] Checking if triggers need to be fired...", build.RepoSource, build.RepoOwner, build.RepoName, event)
+	log.Info().Msgf("[trigger:%v/%v/%v:%v] Checking if triggers need to be fired...", build.RepoSource, build.RepoOwner, build.RepoName, event)
 
 	// retrieve all pipeline triggers
 	pipelines, err := s.cockroachDBClient.GetPipelineTriggers(build, event)
@@ -430,16 +430,16 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 			if t.Pipeline.Fires(&pe) {
 				// create new build for t.Run
 				if t.BuildAction != nil {
-					log.Info().Msgf("[%v/%v/%v:%v] Firing build action '%v/%v/%v', branch '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+					log.Info().Msgf("[trigger:%v/%v/%v:%v] Firing build action '%v/%v/%v', branch '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					err := s.fireBuild(*p, t)
 					if err != nil {
-						log.Info().Msgf("[%v/%v/%v:%v] Failed starting build action'%v/%v/%v', branch '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						log.Info().Msgf("[trigger:%v/%v/%v:%v] Failed starting build action'%v/%v/%v', branch '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					}
 				} else if t.ReleaseAction != nil {
-					log.Info().Msgf("[%v/%v/%v:%v] Firing release action '%v/%v/%v', target '%v', action '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+					log.Info().Msgf("[trigger:%v/%v/%v:%v] Firing release action '%v/%v/%v', target '%v', action '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					err := s.fireRelease(*p, t)
 					if err != nil {
-						log.Info().Msgf("[%v/%v/%v:%v] Failed starting release action '%v/%v/%v', target '%v', action '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						log.Info().Msgf("[trigger:%v/%v/%v:%v] Failed starting release action '%v/%v/%v', target '%v', action '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
 				}
 			}
@@ -451,7 +451,7 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 
 func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event string) error {
 
-	log.Info().Msgf("[%v/%v/%v-%v:%v] Checking if triggers need to be fired...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
+	log.Info().Msgf("[trigger:%v/%v/%v-%v:%v] Checking if triggers need to be fired...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
 
 	pipelines, err := s.cockroachDBClient.GetReleaseTriggers(release, event)
 	if err != nil {
@@ -476,16 +476,16 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 			}
 			if t.Release.Fires(&re) {
 				if t.BuildAction != nil {
-					log.Info().Msgf("[%v/%v/%v-%v:%v] Firing build action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+					log.Info().Msgf("[trigger:%v/%v/%v-%v:%v] Firing build action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					err := s.fireBuild(*p, t)
 					if err != nil {
-						log.Info().Msgf("[%v/%v/%v-%v:%v] Failed starting build action '%v/%v/%v', branch '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						log.Info().Msgf("[trigger:%v/%v/%v-%v:%v] Failed starting build action '%v/%v/%v', branch '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					}
 				} else if t.ReleaseAction != nil {
-					log.Info().Msgf("[%v/%v/%v-%v:%v] Firing release action '%v/%v/%v', target '%v', action '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+					log.Info().Msgf("[trigger:%v/%v/%v-%v:%v] Firing release action '%v/%v/%v', target '%v', action '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					err := s.fireRelease(*p, t)
 					if err != nil {
-						log.Info().Msgf("[%v/%v/%v-%v:%v] Failed starting release action '%v/%v/%v', target '%v', action '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						log.Info().Msgf("[trigger:%v/%v/%v-%v:%v] Failed starting release action '%v/%v/%v', target '%v', action '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
 				}
 			}
