@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
@@ -23,16 +22,16 @@ type EventHandler interface {
 type eventHandlerImpl struct {
 	config                       config.APIServerConfig
 	ciBuilderClient              CiBuilderClient
-	cockroachDBClient            cockroach.DBClient
+	buildService                 BuildService
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewEstafetteEventHandler returns a new estafette.EventHandler
-func NewEstafetteEventHandler(config config.APIServerConfig, ciBuilderClient CiBuilderClient, cockroachDBClient cockroach.DBClient, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewEstafetteEventHandler(config config.APIServerConfig, ciBuilderClient CiBuilderClient, buildService BuildService, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		config:                       config,
 		ciBuilderClient:              ciBuilderClient,
-		cockroachDBClient:            cockroachDBClient,
+		buildService:                 buildService,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
 }
@@ -128,7 +127,7 @@ func (h *eventHandlerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) (err
 
 		log.Debug().Msgf("Converted release id %v", releaseID)
 
-		err = h.cockroachDBClient.UpdateReleaseStatus(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, releaseID, ciBuilderEvent.BuildStatus)
+		err = h.buildService.FinishRelease(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, releaseID, ciBuilderEvent.BuildStatus)
 		if err != nil {
 			return err
 		}
@@ -146,7 +145,7 @@ func (h *eventHandlerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) (err
 
 		log.Debug().Msgf("Converted build id %v", buildID)
 
-		err = h.cockroachDBClient.UpdateBuildStatus(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, buildID, ciBuilderEvent.BuildStatus)
+		err = h.buildService.FinishBuild(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, buildID, ciBuilderEvent.BuildStatus)
 		if err != nil {
 			return err
 		}

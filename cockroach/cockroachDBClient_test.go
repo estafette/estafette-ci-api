@@ -34,7 +34,7 @@ func TestQueryBuilder(t *testing.T) {
 		sql, _, err := query.ToSql()
 
 		assert.Nil(t, err)
-		assert.Equal(t, "SELECT a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.inserted_at, a.updated_at, a.duration::INT FROM builds a", sql)
+		assert.Equal(t, "SELECT a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT FROM builds a", sql)
 	})
 
 	t.Run("GeneratesQueryWithStatusFilter", func(t *testing.T) {
@@ -51,7 +51,7 @@ func TestQueryBuilder(t *testing.T) {
 		sql, _, err := query.ToSql()
 
 		assert.Nil(t, err)
-		assert.Equal(t, "SELECT a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.inserted_at, a.updated_at, a.duration::INT FROM builds a WHERE a.build_status IN ($1)", sql)
+		assert.Equal(t, "SELECT a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT FROM builds a WHERE a.build_status IN ($1)", sql)
 	})
 
 	t.Run("GeneratesQueryWithSinceFilter", func(t *testing.T) {
@@ -68,7 +68,7 @@ func TestQueryBuilder(t *testing.T) {
 		sql, _, err := query.ToSql()
 
 		assert.Nil(t, err)
-		assert.Equal(t, "SELECT a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.inserted_at, a.updated_at, a.duration::INT FROM builds a WHERE a.inserted_at >= $1", sql)
+		assert.Equal(t, "SELECT a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT FROM builds a WHERE a.inserted_at >= $1", sql)
 	})
 
 	t.Run("GeneratesQueryWithLabelsFilter", func(t *testing.T) {
@@ -85,7 +85,7 @@ func TestQueryBuilder(t *testing.T) {
 		sql, _, err := query.ToSql()
 
 		assert.Nil(t, err)
-		assert.Equal(t, "SELECT a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.inserted_at, a.updated_at, a.duration::INT FROM builds a WHERE a.labels @> $1", sql)
+		assert.Equal(t, "SELECT a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT FROM builds a WHERE a.labels @> $1", sql)
 	})
 
 	t.Run("GeneratesQueryWithLabelsFilterAndOrderBy", func(t *testing.T) {
@@ -107,7 +107,7 @@ func TestQueryBuilder(t *testing.T) {
 		sql, _, err := query.ToSql()
 
 		assert.Nil(t, err)
-		assert.Equal(t, "SELECT a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.inserted_at, a.updated_at, a.duration::INT FROM builds a WHERE a.labels @> $1 ORDER BY a.inserted_at DESC LIMIT 15 OFFSET 15", sql)
+		assert.Equal(t, "SELECT a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT FROM builds a WHERE a.labels @> $1 ORDER BY a.inserted_at DESC LIMIT 15 OFFSET 15", sql)
 	})
 
 	t.Run("GeneratesGetPipelinesQuery", func(t *testing.T) {
@@ -121,7 +121,7 @@ func TestQueryBuilder(t *testing.T) {
 		sql, _, err := query.ToSql()
 
 		assert.Nil(t, err)
-		assert.Equal(t, "SELECT a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.inserted_at, a.updated_at, a.duration::INT FROM computed_pipelines a ORDER BY a.repo_source,a.repo_owner,a.repo_name LIMIT 2 OFFSET 20", sql)
+		assert.Equal(t, "SELECT a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT FROM computed_pipelines a ORDER BY a.repo_source,a.repo_owner,a.repo_name LIMIT 2 OFFSET 20", sql)
 	})
 
 	t.Run("GeneratesFrequentLabelsQuery", func(t *testing.T) {
@@ -177,5 +177,4 @@ func TestAutoincrement(t *testing.T) {
 
 		assert.Equal(t, 126, autoincrement)
 	})
-
 }

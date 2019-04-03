@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/estafette/estafette-ci-api/cockroach"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -15,7 +16,13 @@ import (
 // BuildService encapsulates build and release creation and re-triggering
 type BuildService interface {
 	CreateBuild(build contracts.Build, waitForJobToStart bool) (*contracts.Build, error)
+	FinishBuild(repoSource, repoOwner, repoName string, buildID int, buildStatus string) error
 	CreateRelease(release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (*contracts.Release, error)
+	FinishRelease(repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) error
+
+	FirePipelineTriggers(build contracts.Build, event string) error
+	FireReleaseTriggers(release contracts.Release, event string) error
+	FireCronTriggers() error
 }
 
 type buildServiceImpl struct {
@@ -42,9 +49,9 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 
 	// validate manifest
 	hasValidManifest := false
-	mft, err := manifest.ReadManifest(build.Manifest)
-	if err != nil {
-		log.Warn().Err(err).Str("manifest", build.Manifest).Msgf("Deserializing Estafette manifest for pipeline %v/%v/%v and revision %v failed, continuing though so developer gets useful feedback", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+	mft, manifestError := manifest.ReadManifest(build.Manifest)
+	if manifestError != nil {
+		log.Warn().Err(manifestError).Str("manifest", build.Manifest).Msgf("Deserializing Estafette manifest for pipeline %v/%v/%v and revision %v failed, continuing though so developer gets useful feedback", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 	} else {
 		hasValidManifest = true
 	}
@@ -163,6 +170,7 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 		ReleaseTargets: build.ReleaseTargets,
 		Manifest:       build.Manifest,
 		Commits:        build.Commits,
+		Triggers:       mft.GetAllTriggers(),
 	})
 	if err != nil {
 		return
@@ -206,9 +214,67 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 				}
 			}(ciBuilderParams)
 		}
+
+		// handle triggers
+		go func() {
+			s.FirePipelineTriggers(build, "started")
+		}()
+	} else if manifestError != nil {
+		// store log with manifest unmarshalling error
+		buildLog := contracts.BuildLog{
+			RepoSource:   build.RepoSource,
+			RepoOwner:    build.RepoOwner,
+			RepoName:     build.RepoName,
+			RepoBranch:   build.RepoBranch,
+			RepoRevision: build.RepoRevision,
+			Steps: []contracts.BuildLogStep{
+				contracts.BuildLogStep{
+					Step:         "validate-manifest",
+					Image:        nil,
+					ExitCode:     1,
+					Status:       "failed",
+					AutoInjected: true,
+					RunIndex:     0,
+					LogLines: []contracts.BuildLogLine{
+						contracts.BuildLogLine{
+							LineNumber: 1,
+							Timestamp:  time.Now().UTC(),
+							StreamType: "stderr",
+							Text:       manifestError.Error(),
+						},
+					},
+				},
+			},
+		}
+
+		err = s.cockroachDBClient.InsertBuildLog(buildLog)
+		if err != nil {
+			log.Warn().Err(err).Msgf("Failed inserting build log for invalid manifest")
+		}
 	}
 
 	return
+}
+
+func (s *buildServiceImpl) FinishBuild(repoSource, repoOwner, repoName string, buildID int, buildStatus string) error {
+
+	err := s.cockroachDBClient.UpdateBuildStatus(repoSource, repoOwner, repoName, buildID, buildStatus)
+	if err != nil {
+		return err
+	}
+
+	// handle triggers
+	go func() {
+		build, err := s.cockroachDBClient.GetPipelineBuildByID(repoSource, repoOwner, repoName, buildID, false)
+		if err != nil {
+			return
+		}
+		if build != nil {
+			s.FirePipelineTriggers(*build, "finished")
+		}
+	}()
+
+	return nil
 }
 
 func (s *buildServiceImpl) CreateRelease(release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (createdRelease *contracts.Release, err error) {
@@ -307,7 +373,191 @@ func (s *buildServiceImpl) CreateRelease(release contracts.Release, mft manifest
 		}(ciBuilderParams)
 	}
 
+	// handle triggers
+	go func() {
+		s.FireReleaseTriggers(release, "started")
+	}()
+
 	return
+}
+
+func (s *buildServiceImpl) FinishRelease(repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) error {
+	err := s.cockroachDBClient.UpdateReleaseStatus(repoSource, repoOwner, repoName, releaseID, releaseStatus)
+	if err != nil {
+		return err
+	}
+
+	// handle triggers
+	go func() {
+		release, err := s.cockroachDBClient.GetPipelineRelease(repoSource, repoOwner, repoName, releaseID)
+		if err != nil {
+			return
+		}
+		if release != nil {
+			s.FireReleaseTriggers(*release, "finished")
+		}
+	}()
+
+	return nil
+}
+
+func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event string) error {
+
+	log.Info().Msgf("Checking if triggers for pipeline '%v/%v/%v', event '%v' need to be fired...", build.RepoSource, build.RepoOwner, build.RepoName, event)
+
+	// retrieve all pipeline triggers
+	pipelines, err := s.cockroachDBClient.GetPipelineTriggers(build, event)
+	if err != nil {
+		return err
+	}
+
+	// create event object
+	pe := manifest.EstafettePipelineEvent{
+		RepoSource: build.RepoSource,
+		RepoOwner:  build.RepoOwner,
+		RepoName:   build.RepoName,
+		Branch:     build.RepoBranch,
+		Status:     build.BuildStatus,
+		Event:      event,
+	}
+
+	// check for each whether it should fire
+	for _, p := range pipelines {
+		for _, t := range p.Triggers {
+			if t.Pipeline == nil {
+				continue
+			}
+			if t.Pipeline.Fires(&pe) {
+				// create new build for t.Run
+				log.Info().Msgf("Firing '%v' because of pipeline '%v/%v/%v', event '%v'", pe, build.RepoSource, build.RepoOwner, build.RepoName, event)
+
+				if t.BuildAction != nil {
+
+				} else if t.ReleaseAction != nil {
+					err := s.fireRelease(*p, t)
+					if err != nil {
+						log.Error().Err(err).Msgf("Failed creating release for event '%v' fired because of pipeline '%v/%v/%v', event '%v'", pe, build.RepoSource, build.RepoOwner, build.RepoName, event)
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event string) error {
+
+	log.Info().Msgf("Checking if triggers for pipeline '%v/%v/%v', release target '%v', event '%v' need to be fired...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
+
+	pipelines, err := s.cockroachDBClient.GetReleaseTriggers(release, event)
+	if err != nil {
+		return err
+	}
+
+	// create event object
+	re := manifest.EstafetteReleaseEvent{
+		RepoSource: release.RepoSource,
+		RepoOwner:  release.RepoOwner,
+		RepoName:   release.RepoName,
+		Target:     release.Name,
+		Status:     release.ReleaseStatus,
+		Event:      event,
+	}
+
+	// check for each whether it should fire
+	for _, p := range pipelines {
+		for _, t := range p.Triggers {
+			if t.Release == nil {
+				continue
+			}
+			if t.Release.Fires(&re) {
+				// create new release for t.Run
+				log.Info().Msgf("Firing '%v' because of pipeline '%v/%v/%v', release target '%v', event '%v'", re, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
+
+				if t.BuildAction != nil {
+
+				} else if t.ReleaseAction != nil {
+					err := s.fireRelease(*p, t)
+					if err != nil {
+						log.Error().Err(err).Msgf("Failed creating release for event '%v' fired because of pipeline '%v/%v/%v', release target '%v', event '%v'", re, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *buildServiceImpl) fireBuild(p contracts.Pipeline, t manifest.EstafetteTrigger) error {
+	if t.BuildAction == nil {
+		return fmt.Errorf("Trigger to fire does not have a 'builds' property, shouldn't get to here")
+	}
+
+	// get last build for branch defined in 'builds' section
+	lastBuildForBranch, err := s.cockroachDBClient.GetLastPipelineBuildForBranch(p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+
+	if lastBuildForBranch == nil {
+		return fmt.Errorf("There's no build for pipeline '%v/%v/%v' branch '%v', cannot trigger one", p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+	}
+
+	// empty the build version so a new one gets created
+	lastBuildForBranch.BuildVersion = ""
+
+	_, err = s.CreateBuild(*lastBuildForBranch, true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *buildServiceImpl) fireRelease(p contracts.Pipeline, t manifest.EstafetteTrigger) error {
+	if t.ReleaseAction == nil {
+		return fmt.Errorf("Trigger to fire does not have a 'releases' property, shouldn't get to here")
+	}
+
+	_, err := s.CreateRelease(contracts.Release{
+		Name:           t.ReleaseAction.Target,
+		Action:         t.ReleaseAction.Action,
+		RepoSource:     p.RepoSource,
+		RepoOwner:      p.RepoOwner,
+		RepoName:       p.RepoName,
+		ReleaseVersion: p.BuildVersion,
+		TriggeredBy:    "trigger",
+	}, *p.ManifestObject, p.RepoBranch, p.RepoRevision, true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *buildServiceImpl) FireCronTriggers() error {
+
+	log.Info().Msgf("Checking if triggers for cron need to be fired...")
+
+	pipelines, err := s.cockroachDBClient.GetCronTriggers()
+	if err != nil {
+		return err
+	}
+
+	// create event object
+	ce := manifest.EstafetteCronEvent{}
+
+	// check for each whether it should fire
+	for _, p := range pipelines {
+		for _, t := range p.Triggers {
+			if t.Cron == nil {
+				continue
+			}
+			if t.Cron.Fires(&ce) {
+				// create new release for t.Run
+				log.Info().Msgf("Firing %v because of cron", ce)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (s *buildServiceImpl) getShortRepoSource(repoSource string) string {
