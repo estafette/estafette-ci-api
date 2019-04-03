@@ -10,7 +10,7 @@ triggers:
     status: succeeded
     name: github.com/estafette/estafette-ci-manifest
     branch: master
-  run:
+  builds:
     branch: master
 - git:
     event: push
@@ -39,8 +39,6 @@ releases:
     - pipeline:
         name: github.com/estafette/estafette-ci-builder
         branch: .*
-      run:
-        branch: master
     - cron: 
         expression: '0 10 */1 * *'
 
@@ -58,8 +56,7 @@ releases:
     - release:
         name: github.com/estafette/estafette-ci-builder
         target: development
-      run:
-        branch: .*
+      releases:
         action: deploy-canary
 
     stages:

@@ -431,20 +431,14 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 				// create new build for t.Run
 				log.Info().Msgf("Firing '%v' because of pipeline '%v/%v/%v', event '%v'", pe, build.RepoSource, build.RepoOwner, build.RepoName, event)
 
-				switch t.Run.TriggerType {
-				case "build":
-					break
+				if t.BuildAction != nil {
 
-				case "release":
-
+				} else if t.ReleaseAction != nil {
 					err := s.fireRelease(*p, t)
 					if err != nil {
 						log.Error().Err(err).Msgf("Failed creating release for event '%v' fired because of pipeline '%v/%v/%v', event '%v'", pe, build.RepoSource, build.RepoOwner, build.RepoName, event)
 					}
-
-					break
 				}
-
 			}
 		}
 	}
@@ -481,18 +475,13 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 				// create new release for t.Run
 				log.Info().Msgf("Firing '%v' because of pipeline '%v/%v/%v', release target '%v', event '%v'", re, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
 
-				switch t.Run.TriggerType {
-				case "build":
-					break
+				if t.BuildAction != nil {
 
-				case "release":
-
+				} else if t.ReleaseAction != nil {
 					err := s.fireRelease(*p, t)
 					if err != nil {
 						log.Error().Err(err).Msgf("Failed creating release for event '%v' fired because of pipeline '%v/%v/%v', release target '%v', event '%v'", re, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
 					}
-
-					break
 				}
 			}
 		}
@@ -501,10 +490,36 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 	return nil
 }
 
+func (s *buildServiceImpl) fireBuild(p contracts.Pipeline, t manifest.EstafetteTrigger) error {
+	if t.BuildAction == nil {
+		return fmt.Errorf("Trigger to fire does not have a 'builds' property, shouldn't get to here")
+	}
+
+	// get last build for branch defined in 'builds' section
+	lastBuildForBranch, err := s.cockroachDBClient.GetLastPipelineBuildForBranch(p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+
+	if lastBuildForBranch == nil {
+		return fmt.Errorf("There's no build for pipeline '%v/%v/%v' branch '%v', cannot trigger one", p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+	}
+
+	// empty the build version so a new one gets created
+	lastBuildForBranch.BuildVersion = ""
+
+	_, err = s.CreateBuild(*lastBuildForBranch, true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *buildServiceImpl) fireRelease(p contracts.Pipeline, t manifest.EstafetteTrigger) error {
+	if t.ReleaseAction == nil {
+		return fmt.Errorf("Trigger to fire does not have a 'releases' property, shouldn't get to here")
+	}
+
 	_, err := s.CreateRelease(contracts.Release{
-		Name:           t.Run.TargetName,
-		Action:         t.Run.ActionToRelease,
+		Name:           t.ReleaseAction.Target,
+		Action:         t.ReleaseAction.Action,
 		RepoSource:     p.RepoSource,
 		RepoOwner:      p.RepoOwner,
 		RepoName:       p.RepoName,

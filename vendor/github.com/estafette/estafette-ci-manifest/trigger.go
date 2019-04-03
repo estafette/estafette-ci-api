@@ -13,7 +13,9 @@ type EstafetteTrigger struct {
 	Git      *EstafetteGitTrigger      `yaml:"git,omitempty" json:"git,omitempty"`
 	Docker   *EstafetteDockerTrigger   `yaml:"docker,omitempty" json:"docker,omitempty"`
 	Cron     *EstafetteCronTrigger     `yaml:"cron,omitempty" json:"cron,omitempty"`
-	Run      EstafetteTriggerRun       `yaml:"run,omitempty" json:"run,omitempty"`
+
+	BuildAction   *EstafetteTriggerBuildAction   `yaml:"builds,omitempty" json:"builds,omitempty"`
+	ReleaseAction *EstafetteTriggerReleaseAction `yaml:"releases,omitempty" json:"releases,omitempty"`
 }
 
 // EstafettePipelineTrigger fires for pipeline changes and applies filtering to limit when this results in an action
@@ -51,12 +53,15 @@ type EstafetteCronTrigger struct {
 	Expression string `yaml:"expression,omitempty" json:"expression,omitempty"`
 }
 
-// EstafetteTriggerRun determines what builds/releases when
-type EstafetteTriggerRun struct {
-	TriggerType     string `yaml:"type,omitempty" json:"type,omitempty"`
-	TargetName      string `yaml:"target,omitempty" json:"target,omitempty"`
-	BranchToBuild   string `yaml:"branch,omitempty" json:"branch,omitempty"`
-	ActionToRelease string `yaml:"action,omitempty" json:"action,omitempty"`
+// EstafetteTriggerBuildAction determines what builds when the trigger fires
+type EstafetteTriggerBuildAction struct {
+	Branch string `yaml:"branch,omitempty" json:"branch,omitempty"`
+}
+
+// EstafetteTriggerReleaseAction determines what releases when the trigger fires
+type EstafetteTriggerReleaseAction struct {
+	Target string `yaml:"target,omitempty" json:"target,omitempty"`
+	Action string `yaml:"action,omitempty" json:"action,omitempty"`
 }
 
 // SetDefaults sets defaults for EstafetteTrigger
@@ -77,7 +82,20 @@ func (t *EstafetteTrigger) SetDefaults(triggerType, targetName string) {
 		t.Cron.SetDefaults()
 	}
 
-	t.Run.SetDefaults(triggerType, targetName)
+	switch triggerType {
+	case "build":
+		if t.BuildAction == nil {
+			t.BuildAction = &EstafetteTriggerBuildAction{}
+		}
+		t.BuildAction.SetDefaults()
+		break
+	case "release":
+		if t.ReleaseAction == nil {
+			t.ReleaseAction = &EstafetteTriggerReleaseAction{}
+		}
+		t.ReleaseAction.SetDefaults(targetName)
+		break
+	}
 }
 
 // SetDefaults sets defaults for EstafettePipelineTrigger
@@ -121,17 +139,20 @@ func (d *EstafetteDockerTrigger) SetDefaults() {
 func (c *EstafetteCronTrigger) SetDefaults() {
 }
 
-// SetDefaults sets defaults for EstafetteTriggerRun
-func (r *EstafetteTriggerRun) SetDefaults(triggerType, targetName string) {
-	r.TriggerType = triggerType
-	r.TargetName = targetName
-	if r.BranchToBuild == "" {
-		r.BranchToBuild = "master"
+// SetDefaults sets defaults for EstafetteTriggerBuildAction
+func (b *EstafetteTriggerBuildAction) SetDefaults() {
+	if b.Branch == "" {
+		b.Branch = "master"
 	}
 }
 
+// SetDefaults sets defaults for EstafetteTriggerReleaseAction
+func (r *EstafetteTriggerReleaseAction) SetDefaults(targetName string) {
+	r.Target = targetName
+}
+
 // Validate checks if EstafetteTrigger is valid
-func (t *EstafetteTrigger) Validate() (err error) {
+func (t *EstafetteTrigger) Validate(triggerType, targetName string) (err error) {
 
 	numberOfTypes := 0
 
@@ -183,9 +204,32 @@ func (t *EstafetteTrigger) Validate() (err error) {
 		return fmt.Errorf("Do not specify more than one type of trigger 'pipeline', 'release', 'git', 'docker' or 'cron' per trigger object")
 	}
 
-	err = t.Run.Validate()
-	if err != nil {
-		return err
+	switch triggerType {
+	case "build":
+		if t.BuildAction == nil {
+			return fmt.Errorf("For a build trigger set the 'builds' property")
+		}
+		if t.ReleaseAction != nil {
+			return fmt.Errorf("For a build trigger do not set the 'releases' property")
+		}
+		err = t.BuildAction.Validate()
+		if err != nil {
+			return err
+		}
+
+		break
+	case "release":
+		if t.ReleaseAction == nil {
+			return fmt.Errorf("For a release trigger set the 'releases' property")
+		}
+		if t.BuildAction != nil {
+			return fmt.Errorf("For a release trigger do not set the 'builds' property")
+		}
+		err = t.ReleaseAction.Validate(targetName)
+		if err != nil {
+			return err
+		}
+		break
 	}
 
 	return nil
@@ -243,8 +287,18 @@ func (c *EstafetteCronTrigger) Validate() (err error) {
 	return nil
 }
 
-// Validate checks if EstafetteTriggerRun is valid
-func (r *EstafetteTriggerRun) Validate() (err error) {
+// Validate checks if EstafetteTriggerBuildAction is valid
+func (b *EstafetteTriggerBuildAction) Validate() (err error) {
+	return nil
+}
+
+// Validate checks if EstafetteTriggerReleaseAction is valid
+func (r *EstafetteTriggerReleaseAction) Validate(targetName string) (err error) {
+
+	if r.Target != targetName {
+		return fmt.Errorf("The target in your releases action should have defaulted to '%v'", targetName)
+	}
+
 	return nil
 }
 

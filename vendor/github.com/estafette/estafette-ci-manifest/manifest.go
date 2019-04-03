@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -146,6 +147,32 @@ func (c *EstafetteManifest) setDefaults() {
 	}
 }
 
+// Validate checks if the manifest is valid
+func (c *EstafetteManifest) Validate() (err error) {
+
+	if len(c.Stages) == 0 {
+		return fmt.Errorf("The manifest should define 1 or more stages")
+	}
+
+	for _, t := range c.Triggers {
+		err = t.Validate("build", "")
+		if err != nil {
+			return
+		}
+	}
+
+	for _, r := range c.Releases {
+		for _, t := range r.Triggers {
+			err = t.Validate("release", r.Name)
+			if err != nil {
+				return
+			}
+		}
+	}
+
+	return nil
+}
+
 // GetAllTriggers returns both build and release triggers as one list
 func (c *EstafetteManifest) GetAllTriggers() []EstafetteTrigger {
 	// collect both build and release triggers
@@ -192,10 +219,19 @@ func ReadManifestFromFile(manifestPath string) (manifest EstafetteManifest, err 
 		return manifest, err
 	}
 
+	// unmarshal strict, so non-defined properties or incorrect nesting will fail
 	if err := yaml.UnmarshalStrict(data, &manifest); err != nil {
 		return manifest, err
 	}
+
+	// set defaults
 	manifest.setDefaults()
+
+	// check if manifest is valid
+	err = manifest.Validate()
+	if err != nil {
+		return manifest, err
+	}
 
 	log.Info().Msgf("Finished reading %v file successfully", manifestPath)
 
@@ -207,10 +243,19 @@ func ReadManifest(manifestString string) (manifest EstafetteManifest, err error)
 
 	log.Info().Msg("Reading manifest from string...")
 
+	// unmarshal strict, so non-defined properties or incorrect nesting will fail
 	if err := yaml.UnmarshalStrict([]byte(manifestString), &manifest); err != nil {
 		return manifest, err
 	}
+
+	// set defaults
 	manifest.setDefaults()
+
+	// check if manifest is valid
+	err = manifest.Validate()
+	if err != nil {
+		return manifest, err
+	}
 
 	log.Info().Msg("Finished unmarshalling manifest from string successfully")
 
