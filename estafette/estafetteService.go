@@ -56,6 +56,12 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 		hasValidManifest = true
 	}
 
+	// if manifest is invalid get the pipeline in order to use same labels as normally
+	var pipeline *contracts.Pipeline
+	if !hasValidManifest {
+		pipeline, _ = s.cockroachDBClient.GetPipeline(build.RepoSource, build.RepoOwner, build.RepoName, false)
+	}
+
 	// set builder track
 	builderTrack := "stable"
 	if hasValidManifest {
@@ -130,6 +136,8 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 			}
 		}
 		build.Labels = labels
+	} else if !hasValidManifest && pipeline != nil {
+		build.Labels = pipeline.Labels
 	}
 
 	if len(build.ReleaseTargets) == 0 {
@@ -149,6 +157,8 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 			}
 		}
 		build.ReleaseTargets = releaseTargets
+	} else if !hasValidManifest && pipeline != nil {
+		build.ReleaseTargets = pipeline.ReleaseTargets
 	}
 
 	// get authenticated url
