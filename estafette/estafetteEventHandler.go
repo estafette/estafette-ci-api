@@ -40,7 +40,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
 		log.Error().Msgf("Authentication for /api/commands failed")
-		c.AbortWithStatus(http.StatusUnauthorized)
+		c.Status(http.StatusUnauthorized)
+		return
 	}
 
 	eventType := c.GetHeader("X-Estafette-Event")
@@ -80,7 +81,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		if err != nil {
 			errorMessage := fmt.Sprintf("Failed updating build status for job %v to %v, not removing the job", eventJobname, ciBuilderEvent.BuildStatus)
 			log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)
-			c.AbortWithError(http.StatusInternalServerError, fmt.Errorf(errorMessage))
+			c.String(http.StatusInternalServerError, errorMessage)
+			return
 		}
 
 	case "builder:clean":

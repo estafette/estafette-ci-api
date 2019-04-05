@@ -62,13 +62,15 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	err := c.Bind(&slashCommand)
 	if err != nil {
 		log.Error().Err(err).Msg("Binding form data from Slack command webhook failed")
-		c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("Binding form data from Slack command webhook failed"))
+		c.String(http.StatusInternalServerError, "Binding form data from Slack command webhook failed")
+		return
 	}
 
 	hasValidVerificationToken := h.HasValidVerificationToken(slashCommand)
 	if !hasValidVerificationToken {
 		log.Warn().Str("expectedToken", h.config.AppVerificationToken).Str("actualToken", slashCommand.Token).Msg("Verification token for Slack command is invalid")
-		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("Verification token for Slack command is invalid"))
+		c.String(http.StatusBadRequest, "Verification token for Slack command is invalid")
+		return
 	}
 
 	if slashCommand.Command == "/estafette" {
@@ -83,10 +85,12 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					encryptedString, err := h.secretHelper.Encrypt(strings.Join(arguments, " "))
 					if err != nil {
 						log.Error().Err(err).Interface("slashCommand", slashCommand).Msg("Failed to encrypt secret")
-						c.AbortWithError(http.StatusOK, fmt.Errorf("Incorrect usage of /estafette encrypt"))
+						c.String(http.StatusOK, "Incorrect usage of /estafette encrypt")
+						return
 					}
 
-					c.AbortWithError(http.StatusOK, fmt.Errorf("estafette.secret(%v)", encryptedString))
+					c.String(http.StatusOK, fmt.Sprintf("estafette.secret(%v)", encryptedString))
+					return
 
 				case "release":
 
@@ -102,7 +106,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					// /estafette release github.com/estafette/estafette-ci-api beta 0.0.130
 
 					if len(arguments) < 3 {
-						c.AbortWithError(http.StatusOK, fmt.Errorf("You have to few arguments, the command has to be of type /estafette release <repo> <release> <version>"))
+						c.String(http.StatusOK, "You have to few arguments, the command has to be of type /estafette release <repo> <release> <version>")
+						return
 					}
 
 					// retrieve pipeline with first argument
@@ -112,7 +117,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 					fullRepoNameArray := strings.Split(fullRepoName, "/")
 					if len(fullRepoNameArray) != 1 && len(fullRepoNameArray) != 3 {
-						c.AbortWithError(http.StatusOK, fmt.Errorf("Your repository needs to be of the form <repo name> or <repo source>/<repo owner>/<repo name>"))
+						c.String(http.StatusOK, "Your repository needs to be of the form <repo name> or <repo source>/<repo owner>/<repo name>")
+						return
 					}
 
 					var pipeline *contracts.Pipeline
@@ -120,26 +126,31 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 						pipelines, err := h.cockroachDBClient.GetPipelinesByRepoName(fullRepoName, false)
 						if err != nil {
 							log.Error().Err(err).Msgf("Failed retrieving pipelines for repo name %v by name", fullRepoName)
-							c.AbortWithError(http.StatusOK, fmt.Errorf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
+							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
+							return
 						}
 						if len(pipelines) <= 0 {
-							c.AbortWithError(http.StatusOK, fmt.Errorf("The repo %v in your command does not have any estafette builds", fullRepoName))
+							c.String(http.StatusOK, fmt.Sprintf("The repo %v in your command does not have any estafette builds", fullRepoName))
+							return
 						}
 						if len(pipelines) > 1 {
 							commandsExample := ""
 							for _, p := range pipelines {
 								commandsExample += fmt.Sprintf("/estafette release %v/%v/%v %v %v\n", p.RepoSource, p.RepoOwner, p.RepoName, releaseName, buildVersion)
 							}
-							c.AbortWithError(http.StatusOK, fmt.Errorf("There are multiple pipelines with name %v, use the full name instead:\n%v", fullRepoName, commandsExample))
+							c.String(http.StatusOK, fmt.Sprintf("There are multiple pipelines with name %v, use the full name instead:\n%v", fullRepoName, commandsExample))
+							return
 						}
 						pipeline = pipelines[0]
 					} else {
 						pipeline, err := h.cockroachDBClient.GetPipeline(fullRepoNameArray[0], fullRepoNameArray[1], fullRepoNameArray[2], false)
 						if err != nil {
-							c.AbortWithError(http.StatusOK, fmt.Errorf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
+							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
+							return
 						}
 						if pipeline == nil {
-							c.AbortWithError(http.StatusOK, fmt.Errorf("The repo %v in your command does not have any estafette builds", fullRepoName))
+							c.String(http.StatusOK, fmt.Sprintf("The repo %v in your command does not have any estafette builds", fullRepoName))
+							return
 						}
 					}
 
@@ -147,7 +158,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion, false)
 
 					if err != nil {
-						c.AbortWithError(http.StatusOK, fmt.Errorf("Retrieving the build for repository %v and version %v from the database failed: %v", fullRepoName, buildVersion, err))
+						c.String(http.StatusOK, fmt.Sprintf("Retrieving the build for repository %v and version %v from the database failed: %v", fullRepoName, buildVersion, err))
+						return
 					}
 
 					var build *contracts.Build
@@ -160,10 +172,12 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					}
 
 					if build == nil {
-						c.AbortWithError(http.StatusOK, fmt.Errorf("The version %v in your command does not exist", buildVersion))
+						c.String(http.StatusOK, fmt.Sprintf("The version %v in your command does not exist", buildVersion))
+						return
 					}
 					if build.BuildStatus != "succeeded" {
-						c.AbortWithError(http.StatusOK, fmt.Errorf("The build for version %v is not successful and cannot be used", buildVersion))
+						c.String(http.StatusOK, fmt.Sprintf("The build for version %v is not successful and cannot be used", buildVersion))
+						return
 					}
 
 					// check if release target exists
@@ -178,13 +192,15 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					}
 
 					if !releaseExists {
-						c.AbortWithError(http.StatusOK, fmt.Errorf("The release %v in your command is not defined in the manifest", releaseName))
+						c.String(http.StatusOK, fmt.Sprintf("The release %v in your command is not defined in the manifest", releaseName))
+						return
 					}
 
 					// get user profile from api to set email address for TriggeredBy
 					profile, err := h.slackAPIClient.GetUserProfile(slashCommand.UserID)
 					if err != nil {
-						c.AbortWithError(http.StatusOK, fmt.Errorf("Failed retrieving Slack user profile for user id %v: %v", slashCommand.UserID, err))
+						c.String(http.StatusOK, fmt.Sprintf("Failed retrieving Slack user profile for user id %v: %v", slashCommand.UserID, err))
+						return
 					}
 
 					// create release object and hand off to build service
@@ -201,10 +217,12 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					if err != nil {
 						errorMessage := fmt.Sprintf("Failed creating release %v for pipeline %v/%v/%v version %v for release command issued by %v", releaseName, build.RepoSource, build.RepoOwner, build.RepoName, buildVersion, profile.Email)
 						log.Error().Err(err).Msg(errorMessage)
-						c.AbortWithError(http.StatusOK, fmt.Errorf("Inserting starting the release: %v", err))
+						c.String(http.StatusOK, fmt.Sprintf("Inserting starting the release: %v", err))
+						return
 					}
 
-					c.AbortWithError(http.StatusOK, fmt.Errorf("Started releasing version %v to %v: %vpipelines/%v/%v/%v/releases/%v/logs", buildVersion, releaseName, h.apiConfig.BaseURL, build.RepoSource, build.RepoOwner, build.RepoName, createdRelease.ID))
+					c.String(http.StatusOK, fmt.Sprintf("Started releasing version %v to %v: %vpipelines/%v/%v/%v/releases/%v/logs", buildVersion, releaseName, h.apiConfig.BaseURL, build.RepoSource, build.RepoOwner, build.RepoName, createdRelease.ID))
+					return
 				}
 			}
 		}

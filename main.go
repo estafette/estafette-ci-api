@@ -280,7 +280,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	}
 
 	router.NoRoute(func(c *gin.Context) {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Page not found"})
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Page not found"})
 	})
 
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown

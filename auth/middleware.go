@@ -34,7 +34,8 @@ func (m *authMiddlewareImpl) MiddlewareFunc() gin.HandlerFunc {
 
 		// if no form of authentication is enabled return 401
 		if !m.config.IAP.Enable {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			c.Status(http.StatusUnauthorized)
+			return
 		}
 
 		if m.config.IAP.Enable {
@@ -43,7 +44,8 @@ func (m *authMiddlewareImpl) MiddlewareFunc() gin.HandlerFunc {
 			user, err := GetUserFromIAPJWT(tokenString, m.config.IAP.Audience)
 			if err != nil {
 				log.Warn().Str("jwt", tokenString).Err(err).Msg("Checking iap jwt failed")
-				c.AbortWithStatus(http.StatusUnauthorized)
+				c.Status(http.StatusUnauthorized)
+				return
 			}
 
 			// set user to access from request handlers; retrieve with `user := c.MustGet(gin.AuthUserKey).(auth.User)`
@@ -60,7 +62,7 @@ func (m *authMiddlewareImpl) APIKeyMiddlewareFunc() gin.HandlerFunc {
 			log.Error().
 				Str("authorizationHeader", authorizationHeader).
 				Msg("Authorization header bearer token is incorrect")
-			c.AbortWithStatus(http.StatusUnauthorized)
+			c.Status(http.StatusUnauthorized)
 			return
 		}
 

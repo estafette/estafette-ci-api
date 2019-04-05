@@ -146,14 +146,16 @@ func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 	pipelinesResult := <-pipelinesChannel
 	if pipelinesResult.err != nil {
 		log.Error().Err(pipelinesResult.err).Msg("Failed retrieving pipelines from db")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	// wait for GetPipelinesCount to finish and check for errors
 	pipelinesCountResult := <-pipelinesCountChannel
 	if pipelinesCountResult.err != nil {
 		log.Error().Err(pipelinesCountResult.err).Msg("Failed retrieving pipelines count from db")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	response := contracts.ListResponse{
@@ -184,7 +186,8 @@ func (h *apiHandlerImpl) GetPipeline(c *gin.Context) {
 			Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
 	}
 	if pipeline == nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline not found"})
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline not found"})
+		return
 	}
 
 	c.JSON(http.StatusOK, pipeline)
@@ -228,14 +231,16 @@ func (h *apiHandlerImpl) GetPipelineBuilds(c *gin.Context) {
 	buildsResult := <-buildsChannel
 	if buildsResult.err != nil {
 		log.Error().Err(buildsResult.err).Msgf("Failed retrieving builds for %v/%v/%v from db", source, owner, repo)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	// wait for GetPipelineBuildsCount to finish and check for errors
 	buildsCountResult := <-buildsCountChannel
 	if buildsCountResult.err != nil {
 		log.Error().Err(buildsCountResult.err).Msgf("Failed retrieving builds count for %v/%v/%v from db", source, owner, repo)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	response := contracts.ListResponse{
@@ -268,7 +273,8 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
 		}
 		if build == nil {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline not found"})
+			c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline not found"})
+			return
 		}
 
 		c.JSON(http.StatusOK, build)
@@ -279,7 +285,8 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed reading id from path parameter for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		return
 	}
 
 	build, err := h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id, false)
@@ -288,19 +295,22 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 			Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, id)
 	}
 	if build == nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
+		return
 	}
 
 	// obfuscate all secrets
 	build.Manifest, err = h.obfuscateSecrets(build.Manifest)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed obfuscating secrets")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 	build.ManifestWithDefaults, err = h.obfuscateSecrets(build.ManifestWithDefaults)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed obfuscating secrets")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	c.JSON(http.StatusOK, build)
@@ -317,17 +327,20 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	if buildCommand.RepoSource != c.Param("source") {
 		errorMessage := fmt.Sprintf("RepoSource in path and post data do not match for pipeline %v/%v/%v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, user)
 		log.Error().Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
 	}
 	if buildCommand.RepoOwner != c.Param("owner") {
 		errorMessage := fmt.Sprintf("RepoOwner in path and post data do not match for pipeline %v/%v/%v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, user)
 		log.Error().Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
 	}
 	if buildCommand.RepoName != c.Param("repo") {
 		errorMessage := fmt.Sprintf("RepoName in path and post data do not match for pipeline %v/%v/%v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, user)
 		log.Error().Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
 	}
 
 	// check if version exists and is valid to re-run
@@ -336,7 +349,8 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
 		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
 	}
 
 	var failedBuild *contracts.Build
@@ -353,12 +367,14 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	if failedBuild == nil {
 		errorMessage := fmt.Sprintf("No failed build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
 		log.Error().Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
 	}
 	if hasNonFailedBuilds {
 		errorMessage := fmt.Sprintf("Version %v of pipeline %v/%v/%v has builds that are succeeded or running ; only if all builds are failed the pipeline can be re-run", buildCommand.BuildVersion, buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName)
 		log.Error().Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
 	}
 
 	// hand off to build service
@@ -366,7 +382,8 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed creating build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
 		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
 	}
 
 	c.JSON(http.StatusCreated, createdBuild)
@@ -385,20 +402,24 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed reading id from path parameter for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		return
 	}
 
 	// retrieve build
 	build, err := h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Retrieving pipeline build failed"})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Retrieving pipeline build failed"})
+		return
 	}
 	if build == nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
+		return
 	}
 	if build.BuildStatus != "running" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": fmt.Sprintf("Build with status %v cannot be canceled", build.BuildStatus)})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": fmt.Sprintf("Build with status %v cannot be canceled", build.BuildStatus)})
+		return
 	}
 
 	// this build can be canceled, set status 'canceling' and cancel the build job
@@ -413,7 +434,8 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 	err = h.cockroachDBClient.UpdateBuildStatus(build.RepoSource, build.RepoOwner, build.RepoName, id, buildStatus)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed updating build status for %v/%v/%v/builds/%v in db", source, owner, repo, revisionOrID)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline build status to canceling"})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline build status to canceling"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", user.Email)})
@@ -438,7 +460,8 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed reading id from path parameter for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+			c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+			return
 		}
 
 		build, err = h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id, false)
@@ -449,7 +472,8 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 	}
 
 	if build == nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
+		return
 	}
 
 	buildLog, err := h.cockroachDBClient.GetPipelineBuildLogs(source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID)
@@ -458,7 +482,8 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 			Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from db", source, owner, repo, revisionOrID)
 	}
 	if buildLog == nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build log not found"})
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build log not found"})
+		return
 	}
 
 	c.JSON(http.StatusOK, buildLog)
@@ -498,7 +523,7 @@ func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
 func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 
 	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
-		c.AbortWithStatus(http.StatusUnauthorized)
+		c.Status(http.StatusUnauthorized)
 	}
 
 	source := c.Param("source")
@@ -518,7 +543,7 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed reading id from path parameter for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+			c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
 			return
 		}
 
@@ -545,7 +570,8 @@ func (h *apiHandlerImpl) GetPipelineBuildWarnings(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed reading id from path parameter for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		return
 	}
 
 	build, err := h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id, false)
@@ -554,14 +580,16 @@ func (h *apiHandlerImpl) GetPipelineBuildWarnings(c *gin.Context) {
 			Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, id)
 	}
 	if build == nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
+		return
 	}
 
 	warnings, err := h.warningHelper.GetManifestWarnings(build.ManifestObject, build.RepoOwner)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed getting warnings for %v/%v/%v/builds/%v manifest", source, owner, repo, revisionOrID)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed getting warnings for manifest"})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed getting warnings for manifest"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"warnings": warnings})
@@ -605,14 +633,16 @@ func (h *apiHandlerImpl) GetPipelineReleases(c *gin.Context) {
 	releasesResult := <-releasesChannel
 	if releasesResult.err != nil {
 		log.Error().Err(releasesResult.err).Msgf("Failed retrieving releases for %v/%v/%v from db", source, owner, repo)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	// wait for GetPipelineReleasesCount to finish and check for errors
 	releasesCountResult := <-releasesCountChannel
 	if releasesCountResult.err != nil {
 		log.Error().Err(releasesCountResult.err).Msgf("Failed retrieving releases count for %v/%v/%v from db", source, owner, repo)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	response := contracts.ListResponse{
@@ -643,29 +673,34 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 	if releaseCommand.RepoSource != c.Param("source") {
 		errorMessage := fmt.Sprintf("RepoSource in path and post data do not match for pipeline %v/%v/%v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
 		log.Error().Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
 	}
 	if releaseCommand.RepoOwner != c.Param("owner") {
 		errorMessage := fmt.Sprintf("RepoOwner in path and post data do not match for pipeline %v/%v/%v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
 		log.Error().Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
 	}
 	if releaseCommand.RepoName != c.Param("repo") {
 		errorMessage := fmt.Sprintf("RepoName in path and post data do not match for pipeline %v/%v/%v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
 		log.Error().Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
 	}
 
 	pipeline, err := h.cockroachDBClient.GetPipeline(releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving pipeline %v/%v/%v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
 		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
 	}
 	if pipeline == nil {
 		errorMessage := fmt.Sprintf("No pipeline %v/%v/%v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
 		log.Error().Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
 	}
 
 	// check if version exists and is valid to release
@@ -673,7 +708,8 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
 		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
 	}
 
 	var build *contracts.Build
@@ -688,12 +724,14 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 	if build == nil {
 		errorMessage := fmt.Sprintf("No build %v/%v/%v version %v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
 		log.Error().Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
 	}
 	if build.BuildStatus != "succeeded" {
 		errorMessage := fmt.Sprintf("Build %v for pipeline %v/%v/%v has status %v for release command; only succeeded pipelines are allowed to be released", releaseCommand.ReleaseVersion, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, build.BuildStatus)
 		log.Error().Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
 	}
 
 	// check if release target exists
@@ -719,14 +757,16 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 	if !releaseTargetExists {
 		errorMessage := fmt.Sprintf("Build %v for pipeline %v/%v/%v has no release %v for release command", releaseCommand.ReleaseVersion, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.Name)
 		log.Error().Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
 	}
 
 	// check if action is defined
 	if !actionExists {
 		errorMessage := fmt.Sprintf("Build %v for pipeline %v/%v/%v has no action %v for release action", releaseCommand.ReleaseVersion, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.Action)
 		log.Error().Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
 	}
 
 	// create release object and hand off to build service
@@ -743,7 +783,8 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed creating release %v for pipeline %v/%v/%v version %v for release command issued by %v", releaseCommand.Name, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion, user.Email)
 		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
 	}
 
 	c.JSON(http.StatusCreated, createdRelease)
@@ -760,19 +801,23 @@ func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 	id, err := strconv.Atoi(idValue)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, idValue)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		return
 	}
 
 	release, err := h.cockroachDBClient.GetPipelineRelease(source, owner, repo, id)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed retrieving release for %v/%v/%v/%v from db", source, owner, repo, id)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Retrieving pipeline release failed"})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Retrieving pipeline release failed"})
+		return
 	}
 	if release == nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline release not found"})
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline release not found"})
+		return
 	}
 	if release.ReleaseStatus != "running" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": fmt.Sprintf("Release with status %v cannot be canceled", release.ReleaseStatus)})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": fmt.Sprintf("Release with status %v cannot be canceled", release.ReleaseStatus)})
+		return
 	}
 
 	// this release can be canceled, set status 'canceling' and cancel the release job
@@ -786,7 +831,8 @@ func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 	err = h.cockroachDBClient.UpdateReleaseStatus(release.RepoSource, release.RepoOwner, release.RepoName, id, releaseStatus)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed updating release status for %v/%v/%v/builds/%v in db", source, owner, repo, id)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline release status to canceling"})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline release status to canceling"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", user.Email)})
@@ -801,7 +847,8 @@ func (h *apiHandlerImpl) GetPipelineRelease(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, idValue)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		return
 	}
 
 	release, err := h.cockroachDBClient.GetPipelineRelease(source, owner, repo, id)
@@ -810,7 +857,8 @@ func (h *apiHandlerImpl) GetPipelineRelease(c *gin.Context) {
 			Msgf("Failed retrieving release for %v/%v/%v/%v from db", source, owner, repo, id)
 	}
 	if release == nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline release not found"})
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline release not found"})
+		return
 	}
 
 	c.JSON(http.StatusOK, release)
@@ -825,7 +873,8 @@ func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, idValue)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		return
 	}
 
 	releaseLog, err := h.cockroachDBClient.GetPipelineReleaseLogs(source, owner, repo, id)
@@ -834,7 +883,8 @@ func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 			Msgf("Failed retrieving release logs for %v/%v/%v/%v from db", source, owner, repo, id)
 	}
 	if releaseLog == nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline release log not found"})
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline release log not found"})
+		return
 	}
 
 	c.JSON(http.StatusOK, releaseLog)
@@ -874,7 +924,8 @@ func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
 func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 
 	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
-		c.AbortWithStatus(http.StatusUnauthorized)
+		c.Status(http.StatusUnauthorized)
+		return
 	}
 
 	source := c.Param("source")
@@ -885,7 +936,8 @@ func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, idValue)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		return
 	}
 
 	var releaseLog contracts.ReleaseLog
@@ -941,14 +993,16 @@ func (h *apiHandlerImpl) GetFrequentLabels(c *gin.Context) {
 	labelsResult := <-labelsChannel
 	if labelsResult.err != nil {
 		log.Error().Err(labelsResult.err).Msg("Failed retrieving frequent labels from db")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	// wait for GetPipelinesCount to finish and check for errors
 	labelsCountResult := <-labelsCountChannel
 	if labelsCountResult.err != nil {
 		log.Error().Err(labelsCountResult.err).Msg("Failed retrieving frequent labels count from db")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	response := contracts.ListResponse{
@@ -983,7 +1037,8 @@ func (h *apiHandlerImpl) GetPipelineStatsBuildsDurations(c *gin.Context) {
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build durations from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -1006,7 +1061,8 @@ func (h *apiHandlerImpl) GetPipelineStatsReleasesDurations(c *gin.Context) {
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving releases durations from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -1031,7 +1087,8 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 			Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
 	}
 	if pipeline == nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline not found"})
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline not found"})
+		return
 	}
 
 	warnings := []contracts.Warning{}
@@ -1040,7 +1097,8 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build durations from db for pipeline %v/%v/%v warnings", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
 	}
 
 	if len(durations) > 0 {
@@ -1069,7 +1127,8 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed getting warnings for %v/%v/%v manifest", source, owner, repo)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed getting warnings for manifest"})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed getting warnings for manifest"})
+		return
 	}
 	warnings = append(warnings, manifestWarnings...)
 
@@ -1138,13 +1197,15 @@ func (h *apiHandlerImpl) GetStatsMostBuilds(c *gin.Context) {
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines with most builds from db"
 		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
 	}
 	pipelinesCount, err := h.cockroachDBClient.GetPipelinesWithMostBuildsCount(filters)
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines count from db"
 		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
 	}
 
 	response := contracts.ListResponse{
@@ -1172,13 +1233,15 @@ func (h *apiHandlerImpl) GetStatsMostReleases(c *gin.Context) {
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines with most builds from db"
 		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
 	}
 	pipelinesCount, err := h.cockroachDBClient.GetPipelinesWithMostReleasesCount(filters)
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines count from db"
 		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
 	}
 
 	response := contracts.ListResponse{
@@ -1222,7 +1285,8 @@ func (h *apiHandlerImpl) GetStatsBuildsAdoption(c *gin.Context) {
 	if err != nil {
 		errorMessage := "Failed retrieving first build times from db"
 		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -1235,7 +1299,8 @@ func (h *apiHandlerImpl) GetStatsReleasesAdoption(c *gin.Context) {
 	if err != nil {
 		errorMessage := "Failed retrieving first release times from db"
 		log.Error().Err(err).Msg(errorMessage)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -1302,14 +1367,16 @@ func (h *apiHandlerImpl) GetConfig(c *gin.Context) {
 	configBytes, err := yaml.Marshal(h.encryptedConfig)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed marshalling encrypted config")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	// obfuscate all secrets
 	configString, err := h.obfuscateSecrets(string(configBytes))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed obfuscating secrets")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	// add extra whitespace after each top-level item
@@ -1326,14 +1393,16 @@ func (h *apiHandlerImpl) GetConfigCredentials(c *gin.Context) {
 	configBytes, err := yaml.Marshal(h.encryptedConfig.Credentials)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed marshalling encrypted config")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	// obfuscate all secrets
 	configString, err := h.obfuscateSecrets(string(configBytes))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed obfuscating secrets")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	// add extra whitespace after each top-level item
@@ -1350,14 +1419,16 @@ func (h *apiHandlerImpl) GetConfigTrustedImages(c *gin.Context) {
 	configBytes, err := yaml.Marshal(h.encryptedConfig.TrustedImages)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed marshalling encrypted config")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	// obfuscate all secrets
 	configString, err := h.obfuscateSecrets(string(configBytes))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed obfuscating secrets")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	// add extra whitespace after each top-level item
@@ -1386,7 +1457,8 @@ func (h *apiHandlerImpl) GetManifestTemplates(c *gin.Context) {
 	configFiles, err := ioutil.ReadDir(filepath.Dir(h.configFilePath))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed listing config files directory")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	templates := []interface{}{}
@@ -1405,7 +1477,8 @@ func (h *apiHandlerImpl) GetManifestTemplates(c *gin.Context) {
 			data, err := ioutil.ReadFile(templateFilePath)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed reading template file %v", templateFilePath)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+				c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+				return
 			}
 
 			placeholderRegex := regexp.MustCompile(`{{\.([a-zA-Z0-9]+)}}`)
@@ -1450,27 +1523,31 @@ func (h *apiHandlerImpl) GenerateManifest(c *gin.Context) {
 	err := c.BindJSON(&aux)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed binding json body")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	templateFilePath := filepath.Join(filepath.Dir(h.configFilePath), fmt.Sprintf("manifest-%v.tmpl", aux.Template))
 	data, err := ioutil.ReadFile(templateFilePath)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed reading template file %v", templateFilePath)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	tmpl, err := template.New(".estafette.yaml").Parse(string(data))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed parsing template file %v", templateFilePath)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	var renderedTemplate bytes.Buffer
 	err = tmpl.Execute(&renderedTemplate, aux.Placeholders)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed rendering template file %v", templateFilePath)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"manifest": renderedTemplate.String()})
@@ -1485,7 +1562,8 @@ func (h *apiHandlerImpl) ValidateManifest(c *gin.Context) {
 	err := c.BindJSON(&aux)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed binding json body")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	_, err = manifest.ReadManifest(aux.Template)
@@ -1510,7 +1588,8 @@ func (h *apiHandlerImpl) EncryptSecret(c *gin.Context) {
 	err := c.BindJSON(&aux)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed binding json body")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	value := aux.Value
@@ -1521,7 +1600,7 @@ func (h *apiHandlerImpl) EncryptSecret(c *gin.Context) {
 	encryptedString, err := h.secretHelper.EncryptEnvelope(value)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed encrypting secret")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
 
@@ -1529,7 +1608,7 @@ func (h *apiHandlerImpl) EncryptSecret(c *gin.Context) {
 		encryptedString, err = h.secretHelper.EncryptEnvelope(encryptedString)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed encrypting secret")
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 			return
 		}
 	}
@@ -1540,14 +1619,15 @@ func (h *apiHandlerImpl) EncryptSecret(c *gin.Context) {
 func (h *apiHandlerImpl) PostCronEvent(c *gin.Context) {
 
 	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
-		c.AbortWithStatus(http.StatusUnauthorized)
+		c.Status(http.StatusUnauthorized)
+		return
 	}
 
 	err := h.buildService.FireCronTriggers()
 
 	if err != nil {
 		log.Error().Err(err).Msg("Failed firing cron triggers")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
 
