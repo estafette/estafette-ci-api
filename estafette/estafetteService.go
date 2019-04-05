@@ -103,6 +103,19 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 				Branch:        build.RepoBranch,
 				Revision:      build.RepoRevision,
 			})
+		} else if pipeline != nil {
+			log.Debug().Msgf("Copying previous versioning for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
+			previousManifest, err := manifest.ReadManifest(build.Manifest)
+			if err != nil {
+				build.BuildVersion = previousManifest.Version.Version(manifest.EstafetteVersionParams{
+					AutoIncrement: autoincrement,
+					Branch:        build.RepoBranch,
+					Revision:      build.RepoRevision,
+				})
+			} else {
+				log.Warn().Msgf("Not using previous versioning for pipeline %v/%v/%v, because its manifest is also invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
+				build.BuildVersion = strconv.Itoa(autoincrement)
+			}
 		} else {
 			// set build version to autoincrement so there's at least a version in the db and gui
 			build.BuildVersion = strconv.Itoa(autoincrement)
@@ -134,11 +147,11 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 					Value: v,
 				})
 			}
+		} else if pipeline != nil {
+			log.Debug().Msgf("Copying previous labels for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
+			labels = pipeline.Labels
 		}
 		build.Labels = labels
-	} else if !hasValidManifest && pipeline != nil {
-		log.Debug().Msgf("Copying previous labels for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
-		build.Labels = pipeline.Labels
 	}
 
 	if len(build.ReleaseTargets) == 0 {
@@ -156,11 +169,20 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 				}
 				releaseTargets = append(releaseTargets, releaseTarget)
 			}
+		} else if pipeline != nil {
+			log.Debug().Msgf("Copying previous release targets for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
+			releaseTargets = pipeline.ReleaseTargets
 		}
 		build.ReleaseTargets = releaseTargets
-	} else if !hasValidManifest && pipeline != nil {
-		log.Debug().Msgf("Copying previous release targets for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
-		build.ReleaseTargets = pipeline.ReleaseTargets
+	}
+
+	if len(build.Triggers) == 0 {
+		if hasValidManifest {
+			build.Triggers = mft.GetAllTriggers()
+		} else if pipeline != nil {
+			log.Debug().Msgf("Copying previous release targets for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
+			build.Triggers = pipeline.Triggers
+		}
 	}
 
 	// get authenticated url
@@ -182,7 +204,7 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 		ReleaseTargets: build.ReleaseTargets,
 		Manifest:       build.Manifest,
 		Commits:        build.Commits,
-		Triggers:       mft.GetAllTriggers(),
+		Triggers:       build.Triggers,
 	})
 	if err != nil {
 		return
