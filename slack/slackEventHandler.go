@@ -82,6 +82,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 				switch command {
 				case "encrypt":
 
+					log.Debug().Msg("Handling slash command /estafette encrypt")
+
 					encryptedString, err := h.secretHelper.Encrypt(strings.Join(arguments, " "))
 					if err != nil {
 						log.Error().Err(err).Interface("slashCommand", slashCommand).Msg("Failed to encrypt secret")
@@ -93,6 +95,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					return
 
 				case "release":
+
+					log.Debug().Msg("Handling slash command /estafette release")
 
 					// # release latest green version (for release branch?)
 					// /estafette release github.com/estafette/estafette-ci-builder beta
