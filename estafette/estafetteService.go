@@ -137,6 +137,7 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 		}
 		build.Labels = labels
 	} else if !hasValidManifest && pipeline != nil {
+		log.Debug().Msgf("Copying previous labels for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
 		build.Labels = pipeline.Labels
 	}
 
@@ -158,6 +159,7 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 		}
 		build.ReleaseTargets = releaseTargets
 	} else if !hasValidManifest && pipeline != nil {
+		log.Debug().Msgf("Copying previous release targets for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
 		build.ReleaseTargets = pipeline.ReleaseTargets
 	}
 
