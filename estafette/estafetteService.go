@@ -200,6 +200,7 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 
 	// create ci builder job
 	if hasValidManifest {
+		log.Debug().Msgf("Pipeline %v/%v/%v revision %v has valid manifest, creating build job...", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 		// create ci builder job
 		if waitForJobToStart {
 			_, err = s.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
@@ -220,8 +221,10 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 			s.FirePipelineTriggers(build, "started")
 		}()
 	} else if manifestError != nil {
+		log.Debug().Msgf("Pipeline %v/%v/%v revision %v with build id %v has invalid manifest, storing log...", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision, build.ID)
 		// store log with manifest unmarshalling error
 		buildLog := contracts.BuildLog{
+			BuildID:      build.ID,
 			RepoSource:   build.RepoSource,
 			RepoOwner:    build.RepoOwner,
 			RepoName:     build.RepoName,
