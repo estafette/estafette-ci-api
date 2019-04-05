@@ -466,6 +466,9 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 		Event:      event,
 	}
 
+	triggerCount := 0
+	firedTriggerCount := 0
+
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
 		for _, t := range p.Triggers {
@@ -476,7 +479,12 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 				continue
 			}
 
+			triggerCount++
+
 			if t.Pipeline.Fires(&pe) {
+
+				firedTriggerCount++
+
 				// create new build for t.Run
 				if t.BuildAction != nil {
 					log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
@@ -494,6 +502,8 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 			}
 		}
 	}
+
+	log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Fired %v out of %v triggers for %v pipelines", build.RepoSource, build.RepoOwner, build.RepoName, event, firedTriggerCount, triggerCount, len(pipelines))
 
 	return nil
 }
@@ -517,6 +527,9 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 		Event:      event,
 	}
 
+	triggerCount := 0
+	firedTriggerCount := 0
+
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
 		for _, t := range p.Triggers {
@@ -527,7 +540,12 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 				continue
 			}
 
+			triggerCount++
+
 			if t.Release.Fires(&re) {
+
+				firedTriggerCount++
+
 				if t.BuildAction != nil {
 					log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					err := s.fireBuild(*p, t)
@@ -544,6 +562,64 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 			}
 		}
 	}
+
+	log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v] Fired %v out of %v triggers for %v pipelines", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, firedTriggerCount, triggerCount, len(pipelines))
+
+	return nil
+}
+
+func (s *buildServiceImpl) FireCronTriggers() error {
+
+	// create event object
+	ce := manifest.EstafetteCronEvent{
+		Time: time.Now().UTC(),
+	}
+
+	log.Info().Msgf("[trigger:cron(%v)] Checking if triggers need to be fired...", ce.Time)
+
+	pipelines, err := s.cockroachDBClient.GetCronTriggers()
+	if err != nil {
+		return err
+	}
+
+	triggerCount := 0
+	firedTriggerCount := 0
+
+	// check for each trigger whether it should fire
+	for _, p := range pipelines {
+		for _, t := range p.Triggers {
+
+			log.Debug().Interface("event", ce).Interface("trigger", t).Msgf("[trigger:cron(%v)] Checking if pipeline '%v/%v/%v' trigger should fire...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName)
+
+			if t.Cron == nil {
+				continue
+			}
+
+			triggerCount++
+
+			if t.Cron.Fires(&ce) {
+
+				firedTriggerCount++
+
+				// create new build for t.Run
+				if t.BuildAction != nil {
+					log.Info().Msgf("[trigger:cron(%v)] Firing build action '%v/%v/%v', branch '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+					err := s.fireBuild(*p, t)
+					if err != nil {
+						log.Info().Msgf("[trigger:cron(%v)] Failed starting build action'%v/%v/%v', branch '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+					}
+				} else if t.ReleaseAction != nil {
+					log.Info().Msgf("[trigger:cron(%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+					err := s.fireRelease(*p, t, fmt.Sprintf("trigger.cron { time: %v }", ce.Time))
+					if err != nil {
+						log.Info().Msgf("[trigger:cron(%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+					}
+				}
+			}
+		}
+	}
+
+	log.Info().Msgf("[trigger:cron(%v)] Fired %v out of %v triggers for %v pipelines", ce.Time, firedTriggerCount, triggerCount, len(pipelines))
 
 	return nil
 }
@@ -587,52 +663,6 @@ func (s *buildServiceImpl) fireRelease(p contracts.Pipeline, t manifest.Estafett
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func (s *buildServiceImpl) FireCronTriggers() error {
-
-	// create event object
-	ce := manifest.EstafetteCronEvent{
-		Time: time.Now().UTC(),
-	}
-
-	log.Info().Msgf("[trigger:cron(%v)] Checking if triggers need to be fired...", ce.Time)
-
-	pipelines, err := s.cockroachDBClient.GetCronTriggers()
-	if err != nil {
-		return err
-	}
-
-	// check for each trigger whether it should fire
-	for _, p := range pipelines {
-		for _, t := range p.Triggers {
-
-			log.Debug().Interface("event", ce).Interface("trigger", t).Msgf("[trigger:cron(%v)] Checking if pipeline '%v/%v/%v' trigger should fire...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName)
-
-			if t.Cron == nil {
-				continue
-			}
-
-			if t.Cron.Fires(&ce) {
-				// create new build for t.Run
-				if t.BuildAction != nil {
-					log.Info().Msgf("[trigger:cron(%v)] Firing build action '%v/%v/%v', branch '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(*p, t)
-					if err != nil {
-						log.Info().Msgf("[trigger:cron(%v)] Failed starting build action'%v/%v/%v', branch '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					}
-				} else if t.ReleaseAction != nil {
-					log.Info().Msgf("[trigger:cron(%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(*p, t, fmt.Sprintf("trigger.cron { time: %v }", ce.Time))
-					if err != nil {
-						log.Info().Msgf("[trigger:cron(%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					}
-				}
-			}
-		}
-	}
-
 	return nil
 }
 
