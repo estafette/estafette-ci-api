@@ -524,6 +524,7 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 
 	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
 		c.Status(http.StatusUnauthorized)
+		return
 	}
 
 	source := c.Param("source")
