@@ -72,6 +72,8 @@ type APIHandler interface {
 	GenerateManifest(*gin.Context)
 	ValidateManifest(*gin.Context)
 	EncryptSecret(*gin.Context)
+
+	PostCronEvent(*gin.Context)
 }
 
 type apiHandlerImpl struct {
@@ -1533,6 +1535,23 @@ func (h *apiHandlerImpl) EncryptSecret(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"secret": encryptedString})
+}
+
+func (h *apiHandlerImpl) PostCronEvent(c *gin.Context) {
+
+	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
+		c.AbortWithStatus(http.StatusUnauthorized)
+	}
+
+	err := h.buildService.FireCronTriggers()
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed firing cron triggers")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Hey Cron, here's a tock for your tick"})
 }
 
 func (h *apiHandlerImpl) getSinceFilter(c *gin.Context) []string {

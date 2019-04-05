@@ -28,7 +28,7 @@ github.com/ericchiang/k8s/apis/apiextensions/v1beta1
 github.com/estafette/estafette-ci-contracts
 # github.com/estafette/estafette-ci-crypt v0.0.19
 github.com/estafette/estafette-ci-crypt
-# github.com/estafette/estafette-ci-manifest v0.1.93
+# github.com/estafette/estafette-ci-manifest v0.1.95
 github.com/estafette/estafette-ci-manifest
 # github.com/gin-contrib/gzip v0.0.0-20170807063659-ff223ab9f8e3
 github.com/gin-contrib/gzip
@@ -72,6 +72,8 @@ github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 # github.com/prometheus/procfs v0.0.0-20170703101242-e645f4e5aaa8
 github.com/prometheus/procfs
 github.com/prometheus/procfs/xfs
+# github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
+github.com/robfig/cron
 # github.com/rs/zerolog v1.8.0
 github.com/rs/zerolog
 github.com/rs/zerolog/log

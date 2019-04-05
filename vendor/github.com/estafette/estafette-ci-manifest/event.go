@@ -1,5 +1,7 @@
 package manifest
 
+import "time"
+
 // EstafettePipelineEvent fires for pipeline changes
 type EstafettePipelineEvent struct {
 	RepoSource string
@@ -36,5 +38,5 @@ type EstafetteDockerEvent struct {
 
 // EstafetteCronEvent fires at intervals specified by the cron expression
 type EstafetteCronEvent struct {
-	Expression string
+	Time time.Time
 }

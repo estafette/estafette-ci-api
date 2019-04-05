@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
+
+	"github.com/robfig/cron"
 )
 
 // EstafetteTrigger represents a trigger of any supported type and what action to take if the trigger fired
@@ -48,9 +51,9 @@ type EstafetteDockerTrigger struct {
 	Tag   string `yaml:"tag,omitempty" json:"tag,omitempty"`
 }
 
-// EstafetteCronTrigger fires at intervals specified by the cron expression
+// EstafetteCronTrigger fires at intervals specified by the cron schedule
 type EstafetteCronTrigger struct {
-	Expression string `yaml:"expression,omitempty" json:"expression,omitempty"`
+	Schedule string `yaml:"schedule,omitempty" json:"schedule,omitempty"`
 }
 
 // EstafetteTriggerBuildAction determines what builds when the trigger fires
@@ -284,6 +287,15 @@ func (d *EstafetteDockerTrigger) Validate() (err error) {
 
 // Validate checks if EstafetteCronTrigger is valid
 func (c *EstafetteCronTrigger) Validate() (err error) {
+
+	if c.Schedule == "" {
+		return fmt.Errorf("Set cron.schedule in your trigger to '<minute> <hour> <day of month> <month> <day of week>'")
+	}
+	_, err = cron.ParseStandard(c.Schedule)
+	if err != nil {
+		return fmt.Errorf("Invalid cron.schedule in your trigger: %v", err)
+	}
+
 	return nil
 }
 
@@ -377,7 +389,25 @@ func (d *EstafetteDockerTrigger) Fires(e *EstafetteDockerEvent) bool {
 
 // Fires indicates whether EstafetteCronTrigger fires for an EstafetteCronEvent
 func (c *EstafetteCronTrigger) Fires(e *EstafetteCronEvent) bool {
-	return false
+
+	// ParseStandard expects 5 entries representing: minute, hour, day of month, month and day of week, in that order.
+	sched, err := cron.ParseStandard(c.Schedule)
+	if err != nil {
+		return false
+	}
+
+	// truncate event time to the minute
+	eventTime := time.Date(e.Time.Year(), e.Time.Month(), e.Time.Day(), e.Time.Hour(), e.Time.Minute(), 0, 0, time.UTC)
+	// subtract 1 minute, otherwise the next time is at least 1 minute later
+	eventTime = eventTime.Add(time.Minute * -1)
+	// get the next time the cron expression would fire
+	nextTime := sched.Next(eventTime)
+
+	return nextTime.Year() == e.Time.Year() &&
+		nextTime.Month() == e.Time.Month() &&
+		nextTime.Day() == e.Time.Day() &&
+		nextTime.Hour() == e.Time.Hour() &&
+		nextTime.Minute() == e.Time.Minute()
 }
 
 func regexMatch(pattern, value string) (bool, error) {
