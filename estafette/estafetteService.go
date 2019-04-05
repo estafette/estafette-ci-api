@@ -224,16 +224,24 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 		log.Debug().Msgf("Pipeline %v/%v/%v revision %v with build id %v has invalid manifest, storing log...", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision, build.ID)
 		// store log with manifest unmarshalling error
 		buildLog := contracts.BuildLog{
-			BuildID:      build.ID,
-			RepoSource:   build.RepoSource,
-			RepoOwner:    build.RepoOwner,
-			RepoName:     build.RepoName,
-			RepoBranch:   build.RepoBranch,
-			RepoRevision: build.RepoRevision,
+			BuildID:      createdBuild.ID,
+			RepoSource:   createdBuild.RepoSource,
+			RepoOwner:    createdBuild.RepoOwner,
+			RepoName:     createdBuild.RepoName,
+			RepoBranch:   createdBuild.RepoBranch,
+			RepoRevision: createdBuild.RepoRevision,
 			Steps: []contracts.BuildLogStep{
 				contracts.BuildLogStep{
-					Step:         "validate-manifest",
-					Image:        nil,
+					Step: "validate-manifest",
+					Image: &contracts.BuildLogStepDockerImage{
+						Name:         "estafette/estafette-ci-builder",
+						Tag:          "stable",
+						IsPulled:     true,
+						ImageSize:    0,
+						PullDuration: time.Duration(0),
+						Error:        "",
+						IsTrusted:    true,
+					},
 					ExitCode:     1,
 					Status:       "failed",
 					AutoInjected: true,
