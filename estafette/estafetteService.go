@@ -243,7 +243,7 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 						IsTrusted:    true,
 					},
 					ExitCode:     1,
-					Status:       "failed",
+					Status:       "FAILED",
 					AutoInjected: true,
 					RunIndex:     0,
 					LogLines: []contracts.BuildLogLine{
