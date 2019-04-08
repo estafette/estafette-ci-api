@@ -417,6 +417,15 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
 		return
 	}
+	if build.BuildStatus == "canceling" {
+		// apparently cancel was already clicked, but somehow the job didn't update the status to canceled
+		jobName := h.ciBuilderClient.GetJobName("build", build.RepoOwner, build.RepoName, build.ID)
+		h.ciBuilderClient.CancelCiBuilderJob(jobName)
+		h.cockroachDBClient.UpdateBuildStatus(build.RepoSource, build.RepoOwner, build.RepoName, id, "canceled")
+		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", user.Email)})
+		return
+	}
+
 	if build.BuildStatus != "running" {
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": fmt.Sprintf("Build with status %v cannot be canceled", build.BuildStatus)})
 		return
@@ -816,6 +825,13 @@ func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline release not found"})
 		return
 	}
+	if release.ReleaseStatus == "canceling" {
+		jobName := h.ciBuilderClient.GetJobName("release", release.RepoOwner, release.RepoName, release.ID)
+		h.ciBuilderClient.CancelCiBuilderJob(jobName)
+		h.cockroachDBClient.UpdateReleaseStatus(release.RepoSource, release.RepoOwner, release.RepoName, id, "canceled")
+		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", user.Email)})
+		return
+	}
 	if release.ReleaseStatus != "running" {
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": fmt.Sprintf("Release with status %v cannot be canceled", release.ReleaseStatus)})
 		return
@@ -965,11 +981,11 @@ func (h *apiHandlerImpl) GetFrequentLabels(c *gin.Context) {
 
 	type LabelsResult struct {
 		labels []map[string]interface{}
-		err       error
+		err    error
 	}
 	type LabelsCountResult struct {
 		labelsCount int
-		err            error
+		err         error
 	}
 
 	// run 2 database queries in parallel and return their result via channels
