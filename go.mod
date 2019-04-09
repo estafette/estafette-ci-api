@@ -13,7 +13,7 @@ require (
 	github.com/beorn7/perks v0.0.0-20160804104726-4c0e84591b9a // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/ericchiang/k8s v1.2.0
-	github.com/estafette/estafette-ci-contracts v0.0.119
+	github.com/estafette/estafette-ci-contracts v0.0.121
 	github.com/estafette/estafette-ci-crypt v0.0.19
 	github.com/estafette/estafette-ci-manifest v0.1.95
 	github.com/gin-contrib/gzip v0.0.0-20170807063659-ff223ab9f8e3

@@ -592,8 +592,26 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 
 	upsertedPipeline := dbc.mapBuildToPipeline(lastBuild)
 
+	// add releases
 	dbc.enrichPipeline(upsertedPipeline)
 
+	// set LastUpdatedAt from both builds and releases
+	upsertedPipeline.LastUpdatedAt = upsertedPipeline.InsertedAt
+	if upsertedPipeline.UpdatedAt.After(upsertedPipeline.LastUpdatedAt) {
+		upsertedPipeline.LastUpdatedAt = upsertedPipeline.UpdatedAt
+	}
+	for _, rt := range upsertedPipeline.ReleaseTargets {
+		for _, ar := range rt.ActiveReleases {
+			if ar.InsertedAt != nil && ar.InsertedAt.After(upsertedPipeline.LastUpdatedAt) {
+				upsertedPipeline.LastUpdatedAt = *ar.InsertedAt
+			}
+			if ar.UpdatedAt != nil && ar.UpdatedAt.After(upsertedPipeline.LastUpdatedAt) {
+				upsertedPipeline.LastUpdatedAt = *ar.UpdatedAt
+			}
+		}
+	}
+
+	// sort labels by key
 	sort.Slice(upsertedPipeline.Labels, func(i, j int) bool {
 		return upsertedPipeline.Labels[i].Key < upsertedPipeline.Labels[j].Key
 	})
@@ -641,7 +659,8 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 			inserted_at,
 			first_inserted_at,
 			updated_at,
-			duration
+			duration,
+			last_updated_at
 		)
 		VALUES
 		(
@@ -661,7 +680,8 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 			$14,
 			$15,
 			$16,
-			AGE($16,$15)
+			AGE($16,$15),
+			$17
 		)
 		ON CONFLICT
 		(
@@ -682,7 +702,8 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 			triggers = excluded.triggers,
 			inserted_at = excluded.inserted_at,
 			updated_at = excluded.updated_at,
-			duration = AGE(excluded.updated_at,excluded.inserted_at)
+			duration = AGE(excluded.updated_at,excluded.inserted_at),
+			last_updated_at = excluded.last_updated_at
 		`,
 		upsertedPipeline.ID,
 		upsertedPipeline.RepoSource,
@@ -700,6 +721,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 		upsertedPipeline.InsertedAt,
 		upsertedPipeline.InsertedAt,
 		upsertedPipeline.UpdatedAt,
+		upsertedPipeline.LastUpdatedAt,
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
@@ -2314,7 +2336,8 @@ func (dbc *cockroachDBClientImpl) scanPipeline(row sq.RowScanner, optimized bool
 		&triggersData,
 		&pipeline.InsertedAt,
 		&pipeline.UpdatedAt,
-		&seconds); err != nil {
+		&seconds,
+		&pipeline.LastUpdatedAt); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -2361,7 +2384,8 @@ func (dbc *cockroachDBClientImpl) scanPipelines(rows *sql.Rows, optimized bool) 
 			&triggersData,
 			&pipeline.InsertedAt,
 			&pipeline.UpdatedAt,
-			&seconds); err != nil {
+			&seconds,
+			&pipeline.LastUpdatedAt); err != nil {
 			return
 		}
 
@@ -2539,7 +2563,7 @@ func (dbc *cockroachDBClientImpl) selectPipelinesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT").
+		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT, a.last_updated_at").
 		From("computed_pipelines a")
 }
 
