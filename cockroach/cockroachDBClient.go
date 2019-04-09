@@ -913,7 +913,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(pageNumber, pageSize int, filters
 		Offset(uint64((pageNumber - 1) * pageSize))
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllFilters(query, "a", filters)
+	query, err = whereClauseGeneratorForAllFilters(query, "a", "last_updated_at", filters)
 	if err != nil {
 		return
 	}
@@ -965,7 +965,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesCount(filters map[string][]string)
 			From("computed_pipelines a")
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllFilters(query, "a", filters)
+	query, err = whereClauseGeneratorForAllFilters(query, "a", "last_updated_at", filters)
 	if err != nil {
 		return
 	}
@@ -1014,7 +1014,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(repoSource, repoOwner, repoN
 		Offset(uint64((pageNumber - 1) * pageSize))
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllFilters(query, "a", filters)
+	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
 	if err != nil {
 		return
 	}
@@ -1047,7 +1047,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsCount(repoSource, repoOwner, 
 			Where(sq.Eq{"a.repo_name": repoName})
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllFilters(query, "a", filters)
+	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
 	if err != nil {
 		return
 	}
@@ -1314,7 +1314,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(repoSource, repoOwner, rep
 		Offset(uint64((pageNumber - 1) * pageSize))
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", filters)
+	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
 	if err != nil {
 		return
 	}
@@ -1347,7 +1347,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesCount(repoSource, repoOwner
 			Where(sq.Eq{"a.repo_name": repoName})
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", filters)
+	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
 	if err != nil {
 		return
 	}
@@ -1475,7 +1475,7 @@ func (dbc *cockroachDBClientImpl) GetBuildsCount(filters map[string][]string) (t
 			From("builds a")
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllFilters(query, "a", filters)
+	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
 	if err != nil {
 		return
 	}
@@ -1500,7 +1500,7 @@ func (dbc *cockroachDBClientImpl) GetReleasesCount(filters map[string][]string) 
 			From("releases a")
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", filters)
+	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
 	if err != nil {
 		return
 	}
@@ -1525,7 +1525,7 @@ func (dbc *cockroachDBClientImpl) GetBuildsDuration(filters map[string][]string)
 			From("builds a")
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllFilters(query, "a", filters)
+	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
 	if err != nil {
 		return
 	}
@@ -1775,7 +1775,7 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(pageNumber, pageSize int, fi
 			From("computed_pipelines a").
 			Where("jsonb_typeof(labels) = 'array'")
 
-	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", filters)
+	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
 	if err != nil {
 		return
 	}
@@ -1882,7 +1882,7 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabelsCount(filters map[string][]st
 			From("computed_pipelines a").
 			Where("jsonb_typeof(labels) = 'array'")
 
-	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", filters)
+	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
 	if err != nil {
 		return
 	}
@@ -1936,7 +1936,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostBuilds(pageNumber, pageSiz
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
-	query, err = whereClauseGeneratorForSinceFilter(query, "a", filters)
+	query, err = whereClauseGeneratorForSinceFilter(query, "a", "inserted_at", filters)
 	if err != nil {
 		return
 	}
@@ -2007,7 +2007,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostReleases(pageNumber, pageS
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
-	query, err = whereClauseGeneratorForSinceFilter(query, "a", filters)
+	query, err = whereClauseGeneratorForSinceFilter(query, "a", "inserted_at", filters)
 	if err != nil {
 		return
 	}
@@ -2067,7 +2067,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostReleasesCount(filters map[
 			From("releases a").
 			GroupBy("a.repo_source, a.repo_owner, a.repo_name")
 
-	innerquery, err = whereClauseGeneratorForSinceFilter(innerquery, "a", filters)
+	innerquery, err = whereClauseGeneratorForSinceFilter(innerquery, "a", "inserted_at", filters)
 	if err != nil {
 		return
 	}
@@ -2091,9 +2091,9 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostReleasesCount(filters map[
 	return
 }
 
-func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias, sinceColumn string, filters map[string][]string) (sq.SelectBuilder, error) {
 
-	query, err := whereClauseGeneratorForSinceFilter(query, alias, filters)
+	query, err := whereClauseGeneratorForSinceFilter(query, alias, sinceColumn, filters)
 	if err != nil {
 		return query, err
 	}
@@ -2113,13 +2113,13 @@ func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias string, fil
 	return query, nil
 }
 
-func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, alias, sinceColumn string, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	query, err := whereClauseGeneratorForReleaseStatusFilter(query, alias, filters)
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForSinceFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForSinceFilter(query, alias, sinceColumn, filters)
 	if err != nil {
 		return query, err
 	}
@@ -2127,21 +2127,21 @@ func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, alias stri
 	return query, nil
 }
 
-func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, alias, sinceColumn string, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	if since, ok := filters["since"]; ok && len(since) > 0 && since[0] != "eternity" {
 		sinceValue := since[0]
 		switch sinceValue {
 		case "1h":
-			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.inserted_at", alias): time.Now().Add(time.Duration(-1) * time.Hour)})
+			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.%v", alias, sinceColumn): time.Now().Add(time.Duration(-1) * time.Hour)})
 		case "1d":
-			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.inserted_at", alias): time.Now().AddDate(0, 0, -1)})
+			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.%v", alias, sinceColumn): time.Now().AddDate(0, 0, -1)})
 		case "1w":
-			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.inserted_at", alias): time.Now().AddDate(0, 0, -7)})
+			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.%v", alias, sinceColumn): time.Now().AddDate(0, 0, -7)})
 		case "1m":
-			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.inserted_at", alias): time.Now().AddDate(0, -1, 0)})
+			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.%v", alias, sinceColumn): time.Now().AddDate(0, -1, 0)})
 		case "1y":
-			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.inserted_at", alias): time.Now().AddDate(-1, 0, 0)})
+			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.%v", alias, sinceColumn): time.Now().AddDate(-1, 0, 0)})
 		}
 	}
 

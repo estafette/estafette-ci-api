@@ -28,7 +28,7 @@ func TestQueryBuilder(t *testing.T) {
 
 		query := cdbClient.selectBuildsQuery()
 
-		query, _ = whereClauseGeneratorForAllFilters(query, "a", map[string][]string{})
+		query, _ = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", map[string][]string{})
 
 		// act
 		sql, _, err := query.ToSql()
@@ -41,7 +41,7 @@ func TestQueryBuilder(t *testing.T) {
 
 		query := cdbClient.selectBuildsQuery()
 
-		query, _ = whereClauseGeneratorForAllFilters(query, "a", map[string][]string{
+		query, _ = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", map[string][]string{
 			"status": []string{
 				"succeeded",
 			},
@@ -58,7 +58,7 @@ func TestQueryBuilder(t *testing.T) {
 
 		query := cdbClient.selectBuildsQuery()
 
-		query, _ = whereClauseGeneratorForAllFilters(query, "a", map[string][]string{
+		query, _ = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", map[string][]string{
 			"since": []string{
 				"1d",
 			},
@@ -75,7 +75,7 @@ func TestQueryBuilder(t *testing.T) {
 
 		query := cdbClient.selectBuildsQuery()
 
-		query, _ = whereClauseGeneratorForAllFilters(query, "a", map[string][]string{
+		query, _ = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", map[string][]string{
 			"labels": []string{
 				"key=value",
 			},
@@ -97,7 +97,7 @@ func TestQueryBuilder(t *testing.T) {
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
-		query, _ = whereClauseGeneratorForAllFilters(query, "a", map[string][]string{
+		query, _ = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", map[string][]string{
 			"labels": []string{
 				"key=value",
 			},
