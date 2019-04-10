@@ -458,12 +458,16 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 
 	// create event object
 	pe := manifest.EstafettePipelineEvent{
-		RepoSource: build.RepoSource,
-		RepoOwner:  build.RepoOwner,
-		RepoName:   build.RepoName,
-		Branch:     build.RepoBranch,
-		Status:     build.BuildStatus,
-		Event:      event,
+		BuildVersion: build.BuildVersion,
+		RepoSource:   build.RepoSource,
+		RepoOwner:    build.RepoOwner,
+		RepoName:     build.RepoName,
+		Branch:       build.RepoBranch,
+		Status:       build.BuildStatus,
+		Event:        event,
+	}
+	e := manifest.EstafetteEvent{
+		Pipeline: &pe,
 	}
 
 	triggerCount := 0
@@ -488,13 +492,13 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 				// create new build for t.Run
 				if t.BuildAction != nil {
 					log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(*p, t)
+					err := s.fireBuild(*p, t, e)
 					if err != nil {
 						log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					}
 				} else if t.ReleaseAction != nil {
 					log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(*p, t, fmt.Sprintf("trigger.pipeline { name: %v/%v/%v, event: %v }", build.RepoSource, build.RepoOwner, build.RepoName, event))
+					err := s.fireRelease(*p, t, e, fmt.Sprintf("trigger.pipeline { name: %v/%v/%v, event: %v }", build.RepoSource, build.RepoOwner, build.RepoName, event))
 					if err != nil {
 						log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
@@ -519,12 +523,16 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 
 	// create event object
 	re := manifest.EstafetteReleaseEvent{
-		RepoSource: release.RepoSource,
-		RepoOwner:  release.RepoOwner,
-		RepoName:   release.RepoName,
-		Target:     release.Name,
-		Status:     release.ReleaseStatus,
-		Event:      event,
+		ReleaseVersion: release.ReleaseVersion,
+		RepoSource:     release.RepoSource,
+		RepoOwner:      release.RepoOwner,
+		RepoName:       release.RepoName,
+		Target:         release.Name,
+		Status:         release.ReleaseStatus,
+		Event:          event,
+	}
+	e := manifest.EstafetteEvent{
+		Release: &re,
 	}
 
 	triggerCount := 0
@@ -548,13 +556,13 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 
 				if t.BuildAction != nil {
 					log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(*p, t)
+					err := s.fireBuild(*p, t, e)
 					if err != nil {
 						log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting build action '%v/%v/%v', branch '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					}
 				} else if t.ReleaseAction != nil {
 					log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(*p, t, fmt.Sprintf("trigger.release { name: %v/%v/%v, target: %v, event: %v }", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event))
+					err := s.fireRelease(*p, t, e, fmt.Sprintf("trigger.release { name: %v/%v/%v, target: %v, event: %v }", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event))
 					if err != nil {
 						log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
@@ -573,6 +581,9 @@ func (s *buildServiceImpl) FireCronTriggers() error {
 	// create event object
 	ce := manifest.EstafetteCronEvent{
 		Time: time.Now().UTC(),
+	}
+	e := manifest.EstafetteEvent{
+		Cron: &ce,
 	}
 
 	log.Info().Msgf("[trigger:cron(%v)] Checking if triggers need to be fired...", ce.Time)
@@ -604,13 +615,13 @@ func (s *buildServiceImpl) FireCronTriggers() error {
 				// create new build for t.Run
 				if t.BuildAction != nil {
 					log.Info().Msgf("[trigger:cron(%v)] Firing build action '%v/%v/%v', branch '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(*p, t)
+					err := s.fireBuild(*p, t, e)
 					if err != nil {
 						log.Info().Msgf("[trigger:cron(%v)] Failed starting build action'%v/%v/%v', branch '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					}
 				} else if t.ReleaseAction != nil {
 					log.Info().Msgf("[trigger:cron(%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(*p, t, fmt.Sprintf("trigger.cron { time: %v }", ce.Time))
+					err := s.fireRelease(*p, t, e, fmt.Sprintf("trigger.cron { time: %v }", ce.Time))
 					if err != nil {
 						log.Info().Msgf("[trigger:cron(%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
@@ -624,7 +635,7 @@ func (s *buildServiceImpl) FireCronTriggers() error {
 	return nil
 }
 
-func (s *buildServiceImpl) fireBuild(p contracts.Pipeline, t manifest.EstafetteTrigger) error {
+func (s *buildServiceImpl) fireBuild(p contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) error {
 	if t.BuildAction == nil {
 		return fmt.Errorf("Trigger to fire does not have a 'builds' property, shouldn't get to here")
 	}
@@ -646,7 +657,7 @@ func (s *buildServiceImpl) fireBuild(p contracts.Pipeline, t manifest.EstafetteT
 	return nil
 }
 
-func (s *buildServiceImpl) fireRelease(p contracts.Pipeline, t manifest.EstafetteTrigger, triggeredBy string) error {
+func (s *buildServiceImpl) fireRelease(p contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent, triggeredBy string) error {
 	if t.ReleaseAction == nil {
 		return fmt.Errorf("Trigger to fire does not have a 'releases' property, shouldn't get to here")
 	}
