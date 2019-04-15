@@ -1,6 +1,7 @@
 package contracts
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -193,4 +194,9 @@ func (pe *RepositoryPushEvent) GetRepoBranch() string {
 // GetRepoRevision returns the revision of the push event
 func (pe *RepositoryPushEvent) GetRepoRevision() string {
 	return pe.Push.Changes[0].New.Target.Hash
+}
+
+// GetRepository returns the full path to the repository
+func (pe *RepositoryPushEvent) GetRepository() string {
+	return fmt.Sprintf("%v/%v", pe.GetRepoSource(), pe.GetRepoFullName())
 }

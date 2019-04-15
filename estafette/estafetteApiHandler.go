@@ -377,6 +377,15 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 		return
 	}
 
+	// set trigger event to manual
+	failedBuild.Events = []manifest.EstafetteEvent{
+		manifest.EstafetteEvent{
+			Manual: &manifest.EstafetteManualEvent{
+				UserID: user.Email,
+			},
+		},
+	}
+
 	// hand off to build service
 	createdBuild, err := h.buildService.CreateBuild(*failedBuild, true)
 	if err != nil {
@@ -788,6 +797,15 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 		RepoName:       releaseCommand.RepoName,
 		ReleaseVersion: releaseCommand.ReleaseVersion,
 		TriggeredBy:    user.Email,
+
+		// set trigger event to manual
+		Events: []manifest.EstafetteEvent{
+			manifest.EstafetteEvent{
+				Manual: &manifest.EstafetteManualEvent{
+					UserID: user.Email,
+				},
+			},
+		},
 	}, *build.ManifestObject, build.RepoBranch, build.RepoRevision, true)
 
 	if err != nil {

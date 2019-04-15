@@ -13,6 +13,7 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/estafette"
 	crypt "github.com/estafette/estafette-ci-crypt"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -216,6 +217,14 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 						RepoName:       build.RepoName,
 						ReleaseVersion: buildVersion,
 						TriggeredBy:    profile.Email,
+
+						Events: []manifest.EstafetteEvent{
+							manifest.EstafetteEvent{
+								Manual: &manifest.EstafetteManualEvent{
+									UserID: profile.Email,
+								},
+							},
+						},
 					}, *build.ManifestObject, build.RepoBranch, build.RepoRevision, false)
 
 					if err != nil {

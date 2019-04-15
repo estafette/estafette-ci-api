@@ -8,6 +8,7 @@ import (
 	bbcontracts "github.com/estafette/estafette-ci-api/bitbucket/contracts"
 	"github.com/estafette/estafette-ci-api/estafette"
 	contracts "github.com/estafette/estafette-ci-contracts"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -97,6 +98,17 @@ func (h *eventHandlerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.Repos
 		return
 	}
 
+	gitEvent := manifest.EstafetteGitEvent{
+		Event:      "push",
+		Repository: pushEvent.GetRepository(),
+		Branch:     pushEvent.GetRepoBranch(),
+	}
+
+	// handle git triggers
+	go func() {
+		h.buildService.FireGitTriggers(gitEvent)
+	}()
+
 	// get access token
 	accessToken, err := h.apiClient.GetAccessToken()
 	if err != nil {
@@ -140,6 +152,12 @@ func (h *eventHandlerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.Repos
 		RepoRevision: pushEvent.GetRepoRevision(),
 		Manifest:     manifestString,
 		Commits:      commits,
+
+		Events: []manifest.EstafetteEvent{
+			manifest.EstafetteEvent{
+				Git: &gitEvent,
+			},
+		},
 	}, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed creating build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())

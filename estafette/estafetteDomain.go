@@ -45,6 +45,7 @@ type CiBuilderParams struct {
 	ReleaseID          int
 	ReleaseTriggeredBy string
 	BuildID            int
+	TriggeredByEvents  []manifest.EstafetteEvent
 }
 
 type zeroLogLine struct {

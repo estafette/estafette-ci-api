@@ -20,6 +20,7 @@ type BuildService interface {
 	CreateRelease(release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (*contracts.Release, error)
 	FinishRelease(repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) error
 
+	FireGitTriggers(gitEvent manifest.EstafetteGitEvent) error
 	FirePipelineTriggers(build contracts.Build, event string) error
 	FireReleaseTriggers(release contracts.Release, event string) error
 	FireCronTriggers() error
@@ -205,6 +206,7 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 		Manifest:       build.Manifest,
 		Commits:        build.Commits,
 		Triggers:       build.Triggers,
+		Events:         build.Events,
 	})
 	if err != nil {
 		return
@@ -230,6 +232,7 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 		VersionNumber:        build.BuildVersion,
 		Manifest:             mft,
 		BuildID:              buildID,
+		TriggeredByEvents:    build.Events,
 	}
 
 	// create ci builder job
@@ -373,6 +376,7 @@ func (s *buildServiceImpl) CreateRelease(release contracts.Release, mft manifest
 		ReleaseVersion: release.ReleaseVersion,
 		ReleaseStatus:  releaseStatus,
 		TriggeredBy:    release.TriggeredBy,
+		Events:         release.Events,
 	})
 	if err != nil {
 		return
@@ -401,6 +405,7 @@ func (s *buildServiceImpl) CreateRelease(release contracts.Release, mft manifest
 		ReleaseName:          release.Name,
 		ReleaseAction:        release.Action,
 		ReleaseTriggeredBy:   release.TriggeredBy,
+		TriggeredByEvents:    release.Events,
 	}
 
 	// create ci release job
@@ -442,6 +447,62 @@ func (s *buildServiceImpl) FinishRelease(repoSource, repoOwner, repoName string,
 			s.FireReleaseTriggers(*release, "finished")
 		}
 	}()
+
+	return nil
+}
+
+func (s *buildServiceImpl) FireGitTriggers(gitEvent manifest.EstafetteGitEvent) error {
+
+	log.Info().Msgf("[trigger:git(%v-%v:%v)] Checking if triggers need to be fired...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event)
+
+	// retrieve all pipeline triggers
+	pipelines, err := s.cockroachDBClient.GetGitTriggers(gitEvent)
+	if err != nil {
+		return err
+	}
+
+	e := manifest.EstafetteEvent{
+		Git: &gitEvent,
+	}
+
+	triggerCount := 0
+	firedTriggerCount := 0
+
+	// check for each trigger whether it should fire
+	for _, p := range pipelines {
+		for _, t := range p.Triggers {
+
+			log.Debug().Interface("event", gitEvent).Interface("trigger", t).Msgf("[trigger:git(%v-%v:%v)] Checking if pipeline '%v/%v/%v' trigger should fire...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName)
+
+			if t.Pipeline == nil {
+				continue
+			}
+
+			triggerCount++
+
+			if t.Git.Fires(&gitEvent) {
+
+				firedTriggerCount++
+
+				// create new build for t.Run
+				if t.BuildAction != nil {
+					log.Info().Msgf("[trigger:git(%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+					err := s.fireBuild(*p, t, e)
+					if err != nil {
+						log.Info().Msgf("[trigger:git(%v-%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+					}
+				} else if t.ReleaseAction != nil {
+					log.Info().Msgf("[trigger:git(%v-%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+					err := s.fireRelease(*p, t, e, fmt.Sprintf("trigger.git { repository: %v, branch: %v, event: %v }", gitEvent.Repository, gitEvent.Branch, gitEvent.Event))
+					if err != nil {
+						log.Info().Msgf("[trigger:git(%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+					}
+				}
+			}
+		}
+	}
+
+	log.Info().Msgf("[trigger:git(%v-%v:%v)] Fired %v out of %v triggers for %v pipelines", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
 
 	return nil
 }
@@ -650,6 +711,9 @@ func (s *buildServiceImpl) fireBuild(p contracts.Pipeline, t manifest.EstafetteT
 	// empty the build version so a new one gets created
 	lastBuildForBranch.BuildVersion = ""
 
+	// set event that triggers the build
+	lastBuildForBranch.Events = []manifest.EstafetteEvent{e}
+
 	_, err = s.CreateBuild(*lastBuildForBranch, true)
 	if err != nil {
 		return err
@@ -670,6 +734,7 @@ func (s *buildServiceImpl) fireRelease(p contracts.Pipeline, t manifest.Estafett
 		RepoName:       p.RepoName,
 		ReleaseVersion: p.BuildVersion,
 		TriggeredBy:    triggeredBy,
+		Events:         []manifest.EstafetteEvent{e},
 	}, *p.ManifestObject, p.RepoBranch, p.RepoRevision, true)
 	if err != nil {
 		return err

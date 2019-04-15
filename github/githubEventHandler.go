@@ -14,6 +14,7 @@ import (
 	"github.com/estafette/estafette-ci-api/estafette"
 	ghcontracts "github.com/estafette/estafette-ci-api/github/contracts"
 	contracts "github.com/estafette/estafette-ci-contracts"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -131,6 +132,17 @@ func (h *eventHandlerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEven
 		return
 	}
 
+	gitEvent := manifest.EstafetteGitEvent{
+		Event:      "push",
+		Repository: pushEvent.GetRepository(),
+		Branch:     pushEvent.GetRepoBranch(),
+	}
+
+	// handle git triggers
+	go func() {
+		h.buildService.FireGitTriggers(gitEvent)
+	}()
+
 	// get access token
 	accessToken, err := h.apiClient.GetInstallationToken(pushEvent.Installation.ID)
 	if err != nil {
@@ -172,6 +184,12 @@ func (h *eventHandlerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEven
 		RepoRevision: pushEvent.GetRepoRevision(),
 		Manifest:     manifestString,
 		Commits:      commits,
+
+		Events: []manifest.EstafetteEvent{
+			manifest.EstafetteEvent{
+				Git: &gitEvent,
+			},
+		},
 	}, false)
 
 	if err != nil {

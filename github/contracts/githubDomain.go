@@ -1,6 +1,9 @@
 package contracts
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // PushEvent represents a Github webhook push event
 type PushEvent struct {
@@ -91,4 +94,9 @@ func (pe *PushEvent) GetRepoBranch() string {
 // GetRepoRevision returns the revision of the push event
 func (pe *PushEvent) GetRepoRevision() string {
 	return pe.After
+}
+
+// GetRepository returns the full path to the repository
+func (pe *PushEvent) GetRepository() string {
+	return fmt.Sprintf("%v/%v", pe.GetRepoSource(), pe.GetRepoFullName())
 }

@@ -182,7 +182,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 			Namespace: &cbc.kubeClient.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
-				"jobType": ciBuilderParams.JobType,
+				"jobType":   ciBuilderParams.JobType,
 			},
 		},
 		Spec: &batchv1.JobSpec{
@@ -190,7 +190,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 				Metadata: &metav1.ObjectMeta{
 					Labels: map[string]string{
 						"createdBy": "estafette",
-						"jobType": ciBuilderParams.JobType,
+						"jobType":   ciBuilderParams.JobType,
 					},
 				},
 				Spec: &corev1.PodSpec{
@@ -587,6 +587,11 @@ func (cbc *ciBuilderClientImpl) GetBuilderConfig(ciBuilderParams CiBuilderParams
 			ReleaseAction: ciBuilderParams.ReleaseAction,
 			TriggeredBy:   ciBuilderParams.ReleaseTriggeredBy,
 		}
+	}
+
+	localBuilderConfig.Events = make([]*manifest.EstafetteEvent, 0)
+	for _, e := range ciBuilderParams.TriggeredByEvents {
+		localBuilderConfig.Events = append(localBuilderConfig.Events, &e)
 	}
 
 	return localBuilderConfig

@@ -73,6 +73,7 @@ type DBClient interface {
 	GetPipelinesWithMostReleasesCount(filters map[string][]string) (int, error)
 
 	GetTriggers(triggerType, identifier, event string) ([]*contracts.Pipeline, error)
+	GetGitTriggers(gitEvent manifest.EstafetteGitEvent) ([]*contracts.Pipeline, error)
 	GetPipelineTriggers(build contracts.Build, event string) ([]*contracts.Pipeline, error)
 	GetReleaseTriggers(release contracts.Release, event string) ([]*contracts.Pipeline, error)
 	GetCronTriggers() ([]*contracts.Pipeline, error)
@@ -217,6 +218,10 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBu
 	if err != nil {
 		return
 	}
+	eventsBytes, err := json.Marshal(build.Events)
+	if err != nil {
+		return
+	}
 
 	// insert logs
 	row := dbc.databaseConnection.QueryRow(
@@ -235,7 +240,8 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBu
 			release_targets,
 			manifest,
 			commits,
-			triggers
+			triggers,
+			triggered_by_event
 		)
 		VALUES
 		(
@@ -250,7 +256,8 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBu
 			$9,
 			$10,
 			$11,
-			$12
+			$12,
+			$13
 		)
 		RETURNING
 			id
@@ -267,6 +274,7 @@ func (dbc *cockroachDBClientImpl) InsertBuild(build contracts.Build) (insertedBu
 		build.Manifest,
 		commitsBytes,
 		triggersBytes,
+		eventsBytes,
 	)
 
 	insertedBuild = &build
@@ -319,6 +327,11 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(repoSource, repoOwner, repoN
 func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (insertedRelease *contracts.Release, err error) {
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
+	eventsBytes, err := json.Marshal(release.Events)
+	if err != nil {
+		return
+	}
+
 	// insert logs
 	rows, err := dbc.databaseConnection.Query(
 		`
@@ -332,7 +345,8 @@ func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (inse
 			release_action,
 			release_version,
 			release_status,
-			triggered_by
+			triggered_by,
+			triggered_by_event
 		)
 		VALUES
 		(
@@ -343,7 +357,8 @@ func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (inse
 			$5,
 			$6,
 			$7,
-			$8
+			$8,
+			$9
 		)
 		RETURNING 
 			id
@@ -356,6 +371,7 @@ func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (inse
 		release.ReleaseVersion,
 		release.ReleaseStatus,
 		release.TriggeredBy,
+		eventsBytes,
 	)
 
 	if err != nil {
@@ -413,7 +429,8 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(repoSource, repoOwner, rep
 			triggered_by,
 			inserted_at,
 			updated_at,
-			duration::INT
+			duration::INT,
+			triggered_by_event
 		`,
 		releaseStatus,
 		id,
@@ -636,6 +653,11 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
 		return
 	}
+	eventsBytes, err := json.Marshal(upsertedPipeline.Events)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
+		return
+	}
 
 	// upsert computed pipeline
 	_, err = dbc.databaseConnection.Exec(
@@ -660,7 +682,8 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 			first_inserted_at,
 			updated_at,
 			duration,
-			last_updated_at
+			last_updated_at,
+			triggered_by_event
 		)
 		VALUES
 		(
@@ -681,7 +704,8 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 			$15,
 			$16,
 			AGE($16,$15),
-			$17
+			$17,
+			$18
 		)
 		ON CONFLICT
 		(
@@ -703,7 +727,8 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 			inserted_at = excluded.inserted_at,
 			updated_at = excluded.updated_at,
 			duration = AGE(excluded.updated_at,excluded.inserted_at),
-			last_updated_at = excluded.last_updated_at
+			last_updated_at = excluded.last_updated_at,
+			triggered_by_event = excluded.triggered_by_event
 		`,
 		upsertedPipeline.ID,
 		upsertedPipeline.RepoSource,
@@ -722,6 +747,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(repoSource, repoOwner, 
 		upsertedPipeline.InsertedAt,
 		upsertedPipeline.UpdatedAt,
 		upsertedPipeline.LastUpdatedAt,
+		eventsBytes,
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
@@ -786,6 +812,11 @@ func (dbc *cockroachDBClientImpl) UpsertComputedRelease(repoSource, repoOwner, r
 		return
 	}
 
+	eventsBytes, err := json.Marshal(lastRelease.Events)
+	if err != nil {
+		return
+	}
+
 	// upsert computed release
 	_, err = dbc.databaseConnection.Exec(
 		`
@@ -804,7 +835,8 @@ func (dbc *cockroachDBClientImpl) UpsertComputedRelease(repoSource, repoOwner, r
 			updated_at,
 			triggered_by,
 			duration,
-			release_action
+			release_action,
+			triggered_by_event
 		)
 		VALUES
 		(
@@ -820,7 +852,8 @@ func (dbc *cockroachDBClientImpl) UpsertComputedRelease(repoSource, repoOwner, r
 			$9,
 			$10,
 			AGE($9,$8),
-			$11
+			$11,
+			$12
 		)
 		ON CONFLICT
 		(
@@ -837,7 +870,8 @@ func (dbc *cockroachDBClientImpl) UpsertComputedRelease(repoSource, repoOwner, r
 			inserted_at = excluded.inserted_at,
 			updated_at = excluded.updated_at,
 			triggered_by = excluded.triggered_by,
-			duration = AGE(excluded.updated_at,excluded.inserted_at)
+			duration = AGE(excluded.updated_at,excluded.inserted_at),
+			triggered_by_event = excluded.triggered_by_event
 		`,
 		lastRelease.ID,
 		lastRelease.RepoSource,
@@ -850,6 +884,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedRelease(repoSource, repoOwner, r
 		lastRelease.UpdatedAt,
 		lastRelease.TriggeredBy,
 		lastRelease.Action,
+		eventsBytes,
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
@@ -2224,7 +2259,7 @@ func limitClauseGeneratorForLastFilter(query sq.SelectBuilder, filters map[strin
 func (dbc *cockroachDBClientImpl) scanBuild(row sq.RowScanner, optimized, enriched bool) (build *contracts.Build, err error) {
 
 	build = &contracts.Build{}
-	var labelsData, releaseTargetsData, commitsData, triggersData []uint8
+	var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8
 	var seconds int
 
 	if err = row.Scan(
@@ -2243,7 +2278,8 @@ func (dbc *cockroachDBClientImpl) scanBuild(row sq.RowScanner, optimized, enrich
 		&triggersData,
 		&build.InsertedAt,
 		&build.UpdatedAt,
-		&seconds); err != nil {
+		&seconds,
+		&triggeredByEventsData); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -2252,7 +2288,7 @@ func (dbc *cockroachDBClientImpl) scanBuild(row sq.RowScanner, optimized, enrich
 
 	build.Duration = time.Duration(seconds) * time.Second
 
-	dbc.setBuildPropertiesFromJSONB(build, labelsData, releaseTargetsData, commitsData, triggersData, optimized)
+	dbc.setBuildPropertiesFromJSONB(build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
 
 	if enriched {
 		dbc.enrichBuild(build)
@@ -2275,7 +2311,7 @@ func (dbc *cockroachDBClientImpl) scanBuilds(rows *sql.Rows, optimized bool) (bu
 	for rows.Next() {
 
 		build := contracts.Build{}
-		var labelsData, releaseTargetsData, commitsData, triggersData []uint8
+		var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8
 		var seconds int
 
 		if err = rows.Scan(
@@ -2294,13 +2330,14 @@ func (dbc *cockroachDBClientImpl) scanBuilds(rows *sql.Rows, optimized bool) (bu
 			&triggersData,
 			&build.InsertedAt,
 			&build.UpdatedAt,
-			&seconds); err != nil {
+			&seconds,
+			&triggeredByEventsData); err != nil {
 			return
 		}
 
 		build.Duration = time.Duration(seconds) * time.Second
 
-		dbc.setBuildPropertiesFromJSONB(&build, labelsData, releaseTargetsData, commitsData, triggersData, optimized)
+		dbc.setBuildPropertiesFromJSONB(&build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
 
 		if optimized {
 			// clear some properties for reduced size and improved performance over the network
@@ -2317,7 +2354,7 @@ func (dbc *cockroachDBClientImpl) scanBuilds(rows *sql.Rows, optimized bool) (bu
 func (dbc *cockroachDBClientImpl) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *contracts.Pipeline, err error) {
 
 	pipeline = &contracts.Pipeline{}
-	var labelsData, releaseTargetsData, commitsData, triggersData []uint8
+	var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8
 	var seconds int
 
 	if err = row.Scan(
@@ -2337,7 +2374,8 @@ func (dbc *cockroachDBClientImpl) scanPipeline(row sq.RowScanner, optimized bool
 		&pipeline.InsertedAt,
 		&pipeline.UpdatedAt,
 		&seconds,
-		&pipeline.LastUpdatedAt); err != nil {
+		&pipeline.LastUpdatedAt,
+		triggeredByEventsData); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -2346,7 +2384,7 @@ func (dbc *cockroachDBClientImpl) scanPipeline(row sq.RowScanner, optimized bool
 
 	pipeline.Duration = time.Duration(seconds) * time.Second
 
-	dbc.setPipelinePropertiesFromJSONB(pipeline, labelsData, releaseTargetsData, commitsData, triggersData, optimized)
+	dbc.setPipelinePropertiesFromJSONB(pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
 
 	if optimized {
 		// clear some properties for reduced size and improved performance over the network
@@ -2365,7 +2403,7 @@ func (dbc *cockroachDBClientImpl) scanPipelines(rows *sql.Rows, optimized bool) 
 	for rows.Next() {
 
 		pipeline := contracts.Pipeline{}
-		var labelsData, releaseTargetsData, commitsData, triggersData []uint8
+		var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8
 		var seconds int
 
 		if err = rows.Scan(
@@ -2385,13 +2423,14 @@ func (dbc *cockroachDBClientImpl) scanPipelines(rows *sql.Rows, optimized bool) 
 			&pipeline.InsertedAt,
 			&pipeline.UpdatedAt,
 			&seconds,
-			&pipeline.LastUpdatedAt); err != nil {
+			&pipeline.LastUpdatedAt,
+			&triggeredByEventsData); err != nil {
 			return
 		}
 
 		pipeline.Duration = time.Duration(seconds) * time.Second
 
-		dbc.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releaseTargetsData, commitsData, triggersData, optimized)
+		dbc.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
 
 		if optimized {
 			// clear some properties for reduced size and improved performance over the network
@@ -2410,6 +2449,7 @@ func (dbc *cockroachDBClientImpl) scanRelease(row sq.RowScanner) (release *contr
 	release = &contracts.Release{}
 	var seconds int
 	var id int
+	var triggeredByEventsData []uint8
 
 	if err = row.Scan(
 		&id,
@@ -2423,7 +2463,8 @@ func (dbc *cockroachDBClientImpl) scanRelease(row sq.RowScanner) (release *contr
 		&release.TriggeredBy,
 		&release.InsertedAt,
 		&release.UpdatedAt,
-		&seconds); err != nil {
+		&seconds,
+		&triggeredByEventsData); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -2433,6 +2474,12 @@ func (dbc *cockroachDBClientImpl) scanRelease(row sq.RowScanner) (release *contr
 	duration := time.Duration(seconds) * time.Second
 	release.Duration = &duration
 	release.ID = strconv.Itoa(id)
+
+	if len(triggeredByEventsData) > 0 {
+		if err = json.Unmarshal(triggeredByEventsData, &release.Events); err != nil {
+			return
+		}
+	}
 
 	return
 }
@@ -2447,6 +2494,7 @@ func (dbc *cockroachDBClientImpl) scanReleases(rows *sql.Rows) (releases []*cont
 		release := contracts.Release{}
 		var seconds int
 		var id int
+		var triggeredByEventsData []uint8
 
 		if err = rows.Scan(
 			&id,
@@ -2460,13 +2508,20 @@ func (dbc *cockroachDBClientImpl) scanReleases(rows *sql.Rows) (releases []*cont
 			&release.TriggeredBy,
 			&release.InsertedAt,
 			&release.UpdatedAt,
-			&seconds); err != nil {
+			&seconds,
+			&triggeredByEventsData); err != nil {
 			return
 		}
 
 		duration := time.Duration(seconds) * time.Second
 		release.Duration = &duration
 		release.ID = strconv.Itoa(id)
+
+		if len(triggeredByEventsData) > 0 {
+			if err = json.Unmarshal(triggeredByEventsData, &release.Events); err != nil {
+				return
+			}
+		}
 
 		releases = append(releases, &release)
 	}
@@ -2528,6 +2583,15 @@ func (dbc *cockroachDBClientImpl) GetTriggers(triggerType, identifier, event str
 	return
 }
 
+func (dbc *cockroachDBClientImpl) GetGitTriggers(gitEvent manifest.EstafetteGitEvent) ([]*contracts.Pipeline, error) {
+
+	triggerType := "git"
+	name := gitEvent.Repository
+	event := gitEvent.Event
+
+	return dbc.GetTriggers(triggerType, name, event)
+}
+
 func (dbc *cockroachDBClientImpl) GetPipelineTriggers(build contracts.Build, event string) ([]*contracts.Pipeline, error) {
 
 	triggerType := "pipeline"
@@ -2555,7 +2619,7 @@ func (dbc *cockroachDBClientImpl) selectBuildsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT, a.triggered_by_event").
 		From("builds a")
 }
 
@@ -2563,7 +2627,7 @@ func (dbc *cockroachDBClientImpl) selectPipelinesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT, a.last_updated_at").
+		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT, a.last_updated_at, a.triggered_by_event").
 		From("computed_pipelines a")
 }
 
@@ -2571,7 +2635,7 @@ func (dbc *cockroachDBClientImpl) selectReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.triggered_by, a.inserted_at, a.updated_at, a.duration::INT").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.triggered_by, a.inserted_at, a.updated_at, a.duration::INT, a.triggered_by_event").
 		From("releases a")
 }
 
@@ -2579,7 +2643,7 @@ func (dbc *cockroachDBClientImpl) selectComputedReleasesQuery() sq.SelectBuilder
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.triggered_by, a.inserted_at, a.updated_at, a.duration::INT").
+		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.triggered_by, a.inserted_at, a.updated_at, a.duration::INT, a.triggered_by_event").
 		From("computed_releases a")
 }
 
@@ -2615,7 +2679,7 @@ func (dbc *cockroachDBClientImpl) enrichBuild(build *contracts.Build) {
 	dbc.getLatestReleasesForBuild(build)
 }
 
-func (dbc *cockroachDBClientImpl) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, labelsData, releaseTargetsData, commitsData, triggersData []uint8, optimized bool) (err error) {
+func (dbc *cockroachDBClientImpl) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8, optimized bool) (err error) {
 
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &pipeline.Labels); err != nil {
@@ -2642,6 +2706,11 @@ func (dbc *cockroachDBClientImpl) setPipelinePropertiesFromJSONB(pipeline *contr
 			return
 		}
 	}
+	if len(triggeredByEventsData) > 0 {
+		if err = json.Unmarshal(triggeredByEventsData, &pipeline.Events); err != nil {
+			return
+		}
+	}
 
 	if !optimized {
 		// unmarshal then marshal manifest to include defaults
@@ -2663,7 +2732,7 @@ func (dbc *cockroachDBClientImpl) setPipelinePropertiesFromJSONB(pipeline *contr
 	return
 }
 
-func (dbc *cockroachDBClientImpl) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData, releaseTargetsData, commitsData, triggersData []uint8, optimized bool) (err error) {
+func (dbc *cockroachDBClientImpl) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8, optimized bool) (err error) {
 
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
@@ -2687,6 +2756,11 @@ func (dbc *cockroachDBClientImpl) setBuildPropertiesFromJSONB(build *contracts.B
 	}
 	if len(triggersData) > 0 {
 		if err = json.Unmarshal(triggersData, &build.Triggers); err != nil {
+			return
+		}
+	}
+	if len(triggeredByEventsData) > 0 {
+		if err = json.Unmarshal(triggeredByEventsData, &build.Events); err != nil {
 			return
 		}
 	}
@@ -2770,5 +2844,6 @@ func (dbc *cockroachDBClientImpl) mapBuildToPipeline(build *contracts.Build) (pi
 		InsertedAt:           build.InsertedAt,
 		UpdatedAt:            build.UpdatedAt,
 		Duration:             build.Duration,
+		Events:               build.Events,
 	}
 }
