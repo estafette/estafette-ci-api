@@ -474,7 +474,7 @@ func (s *buildServiceImpl) FireGitTriggers(gitEvent manifest.EstafetteGitEvent) 
 
 			log.Debug().Interface("event", gitEvent).Interface("trigger", t).Msgf("[trigger:git(%v-%v:%v)] Checking if pipeline '%v/%v/%v' trigger should fire...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName)
 
-			if t.Pipeline == nil {
+			if t.Git == nil {
 				continue
 			}
 
