@@ -2560,6 +2560,19 @@ func (dbc *cockroachDBClientImpl) GetTriggers(triggerType, identifier, event str
 		trigger.Cron = &manifest.EstafetteCronTrigger{}
 
 		break
+
+	case "git":
+
+		trigger.Git = &manifest.EstafetteGitTrigger{
+			Event:      event,
+			Repository: identifier,
+		}
+
+		break
+
+	default:
+
+		return pipelines, fmt.Errorf("Trigger type %v is not supported", triggerType)
 	}
 
 	bytes, err := json.Marshal([]manifest.EstafetteTrigger{trigger})
