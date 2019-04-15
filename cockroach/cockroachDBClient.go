@@ -2375,7 +2375,7 @@ func (dbc *cockroachDBClientImpl) scanPipeline(row sq.RowScanner, optimized bool
 		&pipeline.UpdatedAt,
 		&seconds,
 		&pipeline.LastUpdatedAt,
-		triggeredByEventsData); err != nil {
+		&triggeredByEventsData); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
