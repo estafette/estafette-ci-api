@@ -152,29 +152,6 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 
 	volumeMounts := []*corev1.VolumeMount{}
 	volumes := []*corev1.Volume{}
-	if ciBuilderParams.Manifest.Builder.InMemoryWorkingDirectory {
-		volumeName := "workdir"
-		volumePath := "/estafette-work"
-		volumeMedium := "Memory"
-
-		volumeMounts = []*corev1.VolumeMount{
-			&corev1.VolumeMount{
-				Name:      &volumeName,
-				MountPath: &volumePath,
-			},
-		}
-
-		volumes = []*corev1.Volume{
-			&corev1.Volume{
-				Name: &volumeName,
-				VolumeSource: &corev1.VolumeSource{
-					EmptyDir: &corev1.EmptyDirVolumeSource{
-						Medium: &volumeMedium,
-					},
-				},
-			},
-		}
-	}
 
 	job = &batchv1.Job{
 		Metadata: &metav1.ObjectMeta{
