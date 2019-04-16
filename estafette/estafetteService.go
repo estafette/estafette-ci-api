@@ -269,16 +269,7 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 			RepoRevision: createdBuild.RepoRevision,
 			Steps: []contracts.BuildLogStep{
 				contracts.BuildLogStep{
-					Step: "validate-manifest",
-					Image: &contracts.BuildLogStepDockerImage{
-						Name:         "estafette/estafette-ci-builder",
-						Tag:          "stable",
-						IsPulled:     true,
-						ImageSize:    0,
-						PullDuration: time.Duration(0),
-						Error:        "",
-						IsTrusted:    true,
-					},
+					Step:         "validate-manifest",
 					ExitCode:     1,
 					Status:       "FAILED",
 					AutoInjected: true,
