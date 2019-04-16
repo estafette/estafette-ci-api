@@ -345,7 +345,6 @@ func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (inse
 			release_action,
 			release_version,
 			release_status,
-			triggered_by,
 			triggered_by_event
 		)
 		VALUES
@@ -357,8 +356,7 @@ func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (inse
 			$5,
 			$6,
 			$7,
-			$8,
-			$9
+			$8
 		)
 		RETURNING 
 			id
@@ -370,7 +368,6 @@ func (dbc *cockroachDBClientImpl) InsertRelease(release contracts.Release) (inse
 		release.Action,
 		release.ReleaseVersion,
 		release.ReleaseStatus,
-		release.TriggeredBy,
 		eventsBytes,
 	)
 
@@ -426,7 +423,6 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(repoSource, repoOwner, rep
 			release_action,
 			release_version,
 			release_status,
-			triggered_by,
 			inserted_at,
 			updated_at,
 			duration::INT,
@@ -833,7 +829,6 @@ func (dbc *cockroachDBClientImpl) UpsertComputedRelease(repoSource, repoOwner, r
 			inserted_at,
 			first_inserted_at,
 			updated_at,
-			triggered_by,
 			duration,
 			release_action,
 			triggered_by_event
@@ -850,10 +845,9 @@ func (dbc *cockroachDBClientImpl) UpsertComputedRelease(repoSource, repoOwner, r
 			$8,
 			$8,
 			$9,
-			$10,
 			AGE($9,$8),
-			$11,
-			$12
+			$10,
+			$11
 		)
 		ON CONFLICT
 		(
@@ -869,7 +863,6 @@ func (dbc *cockroachDBClientImpl) UpsertComputedRelease(repoSource, repoOwner, r
 			release_status = excluded.release_status,
 			inserted_at = excluded.inserted_at,
 			updated_at = excluded.updated_at,
-			triggered_by = excluded.triggered_by,
 			duration = AGE(excluded.updated_at,excluded.inserted_at),
 			triggered_by_event = excluded.triggered_by_event
 		`,
@@ -882,7 +875,6 @@ func (dbc *cockroachDBClientImpl) UpsertComputedRelease(repoSource, repoOwner, r
 		lastRelease.ReleaseStatus,
 		lastRelease.InsertedAt,
 		lastRelease.UpdatedAt,
-		lastRelease.TriggeredBy,
 		lastRelease.Action,
 		eventsBytes,
 	)
@@ -2460,7 +2452,6 @@ func (dbc *cockroachDBClientImpl) scanRelease(row sq.RowScanner) (release *contr
 		&release.Action,
 		&release.ReleaseVersion,
 		&release.ReleaseStatus,
-		&release.TriggeredBy,
 		&release.InsertedAt,
 		&release.UpdatedAt,
 		&seconds,
@@ -2505,7 +2496,6 @@ func (dbc *cockroachDBClientImpl) scanReleases(rows *sql.Rows) (releases []*cont
 			&release.Action,
 			&release.ReleaseVersion,
 			&release.ReleaseStatus,
-			&release.TriggeredBy,
 			&release.InsertedAt,
 			&release.UpdatedAt,
 			&seconds,
@@ -2648,7 +2638,7 @@ func (dbc *cockroachDBClientImpl) selectReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.triggered_by, a.inserted_at, a.updated_at, a.duration::INT, a.triggered_by_event").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.updated_at, a.duration::INT, a.triggered_by_event").
 		From("releases a")
 }
 
@@ -2656,7 +2646,7 @@ func (dbc *cockroachDBClientImpl) selectComputedReleasesQuery() sq.SelectBuilder
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.triggered_by, a.inserted_at, a.updated_at, a.duration::INT, a.triggered_by_event").
+		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.updated_at, a.duration::INT, a.triggered_by_event").
 		From("computed_releases a")
 }
 

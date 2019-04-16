@@ -216,7 +216,6 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 						RepoOwner:      build.RepoOwner,
 						RepoName:       build.RepoName,
 						ReleaseVersion: buildVersion,
-						TriggeredBy:    profile.Email,
 
 						Events: []manifest.EstafetteEvent{
 							manifest.EstafetteEvent{

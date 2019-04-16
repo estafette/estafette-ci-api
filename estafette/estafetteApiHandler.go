@@ -796,7 +796,6 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 		RepoOwner:      releaseCommand.RepoOwner,
 		RepoName:       releaseCommand.RepoName,
 		ReleaseVersion: releaseCommand.ReleaseVersion,
-		TriggeredBy:    user.Email,
 
 		// set trigger event to manual
 		Events: []manifest.EstafetteEvent{
