@@ -42,7 +42,7 @@ var (
 	prometheusMetricsPath        = kingpin.Flag("metrics-path", "The path to listen for Prometheus metrics requests.").Default("/metrics").String()
 	apiAddress                   = kingpin.Flag("api-listen-address", "The address to listen on for api HTTP requests.").Default(":5000").String()
 	configFilePath               = kingpin.Flag("config-file-path", "The path to yaml config file configuring this application.").Default("/configs/config.yaml").String()
-	secretDecryptionKey          = kingpin.Flag("secret-decryption-key", "The AES-256 key used to decrypt secrets that have been encrypted with it.").Envar("SECRET_DECRYPTION_KEY").String()
+	secretDecryptionKeyBase64    = kingpin.Flag("secret-decryption-key-base64", "The base64 encoded AES-256 key used to decrypt secrets that have been encrypted with it.").Envar("SECRET_DECRYPTION_KEY_BASE64").String()
 	gracefulShutdownDelaySeconds = kingpin.Flag("graceful-shutdown-delay-seconds", "The number of seconds to wait with graceful shutdown in order to let endpoints update propagation finish.").Default("15").OverrideDefaultFromEnvar("GRACEFUL_SHUTDOWN_DELAY_SECONDS").Int()
 
 	// prometheusInboundEventTotals is the prometheus timeline serie that keeps track of inbound events
@@ -173,7 +173,7 @@ func createRouter() *gin.Engine {
 
 func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *http.Server {
 
-	secretHelper := crypt.NewSecretHelper(*secretDecryptionKey, false)
+	secretHelper := crypt.NewSecretHelper(*secretDecryptionKeyBase64, true)
 	configReader := config.NewConfigReader(secretHelper)
 
 	config, err := configReader.ReadConfigFromFile(*configFilePath, true)

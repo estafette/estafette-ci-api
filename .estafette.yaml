@@ -74,7 +74,7 @@ releases:
         container:
           repository: estafette
           env:
-            SECRET_DECRYPTION_KEY: estafette.secret(fCU10Q2CM5_7eWgl.SE2omebYoaDWQo41QYalKjoCB8FZVXFj63QwHLy1GkDpvq89FjJUkC-ngE3DNMqt)
+            SECRET_DECRYPTION_KEY_BASE64: estafette.secret(axt5NBobZQltxHCk.4ms_DzXI59vX-DuaaD4gRji0ThRPKvAXqgN-qS31SILI2iSQazCiSru_ZqKldgrrP5UhIPZpoY0Dxe-Y)
           cpu:
             request: 50m
             limit: 75m
