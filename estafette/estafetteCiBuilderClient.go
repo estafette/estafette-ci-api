@@ -119,7 +119,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		return
 	}
 	builderConfigValue := string(builderConfigJSONBytes)
-	builderConfigValue, newKey, err := cbc.secretHelper.ReencryptAllEnvelopes(builderConfigValue, false)
+	builderConfigValue, newKey, err := cbc.secretHelper.ReencryptAllEnvelopes(builderConfigValue, true)
 	if err != nil {
 		return
 	}
@@ -182,7 +182,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 							Image:           &image,
 							ImagePullPolicy: &imagePullPolicy,
 							Args: []string{
-								fmt.Sprintf("--secret-decryption-key=%v", newKey),
+								fmt.Sprintf("--secret-decryption-key-base64=%v", newKey),
 								"--run-as-job",
 							},
 							Env: environmentVariables,
