@@ -249,8 +249,21 @@ releases:
           - gke/ingress-bitbucket.yaml
           - gke/ingress-slack.yaml
           - gke/integrations-certificate-secret.yaml
+          - gke/secret-sa-gke.yaml
+          - gke/secret-sa-gcr.yaml
           data:
             IntegrationsHostname: estafette.secret(mtSBdLZLTVske7fE.3XCz5ZChlXXK72BMFL4PFuOgQz8W11Wh0PR0f5xzJumtkI5ctsTbIcQE2pPcs8PHtQ==)
+        volumemounts:
+        - name: gcp-service-account-gke
+          mountpath: /gcp-service-account-gke
+          volume:
+            secret:
+              secretName: ${ESTAFETTE_LABEL_APP}-gcp-service-account-gke
+        - name: gcp-service-account-gcr
+          mountpath: /gcp-service-account-gcr
+          volume:
+            secret:
+              secretName: ${ESTAFETTE_LABEL_APP}-gcp-service-account-gcr
 
       slack-notify:
         image: extensions/slack-build-status:dev
