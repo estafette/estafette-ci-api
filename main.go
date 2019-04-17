@@ -173,7 +173,7 @@ func createRouter() *gin.Engine {
 
 func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *http.Server {
 
-	secretHelper := crypt.NewSecretHelper(*secretDecryptionKey)
+	secretHelper := crypt.NewSecretHelper(*secretDecryptionKey, false)
 	configReader := config.NewConfigReader(secretHelper)
 
 	config, err := configReader.ReadConfigFromFile(*configFilePath, true)
@@ -190,7 +190,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
 	slackAPIClient := slack.NewSlackAPIClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
 	cockroachDBClient := cockroach.NewCockroachDBClient(*config.Database, prometheusOutboundAPICallTotals)
-	ciBuilderClient, err := estafette.NewCiBuilderClient(*config, *encryptedConfig, *secretDecryptionKey, prometheusOutboundAPICallTotals)
+	ciBuilderClient, err := estafette.NewCiBuilderClient(*config, *encryptedConfig, secretHelper, prometheusOutboundAPICallTotals)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
 	}

@@ -22,6 +22,7 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/docker"
 	contracts "github.com/estafette/estafette-ci-contracts"
+	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -43,12 +44,12 @@ type ciBuilderClientImpl struct {
 	dockerHubClient                 docker.DockerHubAPIClient
 	config                          config.APIConfig
 	encryptedConfig                 config.APIConfig
-	secretDecryptionKey             string
+	secretHelper                    crypt.SecretHelper
 	PrometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
 // NewCiBuilderClient returns a new estafette.CiBuilderClient
-func NewCiBuilderClient(config config.APIConfig, encryptedConfig config.APIConfig, secretDecryptionKey string, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
+func NewCiBuilderClient(config config.APIConfig, encryptedConfig config.APIConfig, secretHelper crypt.SecretHelper, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
 
 	var kubeClient *k8s.Client
 
@@ -89,7 +90,7 @@ func NewCiBuilderClient(config config.APIConfig, encryptedConfig config.APIConfi
 		dockerHubClient:                 dockerHubClient,
 		config:                          config,
 		encryptedConfig:                 encryptedConfig,
-		secretDecryptionKey:             secretDecryptionKey,
+		secretHelper:                    secretHelper,
 		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
 
@@ -118,6 +119,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		return
 	}
 	builderConfigValue := string(builderConfigJSONBytes)
+	builderConfigValue, newKey, err := cbc.secretHelper.ReencryptAllEnvelopes(builderConfigValue, false)
+	if err != nil {
+		return
+	}
 
 	environmentVariables := []*corev1.EnvVar{
 		&corev1.EnvVar{
@@ -177,7 +182,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 							Image:           &image,
 							ImagePullPolicy: &imagePullPolicy,
 							Args: []string{
-								fmt.Sprintf("--secret-decryption-key=%v", cbc.secretDecryptionKey),
+								fmt.Sprintf("--secret-decryption-key=%v", newKey),
 								"--run-as-job",
 							},
 							Env: environmentVariables,

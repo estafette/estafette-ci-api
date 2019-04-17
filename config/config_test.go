@@ -12,7 +12,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 	t.Run("ReturnsConfigWithoutErrors", func(t *testing.T) {
 
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
 		_, err := configReader.ReadConfigFromFile("test-config.yaml", true)
@@ -22,7 +22,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 	t.Run("ReturnsGithubConfig", func(t *testing.T) {
 
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
 		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
@@ -37,7 +37,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 	t.Run("ReturnsBitbucketConfig", func(t *testing.T) {
 
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
 		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
@@ -51,7 +51,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 	t.Run("ReturnsSlackConfig", func(t *testing.T) {
 
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
 		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
@@ -66,7 +66,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 	t.Run("ReturnsAPIServerConfig", func(t *testing.T) {
 
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
 		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
@@ -79,7 +79,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 	t.Run("ReturnsAuthConfig", func(t *testing.T) {
 
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
 		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
@@ -93,7 +93,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 	t.Run("ReturnsDatabaseConfig", func(t *testing.T) {
 
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
 		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
@@ -111,7 +111,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 	t.Run("ReturnsCredentialsConfig", func(t *testing.T) {
 
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
 		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
@@ -129,7 +129,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 	t.Run("ReturnsTrustedImagesConfig", func(t *testing.T) {
 
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
 		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
@@ -151,7 +151,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 	t.Run("ReturnsRegistryMirror", func(t *testing.T) {
 
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
 		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
@@ -164,7 +164,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 	t.Run("AllowsCredentialConfigWithComplexAdditionalPropertiesToBeJSONMarshalled", func(t *testing.T) {
 
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp"))
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
 		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
