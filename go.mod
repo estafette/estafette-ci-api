@@ -14,7 +14,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/ericchiang/k8s v1.2.0
 	github.com/estafette/estafette-ci-contracts v0.0.127
-	github.com/estafette/estafette-ci-crypt v0.0.22
+	github.com/estafette/estafette-ci-crypt v0.0.23
 	github.com/estafette/estafette-ci-manifest v0.1.99
 	github.com/gin-contrib/gzip v0.0.0-20170807063659-ff223ab9f8e3
 	github.com/gin-contrib/sse v0.0.0-20170109093832-22d885f9ecc7 // indirect
