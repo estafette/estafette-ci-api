@@ -46,7 +46,7 @@ stages:
     retries: 5
     commands:
     - docker login --username=${ESTAFETTE_DOCKER_HUB_USERNAME} --password='${ESTAFETTE_DOCKER_HUB_PASSWORD}'
-    - docker push estafette/${ESTAFETTE_LABEL_APP}:${ESTAFETTE_BUILD_VERSION}
+    - docker push estafette/${ESTAFETTE_GIT_NAME}:${ESTAFETTE_BUILD_VERSION}
     when:
       status == 'succeeded' &&
       branch == 'master'
@@ -56,7 +56,7 @@ stages:
     env:
       SOME_ENVIRONMENT_VAR: "some value with spaces"
     commands:
-    - 'curl -X POST --data-urlencode ''payload={"channel": "#build-status", "username": "estafette-ci-builder", "text": "Build ${ESTAFETTE_BUILD_VERSION} for ${ESTAFETTE_LABEL_APP} has failed!"}'' ${ESTAFETTE_SLACK_WEBHOOK}'
+    - 'curl -X POST --data-urlencode ''payload={"channel": "#build-status", "username": "estafette-ci-builder", "text": "Build ${ESTAFETTE_BUILD_VERSION} for ${ESTAFETTE_GIT_NAME} has failed!"}'' ${ESTAFETTE_SLACK_WEBHOOK}'
     when:
       status == 'failed' ||
       branch == 'master'

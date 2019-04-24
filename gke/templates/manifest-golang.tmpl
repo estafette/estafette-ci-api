@@ -1,31 +1,34 @@
-# https://estafette.io/usage/manifest/#labels
+# https://estafette.io/usage/manifest/
 labels:
-  app: {{.ApplicationNamePlaceholder}}
   team: {{.TeamNamePlaceholder}}
   language: golang
 
-# https://estafette.io/usage/manifest/#versioning
 version:
   semver:
     major: 0
     minor: 0
 
-# https://estafette.io/usage/manifest/#build-stages
 stages:
   build:
-    image: golang:1.11.5-alpine3.8
+    image: golang:1.12.4-alpine3.9
     workDir: /go/src/${ESTAFETTE_GIT_SOURCE}/${ESTAFETTE_GIT_OWNER}/${ESTAFETTE_GIT_NAME}
     env:
       CGO_ENABLED: 0
       GOOS: linux
     commands:
     - go test `go list ./... | grep -v /vendor/`
-    - go build -a -installsuffix cgo -o ./publish/${ESTAFETTE_LABEL_APP} .
+    - go build -a -installsuffix cgo -o ./publish/${ESTAFETTE_GIT_NAME} .
 
-  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-docker
   bake:
     image: extensions/docker:stable
     action: build
+    inline: |
+      FROM scratch
+      
+      COPY ca-certificates.crt /etc/ssl/certs/
+      COPY ${ESTAFETTE_GIT_NAME} /
+
+      ENTRYPOINT ["/${ESTAFETTE_GIT_NAME}"]
     repositories:
     - {{.DefaultDockerRepository}}
     path: ./publish
@@ -38,7 +41,6 @@ stages:
     repositories:
     - {{.DefaultDockerRepository}}
 
-  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-slack-build-status
   slack-notify:
     image: extensions/slack-build-status:stable
     workspace: {{.SlackWorkspace}}
@@ -47,7 +49,6 @@ stages:
     when:
       status == 'failed'
 
-# https://estafette.io/usage/manifest/#releases
 releases:
   development:
     stages:
@@ -75,7 +76,6 @@ releases:
 
   staging:
     stages:
-      # https://estafette.io/usage/extensions/estafette-extensions/#extensions-gke
       deploy:
         image: extensions/gke:stable
         visibility: private
@@ -99,7 +99,6 @@ releases:
           status == 'failed'
 
   production:
-    # https://estafette.io/usage/manifest/#release-actions
     actions:
     - name: deploy-canary
     - name: deploy-stable

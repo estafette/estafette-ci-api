@@ -1,19 +1,15 @@
-# https://estafette.io/usage/manifest/#labels
+# https://estafette.io/usage/manifest/
 labels:
-  app: {{.ApplicationNamePlaceholder}}
   container: {{.ContainerNamePlaceholder}}
   team: {{.TeamNamePlaceholder}}
   language: docker
 
-# https://estafette.io/usage/manifest/#versioning
 version:
   semver:
     major: 0
     minor: 0
 
-# https://estafette.io/usage/manifest/#build-stages
 stages:
-  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-docker
   bake:
     image: extensions/docker:stable
     action: build
@@ -21,7 +17,6 @@ stages:
     repositories:
     - {{.DefaultDockerRepository}}
 
-  # test the container before pushing it
   integration-test:
     image: {{.DefaultDockerRepository}}/${ESTAFETTE_LABEL_CONTAINER}:${ESTAFETTE_BUILD_VERSION}
 
@@ -34,7 +29,6 @@ stages:
     tags:
     - dev
 
-  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-slack-build-status
   slack-notify:
     image: extensions/slack-build-status:stable
     workspace: {{.SlackWorkspace}}
@@ -43,14 +37,13 @@ stages:
     when:
       status == 'failed'
 
-# https://estafette.io/usage/manifest/#releases
 releases:
   beta:
     stages:
       tag-container-image:
         image: extensions/docker:stable
         action: tag
-        container: ${ESTAFETTE_LABEL_APP}
+        container: ${ESTAFETTE_LABEL_CONTAINER}
         repositories:
         - {{.DefaultDockerRepository}}
         tags:
@@ -70,7 +63,7 @@ releases:
       tag-container-image:
         image: extensions/docker:stable
         action: tag
-        container: ${ESTAFETTE_LABEL_APP}
+        container: ${ESTAFETTE_LABEL_CONTAINER}
         repositories:
         - {{.DefaultDockerRepository}}
         tags:

@@ -164,7 +164,7 @@ func getManifestWithoutBuildStatusSteps() manifest.EstafetteManifest {
 				Name:             "build",
 				ContainerImage:   "golang:1.10.2-alpine3.7",
 				Shell:            "/bin/sh",
-				WorkingDirectory: "/go/src/github.com/estafette/${ESTAFETTE_LABEL_APP}",
+				WorkingDirectory: "/go/src/github.com/estafette/${ESTAFETTE_GIT_NAME}",
 				When:             "status == 'succeeded'",
 			},
 		},
@@ -228,7 +228,7 @@ func getManifestWithBuildStatusSteps() manifest.EstafetteManifest {
 				Name:             "build",
 				ContainerImage:   "golang:1.10.2-alpine3.7",
 				Shell:            "/bin/sh",
-				WorkingDirectory: "/go/src/github.com/estafette/${ESTAFETTE_LABEL_APP}",
+				WorkingDirectory: "/go/src/github.com/estafette/${ESTAFETTE_GIT_NAME}",
 				When:             "status == 'succeeded'",
 			},
 			&manifest.EstafetteStage{

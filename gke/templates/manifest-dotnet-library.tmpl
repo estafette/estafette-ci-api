@@ -1,47 +1,43 @@
-# https://estafette.io/usage/manifest/#labels
+# https://estafette.io/usage/manifest/
 labels:
-  app: {{.ApplicationNamePlaceholder}}
   team: {{.TeamNamePlaceholder}}
   language: dotnet-core
 
-# https://estafette.io/usage/manifest/#versioning
 version:
   semver:
     major: 0
     minor: 0
 
-# https://estafette.io/usage/manifest/#build-stages
 stages:
   restore:
-    image: microsoft/dotnet:2.2-sdk
+    image: mcr.microsoft.com/dotnet/core/sdk:2.2
     env:
       PRIVATE_NUGET_SOURCE: {{.PrivateNugetSource}}
     commands:
     - dotnet restore --source https://www.nuget.org/api/v1 --source ${PRIVATE_NUGET_SOURCE} --packages .nuget/packages
 
   build:
-    image: microsoft/dotnet:2.2-sdk
+    image: mcr.microsoft.com/dotnet/core/sdk:2.2
     commands:
     - dotnet build --configuration Release /p:Version=${ESTAFETTE_BUILD_VERSION} --no-restore
 
   unit-tests:
-    image: microsoft/dotnet:2.2-sdk
+    image: mcr.microsoft.com/dotnet/core/sdk:2.2
     commands:
     - dotnet test --configuration Release --no-build test/**/*.UnitTests.csproj
 
   pack:
-    image: microsoft/dotnet:2.2-sdk
+    image: mcr.microsoft.com/dotnet/core/sdk:2.2
     commands:
     - dotnet pack --configuration Release /p:Version=${ESTAFETTE_BUILD_VERSION} --no-restore
 
   push:
-    image: microsoft/dotnet:2.2-sdk
+    image: mcr.microsoft.com/dotnet/core/sdk:2.2
     env:
       PRIVATE_NUGET_SOURCE: {{.PrivateNugetSource}}
     commands:
     - dotnet nuget push src/**/*.nupkg --source ${PRIVATE_NUGET_SOURCE}
 
-  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-slack-build-status
   slack-notify:
     image: extensions/slack-build-status:stable
     workspace: {{.SlackWorkspace}}

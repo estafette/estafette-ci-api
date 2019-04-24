@@ -1,45 +1,41 @@
-# https://estafette.io/usage/manifest/#labels
+# https://estafette.io/usage/manifest/
 labels:
-  app: {{.ApplicationNamePlaceholder}}
   team: {{.TeamNamePlaceholder}}
   language: dotnet-core
 
-# https://estafette.io/usage/manifest/#versioning
 version:
   semver:
     major: 0
     minor: 0
 
-# https://estafette.io/usage/manifest/#build-stages
 stages:
   restore:
-    image: microsoft/dotnet:2.2-sdk
+    image: mcr.microsoft.com/dotnet/core/sdk:2.2
     env:
       PRIVATE_NUGET_SOURCE: {{.PrivateNugetSource}}
     commands:
     - dotnet restore --source https://www.nuget.org/api/v1 --source ${PRIVATE_NUGET_SOURCE} --packages .nuget/packages
 
   build:
-    image: microsoft/dotnet:2.2-sdk
+    image: mcr.microsoft.com/dotnet/core/sdk:2.2
     commands:
     - dotnet build --configuration Release /p:Version=${ESTAFETTE_BUILD_VERSION} --no-restore
 
   unit-tests:
-    image: microsoft/dotnet:2.2-sdk
+    image: mcr.microsoft.com/dotnet/core/sdk:2.2
     commands:
     - dotnet test --configuration Release --no-build test/**/*.UnitTests.csproj
 
   integration-tests:
-    image: microsoft/dotnet:2.2-sdk
+    image: mcr.microsoft.com/dotnet/core/sdk:2.2
     commands:
     - dotnet test --configuration Release --no-build test/**/*.IntegrationTests.csproj
 
   publish:
-    image: microsoft/dotnet:2.2-sdk
+    image: mcr.microsoft.com/dotnet/core/sdk:2.2
     commands:
     - dotnet publish src/*.WebService --configuration Release --runtime linux-x64 /p:Version=${ESTAFETTE_BUILD_VERSION} --output ${PWD}/publish --no-restore
 
-  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-docker
   bake:
     image: extensions/docker:stable
     action: build
@@ -53,7 +49,6 @@ stages:
     repositories:
     - {{.DefaultDockerRepository}}
 
-  # https://estafette.io/usage/extensions/estafette-extensions/#extensions-slack-build-status
   slack-notify:
     image: extensions/slack-build-status:stable
     workspace: {{.SlackWorkspace}}
@@ -62,7 +57,6 @@ stages:
     when:
       status == 'failed'
 
-# https://estafette.io/usage/manifest/#releases
 releases:
   development:
     stages:
@@ -90,7 +84,6 @@ releases:
 
   staging:
     stages:
-      # https://estafette.io/usage/extensions/estafette-extensions/#extensions-gke
       deploy:
         image: extensions/gke:stable
         visibility: private
@@ -114,7 +107,6 @@ releases:
           status == 'failed'
 
   production:
-    # https://estafette.io/usage/manifest/#release-actions
     actions:
     - name: deploy-canary
     - name: deploy-stable
