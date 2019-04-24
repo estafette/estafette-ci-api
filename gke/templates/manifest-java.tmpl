@@ -10,7 +10,7 @@ version:
 
 stages:
   build:
-    image: maven:3.6.0-jdk-13-alpine
+    image: maven:3.6.1-jdk-13-alpine
     commands:
     - mvn package -DoutputDirectory=./publish
 

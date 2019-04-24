@@ -235,7 +235,7 @@ releases:
             REGISTRY_MIRROR: https://mirror.gcr.io
 
             # manifest templates
-            ApplicationNamePlaceholder: '{{.ApplicationName}}'
+            ContainerNamePlaceholder: '{{.ContainerName}}'
             TeamNamePlaceholder: '{{.TeamName}}'
             DefaultDockerRepository: estafette.secret(cA_SpNWW3F1GgqOH.nBx5oIyIVc3kGWJdWHlN7fKOW_HPfuNr4X0LpOgEI7hsU854)
             SlackWorkspace: estafette.secret(i6NZxbK7RV6oWQ-K.QpCrnzKj9z_GGl4kONni4rkRa_UHWw==)
