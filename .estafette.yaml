@@ -70,6 +70,8 @@ releases:
         image: extensions/gke:dev
         namespace: estafette
         visibility: iap
+        iapOauthClientID: estafette.secret(-CTEapsI4VJ_f4A8.qONRPhwi6KevP3PUzvv6NIHR0ll1mLHeVudbvaN2CXgSsGLVPbzjf_FkPjxcsq24rbtF0Ouvv66vNVcq5NJZvs6TJaN_v6PJZKVnH9QRc-MJbpuTzPg07ug=)
+        iapOauthClientSecret: estafette.secret(xarjDVFdPMjO6opo.cfumOsj1fp0B47lF4xsjzcZPbS8kGxTHJB2LKXRrwZs2FpYKccgEJw==)
         container:
           repository: estafette
           env:
