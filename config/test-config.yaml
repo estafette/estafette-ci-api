@@ -115,3 +115,4 @@ trustedImages:
   - github-api-token
 
 registryMirror: https://mirror.gcr.io
+dindMtu: 1360

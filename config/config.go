@@ -11,13 +11,14 @@ import (
 
 // APIConfig represent the configuration for the entire api application
 type APIConfig struct {
-	Integrations   *APIConfigIntegrations          `yaml:"integrations,omitempty"`
-	APIServer      *APIServerConfig                `yaml:"apiServer,omitempty"`
-	Auth           *AuthConfig                     `yaml:"auth,omitempty"`
-	Database       *DatabaseConfig                 `yaml:"database,omitempty"`
-	Credentials    []*contracts.CredentialConfig   `yaml:"credentials,omitempty" json:"credentials,omitempty"`
-	TrustedImages  []*contracts.TrustedImageConfig `yaml:"trustedImages,omitempty" json:"trustedImages,omitempty"`
-	RegistryMirror *string                         `yaml:"registryMirror,omitempty" json:"registryMirror,omitempty"`
+	Integrations    *APIConfigIntegrations          `yaml:"integrations,omitempty"`
+	APIServer       *APIServerConfig                `yaml:"apiServer,omitempty"`
+	Auth            *AuthConfig                     `yaml:"auth,omitempty"`
+	Database        *DatabaseConfig                 `yaml:"database,omitempty"`
+	Credentials     []*contracts.CredentialConfig   `yaml:"credentials,omitempty" json:"credentials,omitempty"`
+	TrustedImages   []*contracts.TrustedImageConfig `yaml:"trustedImages,omitempty" json:"trustedImages,omitempty"`
+	RegistryMirror  *string                         `yaml:"registryMirror,omitempty" json:"registryMirror,omitempty"`
+	DockerDaemonMTU *string                         `yaml:"dindMtu,omitempty" json:"dindMtu,omitempty"`
 }
 
 // APIServerConfig represents configuration for the api server

@@ -235,6 +235,7 @@ releases:
             COCKROACH_USER: estafette.secret(O4uXorr5vFlFQoYu.QQFEtau1WrWXciu6o-YgET2MXU3OTIp9dNbsb_vAq_0=)
             COCKROACH_PASSWORD: estafette.secret(HGGRDWiTTYs5P_Je.-1ZXZtWI95cCSlv_4wlN024G8KNc0WYLeSzYlLHrukEx3crXjIx1ZHAkr07M5uhFOFim7tWnwo3e2ujFd81fBalGFaZmZwRFPMFmKkZUS5N3-j0BaQZVoFAdnPbuW854l0ALKnyBl7rvY8Zwsc8V1Qhcpw==)
             REGISTRY_MIRROR: https://mirror.gcr.io
+            DIND_MTU: 1360
 
             # manifest templates
             ContainerNamePlaceholder: '{{.ContainerName}}'

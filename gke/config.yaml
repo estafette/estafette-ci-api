@@ -268,3 +268,4 @@ trustedImages:
   allowCommands: true
 
 registryMirror: {{.REGISTRY_MIRROR}}
+dindMtu: {{.DIND_MTU}}

@@ -24,7 +24,7 @@ github.com/ericchiang/k8s/watch/versioned
 github.com/ericchiang/k8s/runtime/schema
 github.com/ericchiang/k8s/util/intstr
 github.com/ericchiang/k8s/apis/apiextensions/v1beta1
-# github.com/estafette/estafette-ci-contracts v0.0.127
+# github.com/estafette/estafette-ci-contracts v0.0.129
 github.com/estafette/estafette-ci-contracts
 # github.com/estafette/estafette-ci-crypt v0.0.23
 github.com/estafette/estafette-ci-crypt
