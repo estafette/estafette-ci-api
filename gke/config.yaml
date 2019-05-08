@@ -237,6 +237,10 @@ trustedImages:
   runDocker: true
   injectedCredentialTypes:
   - container-registry
+- path: extensions/prefetch
+  runDocker: true
+  injectedCredentialTypes:
+  - container-registry
 - path: extensions/gke
   injectedCredentialTypes:
   - kubernetes-engine
