@@ -90,6 +90,7 @@ type cockroachDBClientImpl struct {
 	config                          config.DatabaseConfig
 	PrometheusOutboundAPICallTotals *prometheus.CounterVec
 	databaseConnection              *sql.DB
+	tracer                          opentracing.Tracer
 }
 
 // NewCockroachDBClient returns a new cockroach.DBClient

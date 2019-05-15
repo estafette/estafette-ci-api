@@ -23,7 +23,6 @@ import (
 	foundation "github.com/estafette/estafette-foundation"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
-	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
@@ -82,9 +81,8 @@ func main() {
 	// configure json logging
 	foundation.InitLogging(app, version, branch, revision, buildDate)
 
-	tracer, closer := initJaeger(app)
+	closer := initJaeger(app)
 	defer closer.Close()
-	opentracing.SetGlobalTracer(tracer)
 
 	// define channels and waitgroup to gracefully shutdown the application
 	sigs := make(chan os.Signal, 1)                                    // Create channel to receive OS signals
@@ -280,20 +278,20 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 }
 
 // initJaeger returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
-func initJaeger(service string) (opentracing.Tracer, io.Closer) {
+func initJaeger(service string) io.Closer {
 
 	cfg, err := jaegercfg.FromEnv()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Generating Jaeger config from environment variables failed")
 	}
 
-	tracer, closer, err := cfg.New(service, jaegercfg.Logger(jaeger.StdLogger))
+	closer, err := cfg.InitGlobalTracer(service, jaegercfg.Logger(jaeger.StdLogger))
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("Generating Jaeger tracer failed")
 	}
 
-	return tracer, closer
+	return closer
 }
 
 func startPrometheus() {

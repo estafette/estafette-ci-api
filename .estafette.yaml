@@ -79,7 +79,6 @@ releases:
             JAEGER_AGENT_HOST: jaeger-all-in-one.jaeger-all-in-one.svc
             JAEGER_SAMPLER_TYPE: const
             JAEGER_SAMPLER_PARAM: 1
-            JAEGER_REPORTER_LOG_SPANS: true
           cpu:
             request: 50m
             limit: 75m
