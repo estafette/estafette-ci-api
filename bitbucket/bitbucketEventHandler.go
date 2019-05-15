@@ -10,6 +10,7 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
@@ -24,18 +25,23 @@ type eventHandlerImpl struct {
 	apiClient                    APIClient
 	buildService                 estafette.BuildService
 	prometheusInboundEventTotals *prometheus.CounterVec
+	tracer                       opentracing.Tracer
 }
 
 // NewBitbucketEventHandler returns a new bitbucket.EventHandler
-func NewBitbucketEventHandler(apiClient APIClient, buildService estafette.BuildService, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewBitbucketEventHandler(apiClient APIClient, buildService estafette.BuildService, prometheusInboundEventTotals *prometheus.CounterVec, tracer opentracing.Tracer) EventHandler {
 	return &eventHandlerImpl{
 		apiClient:                    apiClient,
 		buildService:                 buildService,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
+		tracer:                       tracer,
 	}
 }
 
 func (h *eventHandlerImpl) Handle(c *gin.Context) {
+
+	span := h.tracer.StartSpan("HandleBitbucketEvent")
+	defer span.Finish()
 
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
 
@@ -92,6 +98,9 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 }
 
 func (h *eventHandlerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.RepositoryPushEvent) {
+
+	span := h.tracer.StartSpan("CreateJobForBitbucketPush")
+	defer span.Finish()
 
 	// check to see that it's a cloneable event
 	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil || pushEvent.Push.Changes[0].New.Type != "branch" || len(pushEvent.Push.Changes[0].New.Target.Hash) == 0 {

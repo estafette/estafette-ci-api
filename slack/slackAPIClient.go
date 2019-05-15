@@ -9,6 +9,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/config"
 	slcontracts "github.com/estafette/estafette-ci-api/slack/contracts"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sethgrid/pester"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -22,13 +23,14 @@ type APIClient interface {
 type apiClientImpl struct {
 	config                          config.SlackConfig
 	prometheusOutboundAPICallTotals *prometheus.CounterVec
+	tracer                          opentracing.Tracer
 }
 
-// NewSlackAPIClient creates an slack.APIClient to communicate with the Slack api
-func NewSlackAPIClient(config config.SlackConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
+func NewSlackAPIClient(config config.SlackConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec, tracer opentracing.Tracer) APIClient {
 	return &apiClientImpl{
 		config:                          config,
 		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
+		tracer:                          tracer,
 	}
 }
 

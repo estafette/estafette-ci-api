@@ -13,6 +13,7 @@ import (
 
 	bbcontracts "github.com/estafette/estafette-ci-api/bitbucket/contracts"
 	"github.com/estafette/estafette-ci-api/config"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sethgrid/pester"
 )
@@ -29,13 +30,15 @@ type APIClient interface {
 type apiClientImpl struct {
 	config                          config.BitbucketConfig
 	prometheusOutboundAPICallTotals *prometheus.CounterVec
+	tracer                          opentracing.Tracer
 }
 
 // NewBitbucketAPIClient returns a new bitbucket.APIClient
-func NewBitbucketAPIClient(config config.BitbucketConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
+func NewBitbucketAPIClient(config config.BitbucketConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec, tracer opentracing.Tracer) APIClient {
 	return &apiClientImpl{
 		config:                          config,
 		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
+		tracer:                          tracer,
 	}
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	stdlog "log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -22,14 +21,12 @@ import (
 	"github.com/estafette/estafette-ci-api/github"
 	"github.com/estafette/estafette-ci-api/slack"
 	crypt "github.com/estafette/estafette-ci-crypt"
+	foundation "github.com/estafette/estafette-foundation"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-
 	jaeger "github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 )
@@ -83,7 +80,7 @@ func main() {
 	kingpin.Parse()
 
 	// configure json logging
-	initLogging()
+	foundation.InitLogging(app, version, branch, revision, buildDate)
 
 	tracer, closer := initJaeger(app)
 	defer closer.Close()
@@ -95,7 +92,7 @@ func main() {
 	wg := &sync.WaitGroup{}                                            // Goroutines can add themselves to this to be waited on so that they finish
 
 	// start prometheus
-	go startPrometheus()
+	foundation.InitMetrics()
 
 	// handle api requests
 	srv := handleRequests(stop, wg, tracer)
@@ -119,39 +116,6 @@ func main() {
 	wg.Wait() // Wait for all to be stopped
 
 	log.Info().Msg("Server gracefully stopped")
-}
-
-func startPrometheus() {
-	http.Handle(*prometheusMetricsPath, promhttp.Handler())
-
-	if err := http.ListenAndServe(*prometheusMetricsAddress, nil); err != nil {
-		log.Fatal().Err(err).Msg("Starting Prometheus listener failed")
-	}
-}
-
-func initLogging() {
-
-	// log as severity for stackdriver logging to recognize the level
-	zerolog.LevelFieldName = "severity"
-
-	// set some default fields added to all logs
-	log.Logger = zerolog.New(os.Stdout).With().
-		Timestamp().
-		Str("app", "estafette-ci-api").
-		Str("version", version).
-		Logger()
-
-	// use zerolog for any logs sent via standard log library
-	stdlog.SetFlags(0)
-	stdlog.SetOutput(log.Logger)
-
-	// log startup message
-	log.Info().
-		Str("branch", branch).
-		Str("revision", revision).
-		Str("buildDate", buildDate).
-		Str("goVersion", goVersion).
-		Msg("Starting estafette-ci-api...")
 }
 
 func createRouter() *gin.Engine {
@@ -196,11 +160,11 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, trac
 		log.Fatal().Err(err).Msg("Failed reading configuration without decrypting")
 	}
 
-	githubAPIClient := github.NewGithubAPIClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
-	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
-	slackAPIClient := slack.NewSlackAPIClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
-	cockroachDBClient := cockroach.NewCockroachDBClient(*config.Database, prometheusOutboundAPICallTotals)
-	ciBuilderClient, err := estafette.NewCiBuilderClient(*config, *encryptedConfig, secretHelper, prometheusOutboundAPICallTotals)
+	githubAPIClient := github.NewGithubAPIClient(*config.Integrations.Github, prometheusOutboundAPICallTotals, tracer)
+	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals, tracer)
+	slackAPIClient := slack.NewSlackAPIClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals, tracer)
+	cockroachDBClient := cockroach.NewCockroachDBClient(*config.Database, prometheusOutboundAPICallTotals, tracer)
+	ciBuilderClient, err := estafette.NewCiBuilderClient(*config, *encryptedConfig, secretHelper, prometheusOutboundAPICallTotals, tracer)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
 	}
@@ -222,11 +186,11 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, trac
 
 	estafetteBuildService := estafette.NewBuildService(cockroachDBClient, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
 
-	githubEventHandler := github.NewGithubEventHandler(githubAPIClient, estafetteBuildService, *config.Integrations.Github, prometheusInboundEventTotals)
+	githubEventHandler := github.NewGithubEventHandler(githubAPIClient, estafetteBuildService, *config.Integrations.Github, prometheusInboundEventTotals, tracer)
 	gzippedRoutes.POST("/api/integrations/github/events", githubEventHandler.Handle)
 	gzippedRoutes.GET("/api/integrations/github/status", func(c *gin.Context) { c.String(200, "Github, I'm cool!") })
 
-	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketAPIClient, estafetteBuildService, prometheusInboundEventTotals)
+	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketAPIClient, estafetteBuildService, prometheusInboundEventTotals, tracer)
 	gzippedRoutes.POST("/api/integrations/bitbucket/events", bitbucketEventHandler.Handle)
 	gzippedRoutes.GET("/api/integrations/bitbucket/status", func(c *gin.Context) { c.String(200, "Bitbucket, I'm cool!") })
 

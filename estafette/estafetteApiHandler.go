@@ -117,8 +117,11 @@ func NewAPIHandler(configFilePath string, config config.APIServerConfig, authCon
 func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 
 	span := h.tracer.StartSpan("GetPipelines")
+	defer span.Finish()
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
+
+	// set tracing span tags
 	span.SetTag("page-number", pageNumber)
 	span.SetTag("page-size", pageSize)
 
@@ -183,9 +186,18 @@ func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) GetPipeline(c *gin.Context) {
+
+	span := h.tracer.StartSpan("GetPipeline")
+	defer span.Finish()
+
 	source := c.Param("source")
 	owner := c.Param("owner")
 	repo := c.Param("repo")
+
+	// set tracing span tags
+	span.SetTag("source", source)
+	span.SetTag("owner", owner)
+	span.SetTag("repo", repo)
 
 	pipeline, err := h.cockroachDBClient.GetPipeline(source, owner, repo, true)
 	if err != nil {
@@ -201,11 +213,22 @@ func (h *apiHandlerImpl) GetPipeline(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) GetPipelineBuilds(c *gin.Context) {
+
+	span := h.tracer.StartSpan("GetPipelineBuilds")
+	defer span.Finish()
+
 	source := c.Param("source")
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
+
+	// set tracing span tags
+	span.SetTag("source", source)
+	span.SetTag("owner", owner)
+	span.SetTag("repo", repo)
+	span.SetTag("page-number", pageNumber)
+	span.SetTag("page-size", pageSize)
 
 	type BuildsResult struct {
 		builds []*contracts.Build
@@ -268,12 +291,24 @@ func (h *apiHandlerImpl) GetPipelineBuilds(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
+
+	span := h.tracer.StartSpan("GetPipelineBuild")
+	defer span.Finish()
+
 	source := c.Param("source")
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 	revisionOrID := c.Param("revisionOrId")
 
+	// set tracing span tags
+	span.SetTag("source", source)
+	span.SetTag("owner", owner)
+	span.SetTag("repo", repo)
+
 	if len(revisionOrID) == 40 {
+
+		span.SetTag("revision", revisionOrID)
+
 		build, err := h.cockroachDBClient.GetPipelineBuild(source, owner, repo, revisionOrID, false)
 		if err != nil {
 			log.Error().Err(err).
@@ -287,6 +322,8 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 		c.JSON(http.StatusOK, build)
 		return
 	}
+
+	span.SetTag("build-id", revisionOrID)
 
 	id, err := strconv.Atoi(revisionOrID)
 	if err != nil {
@@ -324,6 +361,9 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
+
+	span := h.tracer.StartSpan("CreatePipelineBuild")
+	defer span.Finish()
 
 	user := c.MustGet(gin.AuthUserKey).(auth.User)
 
@@ -407,6 +447,9 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 
 func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 
+	span := h.tracer.StartSpan("CancelPipelineBuild")
+	defer span.Finish()
+
 	user := c.MustGet(gin.AuthUserKey).(auth.User)
 
 	source := c.Param("source")
@@ -467,6 +510,10 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
+
+	span := h.tracer.StartSpan("GetPipelineBuildLogs")
+	defer span.Finish()
+
 	source := c.Param("source")
 	owner := c.Param("owner")
 	repo := c.Param("repo")
@@ -515,6 +562,10 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
+
+	span := h.tracer.StartSpan("TailPipelineBuildLogs")
+	defer span.Finish()
+
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 	id := c.Param("revisionOrId")
@@ -546,6 +597,9 @@ func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
+
+	span := h.tracer.StartSpan("PostPipelineBuildLogs")
+	defer span.Finish()
 
 	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
 		c.Status(http.StatusUnauthorized)
@@ -587,6 +641,9 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetPipelineBuildWarnings(c *gin.Context) {
 
+	span := h.tracer.StartSpan("GetPipelineBuildWarnings")
+	defer span.Finish()
+
 	source := c.Param("source")
 	owner := c.Param("owner")
 	repo := c.Param("repo")
@@ -622,6 +679,10 @@ func (h *apiHandlerImpl) GetPipelineBuildWarnings(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) GetPipelineReleases(c *gin.Context) {
+
+	span := h.tracer.StartSpan("GetPipelineReleases")
+	defer span.Finish()
+
 	source := c.Param("source")
 	owner := c.Param("owner")
 	repo := c.Param("repo")
@@ -689,6 +750,9 @@ func (h *apiHandlerImpl) GetPipelineReleases(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
+
+	span := h.tracer.StartSpan("CreatePipelineRelease")
+	defer span.Finish()
 
 	user := c.MustGet(gin.AuthUserKey).(auth.User)
 
@@ -826,6 +890,9 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 
 func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 
+	span := h.tracer.StartSpan("CancelPipelineRelease")
+	defer span.Finish()
+
 	user := c.MustGet(gin.AuthUserKey).(auth.User)
 
 	source := c.Param("source")
@@ -880,6 +947,10 @@ func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) GetPipelineRelease(c *gin.Context) {
+
+	span := h.tracer.StartSpan("GetPipelineRelease")
+	defer span.Finish()
+
 	source := c.Param("source")
 	owner := c.Param("owner")
 	repo := c.Param("repo")
@@ -906,6 +977,10 @@ func (h *apiHandlerImpl) GetPipelineRelease(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
+
+	span := h.tracer.StartSpan("GetPipelineReleaseLogs")
+	defer span.Finish()
+
 	source := c.Param("source")
 	owner := c.Param("owner")
 	repo := c.Param("repo")
@@ -932,6 +1007,10 @@ func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
+
+	span := h.tracer.StartSpan("TailPipelineReleaseLogs")
+	defer span.Finish()
+
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 	id := c.Param("id")
@@ -963,6 +1042,9 @@ func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
+
+	span := h.tracer.StartSpan("PostPipelineReleaseLogs")
+	defer span.Finish()
 
 	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
 		c.Status(http.StatusUnauthorized)
@@ -1000,6 +1082,9 @@ func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) GetFrequentLabels(c *gin.Context) {
+
+	span := h.tracer.StartSpan("GetFrequentLabels")
+	defer span.Finish()
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
@@ -1065,6 +1150,9 @@ func (h *apiHandlerImpl) GetFrequentLabels(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetPipelineStatsBuildsDurations(c *gin.Context) {
 
+	span := h.tracer.StartSpan("GetPipelineStatsBuildsDurations")
+	defer span.Finish()
+
 	source := c.Param("source")
 	owner := c.Param("owner")
 	repo := c.Param("repo")
@@ -1089,6 +1177,9 @@ func (h *apiHandlerImpl) GetPipelineStatsBuildsDurations(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetPipelineStatsReleasesDurations(c *gin.Context) {
 
+	span := h.tracer.StartSpan("GetPipelineStatsReleasesDurations")
+	defer span.Finish()
+
 	source := c.Param("source")
 	owner := c.Param("owner")
 	repo := c.Param("repo")
@@ -1112,6 +1203,9 @@ func (h *apiHandlerImpl) GetPipelineStatsReleasesDurations(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
+
+	span := h.tracer.StartSpan("GetPipelineWarnings")
+	defer span.Finish()
 
 	source := c.Param("source")
 	owner := c.Param("owner")
@@ -1178,6 +1272,9 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {
 
+	span := h.tracer.StartSpan("GetStatsPipelinesCount")
+	defer span.Finish()
+
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
 	filters := map[string][]string{}
 	filters["status"] = h.getStatusFilter(c)
@@ -1195,6 +1292,9 @@ func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) GetStatsReleasesCount(c *gin.Context) {
+
+	span := h.tracer.StartSpan("GetStatsReleasesCount")
+	defer span.Finish()
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
 	filters := map[string][]string{}
@@ -1214,6 +1314,9 @@ func (h *apiHandlerImpl) GetStatsReleasesCount(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetStatsBuildsCount(c *gin.Context) {
 
+	span := h.tracer.StartSpan("GetStatsBuildsCount")
+	defer span.Finish()
+
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
 	filters := map[string][]string{}
 	filters["status"] = h.getStatusFilter(c)
@@ -1231,6 +1334,9 @@ func (h *apiHandlerImpl) GetStatsBuildsCount(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) GetStatsMostBuilds(c *gin.Context) {
+
+	span := h.tracer.StartSpan("GetStatsMostBuilds")
+	defer span.Finish()
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
@@ -1268,6 +1374,9 @@ func (h *apiHandlerImpl) GetStatsMostBuilds(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetStatsMostReleases(c *gin.Context) {
 
+	span := h.tracer.StartSpan("GetStatsMostReleases")
+	defer span.Finish()
+
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
 	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostReleases(pageNumber, pageSize, filters)
@@ -1304,6 +1413,9 @@ func (h *apiHandlerImpl) GetStatsMostReleases(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetStatsBuildsDuration(c *gin.Context) {
 
+	span := h.tracer.StartSpan("GetStatsBuildsDuration")
+	defer span.Finish()
+
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
 	filters := map[string][]string{}
 	filters["status"] = h.getStatusFilter(c)
@@ -1322,6 +1434,9 @@ func (h *apiHandlerImpl) GetStatsBuildsDuration(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetStatsBuildsAdoption(c *gin.Context) {
 
+	span := h.tracer.StartSpan("GetStatsBuildsAdoption")
+	defer span.Finish()
+
 	buildTimes, err := h.cockroachDBClient.GetFirstBuildTimes()
 	if err != nil {
 		errorMessage := "Failed retrieving first build times from db"
@@ -1336,6 +1451,10 @@ func (h *apiHandlerImpl) GetStatsBuildsAdoption(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) GetStatsReleasesAdoption(c *gin.Context) {
+
+	span := h.tracer.StartSpan("GetStatsReleasesAdoption")
+	defer span.Finish()
+
 	releaseTimes, err := h.cockroachDBClient.GetFirstReleaseTimes()
 	if err != nil {
 		errorMessage := "Failed retrieving first release times from db"
@@ -1351,12 +1470,18 @@ func (h *apiHandlerImpl) GetStatsReleasesAdoption(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetLoggedInUser(c *gin.Context) {
 
+	span := h.tracer.StartSpan("GetLoggedInUser")
+	defer span.Finish()
+
 	user := c.MustGet(gin.AuthUserKey).(auth.User)
 
 	c.JSON(http.StatusOK, user)
 }
 
 func (h *apiHandlerImpl) UpdateComputedTables(c *gin.Context) {
+
+	span := h.tracer.StartSpan("UpdateComputedTables")
+	defer span.Finish()
 
 	user := c.MustGet(gin.AuthUserKey).(auth.User)
 
@@ -1403,6 +1528,9 @@ func (h *apiHandlerImpl) UpdateComputedTables(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetConfig(c *gin.Context) {
 
+	span := h.tracer.StartSpan("GetConfig")
+	defer span.Finish()
+
 	_ = c.MustGet(gin.AuthUserKey).(auth.User)
 
 	configBytes, err := yaml.Marshal(h.encryptedConfig)
@@ -1429,6 +1557,9 @@ func (h *apiHandlerImpl) GetConfig(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetConfigCredentials(c *gin.Context) {
 
+	span := h.tracer.StartSpan("GetConfigCredentials")
+	defer span.Finish()
+
 	_ = c.MustGet(gin.AuthUserKey).(auth.User)
 
 	configBytes, err := yaml.Marshal(h.encryptedConfig.Credentials)
@@ -1454,6 +1585,9 @@ func (h *apiHandlerImpl) GetConfigCredentials(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) GetConfigTrustedImages(c *gin.Context) {
+
+	span := h.tracer.StartSpan("GetConfigTrustedImages")
+	defer span.Finish()
 
 	_ = c.MustGet(gin.AuthUserKey).(auth.User)
 
@@ -1494,6 +1628,9 @@ func (h *apiHandlerImpl) getStatusFilterWithDefault(c *gin.Context, defaultStatu
 }
 
 func (h *apiHandlerImpl) GetManifestTemplates(c *gin.Context) {
+
+	span := h.tracer.StartSpan("GetManifestTemplates")
+	defer span.Finish()
 
 	configFiles, err := ioutil.ReadDir(filepath.Dir(h.configFilePath))
 	if err != nil {
@@ -1556,6 +1693,9 @@ func stringArrayContains(array []string, value string) bool {
 
 func (h *apiHandlerImpl) GenerateManifest(c *gin.Context) {
 
+	span := h.tracer.StartSpan("GenerateManifest")
+	defer span.Finish()
+
 	var aux struct {
 		Template     string            `json:"template"`
 		Placeholders map[string]string `json:"placeholders,omitempty"`
@@ -1596,6 +1736,9 @@ func (h *apiHandlerImpl) GenerateManifest(c *gin.Context) {
 
 func (h *apiHandlerImpl) ValidateManifest(c *gin.Context) {
 
+	span := h.tracer.StartSpan("ValidateManifest")
+	defer span.Finish()
+
 	var aux struct {
 		Template string `json:"template"`
 	}
@@ -1619,6 +1762,9 @@ func (h *apiHandlerImpl) ValidateManifest(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) EncryptSecret(c *gin.Context) {
+
+	span := h.tracer.StartSpan("EncryptSecret")
+	defer span.Finish()
 
 	var aux struct {
 		Base64Encode  bool   `json:"base64"`
@@ -1658,6 +1804,9 @@ func (h *apiHandlerImpl) EncryptSecret(c *gin.Context) {
 }
 
 func (h *apiHandlerImpl) PostCronEvent(c *gin.Context) {
+
+	span := h.tracer.StartSpan("PostCronEvent")
+	defer span.Finish()
 
 	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
 		c.Status(http.StatusUnauthorized)

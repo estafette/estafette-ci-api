@@ -24,6 +24,7 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
@@ -46,10 +47,11 @@ type ciBuilderClientImpl struct {
 	encryptedConfig                 config.APIConfig
 	secretHelper                    crypt.SecretHelper
 	PrometheusOutboundAPICallTotals *prometheus.CounterVec
+	tracer                          opentracing.Tracer
 }
 
 // NewCiBuilderClient returns a new estafette.CiBuilderClient
-func NewCiBuilderClient(config config.APIConfig, encryptedConfig config.APIConfig, secretHelper crypt.SecretHelper, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient CiBuilderClient, err error) {
+func NewCiBuilderClient(config config.APIConfig, encryptedConfig config.APIConfig, secretHelper crypt.SecretHelper, prometheusOutboundAPICallTotals *prometheus.CounterVec, tracer opentracing.Tracer) (ciBuilderClient CiBuilderClient, err error) {
 
 	var kubeClient *k8s.Client
 
@@ -92,6 +94,7 @@ func NewCiBuilderClient(config config.APIConfig, encryptedConfig config.APIConfi
 		encryptedConfig:                 encryptedConfig,
 		secretHelper:                    secretHelper,
 		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
+		tracer:                          tracer,
 	}
 
 	return

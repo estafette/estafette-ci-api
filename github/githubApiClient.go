@@ -14,6 +14,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/config"
 	ghcontracts "github.com/estafette/estafette-ci-api/github/contracts"
+	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
 
@@ -35,13 +36,15 @@ type APIClient interface {
 type apiClientImpl struct {
 	config                          config.GithubConfig
 	prometheusOutboundAPICallTotals *prometheus.CounterVec
+	tracer                          opentracing.Tracer
 }
 
 // NewGithubAPIClient creates an github.APIClient to communicate with the Github api
-func NewGithubAPIClient(config config.GithubConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
+func NewGithubAPIClient(config config.GithubConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec, tracer opentracing.Tracer) APIClient {
 	return &apiClientImpl{
 		config:                          config,
 		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
+		tracer:                          tracer,
 	}
 }
 

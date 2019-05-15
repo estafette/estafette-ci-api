@@ -14,6 +14,7 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	_ "github.com/lib/pq" // use postgres client library to connect to cockroachdb
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
@@ -88,15 +89,17 @@ type cockroachDBClientImpl struct {
 	config                          config.DatabaseConfig
 	PrometheusOutboundAPICallTotals *prometheus.CounterVec
 	databaseConnection              *sql.DB
+	tracer                          opentracing.Tracer
 }
 
 // NewCockroachDBClient returns a new cockroach.DBClient
-func NewCockroachDBClient(config config.DatabaseConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) (cockroachDBClient DBClient) {
+func NewCockroachDBClient(config config.DatabaseConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec, tracer opentracing.Tracer) (cockroachDBClient DBClient) {
 
 	cockroachDBClient = &cockroachDBClientImpl{
 		databaseDriver:                  "postgres",
 		config:                          config,
 		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
+		tracer:                          tracer,
 	}
 
 	return

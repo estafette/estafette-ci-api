@@ -16,6 +16,7 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
@@ -32,15 +33,17 @@ type eventHandlerImpl struct {
 	buildService                 estafette.BuildService
 	config                       config.GithubConfig
 	prometheusInboundEventTotals *prometheus.CounterVec
+	tracer                       opentracing.Tracer
 }
 
 // NewGithubEventHandler returns a github.EventHandler to handle incoming webhook events
-func NewGithubEventHandler(apiClient APIClient, buildService estafette.BuildService, config config.GithubConfig, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewGithubEventHandler(apiClient APIClient, buildService estafette.BuildService, config config.GithubConfig, prometheusInboundEventTotals *prometheus.CounterVec, tracer opentracing.Tracer) EventHandler {
 	return &eventHandlerImpl{
 		apiClient:                    apiClient,
 		buildService:                 buildService,
 		config:                       config,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
+		tracer:                       tracer,
 	}
 }
 
