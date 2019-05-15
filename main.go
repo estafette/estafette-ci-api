@@ -84,6 +84,7 @@ func main() {
 
 	tracer, closer := initJaeger(app)
 	defer closer.Close()
+	opentracing.SetGlobalTracer(tracer)
 
 	// define channels and waitgroup to gracefully shutdown the application
 	sigs := make(chan os.Signal, 1)                                    // Create channel to receive OS signals
@@ -291,8 +292,6 @@ func initJaeger(service string) (opentracing.Tracer, io.Closer) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Generating Jaeger tracer failed")
 	}
-
-	opentracing.SetGlobalTracer(tracer)
 
 	return tracer, closer
 }

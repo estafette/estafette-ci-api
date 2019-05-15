@@ -1,6 +1,7 @@
 package bitbucket
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -18,7 +19,7 @@ import (
 // EventHandler handles http events for Bitbucket integration
 type EventHandler interface {
 	Handle(*gin.Context)
-	CreateJobForBitbucketPush(bbcontracts.RepositoryPushEvent)
+	CreateJobForBitbucketPush(context.Context, bbcontracts.RepositoryPushEvent)
 }
 
 type eventHandlerImpl struct {
@@ -63,7 +64,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 			return
 		}
 
-		h.CreateJobForBitbucketPush(pushEvent)
+		h.CreateJobForBitbucketPush(c.Request.Context(), pushEvent)
 
 	case
 		"repo:fork",
@@ -94,9 +95,9 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
-func (h *eventHandlerImpl) CreateJobForBitbucketPush(pushEvent bbcontracts.RepositoryPushEvent) {
+func (h *eventHandlerImpl) CreateJobForBitbucketPush(ctx context.Context, pushEvent bbcontracts.RepositoryPushEvent) {
 
-	span := h.tracer.StartSpan("CreateJobForBitbucketPush")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CreateJobForBitbucketPush")
 	defer span.Finish()
 
 	// check to see that it's a cloneable event
