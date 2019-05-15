@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -28,7 +27,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
-	jaeger "github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 )
 
@@ -278,19 +276,21 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, trac
 
 // initJaeger returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
 func initJaeger(service string) (opentracing.Tracer, io.Closer) {
-	cfg := &jaegercfg.Configuration{
-		Sampler: &jaegercfg.SamplerConfig{
-			Type:  "const",
-			Param: 1,
-		},
-		Reporter: &jaegercfg.ReporterConfig{
-			LogSpans: true,
-		},
-	}
-	tracer, closer, err := cfg.New(service, jaegercfg.Logger(jaeger.StdLogger))
+
+	cfg, err := jaegercfg.FromEnv()
 	if err != nil {
-		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
+		log.Fatal().Err(err).Msg("Generating Jaeger config from environment variables failed")
 	}
+
+	cfg.ServiceName = service
+
+	tracer, closer, err := cfg.NewTracer()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Generating Jaeger tracer failed")
+	}
+
+	opentracing.SetGlobalTracer(tracer)
+
 	return tracer, closer
 }
 
