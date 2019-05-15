@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io"
 	stdlog "log"
 	"net/http"
 	"os"
@@ -22,13 +24,18 @@ import (
 	crypt "github.com/estafette/estafette-ci-crypt"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+
+	jaeger "github.com/uber/jaeger-client-go"
+	jaegercfg "github.com/uber/jaeger-client-go/config"
 )
 
 var (
+	app       string
 	version   string
 	branch    string
 	revision  string
@@ -78,6 +85,9 @@ func main() {
 	// configure json logging
 	initLogging()
 
+	tracer, closer := initJaeger(app)
+	defer closer.Close()
+
 	// define channels and waitgroup to gracefully shutdown the application
 	sigs := make(chan os.Signal, 1)                                    // Create channel to receive OS signals
 	stop := make(chan struct{})                                        // Create channel to receive stop signal
@@ -88,7 +98,7 @@ func main() {
 	go startPrometheus()
 
 	// handle api requests
-	srv := handleRequests(stop, wg)
+	srv := handleRequests(stop, wg, tracer)
 
 	// wait for graceful shutdown to finish
 	<-sigs // Wait for signals (this hangs until a signal arrives)
@@ -171,7 +181,7 @@ func createRouter() *gin.Engine {
 	return router
 }
 
-func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *http.Server {
+func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, tracer opentracing.Tracer) *http.Server {
 
 	secretHelper := crypt.NewSecretHelper(*secretDecryptionKeyBase64, true)
 	configReader := config.NewConfigReader(secretHelper)
@@ -227,7 +237,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, ciBuilderClient, estafetteBuildService, prometheusInboundEventTotals)
 	warningHelper := estafette.NewWarningHelper()
 
-	estafetteAPIHandler := estafette.NewAPIHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, ciBuilderClient, estafetteBuildService, warningHelper, secretHelper, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
+	estafetteAPIHandler := estafette.NewAPIHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, ciBuilderClient, estafetteBuildService, warningHelper, secretHelper, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc(), tracer)
 	gzippedRoutes.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
 	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo", estafetteAPIHandler.GetPipeline)
 	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)
@@ -299,4 +309,22 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	}()
 
 	return srv
+}
+
+// initJaeger returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
+func initJaeger(service string) (opentracing.Tracer, io.Closer) {
+	cfg := &jaegercfg.Configuration{
+		Sampler: &jaegercfg.SamplerConfig{
+			Type:  "const",
+			Param: 1,
+		},
+		Reporter: &jaegercfg.ReporterConfig{
+			LogSpans: true,
+		},
+	}
+	tracer, closer, err := cfg.New(service, jaegercfg.Logger(jaeger.StdLogger))
+	if err != nil {
+		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
+	}
+	return tracer, closer
 }

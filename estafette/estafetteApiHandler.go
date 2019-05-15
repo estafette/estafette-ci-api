@@ -21,6 +21,7 @@ import (
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
+	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -88,10 +89,11 @@ type apiHandlerImpl struct {
 	secretHelper         crypt.SecretHelper
 	githubJobVarsFunc    func(string, string, string) (string, string, error)
 	bitbucketJobVarsFunc func(string, string, string) (string, string, error)
+	tracer               opentracing.Tracer
 }
 
 // NewAPIHandler returns a new estafette.APIHandler
-func NewAPIHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, buildService BuildService, warningHelper WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error)) (apiHandler APIHandler) {
+func NewAPIHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, buildService BuildService, warningHelper WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error), tracer opentracing.Tracer) (apiHandler APIHandler) {
 
 	apiHandler = &apiHandlerImpl{
 		configFilePath:       configFilePath,
@@ -105,6 +107,7 @@ func NewAPIHandler(configFilePath string, config config.APIServerConfig, authCon
 		secretHelper:         secretHelper,
 		githubJobVarsFunc:    githubJobVarsFunc,
 		bitbucketJobVarsFunc: bitbucketJobVarsFunc,
+		tracer:               tracer,
 	}
 
 	return
@@ -113,7 +116,11 @@ func NewAPIHandler(configFilePath string, config config.APIServerConfig, authCon
 
 func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 
+	span := h.tracer.StartSpan("GetPipelines")
+
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
+	span.SetTag("page-number", pageNumber)
+	span.SetTag("page-size", pageSize)
 
 	type PipelinesResult struct {
 		pipelines []*contracts.Pipeline
