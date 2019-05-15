@@ -26,6 +26,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 	jaeger "github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
@@ -92,7 +93,7 @@ func main() {
 	wg := &sync.WaitGroup{}                                            // Goroutines can add themselves to this to be waited on so that they finish
 
 	// start prometheus
-	foundation.InitMetrics()
+	go startPrometheus()
 
 	// handle api requests
 	srv := handleRequests(stop, wg, tracer)
@@ -291,4 +292,12 @@ func initJaeger(service string) (opentracing.Tracer, io.Closer) {
 		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
 	}
 	return tracer, closer
+}
+
+func startPrometheus() {
+	http.Handle(*prometheusMetricsPath, promhttp.Handler())
+
+	if err := http.ListenAndServe(*prometheusMetricsAddress, nil); err != nil {
+		log.Fatal().Err(err).Msg("Starting Prometheus listener failed")
+	}
 }
