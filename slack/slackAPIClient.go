@@ -23,21 +23,19 @@ type APIClient interface {
 type apiClientImpl struct {
 	config                          config.SlackConfig
 	prometheusOutboundAPICallTotals *prometheus.CounterVec
-	tracer                          opentracing.Tracer
 }
 
-func NewSlackAPIClient(config config.SlackConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec, tracer opentracing.Tracer) APIClient {
+func NewSlackAPIClient(config config.SlackConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
 	return &apiClientImpl{
 		config:                          config,
 		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
-		tracer:                          tracer,
 	}
 }
 
 // GetUserProfile returns a Slack user profile
 func (sl *apiClientImpl) GetUserProfile(userID string) (profile *slcontracts.UserProfile, err error) {
 
-	span := sl.tracer.StartSpan("Slack::GetUserProfile")
+	span := opentracing.StartSpan("Slack::GetUserProfile")
 	defer span.Finish()
 
 	// track call via prometheus

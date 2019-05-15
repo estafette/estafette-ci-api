@@ -26,16 +26,14 @@ type eventHandlerImpl struct {
 	apiClient                    APIClient
 	buildService                 estafette.BuildService
 	prometheusInboundEventTotals *prometheus.CounterVec
-	tracer                       opentracing.Tracer
 }
 
 // NewBitbucketEventHandler returns a new bitbucket.EventHandler
-func NewBitbucketEventHandler(apiClient APIClient, buildService estafette.BuildService, prometheusInboundEventTotals *prometheus.CounterVec, tracer opentracing.Tracer) EventHandler {
+func NewBitbucketEventHandler(apiClient APIClient, buildService estafette.BuildService, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		apiClient:                    apiClient,
 		buildService:                 buildService,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
-		tracer:                       tracer,
 	}
 }
 

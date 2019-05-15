@@ -89,11 +89,10 @@ type apiHandlerImpl struct {
 	secretHelper         crypt.SecretHelper
 	githubJobVarsFunc    func(string, string, string) (string, string, error)
 	bitbucketJobVarsFunc func(string, string, string) (string, string, error)
-	tracer               opentracing.Tracer
 }
 
 // NewAPIHandler returns a new estafette.APIHandler
-func NewAPIHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, buildService BuildService, warningHelper WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error), tracer opentracing.Tracer) (apiHandler APIHandler) {
+func NewAPIHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, buildService BuildService, warningHelper WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error)) (apiHandler APIHandler) {
 
 	apiHandler = &apiHandlerImpl{
 		configFilePath:       configFilePath,
@@ -107,7 +106,6 @@ func NewAPIHandler(configFilePath string, config config.APIServerConfig, authCon
 		secretHelper:         secretHelper,
 		githubJobVarsFunc:    githubJobVarsFunc,
 		bitbucketJobVarsFunc: bitbucketJobVarsFunc,
-		tracer:               tracer,
 	}
 
 	return

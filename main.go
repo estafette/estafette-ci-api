@@ -96,7 +96,7 @@ func main() {
 	go startPrometheus()
 
 	// handle api requests
-	srv := handleRequests(stop, wg, tracer)
+	srv := handleRequests(stop, wg)
 
 	// wait for graceful shutdown to finish
 	<-sigs // Wait for signals (this hangs until a signal arrives)
@@ -149,7 +149,7 @@ func createRouter() *gin.Engine {
 	return router
 }
 
-func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, tracer opentracing.Tracer) *http.Server {
+func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *http.Server {
 
 	secretHelper := crypt.NewSecretHelper(*secretDecryptionKeyBase64, true)
 	configReader := config.NewConfigReader(secretHelper)
@@ -164,11 +164,11 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, trac
 		log.Fatal().Err(err).Msg("Failed reading configuration without decrypting")
 	}
 
-	githubAPIClient := github.NewGithubAPIClient(*config.Integrations.Github, prometheusOutboundAPICallTotals, tracer)
-	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals, tracer)
-	slackAPIClient := slack.NewSlackAPIClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals, tracer)
-	cockroachDBClient := cockroach.NewCockroachDBClient(*config.Database, prometheusOutboundAPICallTotals, tracer)
-	ciBuilderClient, err := estafette.NewCiBuilderClient(*config, *encryptedConfig, secretHelper, prometheusOutboundAPICallTotals, tracer)
+	githubAPIClient := github.NewGithubAPIClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
+	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
+	slackAPIClient := slack.NewSlackAPIClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
+	cockroachDBClient := cockroach.NewCockroachDBClient(*config.Database, prometheusOutboundAPICallTotals)
+	ciBuilderClient, err := estafette.NewCiBuilderClient(*config, *encryptedConfig, secretHelper, prometheusOutboundAPICallTotals)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
 	}
@@ -190,11 +190,11 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, trac
 
 	estafetteBuildService := estafette.NewBuildService(cockroachDBClient, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
 
-	githubEventHandler := github.NewGithubEventHandler(githubAPIClient, estafetteBuildService, *config.Integrations.Github, prometheusInboundEventTotals, tracer)
+	githubEventHandler := github.NewGithubEventHandler(githubAPIClient, estafetteBuildService, *config.Integrations.Github, prometheusInboundEventTotals)
 	gzippedRoutes.POST("/api/integrations/github/events", githubEventHandler.Handle)
 	gzippedRoutes.GET("/api/integrations/github/status", func(c *gin.Context) { c.String(200, "Github, I'm cool!") })
 
-	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketAPIClient, estafetteBuildService, prometheusInboundEventTotals, tracer)
+	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketAPIClient, estafetteBuildService, prometheusInboundEventTotals)
 	gzippedRoutes.POST("/api/integrations/bitbucket/events", bitbucketEventHandler.Handle)
 	gzippedRoutes.GET("/api/integrations/bitbucket/status", func(c *gin.Context) { c.String(200, "Bitbucket, I'm cool!") })
 
@@ -205,7 +205,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup, trac
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, ciBuilderClient, estafetteBuildService, prometheusInboundEventTotals)
 	warningHelper := estafette.NewWarningHelper()
 
-	estafetteAPIHandler := estafette.NewAPIHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, ciBuilderClient, estafetteBuildService, warningHelper, secretHelper, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc(), tracer)
+	estafetteAPIHandler := estafette.NewAPIHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, ciBuilderClient, estafetteBuildService, warningHelper, secretHelper, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
 	gzippedRoutes.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
 	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo", estafetteAPIHandler.GetPipeline)
 	gzippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)

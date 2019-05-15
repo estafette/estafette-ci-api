@@ -18,12 +18,12 @@ func OpenTracingMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		tracer := opentracing.GlobalTracer()
-
-		span := tracer.StartSpan(fmt.Sprintf("HTTP %v %v", c.Request.Method, c.Request.URL.Path))
+		// create a span for the http request
+		span := opentracing.StartSpan(fmt.Sprintf("HTTP %v %v", c.Request.Method, c.Request.URL.Path))
 		defer span.Finish()
 
-		c.Request.WithContext(opentracing.ContextWithSpan(c.Request.Context(), span))
+		// store the span in the request context
+		c.Request = c.Request.WithContext(opentracing.ContextWithSpan(c.Request.Context(), span))
 
 		// process request
 		c.Next()

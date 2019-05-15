@@ -30,22 +30,20 @@ type APIClient interface {
 type apiClientImpl struct {
 	config                          config.BitbucketConfig
 	prometheusOutboundAPICallTotals *prometheus.CounterVec
-	tracer                          opentracing.Tracer
 }
 
 // NewBitbucketAPIClient returns a new bitbucket.APIClient
-func NewBitbucketAPIClient(config config.BitbucketConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec, tracer opentracing.Tracer) APIClient {
+func NewBitbucketAPIClient(config config.BitbucketConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) APIClient {
 	return &apiClientImpl{
 		config:                          config,
 		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
-		tracer:                          tracer,
 	}
 }
 
 // GetAccessToken returns an access token to access the Bitbucket api
 func (bb *apiClientImpl) GetAccessToken() (accessToken bbcontracts.AccessToken, err error) {
 
-	span := bb.tracer.StartSpan("Bitbucket::GetAccessToken")
+	span := opentracing.StartSpan("Bitbucket::GetAccessToken")
 	defer span.Finish()
 
 	// track call via prometheus
@@ -104,7 +102,7 @@ func (bb *apiClientImpl) GetAuthenticatedRepositoryURL(accessToken bbcontracts.A
 
 func (bb *apiClientImpl) GetEstafetteManifest(accessToken bbcontracts.AccessToken, pushEvent bbcontracts.RepositoryPushEvent) (exists bool, manifest string, err error) {
 
-	span := bb.tracer.StartSpan("Bitbucket::GetEstafetteManifest")
+	span := opentracing.StartSpan("Bitbucket::GetEstafetteManifest")
 	defer span.Finish()
 
 	// track call via prometheus

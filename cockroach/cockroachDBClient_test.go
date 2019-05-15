@@ -9,7 +9,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/estafette/estafette-ci-api/config"
-	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +20,7 @@ var (
 			Help: "Total of outgoing api calls.",
 		},
 		[]string{"target"},
-	), opentracing.GlobalTracer())
+	))
 )
 
 func TestQueryBuilder(t *testing.T) {

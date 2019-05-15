@@ -33,17 +33,15 @@ type eventHandlerImpl struct {
 	buildService                 estafette.BuildService
 	config                       config.GithubConfig
 	prometheusInboundEventTotals *prometheus.CounterVec
-	tracer                       opentracing.Tracer
 }
 
 // NewGithubEventHandler returns a github.EventHandler to handle incoming webhook events
-func NewGithubEventHandler(apiClient APIClient, buildService estafette.BuildService, config config.GithubConfig, prometheusInboundEventTotals *prometheus.CounterVec, tracer opentracing.Tracer) EventHandler {
+func NewGithubEventHandler(apiClient APIClient, buildService estafette.BuildService, config config.GithubConfig, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		apiClient:                    apiClient,
 		buildService:                 buildService,
 		config:                       config,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
-		tracer:                       tracer,
 	}
 }
 
@@ -130,7 +128,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 func (h *eventHandlerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent) {
 
-	span := h.tracer.StartSpan("CreateJobForGithubPush")
+	span := opentracing.StartSpan("CreateJobForGithubPush")
 	defer span.Finish()
 
 	// check to see that it's a cloneable event
