@@ -2,6 +2,7 @@ package bitbucket
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -20,11 +21,11 @@ import (
 
 // APIClient is the interface for running kubernetes commands specific to this application
 type APIClient interface {
-	GetAccessToken() (bbcontracts.AccessToken, error)
+	GetAccessToken(context.Context) (bbcontracts.AccessToken, error)
 	GetAuthenticatedRepositoryURL(bbcontracts.AccessToken, string) (string, error)
-	GetEstafetteManifest(bbcontracts.AccessToken, bbcontracts.RepositoryPushEvent) (bool, string, error)
+	GetEstafetteManifest(context.Context, bbcontracts.AccessToken, bbcontracts.RepositoryPushEvent) (bool, string, error)
 
-	JobVarsFunc() func(string, string, string) (string, string, error)
+	JobVarsFunc() func(context.Context, string, string, string) (string, string, error)
 }
 
 type apiClientImpl struct {
@@ -41,9 +42,9 @@ func NewBitbucketAPIClient(config config.BitbucketConfig, prometheusOutboundAPIC
 }
 
 // GetAccessToken returns an access token to access the Bitbucket api
-func (bb *apiClientImpl) GetAccessToken() (accessToken bbcontracts.AccessToken, err error) {
+func (bb *apiClientImpl) GetAccessToken(ctx context.Context) (accessToken bbcontracts.AccessToken, err error) {
 
-	span := opentracing.StartSpan("Bitbucket::GetAccessToken")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Bitbucket::GetAccessToken")
 	defer span.Finish()
 
 	// track call via prometheus
@@ -100,9 +101,9 @@ func (bb *apiClientImpl) GetAuthenticatedRepositoryURL(accessToken bbcontracts.A
 	return
 }
 
-func (bb *apiClientImpl) GetEstafetteManifest(accessToken bbcontracts.AccessToken, pushEvent bbcontracts.RepositoryPushEvent) (exists bool, manifest string, err error) {
+func (bb *apiClientImpl) GetEstafetteManifest(ctx context.Context, accessToken bbcontracts.AccessToken, pushEvent bbcontracts.RepositoryPushEvent) (exists bool, manifest string, err error) {
 
-	span := opentracing.StartSpan("Bitbucket::GetEstafetteManifest")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Bitbucket::GetEstafetteManifest")
 	defer span.Finish()
 
 	// track call via prometheus
@@ -144,10 +145,10 @@ func (bb *apiClientImpl) GetEstafetteManifest(accessToken bbcontracts.AccessToke
 }
 
 // JobVarsFunc returns a function that can get an access token and authenticated url for a repository
-func (bb *apiClientImpl) JobVarsFunc() func(string, string, string) (string, string, error) {
-	return func(repoSource, repoOwner, repoName string) (token string, url string, err error) {
+func (bb *apiClientImpl) JobVarsFunc() func(context.Context, string, string, string) (string, string, error) {
+	return func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 		// get access token
-		accessToken, err := bb.GetAccessToken()
+		accessToken, err := bb.GetAccessToken(ctx)
 		if err != nil {
 			return "", "", err
 		}

@@ -1,6 +1,7 @@
 package slack
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -17,7 +18,7 @@ import (
 
 // APIClient is the interface for communicating with the Slack api
 type APIClient interface {
-	GetUserProfile(string) (*slcontracts.UserProfile, error)
+	GetUserProfile(context.Context, string) (*slcontracts.UserProfile, error)
 }
 
 type apiClientImpl struct {
@@ -33,9 +34,9 @@ func NewSlackAPIClient(config config.SlackConfig, prometheusOutboundAPICallTotal
 }
 
 // GetUserProfile returns a Slack user profile
-func (sl *apiClientImpl) GetUserProfile(userID string) (profile *slcontracts.UserProfile, err error) {
+func (sl *apiClientImpl) GetUserProfile(ctx context.Context, userID string) (profile *slcontracts.UserProfile, err error) {
 
-	span := opentracing.StartSpan("Slack::GetUserProfile")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Slack::GetUserProfile")
 	defer span.Finish()
 
 	// track call via prometheus

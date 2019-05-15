@@ -95,7 +95,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 func (h *eventHandlerImpl) CreateJobForBitbucketPush(ctx context.Context, pushEvent bbcontracts.RepositoryPushEvent) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CreateJobForBitbucketPush")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "CreateJobForBitbucketPush")
 	defer span.Finish()
 
 	// check to see that it's a cloneable event
@@ -111,11 +111,11 @@ func (h *eventHandlerImpl) CreateJobForBitbucketPush(ctx context.Context, pushEv
 
 	// handle git triggers
 	go func() {
-		h.buildService.FireGitTriggers(gitEvent)
+		h.buildService.FireGitTriggers(ctx, gitEvent)
 	}()
 
 	// get access token
-	accessToken, err := h.apiClient.GetAccessToken()
+	accessToken, err := h.apiClient.GetAccessToken(ctx)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
@@ -123,7 +123,7 @@ func (h *eventHandlerImpl) CreateJobForBitbucketPush(ctx context.Context, pushEv
 	}
 
 	// get manifest file
-	manifestExists, manifestString, err := h.apiClient.GetEstafetteManifest(accessToken, pushEvent)
+	manifestExists, manifestString, err := h.apiClient.GetEstafetteManifest(ctx, accessToken, pushEvent)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
@@ -149,7 +149,7 @@ func (h *eventHandlerImpl) CreateJobForBitbucketPush(ctx context.Context, pushEv
 	}
 
 	// create build object and hand off to build service
-	_, err = h.buildService.CreateBuild(contracts.Build{
+	_, err = h.buildService.CreateBuild(ctx, contracts.Build{
 		RepoSource:   pushEvent.GetRepoSource(),
 		RepoOwner:    pushEvent.GetRepoOwner(),
 		RepoName:     pushEvent.GetRepoName(),

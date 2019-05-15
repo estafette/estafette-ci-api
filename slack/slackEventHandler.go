@@ -1,6 +1,7 @@
 package slack
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -32,13 +33,13 @@ type eventHandlerImpl struct {
 	cockroachDBClient            cockroach.DBClient
 	apiConfig                    config.APIServerConfig
 	buildService                 estafette.BuildService
-	githubJobVarsFunc            func(string, string, string) (string, string, error)
-	bitbucketJobVarsFunc         func(string, string, string) (string, string, error)
+	githubJobVarsFunc            func(context.Context, string, string, string) (string, string, error)
+	bitbucketJobVarsFunc         func(context.Context, string, string, string) (string, string, error)
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewSlackEventHandler returns a new slack.EventHandler
-func NewSlackEventHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, slackAPIClient APIClient, cockroachDBClient cockroach.DBClient, apiConfig config.APIServerConfig, buildService estafette.BuildService, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error), prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewSlackEventHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, slackAPIClient APIClient, cockroachDBClient cockroach.DBClient, apiConfig config.APIServerConfig, buildService estafette.BuildService, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		secretHelper:                 secretHelper,
 		config:                       config,
@@ -54,6 +55,7 @@ func NewSlackEventHandler(secretHelper crypt.SecretHelper, config config.SlackCo
 
 func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
+	ctx := c.Request.Context()
 	// https://api.slack.com/slash-commands
 
 	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": "", "source": "slack"}).Inc()
@@ -128,7 +130,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 					var pipeline *contracts.Pipeline
 					if len(fullRepoNameArray) == 1 {
-						pipelines, err := h.cockroachDBClient.GetPipelinesByRepoName(fullRepoName, false)
+						pipelines, err := h.cockroachDBClient.GetPipelinesByRepoName(ctx, fullRepoName, false)
 						if err != nil {
 							log.Error().Err(err).Msgf("Failed retrieving pipelines for repo name %v by name", fullRepoName)
 							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
@@ -148,7 +150,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 						}
 						pipeline = pipelines[0]
 					} else {
-						pipeline, err := h.cockroachDBClient.GetPipeline(fullRepoNameArray[0], fullRepoNameArray[1], fullRepoNameArray[2], false)
+						pipeline, err := h.cockroachDBClient.GetPipeline(ctx, fullRepoNameArray[0], fullRepoNameArray[1], fullRepoNameArray[2], false)
 						if err != nil {
 							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
 							return
@@ -160,7 +162,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					}
 
 					// check if version exists
-					builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion, false)
+					builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion, false)
 
 					if err != nil {
 						c.String(http.StatusOK, fmt.Sprintf("Retrieving the build for repository %v and version %v from the database failed: %v", fullRepoName, buildVersion, err))
@@ -202,14 +204,14 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					}
 
 					// get user profile from api to set email address for TriggeredBy
-					profile, err := h.slackAPIClient.GetUserProfile(slashCommand.UserID)
+					profile, err := h.slackAPIClient.GetUserProfile(ctx, slashCommand.UserID)
 					if err != nil {
 						c.String(http.StatusOK, fmt.Sprintf("Failed retrieving Slack user profile for user id %v: %v", slashCommand.UserID, err))
 						return
 					}
 
 					// create release object and hand off to build service
-					createdRelease, err := h.buildService.CreateRelease(contracts.Release{
+					createdRelease, err := h.buildService.CreateRelease(ctx, contracts.Release{
 						Name:           releaseName,
 						Action:         "", // no support for releas action yet
 						RepoSource:     build.RepoSource,

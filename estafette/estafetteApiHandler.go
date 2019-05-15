@@ -2,6 +2,7 @@ package estafette
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -87,12 +88,12 @@ type apiHandlerImpl struct {
 	buildService         BuildService
 	warningHelper        WarningHelper
 	secretHelper         crypt.SecretHelper
-	githubJobVarsFunc    func(string, string, string) (string, string, error)
-	bitbucketJobVarsFunc func(string, string, string) (string, string, error)
+	githubJobVarsFunc    func(context.Context, string, string, string) (string, string, error)
+	bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)
 }
 
 // NewAPIHandler returns a new estafette.APIHandler
-func NewAPIHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, buildService BuildService, warningHelper WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error)) (apiHandler APIHandler) {
+func NewAPIHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, buildService BuildService, warningHelper WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) (apiHandler APIHandler) {
 
 	apiHandler = &apiHandlerImpl{
 		configFilePath:       configFilePath,
@@ -114,7 +115,7 @@ func NewAPIHandler(configFilePath string, config config.APIServerConfig, authCon
 
 func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelines")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelines")
 	defer span.Finish()
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
@@ -138,14 +139,14 @@ func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 
 	go func() {
 		defer close(pipelinesChannel)
-		pipelines, err := h.cockroachDBClient.GetPipelines(pageNumber, pageSize, filters, true)
+		pipelines, err := h.cockroachDBClient.GetPipelines(ctx, pageNumber, pageSize, filters, true)
 
 		pipelinesChannel <- PipelinesResult{pipelines, err}
 	}()
 
 	go func() {
 		defer close(pipelinesCountChannel)
-		pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(filters)
+		pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(ctx, filters)
 
 		pipelinesCountChannel <- PipelinesCountResult{pipelinesCount, err}
 	}()
@@ -185,7 +186,7 @@ func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetPipeline(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipeline")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipeline")
 	defer span.Finish()
 
 	source := c.Param("source")
@@ -197,7 +198,7 @@ func (h *apiHandlerImpl) GetPipeline(c *gin.Context) {
 	span.SetTag("owner", owner)
 	span.SetTag("repo", repo)
 
-	pipeline, err := h.cockroachDBClient.GetPipeline(source, owner, repo, true)
+	pipeline, err := h.cockroachDBClient.GetPipeline(ctx, source, owner, repo, true)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
@@ -212,7 +213,7 @@ func (h *apiHandlerImpl) GetPipeline(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetPipelineBuilds(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineBuilds")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineBuilds")
 	defer span.Finish()
 
 	source := c.Param("source")
@@ -243,14 +244,14 @@ func (h *apiHandlerImpl) GetPipelineBuilds(c *gin.Context) {
 
 	go func() {
 		defer close(buildsChannel)
-		builds, err := h.cockroachDBClient.GetPipelineBuilds(source, owner, repo, pageNumber, pageSize, filters, true)
+		builds, err := h.cockroachDBClient.GetPipelineBuilds(ctx, source, owner, repo, pageNumber, pageSize, filters, true)
 
 		buildsChannel <- BuildsResult{builds, err}
 	}()
 
 	go func() {
 		defer close(buildsCountChannel)
-		buildsCount, err := h.cockroachDBClient.GetPipelineBuildsCount(source, owner, repo, filters)
+		buildsCount, err := h.cockroachDBClient.GetPipelineBuildsCount(ctx, source, owner, repo, filters)
 
 		buildsCountChannel <- BuildsCountResult{buildsCount, err}
 	}()
@@ -290,7 +291,7 @@ func (h *apiHandlerImpl) GetPipelineBuilds(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineBuild")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineBuild")
 	defer span.Finish()
 
 	source := c.Param("source")
@@ -307,7 +308,7 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 
 		span.SetTag("revision", revisionOrID)
 
-		build, err := h.cockroachDBClient.GetPipelineBuild(source, owner, repo, revisionOrID, false)
+		build, err := h.cockroachDBClient.GetPipelineBuild(ctx, source, owner, repo, revisionOrID, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
@@ -331,7 +332,7 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 		return
 	}
 
-	build, err := h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id, false)
+	build, err := h.cockroachDBClient.GetPipelineBuildByID(ctx, source, owner, repo, id, false)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, id)
@@ -360,7 +361,7 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 
 func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "CreatePipelineBuild")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "CreatePipelineBuild")
 	defer span.Finish()
 
 	user := c.MustGet(gin.AuthUserKey).(auth.User)
@@ -389,7 +390,7 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	}
 
 	// check if version exists and is valid to re-run
-	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, false)
+	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(ctx, buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, false)
 
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
@@ -432,7 +433,7 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	}
 
 	// hand off to build service
-	createdBuild, err := h.buildService.CreateBuild(*failedBuild, true)
+	createdBuild, err := h.buildService.CreateBuild(ctx, *failedBuild, true)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed creating build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
 		log.Error().Err(err).Msg(errorMessage)
@@ -445,7 +446,7 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 
 func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "CancelPipelineBuild")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "CancelPipelineBuild")
 	defer span.Finish()
 
 	user := c.MustGet(gin.AuthUserKey).(auth.User)
@@ -464,7 +465,7 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 	}
 
 	// retrieve build
-	build, err := h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id, false)
+	build, err := h.cockroachDBClient.GetPipelineBuildByID(ctx, source, owner, repo, id, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Retrieving pipeline build failed"})
@@ -478,7 +479,7 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 		// apparently cancel was already clicked, but somehow the job didn't update the status to canceled
 		jobName := h.ciBuilderClient.GetJobName("build", build.RepoOwner, build.RepoName, build.ID)
 		h.ciBuilderClient.CancelCiBuilderJob(jobName)
-		h.cockroachDBClient.UpdateBuildStatus(build.RepoSource, build.RepoOwner, build.RepoName, id, "canceled")
+		h.cockroachDBClient.UpdateBuildStatus(ctx, build.RepoSource, build.RepoOwner, build.RepoName, id, "canceled")
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", user.Email)})
 		return
 	}
@@ -497,7 +498,7 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 		buildStatus = "canceled"
 	}
 	build.BuildStatus = buildStatus
-	err = h.cockroachDBClient.UpdateBuildStatus(build.RepoSource, build.RepoOwner, build.RepoName, id, buildStatus)
+	err = h.cockroachDBClient.UpdateBuildStatus(ctx, build.RepoSource, build.RepoOwner, build.RepoName, id, buildStatus)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed updating build status for %v/%v/%v/builds/%v in db", source, owner, repo, revisionOrID)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline build status to canceling"})
@@ -509,7 +510,7 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineBuildLogs")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineBuildLogs")
 	defer span.Finish()
 
 	source := c.Param("source")
@@ -520,7 +521,7 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 	var build *contracts.Build
 	var err error
 	if len(revisionOrID) == 40 {
-		build, err = h.cockroachDBClient.GetPipelineBuild(source, owner, repo, revisionOrID, false)
+		build, err = h.cockroachDBClient.GetPipelineBuild(ctx, source, owner, repo, revisionOrID, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
@@ -534,7 +535,7 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 			return
 		}
 
-		build, err = h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id, false)
+		build, err = h.cockroachDBClient.GetPipelineBuildByID(ctx, source, owner, repo, id, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, id)
@@ -546,7 +547,7 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 		return
 	}
 
-	buildLog, err := h.cockroachDBClient.GetPipelineBuildLogs(source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID)
+	buildLog, err := h.cockroachDBClient.GetPipelineBuildLogs(ctx, source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from db", source, owner, repo, revisionOrID)
@@ -596,7 +597,7 @@ func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
 
 func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "PostPipelineBuildLogs")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "PostPipelineBuildLogs")
 	defer span.Finish()
 
 	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
@@ -628,7 +629,7 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 		buildLog.BuildID = revisionOrID
 	}
 
-	err = h.cockroachDBClient.InsertBuildLog(buildLog)
+	err = h.cockroachDBClient.InsertBuildLog(ctx, buildLog)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed inserting v2 logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
@@ -639,7 +640,7 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetPipelineBuildWarnings(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineBuildWarnings")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineBuildWarnings")
 	defer span.Finish()
 
 	source := c.Param("source")
@@ -655,7 +656,7 @@ func (h *apiHandlerImpl) GetPipelineBuildWarnings(c *gin.Context) {
 		return
 	}
 
-	build, err := h.cockroachDBClient.GetPipelineBuildByID(source, owner, repo, id, false)
+	build, err := h.cockroachDBClient.GetPipelineBuildByID(ctx, source, owner, repo, id, false)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, id)
@@ -678,7 +679,7 @@ func (h *apiHandlerImpl) GetPipelineBuildWarnings(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetPipelineReleases(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineReleases")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineReleases")
 	defer span.Finish()
 
 	source := c.Param("source")
@@ -702,14 +703,14 @@ func (h *apiHandlerImpl) GetPipelineReleases(c *gin.Context) {
 
 	go func() {
 		defer close(releasesChannel)
-		releases, err := h.cockroachDBClient.GetPipelineReleases(source, owner, repo, pageNumber, pageSize, filters)
+		releases, err := h.cockroachDBClient.GetPipelineReleases(ctx, source, owner, repo, pageNumber, pageSize, filters)
 
 		releasesChannel <- ReleasesResult{releases, err}
 	}()
 
 	go func() {
 		defer close(releasesCountChannel)
-		releasesCount, err := h.cockroachDBClient.GetPipelineReleasesCount(source, owner, repo, filters)
+		releasesCount, err := h.cockroachDBClient.GetPipelineReleasesCount(ctx, source, owner, repo, filters)
 
 		releasesCountChannel <- ReleasesCountResult{releasesCount, err}
 	}()
@@ -749,7 +750,7 @@ func (h *apiHandlerImpl) GetPipelineReleases(c *gin.Context) {
 
 func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "CreatePipelineRelease")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "CreatePipelineRelease")
 	defer span.Finish()
 
 	user := c.MustGet(gin.AuthUserKey).(auth.User)
@@ -777,7 +778,7 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 		return
 	}
 
-	pipeline, err := h.cockroachDBClient.GetPipeline(releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, false)
+	pipeline, err := h.cockroachDBClient.GetPipeline(ctx, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving pipeline %v/%v/%v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
 		log.Error().Err(err).Msg(errorMessage)
@@ -792,7 +793,7 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 	}
 
 	// check if version exists and is valid to release
-	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion, false)
+	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(ctx, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
 		log.Error().Err(err).Msg(errorMessage)
@@ -858,7 +859,7 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 	}
 
 	// create release object and hand off to build service
-	createdRelease, err := h.buildService.CreateRelease(contracts.Release{
+	createdRelease, err := h.buildService.CreateRelease(ctx, contracts.Release{
 		Name:           releaseCommand.Name,
 		Action:         releaseCommand.Action,
 		RepoSource:     releaseCommand.RepoSource,
@@ -888,7 +889,7 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 
 func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "CancelPipelineRelease")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "CancelPipelineRelease")
 	defer span.Finish()
 
 	user := c.MustGet(gin.AuthUserKey).(auth.User)
@@ -904,7 +905,7 @@ func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 		return
 	}
 
-	release, err := h.cockroachDBClient.GetPipelineRelease(source, owner, repo, id)
+	release, err := h.cockroachDBClient.GetPipelineRelease(ctx, source, owner, repo, id)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed retrieving release for %v/%v/%v/%v from db", source, owner, repo, id)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Retrieving pipeline release failed"})
@@ -917,7 +918,7 @@ func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 	if release.ReleaseStatus == "canceling" {
 		jobName := h.ciBuilderClient.GetJobName("release", release.RepoOwner, release.RepoName, release.ID)
 		h.ciBuilderClient.CancelCiBuilderJob(jobName)
-		h.cockroachDBClient.UpdateReleaseStatus(release.RepoSource, release.RepoOwner, release.RepoName, id, "canceled")
+		h.cockroachDBClient.UpdateReleaseStatus(ctx, release.RepoSource, release.RepoOwner, release.RepoName, id, "canceled")
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", user.Email)})
 		return
 	}
@@ -934,7 +935,7 @@ func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 		// job might not have created a builder yet, so set status to canceled straightaway
 		releaseStatus = "canceled"
 	}
-	err = h.cockroachDBClient.UpdateReleaseStatus(release.RepoSource, release.RepoOwner, release.RepoName, id, releaseStatus)
+	err = h.cockroachDBClient.UpdateReleaseStatus(ctx, release.RepoSource, release.RepoOwner, release.RepoName, id, releaseStatus)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed updating release status for %v/%v/%v/builds/%v in db", source, owner, repo, id)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline release status to canceling"})
@@ -946,7 +947,7 @@ func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetPipelineRelease(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineRelease")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineRelease")
 	defer span.Finish()
 
 	source := c.Param("source")
@@ -961,7 +962,7 @@ func (h *apiHandlerImpl) GetPipelineRelease(c *gin.Context) {
 		return
 	}
 
-	release, err := h.cockroachDBClient.GetPipelineRelease(source, owner, repo, id)
+	release, err := h.cockroachDBClient.GetPipelineRelease(ctx, source, owner, repo, id)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving release for %v/%v/%v/%v from db", source, owner, repo, id)
@@ -976,7 +977,7 @@ func (h *apiHandlerImpl) GetPipelineRelease(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineReleaseLogs")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineReleaseLogs")
 	defer span.Finish()
 
 	source := c.Param("source")
@@ -991,7 +992,7 @@ func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 		return
 	}
 
-	releaseLog, err := h.cockroachDBClient.GetPipelineReleaseLogs(source, owner, repo, id)
+	releaseLog, err := h.cockroachDBClient.GetPipelineReleaseLogs(ctx, source, owner, repo, id)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving release logs for %v/%v/%v/%v from db", source, owner, repo, id)
@@ -1041,7 +1042,7 @@ func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
 
 func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "PostPipelineReleaseLogs")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "PostPipelineReleaseLogs")
 	defer span.Finish()
 
 	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
@@ -1070,7 +1071,7 @@ func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 		return
 	}
 
-	err = h.cockroachDBClient.InsertReleaseLog(releaseLog)
+	err = h.cockroachDBClient.InsertReleaseLog(ctx, releaseLog)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed inserting release logs for %v/%v/%v/%v", source, owner, repo, id)
@@ -1081,7 +1082,7 @@ func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetFrequentLabels(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetFrequentLabels")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetFrequentLabels")
 	defer span.Finish()
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
@@ -1101,14 +1102,14 @@ func (h *apiHandlerImpl) GetFrequentLabels(c *gin.Context) {
 
 	go func() {
 		defer close(labelsChannel)
-		labels, err := h.cockroachDBClient.GetFrequentLabels(pageNumber, pageSize, filters)
+		labels, err := h.cockroachDBClient.GetFrequentLabels(ctx, pageNumber, pageSize, filters)
 
 		labelsChannel <- LabelsResult{labels, err}
 	}()
 
 	go func() {
 		defer close(labelsCountChannel)
-		labelsCount, err := h.cockroachDBClient.GetFrequentLabelsCount(filters)
+		labelsCount, err := h.cockroachDBClient.GetFrequentLabelsCount(ctx, filters)
 
 		labelsCountChannel <- LabelsCountResult{labelsCount, err}
 	}()
@@ -1148,7 +1149,7 @@ func (h *apiHandlerImpl) GetFrequentLabels(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetPipelineStatsBuildsDurations(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineStatsBuildsDurations")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineStatsBuildsDurations")
 	defer span.Finish()
 
 	source := c.Param("source")
@@ -1160,7 +1161,7 @@ func (h *apiHandlerImpl) GetPipelineStatsBuildsDurations(c *gin.Context) {
 	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
 	filters["last"] = h.getLastFilter(c, 100)
 
-	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(source, owner, repo, filters)
+	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(ctx, source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build durations from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
@@ -1175,7 +1176,7 @@ func (h *apiHandlerImpl) GetPipelineStatsBuildsDurations(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetPipelineStatsReleasesDurations(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineStatsReleasesDurations")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineStatsReleasesDurations")
 	defer span.Finish()
 
 	source := c.Param("source")
@@ -1187,7 +1188,7 @@ func (h *apiHandlerImpl) GetPipelineStatsReleasesDurations(c *gin.Context) {
 	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
 	filters["last"] = h.getLastFilter(c, 100)
 
-	durations, err := h.cockroachDBClient.GetPipelineReleasesDurations(source, owner, repo, filters)
+	durations, err := h.cockroachDBClient.GetPipelineReleasesDurations(ctx, source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving releases durations from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
@@ -1202,7 +1203,7 @@ func (h *apiHandlerImpl) GetPipelineStatsReleasesDurations(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineWarnings")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetPipelineWarnings")
 	defer span.Finish()
 
 	source := c.Param("source")
@@ -1214,7 +1215,7 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
 	filters["last"] = h.getLastFilter(c, 25)
 
-	pipeline, err := h.cockroachDBClient.GetPipeline(source, owner, repo, false)
+	pipeline, err := h.cockroachDBClient.GetPipeline(ctx, source, owner, repo, false)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
@@ -1226,7 +1227,7 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 
 	warnings := []contracts.Warning{}
 
-	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(source, owner, repo, filters)
+	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(ctx, source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build durations from db for pipeline %v/%v/%v warnings", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
@@ -1270,7 +1271,7 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetStatsPipelinesCount")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetStatsPipelinesCount")
 	defer span.Finish()
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
@@ -1278,7 +1279,7 @@ func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {
 	filters["status"] = h.getStatusFilter(c)
 	filters["since"] = h.getSinceFilter(c)
 
-	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(filters)
+	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(ctx, filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Failed retrieving pipelines count from db")
@@ -1291,7 +1292,7 @@ func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetStatsReleasesCount(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetStatsReleasesCount")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetStatsReleasesCount")
 	defer span.Finish()
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
@@ -1299,7 +1300,7 @@ func (h *apiHandlerImpl) GetStatsReleasesCount(c *gin.Context) {
 	filters["status"] = h.getStatusFilter(c)
 	filters["since"] = h.getSinceFilter(c)
 
-	releasesCount, err := h.cockroachDBClient.GetReleasesCount(filters)
+	releasesCount, err := h.cockroachDBClient.GetReleasesCount(ctx, filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Failed retrieving releases count from db")
@@ -1312,7 +1313,7 @@ func (h *apiHandlerImpl) GetStatsReleasesCount(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetStatsBuildsCount(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetStatsBuildsCount")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetStatsBuildsCount")
 	defer span.Finish()
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
@@ -1320,7 +1321,7 @@ func (h *apiHandlerImpl) GetStatsBuildsCount(c *gin.Context) {
 	filters["status"] = h.getStatusFilter(c)
 	filters["since"] = h.getSinceFilter(c)
 
-	buildsCount, err := h.cockroachDBClient.GetBuildsCount(filters)
+	buildsCount, err := h.cockroachDBClient.GetBuildsCount(ctx, filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Failed retrieving builds count from db")
@@ -1333,19 +1334,19 @@ func (h *apiHandlerImpl) GetStatsBuildsCount(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetStatsMostBuilds(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetStatsMostBuilds")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetStatsMostBuilds")
 	defer span.Finish()
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
-	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostBuilds(pageNumber, pageSize, filters)
+	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostBuilds(ctx, pageNumber, pageSize, filters)
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines with most builds from db"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		return
 	}
-	pipelinesCount, err := h.cockroachDBClient.GetPipelinesWithMostBuildsCount(filters)
+	pipelinesCount, err := h.cockroachDBClient.GetPipelinesWithMostBuildsCount(ctx, filters)
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines count from db"
 		log.Error().Err(err).Msg(errorMessage)
@@ -1372,19 +1373,19 @@ func (h *apiHandlerImpl) GetStatsMostBuilds(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetStatsMostReleases(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetStatsMostReleases")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetStatsMostReleases")
 	defer span.Finish()
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
-	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostReleases(pageNumber, pageSize, filters)
+	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostReleases(ctx, pageNumber, pageSize, filters)
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines with most builds from db"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		return
 	}
-	pipelinesCount, err := h.cockroachDBClient.GetPipelinesWithMostReleasesCount(filters)
+	pipelinesCount, err := h.cockroachDBClient.GetPipelinesWithMostReleasesCount(ctx, filters)
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines count from db"
 		log.Error().Err(err).Msg(errorMessage)
@@ -1411,7 +1412,7 @@ func (h *apiHandlerImpl) GetStatsMostReleases(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetStatsBuildsDuration(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetStatsBuildsDuration")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetStatsBuildsDuration")
 	defer span.Finish()
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
@@ -1419,7 +1420,7 @@ func (h *apiHandlerImpl) GetStatsBuildsDuration(c *gin.Context) {
 	filters["status"] = h.getStatusFilter(c)
 	filters["since"] = h.getSinceFilter(c)
 
-	buildsDuration, err := h.cockroachDBClient.GetBuildsDuration(filters)
+	buildsDuration, err := h.cockroachDBClient.GetBuildsDuration(ctx, filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Failed retrieving builds duration from db")
@@ -1432,10 +1433,10 @@ func (h *apiHandlerImpl) GetStatsBuildsDuration(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetStatsBuildsAdoption(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetStatsBuildsAdoption")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetStatsBuildsAdoption")
 	defer span.Finish()
 
-	buildTimes, err := h.cockroachDBClient.GetFirstBuildTimes()
+	buildTimes, err := h.cockroachDBClient.GetFirstBuildTimes(ctx)
 	if err != nil {
 		errorMessage := "Failed retrieving first build times from db"
 		log.Error().Err(err).Msg(errorMessage)
@@ -1450,10 +1451,10 @@ func (h *apiHandlerImpl) GetStatsBuildsAdoption(c *gin.Context) {
 
 func (h *apiHandlerImpl) GetStatsReleasesAdoption(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GetStatsReleasesAdoption")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "GetStatsReleasesAdoption")
 	defer span.Finish()
 
-	releaseTimes, err := h.cockroachDBClient.GetFirstReleaseTimes()
+	releaseTimes, err := h.cockroachDBClient.GetFirstReleaseTimes(ctx)
 	if err != nil {
 		errorMessage := "Failed retrieving first release times from db"
 		log.Error().Err(err).Msg(errorMessage)
@@ -1478,7 +1479,7 @@ func (h *apiHandlerImpl) GetLoggedInUser(c *gin.Context) {
 
 func (h *apiHandlerImpl) UpdateComputedTables(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "UpdateComputedTables")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "UpdateComputedTables")
 	defer span.Finish()
 
 	user := c.MustGet(gin.AuthUserKey).(auth.User)
@@ -1487,7 +1488,7 @@ func (h *apiHandlerImpl) UpdateComputedTables(c *gin.Context) {
 	filters["status"] = h.getStatusFilter(c)
 	filters["since"] = h.getSinceFilter(c)
 	filters["labels"] = h.getLabelsFilter(c)
-	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(filters)
+	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(ctx, filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Failed retrieving pipelines count from db")
@@ -1495,26 +1496,26 @@ func (h *apiHandlerImpl) UpdateComputedTables(c *gin.Context) {
 	pageSize := 20
 	totalPages := int(math.Ceil(float64(pipelinesCount) / float64(pageSize)))
 	for pageNumber := 1; pageNumber <= totalPages; pageNumber++ {
-		pipelines, err := h.cockroachDBClient.GetPipelines(pageNumber, pageSize, filters, false)
+		pipelines, err := h.cockroachDBClient.GetPipelines(ctx, pageNumber, pageSize, filters, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msg("Failed retrieving pipelines from db")
 		}
 		for _, p := range pipelines {
 
-			h.cockroachDBClient.UpsertComputedPipeline(p.RepoSource, p.RepoOwner, p.RepoName)
-			h.cockroachDBClient.UpdateComputedPipelineFirstInsertedAt(p.RepoSource, p.RepoOwner, p.RepoName)
+			h.cockroachDBClient.UpsertComputedPipeline(ctx, p.RepoSource, p.RepoOwner, p.RepoName)
+			h.cockroachDBClient.UpdateComputedPipelineFirstInsertedAt(ctx, p.RepoSource, p.RepoOwner, p.RepoName)
 			manifest, err := manifest.ReadManifest(p.Manifest)
 			if err == nil {
 				for _, r := range manifest.Releases {
 					if len(r.Actions) > 0 {
 						for _, a := range r.Actions {
-							h.cockroachDBClient.UpsertComputedRelease(p.RepoSource, p.RepoOwner, p.RepoName, r.Name, a.Name)
-							h.cockroachDBClient.UpdateComputedReleaseFirstInsertedAt(p.RepoSource, p.RepoOwner, p.RepoName, r.Name, a.Name)
+							h.cockroachDBClient.UpsertComputedRelease(ctx, p.RepoSource, p.RepoOwner, p.RepoName, r.Name, a.Name)
+							h.cockroachDBClient.UpdateComputedReleaseFirstInsertedAt(ctx, p.RepoSource, p.RepoOwner, p.RepoName, r.Name, a.Name)
 						}
 					} else {
-						h.cockroachDBClient.UpsertComputedRelease(p.RepoSource, p.RepoOwner, p.RepoName, r.Name, "")
-						h.cockroachDBClient.UpdateComputedReleaseFirstInsertedAt(p.RepoSource, p.RepoOwner, p.RepoName, r.Name, "")
+						h.cockroachDBClient.UpsertComputedRelease(ctx, p.RepoSource, p.RepoOwner, p.RepoName, r.Name, "")
+						h.cockroachDBClient.UpdateComputedReleaseFirstInsertedAt(ctx, p.RepoSource, p.RepoOwner, p.RepoName, r.Name, "")
 					}
 				}
 			}
@@ -1803,7 +1804,7 @@ func (h *apiHandlerImpl) EncryptSecret(c *gin.Context) {
 
 func (h *apiHandlerImpl) PostCronEvent(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "PostCronEvent")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "PostCronEvent")
 	defer span.Finish()
 
 	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
@@ -1811,7 +1812,7 @@ func (h *apiHandlerImpl) PostCronEvent(c *gin.Context) {
 		return
 	}
 
-	err := h.buildService.FireCronTriggers()
+	err := h.buildService.FireCronTriggers(ctx)
 
 	if err != nil {
 		log.Error().Err(err).Msg("Failed firing cron triggers")

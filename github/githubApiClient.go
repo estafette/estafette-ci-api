@@ -2,6 +2,7 @@ package github
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -23,14 +24,14 @@ import (
 
 // APIClient is the interface for running kubernetes commands specific to this application
 type APIClient interface {
-	GetGithubAppToken() (string, error)
-	GetInstallationID(string) (int, error)
-	GetInstallationToken(int) (ghcontracts.AccessToken, error)
+	GetGithubAppToken(ctx context.Context) (string, error)
+	GetInstallationID(context.Context, string) (int, error)
+	GetInstallationToken(context.Context, int) (ghcontracts.AccessToken, error)
 	GetAuthenticatedRepositoryURL(ghcontracts.AccessToken, string) (string, error)
-	GetEstafetteManifest(ghcontracts.AccessToken, ghcontracts.PushEvent) (bool, string, error)
+	GetEstafetteManifest(context.Context, ghcontracts.AccessToken, ghcontracts.PushEvent) (bool, string, error)
 	callGithubAPI(string, string, interface{}, string, string) (int, []byte, error)
 
-	JobVarsFunc() func(string, string, string) (string, string, error)
+	JobVarsFunc() func(context.Context, string, string, string) (string, string, error)
 }
 
 type apiClientImpl struct {
@@ -48,9 +49,9 @@ func NewGithubAPIClient(config config.GithubConfig, prometheusOutboundAPICallTot
 }
 
 // GetGithubAppToken returns a Github app token with which to retrieve an installation token
-func (gh *apiClientImpl) GetGithubAppToken() (githubAppToken string, err error) {
+func (gh *apiClientImpl) GetGithubAppToken(ctx context.Context) (githubAppToken string, err error) {
 
-	span := opentracing.StartSpan("Github::GetGithubAppToken")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Github::GetGithubAppToken")
 	defer span.Finish()
 
 	// https://developer.github.com/apps/building-integrations/setting-up-and-registering-github-apps/about-authentication-options-for-github-apps/
@@ -86,12 +87,12 @@ func (gh *apiClientImpl) GetGithubAppToken() (githubAppToken string, err error) 
 }
 
 // GetInstallationID returns the id for an installation of a Github app
-func (gh *apiClientImpl) GetInstallationID(repoOwner string) (installationID int, err error) {
+func (gh *apiClientImpl) GetInstallationID(ctx context.Context, repoOwner string) (installationID int, err error) {
 
-	span := opentracing.StartSpan("Github::GetInstallationID")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Github::GetInstallationID")
 	defer span.Finish()
 
-	githubAppToken, err := gh.GetGithubAppToken()
+	githubAppToken, err := gh.GetGithubAppToken(ctx)
 	if err != nil {
 		return
 	}
@@ -127,12 +128,12 @@ func (gh *apiClientImpl) GetInstallationID(repoOwner string) (installationID int
 }
 
 // GetInstallationToken returns an access token for an installation of a Github app
-func (gh *apiClientImpl) GetInstallationToken(installationID int) (accessToken ghcontracts.AccessToken, err error) {
+func (gh *apiClientImpl) GetInstallationToken(ctx context.Context, installationID int) (accessToken ghcontracts.AccessToken, err error) {
 
-	span := opentracing.StartSpan("Github::GetInstallationToken")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Github::GetInstallationToken")
 	defer span.Finish()
 
-	githubAppToken, err := gh.GetGithubAppToken()
+	githubAppToken, err := gh.GetGithubAppToken(ctx)
 	if err != nil {
 		return
 	}
@@ -156,9 +157,9 @@ func (gh *apiClientImpl) GetAuthenticatedRepositoryURL(accessToken ghcontracts.A
 	return
 }
 
-func (gh *apiClientImpl) GetEstafetteManifest(accessToken ghcontracts.AccessToken, pushEvent ghcontracts.PushEvent) (exists bool, manifest string, err error) {
+func (gh *apiClientImpl) GetEstafetteManifest(ctx context.Context, accessToken ghcontracts.AccessToken, pushEvent ghcontracts.PushEvent) (exists bool, manifest string, err error) {
 
-	span := opentracing.StartSpan("Github::GetEstafetteManifest")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Github::GetEstafetteManifest")
 	defer span.Finish()
 
 	// https://developer.github.com/v3/repos/contents/
@@ -195,16 +196,16 @@ func (gh *apiClientImpl) GetEstafetteManifest(accessToken ghcontracts.AccessToke
 }
 
 // JobVarsFunc returns a function that can get an access token and authenticated url for a repository
-func (gh *apiClientImpl) JobVarsFunc() func(string, string, string) (string, string, error) {
-	return func(repoSource, repoOwner, repoName string) (token string, url string, err error) {
+func (gh *apiClientImpl) JobVarsFunc() func(context.Context, string, string, string) (string, string, error) {
+	return func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 		// get installation id with just the repo owner
-		installationID, err := gh.GetInstallationID(repoOwner)
+		installationID, err := gh.GetInstallationID(ctx, repoOwner)
 		if err != nil {
 			return "", "", err
 		}
 
 		// get access token
-		accessToken, err := gh.GetInstallationToken(installationID)
+		accessToken, err := gh.GetInstallationToken(ctx, installationID)
 		if err != nil {
 			return "", "", err
 		}

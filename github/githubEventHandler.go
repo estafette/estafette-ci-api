@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/hex"
@@ -24,7 +25,7 @@ import (
 // EventHandler handles http events for Github integration
 type EventHandler interface {
 	Handle(*gin.Context)
-	CreateJobForGithubPush(ghcontracts.PushEvent)
+	CreateJobForGithubPush(context.Context, ghcontracts.PushEvent)
 	HasValidSignature([]byte, string) (bool, error)
 }
 
@@ -82,7 +83,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 			return
 		}
 
-		h.CreateJobForGithubPush(pushEvent)
+		h.CreateJobForGithubPush(c.Request.Context(), pushEvent)
 
 	case
 		"commit_comment",                        // Any time a Commit is commented on.
@@ -126,9 +127,9 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
-func (h *eventHandlerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent) {
+func (h *eventHandlerImpl) CreateJobForGithubPush(ctx context.Context, pushEvent ghcontracts.PushEvent) {
 
-	span := opentracing.StartSpan("CreateJobForGithubPush")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "CreateJobForGithubPush")
 	defer span.Finish()
 
 	// check to see that it's a cloneable event
@@ -144,11 +145,11 @@ func (h *eventHandlerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEven
 
 	// handle git triggers
 	go func() {
-		h.buildService.FireGitTriggers(gitEvent)
+		h.buildService.FireGitTriggers(ctx, gitEvent)
 	}()
 
 	// get access token
-	accessToken, err := h.apiClient.GetInstallationToken(pushEvent.Installation.ID)
+	accessToken, err := h.apiClient.GetInstallationToken(ctx, pushEvent.Installation.ID)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving access token failed")
@@ -156,7 +157,7 @@ func (h *eventHandlerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEven
 	}
 
 	// get manifest file
-	manifestExists, manifestString, err := h.apiClient.GetEstafetteManifest(accessToken, pushEvent)
+	manifestExists, manifestString, err := h.apiClient.GetEstafetteManifest(ctx, accessToken, pushEvent)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
@@ -180,7 +181,7 @@ func (h *eventHandlerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEven
 	}
 
 	// create build object and hand off to build service
-	_, err = h.buildService.CreateBuild(contracts.Build{
+	_, err = h.buildService.CreateBuild(ctx, contracts.Build{
 		RepoSource:   pushEvent.GetRepoSource(),
 		RepoOwner:    pushEvent.GetRepoOwner(),
 		RepoName:     pushEvent.GetRepoName(),

@@ -1,6 +1,7 @@
 package estafette
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -16,7 +17,7 @@ import (
 // EventHandler handles events from estafette components
 type EventHandler interface {
 	Handle(*gin.Context)
-	UpdateBuildStatus(CiBuilderEvent) error
+	UpdateBuildStatus(context.Context, CiBuilderEvent) error
 }
 
 type eventHandlerImpl struct {
@@ -77,7 +78,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 		log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Unmarshaled body of /api/commands event %v for job %v", eventType, eventJobname)
 
-		err := h.UpdateBuildStatus(ciBuilderEvent)
+		err := h.UpdateBuildStatus(c.Request.Context(), ciBuilderEvent)
 		if err != nil {
 			errorMessage := fmt.Sprintf("Failed updating build status for job %v to %v, not removing the job", eventJobname, ciBuilderEvent.BuildStatus)
 			log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)
@@ -116,7 +117,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
-func (h *eventHandlerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) (err error) {
+func (h *eventHandlerImpl) UpdateBuildStatus(ctx context.Context, ciBuilderEvent CiBuilderEvent) (err error) {
 
 	log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("UpdateBuildStatus executing...")
 
@@ -129,7 +130,7 @@ func (h *eventHandlerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) (err
 
 		log.Debug().Msgf("Converted release id %v", releaseID)
 
-		err = h.buildService.FinishRelease(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, releaseID, ciBuilderEvent.BuildStatus)
+		err = h.buildService.FinishRelease(ctx, ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, releaseID, ciBuilderEvent.BuildStatus)
 		if err != nil {
 			return err
 		}
@@ -147,7 +148,7 @@ func (h *eventHandlerImpl) UpdateBuildStatus(ciBuilderEvent CiBuilderEvent) (err
 
 		log.Debug().Msgf("Converted build id %v", buildID)
 
-		err = h.buildService.FinishBuild(ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, buildID, ciBuilderEvent.BuildStatus)
+		err = h.buildService.FinishBuild(ctx, ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, buildID, ciBuilderEvent.BuildStatus)
 		if err != nil {
 			return err
 		}

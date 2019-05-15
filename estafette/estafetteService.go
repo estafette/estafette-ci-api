@@ -1,6 +1,7 @@
 package estafette
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -15,26 +16,26 @@ import (
 
 // BuildService encapsulates build and release creation and re-triggering
 type BuildService interface {
-	CreateBuild(build contracts.Build, waitForJobToStart bool) (*contracts.Build, error)
-	FinishBuild(repoSource, repoOwner, repoName string, buildID int, buildStatus string) error
-	CreateRelease(release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (*contracts.Release, error)
-	FinishRelease(repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) error
+	CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (*contracts.Build, error)
+	FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) error
+	CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (*contracts.Release, error)
+	FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) error
 
-	FireGitTriggers(gitEvent manifest.EstafetteGitEvent) error
-	FirePipelineTriggers(build contracts.Build, event string) error
-	FireReleaseTriggers(release contracts.Release, event string) error
-	FireCronTriggers() error
+	FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) error
+	FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) error
+	FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) error
+	FireCronTriggers(ctx context.Context) error
 }
 
 type buildServiceImpl struct {
 	cockroachDBClient    cockroach.DBClient
 	ciBuilderClient      CiBuilderClient
-	githubJobVarsFunc    func(string, string, string) (string, string, error)
-	bitbucketJobVarsFunc func(string, string, string) (string, string, error)
+	githubJobVarsFunc    func(context.Context, string, string, string) (string, string, error)
+	bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)
 }
 
 // NewBuildService returns a new estafette.BuildService
-func NewBuildService(cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, githubJobVarsFunc func(string, string, string) (string, string, error), bitbucketJobVarsFunc func(string, string, string) (string, string, error)) (buildService BuildService) {
+func NewBuildService(cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) (buildService BuildService) {
 
 	buildService = &buildServiceImpl{
 		cockroachDBClient:    cockroachDBClient,
@@ -46,7 +47,7 @@ func NewBuildService(cockroachDBClient cockroach.DBClient, ciBuilderClient CiBui
 	return
 }
 
-func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart bool) (createdBuild *contracts.Build, err error) {
+func (s *buildServiceImpl) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (createdBuild *contracts.Build, err error) {
 
 	// validate manifest
 	hasValidManifest := false
@@ -60,7 +61,7 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 	// if manifest is invalid get the pipeline in order to use same labels as normally
 	var pipeline *contracts.Pipeline
 	if !hasValidManifest {
-		pipeline, _ = s.cockroachDBClient.GetPipeline(build.RepoSource, build.RepoOwner, build.RepoName, false)
+		pipeline, _ = s.cockroachDBClient.GetPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName, false)
 	}
 
 	// set builder track
@@ -92,7 +93,7 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 	autoincrement := 0
 	if build.BuildVersion == "" {
 		// get autoincrement number
-		autoincrement, err = s.cockroachDBClient.GetAutoIncrement(shortRepoSource, build.RepoOwner, build.RepoName)
+		autoincrement, err = s.cockroachDBClient.GetAutoIncrement(ctx, shortRepoSource, build.RepoOwner, build.RepoName)
 		if err != nil {
 			return
 		}
@@ -187,13 +188,13 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 	}
 
 	// get authenticated url
-	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(build.RepoSource, build.RepoOwner, build.RepoName)
+	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 	if err != nil {
 		return
 	}
 
 	// store build in db
-	createdBuild, err = s.cockroachDBClient.InsertBuild(contracts.Build{
+	createdBuild, err = s.cockroachDBClient.InsertBuild(ctx, contracts.Build{
 		RepoSource:     build.RepoSource,
 		RepoOwner:      build.RepoOwner,
 		RepoName:       build.RepoName,
@@ -255,7 +256,7 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 
 		// handle triggers
 		go func() {
-			s.FirePipelineTriggers(build, "started")
+			s.FirePipelineTriggers(ctx, build, "started")
 		}()
 	} else if manifestError != nil {
 		log.Debug().Msgf("Pipeline %v/%v/%v revision %v with build id %v has invalid manifest, storing log...", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision, build.ID)
@@ -286,7 +287,7 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 			},
 		}
 
-		err = s.cockroachDBClient.InsertBuildLog(buildLog)
+		err = s.cockroachDBClient.InsertBuildLog(ctx, buildLog)
 		if err != nil {
 			log.Warn().Err(err).Msgf("Failed inserting build log for invalid manifest")
 		}
@@ -295,28 +296,28 @@ func (s *buildServiceImpl) CreateBuild(build contracts.Build, waitForJobToStart 
 	return
 }
 
-func (s *buildServiceImpl) FinishBuild(repoSource, repoOwner, repoName string, buildID int, buildStatus string) error {
+func (s *buildServiceImpl) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) error {
 
-	err := s.cockroachDBClient.UpdateBuildStatus(repoSource, repoOwner, repoName, buildID, buildStatus)
+	err := s.cockroachDBClient.UpdateBuildStatus(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
 	if err != nil {
 		return err
 	}
 
 	// handle triggers
 	go func() {
-		build, err := s.cockroachDBClient.GetPipelineBuildByID(repoSource, repoOwner, repoName, buildID, false)
+		build, err := s.cockroachDBClient.GetPipelineBuildByID(ctx, repoSource, repoOwner, repoName, buildID, false)
 		if err != nil {
 			return
 		}
 		if build != nil {
-			s.FirePipelineTriggers(*build, "finished")
+			s.FirePipelineTriggers(ctx, *build, "finished")
 		}
 	}()
 
 	return nil
 }
 
-func (s *buildServiceImpl) CreateRelease(release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (createdRelease *contracts.Release, err error) {
+func (s *buildServiceImpl) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (createdRelease *contracts.Release, err error) {
 
 	// set builder track
 	builderTrack := mft.Builder.Track
@@ -352,13 +353,13 @@ func (s *buildServiceImpl) CreateRelease(release contracts.Release, mft manifest
 	}
 
 	// get authenticated url
-	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(release.RepoSource, release.RepoOwner, release.RepoName)
+	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, release.RepoSource, release.RepoOwner, release.RepoName)
 	if err != nil {
 		return
 	}
 
 	// create release in database
-	createdRelease, err = s.cockroachDBClient.InsertRelease(contracts.Release{
+	createdRelease, err = s.cockroachDBClient.InsertRelease(ctx, contracts.Release{
 		Name:           release.Name,
 		Action:         release.Action,
 		RepoSource:     release.RepoSource,
@@ -425,38 +426,38 @@ func (s *buildServiceImpl) CreateRelease(release contracts.Release, mft manifest
 
 	// handle triggers
 	go func() {
-		s.FireReleaseTriggers(release, "started")
+		s.FireReleaseTriggers(ctx, release, "started")
 	}()
 
 	return
 }
 
-func (s *buildServiceImpl) FinishRelease(repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) error {
-	err := s.cockroachDBClient.UpdateReleaseStatus(repoSource, repoOwner, repoName, releaseID, releaseStatus)
+func (s *buildServiceImpl) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) error {
+	err := s.cockroachDBClient.UpdateReleaseStatus(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)
 	if err != nil {
 		return err
 	}
 
 	// handle triggers
 	go func() {
-		release, err := s.cockroachDBClient.GetPipelineRelease(repoSource, repoOwner, repoName, releaseID)
+		release, err := s.cockroachDBClient.GetPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseID)
 		if err != nil {
 			return
 		}
 		if release != nil {
-			s.FireReleaseTriggers(*release, "finished")
+			s.FireReleaseTriggers(ctx, *release, "finished")
 		}
 	}()
 
 	return nil
 }
 
-func (s *buildServiceImpl) FireGitTriggers(gitEvent manifest.EstafetteGitEvent) error {
+func (s *buildServiceImpl) FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) error {
 
 	log.Info().Msgf("[trigger:git(%v-%v:%v)] Checking if triggers need to be fired...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event)
 
 	// retrieve all pipeline triggers
-	pipelines, err := s.cockroachDBClient.GetGitTriggers(gitEvent)
+	pipelines, err := s.cockroachDBClient.GetGitTriggers(ctx, gitEvent)
 	if err != nil {
 		return err
 	}
@@ -487,13 +488,13 @@ func (s *buildServiceImpl) FireGitTriggers(gitEvent manifest.EstafetteGitEvent) 
 				// create new build for t.Run
 				if t.BuildAction != nil {
 					log.Info().Msgf("[trigger:git(%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(*p, t, e)
+					err := s.fireBuild(ctx, *p, t, e)
 					if err != nil {
 						log.Info().Msgf("[trigger:git(%v-%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					}
 				} else if t.ReleaseAction != nil {
 					log.Info().Msgf("[trigger:git(%v-%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(*p, t, e)
+					err := s.fireRelease(ctx, *p, t, e)
 					if err != nil {
 						log.Info().Msgf("[trigger:git(%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
@@ -507,12 +508,12 @@ func (s *buildServiceImpl) FireGitTriggers(gitEvent manifest.EstafetteGitEvent) 
 	return nil
 }
 
-func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event string) error {
+func (s *buildServiceImpl) FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) error {
 
 	log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Checking if triggers need to be fired...", build.RepoSource, build.RepoOwner, build.RepoName, event)
 
 	// retrieve all pipeline triggers
-	pipelines, err := s.cockroachDBClient.GetPipelineTriggers(build, event)
+	pipelines, err := s.cockroachDBClient.GetPipelineTriggers(ctx, build, event)
 	if err != nil {
 		return err
 	}
@@ -553,13 +554,13 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 				// create new build for t.Run
 				if t.BuildAction != nil {
 					log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(*p, t, e)
+					err := s.fireBuild(ctx, *p, t, e)
 					if err != nil {
 						log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					}
 				} else if t.ReleaseAction != nil {
 					log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(*p, t, e)
+					err := s.fireRelease(ctx, *p, t, e)
 					if err != nil {
 						log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
@@ -573,11 +574,11 @@ func (s *buildServiceImpl) FirePipelineTriggers(build contracts.Build, event str
 	return nil
 }
 
-func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event string) error {
+func (s *buildServiceImpl) FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) error {
 
 	log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v] Checking if triggers need to be fired...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
 
-	pipelines, err := s.cockroachDBClient.GetReleaseTriggers(release, event)
+	pipelines, err := s.cockroachDBClient.GetReleaseTriggers(ctx, release, event)
 	if err != nil {
 		return err
 	}
@@ -617,13 +618,13 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 
 				if t.BuildAction != nil {
 					log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(*p, t, e)
+					err := s.fireBuild(ctx, *p, t, e)
 					if err != nil {
 						log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting build action '%v/%v/%v', branch '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					}
 				} else if t.ReleaseAction != nil {
 					log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(*p, t, e)
+					err := s.fireRelease(ctx, *p, t, e)
 					if err != nil {
 						log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
@@ -637,7 +638,7 @@ func (s *buildServiceImpl) FireReleaseTriggers(release contracts.Release, event 
 	return nil
 }
 
-func (s *buildServiceImpl) FireCronTriggers() error {
+func (s *buildServiceImpl) FireCronTriggers(ctx context.Context) error {
 
 	// create event object
 	ce := manifest.EstafetteCronEvent{
@@ -649,7 +650,7 @@ func (s *buildServiceImpl) FireCronTriggers() error {
 
 	log.Info().Msgf("[trigger:cron(%v)] Checking if triggers need to be fired...", ce.Time)
 
-	pipelines, err := s.cockroachDBClient.GetCronTriggers()
+	pipelines, err := s.cockroachDBClient.GetCronTriggers(ctx)
 	if err != nil {
 		return err
 	}
@@ -676,13 +677,13 @@ func (s *buildServiceImpl) FireCronTriggers() error {
 				// create new build for t.Run
 				if t.BuildAction != nil {
 					log.Info().Msgf("[trigger:cron(%v)] Firing build action '%v/%v/%v', branch '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(*p, t, e)
+					err := s.fireBuild(ctx, *p, t, e)
 					if err != nil {
 						log.Info().Msgf("[trigger:cron(%v)] Failed starting build action'%v/%v/%v', branch '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					}
 				} else if t.ReleaseAction != nil {
 					log.Info().Msgf("[trigger:cron(%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(*p, t, e)
+					err := s.fireRelease(ctx, *p, t, e)
 					if err != nil {
 						log.Info().Msgf("[trigger:cron(%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
@@ -696,13 +697,13 @@ func (s *buildServiceImpl) FireCronTriggers() error {
 	return nil
 }
 
-func (s *buildServiceImpl) fireBuild(p contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) error {
+func (s *buildServiceImpl) fireBuild(ctx context.Context, p contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) error {
 	if t.BuildAction == nil {
 		return fmt.Errorf("Trigger to fire does not have a 'builds' property, shouldn't get to here")
 	}
 
 	// get last build for branch defined in 'builds' section
-	lastBuildForBranch, err := s.cockroachDBClient.GetLastPipelineBuildForBranch(p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+	lastBuildForBranch, err := s.cockroachDBClient.GetLastPipelineBuildForBranch(ctx, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 
 	if lastBuildForBranch == nil {
 		return fmt.Errorf("There's no build for pipeline '%v/%v/%v' branch '%v', cannot trigger one", p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
@@ -714,19 +715,19 @@ func (s *buildServiceImpl) fireBuild(p contracts.Pipeline, t manifest.EstafetteT
 	// set event that triggers the build
 	lastBuildForBranch.Events = []manifest.EstafetteEvent{e}
 
-	_, err = s.CreateBuild(*lastBuildForBranch, true)
+	_, err = s.CreateBuild(ctx, *lastBuildForBranch, true)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *buildServiceImpl) fireRelease(p contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) error {
+func (s *buildServiceImpl) fireRelease(ctx context.Context, p contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) error {
 	if t.ReleaseAction == nil {
 		return fmt.Errorf("Trigger to fire does not have a 'releases' property, shouldn't get to here")
 	}
 
-	_, err := s.CreateRelease(contracts.Release{
+	_, err := s.CreateRelease(ctx, contracts.Release{
 		Name:           t.ReleaseAction.Target,
 		Action:         t.ReleaseAction.Action,
 		RepoSource:     p.RepoSource,
@@ -752,12 +753,12 @@ func (s *buildServiceImpl) getShortRepoSource(repoSource string) string {
 	return repoSourceArray[0]
 }
 
-func (s *buildServiceImpl) getAuthenticatedRepositoryURL(repoSource, repoOwner, repoName string) (authenticatedRepositoryURL string, environmentVariableWithToken map[string]string, err error) {
+func (s *buildServiceImpl) getAuthenticatedRepositoryURL(ctx context.Context, repoSource, repoOwner, repoName string) (authenticatedRepositoryURL string, environmentVariableWithToken map[string]string, err error) {
 
 	switch repoSource {
 	case "github.com":
 		var accessToken string
-		accessToken, authenticatedRepositoryURL, err = s.githubJobVarsFunc(repoSource, repoOwner, repoName)
+		accessToken, authenticatedRepositoryURL, err = s.githubJobVarsFunc(ctx, repoSource, repoOwner, repoName)
 		if err != nil {
 			return
 		}
@@ -766,7 +767,7 @@ func (s *buildServiceImpl) getAuthenticatedRepositoryURL(repoSource, repoOwner, 
 
 	case "bitbucket.org":
 		var accessToken string
-		accessToken, authenticatedRepositoryURL, err = s.bitbucketJobVarsFunc(repoSource, repoOwner, repoName)
+		accessToken, authenticatedRepositoryURL, err = s.bitbucketJobVarsFunc(ctx, repoSource, repoOwner, repoName)
 		if err != nil {
 			return
 		}
