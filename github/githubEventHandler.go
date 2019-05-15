@@ -130,6 +130,9 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 func (h *eventHandlerImpl) CreateJobForGithubPush(pushEvent ghcontracts.PushEvent) {
 
+	span := h.tracer.StartSpan("CreateJobForGithubPush")
+	defer span.Finish()
+
 	// check to see that it's a cloneable event
 	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
 		return

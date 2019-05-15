@@ -51,6 +51,9 @@ func NewGithubAPIClient(config config.GithubConfig, prometheusOutboundAPICallTot
 // GetGithubAppToken returns a Github app token with which to retrieve an installation token
 func (gh *apiClientImpl) GetGithubAppToken() (githubAppToken string, err error) {
 
+	span := gh.tracer.StartSpan("Github::GetGithubAppToken")
+	defer span.Finish()
+
 	// https://developer.github.com/apps/building-integrations/setting-up-and-registering-github-apps/about-authentication-options-for-github-apps/
 
 	// load private key from pem file
@@ -85,6 +88,9 @@ func (gh *apiClientImpl) GetGithubAppToken() (githubAppToken string, err error) 
 
 // GetInstallationID returns the id for an installation of a Github app
 func (gh *apiClientImpl) GetInstallationID(repoOwner string) (installationID int, err error) {
+
+	span := gh.tracer.StartSpan("Github::GetInstallationID")
+	defer span.Finish()
 
 	githubAppToken, err := gh.GetGithubAppToken()
 	if err != nil {
@@ -124,6 +130,9 @@ func (gh *apiClientImpl) GetInstallationID(repoOwner string) (installationID int
 // GetInstallationToken returns an access token for an installation of a Github app
 func (gh *apiClientImpl) GetInstallationToken(installationID int) (accessToken ghcontracts.AccessToken, err error) {
 
+	span := gh.tracer.StartSpan("Github::GetInstallationToken")
+	defer span.Finish()
+
 	githubAppToken, err := gh.GetGithubAppToken()
 	if err != nil {
 		return
@@ -149,6 +158,9 @@ func (gh *apiClientImpl) GetAuthenticatedRepositoryURL(accessToken ghcontracts.A
 }
 
 func (gh *apiClientImpl) GetEstafetteManifest(accessToken ghcontracts.AccessToken, pushEvent ghcontracts.PushEvent) (exists bool, manifest string, err error) {
+
+	span := gh.tracer.StartSpan("Github::GetEstafetteManifest")
+	defer span.Finish()
 
 	// https://developer.github.com/v3/repos/contents/
 

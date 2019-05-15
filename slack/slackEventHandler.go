@@ -7,7 +7,7 @@ import (
 
 	slcontracts "github.com/estafette/estafette-ci-api/slack/contracts"
 
-	"github.com/estafette/estafette-ci-contracts"
+	contracts "github.com/estafette/estafette-ci-contracts"
 
 	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/config"

@@ -37,6 +37,9 @@ func NewSlackAPIClient(config config.SlackConfig, prometheusOutboundAPICallTotal
 // GetUserProfile returns a Slack user profile
 func (sl *apiClientImpl) GetUserProfile(userID string) (profile *slcontracts.UserProfile, err error) {
 
+	span := sl.tracer.StartSpan("Slack::GetUserProfile")
+	defer span.Finish()
+
 	// track call via prometheus
 	sl.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "slack"}).Inc()
 

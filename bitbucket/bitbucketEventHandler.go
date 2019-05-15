@@ -40,9 +40,6 @@ func NewBitbucketEventHandler(apiClient APIClient, buildService estafette.BuildS
 
 func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
-	span := h.tracer.StartSpan("HandleBitbucketEvent")
-	defer span.Finish()
-
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
 
 	eventType := c.GetHeader("X-Event-Key")
