@@ -27,6 +27,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
+	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 )
 
@@ -282,9 +283,8 @@ func initJaeger(service string) (opentracing.Tracer, io.Closer) {
 		log.Fatal().Err(err).Msg("Generating Jaeger config from environment variables failed")
 	}
 
-	cfg.ServiceName = service
+	tracer, closer, err := cfg.New(service, jaegercfg.Logger(jaeger.StdLogger))
 
-	tracer, closer, err := cfg.NewTracer()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Generating Jaeger tracer failed")
 	}
