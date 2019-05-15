@@ -134,6 +134,9 @@ func createRouter() *gin.Engine {
 	// access logs with zerolog
 	router.Use(ZeroLogMiddleware())
 
+	// opentracing middleware
+	router.Use(OpenTracingMiddleware())
+
 	// liveness and readiness
 	router.GET("/liveness", func(c *gin.Context) {
 		c.String(200, "I'm alive!")
