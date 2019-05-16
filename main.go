@@ -132,7 +132,7 @@ func createRouter() *gin.Engine {
 	router.Use(gin.Recovery())
 
 	// access logs with zerolog
-	router.Use(ZeroLogMiddleware())
+	// router.Use(ZeroLogMiddleware())
 
 	// opentracing middleware
 	router.Use(OpenTracingMiddleware())
