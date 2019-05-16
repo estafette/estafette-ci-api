@@ -120,7 +120,6 @@ func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
-	// set tracing span tags
 	span.SetTag("page-number", pageNumber)
 	span.SetTag("page-size", pageSize)
 
@@ -193,10 +192,7 @@ func (h *apiHandlerImpl) GetPipeline(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	// set tracing span tags
-	span.SetTag("source", source)
-	span.SetTag("owner", owner)
-	span.SetTag("repo", repo)
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
 
 	pipeline, err := h.cockroachDBClient.GetPipeline(ctx, source, owner, repo, true)
 	if err != nil {
@@ -220,7 +216,12 @@ func (h *apiHandlerImpl) GetPipelineBuilds(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
+
+	span.SetTag("page-number", pageNumber)
+	span.SetTag("page-size", pageSize)
 
 	// set tracing span tags
 	span.SetTag("source", source)
@@ -299,14 +300,11 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 	repo := c.Param("repo")
 	revisionOrID := c.Param("revisionOrId")
 
-	// set tracing span tags
-	span.SetTag("source", source)
-	span.SetTag("owner", owner)
-	span.SetTag("repo", repo)
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
 
 	if len(revisionOrID) == 40 {
 
-		span.SetTag("revision", revisionOrID)
+		span.SetTag("git-revision", revisionOrID)
 
 		build, err := h.cockroachDBClient.GetPipelineBuild(ctx, source, owner, repo, revisionOrID, false)
 		if err != nil {
@@ -456,6 +454,9 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 	repo := c.Param("repo")
 	revisionOrID := c.Param("revisionOrId")
 
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+	span.SetTag("build-id", revisionOrID)
+
 	id, err := strconv.Atoi(revisionOrID)
 	if err != nil {
 		log.Error().Err(err).
@@ -518,15 +519,21 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 	repo := c.Param("repo")
 	revisionOrID := c.Param("revisionOrId")
 
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+
 	var build *contracts.Build
 	var err error
 	if len(revisionOrID) == 40 {
+		span.SetTag("git-revision", revisionOrID)
+
 		build, err = h.cockroachDBClient.GetPipelineBuild(ctx, source, owner, repo, revisionOrID, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
 		}
 	} else {
+		span.SetTag("build-id", revisionOrID)
+
 		id, err := strconv.Atoi(revisionOrID)
 		if err != nil {
 			log.Error().Err(err).
@@ -610,6 +617,8 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 	repo := c.Param("repo")
 	revisionOrID := c.Param("revisionOrId")
 
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+
 	var buildLog contracts.BuildLog
 	err := c.Bind(&buildLog)
 	if err != nil {
@@ -618,6 +627,8 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 	}
 
 	if len(revisionOrID) != 40 {
+		span.SetTag("build-id", revisionOrID)
+
 		_, err := strconv.Atoi(revisionOrID)
 		if err != nil {
 			log.Error().Err(err).
@@ -647,6 +658,9 @@ func (h *apiHandlerImpl) GetPipelineBuildWarnings(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 	revisionOrID := c.Param("revisionOrId")
+
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+	span.SetTag("build-id", revisionOrID)
 
 	id, err := strconv.Atoi(revisionOrID)
 	if err != nil {
@@ -686,7 +700,12 @@ func (h *apiHandlerImpl) GetPipelineReleases(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
+
+	span.SetTag("page-number", pageNumber)
+	span.SetTag("page-size", pageSize)
 
 	type ReleasesResult struct {
 		releases []*contracts.Release
@@ -898,6 +917,10 @@ func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 	idValue := c.Param("id")
+
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+	span.SetTag("release-id", idValue)
+
 	id, err := strconv.Atoi(idValue)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, idValue)
@@ -954,6 +977,10 @@ func (h *apiHandlerImpl) GetPipelineRelease(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 	idValue := c.Param("id")
+
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+	span.SetTag("release-id", idValue)
+
 	id, err := strconv.Atoi(idValue)
 	if err != nil {
 		log.Error().Err(err).
@@ -984,6 +1011,10 @@ func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 	idValue := c.Param("id")
+
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+	span.SetTag("release-id", idValue)
+
 	id, err := strconv.Atoi(idValue)
 	if err != nil {
 		log.Error().Err(err).
@@ -1054,6 +1085,10 @@ func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 	idValue := c.Param("id")
+
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+	span.SetTag("release-id", idValue)
+
 	id, err := strconv.Atoi(idValue)
 	if err != nil {
 		log.Error().Err(err).
@@ -1086,6 +1121,9 @@ func (h *apiHandlerImpl) GetFrequentLabels(c *gin.Context) {
 	defer span.Finish()
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
+
+	span.SetTag("page-number", pageNumber)
+	span.SetTag("page-size", pageSize)
 
 	type LabelsResult struct {
 		labels []map[string]interface{}
@@ -1156,6 +1194,8 @@ func (h *apiHandlerImpl) GetPipelineStatsBuildsDurations(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
 	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
@@ -1183,6 +1223,8 @@ func (h *apiHandlerImpl) GetPipelineStatsReleasesDurations(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
 	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
@@ -1209,6 +1251,8 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 	source := c.Param("source")
 	owner := c.Param("owner")
 	repo := c.Param("repo")
+
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
@@ -1339,6 +1383,9 @@ func (h *apiHandlerImpl) GetStatsMostBuilds(c *gin.Context) {
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
+	span.SetTag("page-number", pageNumber)
+	span.SetTag("page-size", pageSize)
+
 	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostBuilds(ctx, pageNumber, pageSize, filters)
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines with most builds from db"
@@ -1377,6 +1424,9 @@ func (h *apiHandlerImpl) GetStatsMostReleases(c *gin.Context) {
 	defer span.Finish()
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
+
+	span.SetTag("page-number", pageNumber)
+	span.SetTag("page-size", pageSize)
 
 	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostReleases(ctx, pageNumber, pageSize, filters)
 	if err != nil {

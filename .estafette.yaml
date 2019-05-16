@@ -77,8 +77,6 @@ releases:
           env:
             SECRET_DECRYPTION_KEY_BASE64: estafette.secret(axt5NBobZQltxHCk.4ms_DzXI59vX-DuaaD4gRji0ThRPKvAXqgN-qS31SILI2iSQazCiSru_ZqKldgrrP5UhIPZpoY0Dxe-Y)
             JAEGER_AGENT_HOST: jaeger-all-in-one.jaeger-all-in-one.svc
-            JAEGER_SAMPLER_TYPE: const
-            JAEGER_SAMPLER_PARAM: 1
           cpu:
             request: 50m
             limit: 75m
