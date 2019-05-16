@@ -39,5 +39,7 @@ func OpenTracingMiddleware() gin.HandlerFunc {
 
 		// process request
 		c.Next()
+
+		ext.HTTPStatusCode.Set(span, uint16(c.Writer.Status()))
 	}
 }
