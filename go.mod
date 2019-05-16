@@ -34,7 +34,7 @@ require (
 	github.com/stretchr/testify v1.2.2
 	github.com/uber-go/atomic v1.4.0 // indirect
 	github.com/uber/jaeger-client-go v2.16.0+incompatible
-	github.com/uber/jaeger-lib v2.0.0+incompatible // indirect
+	github.com/uber/jaeger-lib v2.0.0+incompatible
 	github.com/ugorji/go v0.0.0-20170620104852-5efa3251c7f7 // indirect
 	go.uber.org/atomic v1.4.0 // indirect
 	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6 // indirect

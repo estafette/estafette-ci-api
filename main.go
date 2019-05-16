@@ -28,6 +28,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
+	jprom "github.com/uber/jaeger-lib/metrics/prometheus"
 )
 
 var (
@@ -286,7 +287,7 @@ func initJaeger(service string) io.Closer {
 		log.Fatal().Err(err).Msg("Generating Jaeger config from environment variables failed")
 	}
 
-	closer, err := cfg.InitGlobalTracer(service, jaegercfg.Logger(jaeger.StdLogger))
+	closer, err := cfg.InitGlobalTracer(service, jaegercfg.Logger(jaeger.StdLogger), jaegercfg.Metrics(jprom.New()))
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("Generating Jaeger tracer failed")
