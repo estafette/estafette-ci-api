@@ -39,6 +39,9 @@ func NewBitbucketEventHandler(apiClient APIClient, buildService estafette.BuildS
 
 func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Bitbucket::Handle")
+	defer span.Finish()
+
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
 
 	eventType := c.GetHeader("X-Event-Key")
@@ -62,7 +65,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 			return
 		}
 
-		h.CreateJobForBitbucketPush(c.Request.Context(), pushEvent)
+		h.CreateJobForBitbucketPush(ctx, pushEvent)
 
 	case
 		"repo:fork",
@@ -95,8 +98,13 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 func (h *eventHandlerImpl) CreateJobForBitbucketPush(ctx context.Context, pushEvent bbcontracts.RepositoryPushEvent) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "CreateJobForBitbucketPush")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Bitbucket::CreateJobForBitbucketPush")
 	defer span.Finish()
+
+	span.SetTag("git-repo", pushEvent.GetRepository())
+	span.SetTag("git-branch", pushEvent.GetRepoBranch())
+	span.SetTag("git-revision", pushEvent.GetRepoRevision())
+	span.SetTag("event", "repo:push")
 
 	// check to see that it's a cloneable event
 	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil || pushEvent.Push.Changes[0].New.Type != "branch" || len(pushEvent.Push.Changes[0].New.Target.Hash) == 0 {

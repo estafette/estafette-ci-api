@@ -39,6 +39,8 @@ func NewEstafetteEventHandler(config config.APIServerConfig, ciBuilderClient CiB
 
 func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
+	ctx := c.Request.Context()
+
 	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
 		log.Error().Msgf("Authentication for /api/commands failed")
 		c.Status(http.StatusUnauthorized)
@@ -100,7 +102,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 		if ciBuilderEvent.BuildStatus != "canceled" {
 			go func(eventJobname string) {
-				err = h.ciBuilderClient.RemoveCiBuilderJob(eventJobname)
+				err = h.ciBuilderClient.RemoveCiBuilderJob(ctx, eventJobname)
 				if err != nil {
 					errorMessage := fmt.Sprintf("Failed removing job %v for event %v", eventJobname, eventType)
 					log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)

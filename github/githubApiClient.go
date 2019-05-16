@@ -51,7 +51,7 @@ func NewGithubAPIClient(config config.GithubConfig, prometheusOutboundAPICallTot
 // GetGithubAppToken returns a Github app token with which to retrieve an installation token
 func (gh *apiClientImpl) GetGithubAppToken(ctx context.Context) (githubAppToken string, err error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "Github::GetGithubAppToken")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "GithubApi::GetGithubAppToken")
 	defer span.Finish()
 
 	// https://developer.github.com/apps/building-integrations/setting-up-and-registering-github-apps/about-authentication-options-for-github-apps/
@@ -89,7 +89,7 @@ func (gh *apiClientImpl) GetGithubAppToken(ctx context.Context) (githubAppToken 
 // GetInstallationID returns the id for an installation of a Github app
 func (gh *apiClientImpl) GetInstallationID(ctx context.Context, repoOwner string) (installationID int, err error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "Github::GetInstallationID")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "GithubApi::GetInstallationID")
 	defer span.Finish()
 
 	githubAppToken, err := gh.GetGithubAppToken(ctx)
@@ -130,7 +130,7 @@ func (gh *apiClientImpl) GetInstallationID(ctx context.Context, repoOwner string
 // GetInstallationToken returns an access token for an installation of a Github app
 func (gh *apiClientImpl) GetInstallationToken(ctx context.Context, installationID int) (accessToken ghcontracts.AccessToken, err error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "Github::GetInstallationToken")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "GithubApi::GetInstallationToken")
 	defer span.Finish()
 
 	githubAppToken, err := gh.GetGithubAppToken(ctx)
@@ -159,7 +159,7 @@ func (gh *apiClientImpl) GetAuthenticatedRepositoryURL(accessToken ghcontracts.A
 
 func (gh *apiClientImpl) GetEstafetteManifest(ctx context.Context, accessToken ghcontracts.AccessToken, pushEvent ghcontracts.PushEvent) (exists bool, manifest string, err error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "Github::GetEstafetteManifest")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "GithubApi::GetEstafetteManifest")
 	defer span.Finish()
 
 	// https://developer.github.com/v3/repos/contents/

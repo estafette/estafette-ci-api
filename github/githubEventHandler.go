@@ -48,6 +48,9 @@ func NewGithubEventHandler(apiClient APIClient, buildService estafette.BuildServ
 
 func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Github::Handle")
+	defer span.Finish()
+
 	// https://developer.github.com/webhooks/
 	eventType := c.GetHeader("X-Github-Event")
 	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "github"}).Inc()
@@ -83,7 +86,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 			return
 		}
 
-		h.CreateJobForGithubPush(c.Request.Context(), pushEvent)
+		h.CreateJobForGithubPush(ctx, pushEvent)
 
 	case
 		"commit_comment",                        // Any time a Commit is commented on.
@@ -129,8 +132,13 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 func (h *eventHandlerImpl) CreateJobForGithubPush(ctx context.Context, pushEvent ghcontracts.PushEvent) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "CreateJobForGithubPush")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Github::CreateJobForGithubPush")
 	defer span.Finish()
+
+	span.SetTag("git-repo", pushEvent.GetRepository())
+	span.SetTag("git-branch", pushEvent.GetRepoBranch())
+	span.SetTag("git-revision", pushEvent.GetRepoRevision())
+	span.SetTag("event", "push")
 
 	// check to see that it's a cloneable event
 	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	slcontracts "github.com/estafette/estafette-ci-api/slack/contracts"
+	"github.com/opentracing/opentracing-go"
 
 	contracts "github.com/estafette/estafette-ci-contracts"
 
@@ -55,7 +56,9 @@ func NewSlackEventHandler(secretHelper crypt.SecretHelper, config config.SlackCo
 
 func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
-	ctx := c.Request.Context()
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Slack::Handle")
+	defer span.Finish()
+
 	// https://api.slack.com/slash-commands
 
 	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": "", "source": "slack"}).Inc()
@@ -75,6 +78,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		c.String(http.StatusBadRequest, "Verification token for Slack command is invalid")
 		return
 	}
+
+	span.SetTag("slash-command", slashCommand.Command)
 
 	if slashCommand.Command == "/estafette" {
 		if slashCommand.Text != "" {

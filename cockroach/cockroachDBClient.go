@@ -134,7 +134,7 @@ func (dbc *cockroachDBClientImpl) ConnectWithDriverAndSource(driverName, dataSou
 // GetAutoIncrement returns the autoincrement number for a pipeline
 func (dbc *cockroachDBClientImpl) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetAutoIncrement")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetAutoIncrement")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -203,7 +203,7 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(ctx context.Context, shortRep
 
 func (dbc *cockroachDBClientImpl) InsertBuild(ctx context.Context, build contracts.Build) (insertedBuild *contracts.Build, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:InsertBuild")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::InsertBuild")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -301,7 +301,7 @@ func (dbc *cockroachDBClientImpl) InsertBuild(ctx context.Context, build contrac
 
 func (dbc *cockroachDBClientImpl) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:UpdateBuildStatus")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpdateBuildStatus")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -339,7 +339,7 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(ctx context.Context, repoSou
 
 func (dbc *cockroachDBClientImpl) InsertRelease(ctx context.Context, release contracts.Release) (insertedRelease *contracts.Release, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:InsertRelease")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::InsertRelease")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -415,7 +415,7 @@ func (dbc *cockroachDBClientImpl) InsertRelease(ctx context.Context, release con
 
 func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus string) (err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:UpdateReleaseStatus")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpdateReleaseStatus")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -472,7 +472,7 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(ctx context.Context, repoS
 
 func (dbc *cockroachDBClientImpl) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:InsertBuildLog")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::InsertBuildLog")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -565,7 +565,7 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(ctx context.Context, buildLog c
 
 func (dbc *cockroachDBClientImpl) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) (err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:InsertReleaseLog")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::InsertReleaseLog")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -617,7 +617,7 @@ func (dbc *cockroachDBClientImpl) InsertReleaseLog(ctx context.Context, releaseL
 
 func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:UpsertComputedPipeline")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpsertComputedPipeline")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -785,7 +785,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(ctx context.Context, re
 
 func (dbc *cockroachDBClientImpl) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:UpdateComputedPipelineFirstInsertedAt")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpdateComputedPipelineFirstInsertedAt")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -830,7 +830,7 @@ func (dbc *cockroachDBClientImpl) UpdateComputedPipelineFirstInsertedAt(ctx cont
 
 func (dbc *cockroachDBClientImpl) UpsertComputedRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:UpsertComputedRelease")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpsertComputedRelease")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -926,7 +926,7 @@ func (dbc *cockroachDBClientImpl) UpsertComputedRelease(ctx context.Context, rep
 
 func (dbc *cockroachDBClientImpl) UpdateComputedReleaseFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:UpdateComputedReleaseFirstInsertedAt")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpdateComputedReleaseFirstInsertedAt")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -973,7 +973,7 @@ func (dbc *cockroachDBClientImpl) UpdateComputedReleaseFirstInsertedAt(ctx conte
 
 func (dbc *cockroachDBClientImpl) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelines")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelines")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1006,7 +1006,7 @@ func (dbc *cockroachDBClientImpl) GetPipelines(ctx context.Context, pageNumber, 
 
 func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(ctx context.Context, repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelinesByRepoName")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelinesByRepoName")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1031,7 +1031,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(ctx context.Context, re
 
 func (dbc *cockroachDBClientImpl) GetPipelinesCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelinesCount")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelinesCount")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1059,7 +1059,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesCount(ctx context.Context, filters
 
 func (dbc *cockroachDBClientImpl) GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipeline")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipeline")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1083,7 +1083,7 @@ func (dbc *cockroachDBClientImpl) GetPipeline(ctx context.Context, repoSource, r
 
 func (dbc *cockroachDBClientImpl) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, optimized bool) (builds []*contracts.Build, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelineBuilds")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuilds")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1119,7 +1119,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(ctx context.Context, repoSou
 
 func (dbc *cockroachDBClientImpl) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (totalCount int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelineBuildsCount")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildsCount")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1150,7 +1150,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsCount(ctx context.Context, re
 
 func (dbc *cockroachDBClientImpl) GetPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName, repoRevision string, optimized bool) (build *contracts.Build, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelineBuild")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuild")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1175,7 +1175,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(ctx context.Context, repoSour
 
 func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, id int, optimized bool) (build *contracts.Build, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelineBuildByID")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildByID")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1200,7 +1200,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(ctx context.Context, repo
 
 func (dbc *cockroachDBClientImpl) GetLastPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetLastPipelineBuild")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetLastPipelineBuild")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1224,7 +1224,7 @@ func (dbc *cockroachDBClientImpl) GetLastPipelineBuild(ctx context.Context, repo
 
 func (dbc *cockroachDBClientImpl) GetFirstPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetFirstPipelineBuild")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetFirstPipelineBuild")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1248,7 +1248,7 @@ func (dbc *cockroachDBClientImpl) GetFirstPipelineBuild(ctx context.Context, rep
 
 func (dbc *cockroachDBClientImpl) GetLastPipelineBuildForBranch(ctx context.Context, repoSource, repoOwner, repoName, branch string) (build *contracts.Build, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetLastPipelineBuildForBranch")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetLastPipelineBuildForBranch")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1273,7 +1273,7 @@ func (dbc *cockroachDBClientImpl) GetLastPipelineBuildForBranch(ctx context.Cont
 
 func (dbc *cockroachDBClientImpl) GetLastPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetLastPipelineRelease")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetLastPipelineRelease")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1299,7 +1299,7 @@ func (dbc *cockroachDBClientImpl) GetLastPipelineRelease(ctx context.Context, re
 
 func (dbc *cockroachDBClientImpl) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetFirstPipelineRelease")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetFirstPipelineRelease")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1325,7 +1325,7 @@ func (dbc *cockroachDBClientImpl) GetFirstPipelineRelease(ctx context.Context, r
 
 func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, optimized bool) (builds []*contracts.Build, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelineBuildsByVersion")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildsByVersion")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1354,7 +1354,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(ctx context.Context
 
 func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string) (buildLog *contracts.BuildLog, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelineBuildLogs")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildLogs")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1417,7 +1417,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(ctx context.Context, repo
 
 func (dbc *cockroachDBClientImpl) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string) (releases []*contracts.Release, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelineReleases")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineReleases")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1453,7 +1453,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(ctx context.Context, repoS
 
 func (dbc *cockroachDBClientImpl) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (totalCount int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelineReleasesCount")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineReleasesCount")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1484,7 +1484,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesCount(ctx context.Context, 
 
 func (dbc *cockroachDBClientImpl) GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, id int) (release *contracts.Release, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelineRelease")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineRelease")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1509,7 +1509,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(ctx context.Context, repoSo
 
 func (dbc *cockroachDBClientImpl) GetPipelineLastReleasesByName(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelineLastReleasesByName")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineLastReleasesByName")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1551,7 +1551,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleasesByName(ctx context.Cont
 
 func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, id int) (releaseLog *contracts.ReleaseLog, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelineReleaseLogs")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineReleaseLogs")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1596,7 +1596,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogs(ctx context.Context, re
 
 func (dbc *cockroachDBClientImpl) GetBuildsCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetBuildsCount")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetBuildsCount")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1624,7 +1624,7 @@ func (dbc *cockroachDBClientImpl) GetBuildsCount(ctx context.Context, filters ma
 
 func (dbc *cockroachDBClientImpl) GetReleasesCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetReleasesCount")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetReleasesCount")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1652,7 +1652,7 @@ func (dbc *cockroachDBClientImpl) GetReleasesCount(ctx context.Context, filters 
 
 func (dbc *cockroachDBClientImpl) GetBuildsDuration(ctx context.Context, filters map[string][]string) (totalDuration time.Duration, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetBuildsDuration")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetBuildsDuration")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1688,7 +1688,7 @@ func (dbc *cockroachDBClientImpl) GetBuildsDuration(ctx context.Context, filters
 
 func (dbc *cockroachDBClientImpl) GetFirstBuildTimes(ctx context.Context) (buildTimes []time.Time, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetFirstBuildTimes")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetFirstBuildTimes")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1727,7 +1727,7 @@ func (dbc *cockroachDBClientImpl) GetFirstBuildTimes(ctx context.Context) (build
 
 func (dbc *cockroachDBClientImpl) GetFirstReleaseTimes(ctx context.Context) (releaseTimes []time.Time, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetFirstReleaseTimes")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetFirstReleaseTimes")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1766,7 +1766,7 @@ func (dbc *cockroachDBClientImpl) GetFirstReleaseTimes(ctx context.Context) (rel
 
 func (dbc *cockroachDBClientImpl) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (durations []map[string]interface{}, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelineBuildsDurations")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildsDurations")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1829,7 +1829,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsDurations(ctx context.Context
 
 func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (durations []map[string]interface{}, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelineReleasesDurations")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineReleasesDurations")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -1895,7 +1895,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(ctx context.Conte
 
 func (dbc *cockroachDBClientImpl) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetFrequentLabels")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetFrequentLabels")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -2006,7 +2006,7 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(ctx context.Context, pageNum
 
 func (dbc *cockroachDBClientImpl) GetFrequentLabelsCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetFrequentLabelsCount")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetFrequentLabelsCount")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -2086,7 +2086,7 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabelsCount(ctx context.Context, fi
 
 func (dbc *cockroachDBClientImpl) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelinesWithMostBuilds")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelinesWithMostBuilds")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -2161,7 +2161,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostBuildsCount(ctx context.Co
 
 func (dbc *cockroachDBClientImpl) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelinesWithMostReleases")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelinesWithMostReleases")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
@@ -2227,7 +2227,7 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostReleases(ctx context.Conte
 
 func (dbc *cockroachDBClientImpl) GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "Cockroach:GetPipelinesWithMostReleasesCount")
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelinesWithMostReleasesCount")
 	defer span.Finish()
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()

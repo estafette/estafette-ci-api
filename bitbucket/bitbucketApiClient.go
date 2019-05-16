@@ -44,7 +44,7 @@ func NewBitbucketAPIClient(config config.BitbucketConfig, prometheusOutboundAPIC
 // GetAccessToken returns an access token to access the Bitbucket api
 func (bb *apiClientImpl) GetAccessToken(ctx context.Context) (accessToken bbcontracts.AccessToken, err error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "Bitbucket::GetAccessToken")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "BitbucketApi::GetAccessToken")
 	defer span.Finish()
 
 	// track call via prometheus
@@ -103,7 +103,7 @@ func (bb *apiClientImpl) GetAuthenticatedRepositoryURL(accessToken bbcontracts.A
 
 func (bb *apiClientImpl) GetEstafetteManifest(ctx context.Context, accessToken bbcontracts.AccessToken, pushEvent bbcontracts.RepositoryPushEvent) (exists bool, manifest string, err error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "Bitbucket::GetEstafetteManifest")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "BitbucketApi::GetEstafetteManifest")
 	defer span.Finish()
 
 	// track call via prometheus

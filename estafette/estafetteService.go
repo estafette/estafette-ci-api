@@ -241,13 +241,13 @@ func (s *buildServiceImpl) CreateBuild(ctx context.Context, build contracts.Buil
 		log.Debug().Msgf("Pipeline %v/%v/%v revision %v has valid manifest, creating build job...", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 		// create ci builder job
 		if waitForJobToStart {
-			_, err = s.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+			_, err = s.ciBuilderClient.CreateCiBuilderJob(ctx, ciBuilderParams)
 			if err != nil {
 				return
 			}
 		} else {
 			go func(ciBuilderParams CiBuilderParams) {
-				_, err = s.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+				_, err = s.ciBuilderClient.CreateCiBuilderJob(ctx, ciBuilderParams)
 				if err != nil {
 					log.Warn().Err(err).Msgf("Failed creating async build job")
 				}
@@ -411,13 +411,13 @@ func (s *buildServiceImpl) CreateRelease(ctx context.Context, release contracts.
 
 	// create ci release job
 	if waitForJobToStart {
-		_, err = s.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+		_, err = s.ciBuilderClient.CreateCiBuilderJob(ctx, ciBuilderParams)
 		if err != nil {
 			return
 		}
 	} else {
 		go func(ciBuilderParams CiBuilderParams) {
-			_, err = s.ciBuilderClient.CreateCiBuilderJob(ciBuilderParams)
+			_, err = s.ciBuilderClient.CreateCiBuilderJob(ctx, ciBuilderParams)
 			if err != nil {
 				log.Warn().Err(err).Msgf("Failed creating async release job")
 			}

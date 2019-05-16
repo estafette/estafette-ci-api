@@ -36,7 +36,7 @@ func NewSlackAPIClient(config config.SlackConfig, prometheusOutboundAPICallTotal
 // GetUserProfile returns a Slack user profile
 func (sl *apiClientImpl) GetUserProfile(ctx context.Context, userID string) (profile *slcontracts.UserProfile, err error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "Slack::GetUserProfile")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "SlackApi::GetUserProfile")
 	defer span.Finish()
 
 	// track call via prometheus

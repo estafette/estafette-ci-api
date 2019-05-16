@@ -24,6 +24,7 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
@@ -31,10 +32,10 @@ import (
 
 // CiBuilderClient is the interface for running kubernetes commands specific to this application
 type CiBuilderClient interface {
-	CreateCiBuilderJob(CiBuilderParams) (*batchv1.Job, error)
-	RemoveCiBuilderJob(string) error
-	CancelCiBuilderJob(string) error
-	TailCiBuilderJobLogs(string, chan contracts.TailLogLine) error
+	CreateCiBuilderJob(context.Context, CiBuilderParams) (*batchv1.Job, error)
+	RemoveCiBuilderJob(context.Context, string) error
+	CancelCiBuilderJob(context.Context, string) error
+	TailCiBuilderJobLogs(context.Context, string, chan contracts.TailLogLine) error
 	GetJobName(string, string, string, string) string
 	GetBuilderConfig(CiBuilderParams, string) contracts.BuilderConfig
 }
@@ -98,7 +99,10 @@ func NewCiBuilderClient(config config.APIConfig, encryptedConfig config.APIConfi
 }
 
 // CreateCiBuilderJob creates an estafette-ci-builder job in Kubernetes to run the estafette build
-func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderParams) (job *batchv1.Job, err error) {
+func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuilderParams) (job *batchv1.Job, err error) {
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, "KubernetesApi::CreateCiBuilderJob")
+	defer span.Finish()
 
 	// create job name of max 63 chars
 	id := strconv.Itoa(ciBuilderParams.BuildID)
@@ -107,6 +111,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 	}
 
 	jobName := cbc.GetJobName(ciBuilderParams.JobType, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, id)
+	span.SetTag("job-name", jobName)
 
 	log.Info().Msgf("Creating job %v...", jobName)
 
@@ -254,7 +259,11 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 }
 
 // RemoveCiBuilderJob waits for a job to finish and then removes it
-func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
+func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(ctx context.Context, jobName string) (err error) {
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, "KubernetesApi::RemoveCiBuilderJob")
+	defer span.Finish()
+	span.SetTag("job-name", jobName)
 
 	log.Info().Msgf("Deleting job %v...", jobName)
 
@@ -314,7 +323,11 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(jobName string) (err error) {
 }
 
 // CancelCiBuilderJob removes a job and its pods to cancel a build/release
-func (cbc *ciBuilderClientImpl) CancelCiBuilderJob(jobName string) (err error) {
+func (cbc *ciBuilderClientImpl) CancelCiBuilderJob(ctx context.Context, jobName string) (err error) {
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, "KubernetesApi::CancelCiBuilderJob")
+	defer span.Finish()
+	span.SetTag("job-name", jobName)
 
 	log.Info().Msgf("Canceling job %v...", jobName)
 
@@ -345,7 +358,11 @@ func (cbc *ciBuilderClientImpl) CancelCiBuilderJob(jobName string) (err error) {
 }
 
 // TailCiBuilderJobLogs tails logs of a running job
-func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(jobName string, logChannel chan contracts.TailLogLine) (err error) {
+func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error) {
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, "KubernetesApi::TailCiBuilderJobLogs")
+	defer span.Finish()
+	span.SetTag("job-name", jobName)
 
 	// close channel so api handler can finish it's response
 	defer close(logChannel)
