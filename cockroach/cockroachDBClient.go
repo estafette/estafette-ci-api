@@ -1062,6 +1062,8 @@ func (dbc *cockroachDBClientImpl) GetPipeline(ctx context.Context, repoSource, r
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipeline")
 	defer span.Finish()
 
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", repoSource, repoOwner, repoName))
+
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
