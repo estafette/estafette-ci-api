@@ -136,14 +136,21 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 		},
 	}
 
-	// pass JAEGER_AGENT_HOST on to build/release job
-	jaegerAgentHostName := "JAEGER_AGENT_HOST"
-	jaegerAgentHostValue := os.Getenv(jaegerAgentHostName)
-	if jaegerAgentHostValue != "" {
-		environmentVariables = append(environmentVariables, &corev1.EnvVar{
-			Name:  &jaegerAgentHostName,
-			Value: &jaegerAgentHostValue,
-		})
+	// forward all envars prefixed with JAEGER_ to builder job
+	for _, e := range os.Environ() {
+		kvPair := strings.SplitN(e, "=", 2)
+
+		if len(kvPair) == 2 {
+			envvarName := kvPair[0]
+			envvarValue := kvPair[1]
+
+			if strings.HasPrefix(envvarName, "JAEGER_") && envvarValue != "" {
+				environmentVariables = append(environmentVariables, &corev1.EnvVar{
+					Name:  &envvarName,
+					Value: &envvarValue,
+				})
+			}
+		}
 	}
 
 	// define resource request and limit values to fit reasonably well inside a n1-highmem-4 machine
