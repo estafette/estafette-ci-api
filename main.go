@@ -277,7 +277,8 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	return srv
 }
 
-// initJaeger returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
+// initJaeger returns an instance of Jaeger Tracer that can be configured with environment variables
+// https://github.com/jaegertracing/jaeger-client-go#environment-variables
 func initJaeger(service string) io.Closer {
 
 	cfg, err := jaegercfg.FromEnv()

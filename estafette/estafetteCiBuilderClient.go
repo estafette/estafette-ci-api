@@ -131,6 +131,16 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ciBuilderParams CiBuilderPara
 		},
 	}
 
+	// pass JAEGER_AGENT_HOST on to build/release job
+	jaegerAgentHostName := "JAEGER_AGENT_HOST"
+	jaegerAgentHostValue := os.Getenv(jaegerAgentHostName)
+	if jaegerAgentHostValue != "" {
+		environmentVariables = append(environmentVariables, &corev1.EnvVar{
+			Name:  &jaegerAgentHostName,
+			Value: &jaegerAgentHostValue,
+		})
+	}
+
 	// define resource request and limit values to fit reasonably well inside a n1-highmem-4 machine
 	cpuRequest := "1.0"
 	cpuLimit := "3.0"

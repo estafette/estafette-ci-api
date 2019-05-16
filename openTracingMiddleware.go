@@ -30,6 +30,10 @@ func OpenTracingMiddleware() gin.HandlerFunc {
 		span := opentracing.StartSpan(fmt.Sprintf("%v %v", c.Request.Method, c.Request.URL.Path), ext.RPCServerOption(tracingCtx))
 		defer span.Finish()
 
+		ext.SpanKindRPCServer.Set(span)
+		ext.HTTPMethod.Set(span, c.Request.Method)
+		ext.HTTPUrl.Set(span, c.Request.URL.String())
+
 		// store the span in the request context
 		c.Request = c.Request.WithContext(opentracing.ContextWithSpan(c.Request.Context(), span))
 
