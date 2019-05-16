@@ -2666,6 +2666,10 @@ func (dbc *cockroachDBClientImpl) scanReleases(rows *sql.Rows) (releases []*cont
 
 func (dbc *cockroachDBClientImpl) GetTriggers(ctx context.Context, triggerType, identifier, event string) (pipelines []*contracts.Pipeline, err error) {
 
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetTriggers")
+	defer span.Finish()
+	span.SetTag("trigger-type", triggerType)
+
 	// generate query
 	query := dbc.selectPipelinesQuery()
 
@@ -2679,6 +2683,9 @@ func (dbc *cockroachDBClientImpl) GetTriggers(ctx context.Context, triggerType, 
 			Name:  identifier,
 		}
 
+		span.SetTag("trigger-event", event)
+		span.SetTag("trigger-identifier", identifier)
+
 		break
 
 	case "release":
@@ -2687,6 +2694,9 @@ func (dbc *cockroachDBClientImpl) GetTriggers(ctx context.Context, triggerType, 
 			Event: event,
 			Name:  identifier,
 		}
+
+		span.SetTag("trigger-event", event)
+		span.SetTag("trigger-identifier", identifier)
 
 		break
 
@@ -2702,6 +2712,9 @@ func (dbc *cockroachDBClientImpl) GetTriggers(ctx context.Context, triggerType, 
 			Event:      event,
 			Repository: identifier,
 		}
+
+		span.SetTag("trigger-event", event)
+		span.SetTag("trigger-identifier", identifier)
 
 		break
 
@@ -2727,6 +2740,8 @@ func (dbc *cockroachDBClientImpl) GetTriggers(ctx context.Context, triggerType, 
 	if pipelines, err = dbc.scanPipelines(rows, false); err != nil {
 		return
 	}
+
+	span.SetTag("trigger-pipelines-count", len(pipelines))
 
 	return
 }
