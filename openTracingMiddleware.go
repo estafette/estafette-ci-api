@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
-	"github.com/rs/zerolog/log"
 )
 
 // OpenTracingMiddleware creates a span for each request
@@ -21,10 +20,7 @@ func OpenTracingMiddleware() gin.HandlerFunc {
 		}
 
 		// retrieve span context from upstream caller if available
-		tracingCtx, err := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(c.Request.Header))
-		if err != nil {
-			log.Warn().Err(err).Msgf("Failed extracting trace context from http headers for %v %v", c.Request.Method, c.Request.URL.Path)
-		}
+		tracingCtx, _ := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(c.Request.Header))
 
 		// create a span for the http request
 		span := opentracing.StartSpan(fmt.Sprintf("%v %v", c.Request.Method, c.Request.URL.Path), ext.RPCServerOption(tracingCtx))
