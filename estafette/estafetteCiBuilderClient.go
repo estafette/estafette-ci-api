@@ -129,10 +129,21 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 		return
 	}
 
+	jeagerAgentHostName := "JAEGER_AGENT_HOST"
+	jeagerAgentHostFieldPath := "status.hostIP"
+
 	environmentVariables := []*corev1.EnvVar{
 		&corev1.EnvVar{
 			Name:  &builderConfigName,
 			Value: &builderConfigValue,
+		},
+		&corev1.EnvVar{
+			Name: &jeagerAgentHostName,
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: &jeagerAgentHostFieldPath,
+				},
+			},
 		},
 	}
 
@@ -144,7 +155,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 			envvarName := kvPair[0]
 			envvarValue := kvPair[1]
 
-			if strings.HasPrefix(envvarName, "JAEGER_") && envvarValue != "" {
+			if strings.HasPrefix(envvarName, "JAEGER_") && envvarName != "JAEGER_AGENT_HOST" && envvarValue != "" {
 				environmentVariables = append(environmentVariables, &corev1.EnvVar{
 					Name:  &envvarName,
 					Value: &envvarValue,
