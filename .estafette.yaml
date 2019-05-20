@@ -92,10 +92,6 @@ releases:
         sidecars:
         - type: openresty
           image: estafette/openresty-sidecar:0.8.0-opentracing
-          env:
-            JAEGER_SAMPLER_TYPE: probabilistic
-            JAEGER_SAMPLER_PARAM: 0.1
-            JAEGER_REPORTER_LOG_SPANS: true
         request:
           timeout: 120s
           maxbodysize: 128M
