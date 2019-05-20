@@ -89,6 +89,9 @@ releases:
             port: 9001
           lifecycle:
             prestopsleep: false
+        sidecars:
+        - type: openresty
+          image: estafette/openresty-sidecar:0.8.0-opentracing
         request:
           timeout: 120s
           maxbodysize: 128M
