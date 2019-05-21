@@ -642,8 +642,15 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 
 	err = h.cockroachDBClient.InsertBuildLog(ctx, buildLog)
 	if err != nil {
+		// count steps and lines for log
+		nrSteps := len(buildLog.Steps)
+		nrLines := 0
+		for _, s := range buildLog.Steps {
+			nrLines += len(s.LogLines)
+		}
+
 		log.Error().Err(err).
-			Msgf("Failed inserting v2 logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
+			Msgf("Failed inserting logs for %v/%v/%v/%v (%v steps, %v lines)", source, owner, repo, revisionOrID, nrSteps, nrLines)
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
@@ -1108,8 +1115,15 @@ func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 
 	err = h.cockroachDBClient.InsertReleaseLog(ctx, releaseLog)
 	if err != nil {
+		// count steps and lines for log
+		nrSteps := len(releaseLog.Steps)
+		nrLines := 0
+		for _, s := range releaseLog.Steps {
+			nrLines += len(s.LogLines)
+		}
+
 		log.Error().Err(err).
-			Msgf("Failed inserting release logs for %v/%v/%v/%v", source, owner, repo, id)
+			Msgf("Failed inserting release logs for %v/%v/%v/%v (%v steps, %v lines)", source, owner, repo, id, nrSteps, nrLines)
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
