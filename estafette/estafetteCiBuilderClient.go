@@ -131,7 +131,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 
 	jeagerAgentHostName := "JAEGER_AGENT_HOST"
 	jeagerAgentHostFieldPath := "status.hostIP"
-
+	jeagerSamplerTypeName := "JAEGER_SAMPLER_TYPE"
+	jeagerSamplerTypeValue := "const"
+	jeagerSamplerParamName := "JAEGER_SAMPLER_PARAM"
+	jeagerSamplerParamValue := "1"
 	environmentVariables := []*corev1.EnvVar{
 		&corev1.EnvVar{
 			Name:  &builderConfigName,
@@ -145,6 +148,14 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 				},
 			},
 		},
+		&corev1.EnvVar{
+			Name:  &jeagerSamplerTypeName,
+			Value: &jeagerSamplerTypeValue,
+		},
+		&corev1.EnvVar{
+			Name:  &jeagerSamplerParamName,
+			Value: &jeagerSamplerParamValue,
+		},
 	}
 
 	// forward all envars prefixed with JAEGER_ to builder job
@@ -155,7 +166,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 			envvarName := kvPair[0]
 			envvarValue := kvPair[1]
 
-			if strings.HasPrefix(envvarName, "JAEGER_") && envvarName != "JAEGER_AGENT_HOST" && envvarValue != "" {
+			if strings.HasPrefix(envvarName, "JAEGER_") && envvarName != "JAEGER_AGENT_HOST" && envvarName != "JAEGER_SAMPLER_TYPE" && envvarName != "JAEGER_SAMPLER_PARAM" && envvarValue != "" {
 				environmentVariables = append(environmentVariables, &corev1.EnvVar{
 					Name:  &envvarName,
 					Value: &envvarValue,
