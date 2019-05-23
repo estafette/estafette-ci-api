@@ -564,6 +564,13 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(ctx context.Context, buildLog c
 	)
 
 	if err != nil {
+		// log extra detail for filing a ticket regarding 'pq: command is too large: xxx bytes (max: 67108864)' issue
+		nrLines := 0
+		for _, s := range buildLog.Steps {
+			nrLines += len(s.LogLines)
+		}
+		log.Error().Msgf("INSERT INTO build_logs: failed for %v/%v/%v/%v (%v steps, %v lines, %v bytes)", buildLog.RepoSource, buildLog.RepoOwner, buildLog.RepoName, buildLog.RepoRevision, len(buildLog.Steps), nrLines, len(bytes))
+
 		return
 	}
 
