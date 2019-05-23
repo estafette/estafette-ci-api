@@ -14,6 +14,7 @@ import (
 
 	bbcontracts "github.com/estafette/estafette-ci-api/bitbucket/contracts"
 	"github.com/estafette/estafette-ci-api/config"
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sethgrid/pester"
@@ -57,7 +58,7 @@ func (bb *apiClientImpl) GetAccessToken(ctx context.Context) (accessToken bbcont
 	data.Set("grant_type", "client_credentials")
 
 	// create client, in order to add headers
-	client := pester.New()
+	client := pester.NewExtendedClient(&http.Client{Transport: &nethttp.Transport{}})
 	client.MaxRetries = 3
 	client.Backoff = pester.ExponentialJitterBackoff
 	client.KeepLog = true
@@ -66,6 +67,12 @@ func (bb *apiClientImpl) GetAccessToken(ctx context.Context) (accessToken bbcont
 	if err != nil {
 		return
 	}
+
+	// add tracing context
+	request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
+
+	// collect additional information on setting up connections
+	request, ht := nethttp.TraceRequest(span.Tracer(), request)
 
 	// add headers
 	request.Header.Add("Authorization", fmt.Sprintf("%v %v", "Basic", basicAuthenticationToken))
@@ -78,6 +85,7 @@ func (bb *apiClientImpl) GetAccessToken(ctx context.Context) (accessToken bbcont
 	}
 
 	defer response.Body.Close()
+	ht.Finish()
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
@@ -110,7 +118,7 @@ func (bb *apiClientImpl) GetEstafetteManifest(ctx context.Context, accessToken b
 	bb.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
 
 	// create client, in order to add headers
-	client := pester.New()
+	client := pester.NewExtendedClient(&http.Client{Transport: &nethttp.Transport{}})
 	client.MaxRetries = 3
 	client.Backoff = pester.ExponentialJitterBackoff
 	client.KeepLog = true
@@ -119,6 +127,12 @@ func (bb *apiClientImpl) GetEstafetteManifest(ctx context.Context, accessToken b
 	if err != nil {
 		return
 	}
+
+	// add tracing context
+	request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
+
+	// collect additional information on setting up connections
+	request, ht := nethttp.TraceRequest(span.Tracer(), request)
 
 	// add headers
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", accessToken.AccessToken))
@@ -130,6 +144,7 @@ func (bb *apiClientImpl) GetEstafetteManifest(ctx context.Context, accessToken b
 	}
 
 	defer response.Body.Close()
+	ht.Finish()
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {

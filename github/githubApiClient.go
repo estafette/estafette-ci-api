@@ -15,11 +15,11 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/config"
 	ghcontracts "github.com/estafette/estafette-ci-api/github/contracts"
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
-
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 // APIClient is the interface for running kubernetes commands specific to this application
@@ -29,7 +29,7 @@ type APIClient interface {
 	GetInstallationToken(context.Context, int) (ghcontracts.AccessToken, error)
 	GetAuthenticatedRepositoryURL(ghcontracts.AccessToken, string) (string, error)
 	GetEstafetteManifest(context.Context, ghcontracts.AccessToken, ghcontracts.PushEvent) (bool, string, error)
-	callGithubAPI(string, string, interface{}, string, string) (int, []byte, error)
+	callGithubAPI(opentracing.Span, string, string, interface{}, string, string) (int, []byte, error)
 
 	JobVarsFunc() func(context.Context, string, string, string) (string, string, error)
 }
@@ -106,7 +106,7 @@ func (gh *apiClientImpl) GetInstallationID(ctx context.Context, repoOwner string
 		Account InstallationAccount `json:"account"`
 	}
 
-	_, body, err := gh.callGithubAPI("GET", "https://api.github.com/app/installations", nil, "Bearer", githubAppToken)
+	_, body, err := gh.callGithubAPI(span, "GET", "https://api.github.com/app/installations", nil, "Bearer", githubAppToken)
 
 	var installations []InstallationResponse
 
@@ -138,7 +138,7 @@ func (gh *apiClientImpl) GetInstallationToken(ctx context.Context, installationI
 		return
 	}
 
-	_, body, err := gh.callGithubAPI("POST", fmt.Sprintf("https://api.github.com/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
+	_, body, err := gh.callGithubAPI(span, "POST", fmt.Sprintf("https://api.github.com/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
 
 	// unmarshal json body
 	err = json.Unmarshal(body, &accessToken)
@@ -164,7 +164,7 @@ func (gh *apiClientImpl) GetEstafetteManifest(ctx context.Context, accessToken g
 
 	// https://developer.github.com/v3/repos/contents/
 
-	statusCode, body, err := gh.callGithubAPI("GET", fmt.Sprintf("https://api.github.com/repos/%v/contents/.estafette.yaml?ref=%v", pushEvent.Repository.FullName, pushEvent.After), nil, "token", accessToken.Token)
+	statusCode, body, err := gh.callGithubAPI(span, "GET", fmt.Sprintf("https://api.github.com/repos/%v/contents/.estafette.yaml?ref=%v", pushEvent.Repository.FullName, pushEvent.After), nil, "token", accessToken.Token)
 	if err != nil {
 		return
 	}
@@ -220,7 +220,7 @@ func (gh *apiClientImpl) JobVarsFunc() func(context.Context, string, string, str
 	}
 }
 
-func (gh *apiClientImpl) callGithubAPI(method, url string, params interface{}, authorizationType, token string) (statusCode int, body []byte, err error) {
+func (gh *apiClientImpl) callGithubAPI(span opentracing.Span, method, url string, params interface{}, authorizationType, token string) (statusCode int, body []byte, err error) {
 
 	// track call via prometheus
 	gh.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "github"}).Inc()
@@ -236,7 +236,7 @@ func (gh *apiClientImpl) callGithubAPI(method, url string, params interface{}, a
 	}
 
 	// create client, in order to add headers
-	client := pester.New()
+	client := pester.NewExtendedClient(&http.Client{Transport: &nethttp.Transport{}})
 	client.MaxRetries = 3
 	client.Backoff = pester.ExponentialJitterBackoff
 	client.KeepLog = true
@@ -245,6 +245,12 @@ func (gh *apiClientImpl) callGithubAPI(method, url string, params interface{}, a
 	if err != nil {
 		return
 	}
+
+	// add tracing context
+	request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
+
+	// collect additional information on setting up connections
+	request, ht := nethttp.TraceRequest(span.Tracer(), request)
 
 	// add headers
 	request.Header.Add("Authorization", fmt.Sprintf("%v %v", authorizationType, token))
@@ -257,6 +263,7 @@ func (gh *apiClientImpl) callGithubAPI(method, url string, params interface{}, a
 	}
 
 	defer response.Body.Close()
+	ht.Finish()
 
 	statusCode = response.StatusCode
 

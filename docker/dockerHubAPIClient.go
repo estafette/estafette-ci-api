@@ -1,20 +1,23 @@
 package docker
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
 
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sethgrid/pester"
 )
 
 // DockerHubAPIClient communicates with docker hub api
 type DockerHubAPIClient interface {
 	GetToken(string) (DockerHubToken, error)
-	GetDigest(DockerHubToken, string, string) (DockerImageDigest, error)
-	GetDigestCached(string, string) (DockerImageDigest, error)
+	GetDigest(context.Context, DockerHubToken, string, string) (DockerImageDigest, error)
+	GetDigestCached(context.Context, string, string) (DockerImageDigest, error)
 }
 
 type dockerHubAPIClientImpl struct {
@@ -55,12 +58,15 @@ func (cl *dockerHubAPIClientImpl) GetToken(repository string) (token DockerHubTo
 	return
 }
 
-func (cl *dockerHubAPIClientImpl) GetDigest(token DockerHubToken, repository string, tag string) (digest DockerImageDigest, err error) {
+func (cl *dockerHubAPIClientImpl) GetDigest(ctx context.Context, token DockerHubToken, repository string, tag string) (digest DockerImageDigest, err error) {
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, "DockerHubApi::GetDigest")
+	defer span.Finish()
 
 	url := fmt.Sprintf("https://index.docker.io/v2/%v/manifests/%v", repository, tag)
 
 	// create client, in order to add headers
-	client := pester.New()
+	client := pester.NewExtendedClient(&http.Client{Transport: &nethttp.Transport{}})
 	client.MaxRetries = 3
 	client.Backoff = pester.ExponentialJitterBackoff
 	client.KeepLog = true
@@ -69,6 +75,12 @@ func (cl *dockerHubAPIClientImpl) GetDigest(token DockerHubToken, repository str
 	if err != nil {
 		return
 	}
+
+	// add tracing context
+	request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
+
+	// collect additional information on setting up connections
+	request, ht := nethttp.TraceRequest(span.Tracer(), request)
 
 	// add headers
 	request.Header.Add("Authorization", fmt.Sprintf("%v %v", "Bearer", token.Token))
@@ -80,6 +92,7 @@ func (cl *dockerHubAPIClientImpl) GetDigest(token DockerHubToken, repository str
 		return
 	}
 	defer response.Body.Close()
+	ht.Finish()
 
 	digest = DockerImageDigest{
 		Digest:    response.Header.Get("Docker-Content-Digest"),
@@ -90,7 +103,10 @@ func (cl *dockerHubAPIClientImpl) GetDigest(token DockerHubToken, repository str
 	return
 }
 
-func (cl *dockerHubAPIClientImpl) GetDigestCached(repository string, tag string) (digest DockerImageDigest, err error) {
+func (cl *dockerHubAPIClientImpl) GetDigestCached(ctx context.Context, repository string, tag string) (digest DockerImageDigest, err error) {
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, "DockerHubApi::GetDigestCached")
+	defer span.Finish()
 
 	key := fmt.Sprintf("%v:%v", repository, tag)
 
@@ -114,7 +130,7 @@ func (cl *dockerHubAPIClientImpl) GetDigestCached(repository string, tag string)
 	token = cl.tokens[repository]
 
 	// digest doesn't exist or is no longer valid, renew
-	digest, err = cl.GetDigest(token, repository, tag)
+	digest, err = cl.GetDigest(ctx, token, repository, tag)
 	if err != nil {
 		return
 	}

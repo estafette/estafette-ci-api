@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -30,7 +31,7 @@ func TestGetDigest(t *testing.T) {
 		token, err := client.GetToken("estafette/estafette-ci-builder")
 
 		// act
-		digest, err := client.GetDigest(token, "estafette/estafette-ci-builder", "0.0.245")
+		digest, err := client.GetDigest(context.Background(), token, "estafette/estafette-ci-builder", "0.0.245")
 
 		assert.Nil(t, err)
 		assert.Equal(t, "sha256:00758c7ba65441b93bd5ecb6fe0242587560af061045bcb7337cd6c618cffe5e", digest.Digest)
@@ -44,8 +45,8 @@ func TestGetDigestCached(t *testing.T) {
 		client, err := NewDockerHubAPIClient()
 
 		// act
-		digest, err := client.GetDigestCached("estafette/estafette-ci-builder", "0.0.245")
-		digest, err = client.GetDigestCached("estafette/estafette-ci-builder", "0.0.245")
+		digest, err := client.GetDigestCached(context.Background(), "estafette/estafette-ci-builder", "0.0.245")
+		digest, err = client.GetDigestCached(context.Background(), "estafette/estafette-ci-builder", "0.0.245")
 
 		assert.Nil(t, err)
 		assert.Equal(t, "sha256:00758c7ba65441b93bd5ecb6fe0242587560af061045bcb7337cd6c618cffe5e", digest.Digest)

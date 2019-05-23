@@ -10,10 +10,10 @@ import (
 
 	"github.com/estafette/estafette-ci-api/config"
 	slcontracts "github.com/estafette/estafette-ci-api/slack/contracts"
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
-	"github.com/sethgrid/pester"
-
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sethgrid/pester"
 )
 
 // APIClient is the interface for communicating with the Slack api
@@ -45,7 +45,7 @@ func (sl *apiClientImpl) GetUserProfile(ctx context.Context, userID string) (pro
 	url := fmt.Sprintf("https://slack.com/api/users.profile.get?user=%v", userID)
 
 	// create client, in order to add headers
-	client := pester.New()
+	client := pester.NewExtendedClient(&http.Client{Transport: &nethttp.Transport{}})
 	client.MaxRetries = 3
 	client.Backoff = pester.ExponentialJitterBackoff
 	client.KeepLog = true
@@ -54,6 +54,12 @@ func (sl *apiClientImpl) GetUserProfile(ctx context.Context, userID string) (pro
 	if err != nil {
 		return
 	}
+
+	// add tracing context
+	request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
+
+	// collect additional information on setting up connections
+	request, ht := nethttp.TraceRequest(span.Tracer(), request)
 
 	// add headers
 	request.Header.Add("Authorization", fmt.Sprintf("%v %v", "Bearer", sl.config.AppOAuthAccessToken))
@@ -64,6 +70,7 @@ func (sl *apiClientImpl) GetUserProfile(ctx context.Context, userID string) (pro
 		return
 	}
 	defer response.Body.Close()
+	ht.Finish()
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
