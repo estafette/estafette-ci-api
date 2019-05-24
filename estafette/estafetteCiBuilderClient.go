@@ -129,6 +129,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 		return
 	}
 
+	jeagerServiceNameName := "JAEGER_SERVICE_NAME"
+	jeagerServiceNameValue := "estafette-ci-builder"
 	jeagerAgentHostName := "JAEGER_AGENT_HOST"
 	jeagerAgentHostFieldPath := "status.hostIP"
 	jeagerSamplerTypeName := "JAEGER_SAMPLER_TYPE"
@@ -139,6 +141,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 		&corev1.EnvVar{
 			Name:  &builderConfigName,
 			Value: &builderConfigValue,
+		},
+		&corev1.EnvVar{
+			Name:  &jeagerServiceNameName,
+			Value: &jeagerServiceNameValue,
 		},
 		&corev1.EnvVar{
 			Name: &jeagerAgentHostName,
@@ -166,7 +172,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 			envvarName := kvPair[0]
 			envvarValue := kvPair[1]
 
-			if strings.HasPrefix(envvarName, "JAEGER_") && envvarName != "JAEGER_AGENT_HOST" && envvarName != "JAEGER_SAMPLER_TYPE" && envvarName != "JAEGER_SAMPLER_PARAM" && envvarValue != "" {
+			if strings.HasPrefix(envvarName, "JAEGER_") && envvarName != "JAEGER_SERVICE_NAME" && envvarName != "JAEGER_AGENT_HOST" && envvarName != "JAEGER_SAMPLER_TYPE" && envvarName != "JAEGER_SAMPLER_PARAM" && envvarValue != "" {
 				environmentVariables = append(environmentVariables, &corev1.EnvVar{
 					Name:  &envvarName,
 					Value: &envvarValue,

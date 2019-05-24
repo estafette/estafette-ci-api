@@ -83,7 +83,7 @@ func main() {
 	// configure json logging
 	foundation.InitLogging(app, version, branch, revision, buildDate)
 
-	closer := initJaeger(app)
+	closer := initJaeger()
 	defer closer.Close()
 
 	// define channels and waitgroup to gracefully shutdown the application
@@ -281,7 +281,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 
 // initJaeger returns an instance of Jaeger Tracer that can be configured with environment variables
 // https://github.com/jaegertracing/jaeger-client-go#environment-variables
-func initJaeger(service string) io.Closer {
+func initJaeger() io.Closer {
 
 	cfg, err := jaegercfg.FromEnv()
 	if err != nil {
@@ -295,7 +295,7 @@ func initJaeger(service string) io.Closer {
 		}
 	}
 
-	closer, err := cfg.InitGlobalTracer(service, jaegercfg.Logger(jaeger.StdLogger), jaegercfg.Metrics(jprom.New()))
+	closer, err := cfg.InitGlobalTracer(cfg.ServiceName, jaegercfg.Logger(jaeger.StdLogger), jaegercfg.Metrics(jprom.New()))
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("Generating Jaeger tracer failed")
