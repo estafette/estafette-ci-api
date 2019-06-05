@@ -88,7 +88,7 @@ releases:
             prestopsleep: false
         sidecars:
         - type: openresty
-          image: estafette/openresty-sidecar:1.15.8.1-stretch-opentracing
+          image: estafette/openresty-sidecar:0.8.0-opentracing
         request:
           timeout: 120s
           maxbodysize: 128M
