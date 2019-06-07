@@ -101,15 +101,15 @@ func (h *eventHandlerImpl) CreateJobForBitbucketPush(ctx context.Context, pushEv
 	span, ctx := opentracing.StartSpanFromContext(ctx, "Bitbucket::CreateJobForBitbucketPush")
 	defer span.Finish()
 
-	span.SetTag("git-repo", pushEvent.GetRepository())
-	span.SetTag("git-branch", pushEvent.GetRepoBranch())
-	span.SetTag("git-revision", pushEvent.GetRepoRevision())
-	span.SetTag("event", "repo:push")
-
 	// check to see that it's a cloneable event
 	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil || pushEvent.Push.Changes[0].New.Type != "branch" || len(pushEvent.Push.Changes[0].New.Target.Hash) == 0 {
 		return
 	}
+
+	span.SetTag("git-repo", pushEvent.GetRepository())
+	span.SetTag("git-branch", pushEvent.GetRepoBranch())
+	span.SetTag("git-revision", pushEvent.GetRepoRevision())
+	span.SetTag("event", "repo:push")
 
 	gitEvent := manifest.EstafetteGitEvent{
 		Event:      "push",

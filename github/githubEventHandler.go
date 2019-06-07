@@ -135,15 +135,15 @@ func (h *eventHandlerImpl) CreateJobForGithubPush(ctx context.Context, pushEvent
 	span, ctx := opentracing.StartSpanFromContext(ctx, "Github::CreateJobForGithubPush")
 	defer span.Finish()
 
-	span.SetTag("git-repo", pushEvent.GetRepository())
-	span.SetTag("git-branch", pushEvent.GetRepoBranch())
-	span.SetTag("git-revision", pushEvent.GetRepoRevision())
-	span.SetTag("event", "push")
-
 	// check to see that it's a cloneable event
 	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
 		return
 	}
+
+	span.SetTag("git-repo", pushEvent.GetRepository())
+	span.SetTag("git-branch", pushEvent.GetRepoBranch())
+	span.SetTag("git-revision", pushEvent.GetRepoRevision())
+	span.SetTag("event", "push")
 
 	gitEvent := manifest.EstafetteGitEvent{
 		Event:      "push",
