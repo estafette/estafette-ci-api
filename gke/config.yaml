@@ -248,7 +248,6 @@ trustedImages:
   injectedCredentialTypes:
   - container-registry
 - path: extensions/gke
-  runDocker: true
   injectedCredentialTypes:
   - kubernetes-engine
 - path: extensions/gcs
