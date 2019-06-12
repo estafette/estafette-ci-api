@@ -123,7 +123,8 @@ func (bb *apiClientImpl) GetEstafetteManifest(ctx context.Context, accessToken b
 	client.Backoff = pester.ExponentialJitterBackoff
 	client.KeepLog = true
 	client.Timeout = time.Second * 10
-	request, err := http.NewRequest("GET", fmt.Sprintf("https://api.bitbucket.org/1.0/repositories/%v/raw/%v/.estafette.yaml", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash), nil)
+	request, err := http.NewRequest("GET", fmt.Sprintf("https://api.bitbucket.org/2.0/repositories/%v/src/%v/.estafette.yaml", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash), nil)
+
 	if err != nil {
 		return
 	}
