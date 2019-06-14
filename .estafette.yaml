@@ -80,8 +80,8 @@ releases:
             request: 50m
             limit: 75m
           memory:
-            request: 64Mi
-            limit: 64Mi
+            request: 128Mi
+            limit: 128Mi
           metrics:
             port: 9001
           lifecycle:
