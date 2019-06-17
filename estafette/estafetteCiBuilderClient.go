@@ -244,7 +244,6 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 								&corev1.NodeSelectorRequirement{
 									Key:      &preemptibleAffinityKey,
 									Operator: &preemptibleAffinityOperator,
-									Values:   []string{"true"},
 								},
 							},
 						},
