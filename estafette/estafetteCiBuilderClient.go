@@ -211,6 +211,49 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 	preemptibleAffinityKey := "cloud.google.com/gke-preemptible"
 	preemptibleAffinityOperator := "In"
 
+	affinity := &corev1.Affinity{
+		NodeAffinity: &corev1.NodeAffinity{
+			PreferredDuringSchedulingIgnoredDuringExecution: []*corev1.PreferredSchedulingTerm{
+				&corev1.PreferredSchedulingTerm{
+					Weight: &preemptibleAffinityWeight,
+					// A node selector term, associated with the corresponding weight.
+					Preference: &corev1.NodeSelectorTerm{
+						MatchExpressions: []*corev1.NodeSelectorRequirement{
+							&corev1.NodeSelectorRequirement{
+								Key:      &preemptibleAffinityKey,
+								Operator: &preemptibleAffinityOperator,
+								Values:   []string{"true"},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if ciBuilderParams.JobType == "release" {
+		// keep off of preemptibles
+		preemptibleAffinityOperator := "DoesNotExist"
+
+		affinity = &corev1.Affinity{
+			NodeAffinity: &corev1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+					NodeSelectorTerms: []*corev1.NodeSelectorTerm{
+						&corev1.NodeSelectorTerm{
+							MatchExpressions: []*corev1.NodeSelectorRequirement{
+								&corev1.NodeSelectorRequirement{
+									Key:      &preemptibleAffinityKey,
+									Operator: &preemptibleAffinityOperator,
+									Values:   []string{"true"},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+
 	volumeMounts := []*corev1.VolumeMount{}
 	volumes := []*corev1.Volume{}
 
@@ -262,25 +305,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 
 					Volumes: volumes,
 
-					Affinity: &corev1.Affinity{
-						NodeAffinity: &corev1.NodeAffinity{
-							PreferredDuringSchedulingIgnoredDuringExecution: []*corev1.PreferredSchedulingTerm{
-								&corev1.PreferredSchedulingTerm{
-									Weight: &preemptibleAffinityWeight,
-									// A node selector term, associated with the corresponding weight.
-									Preference: &corev1.NodeSelectorTerm{
-										MatchExpressions: []*corev1.NodeSelectorRequirement{
-											&corev1.NodeSelectorRequirement{
-												Key:      &preemptibleAffinityKey,
-												Operator: &preemptibleAffinityOperator,
-												Values:   []string{"true"},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
+					Affinity: affinity,
 				},
 			},
 		},
