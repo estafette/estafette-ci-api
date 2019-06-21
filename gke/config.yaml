@@ -279,6 +279,10 @@ trustedImages:
 - path: golang
   runDocker: true
   allowCommands: true
+- path: {{.TRUSTED_IMAGE_PATH_1}}
+  runDocker: true
+  injectedCredentialTypes:
+  - container-registry
 
 registryMirror: {{.REGISTRY_MIRROR}}
 dindMtu: {{.DIND_MTU}}
