@@ -90,6 +90,8 @@ releases:
         sidecars:
         - type: openresty
           image: estafette/openresty-sidecar:0.8.0-opentracing
+          env:
+            PROXY_BUFFERING: 'on'
         request:
           timeout: 120s
           maxbodysize: 128M
