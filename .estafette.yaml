@@ -91,8 +91,8 @@ releases:
         - type: openresty
           image: estafette/openresty-sidecar:0.8.0-opentracing
           env:
-            PROXY_BUFFERING: 'on'
-            WORKER_CONNECTIONS: 16384
+            PROXY_BUFFERING: 'off'
+            WORKER_CONNECTIONS: 1024
         request:
           timeout: 120s
           maxbodysize: 128M
