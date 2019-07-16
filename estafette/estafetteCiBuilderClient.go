@@ -35,6 +35,7 @@ type CiBuilderClient interface {
 	CreateCiBuilderJob(context.Context, CiBuilderParams) (*batchv1.Job, error)
 	RemoveCiBuilderJob(context.Context, string) error
 	CancelCiBuilderJob(context.Context, string) error
+	RemoveCiBuilderConfigMap(context.Context, string) error
 	TailCiBuilderJobLogs(context.Context, string, chan contracts.TailLogLine) error
 	GetJobName(string, string, string, string) string
 	GetBuilderConfig(CiBuilderParams, string) contracts.BuilderConfig
@@ -118,7 +119,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 	// extend builder config to parameterize the builder and replace all other envvars to improve security
 	localBuilderConfig := cbc.GetBuilderConfig(ciBuilderParams, jobName)
 
-	builderConfigName := "BUILDER_CONFIG"
+	builderConfigPathName := "BUILDER_CONFIG_PATH"
+	builderConfigPathValue := "/configs/builder-config.yaml"
 	builderConfigJSONBytes, err := json.Marshal(localBuilderConfig)
 	if err != nil {
 		return
@@ -139,8 +141,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 	jeagerSamplerParamValue := "1"
 	environmentVariables := []*corev1.EnvVar{
 		&corev1.EnvVar{
-			Name:  &builderConfigName,
-			Value: &builderConfigValue,
+			Name:  &builderConfigPathName,
+			Value: &builderConfigPathValue,
 		},
 		&corev1.EnvVar{
 			Name:  &jeagerServiceNameName,
@@ -211,6 +213,33 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 	preemptibleAffinityKey := "cloud.google.com/gke-preemptible"
 	preemptibleAffinityOperator := "In"
 
+	// create configmap for builder config
+	builderConfigConfigmapName := jobName
+	builderConfigVolumeName := "builder-config"
+	builderConfigVolumeMountPath := "/configs"
+	configmap := &corev1.ConfigMap{
+		Metadata: &metav1.ObjectMeta{
+			Name:      &builderConfigConfigmapName,
+			Namespace: &cbc.kubeClient.Namespace,
+			Labels: map[string]string{
+				"createdBy": "estafette",
+				"jobType":   ciBuilderParams.JobType,
+			},
+		},
+		Data: map[string]string{
+			"builder-config.yaml": builderConfigValue,
+		},
+	}
+
+	err = cbc.kubeClient.Create(context.Background(), configmap)
+	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+
+	if err != nil {
+		return
+	}
+
+	log.Info().Msgf("Configmap %v is created", builderConfigConfigmapName)
+
 	affinity := &corev1.Affinity{
 		NodeAffinity: &corev1.NodeAffinity{
 			PreferredDuringSchedulingIgnoredDuringExecution: []*corev1.PreferredSchedulingTerm{
@@ -253,8 +282,24 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 		}
 	}
 
-	volumeMounts := []*corev1.VolumeMount{}
-	volumes := []*corev1.Volume{}
+	volumes := []*corev1.Volume{
+		&corev1.Volume{
+			Name: &builderConfigVolumeName,
+			VolumeSource: &corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: &corev1.LocalObjectReference{
+						Name: &jobName,
+					},
+				},
+			},
+		},
+	}
+	volumeMounts := []*corev1.VolumeMount{
+		&corev1.VolumeMount{
+			Name:      &builderConfigVolumeName,
+			MountPath: &builderConfigVolumeMountPath,
+		},
+	}
 
 	job = &batchv1.Job{
 		Metadata: &metav1.ObjectMeta{
@@ -384,6 +429,35 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(ctx context.Context, jobName 
 
 	log.Info().Msgf("Job %v is deleted", jobName)
 
+	cbc.RemoveCiBuilderConfigMap(ctx, jobName)
+
+	return
+}
+
+func (cbc *ciBuilderClientImpl) RemoveCiBuilderConfigMap(ctx context.Context, configmapName string) (err error) {
+
+	// check if configmap exists
+	var configmap corev1.ConfigMap
+	err = cbc.kubeClient.Get(context.Background(), cbc.kubeClient.Namespace, configmapName, &configmap)
+	if err != nil {
+		log.Error().Err(err).
+			Str("configmap", configmapName).
+			Msgf("Get call for configmap %v failed", configmapName)
+		return
+	}
+
+	// delete configmap
+	err = cbc.kubeClient.Delete(context.Background(), &configmap)
+	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	if err != nil {
+		log.Error().Err(err).
+			Str("configmap", configmapName).
+			Msgf("Deleting configmap %v failed", configmapName)
+		return
+	}
+
+	log.Info().Msgf("Configmap %v is deleted", configmapName)
+
 	return
 }
 
@@ -418,6 +492,8 @@ func (cbc *ciBuilderClientImpl) CancelCiBuilderJob(ctx context.Context, jobName 
 	}
 
 	log.Info().Msgf("Job %v is canceled", jobName)
+
+	cbc.RemoveCiBuilderConfigMap(ctx, jobName)
 
 	return
 }
