@@ -120,7 +120,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 	localBuilderConfig := cbc.GetBuilderConfig(ciBuilderParams, jobName)
 
 	builderConfigPathName := "BUILDER_CONFIG_PATH"
-	builderConfigPathValue := "/configs/builder-config.yaml"
+	builderConfigPathValue := "/configs/builder-config.json"
 	builderConfigJSONBytes, err := json.Marshal(localBuilderConfig)
 	if err != nil {
 		return
@@ -227,7 +227,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 			},
 		},
 		Data: map[string]string{
-			"builder-config.yaml": builderConfigValue,
+			"builder-config.json": builderConfigValue,
 		},
 	}
 
