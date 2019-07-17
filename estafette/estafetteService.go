@@ -76,7 +76,7 @@ func (s *buildServiceImpl) CreateBuild(ctx context.Context, build contracts.Buil
 	// set build status
 	buildStatus := "failed"
 	if hasValidManifest {
-		buildStatus = "running"
+		buildStatus = "pending"
 	}
 
 	// inject build stages
@@ -326,7 +326,7 @@ func (s *buildServiceImpl) CreateRelease(ctx context.Context, release contracts.
 	shortRepoSource := s.getShortRepoSource(release.RepoSource)
 
 	// set release status
-	releaseStatus := "running"
+	releaseStatus := "pending"
 
 	// inject build stages
 	mft, err = InjectSteps(mft, builderTrack, shortRepoSource)

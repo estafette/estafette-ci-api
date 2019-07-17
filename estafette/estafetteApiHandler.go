@@ -485,7 +485,7 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 		return
 	}
 
-	if build.BuildStatus != "running" {
+	if build.BuildStatus != "pending" && build.BuildStatus != "running" {
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": fmt.Sprintf("Build with status %v cannot be canceled", build.BuildStatus)})
 		return
 	}
@@ -945,7 +945,7 @@ func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", user.Email)})
 		return
 	}
-	if release.ReleaseStatus != "running" {
+	if release.ReleaseStatus != "pending" && release.ReleaseStatus != "running" {
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": fmt.Sprintf("Release with status %v cannot be canceled", release.ReleaseStatus)})
 		return
 	}
