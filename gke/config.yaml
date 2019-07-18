@@ -245,7 +245,7 @@ credentials:
       min: 2
       max: 10
     hosts:
-    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_11}}
+    - ${ESTAFETTE_LABEL_APP}.staging.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_11}}
     internalhosts:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_11}}
 - name: '{{.GKE_CREDENTIAL_12}}'
