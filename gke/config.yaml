@@ -242,8 +242,8 @@ credentials:
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_11}}
     autoscale:
-      min: 3
-      max: 500
+      min: 2
+      max: 10
     hosts:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_11}}
     internalhosts:
