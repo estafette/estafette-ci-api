@@ -297,6 +297,9 @@ credentials:
 - name: {{.SONARQUBE_SERVER_NAME_1}}
   type: sonarqube-server
   apiUrl: {{.SONARQUBE_SERVER_API_URL_1}}
+- name: {{.ROLE_BINDER_NAME_1}}
+  type: role-binder
+  serviceAccountKeyfile: '{{.ROLE_BINDER_SA_KEYFILE_1}}'
 
 trustedImages:
 - path: extensions/git-clone
@@ -351,6 +354,9 @@ trustedImages:
   runDocker: true
   injectedCredentialTypes:
   - container-registry
+- path: {{.TRUSTED_IMAGE_PATH_2}}
+  injectedCredentialTypes:
+  - role-binder
 
 registryMirror: {{.REGISTRY_MIRROR}}
 dindMtu: {{.DIND_MTU}}
