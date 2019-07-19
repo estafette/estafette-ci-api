@@ -279,7 +279,7 @@ credentials:
       min: 1
       max: 5
     hosts:
-    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_13}}
+    - ${ESTAFETTE_LABEL_APP}.development.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_13}}
     internalhosts:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_13}}
 - name: {{.SLACK_WEBHOOK_NAME_1}}
