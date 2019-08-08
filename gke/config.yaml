@@ -357,6 +357,7 @@ trustedImages:
 - path: {{.TRUSTED_IMAGE_PATH_2}}
   injectedCredentialTypes:
   - role-binder
+  - bitbucket-api-token
 
 registryMirror: {{.REGISTRY_MIRROR}}
 dindMtu: {{.DIND_MTU}}
