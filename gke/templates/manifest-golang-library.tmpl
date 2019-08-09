@@ -22,8 +22,8 @@ stages:
     image: golang:1.12.4-alpine3.9
     commands:
     - apk --no-cache add git
-    - git tag ${ESTAFETTE_BUILD_VERSION}
-    - git push origin ${ESTAFETTE_BUILD_VERSION}
+    - git tag v${ESTAFETTE_BUILD_VERSION}
+    - git push origin v${ESTAFETTE_BUILD_VERSION}
 
   slack-notify:
     image: extensions/slack-build-status:stable

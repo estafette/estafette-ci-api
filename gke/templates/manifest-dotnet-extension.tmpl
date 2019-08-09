@@ -61,6 +61,20 @@ stages:
       status == 'failed'
 
 releases:
+  dev:
+    triggers:
+    - pipeline:
+        name: self
+        branch: .+
+    stages:
+      tag-container-image:
+        image: extensions/docker:stable
+        action: tag
+        repositories:
+        - {{.DefaultDockerRepository}}
+        tags:
+        - dev
+
   beta:
     stages:
       tag-container-image:
