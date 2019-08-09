@@ -174,14 +174,16 @@ func (c *EstafetteManifest) Validate() (err error) {
 }
 
 // GetAllTriggers returns both build and release triggers as one list
-func (c *EstafetteManifest) GetAllTriggers(pipeline string) []EstafetteTrigger {
+func (c *EstafetteManifest) GetAllTriggers(repoSource, repoOwner, repoName string) []EstafetteTrigger {
 	// collect both build and release triggers
 	triggers := make([]EstafetteTrigger, 0)
+
+	pipelineName := fmt.Sprintf("%v/%v/%v", repoSource, repoOwner, repoName)
 
 	// add all build triggers
 	for _, t := range c.Triggers {
 		if t != nil {
-			t.ReplaceSelf(pipeline)
+			t.ReplaceSelf(pipelineName)
 			triggers = append(triggers, *t)
 		}
 	}
@@ -190,7 +192,7 @@ func (c *EstafetteManifest) GetAllTriggers(pipeline string) []EstafetteTrigger {
 	for _, r := range c.Releases {
 		for _, t := range r.Triggers {
 			if t != nil {
-				t.ReplaceSelf(pipeline)
+				t.ReplaceSelf(pipelineName)
 				triggers = append(triggers, *t)
 			}
 		}
