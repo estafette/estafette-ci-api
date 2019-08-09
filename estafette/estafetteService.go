@@ -180,7 +180,7 @@ func (s *buildServiceImpl) CreateBuild(ctx context.Context, build contracts.Buil
 
 	if len(build.Triggers) == 0 {
 		if hasValidManifest {
-			build.Triggers = mft.GetAllTriggers()
+			build.Triggers = mft.GetAllTriggers(fmt.Sprintf("%v/%v/%v", build.RepoSource, build.RepoOwner, build.RepoName))
 		} else if pipeline != nil {
 			log.Debug().Msgf("Copying previous release targets for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
 			build.Triggers = pipeline.Triggers
