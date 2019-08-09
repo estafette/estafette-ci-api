@@ -28,7 +28,7 @@ github.com/ericchiang/k8s/apis/apiextensions/v1beta1
 github.com/estafette/estafette-ci-contracts
 # github.com/estafette/estafette-ci-crypt v0.0.23
 github.com/estafette/estafette-ci-crypt
-# github.com/estafette/estafette-ci-manifest v0.1.105-replace-self
+# github.com/estafette/estafette-ci-manifest v0.1.106
 github.com/estafette/estafette-ci-manifest
 # github.com/estafette/estafette-foundation v0.0.7
 github.com/estafette/estafette-foundation
