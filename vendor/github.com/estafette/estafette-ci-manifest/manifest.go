@@ -174,13 +174,14 @@ func (c *EstafetteManifest) Validate() (err error) {
 }
 
 // GetAllTriggers returns both build and release triggers as one list
-func (c *EstafetteManifest) GetAllTriggers() []EstafetteTrigger {
+func (c *EstafetteManifest) GetAllTriggers(pipeline string) []EstafetteTrigger {
 	// collect both build and release triggers
 	triggers := make([]EstafetteTrigger, 0)
 
 	// add all build triggers
 	for _, t := range c.Triggers {
 		if t != nil {
+			t.ReplaceSelf(pipeline)
 			triggers = append(triggers, *t)
 		}
 	}
@@ -189,6 +190,7 @@ func (c *EstafetteManifest) GetAllTriggers() []EstafetteTrigger {
 	for _, r := range c.Releases {
 		for _, t := range r.Triggers {
 			if t != nil {
+				t.ReplaceSelf(pipeline)
 				triggers = append(triggers, *t)
 			}
 		}

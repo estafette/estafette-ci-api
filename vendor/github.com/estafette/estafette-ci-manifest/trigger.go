@@ -314,6 +314,16 @@ func (r *EstafetteTriggerReleaseAction) Validate(targetName string) (err error) 
 	return nil
 }
 
+// ReplaceSelf replaces pipeline names set to "self" with the actual pipeline name
+func (t *EstafetteTrigger) ReplaceSelf(pipeline string) {
+	if t.Pipeline != nil && t.Pipeline.Name == "self" {
+		t.Pipeline.Name = pipeline
+	}
+	if t.Release != nil && t.Release.Name == "self" {
+		t.Release.Name = pipeline
+	}
+}
+
 // Fires indicates whether EstafettePipelineTrigger fires for an EstafettePipelineEvent
 func (p *EstafettePipelineTrigger) Fires(e *EstafettePipelineEvent) bool {
 
