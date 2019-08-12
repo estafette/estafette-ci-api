@@ -63,8 +63,9 @@ type EstafetteTriggerBuildAction struct {
 
 // EstafetteTriggerReleaseAction determines what releases when the trigger fires
 type EstafetteTriggerReleaseAction struct {
-	Target string `yaml:"target,omitempty" json:"target,omitempty"`
-	Action string `yaml:"action,omitempty" json:"action,omitempty"`
+	Target  string `yaml:"target,omitempty" json:"target,omitempty"`
+	Action  string `yaml:"action,omitempty" json:"action,omitempty"`
+	Version string `yaml:"version,omitempty" json:"version,omitempty"`
 }
 
 // SetDefaults sets defaults for EstafetteTrigger
@@ -152,6 +153,9 @@ func (b *EstafetteTriggerBuildAction) SetDefaults() {
 // SetDefaults sets defaults for EstafetteTriggerReleaseAction
 func (r *EstafetteTriggerReleaseAction) SetDefaults(targetName string) {
 	r.Target = targetName
+	if r.Version == "" {
+		r.Version = "latest"
+	}
 }
 
 // Validate checks if EstafetteTrigger is valid

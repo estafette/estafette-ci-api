@@ -727,13 +727,40 @@ func (s *buildServiceImpl) fireRelease(ctx context.Context, p contracts.Pipeline
 		return fmt.Errorf("Trigger to fire does not have a 'releases' property, shouldn't get to here")
 	}
 
+	// determine version to release
+	versionToRelease := p.BuildVersion
+
+	switch t.ReleaseAction.Version {
+	case "",
+		"latest":
+		versionToRelease = p.BuildVersion
+
+	case "current":
+		if t.ReleaseAction.Version == "current" {
+			for _, rt := range p.ReleaseTargets {
+				if rt.Name == t.ReleaseAction.Target {
+					for _, ar := range rt.ActiveReleases {
+						if ar.Action == t.ReleaseAction.Action {
+							versionToRelease = ar.ReleaseVersion
+							break
+						}
+					}
+					break
+				}
+			}
+		}
+
+	default:
+		versionToRelease = t.ReleaseAction.Version
+	}
+
 	_, err := s.CreateRelease(ctx, contracts.Release{
 		Name:           t.ReleaseAction.Target,
 		Action:         t.ReleaseAction.Action,
 		RepoSource:     p.RepoSource,
 		RepoOwner:      p.RepoOwner,
 		RepoName:       p.RepoName,
-		ReleaseVersion: p.BuildVersion,
+		ReleaseVersion: versionToRelease,
 		Events:         []manifest.EstafetteEvent{e},
 	}, *p.ManifestObject, p.RepoBranch, p.RepoRevision, true)
 	if err != nil {
