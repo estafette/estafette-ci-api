@@ -66,6 +66,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	switch eventType {
 	case
 		"builder:nomanifest",
+		"builder:running",
 		"builder:succeeded",
 		"builder:failed",
 		"builder:canceled":

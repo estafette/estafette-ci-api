@@ -63,8 +63,9 @@ type EstafetteTriggerBuildAction struct {
 
 // EstafetteTriggerReleaseAction determines what releases when the trigger fires
 type EstafetteTriggerReleaseAction struct {
-	Target string `yaml:"target,omitempty" json:"target,omitempty"`
-	Action string `yaml:"action,omitempty" json:"action,omitempty"`
+	Target  string `yaml:"target,omitempty" json:"target,omitempty"`
+	Action  string `yaml:"action,omitempty" json:"action,omitempty"`
+	Version string `yaml:"version,omitempty" json:"version,omitempty"`
 }
 
 // SetDefaults sets defaults for EstafetteTrigger
@@ -152,6 +153,9 @@ func (b *EstafetteTriggerBuildAction) SetDefaults() {
 // SetDefaults sets defaults for EstafetteTriggerReleaseAction
 func (r *EstafetteTriggerReleaseAction) SetDefaults(targetName string) {
 	r.Target = targetName
+	if r.Version == "" {
+		r.Version = "latest"
+	}
 }
 
 // Validate checks if EstafetteTrigger is valid
@@ -312,6 +316,16 @@ func (r *EstafetteTriggerReleaseAction) Validate(targetName string) (err error) 
 	}
 
 	return nil
+}
+
+// ReplaceSelf replaces pipeline names set to "self" with the actual pipeline name
+func (t *EstafetteTrigger) ReplaceSelf(pipeline string) {
+	if t.Pipeline != nil && t.Pipeline.Name == "self" {
+		t.Pipeline.Name = pipeline
+	}
+	if t.Release != nil && t.Release.Name == "self" {
+		t.Release.Name = pipeline
+	}
 }
 
 // Fires indicates whether EstafettePipelineTrigger fires for an EstafettePipelineEvent

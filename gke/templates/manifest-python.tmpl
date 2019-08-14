@@ -36,6 +36,10 @@ stages:
 
 releases:
   development:
+    triggers:
+    - pipeline:
+        name: self
+        branch: .+
     stages:
       deploy:
         image: extensions/gke:stable

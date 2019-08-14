@@ -214,6 +214,74 @@ credentials:
       max: 100
     hosts:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_9}}
+- name: '{{.GKE_CREDENTIAL_10}}'
+  type: 'kubernetes-engine'
+  project: {{.GKE_PROJECT_10}}
+  cluster: {{.GKE_CLUSTER_10}}
+  region: {{.GKE_REGION_10}}
+  serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_10}}'
+  defaults:
+    namespace: {{.GKE_DEFAULT_NAMESPACE_10}}
+    container:
+      repository: {{.GKE_DEFAULT_REPOSITORY_10}}
+    autoscale:
+      min: 3
+      max: 500
+    hosts:
+    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_10}}
+    internalhosts:
+    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_10}}
+- name: '{{.GKE_CREDENTIAL_11}}'
+  type: 'kubernetes-engine'
+  project: {{.GKE_PROJECT_11}}
+  cluster: {{.GKE_CLUSTER_11}}
+  region: {{.GKE_REGION_11}}
+  serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_11}}'
+  defaults:
+    namespace: {{.GKE_DEFAULT_NAMESPACE_11}}
+    container:
+      repository: {{.GKE_DEFAULT_REPOSITORY_11}}
+    autoscale:
+      min: 2
+      max: 10
+    hosts:
+    - ${ESTAFETTE_LABEL_APP}.staging.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_11}}
+    internalhosts:
+    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_11}}
+- name: '{{.GKE_CREDENTIAL_12}}'
+  type: 'kubernetes-engine'
+  project: {{.GKE_PROJECT_12}}
+  cluster: {{.GKE_CLUSTER_12}}
+  region: {{.GKE_REGION_12}}
+  serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_12}}'
+  defaults:
+    namespace: {{.GKE_DEFAULT_NAMESPACE_12}}
+    container:
+      repository: {{.GKE_DEFAULT_REPOSITORY_12}}
+    autoscale:
+      min: 3
+      max: 500
+    hosts:
+    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_12}}
+    internalhosts:
+    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_12}}
+- name: '{{.GKE_CREDENTIAL_13}}'
+  type: 'kubernetes-engine'
+  project: {{.GKE_PROJECT_13}}
+  cluster: {{.GKE_CLUSTER_13}}
+  region: {{.GKE_REGION_13}}
+  serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_13}}'
+  defaults:
+    namespace: {{.GKE_DEFAULT_NAMESPACE_13}}
+    container:
+      repository: {{.GKE_DEFAULT_REPOSITORY_13}}
+    autoscale:
+      min: 1
+      max: 5
+    hosts:
+    - ${ESTAFETTE_LABEL_APP}.development.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_13}}
+    internalhosts:
+    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_13}}
 - name: {{.SLACK_WEBHOOK_NAME_1}}
   type: slack-webhook
   workspace: {{.SLACK_WEBHOOK_WORKSPACE_1}}
@@ -229,6 +297,9 @@ credentials:
 - name: {{.SONARQUBE_SERVER_NAME_1}}
   type: sonarqube-server
   apiUrl: {{.SONARQUBE_SERVER_API_URL_1}}
+- name: {{.ROLE_BINDER_NAME_1}}
+  type: role-binder
+  serviceAccountKeyfile: '{{.ROLE_BINDER_SA_KEYFILE_1}}'
 
 trustedImages:
 - path: extensions/git-clone
@@ -279,6 +350,14 @@ trustedImages:
 - path: golang
   runDocker: true
   allowCommands: true
+- path: {{.TRUSTED_IMAGE_PATH_1}}
+  runDocker: true
+  injectedCredentialTypes:
+  - container-registry
+- path: {{.TRUSTED_IMAGE_PATH_2}}
+  injectedCredentialTypes:
+  - role-binder
+  - bitbucket-api-token
 
 registryMirror: {{.REGISTRY_MIRROR}}
 dindMtu: {{.DIND_MTU}}
