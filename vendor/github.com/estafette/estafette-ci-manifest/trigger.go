@@ -382,7 +382,7 @@ func (r *EstafetteReleaseTrigger) Fires(e *EstafetteReleaseEvent) bool {
 		return false
 	}
 
-	// compare branch as regex
+	// compare target as regex
 	branchMatched, err := regexMatch(r.Target, e.Target)
 	if err != nil || !branchMatched {
 		return false
@@ -393,7 +393,25 @@ func (r *EstafetteReleaseTrigger) Fires(e *EstafetteReleaseEvent) bool {
 
 // Fires indicates whether EstafetteGitTrigger fires for an EstafetteGitEvent
 func (g *EstafetteGitTrigger) Fires(e *EstafetteGitEvent) bool {
-	return false
+	// compare event as regex
+	eventMatched, err := regexMatch(g.Event, e.Event)
+	if err != nil || !eventMatched {
+		return false
+	}
+
+	// compare repository
+	repositoryMatches := strings.EqualFold(g.Repository, e.Repository)
+	if !repositoryMatches {
+		return false
+	}
+
+	// compare branch as regex
+	branchMatched, err := regexMatch(g.Branch, e.Branch)
+	if err != nil || !branchMatched {
+		return false
+	}
+
+	return true
 }
 
 // Fires indicates whether EstafetteDockerTrigger fires for an EstafetteDockerEvent
