@@ -131,38 +131,42 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 		return
 	}
 
-	jeagerServiceNameName := "JAEGER_SERVICE_NAME"
-	jeagerServiceNameValue := "estafette-ci-builder"
-	jeagerAgentHostName := "JAEGER_AGENT_HOST"
-	jeagerAgentHostFieldPath := "status.hostIP"
-	jeagerSamplerTypeName := "JAEGER_SAMPLER_TYPE"
-	jeagerSamplerTypeValue := "const"
-	jeagerSamplerParamName := "JAEGER_SAMPLER_PARAM"
-	jeagerSamplerParamValue := "1"
+	jaegerServiceNameName := "JAEGER_SERVICE_NAME"
+	jaegerServiceNameValue := "estafette-ci-builder"
+	jaegerAgentHostName := "JAEGER_AGENT_HOST"
+	jaegerAgentHostFieldPath := "status.hostIP"
+	jaegerSamplerTypeName := "JAEGER_SAMPLER_TYPE"
+	jaegerSamplerTypeValue := "const"
+	jaegerSamplerParamName := "JAEGER_SAMPLER_PARAM"
+	jaegerSamplerParamValue := "1"
 	environmentVariables := []*corev1.EnvVar{
 		&corev1.EnvVar{
 			Name:  &builderConfigPathName,
 			Value: &builderConfigPathValue,
 		},
 		&corev1.EnvVar{
-			Name:  &jeagerServiceNameName,
-			Value: &jeagerServiceNameValue,
+			Name:  &jaegerServiceNameName,
+			Value: &jaegerServiceNameValue,
 		},
 		&corev1.EnvVar{
-			Name: &jeagerAgentHostName,
+			Name: &jaegerAgentHostName,
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{
-					FieldPath: &jeagerAgentHostFieldPath,
+					FieldPath: &jaegerAgentHostFieldPath,
 				},
 			},
 		},
 		&corev1.EnvVar{
-			Name:  &jeagerSamplerTypeName,
-			Value: &jeagerSamplerTypeValue,
+			Name:  &jaegerSamplerTypeName,
+			Value: &jaegerSamplerTypeValue,
 		},
 		&corev1.EnvVar{
-			Name:  &jeagerSamplerParamName,
-			Value: &jeagerSamplerParamValue,
+			Name:  &jaegerSamplerTypeName,
+			Value: &jaegerSamplerTypeValue,
+		},
+		&corev1.EnvVar{
+			Name:  &jaegerSamplerParamName,
+			Value: &jaegerSamplerParamValue,
 		},
 	}
 
