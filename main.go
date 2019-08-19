@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -286,13 +285,6 @@ func initJaeger() io.Closer {
 	cfg, err := jaegercfg.FromEnv()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Generating Jaeger config from environment variables failed")
-	}
-
-	if os.Getenv("JAEGER_AGENT_HOST") != "" {
-		// get remote config from jaeger-agent running as daemonset
-		if cfg != nil && cfg.Sampler != nil && os.Getenv("JAEGER_SAMPLER_MANAGER_HOST_PORT") == "" {
-			cfg.Sampler.SamplingServerURL = fmt.Sprintf("http://%v:5778/sampling", os.Getenv("JAEGER_AGENT_HOST"))
-		}
 	}
 
 	closer, err := cfg.InitGlobalTracer(cfg.ServiceName, jaegercfg.Logger(jaeger.StdLogger), jaegercfg.Metrics(jprom.New()))
