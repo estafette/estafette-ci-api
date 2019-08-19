@@ -300,6 +300,10 @@ credentials:
 - name: {{.ROLE_BINDER_NAME_1}}
   type: role-binder
   serviceAccountKeyfile: '{{.ROLE_BINDER_SA_KEYFILE_1}}'
+- name: cloudflare
+  type: cloudflare
+  email: '{{.CLOUDFLARE_API_EMAIL}}'
+  key: '{{.CLOUDFLARE_API_KEY}}'
 
 trustedImages:
 - path: extensions/git-clone
@@ -358,6 +362,9 @@ trustedImages:
   injectedCredentialTypes:
   - role-binder
   - bitbucket-api-token
+- path: extensions/cloudflare-purge
+  injectedCredentialTypes:
+  - cloudflare
 
 registryMirror: {{.REGISTRY_MIRROR}}
 dindMtu: {{.DIND_MTU}}
