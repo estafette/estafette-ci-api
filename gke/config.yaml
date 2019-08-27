@@ -366,5 +366,5 @@ trustedImages:
   injectedCredentialTypes:
   - cloudflare
 
-registryMirror: {{.REGISTRY_MIRROR}}
+# registryMirror: {{.REGISTRY_MIRROR}}
 dindMtu: {{.DIND_MTU}}
