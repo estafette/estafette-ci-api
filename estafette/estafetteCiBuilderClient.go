@@ -203,7 +203,6 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 	containerName := "estafette-ci-builder"
 	repository := "estafette/estafette-ci-builder"
 	tag := ciBuilderParams.Track
-	os := ciBuilderParams.Manifest.Builder.OperatingSystem
 	image := fmt.Sprintf("%v:%v", repository, tag)
 	imagePullPolicy := "Always"
 	digest, err := cbc.dockerHubClient.GetDigestCached(ctx, repository, tag)
@@ -217,6 +216,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 	preemptibleAffinityWeight := int32(10)
 	preemptibleAffinityKey := "cloud.google.com/gke-preemptible"
 	preemptibleAffinityOperator := "In"
+
+	operatingSystemAffinityKey := "beta.kubernetes.io/os"
+	operatingSystemAffinityOperator := "In"
+	operatingSystemAffinityValue := ciBuilderParams.Manifest.Builder.OperatingSystem
 
 	// create configmap for builder config
 	builderConfigConfigmapName := jobName
@@ -250,13 +253,25 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 			PreferredDuringSchedulingIgnoredDuringExecution: []*corev1.PreferredSchedulingTerm{
 				&corev1.PreferredSchedulingTerm{
 					Weight: &preemptibleAffinityWeight,
-					// A node selector term, associated with the corresponding weight.
 					Preference: &corev1.NodeSelectorTerm{
 						MatchExpressions: []*corev1.NodeSelectorRequirement{
 							&corev1.NodeSelectorRequirement{
 								Key:      &preemptibleAffinityKey,
 								Operator: &preemptibleAffinityOperator,
 								Values:   []string{"true"},
+							},
+						},
+					},
+				},
+			},
+			RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+				NodeSelectorTerms: []*corev1.NodeSelectorTerm{
+					&corev1.NodeSelectorTerm{
+						MatchExpressions: []*corev1.NodeSelectorRequirement{
+							&corev1.NodeSelectorRequirement{
+								Key:      &operatingSystemAffinityKey,
+								Operator: &operatingSystemAffinityOperator,
+								Values:   []string{"os"},
 							},
 						},
 					},
@@ -278,6 +293,15 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 								&corev1.NodeSelectorRequirement{
 									Key:      &preemptibleAffinityKey,
 									Operator: &preemptibleAffinityOperator,
+								},
+							},
+						},
+						&corev1.NodeSelectorTerm{
+							MatchExpressions: []*corev1.NodeSelectorRequirement{
+								&corev1.NodeSelectorRequirement{
+									Key:      &operatingSystemAffinityKey,
+									Operator: &operatingSystemAffinityOperator,
+									Values:   []string{operatingSystemAffinityValue},
 								},
 							},
 						},
@@ -355,10 +379,6 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 					Volumes: volumes,
 
 					Affinity: affinity,
-
-					NodeSelector: map[string]string{
-						"kubernetes.io/os": os,
-					},
 				},
 			},
 		},

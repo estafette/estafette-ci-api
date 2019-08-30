@@ -494,7 +494,7 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 	jobName := h.ciBuilderClient.GetJobName("build", build.RepoOwner, build.RepoName, build.ID)
 	err = h.ciBuilderClient.CancelCiBuilderJob(ctx, jobName)
 	buildStatus := "canceling"
-	if err != nil {
+	if build.BuildStatus == "pending" || err != nil {
 		// job might not have created a builder yet, so set status to canceled straightaway
 		buildStatus = "canceled"
 	}
@@ -954,7 +954,7 @@ func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 	jobName := h.ciBuilderClient.GetJobName("release", release.RepoOwner, release.RepoName, release.ID)
 	err = h.ciBuilderClient.CancelCiBuilderJob(ctx, jobName)
 	releaseStatus := "canceling"
-	if err != nil {
+	if release.ReleaseStatus == "pending" || err != nil {
 		// job might not have created a builder yet, so set status to canceled straightaway
 		releaseStatus = "canceled"
 	}
