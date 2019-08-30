@@ -1,5 +1,6 @@
 builder:
   track: dev
+  os: windows
 
 labels:
   app: estafette-ci-builder

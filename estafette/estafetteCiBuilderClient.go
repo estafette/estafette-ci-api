@@ -203,6 +203,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 	containerName := "estafette-ci-builder"
 	repository := "estafette/estafette-ci-builder"
 	tag := ciBuilderParams.Track
+	os := ciBuilderParams.Manifest.Builder.OperatingSystem
 	image := fmt.Sprintf("%v:%v", repository, tag)
 	imagePullPolicy := "Always"
 	digest, err := cbc.dockerHubClient.GetDigestCached(ctx, repository, tag)
@@ -354,6 +355,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 					Volumes: volumes,
 
 					Affinity: affinity,
+
+					NodeSelector: map[string]string{
+						"kubernetes.io/os": os,
+					},
 				},
 			},
 		},

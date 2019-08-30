@@ -150,6 +150,11 @@ func (c *EstafetteManifest) setDefaults() {
 // Validate checks if the manifest is valid
 func (c *EstafetteManifest) Validate() (err error) {
 
+	err = c.Builder.validate()
+	if err != nil {
+		return
+	}
+
 	if len(c.Stages) == 0 {
 		return fmt.Errorf("The manifest should define 1 or more stages")
 	}
