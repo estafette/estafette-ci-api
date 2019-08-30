@@ -271,7 +271,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 							&corev1.NodeSelectorRequirement{
 								Key:      &operatingSystemAffinityKey,
 								Operator: &operatingSystemAffinityOperator,
-								Values:   []string{"os"},
+								Values:   []string{operatingSystemAffinityValue},
 							},
 						},
 					},
