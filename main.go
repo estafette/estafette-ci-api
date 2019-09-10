@@ -111,16 +111,20 @@ func createRouter() *gin.Engine {
 	gin.DefaultWriter = log.Logger
 	gin.DisableConsoleColor()
 
+	log.Debug().Msg("Creating gin router...")
+
 	// Creates a router without any middleware by default
 	router := gin.New()
 
 	// Recovery middleware recovers from any panics and writes a 500 if there was one.
+	log.Debug().Msg("Adding gin recovery middleware...")
 	router.Use(gin.Recovery())
 
 	// access logs with zerolog
 	// router.Use(ZeroLogMiddleware())
 
 	// opentracing middleware
+	log.Debug().Msg("Adding opentracing middleware...")
 	router.Use(OpenTracingMiddleware())
 
 	// liveness and readiness
@@ -163,18 +167,23 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed connecting to CockroachDB")
 	}
+	log.Debug().Msg("Connected to database")
 
 	// create and init router
 	router := createRouter()
 
 	// Gzip and logging middleware
+	log.Debug().Msg("Adding gzip middleware...")
 	gzippedRoutes := router.Group("/", gzip.Gzip(gzip.DefaultCompression))
 
 	// middleware to handle auth for different endpoints
+	log.Debug().Msg("Adding auth middleware...")
 	authMiddleware := auth.NewAuthMiddleware(*config.Auth)
 
+	log.Debug().Msg("Creating Estafette build service...")
 	estafetteBuildService := estafette.NewBuildService(cockroachDBClient, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
 
+	log.Debug().Msg("Setting up routes...")
 	githubEventHandler := github.NewGithubEventHandler(githubAPIClient, estafetteBuildService, *config.Integrations.Github, prometheusInboundEventTotals)
 	gzippedRoutes.POST("/api/integrations/github/events", githubEventHandler.Handle)
 	gzippedRoutes.GET("/api/integrations/github/status", func(c *gin.Context) { c.String(200, "Github, I'm cool!") })
@@ -247,6 +256,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	})
 
 	// instantiate servers instead of using router.Run in order to handle graceful shutdown
+	log.Debug().Msg("Starting server...")
 	srv := &http.Server{
 		Addr:        *apiAddress,
 		Handler:     router,
