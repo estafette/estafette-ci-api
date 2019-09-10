@@ -300,6 +300,7 @@ releases:
         - estafette.secret(Bdqhw3--ehnz7X9a.Suom33egEkXByz3Xu7cA3Bz7w4v7wF9-GaPzm4PlekoLhqeYDR1qQaoJtGy5jFFI12t8Cw==)
         basepath: /api
         chaosproof: true
+        useGoogleCloudCredentials: true
         manifests:
           files:
           - gke/ingress.yaml
