@@ -189,9 +189,10 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 			return
 		}
 
-		log.Info().String("raw", string(rawData)).Msg("Successfully read raw data for pubsub push event")
+		log.Info().Str("raw", string(rawData)).Msg("Successfully read raw data for pubsub push event")
 
-		return c.String(http.StatusOK, "Aye aye!")
+		c.String(http.StatusOK, "Aye aye!")
+		return
 	})
 	router.GET("/api/integrations/pubsub/status", func(c *gin.Context) { c.String(200, "Pub/Sub, I'm cool!") })
 
