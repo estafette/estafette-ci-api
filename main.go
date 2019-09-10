@@ -129,13 +129,13 @@ func createRouter() *gin.Engine {
 	log.Debug().Msg("Adding opentracing middleware...")
 	router.Use(OpenTracingMiddleware())
 
-	// liveness and readiness
-	router.GET("/liveness", func(c *gin.Context) {
-		c.String(200, "I'm alive!")
-	})
-	router.GET("/readiness", func(c *gin.Context) {
-		c.String(200, "I'm ready!")
-	})
+	// // liveness and readiness
+	// router.GET("/liveness", func(c *gin.Context) {
+	// 	c.String(200, "I'm alive!")
+	// })
+	// router.GET("/readiness", func(c *gin.Context) {
+	// 	c.String(200, "I'm ready!")
+	// })
 
 	return router
 }
@@ -252,6 +252,13 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 		iapAuthorizedRoutes.GET("/api/config/trustedimages", estafetteAPIHandler.GetConfigTrustedImages)
 		iapAuthorizedRoutes.GET("/api/update-computed-tables", estafetteAPIHandler.UpdateComputedTables)
 	}
+
+	gzippedRoutes.GET("/liveness", func(c *gin.Context) {
+		c.String(200, "I'm alive!")
+	})
+	gzippedRoutes.GET("/readiness", func(c *gin.Context) {
+		c.String(200, "I'm ready!")
+	})
 
 	router.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Page not found"})
