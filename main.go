@@ -79,12 +79,8 @@ func main() {
 	closer := initJaeger()
 	defer closer.Close()
 
-	// define channels and waitgroup to gracefully shutdown the application
-	// sigs := make(chan os.Signal, 1)                                    // Create channel to receive OS signals
-	stop := make(chan struct{}) // Create channel to receive stop signal
-	// signal.Notify(sigs, os.Interrupt, syscall.SIGTERM, syscall.SIGINT) // Register the sigs channel to receieve SIGTERM
-	// wg := &sync.WaitGroup{}                                            // Goroutines can add themselves to this to be waited on so that they finish
 	sigs, wg := foundation.InitGracefulShutdownHandling()
+	stop := make(chan struct{}) // channel to signal goroutines to stop
 
 	// start prometheus
 	foundation.InitMetrics()
@@ -104,7 +100,7 @@ func main() {
 		}
 
 		log.Debug().Msg("Stopping goroutines...")
-		close(stop) // Tell goroutines to stop themselves
+		close(stop) // tell goroutines to stop themselves
 	})
 }
 
