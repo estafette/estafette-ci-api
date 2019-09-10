@@ -270,7 +270,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 			if err != http.ErrServerClosed {
 				log.Fatal().Err(err).Msg("Starting gin router failed")
 			} else {
-				log.Fatal().Err(err).Msg("Server closed")
+				log.Error().Err(err).Msg("Server closed")
 			}
 		}
 	}()
