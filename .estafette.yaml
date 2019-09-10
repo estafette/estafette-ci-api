@@ -83,7 +83,7 @@ releases:
             request: 512Mi
             limit: 512Mi
           metrics:
-            port: 9101
+            port: 9001
           lifecycle:
             prestopsleep: false
         sidecars:

@@ -83,7 +83,7 @@ func main() {
 	stop := make(chan struct{}) // channel to signal goroutines to stop
 
 	// start prometheus
-	foundation.InitMetrics()
+	foundation.InitMetricsWithPort(9001)
 
 	// handle api requests
 	srv := handleRequests(stop, wg)

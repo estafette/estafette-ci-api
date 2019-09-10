@@ -14,7 +14,7 @@ require (
 	github.com/estafette/estafette-ci-contracts v0.0.129
 	github.com/estafette/estafette-ci-crypt v0.0.23
 	github.com/estafette/estafette-ci-manifest v0.1.110
-	github.com/estafette/estafette-foundation v0.0.9
+	github.com/estafette/estafette-foundation v0.0.13
 	github.com/gin-contrib/gzip v0.0.0-20170807063659-ff223ab9f8e3
 	github.com/gin-gonic/gin v1.4.0
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
