@@ -180,6 +180,21 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	router.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
 	router.GET("/api/integrations/slack/status", func(c *gin.Context) { c.String(200, "Slack, I'm cool!") })
 
+	// test pubsub event delivery
+	router.POST("/api/integrations/pubsub/events", func(c *gin.Context) {
+		rawData, err := c.GetRawData()
+		if err != nil {
+			log.Error().Err(err).Msg("Failed reading raw data for pubsub push event")
+			c.String(http.StatusInternalServerError, "Reading body from Bitbucket webhook failed")
+			return
+		}
+
+		log.Info().String("raw", string(rawData)).Msg("Successfully read raw data for pubsub push event")
+
+		return c.String(http.StatusOK, "Aye aye!")
+	})
+	router.GET("/api/integrations/pubsub/status", func(c *gin.Context) { c.String(200, "Pub/Sub, I'm cool!") })
+
 	router.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
 	router.GET("/api/pipelines/:source/:owner/:repo", estafetteAPIHandler.GetPipeline)
 	router.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)
