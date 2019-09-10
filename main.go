@@ -254,12 +254,8 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 
 	go func() {
 		log.Debug().Msg("Listening for incoming requests...")
-		if err := srv.ListenAndServe(); err != nil {
-			if err != http.ErrServerClosed {
-				log.Fatal().Err(err).Msg("Starting gin router failed")
-			} else {
-				log.Error().Err(err).Msg("Server closed")
-			}
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal().Err(err).Msg("Starting gin router failed")
 		}
 	}()
 
