@@ -88,6 +88,8 @@ func main() {
 	// handle api requests
 	srv := handleRequests(stop, wg)
 
+	log.Debug().Msg("Handling requests until shutdown...")
+
 	foundation.HandleGracefulShutdown(sigs, wg, func() {
 
 		time.Sleep(time.Duration(*gracefulShutdownDelaySeconds) * 1000 * time.Millisecond)
@@ -266,6 +268,7 @@ func handleRequests(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *htt
 	}
 
 	go func() {
+		log.Debug().Msg("Listening for incoming requests...")
 		if err := srv.ListenAndServe(); err != nil {
 			if err != http.ErrServerClosed {
 				log.Fatal().Err(err).Msg("Starting gin router failed")
