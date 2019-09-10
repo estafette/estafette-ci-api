@@ -17,7 +17,7 @@ stages:
     env:
       CGO_ENABLED: 0
       GOOS: linux
-      GOFLAGS: -mod=vendor
+      # GOFLAGS: -mod=vendor
       GOGC: off
     commands:
     - go test ./...
@@ -84,7 +84,7 @@ releases:
             request: 512Mi
             limit: 512Mi
           metrics:
-            port: 9001
+            port: 9101
           lifecycle:
             prestopsleep: false
         sidecars:

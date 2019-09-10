@@ -4,11 +4,8 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"os"
-	"os/signal"
 	"runtime"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/alecthomas/kingpin"
@@ -24,7 +21,6 @@ import (
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
@@ -42,8 +38,6 @@ var (
 
 var (
 	// flags
-	prometheusMetricsAddress     = kingpin.Flag("metrics-listen-address", "The address to listen on for Prometheus metrics requests.").Default(":9001").String()
-	prometheusMetricsPath        = kingpin.Flag("metrics-path", "The path to listen for Prometheus metrics requests.").Default("/metrics").String()
 	apiAddress                   = kingpin.Flag("api-listen-address", "The address to listen on for api HTTP requests.").Default(":5000").String()
 	configFilePath               = kingpin.Flag("config-file-path", "The path to yaml config file configuring this application.").Default("/configs/config.yaml").String()
 	secretDecryptionKeyBase64    = kingpin.Flag("secret-decryption-key-base64", "The base64 encoded AES-256 key used to decrypt secrets that have been encrypted with it.").Envar("SECRET_DECRYPTION_KEY_BASE64").String()
@@ -86,36 +80,32 @@ func main() {
 	defer closer.Close()
 
 	// define channels and waitgroup to gracefully shutdown the application
-	sigs := make(chan os.Signal, 1)                                    // Create channel to receive OS signals
-	stop := make(chan struct{})                                        // Create channel to receive stop signal
-	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM, syscall.SIGINT) // Register the sigs channel to receieve SIGTERM
-	wg := &sync.WaitGroup{}                                            // Goroutines can add themselves to this to be waited on so that they finish
+	// sigs := make(chan os.Signal, 1)                                    // Create channel to receive OS signals
+	stop := make(chan struct{}) // Create channel to receive stop signal
+	// signal.Notify(sigs, os.Interrupt, syscall.SIGTERM, syscall.SIGINT) // Register the sigs channel to receieve SIGTERM
+	// wg := &sync.WaitGroup{}                                            // Goroutines can add themselves to this to be waited on so that they finish
+	sigs, wg := foundation.InitGracefulShutdownHandling()
 
 	// start prometheus
-	go startPrometheus()
+	foundation.InitMetrics()
 
 	// handle api requests
 	srv := handleRequests(stop, wg)
 
-	// wait for graceful shutdown to finish
-	<-sigs // Wait for signals (this hangs until a signal arrives)
-	log.Info().Msgf("Shutting down in %v seconds...", *gracefulShutdownDelaySeconds)
-	time.Sleep(time.Duration(*gracefulShutdownDelaySeconds) * 1000 * time.Millisecond)
+	foundation.HandleGracefulShutdown(sigs, wg, func() {
 
-	// shut down gracefully
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal().Err(err).Msg("Graceful server shutdown failed")
-	}
+		time.Sleep(time.Duration(*gracefulShutdownDelaySeconds) * 1000 * time.Millisecond)
 
-	log.Debug().Msg("Stopping goroutines...")
-	close(stop) // Tell goroutines to stop themselves
+		// shut down gracefully
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Fatal().Err(err).Msg("Graceful server shutdown failed")
+		}
 
-	log.Debug().Msg("Awaiting waitgroup...")
-	wg.Wait() // Wait for all to be stopped
-
-	log.Info().Msg("Server gracefully stopped")
+		log.Debug().Msg("Stopping goroutines...")
+		close(stop) // Tell goroutines to stop themselves
+	})
 }
 
 func createRouter() *gin.Engine {
@@ -294,12 +284,4 @@ func initJaeger() io.Closer {
 	}
 
 	return closer
-}
-
-func startPrometheus() {
-	http.Handle(*prometheusMetricsPath, promhttp.Handler())
-
-	if err := http.ListenAndServe(*prometheusMetricsAddress, nil); err != nil {
-		log.Fatal().Err(err).Msg("Starting Prometheus listener failed")
-	}
 }

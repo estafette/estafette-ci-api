@@ -81,11 +81,16 @@ func InitGracefulShutdownHandling() (gracefulShutdown chan os.Signal, waitGroup 
 }
 
 // HandleGracefulShutdown waits for SIGTERM to unblock gracefulShutdown and waits for the waitgroup to await pending work
-func HandleGracefulShutdown(gracefulShutdown chan os.Signal, waitGroup *sync.WaitGroup) {
+func HandleGracefulShutdown(gracefulShutdown chan os.Signal, waitGroup *sync.WaitGroup, functionsOnShutdown ...func()) {
 
 	signalReceived := <-gracefulShutdown
 	log.Info().
 		Msgf("Received signal %v. Waiting for running tasks to finish...", signalReceived)
+
+	// execute any passed function
+	for _, f := range functionsOnShutdown {
+		f()
+	}
 
 	waitGroup.Wait()
 
