@@ -1892,7 +1892,12 @@ func (h *apiHandlerImpl) PostPubsubEvent(c *gin.Context) {
 		return
 	}
 
-	log.Info().Interface("msg", message).Msg("Successfully binded pubsub push event")
+	log.Info().
+		Interface("msg", message).
+		Str("data", message.GetDecodedData()).
+		Str("project", message.GetProject()).
+		Str("subscription", message.GetSubscription()).
+		Msg("Successfully binded pubsub push event")
 
 	c.String(http.StatusOK, "Aye aye!")
 	return
