@@ -76,6 +76,7 @@ type APIHandler interface {
 	EncryptSecret(*gin.Context)
 
 	PostCronEvent(*gin.Context)
+	PostPubsubEvent(*gin.Context)
 }
 
 type apiHandlerImpl struct {
@@ -1871,6 +1872,39 @@ func (h *apiHandlerImpl) PostCronEvent(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Hey Cron, here's a tock for your tick"})
+}
+
+func (h *apiHandlerImpl) PostPubsubEvent(c *gin.Context) {
+
+	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "Api::PostPubsubEvent")
+	defer span.Finish()
+
+	// if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
+	// 	c.Status(http.StatusUnauthorized)
+	// 	return
+	// }
+
+	authHeader := c.Request.Header.Get("Authorization")
+
+	rawData, err := c.GetRawData()
+	if err != nil {
+		log.Error().Err(err).Str("authorization", authHeader).Msg("Failed reading raw data for pubsub push event")
+		c.String(http.StatusInternalServerError, "Reading body from Bitbucket webhook failed")
+		return
+	}
+
+	log.Info().Str("raw", string(rawData)).Str("authorization", authHeader).Msg("Successfully read raw data for pubsub push event")
+
+	// err := h.buildService.FireCronTriggers(ctx)
+
+	// if err != nil {
+	// 	log.Error().Err(err).Msg("Failed firing cron triggers")
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+	// 	return
+	// }
+
+	c.String(http.StatusOK, "Aye aye!")
+	return
 }
 
 func (h *apiHandlerImpl) getSinceFilter(c *gin.Context) []string {
