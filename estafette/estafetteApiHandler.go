@@ -1889,14 +1889,19 @@ func (h *apiHandlerImpl) PostPubsubEvent(c *gin.Context) {
 	rawData, err := c.GetRawData()
 	if err != nil {
 		log.Error().Err(err).Str("authorization", authHeader).Msg("Failed reading raw data for pubsub push event")
-		c.String(http.StatusInternalServerError, "Reading body from Bitbucket webhook failed")
+		c.String(http.StatusInternalServerError, "Oop, something's wrong!")
 		return
 	}
 
 	log.Info().Str("raw", string(rawData)).Str("authorization", authHeader).Msg("Successfully read raw data for pubsub push event")
 
 	var message PubSubPushMessage
-	c.BindJSON(&message)
+	err = c.BindJSON(&message)
+	if err != nil {
+		log.Error().Err(err).Str("authorization", authHeader).Msg("Failed binding pubsub push event")
+		c.String(http.StatusInternalServerError, "Oop, something's wrong!")
+		return
+	}
 
 	log.Info().Str("raw", string(rawData)).Str("authorization", authHeader).Interface("msg", message).Msg("Successfully binded pubsub push event")
 
