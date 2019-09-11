@@ -1895,6 +1895,11 @@ func (h *apiHandlerImpl) PostPubsubEvent(c *gin.Context) {
 
 	log.Info().Str("raw", string(rawData)).Str("authorization", authHeader).Msg("Successfully read raw data for pubsub push event")
 
+	var message PubSubPushMessage
+	c.BindJSON(&message)
+
+	log.Info().Str("raw", string(rawData)).Str("authorization", authHeader).Interface("msg", message).Msg("Successfully binded pubsub push event")
+
 	// err := h.buildService.FireCronTriggers(ctx)
 
 	// if err != nil {
