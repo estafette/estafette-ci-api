@@ -1884,34 +1884,15 @@ func (h *apiHandlerImpl) PostPubsubEvent(c *gin.Context) {
 		return
 	}
 
-	authHeader := c.Request.Header.Get("Authorization")
-
-	rawData, err := c.GetRawData()
-	if err != nil {
-		log.Error().Err(err).Str("authorization", authHeader).Msg("Failed reading raw data for pubsub push event")
-		c.String(http.StatusInternalServerError, "Oop, something's wrong!")
-		return
-	}
-
-	log.Info().Str("raw", string(rawData)).Str("authorization", authHeader).Msg("Successfully read raw data for pubsub push event")
-
 	var message PubSubPushMessage
-	err = c.BindJSON(&message)
+	err := c.BindJSON(&message)
 	if err != nil {
-		log.Error().Err(err).Str("authorization", authHeader).Msg("Failed binding pubsub push event")
+		log.Error().Err(err).Msg("Failed binding pubsub push event")
 		c.String(http.StatusInternalServerError, "Oop, something's wrong!")
 		return
 	}
 
-	log.Info().Str("raw", string(rawData)).Str("authorization", authHeader).Interface("msg", message).Msg("Successfully binded pubsub push event")
-
-	// err := h.buildService.FireCronTriggers(ctx)
-
-	// if err != nil {
-	// 	log.Error().Err(err).Msg("Failed firing cron triggers")
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-	// 	return
-	// }
+	log.Info().Interface("msg", message).Msg("Successfully binded pubsub push event")
 
 	c.String(http.StatusOK, "Aye aye!")
 	return

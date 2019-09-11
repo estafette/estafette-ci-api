@@ -5,9 +5,10 @@ import "strings"
 // PubSubPushMessage is a container for a pubsub push message
 type PubSubPushMessage struct {
 	Message struct {
-		Data        string `json:"data"`
-		MessageID   string `json:"messageId"`
-		PublishTime string `json:"publishTime"`
+		Attributes  map[string]string `json:"attributes"`
+		Data        string            `json:"data"`
+		MessageID   string            `json:"messageId"`
+		PublishTime string            `json:"publishTime"`
 	} `json:"message"`
 	Subscription string `json:"subscription"`
 }
