@@ -1879,10 +1879,10 @@ func (h *apiHandlerImpl) PostPubsubEvent(c *gin.Context) {
 	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "Api::PostPubsubEvent")
 	defer span.Finish()
 
-	// if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
-	// 	c.Status(http.StatusUnauthorized)
-	// 	return
-	// }
+	if c.MustGet(gin.AuthUserKey).(string) != "google-jwt" {
+		c.Status(http.StatusUnauthorized)
+		return
+	}
 
 	authHeader := c.Request.Header.Get("Authorization")
 

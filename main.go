@@ -180,10 +180,6 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	router.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
 	router.GET("/api/integrations/slack/status", func(c *gin.Context) { c.String(200, "Slack, I'm cool!") })
 
-	// test pubsub event delivery
-	router.POST("/api/integrations/pubsub/events", estafetteAPIHandler.PostPubsubEvent)
-	router.GET("/api/integrations/pubsub/status", func(c *gin.Context) { c.String(200, "Pub/Sub, I'm cool!") })
-
 	router.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
 	router.GET("/api/pipelines/:source/:owner/:repo", estafetteAPIHandler.GetPipeline)
 	router.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)
@@ -222,7 +218,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	}
 
 	// iap protected endpoints
-	iapAuthorizedRoutes := router.Group("/", authMiddleware.MiddlewareFunc())
+	iapAuthorizedRoutes := router.Group("/", authMiddleware.IAPJWTMiddlewareFunc())
 	{
 		iapAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.CreatePipelineBuild)
 		iapAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.CreatePipelineRelease)
@@ -234,6 +230,13 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		iapAuthorizedRoutes.GET("/api/config/trustedimages", estafetteAPIHandler.GetConfigTrustedImages)
 		iapAuthorizedRoutes.GET("/api/update-computed-tables", estafetteAPIHandler.UpdateComputedTables)
 	}
+
+	// google jwt auth protected endpoints
+	googleAuthorizedRoutes := router.Group("/", authMiddleware.GoogleJWTMiddlewareFunc())
+	{
+		googleAuthorizedRoutes.POST("/api/integrations/pubsub/events", estafetteAPIHandler.PostPubsubEvent)
+	}
+	router.GET("/api/integrations/pubsub/status", func(c *gin.Context) { c.String(200, "Pub/Sub, I'm cool!") })
 
 	// default routes
 	router.GET("/liveness", func(c *gin.Context) {

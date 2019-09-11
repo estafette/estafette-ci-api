@@ -3,6 +3,7 @@ package auth
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/gin-gonic/gin"
@@ -11,8 +12,9 @@ import (
 
 // Middleware handles authentication for routes requiring authentication
 type Middleware interface {
-	MiddlewareFunc() gin.HandlerFunc
 	APIKeyMiddlewareFunc() gin.HandlerFunc
+	IAPJWTMiddlewareFunc() gin.HandlerFunc
+	GoogleJWTMiddlewareFunc() gin.HandlerFunc
 }
 
 type authMiddlewareImpl struct {
@@ -29,7 +31,24 @@ func NewAuthMiddleware(config config.AuthConfig) (authMiddleware Middleware) {
 	return
 }
 
-func (m *authMiddlewareImpl) MiddlewareFunc() gin.HandlerFunc {
+func (m *authMiddlewareImpl) APIKeyMiddlewareFunc() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		authorizationHeader := c.GetHeader("Authorization")
+		if authorizationHeader != fmt.Sprintf("Bearer %v", m.config.APIKey) {
+			log.Error().
+				Str("authorizationHeader", authorizationHeader).
+				Msg("Authorization header bearer token is incorrect")
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		// set 'user' to enforce a handler method to require api key auth with `user := c.MustGet(gin.AuthUserKey).(string)` and ensuring the user equals 'apiKey'
+		c.Set(gin.AuthUserKey, "apiKey")
+	}
+}
+
+func (m *authMiddlewareImpl) IAPJWTMiddlewareFunc() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		// if no form of authentication is enabled return 401
@@ -54,19 +73,29 @@ func (m *authMiddlewareImpl) MiddlewareFunc() gin.HandlerFunc {
 	}
 }
 
-func (m *authMiddlewareImpl) APIKeyMiddlewareFunc() gin.HandlerFunc {
+func (m *authMiddlewareImpl) GoogleJWTMiddlewareFunc() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		authorizationHeader := c.GetHeader("Authorization")
-		if authorizationHeader != fmt.Sprintf("Bearer %v", m.config.APIKey) {
-			log.Error().
-				Str("authorizationHeader", authorizationHeader).
-				Msg("Authorization header bearer token is incorrect")
-			c.Status(http.StatusUnauthorized)
+		authorizationHeader := c.Request.Header.Get("Authorization")
+
+		if !strings.HasPrefix(authorizationHeader, "Bearer ") {
+			return
+		}
+
+		bearerTokenString := strings.TrimPrefix(authorizationHeader, "Bearer ")
+		valid, err := isValidGoogleJWT(bearerTokenString)
+
+		if err != nil {
+			log.Warn().Err(err).Str("bearer", bearerTokenString).Msgf("Error when validating Google JWT")
+			return
+		}
+
+		if !valid {
+			log.Warn().Err(err).Str("bearer", bearerTokenString).Msgf("Google JWT is not valid")
 			return
 		}
 
 		// set 'user' to enforce a handler method to require api key auth with `user := c.MustGet(gin.AuthUserKey).(string)` and ensuring the user equals 'apiKey'
-		c.Set(gin.AuthUserKey, "apiKey")
+		c.Set(gin.AuthUserKey, "google-jwt")
 	}
 }
