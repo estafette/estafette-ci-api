@@ -573,6 +573,8 @@ func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::TailPipelineBuildLogs")
 	defer span.Finish()
 
+	log.Debug().Str("Content-Type", c.Request.Header.Get("Content-Type")).Msg("Content-Type for TailPipelineBuildLogs")
+
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 	id := c.Param("revisionOrId")
@@ -1041,6 +1043,8 @@ func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::TailPipelineReleaseLogs")
 	defer span.Finish()
+
+	log.Debug().Str("Content-Type", c.Request.Header.Get("Content-Type")).Msg("Content-Type for TailPipelineReleaseLogs")
 
 	owner := c.Param("owner")
 	repo := c.Param("repo")
