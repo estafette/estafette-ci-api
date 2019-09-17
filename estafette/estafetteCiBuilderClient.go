@@ -203,6 +203,9 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 	containerName := "estafette-ci-builder"
 	repository := "estafette/estafette-ci-builder"
 	tag := ciBuilderParams.Track
+	if ciBuilderParams.Manifest.Builder.OperatingSystem == "windows" {
+		tag = "windowsservercore-1809"
+	}
 	image := fmt.Sprintf("%v:%v", repository, tag)
 	imagePullPolicy := "Always"
 	digest, err := cbc.dockerHubClient.GetDigestCached(ctx, repository, tag)
