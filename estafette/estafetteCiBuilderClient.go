@@ -330,6 +330,93 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 		},
 	}
 
+	if ciBuilderParams.Manifest.Builder.OperatingSystem == "windows" {
+		// use emptydir volume in order to be able to have docker daemon on host mount path into internal container
+		workingDirectoryVolumeName := "working-directory"
+		volumes = append(volumes, &corev1.Volume{
+			Name: &workingDirectoryVolumeName,
+			VolumeSource: &corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		})
+
+		workingDirectoryVolumeMountPath := "C:/estafette-work"
+		volumeMounts = append(volumeMounts, &corev1.VolumeMount{
+			Name:      &workingDirectoryVolumeName,
+			MountPath: &workingDirectoryVolumeMountPath,
+		})
+
+		// windows builds uses docker-outside-docker, for which the hosts docker socket needs to be mounted into the ci-builder container
+		dockerSocketVolumeName := "docker-socket"
+		dockerSocketVolumeHostPath := `\\.\pipe\docker_engine`
+		volumes = append(volumes, &corev1.Volume{
+			Name: &dockerSocketVolumeName,
+			VolumeSource: &corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: &dockerSocketVolumeHostPath,
+				},
+			},
+		})
+
+		dockerSocketVolumeMountPath := `\\.\pipe\docker_engine`
+		volumeMounts = append(volumeMounts, &corev1.VolumeMount{
+			Name:      &dockerSocketVolumeName,
+			MountPath: &dockerSocketVolumeMountPath,
+		})
+
+		// in order not to have to install the docker cli into the ci-builder container it's mounted from the host as well
+		dockerCLIVolumeName := "docker-cli"
+		dockerCLIVolumeHostPath := `C:/Program Files/Docker`
+		volumes = append(volumes, &corev1.Volume{
+			Name: &dockerCLIVolumeName,
+			VolumeSource: &corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: &dockerCLIVolumeHostPath,
+				},
+			},
+		})
+
+		dockerCLIVolumeMountPath := `C:/Program Files/Docker`
+		volumeMounts = append(volumeMounts, &corev1.VolumeMount{
+			Name:      &dockerCLIVolumeName,
+			MountPath: &dockerCLIVolumeMountPath,
+		})
+
+		// docker in kubernetes on windows is still at 18.09.7, which has api version 1.39
+		// todo - use auto detect for the docker api version
+		dockerAPIVersionName := "DOCKER_API_VERSION"
+		dockerAPIVersionValue := "1.39"
+		environmentVariables = append(environmentVariables,
+			&corev1.EnvVar{
+				Name:  &dockerAPIVersionName,
+				Value: &dockerAPIVersionValue,
+			},
+		)
+
+		podUIDName := "POD_UID"
+		podUIDFieldPath := "metadata.uid"
+		environmentVariables = append(environmentVariables,
+			&corev1.EnvVar{
+				Name: &podUIDName,
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: &podUIDFieldPath,
+					},
+				},
+			},
+		)
+
+		// this is the path on the host mounted into any of the stage containers; with docker-outside-docker the daemon can't see paths inside the ci-builder container
+		estafetteWorkdirName := "ESTAFETTE_WORKDIR"
+		estafetteWorkdirValue := "c:/var/lib/kubelet/pods/$(POD_UID)/volumes/kubernetes.io~empty-dir/" + workingDirectoryVolumeName
+		environmentVariables = append(environmentVariables,
+			&corev1.EnvVar{
+				Name:  &estafetteWorkdirName,
+				Value: &estafetteWorkdirValue,
+			},
+		)
+	}
+
 	job = &batchv1.Job{
 		Metadata: &metav1.ObjectMeta{
 			Name:      &jobName,
