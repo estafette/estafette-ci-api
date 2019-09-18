@@ -46,7 +46,7 @@ func (eh *eventHandler) PostPubsubEvent(c *gin.Context) {
 		return
 	}
 
-	pubsubEvent, err := eh.apiClient.SubscriptionForTopic(message)
+	pubsubEvent, err := eh.apiClient.SubscriptionForTopic(ctx, message)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed retrieving topic for pubsub subscription")
 		c.String(http.StatusInternalServerError, "Oop, something's wrong!")

@@ -10,13 +10,14 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	pscontracts "github.com/estafette/estafette-ci-api/pubsub/contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
+	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 )
 
 // APIClient is the interface for communicating with the pubsub apis
 type APIClient interface {
-	SubscriptionForTopic(message pscontracts.PubSubPushMessage) (*manifest.EstafettePubSubEvent, error)
-	SubscribeToTopic(projectID, topicName string) error
+	SubscriptionForTopic(ctx context.Context, message pscontracts.PubSubPushMessage) (*manifest.EstafettePubSubEvent, error)
+	SubscribeToTopic(ctx context.Context, projectID, topicName string) error
 	SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error
 }
 
@@ -40,10 +41,16 @@ func NewPubSubAPIClient(config config.PubsubConfig) (APIClient, error) {
 	}, nil
 }
 
-func (ac *apiClient) SubscriptionForTopic(message pscontracts.PubSubPushMessage) (*manifest.EstafettePubSubEvent, error) {
+func (ac *apiClient) SubscriptionForTopic(ctx context.Context, message pscontracts.PubSubPushMessage) (*manifest.EstafettePubSubEvent, error) {
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, "PubSubApi::SubscriptionForTopic")
+	defer span.Finish()
 
 	projectID := message.GetProject()
 	subscriptionName := message.GetSubscription()
+
+	span.SetTag("project", projectID)
+	span.SetTag("subscription", subscriptionName)
 
 	if strings.HasSuffix(subscriptionName, ac.config.SubscriptionNameSuffix) {
 		return &manifest.EstafettePubSubEvent{
@@ -62,13 +69,21 @@ func (ac *apiClient) SubscriptionForTopic(message pscontracts.PubSubPushMessage)
 		return nil, err
 	}
 
+	span.SetTag("topic", subscriptionConfig.Topic.ID())
+
 	return &manifest.EstafettePubSubEvent{
 		Project: projectID,
 		Topic:   subscriptionConfig.Topic.ID(),
 	}, nil
 }
 
-func (ac *apiClient) SubscribeToTopic(projectID, topicName string) error {
+func (ac *apiClient) SubscribeToTopic(ctx context.Context, projectID, topicName string) error {
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, "PubSubApi::SubscribeToTopic")
+	defer span.Finish()
+
+	span.SetTag("project", projectID)
+	span.SetTag("topic", topicName)
 
 	// check if topic exists
 	topic := ac.pubsubClient.TopicInProject(topicName, projectID)
@@ -119,6 +134,9 @@ func (ac *apiClient) getSubscriptionName(topicName string) string {
 
 func (ac *apiClient) SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error {
 
+	span, ctx := opentracing.StartSpanFromContext(ctx, "PubSubApi::SubscribeToPubsubTriggers")
+	defer span.Finish()
+
 	mft, err := manifest.ReadManifest(manifestString)
 	if err != nil {
 		return err
@@ -127,7 +145,7 @@ func (ac *apiClient) SubscribeToPubsubTriggers(ctx context.Context, manifestStri
 	if len(mft.Triggers) > 0 {
 		for _, t := range mft.Triggers {
 			if t.PubSub != nil {
-				err := ac.SubscribeToTopic(t.PubSub.Project, t.PubSub.Topic)
+				err := ac.SubscribeToTopic(ctx, t.PubSub.Project, t.PubSub.Topic)
 				if err != nil {
 					return err
 				}
