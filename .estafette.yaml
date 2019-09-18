@@ -128,7 +128,7 @@ releases:
             SLACK_APP_OAUTH_ACCESS_TOKEN: estafette.secret(AgoWqIxJeivh3lk1.EBKvf2qQVSTU7GPxIC-973QgCTLNexFG9i9yd_6I7-tjaBL-oLUUxLliHgn___xTMkuhHzCMAvnv9kD1HtFu5KcO7Zn9XYPpQzXS1qi8GxCnNzOX8akgIfI22GWhqX72n3rR1K50jvrKER32EhASiBG-IltyTniSLbB5QKwnoi4cMIrpFVMnHOTIhGGxgU9QDi1gbielyuk29dhbvrzx4srdnQ3pElbjOMg6)
             PUB_SUB_DEFAULT_PROJECT: estafette.secret(W-UwDRlucOklkMOd.cAUm0YTPe_S9ySCFOzSpAIgZaHmFkp4uhNG9dwYZu0uR9pz9tw0=)
             PUB_SUB_ENDPOINT: estafette.secret(QMpxX1VL0k7IZ3dK._eMU5mdC6mPdgs57aw3K5jdwSAimDxwTMnqR4MBPAQYtxLdzqQZAVk_iUQ7_QeCAAkOE-XLxAOU6QUVJ1O5_BvP4em9tdYl3SkLPWl0dXahxAjpyci1drw==)
-            PUB_SUB_AUDIENCE: estafette.secret(gKy1YiSA4QzU6sZG.n7qgZCRB1-P7ooC9aUTEmQ==)
+            PUB_SUB_AUDIENCE: estafette.secret(RGphqpCRn5rDwEIl.Bh4aeW4bFsI0pgEzdAHP-P_GqlSecXcncH_RMlsAGGaUggE=)
             PUB_SUB_SERVICE_ACCOUNT_EMAIL: estafette.secret(ZLlTGy_1OaSyQd_5.dyG1LGc62P_VHygBndG1VBT9AxvFCHXLLb0pnGyi0IsQvTX_SvTWIxulsNHT4OR1EP80XFiHvNe0w-SNyAEzBPl9kD-qoa4K)
             PUB_SUB_SUBSCRIPTION_SUFFIX: ~estafette-ci-pubsub-trigger
             ESTAFETTE_CI_API_KEY: estafette.secret(IhMzR1XM4wCysGPN.cGRQKuqylJjPnWPKQHS3Sbso3bBUshtJDpOjDU39bbJrkC0nuXdLzBy51eYlrB02SfYQeg8_muLZd3Fb1AcLy1zXKeJZ-83-McjbI9_BHC_fabixDTnfbPgQvtGymiSW3Jyt_3-Elo7_X93jeXklQ56XkQ==)
