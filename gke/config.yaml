@@ -18,11 +18,11 @@ integrations:
     appOAuthAccessToken: {{.SLACK_APP_OAUTH_ACCESS_TOKEN}}
 
   pubsub:
-    defaultProject: {{.PUB_SUB_DEFAULT_PROJECT}} verdant-current-104210
-    endpoint: {{.PUB_SUB_ENDPOINT}} https://estafette-integrations.travix.com/api/integrations/pubsub/events
+    defaultProject: {{.PUB_SUB_DEFAULT_PROJECT}}
+    endpoint: {{.PUB_SUB_ENDPOINT}}
     audience: {{.PUB_SUB_AUDIENCE}}
-    serviceAccountEmail: {{.PUB_SUB_SERVICE_ACCOUNT_EMAIL}} estafette@verdant-current-104210.iam.gserviceaccount.com
-    subscriptionNameSuffix: {{.PUB_SUB_SUBSCRIPTION_SUFFIX}} ~estafette-ci-pubsub-trigger
+    serviceAccountEmail: {{.PUB_SUB_SERVICE_ACCOUNT_EMAIL}}
+    subscriptionNameSuffix: {{.PUB_SUB_SUBSCRIPTION_SUFFIX}}
 
 apiServer:
   baseURL: https://{{.HOSTNAMES}}/
