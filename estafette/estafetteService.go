@@ -644,7 +644,7 @@ func (s *buildServiceImpl) FireReleaseTriggers(ctx context.Context, release cont
 
 func (s *buildServiceImpl) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) error {
 
-	log.Info().Msgf("[trigger:pubsub(%v-%v)] Checking if triggers need to be fired...", pubsubEvent.Project, pubsubEvent.Topic)
+	log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Checking if triggers need to be fired...", pubsubEvent.Project, pubsubEvent.Topic)
 
 	// retrieve all pipeline triggers
 	pipelines, err := s.cockroachDBClient.GetPubSubTriggers(ctx, pubsubEvent)
@@ -663,9 +663,9 @@ func (s *buildServiceImpl) FirePubSubTriggers(ctx context.Context, pubsubEvent m
 	for _, p := range pipelines {
 		for _, t := range p.Triggers {
 
-			log.Debug().Interface("event", pubsubEvent).Interface("trigger", t).Msgf("[trigger:pubsub(%v-%v)] Checking if pipeline '%v/%v/%v' trigger should fire...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName)
+			log.Debug().Interface("event", pubsubEvent).Interface("trigger", t).Msgf("[trigger:pubsub(projects/%v/topics/%v)] Checking if pipeline '%v/%v/%v' trigger should fire...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName)
 
-			if t.Git == nil {
+			if t.PubSub == nil {
 				continue
 			}
 
@@ -677,23 +677,23 @@ func (s *buildServiceImpl) FirePubSubTriggers(ctx context.Context, pubsubEvent m
 
 				// create new build for t.Run
 				if t.BuildAction != nil {
-					log.Info().Msgf("[trigger:pubsub(%v-%v)] Firing build action '%v/%v/%v', branch '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+					log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Firing build action '%v/%v/%v', branch '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					err := s.fireBuild(ctx, *p, t, e)
 					if err != nil {
-						log.Info().Msgf("[trigger:pubsub(%v-%v)] Failed starting build action'%v/%v/%v', branch '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Failed starting build action'%v/%v/%v', branch '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					}
 				} else if t.ReleaseAction != nil {
-					log.Info().Msgf("[trigger:pubsub(%v-%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+					log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					err := s.fireRelease(ctx, *p, t, e)
 					if err != nil {
-						log.Info().Msgf("[trigger:pubsub(%v-%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
 				}
 			}
 		}
 	}
 
-	log.Info().Msgf("[trigger:pubsub(%v-%v)] Fired %v out of %v triggers for %v pipelines", pubsubEvent.Project, pubsubEvent.Topic, firedTriggerCount, triggerCount, len(pipelines))
+	log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Fired %v out of %v triggers for %v pipelines", pubsubEvent.Project, pubsubEvent.Topic, firedTriggerCount, triggerCount, len(pipelines))
 
 	return nil
 }
