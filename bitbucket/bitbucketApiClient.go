@@ -20,7 +20,7 @@ import (
 	"github.com/sethgrid/pester"
 )
 
-// APIClient is the interface for running kubernetes commands specific to this application
+// APIClient is the interface for communicating with the bitbucket api
 type APIClient interface {
 	GetAccessToken(context.Context) (bbcontracts.AccessToken, error)
 	GetAuthenticatedRepositoryURL(bbcontracts.AccessToken, string) (string, error)

@@ -3,6 +3,7 @@ module github.com/estafette/estafette-ci-api
 go 1.12
 
 require (
+	cloud.google.com/go v0.38.0
 	github.com/Masterminds/squirrel v1.1.0
 	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38 // indirect
 	github.com/alecthomas/colour v0.0.0-20160524082231-60882d9e2721 // indirect
@@ -32,6 +33,6 @@ require (
 	github.com/uber/jaeger-client-go v2.16.0+incompatible
 	github.com/uber/jaeger-lib v2.0.0+incompatible
 	go.uber.org/atomic v1.4.0 // indirect
-	google.golang.org/appengine v0.0.0-20170801183137-c5a90ac045b7 // indirect
+	google.golang.org/api v0.10.0 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 )

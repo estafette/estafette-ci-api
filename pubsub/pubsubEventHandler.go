@@ -15,11 +15,14 @@ type EventHandler interface {
 }
 
 type eventHandler struct {
+	apiClient APIClient
 }
 
 // NewPubSubEventHandler returns a pubsub.EventHandler
-func NewPubSubEventHandler() EventHandler {
-	return &eventHandler{}
+func NewPubSubEventHandler(apiClient APIClient) EventHandler {
+	return &eventHandler{
+		apiClient: apiClient,
+	}
 }
 
 func (eh *eventHandler) PostPubsubEvent(c *gin.Context) {
@@ -40,11 +43,19 @@ func (eh *eventHandler) PostPubsubEvent(c *gin.Context) {
 		return
 	}
 
+	pubsubEvent, err := eh.apiClient.SubscriptionToTopic(message)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving topic for pubsub subscription")
+		c.String(http.StatusInternalServerError, "Oop, something's wrong!")
+		return
+	}
+
 	log.Info().
 		Interface("msg", message).
 		Str("data", message.GetDecodedData()).
 		Str("project", message.GetProject()).
 		Str("subscription", message.GetSubscription()).
+		Str("topic", pubsubEvent.Topic).
 		Msg("Successfully binded pubsub push event")
 
 	c.String(http.StatusOK, "Aye aye!")

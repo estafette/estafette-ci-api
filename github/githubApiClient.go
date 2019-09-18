@@ -22,7 +22,7 @@ import (
 	"github.com/sethgrid/pester"
 )
 
-// APIClient is the interface for running kubernetes commands specific to this application
+// APIClient is the interface for communicating with the github api
 type APIClient interface {
 	GetGithubAppToken(ctx context.Context) (string, error)
 	GetInstallationID(context.Context, string) (int, error)
