@@ -98,7 +98,11 @@ func (ac *apiClient) SubscribeToTopic(ctx context.Context, projectID, topicID st
 	// check if subscription already exists
 	subscriptionName := ac.getSubscriptionName(topicID)
 	subscription := ac.pubsubClient.SubscriptionInProject(subscriptionName, projectID)
+	log.Info().Msgf("Checking if subscription %v for topic %v in project %v exists...", subscriptionName, topicID, projectID)
 	subscriptionExists, err := subscription.Exists(context.Background())
+	if err != nil {
+		return err
+	}
 	if subscriptionExists {
 		// already exists, no need to do anything
 		return nil
