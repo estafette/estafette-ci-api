@@ -1,4 +1,4 @@
-package estafette
+package contracts
 
 import (
 	"encoding/base64"

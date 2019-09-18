@@ -76,7 +76,6 @@ type APIHandler interface {
 	EncryptSecret(*gin.Context)
 
 	PostCronEvent(*gin.Context)
-	PostPubsubEvent(*gin.Context)
 }
 
 type apiHandlerImpl struct {
@@ -1872,35 +1871,6 @@ func (h *apiHandlerImpl) PostCronEvent(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Hey Cron, here's a tock for your tick"})
-}
-
-func (h *apiHandlerImpl) PostPubsubEvent(c *gin.Context) {
-
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "Api::PostPubsubEvent")
-	defer span.Finish()
-
-	if c.MustGet(gin.AuthUserKey).(string) != "google-jwt" {
-		c.Status(http.StatusUnauthorized)
-		return
-	}
-
-	var message PubSubPushMessage
-	err := c.BindJSON(&message)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed binding pubsub push event")
-		c.String(http.StatusInternalServerError, "Oop, something's wrong!")
-		return
-	}
-
-	log.Info().
-		Interface("msg", message).
-		Str("data", message.GetDecodedData()).
-		Str("project", message.GetProject()).
-		Str("subscription", message.GetSubscription()).
-		Msg("Successfully binded pubsub push event")
-
-	c.String(http.StatusOK, "Aye aye!")
-	return
 }
 
 func (h *apiHandlerImpl) getSinceFilter(c *gin.Context) []string {

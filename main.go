@@ -15,6 +15,7 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/estafette"
 	"github.com/estafette/estafette-ci-api/github"
+	"github.com/estafette/estafette-ci-api/pubsub"
 	"github.com/estafette/estafette-ci-api/slack"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	foundation "github.com/estafette/estafette-foundation"
@@ -141,6 +142,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	githubEventHandler := github.NewGithubEventHandler(githubAPIClient, estafetteBuildService, *config.Integrations.Github, prometheusInboundEventTotals)
 	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketAPIClient, estafetteBuildService, prometheusInboundEventTotals)
 	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, slackAPIClient, cockroachDBClient, *config.APIServer, estafetteBuildService, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc(), prometheusInboundEventTotals)
+	pubsubEventHandler := pubsub.NewPubSubEventHandler()
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, ciBuilderClient, estafetteBuildService, prometheusInboundEventTotals)
 	warningHelper := estafette.NewWarningHelper()
 	estafetteAPIHandler := estafette.NewAPIHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, ciBuilderClient, estafetteBuildService, warningHelper, secretHelper, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
@@ -179,6 +181,15 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 
 	router.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
 	router.GET("/api/integrations/slack/status", func(c *gin.Context) { c.String(200, "Slack, I'm cool!") })
+
+
+	// google jwt auth protected endpoints
+	googleAuthorizedRoutes := router.Group("/", authMiddleware.GoogleJWTMiddlewareFunc())
+	{
+		googleAuthorizedRoutes.POST("/api/integrations/pubsub/events", pubsubEventHandler.PostPubsubEvent)
+	}
+	router.GET("/api/integrations/pubsub/status", func(c *gin.Context) { c.String(200, "Pub/Sub, I'm cool!") })
+
 
 	router.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
 	router.GET("/api/pipelines/:source/:owner/:repo", estafetteAPIHandler.GetPipeline)
@@ -232,13 +243,6 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		iapAuthorizedRoutes.GET("/api/config/trustedimages", estafetteAPIHandler.GetConfigTrustedImages)
 		iapAuthorizedRoutes.GET("/api/update-computed-tables", estafetteAPIHandler.UpdateComputedTables)
 	}
-
-	// google jwt auth protected endpoints
-	googleAuthorizedRoutes := router.Group("/", authMiddleware.GoogleJWTMiddlewareFunc())
-	{
-		googleAuthorizedRoutes.POST("/api/integrations/pubsub/events", estafetteAPIHandler.PostPubsubEvent)
-	}
-	router.GET("/api/integrations/pubsub/status", func(c *gin.Context) { c.String(200, "Pub/Sub, I'm cool!") })
 
 	// default routes
 	router.GET("/liveness", func(c *gin.Context) {
