@@ -204,6 +204,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 	repository := "estafette/estafette-ci-builder"
 	tag := ciBuilderParams.Track
 	if ciBuilderParams.Manifest.Builder.OperatingSystem == "windows" {
+		// this is hardcoded for now, but when we manage to build windows containers for the estafette-ci-builder from within estafette itself we should give it dev, beta and stable tracks as well (and do the same for various extensions)
 		tag = "windowsservercore-1809"
 	}
 	image := fmt.Sprintf("%v:%v", repository, tag)
