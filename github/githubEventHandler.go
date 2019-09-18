@@ -156,7 +156,12 @@ func (h *eventHandlerImpl) CreateJobForGithubPush(ctx context.Context, pushEvent
 
 	// handle git triggers
 	go func() {
-		h.buildService.FireGitTriggers(ctx, gitEvent)
+		err := h.buildService.FireGitTriggers(ctx, gitEvent)
+		if err != nil {
+			log.Error().Err(err).
+				Interface("gitEvent", gitEvent).
+				Msg("Failed firing git triggers")
+		}
 	}()
 
 	// get access token

@@ -66,7 +66,12 @@ func (eh *eventHandler) PostPubsubEvent(c *gin.Context) {
 		Str("topic", pubsubEvent.Topic).
 		Msg("Successfully binded pubsub push event")
 
-	eh.buildService.FirePubSubTriggers(ctx, *pubsubEvent)
+	err = eh.buildService.FirePubSubTriggers(ctx, *pubsubEvent)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed firing pubsub triggers for topic %v in project %v", pubsubEvent.Topic, pubsubEvent.Project)
+		c.String(http.StatusInternalServerError, "Oop, something's wrong!")
+		return
+	}
 
 	c.String(http.StatusOK, "Aye aye!")
 	return
