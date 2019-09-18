@@ -78,6 +78,7 @@ type DBClient interface {
 	GetGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) ([]*contracts.Pipeline, error)
 	GetPipelineTriggers(ctx context.Context, build contracts.Build, event string) ([]*contracts.Pipeline, error)
 	GetReleaseTriggers(ctx context.Context, release contracts.Release, event string) ([]*contracts.Pipeline, error)
+	GetPubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) ([]*contracts.Pipeline, error)
 	GetCronTriggers(context.Context) ([]*contracts.Pipeline, error)
 
 	selectBuildsQuery() sq.SelectBuilder
@@ -2741,6 +2742,12 @@ func (dbc *cockroachDBClientImpl) GetTriggers(ctx context.Context, triggerType, 
 
 		break
 
+	case "pubsub":
+
+		trigger.PubSub = &manifest.EstafettePubSubTrigger{}
+
+		break
+
 	default:
 
 		return pipelines, fmt.Errorf("Trigger type %v is not supported", triggerType)
@@ -2792,6 +2799,13 @@ func (dbc *cockroachDBClientImpl) GetReleaseTriggers(ctx context.Context, releas
 	name := fmt.Sprintf("%v/%v/%v", release.RepoSource, release.RepoOwner, release.RepoName)
 
 	return dbc.GetTriggers(ctx, triggerType, name, event)
+}
+
+func (dbc *cockroachDBClientImpl) GetPubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) ([]*contracts.Pipeline, error) {
+
+	triggerType := "pubsub"
+
+	return dbc.GetTriggers(ctx, triggerType, "", "")
 }
 
 func (dbc *cockroachDBClientImpl) GetCronTriggers(ctx context.Context) ([]*contracts.Pipeline, error) {

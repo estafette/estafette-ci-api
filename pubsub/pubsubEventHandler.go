@@ -3,6 +3,7 @@ package pubsub
 import (
 	"net/http"
 
+	"github.com/estafette/estafette-ci-api/estafette"
 	pscontracts "github.com/estafette/estafette-ci-api/pubsub/contracts"
 	"github.com/gin-gonic/gin"
 	"github.com/opentracing/opentracing-go"
@@ -15,19 +16,21 @@ type EventHandler interface {
 }
 
 type eventHandler struct {
-	apiClient APIClient
+	apiClient    APIClient
+	buildService estafette.BuildService
 }
 
 // NewPubSubEventHandler returns a pubsub.EventHandler
-func NewPubSubEventHandler(apiClient APIClient) EventHandler {
+func NewPubSubEventHandler(apiClient APIClient, buildService estafette.BuildService) EventHandler {
 	return &eventHandler{
-		apiClient: apiClient,
+		apiClient:    apiClient,
+		buildService: buildService,
 	}
 }
 
 func (eh *eventHandler) PostPubsubEvent(c *gin.Context) {
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "Api::PostPubsubEvent")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "PubSub::PostPubsubEvent")
 	defer span.Finish()
 
 	if c.MustGet(gin.AuthUserKey).(string) != "google-jwt" {
@@ -49,6 +52,11 @@ func (eh *eventHandler) PostPubsubEvent(c *gin.Context) {
 		c.String(http.StatusInternalServerError, "Oop, something's wrong!")
 		return
 	}
+	if pubsubEvent == nil {
+		log.Error().Msg("Failed retrieving pubsubEvent for pubsub subscription")
+		c.String(http.StatusInternalServerError, "Oop, something's wrong!")
+		return
+	}
 
 	log.Info().
 		Interface("msg", message).
@@ -57,6 +65,8 @@ func (eh *eventHandler) PostPubsubEvent(c *gin.Context) {
 		Str("subscription", message.GetSubscription()).
 		Str("topic", pubsubEvent.Topic).
 		Msg("Successfully binded pubsub push event")
+
+	eh.buildService.FirePubSubTriggers(ctx, *pubsubEvent)
 
 	c.String(http.StatusOK, "Aye aye!")
 	return
