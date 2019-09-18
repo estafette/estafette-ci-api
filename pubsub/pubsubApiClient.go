@@ -17,7 +17,7 @@ import (
 // APIClient is the interface for communicating with the pubsub apis
 type APIClient interface {
 	SubscriptionForTopic(ctx context.Context, message pscontracts.PubSubPushMessage) (*manifest.EstafettePubSubEvent, error)
-	SubscribeToTopic(ctx context.Context, projectID, topicName string) error
+	SubscribeToTopic(ctx context.Context, projectID, topicID string) error
 	SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error
 }
 
@@ -77,26 +77,26 @@ func (ac *apiClient) SubscriptionForTopic(ctx context.Context, message pscontrac
 	}, nil
 }
 
-func (ac *apiClient) SubscribeToTopic(ctx context.Context, projectID, topicName string) error {
+func (ac *apiClient) SubscribeToTopic(ctx context.Context, projectID, topicID string) error {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, "PubSubApi::SubscribeToTopic")
 	defer span.Finish()
 
 	span.SetTag("project", projectID)
-	span.SetTag("topic", topicName)
+	span.SetTag("topic", topicID)
 
 	// check if topic exists
-	topic := ac.pubsubClient.TopicInProject(topicName, projectID)
+	topic := ac.pubsubClient.TopicInProject(topicID, projectID)
 	topicExists, err := topic.Exists(context.Background())
 	if err != nil {
 		return err
 	}
 	if !topicExists {
-		return fmt.Errorf("Pub/Sub topic %v does not exist in project %v, cannot subscribe to it", topicName, projectID)
+		return fmt.Errorf("Pub/Sub topic %v does not exist in project %v, cannot subscribe to it", topicID, projectID)
 	}
 
 	// check if subscription already exists
-	subscriptionName := ac.getSubscriptionName(topicName)
+	subscriptionName := ac.getSubscriptionName(topicID)
 	subscription := ac.pubsubClient.SubscriptionInProject(subscriptionName, projectID)
 	subscriptionExists, err := subscription.Exists(context.Background())
 	if subscriptionExists {
@@ -105,6 +105,7 @@ func (ac *apiClient) SubscribeToTopic(ctx context.Context, projectID, topicName 
 	}
 
 	// create a subscription to the topic
+	log.Info().Msgf("Creating subscription %v for topic %v in project %v...", subscriptionName, topicID, projectID)
 	_, err = ac.pubsubClient.CreateSubscription(context.Background(), subscriptionName, ps.SubscriptionConfig{
 		Topic: topic,
 		PushConfig: ps.PushConfig{
