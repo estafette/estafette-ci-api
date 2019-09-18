@@ -3,7 +3,8 @@ module github.com/estafette/estafette-ci-api
 go 1.12
 
 require (
-	cloud.google.com/go v0.38.0
+	cloud.google.com/go/pubsub v1.0.1
+	cloud.google.com/go/storage v1.0.0 // indirect
 	github.com/Masterminds/squirrel v1.1.0
 	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38 // indirect
 	github.com/alecthomas/colour v0.0.0-20160524082231-60882d9e2721 // indirect

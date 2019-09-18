@@ -55,6 +55,7 @@ type APIConfigIntegrations struct {
 	Github    *GithubConfig    `yaml:"github,omitempty"`
 	Bitbucket *BitbucketConfig `yaml:"bitbucket,omitempty"`
 	Slack     *SlackConfig     `yaml:"slack,omitempty"`
+	Pubsub    *PubsubConfig    `yaml:"pubsub,omitempty"`
 }
 
 // GithubConfig is used to configure github integration
@@ -79,6 +80,15 @@ type SlackConfig struct {
 	ClientSecret         string `yaml:"clientSecret"`
 	AppVerificationToken string `yaml:"appVerificationToken"`
 	AppOAuthAccessToken  string `yaml:"appOAuthAccessToken"`
+}
+
+// PubsubConfig is used to be able to subscribe to pub/sub topics for triggering pipelines based on pub/sub events
+type PubsubConfig struct {
+	DefaultProject         string `yaml:"defaultProject"`
+	Endpoint               string `yaml:"endpoint"`
+	Audience               string `yaml:"audience"`
+	ServiceAccountEmail    string `yaml:"serviceAccountEmail"`
+	SubscriptionNameSuffix string `yaml:"subscriptionNameSuffix"`
 }
 
 // ConfigReader reads the api config from file

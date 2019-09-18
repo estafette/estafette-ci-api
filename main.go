@@ -125,7 +125,10 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	githubAPIClient := github.NewGithubAPIClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
 	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
 	slackAPIClient := slack.NewSlackAPIClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
-	pubSubAPIClient := pubsub.NewPubSubAPIClient()
+	pubSubAPIClient, err := pubsub.NewPubSubAPIClient(*config.Integrations.Pubsub)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating new PubSubAPIClient has failed")
+	}
 	cockroachDBClient := cockroach.NewCockroachDBClient(*config.Database, prometheusOutboundAPICallTotals)
 	ciBuilderClient, err := estafette.NewCiBuilderClient(*config, *encryptedConfig, secretHelper, prometheusOutboundAPICallTotals)
 	if err != nil {
@@ -140,8 +143,8 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 
 	log.Debug().Msg("Creating services, handlers and helpers...")
 	estafetteBuildService := estafette.NewBuildService(cockroachDBClient, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
-	githubEventHandler := github.NewGithubEventHandler(githubAPIClient, estafetteBuildService, *config.Integrations.Github, prometheusInboundEventTotals)
-	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketAPIClient, estafetteBuildService, prometheusInboundEventTotals)
+	githubEventHandler := github.NewGithubEventHandler(githubAPIClient, pubSubAPIClient, estafetteBuildService, *config.Integrations.Github, prometheusInboundEventTotals)
+	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketAPIClient, pubSubAPIClient, estafetteBuildService, prometheusInboundEventTotals)
 	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, slackAPIClient, cockroachDBClient, *config.APIServer, estafetteBuildService, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc(), prometheusInboundEventTotals)
 	pubsubEventHandler := pubsub.NewPubSubEventHandler(pubSubAPIClient, estafetteBuildService)
 	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, ciBuilderClient, estafetteBuildService, prometheusInboundEventTotals)

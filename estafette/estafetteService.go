@@ -257,7 +257,10 @@ func (s *buildServiceImpl) CreateBuild(ctx context.Context, build contracts.Buil
 
 		// handle triggers
 		go func() {
-			s.FirePipelineTriggers(ctx, build, "started")
+			err := s.FirePipelineTriggers(ctx, build, "started")
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed firing pipeline triggers for build %v/%v/%v revision %v", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+			}
 		}()
 	} else if manifestError != nil {
 		log.Debug().Msgf("Pipeline %v/%v/%v revision %v with build id %v has invalid manifest, storing log...", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision, build.ID)

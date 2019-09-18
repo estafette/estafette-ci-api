@@ -8,6 +8,7 @@ import (
 
 	bbcontracts "github.com/estafette/estafette-ci-api/bitbucket/contracts"
 	"github.com/estafette/estafette-ci-api/estafette"
+	"github.com/estafette/estafette-ci-api/pubsub"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
@@ -24,14 +25,16 @@ type EventHandler interface {
 
 type eventHandlerImpl struct {
 	apiClient                    APIClient
+	pubsubAPIClient              pubsub.APIClient
 	buildService                 estafette.BuildService
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewBitbucketEventHandler returns a new bitbucket.EventHandler
-func NewBitbucketEventHandler(apiClient APIClient, buildService estafette.BuildService, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewBitbucketEventHandler(apiClient APIClient, pubsubAPIClient pubsub.APIClient, buildService estafette.BuildService, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		apiClient:                    apiClient,
+		pubsubAPIClient:              pubsubAPIClient,
 		buildService:                 buildService,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
@@ -178,4 +181,11 @@ func (h *eventHandlerImpl) CreateJobForBitbucketPush(ctx context.Context, pushEv
 	}
 
 	log.Info().Msgf("Created build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
+
+	go func() {
+		err := h.pubsubAPIClient.SubscribeToPubsubTriggers(ctx, manifestString)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed subscribing to topics for pubsub triggers for build %v/%v/%v revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
+		}
+	}()
 }

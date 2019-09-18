@@ -14,6 +14,7 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/estafette"
 	ghcontracts "github.com/estafette/estafette-ci-api/github/contracts"
+	"github.com/estafette/estafette-ci-api/pubsub"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
@@ -31,15 +32,17 @@ type EventHandler interface {
 
 type eventHandlerImpl struct {
 	apiClient                    APIClient
+	pubsubAPIClient              pubsub.APIClient
 	buildService                 estafette.BuildService
 	config                       config.GithubConfig
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewGithubEventHandler returns a github.EventHandler to handle incoming webhook events
-func NewGithubEventHandler(apiClient APIClient, buildService estafette.BuildService, config config.GithubConfig, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewGithubEventHandler(apiClient APIClient, pubsubAPIClient pubsub.APIClient, buildService estafette.BuildService, config config.GithubConfig, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		apiClient:                    apiClient,
+		pubsubAPIClient:              pubsubAPIClient,
 		buildService:                 buildService,
 		config:                       config,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
@@ -211,6 +214,13 @@ func (h *eventHandlerImpl) CreateJobForGithubPush(ctx context.Context, pushEvent
 	}
 
 	log.Info().Msgf("Created build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
+
+	go func() {
+		err := h.pubsubAPIClient.SubscribeToPubsubTriggers(ctx, manifestString)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed subscribing to topics for pubsub triggers for build %v/%v/%v revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
+		}
+	}()
 }
 
 func (h *eventHandlerImpl) HasValidSignature(body []byte, signatureHeader string) (bool, error) {
