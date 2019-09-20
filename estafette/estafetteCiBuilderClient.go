@@ -284,6 +284,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 		},
 	}
 
+	tolerations := []*corev1.Toleration{}
+
 	if ciBuilderParams.JobType == "release" {
 		// keep off of preemptibles
 		preemptibleAffinityOperator := "DoesNotExist"
@@ -419,6 +421,17 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 				Value: &estafetteWorkdirValue,
 			},
 		)
+
+		tolerationEffect := "NoSchedule"
+		tolerationKey := "node.kubernetes.io/os"
+		tolerationOperator := "Equal"
+		tolerationValue := "windows"
+		tolerations = append(tolerations, &corev1.Toleration{
+			Effect:   &tolerationEffect,
+			Key:      &tolerationKey,
+			Operator: &tolerationOperator,
+			Value:    &tolerationValue,
+		})
 	}
 
 	job = &batchv1.Job{
@@ -470,6 +483,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 					Volumes: volumes,
 
 					Affinity: affinity,
+
+					Tolerations: tolerations,
 				},
 			},
 		},
