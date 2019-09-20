@@ -119,7 +119,7 @@ func (ac *apiClient) SubscribeToTopic(ctx context.Context, projectID, topicID st
 				ServiceAccountEmail: ac.config.ServiceAccountEmail,
 			},
 		},
-		AckDeadline:       10 * time.Second,
+		AckDeadline:       20 * time.Second,
 		RetentionDuration: 3 * time.Hour,
 		ExpirationPolicy:  time.Duration(ac.config.SubscriptionIdleExpirationDays) * 24 * time.Hour,
 	})
