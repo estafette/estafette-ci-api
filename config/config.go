@@ -84,11 +84,12 @@ type SlackConfig struct {
 
 // PubsubConfig is used to be able to subscribe to pub/sub topics for triggering pipelines based on pub/sub events
 type PubsubConfig struct {
-	DefaultProject         string `yaml:"defaultProject"`
-	Endpoint               string `yaml:"endpoint"`
-	Audience               string `yaml:"audience"`
-	ServiceAccountEmail    string `yaml:"serviceAccountEmail"`
-	SubscriptionNameSuffix string `yaml:"subscriptionNameSuffix"`
+	DefaultProject                 string `yaml:"defaultProject"`
+	Endpoint                       string `yaml:"endpoint"`
+	Audience                       string `yaml:"audience"`
+	ServiceAccountEmail            string `yaml:"serviceAccountEmail"`
+	SubscriptionNameSuffix         string `yaml:"subscriptionNameSuffix"`
+	SubscriptionIdleExpirationDays int    `yaml:"subscriptionIdleExpirationDays"`
 }
 
 // ConfigReader reads the api config from file

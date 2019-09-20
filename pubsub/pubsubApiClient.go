@@ -121,7 +121,7 @@ func (ac *apiClient) SubscribeToTopic(ctx context.Context, projectID, topicID st
 		},
 		AckDeadline:       10 * time.Second,
 		RetentionDuration: 3 * time.Hour,
-		ExpirationPolicy:  31 * 24 * time.Hour,
+		ExpirationPolicy:  time.Duration(ac.config.SubscriptionIdleExpirationDays) * 24 * time.Hour,
 	})
 	if err != nil {
 		return err

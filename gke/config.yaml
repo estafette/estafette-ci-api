@@ -23,6 +23,7 @@ integrations:
     audience: {{.PUB_SUB_AUDIENCE}}
     serviceAccountEmail: {{.PUB_SUB_SERVICE_ACCOUNT_EMAIL}}
     subscriptionNameSuffix: {{.PUB_SUB_SUBSCRIPTION_SUFFIX}}
+    subscriptionIdleExpirationDays: 365
 
 apiServer:
   baseURL: https://{{.HOSTNAMES}}/
