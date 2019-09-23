@@ -36,6 +36,7 @@ type CiBuilderParams struct {
 	RepoRevision         string
 	EnvironmentVariables map[string]string
 	Track                string
+	OperatingSystem      string
 	AutoIncrement        int
 	VersionNumber        string
 	//HasValidManifest     bool

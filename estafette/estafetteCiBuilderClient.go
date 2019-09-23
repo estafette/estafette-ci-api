@@ -203,10 +203,6 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 	containerName := "estafette-ci-builder"
 	repository := "estafette/estafette-ci-builder"
 	tag := ciBuilderParams.Track
-	if ciBuilderParams.Manifest.Builder.OperatingSystem == "windows" {
-		// this is hardcoded for now, but when we manage to build windows containers for the estafette-ci-builder from within estafette itself we should give it dev, beta and stable tracks as well (and do the same for various extensions)
-		tag = "windowsservercore-1809"
-	}
 	image := fmt.Sprintf("%v:%v", repository, tag)
 	imagePullPolicy := "Always"
 	digest, err := cbc.dockerHubClient.GetDigestCached(ctx, repository, tag)
@@ -223,7 +219,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 
 	operatingSystemAffinityKey := "beta.kubernetes.io/os"
 	operatingSystemAffinityOperator := "In"
-	operatingSystemAffinityValue := ciBuilderParams.Manifest.Builder.OperatingSystem
+	operatingSystemAffinityValue := ciBuilderParams.OperatingSystem
 
 	// create configmap for builder config
 	builderConfigConfigmapName := jobName
@@ -336,7 +332,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 		},
 	}
 
-	if ciBuilderParams.Manifest.Builder.OperatingSystem == "windows" {
+	if ciBuilderParams.OperatingSystem == "windows" {
 		// use emptydir volume in order to be able to have docker daemon on host mount path into internal container
 		workingDirectoryVolumeName := "working-directory"
 		volumes = append(volumes, &corev1.Volume{

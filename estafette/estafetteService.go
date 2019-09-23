@@ -67,8 +67,10 @@ func (s *buildServiceImpl) CreateBuild(ctx context.Context, build contracts.Buil
 
 	// set builder track
 	builderTrack := "stable"
+	builderOperatingSystem := "linux"
 	if hasValidManifest {
 		builderTrack = mft.Builder.Track
+		builderOperatingSystem = mft.Builder.OperatingSystem
 	}
 
 	// get short version of repo source
@@ -230,6 +232,7 @@ func (s *buildServiceImpl) CreateBuild(ctx context.Context, build contracts.Buil
 		RepoRevision:         build.RepoRevision,
 		EnvironmentVariables: environmentVariableWithToken,
 		Track:                builderTrack,
+		OperatingSystem:      builderOperatingSystem,
 		AutoIncrement:        autoincrement,
 		VersionNumber:        build.BuildVersion,
 		Manifest:             mft,
@@ -328,6 +331,18 @@ func (s *buildServiceImpl) CreateRelease(ctx context.Context, release contracts.
 
 	// set builder track
 	builderTrack := mft.Builder.Track
+	builderOperatingSystem := mft.Builder.OperatingSystem
+
+	// get builder track override for release if exists
+	for _, r := range mft.Releases {
+		if r.Name == release.Name {
+			if r.Builder != nil {
+				builderTrack = r.Builder.Track
+				builderOperatingSystem = r.Builder.OperatingSystem
+				break
+			}
+		}
+	}
 
 	// get short version of repo source
 	shortRepoSource := s.getShortRepoSource(release.RepoSource)
@@ -406,6 +421,7 @@ func (s *buildServiceImpl) CreateRelease(ctx context.Context, release contracts.
 		RepoRevision:         repoRevision,
 		EnvironmentVariables: environmentVariableWithToken,
 		Track:                builderTrack,
+		OperatingSystem:      builderOperatingSystem,
 		AutoIncrement:        autoincrement,
 		VersionNumber:        release.ReleaseVersion,
 		Manifest:             mft,

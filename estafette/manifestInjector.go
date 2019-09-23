@@ -11,11 +11,6 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 
 	injectedManifest = mft
 
-	// for now bypass injection of stages when building with the windows builder
-	if injectedManifest.Builder.OperatingSystem == "windows" {
-		return
-	}
-
 	if !StepExists(injectedManifest.Stages, "git-clone") {
 		// add git-clone at the start
 		gitCloneStep := &manifest.EstafetteStage{
