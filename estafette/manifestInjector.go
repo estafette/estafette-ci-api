@@ -14,12 +14,9 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 	if !StepExists(injectedManifest.Stages, "git-clone") {
 		// add git-clone at the start
 		gitCloneStep := &manifest.EstafetteStage{
-			Name:             "git-clone",
-			ContainerImage:   fmt.Sprintf("extensions/git-clone:%v", builderTrack),
-			Shell:            "/bin/sh",
-			WorkingDirectory: "/estafette-work",
-			When:             "status == 'succeeded'",
-			AutoInjected:     true,
+			Name:           "git-clone",
+			ContainerImage: fmt.Sprintf("extensions/git-clone:%v", builderTrack),
+			AutoInjected:   true,
 		}
 		injectedManifest.Stages = append([]*manifest.EstafetteStage{gitCloneStep}, injectedManifest.Stages...)
 	}
@@ -32,11 +29,8 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 			CustomProperties: map[string]interface{}{
 				"status": "pending",
 			},
-			Shell:            "/bin/sh",
-			WorkingDirectory: "/estafette-work",
-			When:             "status == 'succeeded'",
-			AutoInjected:     true,
-			Retries:          3,
+			AutoInjected: true,
+			Retries:      3,
 		}
 		injectedManifest.Stages = append([]*manifest.EstafetteStage{setPendingBuildStatusStep}, injectedManifest.Stages...)
 	}
@@ -44,12 +38,9 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 	if !StepExists(injectedManifest.Stages, "envvars") {
 		// add git-clone at the start
 		envvarsStep := &manifest.EstafetteStage{
-			Name:             "envvars",
-			ContainerImage:   fmt.Sprintf("extensions/envvars:%v", builderTrack),
-			Shell:            "/bin/sh",
-			WorkingDirectory: "/estafette-work",
-			When:             "status == 'succeeded'",
-			AutoInjected:     true,
+			Name:           "envvars",
+			ContainerImage: fmt.Sprintf("extensions/envvars:%v", builderTrack),
+			AutoInjected:   true,
 		}
 		injectedManifest.Stages = append([]*manifest.EstafetteStage{envvarsStep}, injectedManifest.Stages...)
 	}
@@ -57,12 +48,9 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 	if !StepExists(injectedManifest.Stages, "prefetch") {
 		// add git-clone at the start
 		prefetchStep := &manifest.EstafetteStage{
-			Name:             "prefetch",
-			ContainerImage:   fmt.Sprintf("extensions/prefetch:%v", builderTrack),
-			Shell:            "/bin/sh",
-			WorkingDirectory: "/estafette-work",
-			When:             "status == 'succeeded'",
-			AutoInjected:     true,
+			Name:           "prefetch",
+			ContainerImage: fmt.Sprintf("extensions/prefetch:%v", builderTrack),
+			AutoInjected:   true,
 		}
 		injectedManifest.Stages = append([]*manifest.EstafetteStage{prefetchStep}, injectedManifest.Stages...)
 	}
@@ -70,13 +58,11 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 	if !StepExists(injectedManifest.Stages, "set-build-status") {
 		// add set-build-status at the end if it doesn't exist yet
 		setBuildStatusStep := &manifest.EstafetteStage{
-			Name:             "set-build-status",
-			ContainerImage:   fmt.Sprintf("extensions/%v-status:%v", gitSource, builderTrack),
-			Shell:            "/bin/sh",
-			WorkingDirectory: "/estafette-work",
-			When:             "status == 'succeeded' || status == 'failed'",
-			AutoInjected:     true,
-			Retries:          3,
+			Name:           "set-build-status",
+			ContainerImage: fmt.Sprintf("extensions/%v-status:%v", gitSource, builderTrack),
+			When:           "status == 'succeeded' || status == 'failed'",
+			AutoInjected:   true,
+			Retries:        3,
 		}
 		injectedManifest.Stages = append(injectedManifest.Stages, setBuildStatusStep)
 	}
@@ -87,12 +73,9 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 			if !StepExists(r.Stages, "git-clone") {
 				// add git-clone at the start
 				gitCloneStep := &manifest.EstafetteStage{
-					Name:             "git-clone",
-					ContainerImage:   fmt.Sprintf("extensions/git-clone:%v", builderTrack),
-					Shell:            "/bin/sh",
-					WorkingDirectory: "/estafette-work",
-					When:             "status == 'succeeded'",
-					AutoInjected:     true,
+					Name:           "git-clone",
+					ContainerImage: fmt.Sprintf("extensions/git-clone:%v", builderTrack),
+					AutoInjected:   true,
 				}
 				r.Stages = append([]*manifest.EstafetteStage{gitCloneStep}, r.Stages...)
 			}
@@ -101,12 +84,9 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 		if !StepExists(r.Stages, "envvars") {
 			// add git-clone at the start
 			envvarsStep := &manifest.EstafetteStage{
-				Name:             "envvars",
-				ContainerImage:   fmt.Sprintf("extensions/envvars:%v", builderTrack),
-				Shell:            "/bin/sh",
-				WorkingDirectory: "/estafette-work",
-				When:             "status == 'succeeded'",
-				AutoInjected:     true,
+				Name:           "envvars",
+				ContainerImage: fmt.Sprintf("extensions/envvars:%v", builderTrack),
+				AutoInjected:   true,
 			}
 			r.Stages = append([]*manifest.EstafetteStage{envvarsStep}, r.Stages...)
 		}
@@ -114,16 +94,15 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 		if !StepExists(r.Stages, "prefetch") {
 			// add git-clone at the start
 			prefetchStep := &manifest.EstafetteStage{
-				Name:             "prefetch",
-				ContainerImage:   fmt.Sprintf("extensions/prefetch:%v", builderTrack),
-				Shell:            "/bin/sh",
-				WorkingDirectory: "/estafette-work",
-				When:             "status == 'succeeded'",
-				AutoInjected:     true,
+				Name:           "prefetch",
+				ContainerImage: fmt.Sprintf("extensions/prefetch:%v", builderTrack),
+				AutoInjected:   true,
 			}
 			r.Stages = append([]*manifest.EstafetteStage{prefetchStep}, r.Stages...)
 		}
 	}
+
+	injectedManifest.SetDefaults()
 
 	return
 }

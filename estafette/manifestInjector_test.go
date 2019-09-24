@@ -176,9 +176,7 @@ func getManifestWithoutBuildStatusSteps() manifest.EstafetteManifest {
 			&manifest.EstafetteStage{
 				Name:             "build",
 				ContainerImage:   "golang:1.10.2-alpine3.7",
-				Shell:            "/bin/sh",
 				WorkingDirectory: "/go/src/github.com/estafette/${ESTAFETTE_GIT_NAME}",
-				When:             "status == 'succeeded'",
 			},
 		},
 		Releases: []*manifest.EstafetteRelease{
@@ -189,8 +187,6 @@ func getManifestWithoutBuildStatusSteps() manifest.EstafetteManifest {
 					&manifest.EstafetteStage{
 						Name:           "deploy",
 						ContainerImage: "extensions/gke",
-						Shell:          "/bin/sh",
-						When:           "status == 'succeeded'",
 					},
 				},
 			},
