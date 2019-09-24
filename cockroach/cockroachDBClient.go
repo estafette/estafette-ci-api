@@ -2914,8 +2914,7 @@ func (dbc *cockroachDBClientImpl) setPipelinePropertiesFromJSONB(pipeline *contr
 
 	if !optimized {
 		// unmarshal then marshal manifest to include defaults
-		var manifest manifest.EstafetteManifest
-		err = yaml.Unmarshal([]byte(pipeline.Manifest), &manifest)
+		manifest, err := manifest.ReadManifest(pipeline.Manifest)
 		if err == nil {
 			pipeline.ManifestObject = &manifest
 			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
@@ -2967,8 +2966,7 @@ func (dbc *cockroachDBClientImpl) setBuildPropertiesFromJSONB(build *contracts.B
 
 	if !optimized {
 		// unmarshal then marshal manifest to include defaults
-		var manifest manifest.EstafetteManifest
-		err = yaml.Unmarshal([]byte(build.Manifest), &manifest)
+		manifest, err := manifest.ReadManifest(build.Manifest)
 		if err == nil {
 			build.ManifestObject = &manifest
 			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
