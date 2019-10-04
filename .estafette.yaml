@@ -77,11 +77,11 @@ releases:
           env:
             SECRET_DECRYPTION_KEY_BASE64: estafette.secret(axt5NBobZQltxHCk.4ms_DzXI59vX-DuaaD4gRji0ThRPKvAXqgN-qS31SILI2iSQazCiSru_ZqKldgrrP5UhIPZpoY0Dxe-Y)
           cpu:
-            request: 100m
-            limit: 150m
+            request: 60m
+            limit: 120m
           memory:
-            request: 512Mi
-            limit: 512Mi
+            request: 236Mi
+            limit: 472Mi
           metrics:
             port: 9001
           lifecycle:
@@ -89,6 +89,12 @@ releases:
         sidecars:
         - type: openresty
           image: estafette/openresty-sidecar:0.8.0-opentracing
+          cpu:
+            request: 43m
+            limit: 85m
+          memory:
+            request: 34Mi
+            limit: 68Mi
         request:
           timeout: 120s
           maxbodysize: 128M
