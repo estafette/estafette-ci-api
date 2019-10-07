@@ -337,7 +337,7 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(ctx context.Context, repoSou
 		Suffix("RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, updated_at, duration::INT, triggered_by_event")
 
 	// update build status
-	row := query.QueryRow()
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
 
 	_, err = dbc.scanBuild(ctx, row, false, false)
 	if err != nil && err != sql.ErrNoRows {
@@ -465,7 +465,7 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(ctx context.Context, repoS
 		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, updated_at, duration::INT, triggered_by_event")
 
 	// update release status
-	row := query.QueryRow()
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	insertedRelease, err := dbc.scanRelease(row)
 	if err != nil && err != sql.ErrNoRows {
 		return
