@@ -161,6 +161,65 @@ func TestQueryBuilder(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "SELECT key, value, pipelinesCount FROM (SELECT key, value, count(DISTINCT id) AS pipelinesCount FROM (SELECT l->>'key' AS key, l->>'value' AS value, id FROM (SELECT a.id, jsonb_array_elements(a.labels) AS l FROM computed_pipelines a WHERE jsonb_typeof(labels) = 'array' AND a.inserted_at >= $1 AND a.build_status IN ($2) AND a.labels @> $3) AS b) AS c GROUP BY key, value) AS d WHERE pipelinesCount > $4 ORDER BY pipelinesCount DESC, key, value LIMIT 7", sql)
 	})
+
+	t.Run("GeneratesUpdateBuildStatusQuery", func(t *testing.T) {
+
+		buildStatus := "canceling"
+		buildID := 5
+		repoSource := "github.com"
+		repoOwner := "estafette"
+		repoName := "estafette-ci-api"
+		allowedBuildStatusesToTransitionFrom := []string{"running"}
+
+		psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+		query := psql.
+			Update("builds").
+			Set("build_status", buildStatus).
+			Set("updated_at", sq.Expr("now()")).
+			Set("duration", sq.Expr("age(now(), inserted_at)")).
+			Where(sq.Eq{"id": buildID}).
+			Where(sq.Eq{"repo_source": repoSource}).
+			Where(sq.Eq{"repo_owner": repoOwner}).
+			Where(sq.Eq{"repo_name": repoName}).
+			Where(sq.Eq{"build_status": allowedBuildStatusesToTransitionFrom})
+
+		// act
+		sql, _, err := query.ToSql()
+
+		assert.Nil(t, err)
+		assert.Equal(t, "UPDATE builds SET build_status = $1, updated_at = now(), duration = age(now(), inserted_at) WHERE id = $2 AND repo_source = $3 AND repo_owner = $4 AND repo_name = $5 AND build_status IN ($6)", sql)
+	})
+
+	t.Run("GeneratesUpdateReleaseStatusQuery", func(t *testing.T) {
+
+		releaseStatus := "canceling"
+		releaseID := 5
+		repoSource := "github.com"
+		repoOwner := "estafette"
+		repoName := "estafette-ci-api"
+		allowedReleaseStatusesToTransitionFrom := []string{"running"}
+
+		psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+		query := psql.
+			Update("releases").
+			Set("release_status", releaseStatus).
+			Set("updated_at", sq.Expr("now()")).
+			Set("duration", sq.Expr("age(now(), inserted_at)")).
+			Where(sq.Eq{"id": releaseID}).
+			Where(sq.Eq{"repo_source": repoSource}).
+			Where(sq.Eq{"repo_owner": repoOwner}).
+			Where(sq.Eq{"repo_name": repoName}).
+			Where(sq.Eq{"release_status": allowedReleaseStatusesToTransitionFrom}).
+			Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, updated_at, duration::INT, triggered_by_event")
+
+		// act
+		sql, _, err := query.ToSql()
+
+		assert.Nil(t, err)
+		assert.Equal(t, "UPDATE releases SET release_status = $1, updated_at = now(), duration = age(now(), inserted_at) WHERE id = $2 AND repo_source = $3 AND repo_owner = $4 AND repo_name = $5 AND release_status IN ($6) RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, updated_at, duration::INT, triggered_by_event", sql)
+	})
 }
 
 func TestAutoincrement(t *testing.T) {

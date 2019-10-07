@@ -307,27 +307,37 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(ctx context.Context, repoSou
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
+	allowedBuildStatusesToTransitionFrom := []string{}
+	switch buildStatus {
+	case "running":
+		allowedBuildStatusesToTransitionFrom = []string{"pending"}
+		break
+	case "succeeded",
+		"failed",
+		"canceling":
+		allowedBuildStatusesToTransitionFrom = []string{"running"}
+		break
+	case "canceled":
+		allowedBuildStatusesToTransitionFrom = []string{"pending", "canceling"}
+		break
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("builds").
+		Set("build_status", buildStatus).
+		Set("updated_at", sq.Expr("now()")).
+		Set("duration", sq.Expr("age(now(), inserted_at)")).
+		Where(sq.Eq{"id": buildID}).
+		Where(sq.Eq{"repo_source": repoSource}).
+		Where(sq.Eq{"repo_owner": repoOwner}).
+		Where(sq.Eq{"repo_name": repoName}).
+		Where(sq.Eq{"build_status": allowedBuildStatusesToTransitionFrom})
+
 	// update build status
-	_, err = dbc.databaseConnection.Exec(
-		`
-	UPDATE
-		builds
-	SET
-		build_status=$1,
-		updated_at=now(),
-		duration=age(now(), inserted_at)
-	WHERE
-		id=$5 AND
-		repo_source=$2 AND
-		repo_owner=$3 AND
-		repo_name=$4
-	`,
-		buildStatus,
-		repoSource,
-		repoOwner,
-		repoName,
-		buildID,
-	)
+	_, err = query.Exec()
+
 	if err != nil {
 		return
 	}
@@ -421,40 +431,37 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(ctx context.Context, repoS
 
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	// generate query
-	row := dbc.databaseConnection.QueryRow(
-		`
-		UPDATE
-			releases
-		SET
-			release_status=$1,
-			updated_at=now(),
-			duration=age(now(), inserted_at)
-		WHERE
-			id=$2 AND
-			repo_source=$3 AND
-			repo_owner=$4 AND
-			repo_name=$5
-		RETURNING
-			id,
-			repo_source,
-			repo_owner,
-			repo_name,
-			release,
-			release_action,
-			release_version,
-			release_status,
-			inserted_at,
-			updated_at,
-			duration::INT,
-			triggered_by_event
-		`,
-		releaseStatus,
-		id,
-		repoSource,
-		repoOwner,
-		repoName,
-	)
+	allowedReleaseStatusesToTransitionFrom := []string{}
+	switch releaseStatus {
+	case "running":
+		allowedReleaseStatusesToTransitionFrom = []string{"pending"}
+		break
+	case "succeeded",
+		"failed",
+		"canceling":
+		allowedReleaseStatusesToTransitionFrom = []string{"running"}
+		break
+	case "canceled":
+		allowedReleaseStatusesToTransitionFrom = []string{"pending", "canceling"}
+		break
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("releases").
+		Set("release_status", releaseStatus).
+		Set("updated_at", sq.Expr("now()")).
+		Set("duration", sq.Expr("age(now(), inserted_at)")).
+		Where(sq.Eq{"id": id}).
+		Where(sq.Eq{"repo_source": repoSource}).
+		Where(sq.Eq{"repo_owner": repoOwner}).
+		Where(sq.Eq{"repo_name": repoName}).
+		Where(sq.Eq{"release_status": allowedReleaseStatusesToTransitionFrom}).
+		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, updated_at, duration::INT, triggered_by_event")
+
+	// update build status
+	row := query.QueryRow()
 
 	// execute query
 	insertedRelease, err := dbc.scanRelease(row)
