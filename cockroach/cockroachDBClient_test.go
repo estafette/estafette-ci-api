@@ -182,13 +182,14 @@ func TestQueryBuilder(t *testing.T) {
 			Where(sq.Eq{"repo_source": repoSource}).
 			Where(sq.Eq{"repo_owner": repoOwner}).
 			Where(sq.Eq{"repo_name": repoName}).
-			Where(sq.Eq{"build_status": allowedBuildStatusesToTransitionFrom})
+			Where(sq.Eq{"build_status": allowedBuildStatusesToTransitionFrom}).
+			Suffix("RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, updated_at, duration::INT, triggered_by_event")
 
 		// act
 		sql, _, err := query.ToSql()
 
 		assert.Nil(t, err)
-		assert.Equal(t, "UPDATE builds SET build_status = $1, updated_at = now(), duration = age(now(), inserted_at) WHERE id = $2 AND repo_source = $3 AND repo_owner = $4 AND repo_name = $5 AND build_status IN ($6)", sql)
+		assert.Equal(t, "UPDATE builds SET build_status = $1, updated_at = now(), duration = age(now(), inserted_at) WHERE id = $2 AND repo_source = $3 AND repo_owner = $4 AND repo_name = $5 AND build_status IN ($6) RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, updated_at, duration::INT, triggered_by_event", sql)
 	})
 
 	t.Run("GeneratesUpdateReleaseStatusQuery", func(t *testing.T) {

@@ -333,13 +333,17 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(ctx context.Context, repoSou
 		Where(sq.Eq{"repo_source": repoSource}).
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
-		Where(sq.Eq{"build_status": allowedBuildStatusesToTransitionFrom})
+		Where(sq.Eq{"build_status": allowedBuildStatusesToTransitionFrom}).
+		Suffix("RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, updated_at, duration::INT, triggered_by_event")
 
 	// update build status
-	_, err = query.Exec()
+	row := query.QueryRow()
 
-	if err != nil {
+	_, err = dbc.scanBuild(ctx, row, false, false)
+	if err != nil && err != sql.ErrNoRows {
 		return
+	} else if err != nil {
+		log.Warn().Err(err).Msgf("Updating build status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, buildStatus, allowedBuildStatusesToTransitionFrom, buildStatus)
 	}
 
 	// update computed tables
@@ -460,13 +464,13 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(ctx context.Context, repoS
 		Where(sq.Eq{"release_status": allowedReleaseStatusesToTransitionFrom}).
 		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, updated_at, duration::INT, triggered_by_event")
 
-	// update build status
+	// update release status
 	row := query.QueryRow()
-
-	// execute query
 	insertedRelease, err := dbc.scanRelease(row)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		return
+	} else if err != nil {
+		log.Warn().Err(err).Msgf("Updating release status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, id, allowedReleaseStatusesToTransitionFrom, releaseStatus)
 	}
 
 	// update computed tables
