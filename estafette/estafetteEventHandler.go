@@ -177,6 +177,8 @@ func (h *eventHandlerImpl) UpdateBuildStatus(ctx context.Context, ciBuilderEvent
 
 func (h *eventHandlerImpl) UpdateJobResources(ciBuilderEvent CiBuilderEvent) (err error) {
 
+	log.Info().Msgf("Updating job resources for pod %v", ciBuilderEvent.PodName)
+
 	if ciBuilderEvent.PodName != "" {
 
 		h.prometheusClient.AwaitScrapeInterval()
