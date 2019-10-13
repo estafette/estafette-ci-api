@@ -102,6 +102,7 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 		}
 	}
 
+	// ensure all injected stages have defaults for shell and working directory matching the target operating system
 	injectedManifest.SetDefaults()
 
 	return

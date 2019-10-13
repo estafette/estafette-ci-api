@@ -336,6 +336,10 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(ctx context.Context, repoSou
 		Where(sq.Eq{"build_status": allowedBuildStatusesToTransitionFrom}).
 		Suffix("RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, updated_at, duration::INT, triggered_by_event")
 
+	if buildStatus == "running" {
+		query = query.Set("time_to_running", sq.Expr("age(now(), inserted_at)"))
+	}
+
 	// update build status
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 
@@ -463,6 +467,10 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(ctx context.Context, repoS
 		Where(sq.Eq{"repo_name": repoName}).
 		Where(sq.Eq{"release_status": allowedReleaseStatusesToTransitionFrom}).
 		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, updated_at, duration::INT, triggered_by_event")
+
+	if releaseStatus == "running" {
+		query = query.Set("time_to_running", sq.Expr("age(now(), inserted_at)"))
+	}
 
 	// update release status
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
