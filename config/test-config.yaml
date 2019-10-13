@@ -17,6 +17,9 @@ integrations:
     appVerificationToken: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
     appOAuthAccessToken: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
 
+  prometheus:
+    serverURL: http://prometheus-server.monitoring.svc.cluster.local
+
 apiServer:
   baseURL: https://ci.estafette.io/
   serviceURL: http://estafette-ci-api.estafette.svc.cluster.local/

@@ -52,10 +52,11 @@ type DatabaseConfig struct {
 
 // APIConfigIntegrations contains config for 3rd party integrations
 type APIConfigIntegrations struct {
-	Github    *GithubConfig    `yaml:"github,omitempty"`
-	Bitbucket *BitbucketConfig `yaml:"bitbucket,omitempty"`
-	Slack     *SlackConfig     `yaml:"slack,omitempty"`
-	Pubsub    *PubsubConfig    `yaml:"pubsub,omitempty"`
+	Github     *GithubConfig     `yaml:"github,omitempty"`
+	Bitbucket  *BitbucketConfig  `yaml:"bitbucket,omitempty"`
+	Slack      *SlackConfig      `yaml:"slack,omitempty"`
+	Pubsub     *PubsubConfig     `yaml:"pubsub,omitempty"`
+	Prometheus *PrometheusConfig `yaml:"prometheus,omitempty"`
 }
 
 // GithubConfig is used to configure github integration
@@ -90,6 +91,10 @@ type PubsubConfig struct {
 	ServiceAccountEmail            string `yaml:"serviceAccountEmail"`
 	SubscriptionNameSuffix         string `yaml:"subscriptionNameSuffix"`
 	SubscriptionIdleExpirationDays int    `yaml:"subscriptionIdleExpirationDays"`
+}
+
+type PrometheusConfig struct {
+	ServerURL string `yaml:"serverURL"`
 }
 
 // ConfigReader reads the api config from file

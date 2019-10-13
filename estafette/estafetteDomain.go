@@ -8,6 +8,7 @@ import (
 // CiBuilderEvent represents a finished estafette build
 type CiBuilderEvent struct {
 	JobName      string `json:"job_name"`
+	PodName      string `json:"job_name,omitempty"`
 	RepoSource   string `json:"repo_source,omitempty"`
 	RepoOwner    string `json:"repo_owner,omitempty"`
 	RepoName     string `json:"repo_name,omitempty"`

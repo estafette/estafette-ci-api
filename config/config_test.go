@@ -64,6 +64,18 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "this is my secret", slackConfig.AppOAuthAccessToken)
 	})
 
+	t.Run("ReturnsPrometheusConfig", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		prometheusConfig := config.Integrations.Prometheus
+
+		assert.Equal(t, "http://prometheus-server.monitoring.svc.cluster.local", prometheusConfig.ServerURL)
+	})
+
 	t.Run("ReturnsAPIServerConfig", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))

@@ -25,6 +25,9 @@ integrations:
     subscriptionNameSuffix: {{.PUB_SUB_SUBSCRIPTION_SUFFIX}}
     subscriptionIdleExpirationDays: 365
 
+  prometheus:
+    serverURL: http://prometheus-server.monitoring.svc.cluster.local
+
 apiServer:
   baseURL: https://{{.HOSTNAMES}}/
   serviceURL: https://{{.INTERNAL_HOSTNAME}}/

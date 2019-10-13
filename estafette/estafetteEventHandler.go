@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/estafette/estafette-ci-api/config"
+	prom "github.com/estafette/estafette-ci-api/prometheus"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -18,20 +19,23 @@ import (
 type EventHandler interface {
 	Handle(*gin.Context)
 	UpdateBuildStatus(context.Context, CiBuilderEvent) error
+	UpdateJobResources(CiBuilderEvent) error
 }
 
 type eventHandlerImpl struct {
 	config                       config.APIServerConfig
 	ciBuilderClient              CiBuilderClient
+	prometheusClient             prom.PrometheusClient
 	buildService                 BuildService
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewEstafetteEventHandler returns a new estafette.EventHandler
-func NewEstafetteEventHandler(config config.APIServerConfig, ciBuilderClient CiBuilderClient, buildService BuildService, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewEstafetteEventHandler(config config.APIServerConfig, ciBuilderClient CiBuilderClient, prometheusClient prom.PrometheusClient, buildService BuildService, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		config:                       config,
 		ciBuilderClient:              ciBuilderClient,
+		prometheusClient:             prometheusClient,
 		buildService:                 buildService,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
@@ -113,6 +117,13 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 			log.Info().Msgf("Job %v is already removed by cancellation, no need to remove for event %v", eventJobname, eventType)
 		}
 
+		go func(ciBuilderEvent CiBuilderEvent) {
+			err := h.UpdateJobResources(ciBuilderEvent)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed retrieving max cpu and memory from prometheus for pod %v", ciBuilderEvent.PodName)
+			}
+		}(ciBuilderEvent)
+
 	default:
 		log.Warn().Str("event", eventType).Msgf("Unsupported Estafette event of type '%v'", eventType)
 	}
@@ -162,4 +173,27 @@ func (h *eventHandlerImpl) UpdateBuildStatus(ctx context.Context, ciBuilderEvent
 	}
 
 	return fmt.Errorf("CiBuilderEvent has invalid state, not updating build status")
+}
+
+func (h *eventHandlerImpl) UpdateJobResources(ciBuilderEvent CiBuilderEvent) (err error) {
+
+	if ciBuilderEvent.PodName != "" {
+
+		maxCPU, err := h.prometheusClient.GetMaxCPUByPodName(ciBuilderEvent.PodName)
+		if err != nil {
+			return err
+		}
+
+		log.Info().Msgf("Max cpu usage for pod %v is %v", ciBuilderEvent.PodName, maxCPU)
+
+		maxMemory, err := h.prometheusClient.GetMaxMemoryByPodName(ciBuilderEvent.PodName)
+		if err != nil {
+			return err
+		}
+
+		log.Info().Msgf("Max memory usage for pod %v is %v", ciBuilderEvent.PodName, maxMemory)
+
+	}
+
+	return nil
 }
