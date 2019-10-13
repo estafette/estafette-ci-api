@@ -89,7 +89,7 @@ func main() {
 	// handle api requests
 	srv := initRequestHandlers(stop, wg)
 
-	log.Debug().Msg("Handling requests until shutdown...")
+	log.Debug().Msg("Handling requests...")
 
 	foundation.HandleGracefulShutdown(sigs, wg, func() {
 

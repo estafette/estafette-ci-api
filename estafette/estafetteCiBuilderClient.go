@@ -139,6 +139,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 	jaegerSamplerTypeValue := "const"
 	jaegerSamplerParamName := "JAEGER_SAMPLER_PARAM"
 	jaegerSamplerParamValue := "1"
+	podNameName := "POD_NAME"
+	podNameMetadataNameFieldPath := "metadata.name"
 	environmentVariables := []*corev1.EnvVar{
 		&corev1.EnvVar{
 			Name:  &builderConfigPathName,
@@ -167,6 +169,14 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 		&corev1.EnvVar{
 			Name:  &jaegerSamplerParamName,
 			Value: &jaegerSamplerParamValue,
+		},
+		&corev1.EnvVar{
+			Name: &podNameName,
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: &podNameMetadataNameFieldPath,
+				},
+			},
 		},
 	}
 
