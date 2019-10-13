@@ -74,6 +74,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		prometheusConfig := config.Integrations.Prometheus
 
 		assert.Equal(t, "http://prometheus-server.monitoring.svc.cluster.local", prometheusConfig.ServerURL)
+		assert.Equal(t, 10, prometheusConfig.ScrapeIntervalSeconds)
 	})
 
 	t.Run("ReturnsAPIServerConfig", func(t *testing.T) {

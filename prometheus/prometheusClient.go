@@ -2,17 +2,21 @@ package prometheus
 
 import (
 	"encoding/json"
+	"time"
 
-	"strconv"
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"strconv"
+
 	"github.com/estafette/estafette-ci-api/config"
+	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
 )
 
 // PrometheusClient is the interface for communicating with prometheus
 type PrometheusClient interface {
+	AwaitScrapeInterval()
 	GetMaxMemoryByPodName(podName string) (float64, error)
 	GetMaxCPUByPodName(podName string) (float64, error)
 }
@@ -24,8 +28,13 @@ type prometheusClientImpl struct {
 // NewPrometheusClient creates an prometheus.PrometheusClient to communicate with Prometheus
 func NewPrometheusClient(config config.PrometheusConfig) PrometheusClient {
 	return &prometheusClientImpl{
-		config:                          config,
+		config: config,
 	}
+}
+
+func (pc *prometheusClientImpl) AwaitScrapeInterval() {
+	log.Debug().Msgf("Waiting for %v seconds before querying Prometheus", pc.config.ScrapeIntervalSeconds)
+	time.Sleep(time.Duration(pc.config.ScrapeIntervalSeconds) * time.Second)
 }
 
 func (pc *prometheusClientImpl) GetMaxMemoryByPodName(podName string) (float64, error) {

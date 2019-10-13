@@ -94,7 +94,8 @@ type PubsubConfig struct {
 }
 
 type PrometheusConfig struct {
-	ServerURL string `yaml:"serverURL"`
+	ServerURL             string `yaml:"serverURL"`
+	ScrapeIntervalSeconds int    `yaml:"scrapeIntervalSeconds"`
 }
 
 // ConfigReader reads the api config from file

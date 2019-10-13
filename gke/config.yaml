@@ -27,6 +27,7 @@ integrations:
 
   prometheus:
     serverURL: http://prometheus-server.monitoring.svc.cluster.local
+    scrapeIntervalSeconds: 10
 
 apiServer:
   baseURL: https://{{.HOSTNAMES}}/

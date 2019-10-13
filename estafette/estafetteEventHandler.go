@@ -179,6 +179,8 @@ func (h *eventHandlerImpl) UpdateJobResources(ciBuilderEvent CiBuilderEvent) (er
 
 	if ciBuilderEvent.PodName != "" {
 
+		h.prometheusClient.AwaitScrapeInterval()
+
 		maxCPU, err := h.prometheusClient.GetMaxCPUByPodName(ciBuilderEvent.PodName)
 		if err != nil {
 			return err
