@@ -210,11 +210,11 @@ func (s *buildServiceImpl) CreateBuild(ctx context.Context, build contracts.Buil
 	// get max usage from previous builds
 	measuredResources, nrRecords, err := s.cockroachDBClient.GetPipelineBuildMaxResourceUtilization(ctx, build.RepoSource, build.RepoOwner, build.RepoName, 25)
 	if err != nil {
-		log.Warn().Err(err).Msgf("Failed retrieving max resource utiliziation for recent builds of %v/%v/%v, using defaults...", build.RepoSource, build.RepoOwner, build.RepoName)
+		log.Warn().Err(err).Msgf("Failed retrieving max resource utilization for recent builds of %v/%v/%v, using defaults...", build.RepoSource, build.RepoOwner, build.RepoName)
 	} else if nrRecords < 5 {
-		log.Warn().Msgf("Retrieved max resource utiliziation for recent builds of %v/%v/%v only has %v records, using defaults...", build.RepoSource, build.RepoOwner, build.RepoName, nrRecords)
+		log.Warn().Msgf("Retrieved max resource utilization for recent builds of %v/%v/%v only has %v records, using defaults...", build.RepoSource, build.RepoOwner, build.RepoName, nrRecords)
 	} else {
-		log.Info().Msgf("Retrieved max resource utiliziation for recent builds of %v/%v/%v, checking if they are within lower and upper bound...", build.RepoSource, build.RepoOwner, build.RepoName)
+		log.Info().Msgf("Retrieved max resource utilization for recent builds of %v/%v/%v, checking if they are within lower and upper bound...", build.RepoSource, build.RepoOwner, build.RepoName)
 		// only override cpu and memory request values if measured values are within min and max
 		if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio >= s.jobsConfig.MinCPUCores && measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio <= s.jobsConfig.MaxCPUCores {
 			jobResources.CPURequest = measuredResources.CPUMaxUsage * s.jobsConfig.CPURequestRatio
@@ -422,11 +422,11 @@ func (s *buildServiceImpl) CreateRelease(ctx context.Context, release contracts.
 	// get max usage from previous releases
 	measuredResources, nrRecords, err := s.cockroachDBClient.GetPipelineReleaseMaxResourceUtilization(ctx, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, 25)
 	if err != nil {
-		log.Warn().Err(err).Msgf("Failed retrieving max resource utiliziation for recent releases of %v/%v/%v target %v, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
+		log.Warn().Err(err).Msgf("Failed retrieving max resource utilization for recent releases of %v/%v/%v target %v, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
 	} else if nrRecords < 5 {
-		log.Warn().Msgf("Retrieved max resource utiliziation for recent releases of %v/%v/%v target %v only has %v records, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, nrRecords)
+		log.Warn().Msgf("Retrieved max resource utilization for recent releases of %v/%v/%v target %v only has %v records, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, nrRecords)
 	} else {
-		log.Info().Msgf("Retrieved max resource utiliziation for recent releases of %v/%v/%v target %v, checking if they are within lower and upper bound...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
+		log.Info().Msgf("Retrieved max resource utilization for recent releases of %v/%v/%v target %v, checking if they are within lower and upper bound...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
 		// only override cpu and memory request values if measured values are within min and max
 		if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio >= s.jobsConfig.MinCPUCores && measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio <= s.jobsConfig.MaxCPUCores {
 			jobResources.CPURequest = measuredResources.CPUMaxUsage * s.jobsConfig.CPURequestRatio
