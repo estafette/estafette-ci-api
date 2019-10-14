@@ -14,6 +14,7 @@ type APIConfig struct {
 	Integrations    *APIConfigIntegrations          `yaml:"integrations,omitempty"`
 	APIServer       *APIServerConfig                `yaml:"apiServer,omitempty"`
 	Auth            *AuthConfig                     `yaml:"auth,omitempty"`
+	Jobs            *JobsConfig                     `yaml:"jobs,omitempty"`
 	Database        *DatabaseConfig                 `yaml:"database,omitempty"`
 	Credentials     []*contracts.CredentialConfig   `yaml:"credentials,omitempty" json:"credentials,omitempty"`
 	TrustedImages   []*contracts.TrustedImageConfig `yaml:"trustedImages,omitempty" json:"trustedImages,omitempty"`
@@ -31,6 +32,14 @@ type APIServerConfig struct {
 type AuthConfig struct {
 	IAP    *IAPAuthConfig `yaml:"iap"`
 	APIKey string         `yaml:"apiKey"`
+}
+
+// JobsConfig configures the lower and upper bounds for automatically setting resources for build/release jobs
+type JobsConfig struct {
+	MinCPUCores    float64 `yaml:"minCPUCores"`
+	MaxCPUCores    float64 `yaml:"maxCPUCores"`
+	MinMemoryBytes float64 `yaml:"minMemoryBytes"`
+	MaxMemoryBytes float64 `yaml:"maxMemoryBytes"`
 }
 
 // IAPAuthConfig sets iap config in case it's used for authentication and authorization

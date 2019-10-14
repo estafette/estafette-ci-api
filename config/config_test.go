@@ -104,6 +104,21 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "this is my secret", authConfig.APIKey)
 	})
 
+	t.Run("ReturnsJobsConfig", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		jobsConfig := config.Jobs
+
+		assert.Equal(t, 0.1, jobsConfig.MinCPUCores)
+		assert.Equal(t, 3.5, jobsConfig.MaxCPUCores)
+		assert.Equal(t, 67108864.0, jobsConfig.MinMemoryBytes)
+		assert.Equal(t, 12884901888.0, jobsConfig.MaxMemoryBytes)
+	})
+
 	t.Run("ReturnsDatabaseConfig", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))

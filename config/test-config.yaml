@@ -31,6 +31,12 @@ auth:
     audience: /projects/***/global/backendServices/***
   apiKey: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
 
+jobs:
+  minCPUCores: 0.1
+  maxCPUCores: 3.5
+  minMemoryBytes: 67108864
+  maxMemoryBytes: 12884901888
+
 database:
   databaseName: estafette_ci_api
   host: cockroachdb-public.estafette.svc.cluster.local

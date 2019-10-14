@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/config"
 	prom "github.com/estafette/estafette-ci-api/prometheus"
 	"github.com/gin-gonic/gin"
@@ -19,7 +20,7 @@ import (
 type EventHandler interface {
 	Handle(*gin.Context)
 	UpdateBuildStatus(context.Context, CiBuilderEvent) error
-	UpdateJobResources(CiBuilderEvent) error
+	UpdateJobResources(context.Context, CiBuilderEvent) error
 }
 
 type eventHandlerImpl struct {
@@ -27,16 +28,18 @@ type eventHandlerImpl struct {
 	ciBuilderClient              CiBuilderClient
 	prometheusClient             prom.PrometheusClient
 	buildService                 BuildService
+	cockroachDBClient            cockroach.DBClient
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewEstafetteEventHandler returns a new estafette.EventHandler
-func NewEstafetteEventHandler(config config.APIServerConfig, ciBuilderClient CiBuilderClient, prometheusClient prom.PrometheusClient, buildService BuildService, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewEstafetteEventHandler(config config.APIServerConfig, ciBuilderClient CiBuilderClient, prometheusClient prom.PrometheusClient, buildService BuildService, cockroachDBClient cockroach.DBClient, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
 		config:                       config,
 		ciBuilderClient:              ciBuilderClient,
 		prometheusClient:             prometheusClient,
 		buildService:                 buildService,
+		cockroachDBClient:            cockroachDBClient,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
 }
@@ -117,12 +120,12 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 			log.Info().Msgf("Job %v is already removed by cancellation, no need to remove for event %v", eventJobname, eventType)
 		}
 
-		go func(ciBuilderEvent CiBuilderEvent) {
-			err := h.UpdateJobResources(ciBuilderEvent)
+		go func(ctx context.Context, ciBuilderEvent CiBuilderEvent) {
+			err := h.UpdateJobResources(ctx, ciBuilderEvent)
 			if err != nil {
-				log.Error().Err(err).Msgf("Failed retrieving max cpu and memory from prometheus for pod %v", ciBuilderEvent.PodName)
+				log.Error().Err(err).Msgf("Failed updating max cpu and memory from prometheus for pod %v", ciBuilderEvent.PodName)
 			}
-		}(ciBuilderEvent)
+		}(c.Request.Context(), ciBuilderEvent)
 
 	default:
 		log.Warn().Str("event", eventType).Msgf("Unsupported Estafette event of type '%v'", eventType)
@@ -175,7 +178,7 @@ func (h *eventHandlerImpl) UpdateBuildStatus(ctx context.Context, ciBuilderEvent
 	return fmt.Errorf("CiBuilderEvent has invalid state, not updating build status")
 }
 
-func (h *eventHandlerImpl) UpdateJobResources(ciBuilderEvent CiBuilderEvent) (err error) {
+func (h *eventHandlerImpl) UpdateJobResources(ctx context.Context, ciBuilderEvent CiBuilderEvent) (err error) {
 
 	log.Info().Msgf("Updating job resources for pod %v", ciBuilderEvent.PodName)
 
@@ -197,6 +200,34 @@ func (h *eventHandlerImpl) UpdateJobResources(ciBuilderEvent CiBuilderEvent) (er
 
 		log.Info().Msgf("Max memory usage for pod %v is %v", ciBuilderEvent.PodName, maxMemory)
 
+		jobResources := cockroach.JobResources{
+			CPUMaxUsage:    maxCPU,
+			MemoryMaxUsage: maxMemory,
+		}
+
+		if ciBuilderEvent.BuildStatus != "" && ciBuilderEvent.ReleaseID != "" {
+
+			releaseID, err := strconv.Atoi(ciBuilderEvent.ReleaseID)
+			if err != nil {
+				return err
+			}
+
+			err = h.cockroachDBClient.UpdateReleaseResourceUtilization(ctx, ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, releaseID, jobResources)
+			if err != nil {
+				return err
+			}
+		} else if ciBuilderEvent.BuildStatus != "" && ciBuilderEvent.BuildID != "" {
+
+			buildID, err := strconv.Atoi(ciBuilderEvent.BuildID)
+			if err != nil {
+				return err
+			}
+
+			err = h.cockroachDBClient.UpdateBuildResourceUtilization(ctx, ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, buildID, jobResources)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil

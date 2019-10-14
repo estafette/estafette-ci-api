@@ -1,6 +1,7 @@
 package estafette
 
 import (
+	"github.com/estafette/estafette-ci-api/cockroach"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
@@ -48,6 +49,7 @@ type CiBuilderParams struct {
 	ReleaseTriggeredBy string
 	BuildID            int
 	TriggeredByEvents  []manifest.EstafetteEvent
+	JobResources       cockroach.JobResources
 }
 
 type zeroLogLine struct {

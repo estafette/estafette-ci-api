@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/estafette/estafette-ci-api/cockroach"
+	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
@@ -29,6 +30,7 @@ type BuildService interface {
 }
 
 type buildServiceImpl struct {
+	jobsConfig           config.JobsConfig
 	cockroachDBClient    cockroach.DBClient
 	ciBuilderClient      CiBuilderClient
 	githubJobVarsFunc    func(context.Context, string, string, string) (string, string, error)
@@ -36,9 +38,10 @@ type buildServiceImpl struct {
 }
 
 // NewBuildService returns a new estafette.BuildService
-func NewBuildService(cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) (buildService BuildService) {
+func NewBuildService(jobsConfig config.JobsConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) (buildService BuildService) {
 
 	buildService = &buildServiceImpl{
+		jobsConfig:           jobsConfig,
 		cockroachDBClient:    cockroachDBClient,
 		ciBuilderClient:      ciBuilderClient,
 		githubJobVarsFunc:    githubJobVarsFunc,
@@ -196,6 +199,14 @@ func (s *buildServiceImpl) CreateBuild(ctx context.Context, build contracts.Buil
 		return
 	}
 
+	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
+	jobResources := cockroach.JobResources{
+		CPURequest:    s.jobsConfig.MaxCPUCores,
+		CPULimit:      s.jobsConfig.MaxCPUCores,
+		MemoryRequest: s.jobsConfig.MaxMemoryBytes,
+		MemoryLimit:   s.jobsConfig.MaxMemoryBytes,
+	}
+
 	// store build in db
 	createdBuild, err = s.cockroachDBClient.InsertBuild(ctx, contracts.Build{
 		RepoSource:     build.RepoSource,
@@ -211,7 +222,7 @@ func (s *buildServiceImpl) CreateBuild(ctx context.Context, build contracts.Buil
 		Commits:        build.Commits,
 		Triggers:       build.Triggers,
 		Events:         build.Events,
-	})
+	}, jobResources)
 	if err != nil {
 		return
 	}
@@ -238,6 +249,7 @@ func (s *buildServiceImpl) CreateBuild(ctx context.Context, build contracts.Buil
 		Manifest:             mft,
 		BuildID:              buildID,
 		TriggeredByEvents:    build.Events,
+		JobResources:         jobResources,
 	}
 
 	// create ci builder job
@@ -380,6 +392,14 @@ func (s *buildServiceImpl) CreateRelease(ctx context.Context, release contracts.
 		return
 	}
 
+	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
+	jobResources := cockroach.JobResources{
+		CPURequest:    s.jobsConfig.MaxCPUCores,
+		CPULimit:      s.jobsConfig.MaxCPUCores,
+		MemoryRequest: s.jobsConfig.MaxMemoryBytes,
+		MemoryLimit:   s.jobsConfig.MaxMemoryBytes,
+	}
+
 	// create release in database
 	createdRelease, err = s.cockroachDBClient.InsertRelease(ctx, contracts.Release{
 		Name:           release.Name,
@@ -390,7 +410,7 @@ func (s *buildServiceImpl) CreateRelease(ctx context.Context, release contracts.
 		ReleaseVersion: release.ReleaseVersion,
 		ReleaseStatus:  releaseStatus,
 		Events:         release.Events,
-	})
+	}, jobResources)
 	if err != nil {
 		return
 	}
@@ -430,6 +450,7 @@ func (s *buildServiceImpl) CreateRelease(ctx context.Context, release contracts.
 		ReleaseAction:        release.Action,
 		ReleaseTriggeredBy:   triggeredBy,
 		TriggeredByEvents:    release.Events,
+		JobResources:         jobResources,
 	}
 
 	// create ci release job

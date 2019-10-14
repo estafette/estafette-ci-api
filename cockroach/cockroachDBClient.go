@@ -27,10 +27,12 @@ type DBClient interface {
 	ConnectWithDriverAndSource(driverName, dataSourceName string) error
 
 	GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwner, repoName string) (int, error)
-	InsertBuild(context.Context, contracts.Build) (*contracts.Build, error)
+	InsertBuild(context.Context, contracts.Build, JobResources) (*contracts.Build, error)
 	UpdateBuildStatus(context.Context, string, string, string, int, string) error
-	InsertRelease(context.Context, contracts.Release) (*contracts.Release, error)
+	UpdateBuildResourceUtilization(context.Context, string, string, string, int, JobResources) error
+	InsertRelease(context.Context, contracts.Release, JobResources) (*contracts.Release, error)
 	UpdateReleaseStatus(context.Context, string, string, string, int, string) error
+	UpdateReleaseResourceUtilization(context.Context, string, string, string, int, JobResources) error
 	InsertBuildLog(context.Context, contracts.BuildLog) error
 	InsertReleaseLog(context.Context, contracts.ReleaseLog) error
 
@@ -202,7 +204,7 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(ctx context.Context, shortRep
 	return
 }
 
-func (dbc *cockroachDBClientImpl) InsertBuild(ctx context.Context, build contracts.Build) (insertedBuild *contracts.Build, err error) {
+func (dbc *cockroachDBClientImpl) InsertBuild(ctx context.Context, build contracts.Build, jobResources JobResources) (insertedBuild *contracts.Build, err error) {
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::InsertBuild")
 	defer span.Finish()
@@ -252,7 +254,11 @@ func (dbc *cockroachDBClientImpl) InsertBuild(ctx context.Context, build contrac
 			manifest,
 			commits,
 			triggers,
-			triggered_by_event
+			triggered_by_event,
+			cpu_request,
+			cpu_limit,
+			memory_request,
+			memory_limit
 		)
 		VALUES
 		(
@@ -268,7 +274,11 @@ func (dbc *cockroachDBClientImpl) InsertBuild(ctx context.Context, build contrac
 			$10,
 			$11,
 			$12,
-			$13
+			$13,
+			$14,
+			$15,
+			$16,
+			$17
 		)
 		RETURNING
 			id
@@ -286,6 +296,10 @@ func (dbc *cockroachDBClientImpl) InsertBuild(ctx context.Context, build contrac
 		commitsBytes,
 		triggersBytes,
 		eventsBytes,
+		jobResources.CPURequest,
+		jobResources.CPULimit,
+		jobResources.MemoryRequest,
+		jobResources.MemoryLimit,
 	)
 
 	insertedBuild = &build
@@ -356,7 +370,34 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(ctx context.Context, repoSou
 	return
 }
 
-func (dbc *cockroachDBClientImpl) InsertRelease(ctx context.Context, release contracts.Release) (insertedRelease *contracts.Release, err error) {
+func (dbc *cockroachDBClientImpl) UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources JobResources) (err error) {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpdateBuildResourceUtilization")
+	defer span.Finish()
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("builds").
+		Set("cpu_max_usage", jobResources.CPUMaxUsage).
+		Set("memory_max_usage", jobResources.MemoryMaxUsage).
+		Where(sq.Eq{"id": buildID}).
+		Where(sq.Eq{"repo_source": repoSource}).
+		Where(sq.Eq{"repo_owner": repoOwner}).
+		Where(sq.Eq{"repo_name": repoName})
+
+	// update build resources
+	_, err = query.RunWith(dbc.databaseConnection).Exec()
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) InsertRelease(ctx context.Context, release contracts.Release, jobResources JobResources) (insertedRelease *contracts.Release, err error) {
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::InsertRelease")
 	defer span.Finish()
@@ -381,7 +422,11 @@ func (dbc *cockroachDBClientImpl) InsertRelease(ctx context.Context, release con
 			release_action,
 			release_version,
 			release_status,
-			triggered_by_event
+			triggered_by_event,
+			cpu_request,
+			cpu_limit,
+			memory_request,
+			memory_limit
 		)
 		VALUES
 		(
@@ -392,7 +437,11 @@ func (dbc *cockroachDBClientImpl) InsertRelease(ctx context.Context, release con
 			$5,
 			$6,
 			$7,
-			$8
+			$8,
+			$9,
+			$10,
+			$11,
+			$12
 		)
 		RETURNING 
 			id
@@ -405,6 +454,10 @@ func (dbc *cockroachDBClientImpl) InsertRelease(ctx context.Context, release con
 		release.ReleaseVersion,
 		release.ReleaseStatus,
 		eventsBytes,
+		jobResources.CPURequest,
+		jobResources.CPULimit,
+		jobResources.MemoryRequest,
+		jobResources.MemoryLimit,
 	)
 
 	if err != nil {
@@ -486,6 +539,33 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(ctx context.Context, repoS
 		dbc.UpsertComputedRelease(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.Name, insertedRelease.Action)
 		dbc.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
 	}()
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) (err error) {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpdateReleaseResourceUtilization")
+	defer span.Finish()
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("releases").
+		Set("cpu_max_usage", jobResources.CPUMaxUsage).
+		Set("memory_max_usage", jobResources.MemoryMaxUsage).
+		Where(sq.Eq{"id": id}).
+		Where(sq.Eq{"repo_source": repoSource}).
+		Where(sq.Eq{"repo_owner": repoOwner}).
+		Where(sq.Eq{"repo_name": repoName})
+
+	// update release resources
+	_, err = query.RunWith(dbc.databaseConnection).Exec()
+	if err != nil {
+		return
+	}
 
 	return
 }

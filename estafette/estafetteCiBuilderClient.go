@@ -197,17 +197,11 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 		}
 	}
 
-	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
-	cpuRequest := "3.5"
-	cpuLimit := "3.5"
-	memoryRequest := "12.0Gi"
-	memoryLimit := "12.0Gi"
-	if ciBuilderParams.JobType == "release" {
-		cpuRequest = "0.5"
-		cpuLimit = "0.5"
-		memoryRequest = "2.0Gi"
-		memoryLimit = "2.0Gi"
-	}
+	// define resource request and limit values from job resources struct, so we can autotune later on
+	cpuRequest := fmt.Sprintf("%f", ciBuilderParams.JobResources.CPURequest)
+	cpuLimit := fmt.Sprintf("%f", ciBuilderParams.JobResources.CPULimit)
+	memoryRequest := fmt.Sprintf("%.0f", ciBuilderParams.JobResources.MemoryRequest)
+	memoryLimit := fmt.Sprintf("%.0f", ciBuilderParams.JobResources.MemoryLimit)
 
 	// other job config
 	containerName := "estafette-ci-builder"

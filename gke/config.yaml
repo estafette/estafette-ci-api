@@ -39,6 +39,12 @@ auth:
     audience: {{.IAP_AUDIENCE}}
   apiKey: {{.ESTAFETTE_CI_API_KEY}}
 
+jobs:
+  minCPUCores: 0.1
+  maxCPUCores: 3.5
+  minMemoryBytes: 67108864
+  maxMemoryBytes: 12884901888
+
 database:
   databaseName: {{.COCKROACH_DATABASE}}
   host: {{.COCKROACH_HOST}}
