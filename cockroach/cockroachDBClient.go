@@ -56,11 +56,13 @@ type DBClient interface {
 	GetFirstPipelineRelease(context.Context, string, string, string, string, string) (*contracts.Release, error)
 	GetPipelineBuildsByVersion(context.Context, string, string, string, string, bool) ([]*contracts.Build, error)
 	GetPipelineBuildLogs(context.Context, string, string, string, string, string, string) (*contracts.BuildLog, error)
+	GetPipelineBuildMaxResourceUtilization(context.Context, string, string, string, int) (JobResources, int, error)
 	GetPipelineReleases(context.Context, string, string, string, int, int, map[string][]string) ([]*contracts.Release, error)
 	GetPipelineReleasesCount(context.Context, string, string, string, map[string][]string) (int, error)
 	GetPipelineRelease(context.Context, string, string, string, int) (*contracts.Release, error)
 	GetPipelineLastReleasesByName(context.Context, string, string, string, string, []string) ([]contracts.Release, error)
 	GetPipelineReleaseLogs(context.Context, string, string, string, int) (*contracts.ReleaseLog, error)
+	GetPipelineReleaseMaxResourceUtilization(context.Context, string, string, string, string, int) (JobResources, int, error)
 	GetBuildsCount(context.Context, map[string][]string) (int, error)
 	GetReleasesCount(context.Context, map[string][]string) (int, error)
 	GetBuildsDuration(context.Context, map[string][]string) (time.Duration, error)
@@ -1538,6 +1540,39 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(ctx context.Context, repo
 	return
 }
 
+func (dbc *cockroachDBClientImpl) GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobResources JobResources, recordCount int, err error) {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildMaxResourceUtilization")
+	defer span.Finish()
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	innerquery := psql.
+		Select("cpu_max_usage, memory_max_usage").
+		From("builds").
+		Where(sq.Eq{"repo_source": repoSource}).
+		Where(sq.Eq{"repo_owner": repoOwner}).
+		Where(sq.Eq{"repo_name": repoName}).
+		Where(sq.NotEq{"cpu_max_usage": nil}).
+		Where(sq.NotEq{"memory_max_usage": nil}).
+		OrderBy("inserted_at DESC").
+		Limit(uint64(lastNRecords))
+
+	query := psql.Select("COALESCE(MAX(a.cpu_max_usage),0) AS max_cpu_max_usage, COALESCE(MAX(a.memory_max_usage),0) AS max_memory_max_usage, COUNT(a.*) AS nr_records").
+		FromSelect(innerquery, "a")
+
+	// execute query
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	if err = row.Scan(&jobResources.CPUMaxUsage, &jobResources.MemoryMaxUsage, &recordCount); err != nil {
+		return
+	}
+
+	return
+}
+
 func (dbc *cockroachDBClientImpl) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string) (releases []*contracts.Release, err error) {
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineReleases")
@@ -1711,6 +1746,40 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogs(ctx context.Context, re
 	releaseLog.ReleaseID = strconv.Itoa(releaseID)
 
 	if err = json.Unmarshal(stepsData, &releaseLog.Steps); err != nil {
+		return
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineReleaseMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobResources JobResources, recordCount int, err error) {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildMaxResourceUtilization")
+	defer span.Finish()
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	innerquery := psql.
+		Select("cpu_max_usage, memory_max_usage").
+		From("releases").
+		Where(sq.Eq{"repo_source": repoSource}).
+		Where(sq.Eq{"repo_owner": repoOwner}).
+		Where(sq.Eq{"repo_name": repoName}).
+		Where(sq.Eq{"release": targetName}).
+		Where(sq.NotEq{"cpu_max_usage": nil}).
+		Where(sq.NotEq{"memory_max_usage": nil}).
+		OrderBy("inserted_at DESC").
+		Limit(uint64(lastNRecords))
+
+	query := psql.Select("COALESCE(MAX(a.cpu_max_usage),0) AS max_cpu_max_usage, COALESCE(MAX(a.memory_max_usage),0) AS max_memory_max_usage, COUNT(a.*) AS nr_records").
+		FromSelect(innerquery, "a")
+
+	// execute query
+	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	if err = row.Scan(&jobResources.CPUMaxUsage, &jobResources.MemoryMaxUsage, &recordCount); err != nil {
 		return
 	}
 

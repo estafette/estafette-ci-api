@@ -42,8 +42,10 @@ auth:
 jobs:
   minCPUCores: 0.1
   maxCPUCores: 3.5
+  cpuRequestRatio: 1.0
   minMemoryBytes: 67108864
   maxMemoryBytes: 12884901888
+  memoryRequestRatio: 1.25
 
 database:
   databaseName: {{.COCKROACH_DATABASE}}

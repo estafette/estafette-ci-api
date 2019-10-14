@@ -207,6 +207,24 @@ func (s *buildServiceImpl) CreateBuild(ctx context.Context, build contracts.Buil
 		MemoryLimit:   s.jobsConfig.MaxMemoryBytes,
 	}
 
+	// get max usage from previous builds
+	measuredResources, nrRecords, err := s.cockroachDBClient.GetPipelineBuildMaxResourceUtilization(ctx, build.RepoSource, build.RepoOwner, build.RepoName, 25)
+	if err != nil {
+		log.Warn().Err(err).Msgf("Failed retrieving max resource utiliziation for recent builds of %v/%v/%v, using defaults...", build.RepoSource, build.RepoOwner, build.RepoName)
+	} else if nrRecords < 5 {
+		log.Warn().Err(err).Msgf("Retrieved max resource utiliziation for recent builds of %v/%v/%v only has %v records, using defaults...", build.RepoSource, build.RepoOwner, build.RepoName, nrRecords)
+	} else {
+		// only override cpu and memory request values if measured values are within min and max
+		if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio >= s.jobsConfig.MinCPUCores && measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio <= s.jobsConfig.MaxCPUCores {
+			jobResources.CPURequest = measuredResources.CPUMaxUsage * s.jobsConfig.CPURequestRatio
+		}
+
+		// for memory add 25% overhead to prevent oomkilled
+		if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio >= s.jobsConfig.MinMemoryBytes && measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio <= s.jobsConfig.MaxMemoryBytes {
+			jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.jobsConfig.MemoryRequestRatio
+		}
+	}
+
 	// store build in db
 	createdBuild, err = s.cockroachDBClient.InsertBuild(ctx, contracts.Build{
 		RepoSource:     build.RepoSource,
@@ -398,6 +416,24 @@ func (s *buildServiceImpl) CreateRelease(ctx context.Context, release contracts.
 		CPULimit:      s.jobsConfig.MaxCPUCores,
 		MemoryRequest: s.jobsConfig.MaxMemoryBytes,
 		MemoryLimit:   s.jobsConfig.MaxMemoryBytes,
+	}
+
+	// get max usage from previous builds
+	measuredResources, nrRecords, err := s.cockroachDBClient.GetPipelineReleaseMaxResourceUtilization(ctx, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, 25)
+	if err != nil {
+		log.Warn().Err(err).Msgf("Failed retrieving max resource utiliziation for recent releases of %v/%v/%v target %v, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
+	} else if nrRecords < 5 {
+		log.Warn().Err(err).Msgf("Retrieved max resource utiliziation for recent builds of %v/%v/%v target %v only has %v records, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, nrRecords)
+	} else {
+		// only override cpu and memory request values if measured values are within min and max
+		if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio >= s.jobsConfig.MinCPUCores && measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio <= s.jobsConfig.MaxCPUCores {
+			jobResources.CPURequest = measuredResources.CPUMaxUsage * s.jobsConfig.CPURequestRatio
+		}
+
+		// for memory add 25% overhead to prevent oomkilled
+		if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio >= s.jobsConfig.MinMemoryBytes && measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio <= s.jobsConfig.MaxMemoryBytes {
+			jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.jobsConfig.MemoryRequestRatio
+		}
 	}
 
 	// create release in database

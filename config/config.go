@@ -36,10 +36,12 @@ type AuthConfig struct {
 
 // JobsConfig configures the lower and upper bounds for automatically setting resources for build/release jobs
 type JobsConfig struct {
-	MinCPUCores    float64 `yaml:"minCPUCores"`
-	MaxCPUCores    float64 `yaml:"maxCPUCores"`
-	MinMemoryBytes float64 `yaml:"minMemoryBytes"`
-	MaxMemoryBytes float64 `yaml:"maxMemoryBytes"`
+	MinCPUCores        float64 `yaml:"minCPUCores"`
+	MaxCPUCores        float64 `yaml:"maxCPUCores"`
+	CPURequestRatio    float64 `yaml:"cpuRequestRatio"`
+	MinMemoryBytes     float64 `yaml:"minMemoryBytes"`
+	MaxMemoryBytes     float64 `yaml:"maxMemoryBytes"`
+	MemoryRequestRatio float64 `yaml:"memoryRequestRatio"`
 }
 
 // IAPAuthConfig sets iap config in case it's used for authentication and authorization

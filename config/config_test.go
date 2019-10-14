@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"math"
 	"testing"
 
 	crypt "github.com/estafette/estafette-ci-crypt"
@@ -115,8 +116,10 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		assert.Equal(t, 0.1, jobsConfig.MinCPUCores)
 		assert.Equal(t, 3.5, jobsConfig.MaxCPUCores)
-		assert.Equal(t, 67108864.0, jobsConfig.MinMemoryBytes)
-		assert.Equal(t, 12884901888.0, jobsConfig.MaxMemoryBytes)
+		assert.Equal(t, 1.0, jobsConfig.CPURequestRatio)
+		assert.Equal(t, 64*math.Pow(2, 10)*math.Pow(2, 10), jobsConfig.MinMemoryBytes)                 // 64Mi
+		assert.Equal(t, 12*math.Pow(2, 10)*math.Pow(2, 10)*math.Pow(2, 10), jobsConfig.MaxMemoryBytes) // 12Gi
+		assert.Equal(t, 1.25, jobsConfig.MemoryRequestRatio)
 	})
 
 	t.Run("ReturnsDatabaseConfig", func(t *testing.T) {
