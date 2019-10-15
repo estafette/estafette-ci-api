@@ -364,6 +364,7 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(ctx context.Context, repoSou
 		return
 	} else if err != nil {
 		log.Warn().Err(err).Msgf("Updating build status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, buildStatus, allowedBuildStatusesToTransitionFrom, buildStatus)
+		return
 	}
 
 	// update computed tables
@@ -534,6 +535,7 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(ctx context.Context, repoS
 		return
 	} else if err != nil {
 		log.Warn().Err(err).Msgf("Updating release status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, id, allowedReleaseStatusesToTransitionFrom, releaseStatus)
+		return
 	}
 
 	// update computed tables
