@@ -10,29 +10,29 @@ version:
 
 stages:
   restore:
-    image: mcr.microsoft.com/dotnet/core/sdk:2.2-alpine
+    image: mcr.microsoft.com/dotnet/core/sdk:3.0-alpine
     env:
       PRIVATE_NUGET_SOURCE: {{.PrivateNugetSource}}
     commands:
     - dotnet restore --source https://www.nuget.org/api/v1 --source ${PRIVATE_NUGET_SOURCE} --packages .nuget/packages
 
   build:
-    image: mcr.microsoft.com/dotnet/core/sdk:2.2-alpine
+    image: mcr.microsoft.com/dotnet/core/sdk:3.0-alpine
     commands:
     - dotnet build --configuration Release /p:Version=${ESTAFETTE_BUILD_VERSION} --no-restore
 
   unit-tests:
-    image: mcr.microsoft.com/dotnet/core/sdk:2.2-alpine
+    image: mcr.microsoft.com/dotnet/core/sdk:3.0-alpine
     commands:
     - ls test/**/*.UnitTests.csproj | xargs -n1 dotnet test --configuration Release --no-build --no-restore
 
   integration-tests:
-    image: mcr.microsoft.com/dotnet/core/sdk:2.2-alpine
+    image: mcr.microsoft.com/dotnet/core/sdk:3.0-alpine
     commands:
     - ls test/**/*.IntegrationTests.csproj | xargs -n1 dotnet test --configuration Release --no-build --no-restore
 
   publish:
-    image: mcr.microsoft.com/dotnet/core/sdk:2.2-alpine
+    image: mcr.microsoft.com/dotnet/core/sdk:3.0-alpine
     commands:
     - dotnet publish src/*.WebService --configuration Release --runtime linux-x64 /p:Version=${ESTAFETTE_BUILD_VERSION} --output ${PWD}/publish --no-restore
 
