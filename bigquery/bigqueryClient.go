@@ -24,13 +24,19 @@ type BigQueryClient interface {
 
 type bigQueryClientImpl struct {
 	client                 *bigquery.Client
-	config                 config.BigQueryConfig
+	config                 *config.BigQueryConfig
 	buildEventsTableName   string
 	releaseEventsTableName string
 }
 
 // NewBigQueryClient returns new BigQueryClient
-func NewBigQueryClient(config config.BigQueryConfig) (BigQueryClient, error) {
+func NewBigQueryClient(config *config.BigQueryConfig) (BigQueryClient, error) {
+
+	if config == nil || !config.Enable {
+		return &bigQueryClientImpl{
+			config: config,
+		}, nil
+	}
 
 	ctx := context.Background()
 
@@ -49,9 +55,11 @@ func NewBigQueryClient(config config.BigQueryConfig) (BigQueryClient, error) {
 
 func (bqc *bigQueryClientImpl) Init() (err error) {
 
-	if !bqc.config.Enable {
+	if bqc.config == nil || !bqc.config.Enable {
 		return
 	}
+
+	log.Info().Msgf("Initializing BigQuery tables %v and %v...", bqc.buildEventsTableName, bqc.releaseEventsTableName)
 
 	datasetExists := bqc.CheckIfDatasetExists()
 	if !datasetExists {
@@ -83,6 +91,8 @@ func (bqc *bigQueryClientImpl) Init() (err error) {
 
 func (bqc *bigQueryClientImpl) CheckIfDatasetExists() bool {
 
+	log.Info().Msgf("Checking if BigQuery dataset %v exists...", bqc.config.Dataset)
+
 	ds := bqc.client.Dataset(bqc.config.Dataset)
 
 	md, err := ds.Metadata(context.Background())
@@ -94,16 +104,19 @@ func (bqc *bigQueryClientImpl) CheckIfDatasetExists() bool {
 
 func (bqc *bigQueryClientImpl) CheckIfTableExists(table string) bool {
 
+	log.Info().Msgf("Checking if BigQuery table %v exists...", table)
+
 	tbl := bqc.client.Dataset(bqc.config.Dataset).Table(table)
 
 	md, _ := tbl.Metadata(context.Background())
-
-	// log.Error().Err(err).Msgf("Error retrieving metadata for table %v", table)
 
 	return md != nil
 }
 
 func (bqc *bigQueryClientImpl) CreateTable(table string, typeForSchema interface{}, partitionField string, waitReady bool) error {
+
+	log.Info().Msgf("Creating BigQuery table %v in dataset %v...", table, bqc.config.Dataset)
+
 	tbl := bqc.client.Dataset(bqc.config.Dataset).Table(table)
 
 	// infer the schema of the type
@@ -138,10 +151,15 @@ func (bqc *bigQueryClientImpl) CreateTable(table string, typeForSchema interface
 		}
 	}
 
+	log.Info().Msgf("Finished creating BigQuery table %v in dataset %v", table, bqc.config.Dataset)
+
 	return nil
 }
 
 func (bqc *bigQueryClientImpl) UpdateTableSchema(table string, typeForSchema interface{}) error {
+
+	log.Info().Msgf("Updating BigQuery table %v schema in dataset %v...", table, bqc.config.Dataset)
+
 	tbl := bqc.client.Dataset(bqc.config.Dataset).Table(table)
 
 	// infer the schema of the type
@@ -167,7 +185,7 @@ func (bqc *bigQueryClientImpl) UpdateTableSchema(table string, typeForSchema int
 
 func (bqc *bigQueryClientImpl) InsertBuildEvent(event bqcontracts.PipelineBuildEvent) error {
 
-	if !bqc.config.Enable {
+	if bqc.config == nil || !bqc.config.Enable {
 		return nil
 	}
 
@@ -184,7 +202,7 @@ func (bqc *bigQueryClientImpl) InsertBuildEvent(event bqcontracts.PipelineBuildE
 
 func (bqc *bigQueryClientImpl) InsertReleaseEvent(event bqcontracts.PipelineReleaseEvent) error {
 
-	if !bqc.config.Enable {
+	if bqc.config == nil || !bqc.config.Enable {
 		return nil
 	}
 
