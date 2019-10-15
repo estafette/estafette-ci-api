@@ -78,6 +78,20 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, 10, prometheusConfig.ScrapeIntervalSeconds)
 	})
 
+	t.Run("ReturnsBigQueryConfig", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		bigqueryConfig := config.Integrations.BigQuery
+
+		assert.Equal(t, true, bigqueryConfig.Enable)
+		assert.Equal(t, "my-gcp-project", bigqueryConfig.ProjectID)
+		assert.Equal(t, "my-dataset", bigqueryConfig.Dataset)
+	})
+
 	t.Run("ReturnsAPIServerConfig", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))

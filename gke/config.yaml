@@ -29,6 +29,11 @@ integrations:
     serverURL: http://prometheus-server.monitoring.svc.cluster.local
     scrapeIntervalSeconds: 10
 
+  bigquery:
+    enable: {{.BIGQUERY_ENABLED}}
+    projectID: {{.BIGQUERY_PROJECT}}
+    dataset: {{.BIGQUERY_DATASET}}
+
 apiServer:
   baseURL: https://{{.HOSTNAMES}}/
   serviceURL: https://{{.INTERNAL_HOSTNAME}}/

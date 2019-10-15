@@ -68,6 +68,7 @@ type APIConfigIntegrations struct {
 	Slack      *SlackConfig      `yaml:"slack,omitempty"`
 	Pubsub     *PubsubConfig     `yaml:"pubsub,omitempty"`
 	Prometheus *PrometheusConfig `yaml:"prometheus,omitempty"`
+	BigQuery   *BigQueryConfig   `yaml:"bigquery,omitempty"`
 }
 
 // GithubConfig is used to configure github integration
@@ -104,9 +105,17 @@ type PubsubConfig struct {
 	SubscriptionIdleExpirationDays int    `yaml:"subscriptionIdleExpirationDays"`
 }
 
+// PrometheusConfig configures where to find prometheus for retrieving max cpu and memory consumption of build and release jobs
 type PrometheusConfig struct {
 	ServerURL             string `yaml:"serverURL"`
 	ScrapeIntervalSeconds int    `yaml:"scrapeIntervalSeconds"`
+}
+
+// BigQueryConfig configures the dataset where to send bigquery events
+type BigQueryConfig struct {
+	Enable    bool   `yaml:"enable"`
+	ProjectID string `yaml:"projectID"`
+	Dataset   string `yaml:"dataset"`
 }
 
 // ConfigReader reads the api config from file

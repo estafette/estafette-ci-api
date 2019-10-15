@@ -10,6 +10,7 @@ import (
 
 	"github.com/alecthomas/kingpin"
 	"github.com/estafette/estafette-ci-api/auth"
+	"github.com/estafette/estafette-ci-api/bigquery"
 	"github.com/estafette/estafette-ci-api/bitbucket"
 	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/config"
@@ -135,6 +136,17 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	ciBuilderClient, err := estafette.NewCiBuilderClient(*config, *encryptedConfig, secretHelper, prometheusOutboundAPICallTotals)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
+	}
+
+	if config.Integrations.BigQuery != nil && config.Integrations.BigQuery.Enable {
+		bigqueryClient, err := bigquery.NewBigQueryClient(*config.Integrations.BigQuery)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Creating new BigQueryClient has failed")
+		}
+		err = bigqueryClient.Init()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Initializing BigQuery tables has failed")
+		}
 	}
 
 	// set up database

@@ -3,6 +3,7 @@ module github.com/estafette/estafette-ci-api
 go 1.12
 
 require (
+	cloud.google.com/go/bigquery v1.0.1
 	cloud.google.com/go/pubsub v1.0.1
 	cloud.google.com/go/storage v1.0.0 // indirect
 	github.com/Masterminds/squirrel v1.1.0
