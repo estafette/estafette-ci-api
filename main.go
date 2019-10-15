@@ -30,6 +30,7 @@ import (
 )
 
 var (
+	appgroup  string
 	app       string
 	version   string
 	branch    string
@@ -76,7 +77,7 @@ func main() {
 	kingpin.Parse()
 
 	// configure json logging
-	foundation.InitLogging(app, version, branch, revision, buildDate)
+	foundation.InitLogging(appgroup, app, version, branch, revision, buildDate)
 
 	closer := initJaeger()
 	defer closer.Close()
