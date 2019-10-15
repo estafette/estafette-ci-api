@@ -215,14 +215,26 @@ func (s *buildServiceImpl) CreateBuild(ctx context.Context, build contracts.Buil
 		log.Warn().Msgf("Retrieved max resource utilization for recent builds of %v/%v/%v only has %v records, using defaults...", build.RepoSource, build.RepoOwner, build.RepoName, nrRecords)
 	} else {
 		log.Info().Msgf("Retrieved max resource utilization for recent builds of %v/%v/%v, checking if they are within lower and upper bound...", build.RepoSource, build.RepoOwner, build.RepoName)
+
 		// only override cpu and memory request values if measured values are within min and max
-		if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio >= s.jobsConfig.MinCPUCores && measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio <= s.jobsConfig.MaxCPUCores {
-			jobResources.CPURequest = measuredResources.CPUMaxUsage * s.jobsConfig.CPURequestRatio
+		if measuredResources.CPUMaxUsage > 0 {
+			if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio <= s.jobsConfig.MinCPUCores {
+				jobResources.CPURequest = s.jobsConfig.MinCPUCores
+			} else if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio >= s.jobsConfig.MaxCPUCores {
+				jobResources.CPURequest = s.jobsConfig.MaxCPUCores
+			} else {
+				jobResources.CPURequest = measuredResources.CPUMaxUsage * s.jobsConfig.CPURequestRatio
+			}
 		}
 
-		// for memory add 25% overhead to prevent oomkilled
-		if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio >= s.jobsConfig.MinMemoryBytes && measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio <= s.jobsConfig.MaxMemoryBytes {
-			jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.jobsConfig.MemoryRequestRatio
+		if measuredResources.MemoryMaxUsage > 0 {
+			if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio <= s.jobsConfig.MinMemoryBytes {
+				jobResources.MemoryRequest = s.jobsConfig.MinMemoryBytes
+			} else if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio >= s.jobsConfig.MaxMemoryBytes {
+				jobResources.MemoryRequest = s.jobsConfig.MaxMemoryBytes
+			} else {
+				jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.jobsConfig.MemoryRequestRatio
+			}
 		}
 	}
 
@@ -427,14 +439,26 @@ func (s *buildServiceImpl) CreateRelease(ctx context.Context, release contracts.
 		log.Warn().Msgf("Retrieved max resource utilization for recent releases of %v/%v/%v target %v only has %v records, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, nrRecords)
 	} else {
 		log.Info().Msgf("Retrieved max resource utilization for recent releases of %v/%v/%v target %v, checking if they are within lower and upper bound...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
+
 		// only override cpu and memory request values if measured values are within min and max
-		if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio >= s.jobsConfig.MinCPUCores && measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio <= s.jobsConfig.MaxCPUCores {
-			jobResources.CPURequest = measuredResources.CPUMaxUsage * s.jobsConfig.CPURequestRatio
+		if measuredResources.CPUMaxUsage > 0 {
+			if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio <= s.jobsConfig.MinCPUCores {
+				jobResources.CPURequest = s.jobsConfig.MinCPUCores
+			} else if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio >= s.jobsConfig.MaxCPUCores {
+				jobResources.CPURequest = s.jobsConfig.MaxCPUCores
+			} else {
+				jobResources.CPURequest = measuredResources.CPUMaxUsage * s.jobsConfig.CPURequestRatio
+			}
 		}
 
-		// for memory add 25% overhead to prevent oomkilled
-		if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio >= s.jobsConfig.MinMemoryBytes && measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio <= s.jobsConfig.MaxMemoryBytes {
-			jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.jobsConfig.MemoryRequestRatio
+		if measuredResources.MemoryMaxUsage > 0 {
+			if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio <= s.jobsConfig.MinMemoryBytes {
+				jobResources.MemoryRequest = s.jobsConfig.MinMemoryBytes
+			} else if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio >= s.jobsConfig.MaxMemoryBytes {
+				jobResources.MemoryRequest = s.jobsConfig.MaxMemoryBytes
+			} else {
+				jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.jobsConfig.MemoryRequestRatio
+			}
 		}
 	}
 
