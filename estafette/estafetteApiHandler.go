@@ -50,6 +50,10 @@ type APIHandler interface {
 
 	GetPipelineStatsBuildsDurations(*gin.Context)
 	GetPipelineStatsReleasesDurations(*gin.Context)
+	GetPipelineStatsBuildsCPUUsageMeasurements(*gin.Context)
+	GetPipelineStatsReleasesCPUUsageMeasurements(*gin.Context)
+	GetPipelineStatsBuildsMemoryUsageMeasurements(*gin.Context)
+	GetPipelineStatsReleasesMemoryUsageMeasurements(*gin.Context)
 	GetPipelineWarnings(*gin.Context)
 
 	GetStatsPipelinesCount(*gin.Context)
@@ -1242,6 +1246,123 @@ func (h *apiHandlerImpl) GetPipelineStatsReleasesDurations(c *gin.Context) {
 		"durations": durations,
 	})
 }
+
+func (h *apiHandlerImpl) GetPipelineStatsBuildsCPUUsageMeasurements(c *gin.Context) {
+
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineStatsBuildsCPUUsageMeasurements")
+	defer span.Finish()
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+
+	// get filters (?filter[last]=100)
+	filters := map[string][]string{}
+	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["last"] = h.getLastFilter(c, 100)
+
+	measurements, err := h.cockroachDBClient.GetPipelineBuildsCPUUsageMeasurements(ctx, source, owner, repo, filters)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving build cpu usage measurements from db for %v/%v/%v", source, owner, repo)
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"measurements": measurements,
+	})
+}
+
+func (h *apiHandlerImpl) GetPipelineStatsReleasesCPUUsageMeasurements(c *gin.Context) {
+
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineStatsReleasesCPUUsageMeasurements")
+	defer span.Finish()
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+
+	// get filters (?filter[last]=100)
+	filters := map[string][]string{}
+	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["last"] = h.getLastFilter(c, 100)
+
+	measurements, err := h.cockroachDBClient.GetPipelineReleasesCPUUsageMeasurements(ctx, source, owner, repo, filters)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving release cpu usage measurements from db for %v/%v/%v", source, owner, repo)
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"measurements": measurements,
+	})
+}
+
+func (h *apiHandlerImpl) GetPipelineStatsBuildsMemoryUsageMeasurements(c *gin.Context) {
+
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineStatsBuildsMemoryUsageMeasurements")
+	defer span.Finish()
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+
+	// get filters (?filter[last]=100)
+	filters := map[string][]string{}
+	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["last"] = h.getLastFilter(c, 100)
+
+	measurements, err := h.cockroachDBClient.GetPipelineBuildsMemoryUsageMeasurements(ctx, source, owner, repo, filters)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving build memory usage measurements from db for %v/%v/%v", source, owner, repo)
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"measurements": measurements,
+	})
+}
+
+func (h *apiHandlerImpl) GetPipelineStatsReleasesMemoryUsageMeasurements(c *gin.Context) {
+
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineStatsReleasesMemoryUsageMeasurements")
+	defer span.Finish()
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+
+	// get filters (?filter[last]=100)
+	filters := map[string][]string{}
+	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["last"] = h.getLastFilter(c, 100)
+
+	measurements, err := h.cockroachDBClient.GetPipelineReleasesMemoryUsageMeasurements(ctx, source, owner, repo, filters)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving release memory usage measurements from db for %v/%v/%v", source, owner, repo)
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"measurements": measurements,
+	})
+}
+
 
 func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 

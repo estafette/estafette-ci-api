@@ -70,6 +70,11 @@ type DBClient interface {
 	GetFirstReleaseTimes(context.Context) ([]time.Time, error)
 	GetPipelineBuildsDurations(context.Context, string, string, string, map[string][]string) ([]map[string]interface{}, error)
 	GetPipelineReleasesDurations(context.Context, string, string, string, map[string][]string) ([]map[string]interface{}, error)
+	GetPipelineBuildsCPUUsageMeasurements(context.Context, string, string, string, map[string][]string) ([]map[string]interface{}, error)
+	GetPipelineReleasesCPUUsageMeasurements(context.Context, string, string, string, map[string][]string) ([]map[string]interface{}, error)
+	GetPipelineBuildsMemoryUsageMeasurements(context.Context, string, string, string, map[string][]string) ([]map[string]interface{}, error)
+	GetPipelineReleasesMemoryUsageMeasurements(context.Context, string, string, string, map[string][]string) ([]map[string]interface{}, error)
+
 	GetFrequentLabels(context.Context, int, int, map[string][]string) ([]map[string]interface{}, error)
 	GetFrequentLabelsCount(context.Context, map[string][]string) (int, error)
 
@@ -2086,6 +2091,237 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(ctx context.Conte
 
 	return
 }
+
+func (dbc *cockroachDBClientImpl) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildsCPUUsageMeasurements")
+	defer span.Finish()
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("a.inserted_at, a.cpu_max_usage").
+			From("builds a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName}).
+			Where(sq.NotEq{"a.cpu_max_usage": nil}).
+			OrderBy("a.inserted_at DESC")
+
+	query, err = whereClauseGeneratorForBuildStatusFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = limitClauseGeneratorForLastFilter(query, filters)
+	if err != nil {
+		return
+	}
+
+	measurements = make([]map[string]interface{}, 0)
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		var insertedAt time.Time
+		var cpuMaxUsage float64
+
+		if err = rows.Scan(
+			&insertedAt, &cpuMaxUsage); err != nil {
+			return
+		}
+
+		measurements = append(measurements, map[string]interface{}{
+			"insertedAt": insertedAt,
+			"cpuMaxUsage":   cpuMaxUsage,
+		})
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineReleasesCPUUsageMeasurements")
+	defer span.Finish()
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("a.inserted_at, a.release, a.release_action, a.cpu_max_usage").
+			From("releases a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName}).
+			Where(sq.NotEq{"a.cpu_max_usage": nil}).
+			OrderBy("a.inserted_at DESC")
+
+	query, err = whereClauseGeneratorForReleaseStatusFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = limitClauseGeneratorForLastFilter(query, filters)
+	if err != nil {
+		return
+	}
+
+	measurements = make([]map[string]interface{}, 0)
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		var insertedAt time.Time
+		var releaseName, releaseAction string
+		var cpuMaxUsage float64
+
+		if err = rows.Scan(
+			&insertedAt, &releaseName, &releaseAction, &cpuMaxUsage); err != nil {
+			return
+		}
+
+		measurements = append(measurements, map[string]interface{}{
+			"insertedAt": insertedAt,
+			"name":       releaseName,
+			"action":     releaseAction,
+			"cpuMaxUsage":   cpuMaxUsage,
+		})
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildsMemoryUsageMeasurements")
+	defer span.Finish()
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("a.inserted_at, a.memory_max_usage").
+			From("builds a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName}).
+			Where(sq.NotEq{"a.memory_max_usage": nil}).
+			OrderBy("a.inserted_at DESC")
+
+	query, err = whereClauseGeneratorForBuildStatusFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = limitClauseGeneratorForLastFilter(query, filters)
+	if err != nil {
+		return
+	}
+
+	measurements = make([]map[string]interface{}, 0)
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		var insertedAt time.Time
+		var memoryMaxUsage float64
+
+		if err = rows.Scan(
+			&insertedAt, &memoryMaxUsage); err != nil {
+			return
+		}
+
+		measurements = append(measurements, map[string]interface{}{
+			"insertedAt": insertedAt,
+			"memoryMaxUsage":   memoryMaxUsage,
+		})
+	}
+
+	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineReleasesMemoryUsageMeasurements")
+	defer span.Finish()
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("a.inserted_at, a.release, a.release_action, a.memory_max_usage").
+			From("releases a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName}).
+			Where(sq.NotEq{"a.memory_max_usage": nil}).
+			OrderBy("a.inserted_at DESC")
+
+	query, err = whereClauseGeneratorForReleaseStatusFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = limitClauseGeneratorForLastFilter(query, filters)
+	if err != nil {
+		return
+	}
+
+	measurements = make([]map[string]interface{}, 0)
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		var insertedAt time.Time
+		var releaseName, releaseAction string
+		var memoryMaxUsage float64
+
+		if err = rows.Scan(
+			&insertedAt, &releaseName, &releaseAction, &memoryMaxUsage); err != nil {
+			return
+		}
+
+		measurements = append(measurements, map[string]interface{}{
+			"insertedAt": insertedAt,
+			"name":       releaseName,
+			"action":     releaseAction,
+			"memoryMaxUsage":   memoryMaxUsage,
+		})
+	}
+
+	return
+}
+
 
 func (dbc *cockroachDBClientImpl) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {
 
