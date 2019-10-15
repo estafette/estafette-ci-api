@@ -2100,7 +2100,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsCPUUsageMeasurements(ctx cont
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query :=
+	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Select("a.inserted_at, a.cpu_max_usage").
 			From("builds a").
@@ -2110,15 +2110,21 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsCPUUsageMeasurements(ctx cont
 			Where(sq.NotEq{"a.cpu_max_usage": nil}).
 			OrderBy("a.inserted_at DESC")
 
-	query, err = whereClauseGeneratorForBuildStatusFilter(query, "a", filters)
+	innerquery, err = whereClauseGeneratorForBuildStatusFilter(innerquery, "a", filters)
 	if err != nil {
 		return
 	}
 
-	query, err = limitClauseGeneratorForLastFilter(query, filters)
+	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
 		return
 	}
+
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("*").
+			FromSelect(innerquery, "a").
+			OrderBy("a.inserted_at")
 
 	measurements = make([]map[string]interface{}, 0)
 
@@ -2156,7 +2162,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesCPUUsageMeasurements(ctx co
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query :=
+	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Select("a.inserted_at, a.release, a.release_action, a.cpu_max_usage").
 			From("releases a").
@@ -2166,15 +2172,21 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesCPUUsageMeasurements(ctx co
 			Where(sq.NotEq{"a.cpu_max_usage": nil}).
 			OrderBy("a.inserted_at DESC")
 
-	query, err = whereClauseGeneratorForReleaseStatusFilter(query, "a", filters)
+	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
 	if err != nil {
 		return
 	}
 
-	query, err = limitClauseGeneratorForLastFilter(query, filters)
+	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
 		return
 	}
+
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("*").
+			FromSelect(innerquery, "a").
+			OrderBy("a.inserted_at")
 
 	measurements = make([]map[string]interface{}, 0)
 
@@ -2215,7 +2227,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsMemoryUsageMeasurements(ctx c
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query :=
+	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Select("a.inserted_at, a.memory_max_usage").
 			From("builds a").
@@ -2225,15 +2237,21 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsMemoryUsageMeasurements(ctx c
 			Where(sq.NotEq{"a.memory_max_usage": nil}).
 			OrderBy("a.inserted_at DESC")
 
-	query, err = whereClauseGeneratorForBuildStatusFilter(query, "a", filters)
+	innerquery, err = whereClauseGeneratorForBuildStatusFilter(innerquery, "a", filters)
 	if err != nil {
 		return
 	}
 
-	query, err = limitClauseGeneratorForLastFilter(query, filters)
+	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
 		return
 	}
+
+	query :=
+	sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		Select("*").
+		FromSelect(innerquery, "a").
+		OrderBy("a.inserted_at")
 
 	measurements = make([]map[string]interface{}, 0)
 
@@ -2271,7 +2289,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesMemoryUsageMeasurements(ctx
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query :=
+	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Select("a.inserted_at, a.release, a.release_action, a.memory_max_usage").
 			From("releases a").
@@ -2281,15 +2299,21 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesMemoryUsageMeasurements(ctx
 			Where(sq.NotEq{"a.memory_max_usage": nil}).
 			OrderBy("a.inserted_at DESC")
 
-	query, err = whereClauseGeneratorForReleaseStatusFilter(query, "a", filters)
+	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
 	if err != nil {
 		return
 	}
 
-	query, err = limitClauseGeneratorForLastFilter(query, filters)
+	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
 		return
 	}
+
+	query :=
+	sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		Select("*").
+		FromSelect(innerquery, "a").
+		OrderBy("a.inserted_at")
 
 	measurements = make([]map[string]interface{}, 0)
 
