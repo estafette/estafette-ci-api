@@ -46,10 +46,10 @@ auth:
 
 jobs:
   minCPUCores: 0.1
-  maxCPUCores: 7.5
+  maxCPUCores: 7.0
   cpuRequestRatio: 1.0
   minMemoryBytes: 67108864
-  maxMemoryBytes: 25769803776
+  maxMemoryBytes: 21474836480
   memoryRequestRatio: 1.25
 
 database:
