@@ -96,8 +96,9 @@ func (bqc *bigQueryClientImpl) CheckIfDatasetExists() bool {
 	ds := bqc.client.Dataset(bqc.config.Dataset)
 
 	md, err := ds.Metadata(context.Background())
-
-	log.Error().Err(err).Msgf("Error retrieving metadata for dataset %v", bqc.config.Dataset)
+	if err != nil {
+		log.Warn().Err(err).Msgf("Error retrieving metadata for dataset %v", bqc.config.Dataset)
+	}
 
 	return md != nil
 }
@@ -108,7 +109,10 @@ func (bqc *bigQueryClientImpl) CheckIfTableExists(table string) bool {
 
 	tbl := bqc.client.Dataset(bqc.config.Dataset).Table(table)
 
-	md, _ := tbl.Metadata(context.Background())
+	md, err := tbl.Metadata(context.Background())
+	if err != nil {
+		log.Warn().Err(err).Msgf("Error retrieving metadata for table %v in dataset %v", table, bqc.config.Dataset)
+	}
 
 	return md != nil
 }
