@@ -496,18 +496,28 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 
 	// this build can be canceled, set status 'canceling' and cancel the build job
 	jobName := h.ciBuilderClient.GetJobName("build", build.RepoOwner, build.RepoName, build.ID)
-	err = h.ciBuilderClient.CancelCiBuilderJob(ctx, jobName)
+	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(ctx, jobName)
 	buildStatus := "canceling"
-	if build.BuildStatus == "pending" || err != nil {
+	if build.BuildStatus == "pending" {
 		// job might not have created a builder yet, so set status to canceled straightaway
 		buildStatus = "canceled"
 	}
-	build.BuildStatus = buildStatus
 	err = h.cockroachDBClient.UpdateBuildStatus(ctx, build.RepoSource, build.RepoOwner, build.RepoName, id, buildStatus)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed updating build status for %v/%v/%v/builds/%v in db", source, owner, repo, revisionOrID)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline build status to canceling"})
 		return
+	}
+
+	// canceling the job failed because it no longer existed we should set canceled status right after having set it to canceling
+	if cancelErr != nil && build.BuildStatus == "running" {
+		buildStatus = "canceled"
+		err = h.cockroachDBClient.UpdateBuildStatus(ctx, build.RepoSource, build.RepoOwner, build.RepoName, id, buildStatus)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed updating build status to canceled after setting it to canceling for %v/%v/%v/builds/%v in db", source, owner, repo, revisionOrID)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline build status to canceled"})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", user.Email)})
@@ -956,9 +966,9 @@ func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 
 	// this release can be canceled, set status 'canceling' and cancel the release job
 	jobName := h.ciBuilderClient.GetJobName("release", release.RepoOwner, release.RepoName, release.ID)
-	err = h.ciBuilderClient.CancelCiBuilderJob(ctx, jobName)
+	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(ctx, jobName)
 	releaseStatus := "canceling"
-	if release.ReleaseStatus == "pending" || err != nil {
+	if release.ReleaseStatus == "pending" {
 		// job might not have created a builder yet, so set status to canceled straightaway
 		releaseStatus = "canceled"
 	}
@@ -967,6 +977,17 @@ func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 		log.Error().Err(err).Msgf("Failed updating release status for %v/%v/%v/builds/%v in db", source, owner, repo, id)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline release status to canceling"})
 		return
+	}
+
+	// canceling the job failed because it no longer existed we should set canceled status right after having set it to canceling
+	if cancelErr != nil && release.ReleaseStatus == "running" {
+		releaseStatus = "canceled"
+		err = h.cockroachDBClient.UpdateReleaseStatus(ctx, release.RepoSource, release.RepoOwner, release.RepoName, id, releaseStatus)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed updating release status to canceled after setting it to canceling for %v/%v/%v/builds/%v in db", source, owner, repo, id)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline release status to canceled"})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", user.Email)})
@@ -1362,7 +1383,6 @@ func (h *apiHandlerImpl) GetPipelineStatsReleasesMemoryUsageMeasurements(c *gin.
 		"measurements": measurements,
 	})
 }
-
 
 func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 

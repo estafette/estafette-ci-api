@@ -35,5 +35,6 @@ require (
 	github.com/uber/jaeger-lib v2.0.0+incompatible
 	go.uber.org/atomic v1.4.0 // indirect
 	google.golang.org/api v0.10.0 // indirect
+	google.golang.org/genproto v0.0.0-20190911173649-1774047e7e51
 	gopkg.in/yaml.v2 v2.2.2
 )
