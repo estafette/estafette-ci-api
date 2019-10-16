@@ -10,32 +10,6 @@ import (
 
 func TestInjectSteps(t *testing.T) {
 
-	t.Run("PrependPrefetchStep", func(t *testing.T) {
-
-		mft := getManifestWithoutBuildStatusSteps()
-
-		// act
-		injectedManifest, err := InjectSteps(mft, "beta", "github")
-
-		assert.Nil(t, err)
-		assert.Equal(t, 6, len(injectedManifest.Stages))
-		assert.Equal(t, "prefetch", injectedManifest.Stages[0].Name)
-		assert.Equal(t, "extensions/prefetch:beta", injectedManifest.Stages[0].ContainerImage)
-	})
-
-	t.Run("PrependEnvvarsStep", func(t *testing.T) {
-
-		mft := getManifestWithoutBuildStatusSteps()
-
-		// act
-		injectedManifest, err := InjectSteps(mft, "beta", "github")
-
-		assert.Nil(t, err)
-		assert.Equal(t, 6, len(injectedManifest.Stages))
-		assert.Equal(t, "envvars", injectedManifest.Stages[1].Name)
-		assert.Equal(t, "extensions/envvars:beta", injectedManifest.Stages[1].ContainerImage)
-	})
-
 	t.Run("PrependGitCloneStep", func(t *testing.T) {
 
 		mft := getManifestWithoutBuildStatusSteps()
@@ -44,9 +18,9 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(mft, "beta", "github")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 6, len(injectedManifest.Stages))
-		assert.Equal(t, "git-clone", injectedManifest.Stages[3].Name)
-		assert.Equal(t, "extensions/git-clone:beta", injectedManifest.Stages[3].ContainerImage)
+		assert.Equal(t, 4, len(injectedManifest.Stages))
+		assert.Equal(t, "git-clone", injectedManifest.Stages[1].Name)
+		assert.Equal(t, "extensions/git-clone:beta", injectedManifest.Stages[1].ContainerImage)
 	})
 
 	t.Run("PrependGitCloneStepToReleaseStagesIfCloneRepositoryIsTrue", func(t *testing.T) {
@@ -57,9 +31,9 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(mft, "beta", "github")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 4, len(injectedManifest.Releases[1].Stages))
-		assert.Equal(t, "git-clone", injectedManifest.Releases[1].Stages[2].Name)
-		assert.Equal(t, "extensions/git-clone:beta", injectedManifest.Releases[1].Stages[2].ContainerImage)
+		assert.Equal(t, 2, len(injectedManifest.Releases[1].Stages))
+		assert.Equal(t, "git-clone", injectedManifest.Releases[1].Stages[0].Name)
+		assert.Equal(t, "extensions/git-clone:beta", injectedManifest.Releases[1].Stages[0].ContainerImage)
 	})
 
 	t.Run("DoNotPrependGitCloneStepToReleaseStagesIfCloneRepositoryIsFalse", func(t *testing.T) {
@@ -70,9 +44,9 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(mft, "beta", "github")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 3, len(injectedManifest.Releases[0].Stages))
-		assert.Equal(t, "deploy", injectedManifest.Releases[0].Stages[2].Name)
-		assert.Equal(t, "extensions/gke", injectedManifest.Releases[0].Stages[2].ContainerImage)
+		assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages))
+		assert.Equal(t, "deploy", injectedManifest.Releases[0].Stages[0].Name)
+		assert.Equal(t, "extensions/gke", injectedManifest.Releases[0].Stages[0].ContainerImage)
 	})
 
 	t.Run("DoNotPrependGitCloneStepToReleaseStagesIfCloneRepositoryIsTrueButStageAlreadyExists", func(t *testing.T) {
@@ -83,9 +57,9 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(mft, "beta", "github")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 4, len(injectedManifest.Releases[0].Stages))
-		assert.Equal(t, "git-clone", injectedManifest.Releases[0].Stages[2].Name)
-		assert.Equal(t, "extensions/git-clone:stable", injectedManifest.Releases[0].Stages[2].ContainerImage)
+		assert.Equal(t, 2, len(injectedManifest.Releases[0].Stages))
+		assert.Equal(t, "git-clone", injectedManifest.Releases[0].Stages[0].Name)
+		assert.Equal(t, "extensions/git-clone:stable", injectedManifest.Releases[0].Stages[0].ContainerImage)
 	})
 
 	t.Run("PrependSetPendingBuildStatusStep", func(t *testing.T) {
@@ -96,10 +70,10 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(mft, "beta", "github")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 6, len(injectedManifest.Stages))
-		assert.Equal(t, "set-pending-build-status", injectedManifest.Stages[2].Name)
-		assert.Equal(t, "extensions/github-status:beta", injectedManifest.Stages[2].ContainerImage)
-		assert.Equal(t, "pending", injectedManifest.Stages[2].CustomProperties["status"])
+		assert.Equal(t, 4, len(injectedManifest.Stages))
+		assert.Equal(t, "set-pending-build-status", injectedManifest.Stages[0].Name)
+		assert.Equal(t, "extensions/github-status:beta", injectedManifest.Stages[0].ContainerImage)
+		assert.Equal(t, "pending", injectedManifest.Stages[0].CustomProperties["status"])
 	})
 
 	t.Run("AppendSetBuildStatusStep", func(t *testing.T) {
@@ -110,9 +84,9 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(mft, "beta", "github")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 6, len(injectedManifest.Stages))
-		assert.Equal(t, "set-build-status", injectedManifest.Stages[5].Name)
-		assert.Equal(t, "extensions/github-status:beta", injectedManifest.Stages[5].ContainerImage)
+		assert.Equal(t, 4, len(injectedManifest.Stages))
+		assert.Equal(t, "set-build-status", injectedManifest.Stages[3].Name)
+		assert.Equal(t, "extensions/github-status:beta", injectedManifest.Stages[3].ContainerImage)
 	})
 
 	t.Run("PrependGitCloneStepIfBuildStatusStepsExist", func(t *testing.T) {
@@ -123,9 +97,9 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(mft, "dev", "github")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 6, len(injectedManifest.Stages))
-		assert.Equal(t, "git-clone", injectedManifest.Stages[2].Name)
-		assert.Equal(t, "extensions/git-clone:dev", injectedManifest.Stages[2].ContainerImage)
+		assert.Equal(t, 4, len(injectedManifest.Stages))
+		assert.Equal(t, "git-clone", injectedManifest.Stages[0].Name)
+		assert.Equal(t, "extensions/git-clone:dev", injectedManifest.Stages[0].ContainerImage)
 	})
 
 	t.Run("DoNotPrependSetPendingBuildStatusStepIfPendingBuildStatusStepExists", func(t *testing.T) {
@@ -136,10 +110,10 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(mft, "dev", "github")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 6, len(injectedManifest.Stages))
-		assert.Equal(t, "set-pending-build-status", injectedManifest.Stages[3].Name)
-		assert.Equal(t, "extensions/github-status:stable", injectedManifest.Stages[3].ContainerImage)
-		assert.Equal(t, "pending", injectedManifest.Stages[3].CustomProperties["status"])
+		assert.Equal(t, 4, len(injectedManifest.Stages))
+		assert.Equal(t, "set-pending-build-status", injectedManifest.Stages[1].Name)
+		assert.Equal(t, "extensions/github-status:stable", injectedManifest.Stages[1].ContainerImage)
+		assert.Equal(t, "pending", injectedManifest.Stages[1].CustomProperties["status"])
 	})
 
 	t.Run("DoNotAppendSetBuildStatusStepIfSetBuildStatusStepExists", func(t *testing.T) {
@@ -150,9 +124,9 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(mft, "dev", "github")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 6, len(injectedManifest.Stages))
-		assert.Equal(t, "set-build-status", injectedManifest.Stages[5].Name)
-		assert.Equal(t, "extensions/github-status:stable", injectedManifest.Stages[5].ContainerImage)
+		assert.Equal(t, 4, len(injectedManifest.Stages))
+		assert.Equal(t, "set-build-status", injectedManifest.Stages[3].Name)
+		assert.Equal(t, "extensions/github-status:stable", injectedManifest.Stages[3].ContainerImage)
 	})
 }
 
