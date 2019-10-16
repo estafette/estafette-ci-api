@@ -43,7 +43,7 @@ func (pc *prometheusClientImpl) GetMaxMemoryByPodName(podName string) (float64, 
 }
 
 func (pc *prometheusClientImpl) GetMaxCPUByPodName(podName string) (float64, error) {
-	query := fmt.Sprintf("max_over_time(container_cpu_usage_irate{container_name=\"estafette-ci-builder\",pod_name=\"%v\"}[3h])", podName)
+	query := fmt.Sprintf("max_over_time(container_cpu_usage_rate1m{container_name=\"estafette-ci-builder\",pod_name=\"%v\"}[3h])", podName)
 	return pc.getQueryResult(query)
 }
 
