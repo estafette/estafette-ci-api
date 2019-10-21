@@ -1,10 +1,10 @@
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: Role
 metadata:
-  name: estafette-ci-api
+  name: estafette-ci-job-manager
   namespace: estafette-ci-jobs
   labels:
-    app: estafette-ci-api
+    app: estafette-ci
 rules:
 - apiGroups: ["batch"] # "" indicates the core API group
   resources:
@@ -37,15 +37,14 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: RoleBinding
 metadata:
-  name: estafette-ci-api
+  name: estafette-ci-api-as-job-manager
   namespace: estafette-ci-jobs
   labels:
-    app: estafette-ci-api
+    app: estafette-ci
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: estafette-ci-api
-  namespace: estafette-ci-jobs
+  name: estafette-ci-job-manager
 subjects:
 - kind: ServiceAccount
   name: estafette-ci-api
