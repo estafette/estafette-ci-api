@@ -232,7 +232,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 	configmap := &corev1.ConfigMap{
 		Metadata: &metav1.ObjectMeta{
 			Name:      &builderConfigConfigmapName,
-			Namespace: &cbc.kubeClient.Namespace,
+			Namespace: &cbc.config.Jobs.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
 				"jobType":   ciBuilderParams.JobType,
@@ -437,7 +437,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 	job = &batchv1.Job{
 		Metadata: &metav1.ObjectMeta{
 			Name:      &jobName,
-			Namespace: &cbc.kubeClient.Namespace,
+			Namespace: &cbc.config.Jobs.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
 				"jobType":   ciBuilderParams.JobType,
@@ -514,7 +514,7 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(ctx context.Context, jobName 
 
 	// check if job is finished
 	var job batchv1.Job
-	err = cbc.kubeClient.Get(context.Background(), cbc.kubeClient.Namespace, jobName, &job)
+	err = cbc.kubeClient.Get(context.Background(), cbc.config.Jobs.Namespace, jobName, &job)
 	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
@@ -527,7 +527,7 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(ctx context.Context, jobName 
 
 		// watch for job updates
 		var job batchv1.Job
-		watcher, err := cbc.kubeClient.Watch(context.Background(), cbc.kubeClient.Namespace, &job, k8s.Timeout(time.Duration(300)*time.Second))
+		watcher, err := cbc.kubeClient.Watch(context.Background(), cbc.config.Jobs.Namespace, &job, k8s.Timeout(time.Duration(300)*time.Second))
 		defer watcher.Close()
 
 		cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
@@ -573,7 +573,7 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderConfigMap(ctx context.Context, co
 
 	// check if configmap exists
 	var configmap corev1.ConfigMap
-	err = cbc.kubeClient.Get(context.Background(), cbc.kubeClient.Namespace, configmapName, &configmap)
+	err = cbc.kubeClient.Get(context.Background(), cbc.config.Jobs.Namespace, configmapName, &configmap)
 	if err != nil {
 		log.Error().Err(err).
 			Str("configmap", configmapName).
@@ -607,7 +607,7 @@ func (cbc *ciBuilderClientImpl) CancelCiBuilderJob(ctx context.Context, jobName 
 
 	// check if job is finished
 	var job batchv1.Job
-	err = cbc.kubeClient.Get(context.Background(), cbc.kubeClient.Namespace, jobName, &job)
+	err = cbc.kubeClient.Get(context.Background(), cbc.config.Jobs.Namespace, jobName, &job)
 	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
@@ -647,7 +647,7 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(ctx context.Context, jobNam
 	labels.Eq("job-name", jobName)
 
 	var pods corev1.PodList
-	if err := cbc.kubeClient.List(context.Background(), cbc.kubeClient.Namespace, &pods, labels.Selector()); err != nil {
+	if err := cbc.kubeClient.List(context.Background(), cbc.config.Jobs.Namespace, &pods, labels.Selector()); err != nil {
 		return err
 	}
 
@@ -656,7 +656,7 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(ctx context.Context, jobNam
 		if *pod.Status.Phase == "Pending" {
 			// watch for pod to go into Running state (or out of Pending state)
 			var pendingPod corev1.Pod
-			watcher, err := cbc.kubeClient.Watch(context.Background(), cbc.kubeClient.Namespace, &pendingPod, k8s.Timeout(time.Duration(300)*time.Second))
+			watcher, err := cbc.kubeClient.Watch(context.Background(), cbc.config.Jobs.Namespace, &pendingPod, k8s.Timeout(time.Duration(300)*time.Second))
 
 			if err != nil {
 				return err
@@ -683,7 +683,7 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(ctx context.Context, jobNam
 		}
 
 		// follow logs from pod
-		url := fmt.Sprintf("%v/api/v1/namespaces/%v/pods/%v/log?follow=true", cbc.kubeClient.Endpoint, cbc.kubeClient.Namespace, *pod.Metadata.Name)
+		url := fmt.Sprintf("%v/api/v1/namespaces/%v/pods/%v/log?follow=true", cbc.kubeClient.Endpoint, cbc.config.Jobs.Namespace, *pod.Metadata.Name)
 
 		ct := "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
 

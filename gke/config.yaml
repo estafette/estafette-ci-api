@@ -45,6 +45,7 @@ auth:
   apiKey: {{.ESTAFETTE_CI_API_KEY}}
 
 jobs:
+  namespace: estafette-ci-jobs
   minCPUCores: 0.1
   maxCPUCores: 7.0
   cpuRequestRatio: 1.0

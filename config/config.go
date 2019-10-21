@@ -36,6 +36,7 @@ type AuthConfig struct {
 
 // JobsConfig configures the lower and upper bounds for automatically setting resources for build/release jobs
 type JobsConfig struct {
+	Namespace          string  `yaml:"namespace"`
 	MinCPUCores        float64 `yaml:"minCPUCores"`
 	MaxCPUCores        float64 `yaml:"maxCPUCores"`
 	CPURequestRatio    float64 `yaml:"cpuRequestRatio"`

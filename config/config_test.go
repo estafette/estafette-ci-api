@@ -128,6 +128,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		jobsConfig := config.Jobs
 
+		assert.Equal(t, "estafette-ci-jobs", jobsConfig.Namespace)
 		assert.Equal(t, 0.1, jobsConfig.MinCPUCores)
 		assert.Equal(t, 3.5, jobsConfig.MaxCPUCores)
 		assert.Equal(t, 1.0, jobsConfig.CPURequestRatio)
