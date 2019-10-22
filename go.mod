@@ -16,7 +16,7 @@ require (
 	github.com/ericchiang/k8s v1.2.0
 	github.com/estafette/estafette-ci-contracts v0.0.135
 	github.com/estafette/estafette-ci-crypt v0.0.23
-	github.com/estafette/estafette-ci-manifest v0.1.118
+	github.com/estafette/estafette-ci-manifest v0.1.120
 	github.com/estafette/estafette-foundation v0.0.18
 	github.com/gin-contrib/gzip v0.0.2-0.20190827144029-5602d8b438ea
 	github.com/gin-gonic/gin v1.4.0
@@ -35,6 +35,5 @@ require (
 	github.com/uber/jaeger-lib v2.0.0+incompatible
 	go.uber.org/atomic v1.4.0 // indirect
 	google.golang.org/api v0.10.0 // indirect
-	google.golang.org/genproto v0.0.0-20190911173649-1774047e7e51
 	gopkg.in/yaml.v2 v2.2.2
 )
