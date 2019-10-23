@@ -3,8 +3,7 @@ package estafette
 import (
 	"testing"
 
-	"github.com/estafette/estafette-ci-manifest"
-
+	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,6 +20,30 @@ func TestGetManifestWarnings(t *testing.T) {
 				&manifest.EstafetteStage{
 					Name:           "build",
 					ContainerImage: "golang:1.12.4-alpine3.9",
+				},
+			},
+		}
+
+		// act
+		warnings, err := helper.GetManifestWarnings(mft, "extensions")
+
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(warnings))
+	})
+
+	t.Run("ReturnsNoWarningsIfStageContainerImageIsEmptyDueToNestedStages", func(t *testing.T) {
+
+		mft := &manifest.EstafetteManifest{
+			Stages: []*manifest.EstafetteStage{
+				&manifest.EstafetteStage{
+					Name:           "build",
+					ContainerImage: "",
+					ParallelStages: []*manifest.EstafetteStage{
+						&manifest.EstafetteStage{
+							Name:           "build",
+							ContainerImage: "golang:1.12.4-alpine3.9",
+						},
+					},
 				},
 			},
 		}

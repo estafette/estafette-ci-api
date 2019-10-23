@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/estafette/estafette-ci-contracts"
+	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
 
@@ -34,23 +34,47 @@ func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteMani
 		stagesUsingLatestTag := []string{}
 		stagesUsingDevTag := []string{}
 		for _, s := range manifest.Stages {
-			containerImageRepo, _, containerImageTag := w.GetContainerImageParts(s.ContainerImage)
-			if containerImageTag == "latest" {
-				stagesUsingLatestTag = append(stagesUsingLatestTag, s.Name)
-			}
-			if containerImageTag == "dev" && containerImageRepo == "extensions" && gitOwner != "estafette" {
-				stagesUsingDevTag = append(stagesUsingDevTag, s.Name)
+			if len(s.ParallelStages) > 0 {
+				for _, ns := range s.ParallelStages {
+					containerImageRepo, _, containerImageTag := w.GetContainerImageParts(ns.ContainerImage)
+					if containerImageTag == "latest" {
+						stagesUsingLatestTag = append(stagesUsingLatestTag, ns.Name)
+					}
+					if containerImageTag == "dev" && containerImageRepo == "extensions" && gitOwner != "estafette" {
+						stagesUsingDevTag = append(stagesUsingDevTag, ns.Name)
+					}
+				}
+			} else {
+				containerImageRepo, _, containerImageTag := w.GetContainerImageParts(s.ContainerImage)
+				if containerImageTag == "latest" {
+					stagesUsingLatestTag = append(stagesUsingLatestTag, s.Name)
+				}
+				if containerImageTag == "dev" && containerImageRepo == "extensions" && gitOwner != "estafette" {
+					stagesUsingDevTag = append(stagesUsingDevTag, s.Name)
+				}
 			}
 		}
 
 		for _, r := range manifest.Releases {
 			for _, s := range r.Stages {
-				containerImageRepo, _, containerImageTag := w.GetContainerImageParts(s.ContainerImage)
-				if containerImageTag == "latest" {
-					stagesUsingLatestTag = append(stagesUsingLatestTag, fmt.Sprintf("%v/%v", r.Name, s.Name))
-				}
-				if containerImageTag == "dev" && containerImageRepo == "extensions" && gitOwner != "estafette" {
-					stagesUsingDevTag = append(stagesUsingDevTag, s.Name)
+				if len(s.ParallelStages) > 0 {
+					for _, ns := range s.ParallelStages {
+						containerImageRepo, _, containerImageTag := w.GetContainerImageParts(ns.ContainerImage)
+						if containerImageTag == "latest" {
+							stagesUsingLatestTag = append(stagesUsingLatestTag, ns.Name)
+						}
+						if containerImageTag == "dev" && containerImageRepo == "extensions" && gitOwner != "estafette" {
+							stagesUsingDevTag = append(stagesUsingDevTag, ns.Name)
+						}
+					}
+				} else {
+					containerImageRepo, _, containerImageTag := w.GetContainerImageParts(s.ContainerImage)
+					if containerImageTag == "latest" {
+						stagesUsingLatestTag = append(stagesUsingLatestTag, fmt.Sprintf("%v/%v", r.Name, s.Name))
+					}
+					if containerImageTag == "dev" && containerImageRepo == "extensions" && gitOwner != "estafette" {
+						stagesUsingDevTag = append(stagesUsingDevTag, s.Name)
+					}
 				}
 			}
 		}
