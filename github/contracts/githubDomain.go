@@ -100,3 +100,25 @@ func (pe *PushEvent) GetRepoRevision() string {
 func (pe *PushEvent) GetRepository() string {
 	return fmt.Sprintf("%v/%v", pe.GetRepoSource(), pe.GetRepoFullName())
 }
+
+// RepositoryEvent represents a Github webhook repository event
+type RepositoryEvent struct {
+	Action     string            `json:"action"`
+	Changes    RepositoryChanges `json:"changes"`
+	Repository Repository        `json:"repository"`
+}
+
+// RepositoryChanges records changes made to a repository
+type RepositoryChanges struct {
+	Repository RepositoryChangesRepository `json:"repository"`
+}
+
+// RepositoryChangesRepository records changes made to a repository
+type RepositoryChangesRepository struct {
+	Name RepositoryChangesRepositoryName `json:"name"`
+}
+
+// RepositoryChangesRepositoryName records changes made to a repository's name
+type RepositoryChangesRepositoryName struct {
+	From string `json:"from"`
+}

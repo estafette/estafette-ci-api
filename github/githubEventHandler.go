@@ -128,6 +128,18 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	case "repository": // Any time a Repository is created, deleted (organization hooks only), made public, or made private.
 		log.Debug().Str("event", eventType).Str("requestBody", string(body)).Msgf("Github webhook event of type '%v', logging request body", eventType)
 
+		// unmarshal json body
+		var repositoryEvent ghcontracts.RepositoryEvent
+		err := json.Unmarshal(body, &repositoryEvent)
+		if err != nil {
+			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubRepositoryEvent failed")
+			return
+		}
+
+		if repositoryEvent.Action == "renamed" && repositoryEvent.Changes.Repository.Name.From != "" && repositoryEvent.Repository.Name != "" {
+			log.Info().Msgf("Renaming repository from %v to %v", repositoryEvent.Changes.Repository.Name.From, repositoryEvent.Repository.Name)
+		}
+
 	default:
 		log.Warn().Str("event", eventType).Msgf("Unsupported Github webhook event of type '%v'", eventType)
 	}
