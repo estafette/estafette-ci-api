@@ -137,7 +137,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		}
 
 		if repositoryEvent.Action == "renamed" && repositoryEvent.Changes.Repository.Name.From != "" && repositoryEvent.Repository.Name != "" {
-			log.Info().Msgf("Renaming repository from %v to %v", repositoryEvent.Changes.Repository.Name.From, repositoryEvent.Repository.Name)
+			log.Info().Msgf("Renaming repository from %v/%v to %v/%v", repositoryEvent.GetOldRepoOwner(), repositoryEvent.GetOldRepoName(), repositoryEvent.GetNewRepoOwner(), repositoryEvent.GetNewRepoName())
 		}
 
 	default:

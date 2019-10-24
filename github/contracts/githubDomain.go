@@ -122,3 +122,23 @@ type RepositoryChangesRepository struct {
 type RepositoryChangesRepositoryName struct {
 	From string `json:"from"`
 }
+
+// GetOldRepoOwner returns the repository owner
+func (pe *RepositoryEvent) GetOldRepoOwner() string {
+	return strings.Split(pe.Repository.FullName, "/")[0]
+}
+
+// GetNewRepoOwner returns the repository owner
+func (pe *RepositoryEvent) GetNewRepoOwner() string {
+	return strings.Split(pe.Repository.FullName, "/")[0]
+}
+
+// GetOldRepoName returns the repository name
+func (pe *RepositoryEvent) GetOldRepoName() string {
+	return pe.Changes.Repository.Name.From
+}
+
+// GetNewRepoName returns the repository name
+func (pe *RepositoryEvent) GetNewRepoName() string {
+	return strings.Split(pe.Repository.FullName, "/")[1]
+}

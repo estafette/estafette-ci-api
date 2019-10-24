@@ -94,6 +94,18 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	case "repo:updated":
 		log.Debug().Str("event", eventType).Str("requestBody", string(body)).Msgf("Bitbucket webhook event of type '%v', logging request body", eventType)
 
+		// unmarshal json body
+		var repoUpdatedEvent bbcontracts.RepoUpdatedEvent
+		err := json.Unmarshal(body, &repoUpdatedEvent)
+		if err != nil {
+			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to BitbucketRepoUpdatedEvent failed")
+			return
+		}
+
+		if repoUpdatedEvent.Changes.FullName.Old != "" && repoUpdatedEvent.Changes.FullName.New != "" {
+			log.Info().Msgf("Renaming repository from %v/%v to %v/%v", repoUpdatedEvent.GetOldRepoOwner(), repoUpdatedEvent.GetOldRepoName(), repoUpdatedEvent.GetNewRepoOwner(), repoUpdatedEvent.GetNewRepoName())
+		}
+
 	default:
 		log.Warn().Str("event", eventType).Msgf("Unsupported Bitbucket webhook event of type '%v'", eventType)
 	}

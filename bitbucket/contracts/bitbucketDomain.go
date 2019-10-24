@@ -200,3 +200,39 @@ func (pe *RepositoryPushEvent) GetRepoRevision() string {
 func (pe *RepositoryPushEvent) GetRepository() string {
 	return fmt.Sprintf("%v/%v", pe.GetRepoSource(), pe.GetRepoFullName())
 }
+
+// RepoUpdatedEvent represents a Bitbucket repo:updated event
+type RepoUpdatedEvent struct {
+	Changes RepoUpdatedChanges `json:"changes"`
+}
+
+// RepoUpdatedChanges records changes to the repository name
+type RepoUpdatedChanges struct {
+	FullName RepoUpdatedChangesName `json:"full_name"`
+}
+
+// RepoUpdatedChangesName records changes to the repository name
+type RepoUpdatedChangesName struct {
+	Old string `json:"old"`
+	New string `json:"new"`
+}
+
+// GetOldRepoOwner returns the repository owner
+func (pe *RepoUpdatedEvent) GetOldRepoOwner() string {
+	return strings.Split(pe.Changes.FullName.Old, "/")[0]
+}
+
+// GetNewRepoOwner returns the repository owner
+func (pe *RepoUpdatedEvent) GetNewRepoOwner() string {
+	return strings.Split(pe.Changes.FullName.New, "/")[0]
+}
+
+// GetOldRepoName returns the repository name
+func (pe *RepoUpdatedEvent) GetOldRepoName() string {
+	return strings.Split(pe.Changes.FullName.Old, "/")[1]
+}
+
+// GetNewRepoName returns the repository name
+func (pe *RepoUpdatedEvent) GetNewRepoName() string {
+	return strings.Split(pe.Changes.FullName.New, "/")[1]
+}
