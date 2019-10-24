@@ -21,6 +21,7 @@ import (
 type EventHandler interface {
 	Handle(*gin.Context)
 	CreateJobForBitbucketPush(context.Context, bbcontracts.RepositoryPushEvent)
+	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
 }
 
 type eventHandlerImpl struct {
@@ -104,6 +105,11 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 		if repoUpdatedEvent.IsValidRenameEvent() {
 			log.Info().Msgf("Renaming repository from %v/%v/%v to %v/%v/%v", repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetOldRepoOwner(), repoUpdatedEvent.GetOldRepoName(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetNewRepoOwner(), repoUpdatedEvent.GetNewRepoName())
+			err = h.Rename(ctx, repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetOldRepoOwner(), repoUpdatedEvent.GetOldRepoName(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetNewRepoOwner(), repoUpdatedEvent.GetNewRepoName())
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed renaming repository from %v/%v/%v to %v/%v/%v", repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetOldRepoOwner(), repoUpdatedEvent.GetOldRepoName(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetNewRepoOwner(), repoUpdatedEvent.GetNewRepoName())
+				return
+			}
 		}
 
 	default:
@@ -207,4 +213,11 @@ func (h *eventHandlerImpl) CreateJobForBitbucketPush(ctx context.Context, pushEv
 			log.Error().Err(err).Msgf("Failed subscribing to topics for pubsub triggers for build %v/%v/%v revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
 		}
 	}()
+}
+
+func (h *eventHandlerImpl) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Bitbucket::Rename")
+	defer span.Finish()
+
+	return h.buildService.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }

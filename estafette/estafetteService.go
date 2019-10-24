@@ -27,6 +27,8 @@ type BuildService interface {
 	FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) error
 	FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) error
 	FireCronTriggers(ctx context.Context) error
+
+	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
 }
 
 type buildServiceImpl struct {
@@ -971,4 +973,8 @@ func (s *buildServiceImpl) getAuthenticatedRepositoryURL(ctx context.Context, re
 	}
 
 	return authenticatedRepositoryURL, environmentVariableWithToken, fmt.Errorf("Source %v not supported for generating authenticated repository url", repoSource)
+}
+
+func (s *buildServiceImpl) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+	return s.cockroachDBClient.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }

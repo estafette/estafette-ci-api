@@ -90,6 +90,15 @@ type DBClient interface {
 	GetPubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) ([]*contracts.Pipeline, error)
 	GetCronTriggers(context.Context) ([]*contracts.Pipeline, error)
 
+	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
+	RenameBuildVersion(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
+	RenameBuilds(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
+	RenameBuildLogs(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
+	RenameReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
+	RenameReleaseLogs(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
+	RenameComputedPipelines(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
+	RenameComputedReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
+
 	selectBuildsQuery() sq.SelectBuilder
 	selectPipelinesQuery() sq.SelectBuilder
 	selectReleasesQuery() sq.SelectBuilder
@@ -2146,8 +2155,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsCPUUsageMeasurements(ctx cont
 		}
 
 		measurements = append(measurements, map[string]interface{}{
-			"insertedAt": insertedAt,
-			"cpuMaxUsage":   cpuMaxUsage,
+			"insertedAt":  insertedAt,
+			"cpuMaxUsage": cpuMaxUsage,
 		})
 	}
 
@@ -2209,10 +2218,10 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesCPUUsageMeasurements(ctx co
 		}
 
 		measurements = append(measurements, map[string]interface{}{
-			"insertedAt": insertedAt,
-			"name":       releaseName,
-			"action":     releaseAction,
-			"cpuMaxUsage":   cpuMaxUsage,
+			"insertedAt":  insertedAt,
+			"name":        releaseName,
+			"action":      releaseAction,
+			"cpuMaxUsage": cpuMaxUsage,
 		})
 	}
 
@@ -2248,10 +2257,10 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsMemoryUsageMeasurements(ctx c
 	}
 
 	query :=
-	sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-		Select("*").
-		FromSelect(innerquery, "a").
-		OrderBy("a.inserted_at")
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("*").
+			FromSelect(innerquery, "a").
+			OrderBy("a.inserted_at")
 
 	measurements = make([]map[string]interface{}, 0)
 
@@ -2273,8 +2282,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsMemoryUsageMeasurements(ctx c
 		}
 
 		measurements = append(measurements, map[string]interface{}{
-			"insertedAt": insertedAt,
-			"memoryMaxUsage":   memoryMaxUsage,
+			"insertedAt":     insertedAt,
+			"memoryMaxUsage": memoryMaxUsage,
 		})
 	}
 
@@ -2310,10 +2319,10 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesMemoryUsageMeasurements(ctx
 	}
 
 	query :=
-	sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-		Select("*").
-		FromSelect(innerquery, "a").
-		OrderBy("a.inserted_at")
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("*").
+			FromSelect(innerquery, "a").
+			OrderBy("a.inserted_at")
 
 	measurements = make([]map[string]interface{}, 0)
 
@@ -2336,16 +2345,15 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesMemoryUsageMeasurements(ctx
 		}
 
 		measurements = append(measurements, map[string]interface{}{
-			"insertedAt": insertedAt,
-			"name":       releaseName,
-			"action":     releaseAction,
-			"memoryMaxUsage":   memoryMaxUsage,
+			"insertedAt":     insertedAt,
+			"name":           releaseName,
+			"action":         releaseAction,
+			"memoryMaxUsage": memoryMaxUsage,
 		})
 	}
 
 	return
 }
-
 
 func (dbc *cockroachDBClientImpl) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {
 
@@ -3243,6 +3251,99 @@ func (dbc *cockroachDBClientImpl) GetCronTriggers(ctx context.Context) ([]*contr
 	triggerType := "cron"
 
 	return dbc.GetTriggers(ctx, triggerType, "", "")
+}
+
+func (dbc *cockroachDBClientImpl) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, "CockroachDb::Rename")
+	defer span.Finish()
+
+	err = dbc.RenameBuildVersion(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	if err != nil {
+		return
+	}
+	err = dbc.RenameBuilds(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	if err != nil {
+		return
+	}
+	err = dbc.RenameBuildLogs(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	if err != nil {
+		return
+	}
+	err = dbc.RenameReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	if err != nil {
+		return
+	}
+	err = dbc.RenameReleaseLogs(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	if err != nil {
+		return
+	}
+	err = dbc.RenameComputedPipelines(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	if err != nil {
+		return
+	}
+	err = dbc.RenameComputedReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	if err != nil {
+		return
+	}
+
+	return nil
+}
+
+func (dbc *cockroachDBClientImpl) RenameBuildVersion(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameBuildVersion")
+	defer span.Finish()
+
+	return nil
+}
+
+func (dbc *cockroachDBClientImpl) RenameBuilds(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameBuilds")
+	defer span.Finish()
+
+	return nil
+}
+
+func (dbc *cockroachDBClientImpl) RenameBuildLogs(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameBuildLogs")
+	defer span.Finish()
+
+	return nil
+}
+
+func (dbc *cockroachDBClientImpl) RenameReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameReleases")
+	defer span.Finish()
+
+	return nil
+}
+
+func (dbc *cockroachDBClientImpl) RenameReleaseLogs(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameReleaseLogs")
+	defer span.Finish()
+
+	return nil
+}
+
+func (dbc *cockroachDBClientImpl) RenameComputedPipelines(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameComputedPipelines")
+	defer span.Finish()
+
+	return nil
+}
+
+func (dbc *cockroachDBClientImpl) RenameComputedReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameComputedReleases")
+	defer span.Finish()
+
+	return nil
 }
 
 func (dbc *cockroachDBClientImpl) selectBuildsQuery() sq.SelectBuilder {

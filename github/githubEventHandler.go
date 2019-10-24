@@ -28,6 +28,7 @@ type EventHandler interface {
 	Handle(*gin.Context)
 	CreateJobForGithubPush(context.Context, ghcontracts.PushEvent)
 	HasValidSignature([]byte, string) (bool, error)
+	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
 }
 
 type eventHandlerImpl struct {
@@ -138,6 +139,11 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 		if repositoryEvent.IsValidRenameEvent() {
 			log.Info().Msgf("Renaming repository from %v/%v/%v to %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetOldRepoOwner(), repositoryEvent.GetOldRepoName(), repositoryEvent.GetRepoSource(), repositoryEvent.GetNewRepoOwner(), repositoryEvent.GetNewRepoName())
+			err = h.Rename(ctx, repositoryEvent.GetRepoSource(), repositoryEvent.GetOldRepoOwner(), repositoryEvent.GetOldRepoName(), repositoryEvent.GetRepoSource(), repositoryEvent.GetNewRepoOwner(), repositoryEvent.GetNewRepoName())
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed renaming repository from %v/%v/%v to %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetOldRepoOwner(), repositoryEvent.GetOldRepoName(), repositoryEvent.GetRepoSource(), repositoryEvent.GetNewRepoOwner(), repositoryEvent.GetNewRepoName())
+				return
+			}
 		}
 
 	default:
@@ -267,4 +273,11 @@ func (h *eventHandlerImpl) HasValidSignature(body []byte, signatureHeader string
 		Msg("Expected and actual MAC do not match")
 
 	return false, nil
+}
+
+func (h *eventHandlerImpl) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Github::Rename")
+	defer span.Finish()
+
+	return h.buildService.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
