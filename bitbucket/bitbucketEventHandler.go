@@ -72,7 +72,6 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 
 	case
 		"repo:fork",
-		"repo:updated",
 		"repo:transfer",
 		"repo:created",
 		"repo:deleted",
@@ -91,6 +90,9 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		"pullrequest:comment_created",
 		"pullrequest:comment_updated",
 		"pullrequest:comment_deleted":
+
+	case "repo:updated":
+		log.Debug().Str("event", eventType).Str("requestBody", string(body)).Msgf("Bitbucket webhook event of type '%v', logging request body", eventType)
 
 	default:
 		log.Warn().Str("event", eventType).Msgf("Unsupported Bitbucket webhook event of type '%v'", eventType)
