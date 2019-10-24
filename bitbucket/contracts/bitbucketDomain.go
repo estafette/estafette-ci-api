@@ -217,6 +217,11 @@ type RepoUpdatedChangesName struct {
 	New string `json:"new"`
 }
 
+// GetRepoSource returns the repository source
+func (pe *RepoUpdatedEvent) GetRepoSource() string {
+	return "bitbucket.org"
+}
+
 // GetOldRepoOwner returns the repository owner
 func (pe *RepoUpdatedEvent) GetOldRepoOwner() string {
 	return strings.Split(pe.Changes.FullName.Old, "/")[0]

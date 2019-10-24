@@ -123,6 +123,11 @@ type RepositoryChangesRepositoryName struct {
 	From string `json:"from"`
 }
 
+// GetRepoSource returns the repository source
+func (pe *RepositoryEvent) GetRepoSource() string {
+	return "github.com"
+}
+
 // GetOldRepoOwner returns the repository owner
 func (pe *RepositoryEvent) GetOldRepoOwner() string {
 	return strings.Split(pe.Repository.FullName, "/")[0]
