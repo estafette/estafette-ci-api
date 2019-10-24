@@ -102,8 +102,8 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 			return
 		}
 
-		if repoUpdatedEvent.Changes.FullName.Old != "" && repoUpdatedEvent.Changes.FullName.New != "" {
-			log.Info().Msgf("Renaming repository from %v/%v to %v/%v", repoUpdatedEvent.GetOldRepoOwner(), repoUpdatedEvent.GetOldRepoName(), repoUpdatedEvent.GetNewRepoOwner(), repoUpdatedEvent.GetNewRepoName())
+		if repoUpdatedEvent.IsValidRenameEvent() {
+			log.Info().Msgf("Renaming repository from %v/%v/%v to %v/%v/%v", repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetOldRepoOwner(), repoUpdatedEvent.GetOldRepoName(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetNewRepoOwner(), repoUpdatedEvent.GetNewRepoName())
 		}
 
 	default:

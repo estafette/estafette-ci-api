@@ -123,6 +123,11 @@ type RepositoryChangesRepositoryName struct {
 	From string `json:"from"`
 }
 
+// IsValidRenameEvent returns true if all fields for a repo rename are set
+func (pe *RepositoryEvent) IsValidRenameEvent() bool {
+	return pe.Action == "renamed" && pe.Changes.Repository.Name.From != "" && pe.Repository.FullName != ""
+}
+
 // GetRepoSource returns the repository source
 func (pe *RepositoryEvent) GetRepoSource() string {
 	return "github.com"

@@ -217,6 +217,11 @@ type RepoUpdatedChangesName struct {
 	New string `json:"new"`
 }
 
+// IsValidRenameEvent returns true if all fields for a repo rename are set
+func (pe *RepoUpdatedEvent) IsValidRenameEvent() bool {
+	return pe.Changes.FullName.Old != "" && pe.Changes.FullName.New != ""
+}
+
 // GetRepoSource returns the repository source
 func (pe *RepoUpdatedEvent) GetRepoSource() string {
 	return "bitbucket.org"
