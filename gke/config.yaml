@@ -408,6 +408,8 @@ trustedImages:
 - path: extensions/cloudflare-purge
   injectedCredentialTypes:
   - cloudflare
+- path: bsycorp/kind
+  runPrivileged: true
 
 # registryMirror: {{.REGISTRY_MIRROR}}
 dindMtu: {{.DIND_MTU}}
