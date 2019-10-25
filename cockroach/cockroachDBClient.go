@@ -16,6 +16,8 @@ import (
 	manifest "github.com/estafette/estafette-ci-manifest"
 	_ "github.com/lib/pq" // use postgres client library to connect to cockroachdb
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	otlog "github.com/opentracing/opentracing-go/log"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
@@ -187,6 +189,8 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(ctx context.Context, shortRep
 		repoFullName,
 	)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -207,12 +211,16 @@ func (dbc *cockroachDBClientImpl) GetAutoIncrement(ctx context.Context, shortRep
 		repoFullName,
 	)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	defer rows.Close()
 	for rows.Next() {
 		if err = rows.Scan(&autoincrement); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
 			return
 		}
 	}
@@ -233,22 +241,32 @@ func (dbc *cockroachDBClientImpl) InsertBuild(ctx context.Context, build contrac
 
 	labelsBytes, err := json.Marshal(build.Labels)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	releaseTargetsBytes, err := json.Marshal(build.ReleaseTargets)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	commitsBytes, err := json.Marshal(build.Commits)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	triggersBytes, err := json.Marshal(build.Triggers)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	eventsBytes, err := json.Marshal(build.Events)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -321,6 +339,8 @@ func (dbc *cockroachDBClientImpl) InsertBuild(ctx context.Context, build contrac
 	insertedBuild = &build
 
 	if err = row.Scan(&insertedBuild.ID); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -375,6 +395,8 @@ func (dbc *cockroachDBClientImpl) UpdateBuildStatus(ctx context.Context, repoSou
 
 	_, err = dbc.scanBuild(ctx, row, false, false)
 	if err != nil && err != sql.ErrNoRows {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	} else if err != nil {
 		log.Warn().Err(err).Msgf("Updating build status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, buildStatus, allowedBuildStatusesToTransitionFrom, buildStatus)
@@ -408,6 +430,8 @@ func (dbc *cockroachDBClientImpl) UpdateBuildResourceUtilization(ctx context.Con
 	// update build resources
 	_, err = query.RunWith(dbc.databaseConnection).Exec()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -423,6 +447,8 @@ func (dbc *cockroachDBClientImpl) InsertRelease(ctx context.Context, release con
 
 	eventsBytes, err := json.Marshal(release.Events)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -478,6 +504,8 @@ func (dbc *cockroachDBClientImpl) InsertRelease(ctx context.Context, release con
 	)
 
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return insertedRelease, err
 	}
 
@@ -490,6 +518,8 @@ func (dbc *cockroachDBClientImpl) InsertRelease(ctx context.Context, release con
 
 	insertedRelease = &release
 	if err = rows.Scan(&insertedRelease.ID); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -546,6 +576,8 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseStatus(ctx context.Context, repoS
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	insertedRelease, err := dbc.scanRelease(row)
 	if err != nil && err != sql.ErrNoRows {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	} else if err != nil {
 		log.Warn().Err(err).Msgf("Updating release status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, id, allowedReleaseStatusesToTransitionFrom, releaseStatus)
@@ -582,6 +614,8 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseResourceUtilization(ctx context.C
 	// update release resources
 	_, err = query.RunWith(dbc.databaseConnection).Exec()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -597,6 +631,8 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(ctx context.Context, buildLog c
 
 	bytes, err := json.Marshal(buildLog.Steps)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -640,9 +676,14 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(ctx context.Context, buildLog c
 				nrLines += len(s.LogLines)
 			}
 			log.Error().Msgf("INSERT INTO build_logs: failed for %v/%v/%v/%v (%v steps, %v lines, %v bytes)", buildLog.RepoSource, buildLog.RepoOwner, buildLog.RepoName, buildLog.RepoRevision, len(buildLog.Steps), nrLines, len(bytes))
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
 
 			return
 		}
+
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 
 		return
 	}
@@ -688,6 +729,8 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(ctx context.Context, buildLog c
 			nrLines += len(s.LogLines)
 		}
 		log.Error().Msgf("INSERT INTO build_logs: failed for %v/%v/%v/%v (%v steps, %v lines, %v bytes)", buildLog.RepoSource, buildLog.RepoOwner, buildLog.RepoName, buildLog.RepoRevision, len(buildLog.Steps), nrLines, len(bytes))
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 
 		return
 	}
@@ -704,11 +747,15 @@ func (dbc *cockroachDBClientImpl) InsertReleaseLog(ctx context.Context, releaseL
 
 	bytes, err := json.Marshal(releaseLog.Steps)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	releaseID, err := strconv.Atoi(releaseLog.ReleaseID)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return err
 	}
 
@@ -747,6 +794,8 @@ func (dbc *cockroachDBClientImpl) InsertReleaseLog(ctx context.Context, releaseL
 			nrLines += len(s.LogLines)
 		}
 		log.Error().Msgf("INSERT INTO build_logs: failed for %v/%v/%v/%v (%v steps, %v lines, %v bytes)", releaseLog.RepoSource, releaseLog.RepoOwner, releaseLog.RepoName, releaseLog.ReleaseID, len(releaseLog.Steps), nrLines, len(bytes))
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 
 		return
 	}
@@ -765,6 +814,8 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(ctx context.Context, re
 	lastBuild, err := dbc.GetLastPipelineBuild(ctx, repoSource, repoOwner, repoName, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last build for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	if lastBuild == nil {
@@ -801,26 +852,36 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(ctx context.Context, re
 	labelsBytes, err := json.Marshal(upsertedPipeline.Labels)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	releaseTargetsBytes, err := json.Marshal(upsertedPipeline.ReleaseTargets)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	commitsBytes, err := json.Marshal(upsertedPipeline.Commits)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	triggersBytes, err := json.Marshal(upsertedPipeline.Triggers)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	eventsBytes, err := json.Marshal(upsertedPipeline.Events)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -916,6 +977,8 @@ func (dbc *cockroachDBClientImpl) UpsertComputedPipeline(ctx context.Context, re
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -933,6 +996,8 @@ func (dbc *cockroachDBClientImpl) UpdateComputedPipelineFirstInsertedAt(ctx cont
 	firstBuild, err := dbc.GetFirstPipelineBuild(ctx, repoSource, repoOwner, repoName, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting first build for updating computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	if firstBuild == nil {
@@ -961,6 +1026,8 @@ func (dbc *cockroachDBClientImpl) UpdateComputedPipelineFirstInsertedAt(ctx cont
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed updating computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -978,6 +1045,8 @@ func (dbc *cockroachDBClientImpl) UpsertComputedRelease(ctx context.Context, rep
 	lastRelease, err := dbc.GetLastPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last release for upserting computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	if lastRelease == nil {
@@ -987,6 +1056,8 @@ func (dbc *cockroachDBClientImpl) UpsertComputedRelease(ctx context.Context, rep
 
 	eventsBytes, err := json.Marshal(lastRelease.Events)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1057,6 +1128,8 @@ func (dbc *cockroachDBClientImpl) UpsertComputedRelease(ctx context.Context, rep
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1074,6 +1147,8 @@ func (dbc *cockroachDBClientImpl) UpdateComputedReleaseFirstInsertedAt(ctx conte
 	firstRelease, err := dbc.GetFirstPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting first release for updating computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	if firstRelease == nil {
@@ -1104,6 +1179,8 @@ func (dbc *cockroachDBClientImpl) UpdateComputedReleaseFirstInsertedAt(ctx conte
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed updating computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1126,17 +1203,23 @@ func (dbc *cockroachDBClientImpl) GetPipelines(ctx context.Context, pageNumber, 
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "last_updated_at", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	// execute query
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	// read rows
 	if pipelines, err = dbc.scanPipelines(rows, optimized); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1157,11 +1240,15 @@ func (dbc *cockroachDBClientImpl) GetPipelinesByRepoName(ctx context.Context, re
 	// execute query
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	// read rows
 	if pipelines, err = dbc.scanPipelines(rows, optimized); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1184,12 +1271,16 @@ func (dbc *cockroachDBClientImpl) GetPipelinesCount(ctx context.Context, filters
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "last_updated_at", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1216,6 +1307,8 @@ func (dbc *cockroachDBClientImpl) GetPipeline(ctx context.Context, repoSource, r
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if pipeline, err = dbc.scanPipeline(row, optimized); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1241,17 +1334,23 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuilds(ctx context.Context, repoSou
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	// execute query
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	// read rows
 	if builds, err = dbc.scanBuilds(rows, optimized); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1277,12 +1376,16 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsCount(ctx context.Context, re
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1308,6 +1411,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuild(ctx context.Context, repoSour
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if build, err = dbc.scanBuild(ctx, row, optimized, true); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1333,6 +1438,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildByID(ctx context.Context, repo
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if build, err = dbc.scanBuild(ctx, row, optimized, true); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1357,6 +1464,8 @@ func (dbc *cockroachDBClientImpl) GetLastPipelineBuild(ctx context.Context, repo
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if build, err = dbc.scanBuild(ctx, row, optimized, false); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1381,6 +1490,8 @@ func (dbc *cockroachDBClientImpl) GetFirstPipelineBuild(ctx context.Context, rep
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if build, err = dbc.scanBuild(ctx, row, optimized, false); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1406,6 +1517,8 @@ func (dbc *cockroachDBClientImpl) GetLastPipelineBuildForBranch(ctx context.Cont
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if build, err = dbc.scanBuild(ctx, row, false, false); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1432,6 +1545,8 @@ func (dbc *cockroachDBClientImpl) GetLastPipelineRelease(ctx context.Context, re
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if release, err = dbc.scanRelease(row); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1458,6 +1573,8 @@ func (dbc *cockroachDBClientImpl) GetFirstPipelineRelease(ctx context.Context, r
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if release, err = dbc.scanRelease(row); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1482,11 +1599,15 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(ctx context.Context
 	// execute query
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	// read rows
 	if builds, err = dbc.scanBuilds(rows, optimized); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1502,6 +1623,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(ctx context.Context, repo
 
 	buildIDAsInt, err := strconv.Atoi(buildID)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return nil, err
 	}
 
@@ -1534,10 +1657,14 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(ctx context.Context, repo
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	if err = json.Unmarshal(stepsData, &buildLog.Steps); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1583,6 +1710,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildMaxResourceUtilization(ctx con
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if err = row.Scan(&jobResources.CPUMaxUsage, &jobResources.MemoryMaxUsage, &recordCount); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1608,17 +1737,23 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleases(ctx context.Context, repoS
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	// execute query
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	// read rows
 	if releases, err = dbc.scanReleases(rows); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1644,12 +1779,16 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesCount(ctx context.Context, 
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1675,6 +1814,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineRelease(ctx context.Context, repoSo
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if release, err = dbc.scanRelease(row); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1705,12 +1846,16 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleasesByName(ctx context.Cont
 	// execute query
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	// read rows
 	releasesPointers := []*contracts.Release{}
 	if releasesPointers, err = dbc.scanReleases(rows); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return releases, err
 	}
 
@@ -1756,12 +1901,16 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogs(ctx context.Context, re
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	releaseLog.ReleaseID = strconv.Itoa(releaseID)
 
 	if err = json.Unmarshal(stepsData, &releaseLog.Steps); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1796,6 +1945,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleaseMaxResourceUtilization(ctx c
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if err = row.Scan(&jobResources.CPUMaxUsage, &jobResources.MemoryMaxUsage, &recordCount); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1818,12 +1969,16 @@ func (dbc *cockroachDBClientImpl) GetBuildsCount(ctx context.Context, filters ma
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1846,12 +2001,16 @@ func (dbc *cockroachDBClientImpl) GetReleasesCount(ctx context.Context, filters 
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1874,6 +2033,8 @@ func (dbc *cockroachDBClientImpl) GetBuildsDuration(ctx context.Context, filters
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1883,11 +2044,15 @@ func (dbc *cockroachDBClientImpl) GetBuildsDuration(ctx context.Context, filters
 	var totalDurationAsString string
 
 	if err = row.Scan(&totalDurationAsString); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	totalDuration, err = time.ParseDuration(totalDurationAsString)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1914,6 +2079,8 @@ func (dbc *cockroachDBClientImpl) GetFirstBuildTimes(ctx context.Context) (build
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1924,6 +2091,8 @@ func (dbc *cockroachDBClientImpl) GetFirstBuildTimes(ctx context.Context) (build
 
 		if err = rows.Scan(
 			&insertedAt); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
 			return
 		}
 
@@ -1953,6 +2122,8 @@ func (dbc *cockroachDBClientImpl) GetFirstReleaseTimes(ctx context.Context) (rel
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -1963,6 +2134,8 @@ func (dbc *cockroachDBClientImpl) GetFirstReleaseTimes(ctx context.Context) (rel
 
 		if err = rows.Scan(
 			&insertedAt); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
 			return
 		}
 
@@ -1991,11 +2164,15 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsDurations(ctx context.Context
 
 	innerquery, err = whereClauseGeneratorForBuildStatusFilter(innerquery, "a", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2010,6 +2187,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsDurations(ctx context.Context
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2021,6 +2200,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsDurations(ctx context.Context
 
 		if err = rows.Scan(
 			&insertedAt, &seconds); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
 			return
 		}
 
@@ -2054,11 +2235,15 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(ctx context.Conte
 
 	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2073,6 +2258,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(ctx context.Conte
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2085,6 +2272,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesDurations(ctx context.Conte
 
 		if err = rows.Scan(
 			&insertedAt, &releaseName, &releaseAction, &seconds); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
 			return
 		}
 
@@ -2121,11 +2310,15 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsCPUUsageMeasurements(ctx cont
 
 	innerquery, err = whereClauseGeneratorForBuildStatusFilter(innerquery, "a", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2140,6 +2333,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsCPUUsageMeasurements(ctx cont
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2151,6 +2346,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsCPUUsageMeasurements(ctx cont
 
 		if err = rows.Scan(
 			&insertedAt, &cpuMaxUsage); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
 			return
 		}
 
@@ -2183,11 +2380,15 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesCPUUsageMeasurements(ctx co
 
 	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2202,6 +2403,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesCPUUsageMeasurements(ctx co
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2214,6 +2417,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesCPUUsageMeasurements(ctx co
 
 		if err = rows.Scan(
 			&insertedAt, &releaseName, &releaseAction, &cpuMaxUsage); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
 			return
 		}
 
@@ -2248,11 +2453,15 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsMemoryUsageMeasurements(ctx c
 
 	innerquery, err = whereClauseGeneratorForBuildStatusFilter(innerquery, "a", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2267,6 +2476,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsMemoryUsageMeasurements(ctx c
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2278,6 +2489,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsMemoryUsageMeasurements(ctx c
 
 		if err = rows.Scan(
 			&insertedAt, &memoryMaxUsage); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
 			return
 		}
 
@@ -2310,11 +2523,15 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesMemoryUsageMeasurements(ctx
 
 	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2329,6 +2546,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesMemoryUsageMeasurements(ctx
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2341,6 +2560,8 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleasesMemoryUsageMeasurements(ctx
 
 		if err = rows.Scan(
 			&insertedAt, &releaseName, &releaseAction, &memoryMaxUsage); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
 			return
 		}
 
@@ -2396,16 +2617,22 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(ctx context.Context, pageNum
 
 	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2432,6 +2659,8 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(ctx context.Context, pageNum
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2449,6 +2678,8 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabels(ctx context.Context, pageNum
 
 		// Scan the result into the column pointers...
 		if err = rows.Scan(columnPointers...); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
 			return nil, err
 		}
 
@@ -2507,16 +2738,22 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabelsCount(ctx context.Context, fi
 
 	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2540,6 +2777,8 @@ func (dbc *cockroachDBClientImpl) GetFrequentLabelsCount(ctx context.Context, fi
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2565,16 +2804,22 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostBuilds(ctx context.Context
 
 	query, err = whereClauseGeneratorForSinceFilter(query, "a", "inserted_at", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	query, err = whereClauseGeneratorForBuildStatusFilter(query, "a", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	query, err = whereClauseGeneratorForLabelsFilter(query, "a", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2583,6 +2828,8 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostBuilds(ctx context.Context
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2600,6 +2847,8 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostBuilds(ctx context.Context
 
 		// Scan the result into the column pointers...
 		if err = rows.Scan(columnPointers...); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
 			return nil, err
 		}
 
@@ -2640,11 +2889,15 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostReleases(ctx context.Conte
 
 	query, err = whereClauseGeneratorForSinceFilter(query, "a", "inserted_at", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	query, err = whereClauseGeneratorForReleaseStatusFilter(query, "a", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2653,6 +2906,8 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostReleases(ctx context.Conte
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2670,6 +2925,8 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostReleases(ctx context.Conte
 
 		// Scan the result into the column pointers...
 		if err = rows.Scan(columnPointers...); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
 			return nil, err
 		}
 
@@ -2703,11 +2960,15 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostReleasesCount(ctx context.
 
 	innerquery, err = whereClauseGeneratorForSinceFilter(innerquery, "a", "inserted_at", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -2719,6 +2980,8 @@ func (dbc *cockroachDBClientImpl) GetPipelinesWithMostReleasesCount(ctx context.
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -3193,6 +3456,8 @@ func (dbc *cockroachDBClientImpl) GetTriggers(ctx context.Context, triggerType, 
 
 	bytes, err := json.Marshal([]manifest.EstafetteTrigger{trigger})
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return pipelines, err
 	}
 
@@ -3201,11 +3466,15 @@ func (dbc *cockroachDBClientImpl) GetTriggers(ctx context.Context, triggerType, 
 	// execute query
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
 	// read rows
 	if pipelines, err = dbc.scanPipelines(rows, false); err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -3260,30 +3529,44 @@ func (dbc *cockroachDBClientImpl) Rename(ctx context.Context, shortFromRepoSourc
 
 	err = dbc.RenameBuildVersion(ctx, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	err = dbc.RenameBuilds(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	err = dbc.RenameBuildLogs(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	err = dbc.RenameReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	err = dbc.RenameReleaseLogs(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	err = dbc.RenameComputedPipelines(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 	err = dbc.RenameComputedReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return
 	}
 
@@ -3307,6 +3590,8 @@ func (dbc *cockroachDBClientImpl) RenameBuildVersion(ctx context.Context, shortF
 
 	_, err := query.RunWith(dbc.databaseConnection).Exec()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return err
 	}
 
@@ -3331,6 +3616,8 @@ func (dbc *cockroachDBClientImpl) RenameBuilds(ctx context.Context, fromRepoSour
 
 	_, err := query.RunWith(dbc.databaseConnection).Exec()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return err
 	}
 
@@ -3355,6 +3642,8 @@ func (dbc *cockroachDBClientImpl) RenameBuildLogs(ctx context.Context, fromRepoS
 
 	_, err := query.RunWith(dbc.databaseConnection).Exec()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return err
 	}
 
@@ -3379,6 +3668,8 @@ func (dbc *cockroachDBClientImpl) RenameReleases(ctx context.Context, fromRepoSo
 
 	_, err := query.RunWith(dbc.databaseConnection).Exec()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return err
 	}
 
@@ -3403,6 +3694,8 @@ func (dbc *cockroachDBClientImpl) RenameReleaseLogs(ctx context.Context, fromRep
 
 	_, err := query.RunWith(dbc.databaseConnection).Exec()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return err
 	}
 
@@ -3427,6 +3720,8 @@ func (dbc *cockroachDBClientImpl) RenameComputedPipelines(ctx context.Context, f
 
 	_, err := query.RunWith(dbc.databaseConnection).Exec()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return err
 	}
 
@@ -3451,6 +3746,8 @@ func (dbc *cockroachDBClientImpl) RenameComputedReleases(ctx context.Context, fr
 
 	_, err := query.RunWith(dbc.databaseConnection).Exec()
 	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(otlog.Error(err))
 		return err
 	}
 
