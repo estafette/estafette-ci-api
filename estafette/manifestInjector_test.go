@@ -90,7 +90,7 @@ func TestInjectSteps(t *testing.T) {
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
-			assert.Equal(t, "init", injectedManifest.Stages[0].Name)
+			assert.Equal(t, "initialize", injectedManifest.Stages[0].Name)
 			assert.Equal(t, "set-pending-build-status", injectedManifest.Stages[0].ParallelStages[0].Name)
 			assert.Equal(t, "extensions/github-status:beta", injectedManifest.Stages[0].ParallelStages[0].ContainerImage)
 			assert.Equal(t, "pending", injectedManifest.Stages[0].ParallelStages[0].CustomProperties["status"])
