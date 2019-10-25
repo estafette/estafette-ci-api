@@ -976,5 +976,9 @@ func (s *buildServiceImpl) getAuthenticatedRepositoryURL(ctx context.Context, re
 }
 
 func (s *buildServiceImpl) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-	return s.cockroachDBClient.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+
+	shortFromRepoSource := s.getShortRepoSource(fromRepoSource)
+	shortToRepoSource := s.getShortRepoSource(toRepoSource)
+
+	return s.cockroachDBClient.Rename(ctx, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName)
 }

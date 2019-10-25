@@ -90,8 +90,8 @@ type DBClient interface {
 	GetPubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) ([]*contracts.Pipeline, error)
 	GetCronTriggers(context.Context) ([]*contracts.Pipeline, error)
 
-	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
-	RenameBuildVersion(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
+	Rename(ctx context.Context, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName string) error
+	RenameBuildVersion(ctx context.Context, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName string) error
 	RenameBuilds(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
 	RenameBuildLogs(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
 	RenameReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
@@ -3253,12 +3253,12 @@ func (dbc *cockroachDBClientImpl) GetCronTriggers(ctx context.Context) ([]*contr
 	return dbc.GetTriggers(ctx, triggerType, "", "")
 }
 
-func (dbc *cockroachDBClientImpl) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
+func (dbc *cockroachDBClientImpl) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName string) (err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, "CockroachDb::Rename")
 	defer span.Finish()
 
-	err = dbc.RenameBuildVersion(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	err = dbc.RenameBuildVersion(ctx, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName)
 	if err != nil {
 		return
 	}
@@ -3290,10 +3290,25 @@ func (dbc *cockroachDBClientImpl) Rename(ctx context.Context, fromRepoSource, fr
 	return nil
 }
 
-func (dbc *cockroachDBClientImpl) RenameBuildVersion(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+func (dbc *cockroachDBClientImpl) RenameBuildVersion(ctx context.Context, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName string) error {
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameBuildVersion")
 	defer span.Finish()
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("build_versions").
+		Set("repo_source", shortToRepoSource).
+		Set("repo_full_name", fmt.Sprintf("%v/%v", toRepoOwner, toRepoName)).
+		Where(sq.Eq{"repo_source": shortFromRepoSource}).
+		Where(sq.Eq{"repo_full_name": fmt.Sprintf("%v/%v", fromRepoOwner, fromRepoName)}).
+		Limit(uint64(1))
+
+	_, err := query.RunWith(dbc.databaseConnection).Exec()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -3303,6 +3318,22 @@ func (dbc *cockroachDBClientImpl) RenameBuilds(ctx context.Context, fromRepoSour
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameBuilds")
 	defer span.Finish()
 
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("builds").
+		Set("repo_source", toRepoSource).
+		Set("repo_owner", toRepoOwner).
+		Set("repo_name", toRepoName).
+		Where(sq.Eq{"repo_source": fromRepoSource}).
+		Where(sq.Eq{"repo_owner": fromRepoOwner}).
+		Where(sq.Eq{"repo_name": fromRepoName})
+
+	_, err := query.RunWith(dbc.databaseConnection).Exec()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -3310,6 +3341,22 @@ func (dbc *cockroachDBClientImpl) RenameBuildLogs(ctx context.Context, fromRepoS
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameBuildLogs")
 	defer span.Finish()
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("build_logs").
+		Set("repo_source", toRepoSource).
+		Set("repo_owner", toRepoOwner).
+		Set("repo_name", toRepoName).
+		Where(sq.Eq{"repo_source": fromRepoSource}).
+		Where(sq.Eq{"repo_owner": fromRepoOwner}).
+		Where(sq.Eq{"repo_name": fromRepoName})
+
+	_, err := query.RunWith(dbc.databaseConnection).Exec()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -3319,6 +3366,22 @@ func (dbc *cockroachDBClientImpl) RenameReleases(ctx context.Context, fromRepoSo
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameReleases")
 	defer span.Finish()
 
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("releases").
+		Set("repo_source", toRepoSource).
+		Set("repo_owner", toRepoOwner).
+		Set("repo_name", toRepoName).
+		Where(sq.Eq{"repo_source": fromRepoSource}).
+		Where(sq.Eq{"repo_owner": fromRepoOwner}).
+		Where(sq.Eq{"repo_name": fromRepoName})
+
+	_, err := query.RunWith(dbc.databaseConnection).Exec()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -3326,6 +3389,22 @@ func (dbc *cockroachDBClientImpl) RenameReleaseLogs(ctx context.Context, fromRep
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameReleaseLogs")
 	defer span.Finish()
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("release_logs").
+		Set("repo_source", toRepoSource).
+		Set("repo_owner", toRepoOwner).
+		Set("repo_name", toRepoName).
+		Where(sq.Eq{"repo_source": fromRepoSource}).
+		Where(sq.Eq{"repo_owner": fromRepoOwner}).
+		Where(sq.Eq{"repo_name": fromRepoName})
+
+	_, err := query.RunWith(dbc.databaseConnection).Exec()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -3335,6 +3414,22 @@ func (dbc *cockroachDBClientImpl) RenameComputedPipelines(ctx context.Context, f
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameComputedPipelines")
 	defer span.Finish()
 
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("computed_pipelines").
+		Set("repo_source", toRepoSource).
+		Set("repo_owner", toRepoOwner).
+		Set("repo_name", toRepoName).
+		Where(sq.Eq{"repo_source": fromRepoSource}).
+		Where(sq.Eq{"repo_owner": fromRepoOwner}).
+		Where(sq.Eq{"repo_name": fromRepoName})
+
+	_, err := query.RunWith(dbc.databaseConnection).Exec()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -3342,6 +3437,22 @@ func (dbc *cockroachDBClientImpl) RenameComputedReleases(ctx context.Context, fr
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameComputedReleases")
 	defer span.Finish()
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("computed_releases").
+		Set("repo_source", toRepoSource).
+		Set("repo_owner", toRepoOwner).
+		Set("repo_name", toRepoName).
+		Where(sq.Eq{"repo_source": fromRepoSource}).
+		Where(sq.Eq{"repo_owner": fromRepoOwner}).
+		Where(sq.Eq{"repo_name": fromRepoName})
+
+	_, err := query.RunWith(dbc.databaseConnection).Exec()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
