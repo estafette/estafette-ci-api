@@ -243,10 +243,12 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		dockerNetworkConfig := config.DockerNetwork
 
-		assert.NotNil(t, dockerNetworkConfig)
-		assert.Equal(t, "estafette", *dockerNetworkConfig.Name)
-		assert.Equal(t, "192.168.2.1/24", *dockerNetworkConfig.Subnet)
-		assert.Equal(t, "192.168.2.1", *dockerNetworkConfig.Gateway)
+		if assert.NotNil(t, dockerNetworkConfig) {
+			assert.Equal(t, "estafette", dockerNetworkConfig.Name)
+			assert.Equal(t, "192.168.2.1/24", dockerNetworkConfig.Subnet)
+			assert.Equal(t, "192.168.2.1", dockerNetworkConfig.Gateway)
+		}
+	})
 
 	t.Run("AllowsCredentialConfigWithComplexAdditionalPropertiesToBeJSONMarshalled", func(t *testing.T) {
 
