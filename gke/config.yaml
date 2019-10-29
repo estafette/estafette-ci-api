@@ -414,3 +414,7 @@ trustedImages:
 # registryMirror: {{.REGISTRY_MIRROR}}
 dindMtu: {{.DIND_MTU}}
 dindBip: {{.DIND_BIP}}
+dindNetwork:
+  name: {{.DIND_NETWORK_NAME}}
+  subnet: {{.DIND_NETWORK_SUBNET}}
+  gateway: {{.DIND_NETWORK_GATEWAY}}

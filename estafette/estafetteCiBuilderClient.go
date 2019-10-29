@@ -814,6 +814,7 @@ func (cbc *ciBuilderClientImpl) GetBuilderConfig(ciBuilderParams CiBuilderParams
 		RegistryMirror:  cbc.config.RegistryMirror,
 		DockerDaemonMTU: cbc.config.DockerDaemonMTU,
 		DockerDaemonBIP: cbc.config.DockerDaemonBIP,
+		DockerNetwork:   cbc.config.DockerNetwork,
 	}
 
 	localBuilderConfig.Action = &ciBuilderParams.JobType

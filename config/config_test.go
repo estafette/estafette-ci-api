@@ -221,7 +221,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "1360", *dockerDaemonMTUConfig)
 	})
 
-	t.Run("ReturnsDockerDaemonMTU", func(t *testing.T) {
+	t.Run("ReturnsDockerDaemonBIP", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
@@ -231,8 +231,22 @@ func TestReadConfigFromFile(t *testing.T) {
 		dockerDaemonBIPConfig := config.DockerDaemonBIP
 
 		assert.NotNil(t, dockerDaemonBIPConfig)
-		assert.Equal(t, "172.18.0.0/16", *dockerDaemonBIPConfig)
+		assert.Equal(t, "192.168.1.1/24", *dockerDaemonBIPConfig)
 	})
+
+	t.Run("ReturnsDockerNetwork", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		dockerNetworkConfig := config.DockerNetwork
+
+		assert.NotNil(t, dockerNetworkConfig)
+		assert.Equal(t, "estafette", *dockerNetworkConfig.Name)
+		assert.Equal(t, "192.168.2.1/24", *dockerNetworkConfig.Subnet)
+		assert.Equal(t, "192.168.2.1", *dockerNetworkConfig.Gateway)
 
 	t.Run("AllowsCredentialConfigWithComplexAdditionalPropertiesToBeJSONMarshalled", func(t *testing.T) {
 

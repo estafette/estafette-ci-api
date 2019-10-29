@@ -309,6 +309,9 @@ releases:
             REGISTRY_MIRROR: estafette.secret(yMyFIGdBKqSL0vXM.kxbPZpQZFO9acmTnHMfcroVUj5wSoLvRlKOwCVa-tJXj-_1K5txKab__Vntot4D-LCqXNsYgUSEmkYwLLfLq-27tnt5keGFFTTs3UA==)
             DIND_MTU: 1460
             DIND_BIP: 192.168.1.1/24
+            DIND_NETWORK_NAME: estafette
+            DIND_NETWORK_SUBNET: 192.168.2.1/24
+            DIND_NETWORK_GATEWAY: 192.168.2.1
 
             # manifest templates
             ContainerNamePlaceholder: '{{.ContainerName}}'

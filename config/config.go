@@ -21,6 +21,7 @@ type APIConfig struct {
 	RegistryMirror  *string                         `yaml:"registryMirror,omitempty" json:"registryMirror,omitempty"`
 	DockerDaemonMTU *string                         `yaml:"dindMtu,omitempty" json:"dindMtu,omitempty"`
 	DockerDaemonBIP *string                         `yaml:"dindBip,omitempty" json:"dindBip,omitempty"`
+	DockerNetwork   *contracts.DockerNetworkConfig  `json:"dindNetwork,omitempty"`
 }
 
 // APIServerConfig represents configuration for the api server
