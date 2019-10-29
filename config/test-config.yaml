@@ -134,3 +134,4 @@ trustedImages:
 
 registryMirror: https://mirror.gcr.io
 dindMtu: 1360
+dindBip: 172.18.0.0/16

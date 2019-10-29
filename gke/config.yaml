@@ -413,3 +413,4 @@ trustedImages:
 
 # registryMirror: {{.REGISTRY_MIRROR}}
 dindMtu: {{.DIND_MTU}}
+dindBip: {{.DIND_BIP}}

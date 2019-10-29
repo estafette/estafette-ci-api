@@ -221,6 +221,19 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "1360", *dockerDaemonMTUConfig)
 	})
 
+	t.Run("ReturnsDockerDaemonMTU", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		dockerDaemonBIPConfig := config.DockerDaemonBIP
+
+		assert.NotNil(t, dockerDaemonBIPConfig)
+		assert.Equal(t, "172.18.0.0/16", *dockerDaemonBIPConfig)
+	})
+
 	t.Run("AllowsCredentialConfigWithComplexAdditionalPropertiesToBeJSONMarshalled", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
