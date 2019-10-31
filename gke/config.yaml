@@ -325,6 +325,23 @@ credentials:
     - ${ESTAFETTE_LABEL_APP}.development.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_14}}
     internalhosts:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_14}}
+- name: '{{.GKE_CREDENTIAL_15}}'
+  type: 'kubernetes-engine'
+  project: {{.GKE_PROJECT_15}}
+  cluster: {{.GKE_CLUSTER_15}}
+  region: {{.GKE_REGION_15}}
+  serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_15}}'
+  defaults:
+    namespace: {{.GKE_DEFAULT_NAMESPACE_15}}
+    container:
+      repository: {{.GKE_DEFAULT_REPOSITORY_15}}
+    autoscale:
+      min: 2
+      max: 10
+    hosts:
+    - ${ESTAFETTE_LABEL_APP}.staging.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_15}}
+    internalhosts:
+    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_15}}
 - name: {{.SLACK_WEBHOOK_NAME_1}}
   type: slack-webhook
   workspace: {{.SLACK_WEBHOOK_WORKSPACE_1}}
