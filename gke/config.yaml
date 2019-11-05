@@ -397,6 +397,9 @@ trustedImages:
 - path: extensions/github-status
   injectedCredentialTypes:
   - github-api-token
+- path: extensions/github-release
+  injectedCredentialTypes:
+  - github-api-token
 - path: extensions/slack-build-status
   injectedCredentialTypes:
   - slack-webhook
