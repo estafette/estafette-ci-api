@@ -38,11 +38,11 @@ securityContext: {}
 
 resources:
   requests:
-    cpu: 50m
-    memory: 50Mi
+    cpu: 60m
+    memory: 236Mi
   limits:
-    cpu: 400m
-    memory: 800Mi
+    cpu: 120m
+    memory: 472Mi
 
 service:
   type: ClusterIP
@@ -89,7 +89,10 @@ extraLabels: {}
 # use to add extra labels to podspec for getting their values in prometheus
 extraPodLabels: {}
 
-secret: {}
+secret:
+  # the aes-256 key to encrypt/decrypt estafette secrets
+  decryptionKey:
 
 jobs:
+  # the namespace in which build/release jobs are created
   namespace:

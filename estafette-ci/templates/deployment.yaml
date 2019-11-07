@@ -44,16 +44,11 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           env:
-            - name: "CF_API_EMAIL"
+            - name: "SECRET_DECRYPTION_KEY_BASE64"
               valueFrom:
                 secretKeyRef:
                   name: {{ include "estafette-ci.fullname" . }}
-                  key: cloudflareApiEmail
-            - name: "CF_API_KEY"
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "estafette-ci.fullname" . }}
-                  key: cloudflareApiKey
+                  key: decryptionKey
             {{- range $key, $value := .Values.extraEnv }}
             - name: {{ $key }}
               value: {{ $value }}
@@ -71,13 +66,13 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
-          - name: letsencrypt-account
-            mountPath: /account
+          - name: configs
+            mountPath: /configs
       terminationGracePeriodSeconds: 300
       volumes:
-      - name: letsencrypt-account
-        secret:
-          secretName: {{ include "estafette-ci.fullname" . }}
+      - name: configs
+        configMap:
+          name: {{ include "estafette-ci.fullname" . }}
      {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
