@@ -49,6 +49,46 @@ stages:
     repositories:
     - estafette
 
+  lint-helm-chart:
+    image: extensions/helm:dev
+    action: lint
+    chart: estafette-ci
+    prerelease: true
+
+  package-helm-chart:
+    image: extensions/helm:dev
+    action: package
+    chart: estafette-ci
+    prerelease: true
+
+  test-helm-chart:
+    services:
+    - name: kubernetes
+      image: bsycorp/kind:latest-1.12
+      ports:
+      - port: 8443
+      - port: 10080
+        readiness:
+          path: /kubernetes-ready
+          timeoutSeconds: 180
+    image: extensions/helm:dev
+    action: test
+    chart: estafette-ci
+    prerelease: true
+    values:
+    - jobs.namespace=estafette-ci-jobs
+
+  clone-charts-repo:
+    image: extensions/git-clone:dev
+    repo: helm-charts
+    branch: master
+
+  publish-helm-chart:
+    image: extensions/helm:dev
+    action: publish
+    chart: estafette-ci
+    prerelease: true
+
   slack-notify:
     image: extensions/slack-build-status:dev
     workspace: estafette
@@ -368,3 +408,26 @@ releases:
         when:
           status == 'succeeded' ||
           status == 'failed'
+
+  release-helm-chart:
+    clone: true
+    stages:
+      package-helm-chart:
+        image: extensions/helm:dev
+        action: package
+        chart: estafette-ci
+
+      clone-charts-repo:
+        image: extensions/git-clone:dev
+        repo: helm-charts
+        branch: master
+
+      publish-helm-chart:
+        image: extensions/helm:dev
+        action: publish
+        chart: estafette-ci
+
+      create-github-release:
+        image: extensions/github-release:dev
+        version: ${ESTAFETTE_BUILD_VERSION_MAJOR}.${ESTAFETTE_BUILD_VERSION_MINOR}.0
+        closeMilestone: true

@@ -1,0 +1,37 @@
+{{- if .Values.rbac.enable -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "estafette-ci.fullname" . }}
+  namespace: {{ .Values.jobs.namespace }}
+  labels:
+{{ include "estafette-ci.labels" . | indent 4 }}
+rules:
+- apiGroups: ["batch"] # "" indicates the core API group
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups: [""] # "" indicates the core API group
+  resources:
+  - pods
+  - pods/log
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups: [""] # "" indicates the core API group
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - create
+  - delete
+{{- end -}}
