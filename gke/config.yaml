@@ -114,7 +114,6 @@ credentials:
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_1}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_1}}
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_1}}
 - name: '{{.GKE_CREDENTIAL_2}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_2}}
@@ -131,9 +130,9 @@ credentials:
       min: 1
       max: 5
     hosts:
-    - ${ESTAFETTE_LABEL_APP}.development.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_2}}
+    - ${ESTAFETTE_LABEL_APP}.dev.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_2}}
     internalhosts:
-    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_2}}
+    - ${ESTAFETTE_LABEL_APP}.dev.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_2}}
 - name: '{{.GKE_CREDENTIAL_3}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_3}}
@@ -143,7 +142,6 @@ credentials:
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_3}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_3}}
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_3}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_3}}
     autoscale:
@@ -162,7 +160,6 @@ credentials:
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_4}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_4}}
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_5}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_4}}
     autoscale:
@@ -180,7 +177,6 @@ credentials:
   zone: {{.GKE_ZONE_5}}
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_5}}'
   defaults:
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_5}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_5}}
     autoscale:
@@ -196,7 +192,6 @@ credentials:
   zone: {{.GKE_ZONE_6}}
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_6}}'
   defaults:
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_6}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_6}}
     autoscale:
@@ -211,7 +206,6 @@ credentials:
   region: {{.GKE_REGION_7}}
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_7}}'
   defaults:
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_7}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_7}}
     autoscale:
@@ -226,7 +220,6 @@ credentials:
   region: {{.GKE_REGION_8}}
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_8}}'
   defaults:
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_8}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_8}}
     autoscale:
@@ -241,7 +234,6 @@ credentials:
   region: {{.GKE_REGION_9}}
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_9}}'
   defaults:
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_9}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_9}}
     autoscale:
@@ -257,7 +249,6 @@ credentials:
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_10}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_10}}
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_10}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_10}}
     autoscale:
@@ -275,7 +266,6 @@ credentials:
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_11}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_11}}
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_11}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_11}}
     autoscale:
@@ -293,7 +283,6 @@ credentials:
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_12}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_12}}
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_12}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_12}}
     autoscale:
@@ -311,7 +300,6 @@ credentials:
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_13}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_13}}
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_13}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_13}}
     autoscale:
@@ -329,7 +317,6 @@ credentials:
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_14}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_14}}
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_14}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_14}}
     autoscale:
@@ -347,7 +334,6 @@ credentials:
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_15}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_15}}
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_15}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_15}}
     autoscale:
