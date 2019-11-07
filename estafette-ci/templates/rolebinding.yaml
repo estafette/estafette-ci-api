@@ -3,7 +3,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: {{ include "estafette-ci.fullname" . }}
-  namespace: namespace: {{ .Values.jobs.namespace }}
+  namespace: {{ .Values.jobs.namespace }}
   labels:
 {{ include "estafette-ci.labels" . | indent 4 }}
 roleRef:
