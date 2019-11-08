@@ -37,7 +37,7 @@ spec:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}::{{ template "estafette-ci-api.imageTag" . }}"
+          image: "{{ .Values.image.repository }}:{{ template "estafette-ci-api.imageTag" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- with .Values.extraArgs }}
           args:
