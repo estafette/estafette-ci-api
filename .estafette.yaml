@@ -10,6 +10,9 @@ version:
   semver:
     major: 1
     minor: 0
+    patch: 0
+    labelTemplate: 'beta-{{auto}}'
+    releaseBranch: 1.0.0
 
 stages:
   build-lint-and-package:
