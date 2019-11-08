@@ -27,14 +27,10 @@ stages:
       lint-helm-chart:
         image: extensions/helm:dev
         action: lint
-        chart: estafette-ci
-        prerelease: true
 
       package-helm-chart:
         image: extensions/helm:dev
         action: package
-        chart: estafette-ci
-        prerelease: true
 
   bake:
     image: extensions/docker:dev
@@ -75,10 +71,9 @@ stages:
           timeoutSeconds: 180
     image: extensions/helm:dev
     action: test
-    chart: estafette-ci
-    prerelease: true
     values:
     - jobs.namespace=estafette-ci-jobs
+    - secret.decryptionKey=1PsvXVOMkhfAQuBIcIGCtzIdPXNV0NYG
 
   clone-charts-repo:
     image: extensions/git-clone:dev
@@ -88,8 +83,6 @@ stages:
   publish-helm-chart:
     image: extensions/helm:dev
     action: publish
-    chart: estafette-ci
-    prerelease: true
 
   slack-notify:
     image: extensions/slack-build-status:dev
@@ -412,24 +405,15 @@ releases:
           status == 'failed'
 
   release-helm-chart:
-    clone: true
     stages:
-      package-helm-chart:
-        image: extensions/helm:dev
-        action: package
-        chart: estafette-ci
-
       clone-charts-repo:
         image: extensions/git-clone:dev
         repo: helm-charts
         branch: master
 
-      publish-helm-chart:
+      purge-prerelease-helm-charts:
         image: extensions/helm:dev
-        action: publish
-        chart: estafette-ci
+        action: purge
 
       create-github-release:
         image: extensions/github-release:dev
-        version: ${ESTAFETTE_BUILD_VERSION_MAJOR}.${ESTAFETTE_BUILD_VERSION_MINOR}.0
-        closeMilestone: true

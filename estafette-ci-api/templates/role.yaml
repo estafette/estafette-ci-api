@@ -2,10 +2,10 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: {{ include "estafette-ci.fullname" . }}
+  name: {{ include "estafette-ci-api.fullname" . }}
   namespace: {{ .Values.jobs.namespace }}
   labels:
-{{ include "estafette-ci.labels" . | indent 4 }}
+{{ include "estafette-ci-api.labels" . | indent 4 }}
 rules:
 - apiGroups: ["batch"] # "" indicates the core API group
   resources:
