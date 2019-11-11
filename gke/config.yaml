@@ -390,6 +390,9 @@ trustedImages:
 - path: extensions/gcs
   injectedCredentialTypes:
   - kubernetes-engine
+- path: extensions/helm
+  injectedCredentialTypes:
+  - kubernetes-engine
 - path: extensions/cloud-function
   injectedCredentialTypes:
   - kubernetes-engine
