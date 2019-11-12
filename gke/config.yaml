@@ -123,16 +123,15 @@ credentials:
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_2}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_2}}
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_2}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_2}}
     autoscale:
       min: 1
       max: 5
     hosts:
-    - ${ESTAFETTE_LABEL_APP}.dev.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_2}}
+    - ${ESTAFETTE_LABEL_APP}.development.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_2}}
     internalhosts:
-    - ${ESTAFETTE_LABEL_APP}.dev.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_2}}
+    - ${ESTAFETTE_LABEL_APP}.development.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_2}}
 - name: '{{.GKE_CREDENTIAL_3}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_3}}
