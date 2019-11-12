@@ -6,12 +6,73 @@
 # APPLICATION SETTINGS
 #
 
+application:
+  # port the main application container is listening on
+  port: 5000
+
+  # endpoint to check for liveness
+  livenessPath: /robots.txt
+
+  # endpoint to check for readiness
+  readinessPath: /robots.txt
+
+jaeger:
+  # if enabled the jaeger tracing library sends traces into the jaeger backend, otherwise the NoopTracer is used
+  enable: false
+  # probabilistic, const or remote
+  samplerType: remote
+  # provides the probability if samplerType is probabilistic or remote (until remote config is received)
+  samplerParam: 0.001
+
+# list of hostnames the installation listens to
+hostnames:
+- ci.estafette.io
+
+openresty:
+  enabled: true
+  image:
+    repository: estafette/openresty-sidecar
+    tag: 6f4ddb92882349c8a3058b21fc2d75f246e7ce68a470c5533da3b205fd6381e4
+    tagIsSha256: true
+    pullPolicy: IfNotPresent
+  clientBodyBufferSize: 8k
+  clientBodyTimeout: 60s
+  clientHeaderTimeout: 60s
+  clientMaxBodySize: 128m
+  gracefulShutdownDelaySeconds: 15
+  proxyBuffersNumber: 4
+  proxyBuffersSize: 4k
+  proxyBufferSize: 4k
+  proxyConnectTimeout: 60s
+  proxyReadTimeout: 60s
+  proxySendTimeout: 60s
+  sendTimeout: 60s
+  resources:
+    requests:
+      cpu: 50m
+      memory: 30Mi
+    limits:
+      cpu: 75m
+      memory: 50Mi
+
 secret:
+  # if set to true the values are already base64 encoded when provided, otherwise the template performs the base64 encoding
+  valuesAreBase64Encoded: false
+
   # the aes-256 key to encrypt/decrypt estafette secrets
   decryptionKey:
 
   # private key file for github app to communicate with the github api
   githubPrivateKey:
+
+  # when using estafette-letsencrypt-certificate controller to fetch key files, set this to true and leave googleServiceAccountKeyfileJson empty
+  useLetsEncryptCertificateAnnotation: false
+
+  # pem file for certificate
+  certificatePemFile:
+
+  # private key file for certificate
+  certificateKeyFile:
 
 jobs:
   # the namespace in which build/release jobs are created

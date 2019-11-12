@@ -43,45 +43,172 @@ spec:
           args:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          ports:
+            - containerPort: {{.Values.application.port}}
+              name: web
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: {{.Values.application.livenessPath}}
+              port: web
+              scheme: HTTP
+          {{- if not .Values.openresty.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{.Values.application.readinessPath}}
+              port: web
+              scheme: HTTP
+          {{- end }}
           env:
             - name: "SECRET_DECRYPTION_KEY_BASE64"
               valueFrom:
                 secretKeyRef:
                   name: {{ include "estafette-ci-api.fullname" . }}
                   key: decryptionKey
+            {{- if .Values.jaeger.enable }}
+            - name: JAEGER_AGENT_HOST
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.hostIP
+            - name: JAEGER_SAMPLER_MANAGER_HOST_PORT
+              value: http://$(JAEGER_AGENT_HOST):5778/sampling
+            - name: JAEGER_SAMPLER_TYPE
+              value: {{.Values.jaeger.samplerType}}
+            - name: JAEGER_SAMPLER_PARAM
+              value: "{{.Values.jaeger.samplerParam}}"
+            - name: JAEGER_SERVICE_NAME
+              value: {{ include "estafette-ci-api.fullname" . }}
+            {{- else }}
+            - name: JAEGER_DISABLED
+              value: 'true'
+            {{- end }}
             {{- range $key, $value := .Values.extraEnv }}
             - name: {{ $key }}
               value: {{ $value }}
             {{- end }}
-          ports:
-            - name: metrics
-              containerPort: 9101
-              protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /metrics
-              port: metrics
-            initialDelaySeconds: 30
-            timeoutSeconds: 1
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                - /bin/sleep
+                - 15s
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+          {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
           - name: configs
             mountPath: /configs
+        {{- if .Values.openresty.enabled }}
+        - name: {{ .Chart.Name }}-openresty
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.openresty.image.repository }}{{ if .Values.openresty.image.tagIsSha256 }}@sha256{{ end }}:{{.Values.openresty.image.tag}}"
+          imagePullPolicy: {{ .Values.openresty.image.pullPolicy }}
+          env:
+            - name: OFFLOAD_TO_HOST
+              value: 127.0.0.1
+            - name: OFFLOAD_TO_PORT
+              value: "{{.Values.application.port}}"
+            - name: SERVICE_NAME
+              value: {{ include "estafette-ci-api.fullname" . }}
+            - name: NAMESPACE
+              value: {{ .Release.Namespace }}
+            - name: HEALT_CHECK_PATH
+              value: {{.Values.application.readinessPath}}
+            - name: CLIENT_BODY_BUFFER_SIZE
+              value: {{.Values.openresty.clientBodyBufferSize | quote }}
+            - name: CLIENT_BODY_TIMEOUT
+              value: {{.Values.openresty.clientBodyTimeout | quote }}
+            - name: CLIENT_HEADER_TIMEOUT
+              value: {{.Values.openresty.clientHeaderTimeout | quote }}
+            - name: CLIENT_MAX_BODY_SIZE
+              value: {{.Values.openresty.clientMaxBodySize | quote }}
+            - name: GRACEFUL_SHUTDOWN_DELAY_SECONDS
+              value: {{.Values.openresty.gracefulShutdownDelaySeconds | quote }}
+            - name: PROXY_BUFFERS_NUMBER
+              value: {{.Values.openresty.proxyBuffersNumber | quote }}
+            - name: PROXY_BUFFERS_SIZE
+              value: {{.Values.openresty.proxyBuffersSize | quote }}
+            - name: PROXY_BUFFER_SIZE
+              value: {{.Values.openresty.proxyBufferSize | quote }}
+            - name: PROXY_CONNECT_TIMEOUT
+              value: {{.Values.openresty.proxyConnectTimeout | quote }}
+            - name: PROXY_READ_TIMEOUT
+              value: {{.Values.openresty.proxyReadTimeout | quote }}
+            - name: PROXY_SEND_TIMEOUT
+              value: {{.Values.openresty.proxySendTimeout | quote }}
+            - name: SEND_TIMEOUT
+              value: {{.Values.openresty.sendTimeout | quote }}
+            {{- if .Values.jaeger.enable }}
+            - name: JAEGER_AGENT_HOST
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.hostIP
+            - name: JAEGER_SAMPLER_MANAGER_HOST_PORT
+              value: http://$(JAEGER_AGENT_HOST):5778/sampling
+            - name: JAEGER_SAMPLER_TYPE
+              value: {{.Values.jaeger.samplerType}}
+            - name: JAEGER_SAMPLER_PARAM
+              value: "{{.Values.jaeger.samplerParam}}"
+            - name: JAEGER_SERVICE_NAME
+              value: {{ include "estafette-ci-api.fullname" . }}
+            {{- else }}
+            - name: JAEGER_DISABLED
+              value: 'true'
+            {{- end }}
+          ports:
+            - containerPort: 80
+              name: http
+              protocol: TCP
+            - containerPort: 443
+              name: https
+              protocol: TCP
+            - containerPort: 82
+              name: nginx-liveness
+              protocol: TCP
+            - containerPort: 81
+              name: nginx-readiness
+              protocol: TCP
+            - containerPort: 9101
+              name: nginx-prom
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: nginx-liveness
+              scheme: HTTP
+          readinessProbe:
+            httpGet:
+              path: {{.Values.application.readinessPath}}
+              port: https
+              scheme: HTTPS
+          resources:
+            {{- toYaml .Values.openresty.resources | nindent 12 }}
+          volumeMounts:
+          - name: certificate
+            mountPath: /etc/ssl/private
+      {{- end }}
       terminationGracePeriodSeconds: 300
       volumes:
       - name: configs
         configMap:
           name: {{ include "estafette-ci-api.fullname" . }}
-     {{- with .Values.nodeSelector }}
+      {{- if .Values.openresty.enabled }}
+      - name: certificate
+        secret:
+          defaultMode: 420
+          secretName: {{ include "estafette-ci-api.fullname" . }}-letsencrypt-certificate
+      {{- end }}
+      {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-    {{- with .Values.affinity }}
+      {{- with .Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
-    {{- end }}
-    {{- with .Values.tolerations }}
+      {{- end }}
+      {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- end }}

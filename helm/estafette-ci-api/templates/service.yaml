@@ -9,9 +9,13 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: http
+      {{- if .Values.openresty.enabled }}
+      targetPort: https
+      {{- else }}
+      targetPort: web
+      {{- end }}
       protocol: TCP
-      name: http
+      name: https
   selector:
     app.kubernetes.io/name: {{ include "estafette-ci-api.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
