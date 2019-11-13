@@ -392,6 +392,9 @@ trustedImages:
 - path: extensions/helm
   injectedCredentialTypes:
   - kubernetes-engine
+- path: extensions/port-forward
+  injectedCredentialTypes:
+  - kubernetes-engine
 - path: extensions/cloud-function
   injectedCredentialTypes:
   - kubernetes-engine
