@@ -211,6 +211,16 @@ dindNetwork:
   subnet:
   gateway:
 
+# poddisruptionbudget settings
+pdb:
+  maxUnavailable: 1
+
+# horizontalpodautoscaler settings
+hpa:
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
 #
 # GENERIC SETTINGS
 #

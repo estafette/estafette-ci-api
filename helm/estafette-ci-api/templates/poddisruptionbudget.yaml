@@ -1,0 +1,13 @@
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "estafette-ci-api.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "estafette-ci-api.labels" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "estafette-ci-api.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  maxUnavailable: {{ .Values.pdb.maxUnavailable }}
