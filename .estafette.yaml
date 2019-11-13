@@ -431,3 +431,23 @@ releases:
 
       create-github-release:
         image: extensions/github-release:dev
+
+  helm-diff:
+    stages:
+      diff:
+        image: extensions/helm:dev
+        credentials: gke-tooling
+        action: diff
+        tillerless: true
+        namespace: estafette
+        values: |-
+          jobs:
+            namespace: estafette-ci-jobs
+          secret:
+            valuesAreBase64Encoded: true
+            decryptionKey: MVBzdlhWT01raGZBUXVCSWNJR0N0eklkUFhOVjBOWUcK
+            useLetsEncryptCertificateAnnotation: true
+          hostnames:
+          - estafette.secret(z6C9Piz4EhMxWMc8.uxcITmg39HiLJuuqSyPRM06PTWNd6S1x1QxfYYeyGoBLcgkM)
+          jaeger:
+            enable: true
