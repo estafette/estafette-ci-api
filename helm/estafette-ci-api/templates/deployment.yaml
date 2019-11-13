@@ -23,8 +23,10 @@ spec:
         {{ $key }}: {{ $value }}
         {{- end }}
       annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "9101"
+        prometheus.io/scrape: "{{.Values.metrics.enabled}}"
+        prometheus.io/path: "{{.Values.metrics.path}}"
+        prometheus.io/port: "{{.Values.metrics.port}}"
+        prometheus.io/scheme: "{{.Values.metrics.scheme}}"
     spec:
     {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

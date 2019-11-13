@@ -11,10 +11,17 @@ application:
   port: 5000
 
   # endpoint to check for liveness
-  livenessPath: /robots.txt
+  livenessPath: /liveness
 
   # endpoint to check for readiness
-  readinessPath: /robots.txt
+  readinessPath: /readiness
+
+# prometheus metrics settings
+metrics:
+  enabled: true
+  path: /metrics
+  port: 9001
+  scheme: http
 
 jaeger:
   # if enabled the jaeger tracing library sends traces into the jaeger backend, otherwise the NoopTracer is used
