@@ -6,10 +6,10 @@ metadata:
   labels:
 {{ include "estafette-ci-api.labels" . | indent 4 }}
 spec:
-  minReplicas: {{ .Values.pdb.minReplicas }}
-  maxReplicas: {{ .Values.pdb.maxReplicas }}
+  minReplicas: {{ .Values.hpa.minReplicas }}
+  maxReplicas: {{ .Values.hpa.maxReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ include "estafette-ci-api.fullname" . }}
-  targetCPUUtilizationPercentage: {{ .Values.pdb.targetCPUUtilizationPercentage }}
+  targetCPUUtilizationPercentage: {{ .Values.hpa.targetCPUUtilizationPercentage }}
