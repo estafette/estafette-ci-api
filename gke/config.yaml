@@ -334,15 +334,16 @@ credentials:
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_15}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_15}}
+    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_15}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_15}}
     autoscale:
       min: 2
       max: 10
     hosts:
-    - ${ESTAFETTE_LABEL_APP}.staging.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_15}}
+    - ${ESTAFETTE_LABEL_APP}.stg.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_15}}
     internalhosts:
-    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_15}}
+    - ${ESTAFETTE_LABEL_APP}.stg.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_15}}
 - name: {{.SLACK_WEBHOOK_NAME_1}}
   type: slack-webhook
   workspace: {{.SLACK_WEBHOOK_WORKSPACE_1}}
