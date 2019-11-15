@@ -370,4 +370,5 @@ releases:
         - '#release-status'
         when:
           status == 'succeeded' ||
-          status == 'failed'
+          status == 'failed' ||
+          status == 'false'
