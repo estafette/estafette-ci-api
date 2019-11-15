@@ -3,7 +3,6 @@ package estafette
 import (
 	"bufio"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -497,7 +496,6 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 							Image:           &image,
 							ImagePullPolicy: &imagePullPolicy,
 							Args: []string{
-								fmt.Sprintf("--secret-decryption-key-base64=%v", base64.StdEncoding.EncodeToString([]byte(newKey))),
 								"--run-as-job",
 							},
 							Env: environmentVariables,
