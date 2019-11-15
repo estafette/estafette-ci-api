@@ -356,7 +356,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 			},
 		},
 		&corev1.Volume{
-			Name: &builderConfigVolumeName,
+			Name: &decryptionKeySecretVolumeName,
 			VolumeSource: &corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: &jobName,
