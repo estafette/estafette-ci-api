@@ -3,6 +3,7 @@ package estafette
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -36,6 +37,7 @@ type CiBuilderClient interface {
 	RemoveCiBuilderJob(context.Context, string) error
 	CancelCiBuilderJob(context.Context, string) error
 	RemoveCiBuilderConfigMap(context.Context, string) error
+	RemoveCiBuilderSecret(context.Context, string) error
 	TailCiBuilderJobLogs(context.Context, string, chan contracts.TailLogLine) error
 	GetJobName(string, string, string, string) string
 	GetBuilderConfig(CiBuilderParams, string) contracts.BuilderConfig
@@ -126,7 +128,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 		return
 	}
 	builderConfigValue := string(builderConfigJSONBytes)
-	builderConfigValue, newKey, err := cbc.secretHelper.ReencryptAllEnvelopes(builderConfigValue, true)
+	builderConfigValue, newKey, err := cbc.secretHelper.ReencryptAllEnvelopes(builderConfigValue, false)
 	if err != nil {
 		return
 	}
@@ -227,7 +229,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 
 	// create configmap for builder config
 	builderConfigConfigmapName := jobName
-	builderConfigVolumeName := "builder-config"
+	builderConfigVolumeName := "app-configs"
 	builderConfigVolumeMountPath := "/configs"
 	configmap := &corev1.ConfigMap{
 		Metadata: &metav1.ObjectMeta{
@@ -245,12 +247,37 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 
 	err = cbc.kubeClient.Create(context.Background(), configmap)
 	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
-
 	if err != nil {
 		return
 	}
 
 	log.Info().Msgf("Configmap %v is created", builderConfigConfigmapName)
+
+	// create secret for decryption key secret
+	decryptionKeySecretName := jobName
+	decryptionKeySecretVolumeName := "app-secret"
+	decryptionKeySecretVolumeMountPath := "/secrets"
+	secret := &corev1.Secret{
+		Metadata: &metav1.ObjectMeta{
+			Name:      &decryptionKeySecretName,
+			Namespace: &cbc.config.Jobs.Namespace,
+			Labels: map[string]string{
+				"createdBy": "estafette",
+				"jobType":   ciBuilderParams.JobType,
+			},
+		},
+		Data: map[string][]byte{
+			"secretDecryptionKey": []byte(newKey),
+		},
+	}
+
+	err = cbc.kubeClient.Create(context.Background(), secret)
+	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	if err != nil {
+		return
+	}
+
+	log.Info().Msgf("Secret %v is created", decryptionKeySecretName)
 
 	affinity := &corev1.Affinity{
 		NodeAffinity: &corev1.NodeAffinity{
@@ -328,11 +355,23 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 				},
 			},
 		},
+		&corev1.Volume{
+			Name: &builderConfigVolumeName,
+			VolumeSource: &corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: &jobName,
+				},
+			},
+		},
 	}
 	volumeMounts := []*corev1.VolumeMount{
 		&corev1.VolumeMount{
 			Name:      &builderConfigVolumeName,
 			MountPath: &builderConfigVolumeMountPath,
+		},
+		&corev1.VolumeMount{
+			Name:      &decryptionKeySecretVolumeName,
+			MountPath: &decryptionKeySecretVolumeMountPath,
 		},
 	}
 
@@ -458,7 +497,7 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 							Image:           &image,
 							ImagePullPolicy: &imagePullPolicy,
 							Args: []string{
-								fmt.Sprintf("--secret-decryption-key-base64=%v", newKey),
+								fmt.Sprintf("--secret-decryption-key-base64=%v", base64.StdEncoding.EncodeToString([]byte(newKey))),
 								"--run-as-job",
 							},
 							Env: environmentVariables,
@@ -565,6 +604,7 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderJob(ctx context.Context, jobName 
 	log.Info().Msgf("Job %v is deleted", jobName)
 
 	cbc.RemoveCiBuilderConfigMap(ctx, jobName)
+	cbc.RemoveCiBuilderSecret(ctx, jobName)
 
 	return
 }
@@ -592,6 +632,33 @@ func (cbc *ciBuilderClientImpl) RemoveCiBuilderConfigMap(ctx context.Context, co
 	}
 
 	log.Info().Msgf("Configmap %v is deleted", configmapName)
+
+	return
+}
+
+func (cbc *ciBuilderClientImpl) RemoveCiBuilderSecret(ctx context.Context, secretName string) (err error) {
+
+	// check if secret exists
+	var secret corev1.Secret
+	err = cbc.kubeClient.Get(context.Background(), cbc.config.Jobs.Namespace, secretName, &secret)
+	if err != nil {
+		log.Error().Err(err).
+			Str("secret", secretName).
+			Msgf("Get call for secret %v failed", secretName)
+		return
+	}
+
+	// delete secret
+	err = cbc.kubeClient.Delete(context.Background(), &secret)
+	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	if err != nil {
+		log.Error().Err(err).
+			Str("secret", secretName).
+			Msgf("Deleting secret %v failed", secretName)
+		return
+	}
+
+	log.Info().Msgf("Secret %v is deleted", secretName)
 
 	return
 }
@@ -629,6 +696,7 @@ func (cbc *ciBuilderClientImpl) CancelCiBuilderJob(ctx context.Context, jobName 
 	log.Info().Msgf("Job %v is canceled", jobName)
 
 	cbc.RemoveCiBuilderConfigMap(ctx, jobName)
+	cbc.RemoveCiBuilderSecret(ctx, jobName)
 
 	return
 }
