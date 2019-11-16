@@ -8,6 +8,7 @@ integrations:
     whitelistedInstallations:
     - {{.GITHUB_INSTALLATION_ID_1}}
     - {{.GITHUB_INSTALLATION_ID_2}}
+    - {{.GITHUB_INSTALLATION_ID_3}}
 
   bitbucket:
     apiKey: {{.BITBUCKET_API_KEY}}
