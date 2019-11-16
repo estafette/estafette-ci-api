@@ -103,9 +103,10 @@ func (pe *PushEvent) GetRepository() string {
 
 // RepositoryEvent represents a Github webhook repository event
 type RepositoryEvent struct {
-	Action     string            `json:"action"`
-	Changes    RepositoryChanges `json:"changes"`
-	Repository Repository        `json:"repository"`
+	Action       string            `json:"action"`
+	Changes      RepositoryChanges `json:"changes"`
+	Repository   Repository        `json:"repository"`
+	Installation Installation      `json:"installation"`
 }
 
 // RepositoryChanges records changes made to a repository

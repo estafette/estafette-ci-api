@@ -5,6 +5,9 @@ integrations:
     clientID: {{.GITHUB_APP_OAUTH_CLIENT_ID}}
     clientSecret: {{.GITHUB_APP_OAUTH_CLIENT_SECRET}}
     webhookSecret: {{.GITHUB_WEBHOOK_SECRET}}
+    whitelistedInstallations:
+    - {{.GITHUB_INSTALLATION_ID_1}}
+    - {{.GITHUB_INSTALLATION_ID_2}}
 
   bitbucket:
     apiKey: {{.BITBUCKET_API_KEY}}

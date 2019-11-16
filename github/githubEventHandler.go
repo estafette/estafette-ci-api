@@ -90,6 +90,12 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 			return
 		}
 
+		// verify installation id is whitelisted
+		if !h.IsWhitelistedInstallation(pushEvent.Installation) {
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
 		h.CreateJobForGithubPush(ctx, pushEvent)
 
 	case
@@ -134,6 +140,12 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		err := json.Unmarshal(body, &repositoryEvent)
 		if err != nil {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubRepositoryEvent failed")
+			return
+		}
+
+		// verify installation id is whitelisted
+		if !h.IsWhitelistedInstallation(repositoryEvent.Installation) {
+			c.Status(http.StatusUnauthorized)
 			return
 		}
 
@@ -280,4 +292,15 @@ func (h *eventHandlerImpl) Rename(ctx context.Context, fromRepoSource, fromRepoO
 	defer span.Finish()
 
 	return h.buildService.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+func (h *eventHandlerImpl) IsWhitelistedInstallation(installation ghcontracts.Installation) bool {
+
+	for _, id := range h.config.WhitelistedInstallations {
+		if id == installation.ID {
+			return true
+		}
+	}
+
+	return false
 }

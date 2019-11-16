@@ -34,6 +34,9 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "15", githubConfig.AppID)
 		assert.Equal(t, "asdas2342", githubConfig.ClientID)
 		assert.Equal(t, "this is my secret", githubConfig.ClientSecret)
+		assert.Equal(t, 2, len(githubConfig.WhitelistedInstallations))
+		assert.Equal(t, 15, githubConfig.WhitelistedInstallations[0])
+		assert.Equal(t, 83, githubConfig.WhitelistedInstallations[1])
 	})
 
 	t.Run("ReturnsBitbucketConfig", func(t *testing.T) {
