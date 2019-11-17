@@ -868,11 +868,11 @@ func (cbc *ciBuilderClientImpl) GetBuilderConfig(ciBuilderParams CiBuilderParams
 	}
 
 	// filter to only what's needed by the build/release job
-	trustedImages := contracts.FilterTrustedImages(cbc.encryptedConfig.TrustedImages, stages)
-	credentials = contracts.FilterCredentials(credentials, trustedImages)
+	trustedImages := contracts.FilterTrustedImages(cbc.encryptedConfig.TrustedImages, stages, ciBuilderParams.GetFullRepoPath())
+	credentials = contracts.FilterCredentials(credentials, trustedImages, ciBuilderParams.GetFullRepoPath())
 
 	// add container-registry credentials to allow private registry images to be used in stages
-	credentials = contracts.AddCredentialsIfNotPresent(credentials, contracts.GetCredentialsByType(cbc.encryptedConfig.Credentials, "container-registry"))
+	credentials = contracts.AddCredentialsIfNotPresent(credentials, contracts.FilterCredentialsByPipelinesWhitelist(contracts.GetCredentialsByType(cbc.encryptedConfig.Credentials, "container-registry"), ciBuilderParams.GetFullRepoPath()))
 
 	localBuilderConfig := contracts.BuilderConfig{
 		Credentials:     credentials,

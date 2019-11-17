@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+// AnyEvent represents any of the Github webhook events, to check if installation is whitelisted
+type AnyEvent struct {
+	Installation Installation `json:"installation"`
+}
+
 // PushEvent represents a Github webhook push event
 type PushEvent struct {
 	After        string       `json:"after"`
