@@ -73,42 +73,49 @@ credentials:
   private: false
   username: '{{.CONTAINER_REPOSITORY_USERNAME_1}}'
   password: '{{.CONTAINER_REPOSITORY_PASSWORD_1}}'
+  whitelistedPipelines: '{{.CONTAINER_REPOSITORY_WHITELISTED_PIPELINES_1}}'
 - name: 'container-registry-{{.CONTAINER_REPOSITORY_2}}'
   type: 'container-registry'
   repository: '{{.CONTAINER_REPOSITORY_2}}'
   private: false
   username: '{{.CONTAINER_REPOSITORY_USERNAME_2}}'
   password: '{{.CONTAINER_REPOSITORY_PASSWORD_2}}'
+  whitelistedPipelines: '{{.CONTAINER_REPOSITORY_WHITELISTED_PIPELINES_2}}'
 - name: 'container-registry-{{.CONTAINER_REPOSITORY_3}}'
   type: 'container-registry'
   repository: '{{.CONTAINER_REPOSITORY_3}}'
   private: false
   username: '{{.CONTAINER_REPOSITORY_USERNAME_3}}'
   password: '{{.CONTAINER_REPOSITORY_PASSWORD_3}}'
+  whitelistedPipelines: '{{.CONTAINER_REPOSITORY_WHITELISTED_PIPELINES_3}}'
 - name: 'container-registry-{{.CONTAINER_REPOSITORY_4}}'
   type: 'container-registry'
   repository: '{{.CONTAINER_REPOSITORY_4}}'
   private: true
   username: '{{.CONTAINER_REPOSITORY_USERNAME_4}}'
   password: '{{.CONTAINER_REPOSITORY_PASSWORD_4}}'
+  whitelistedPipelines: '{{.CONTAINER_REPOSITORY_WHITELISTED_PIPELINES_4}}'
 - name: 'container-registry-{{.CONTAINER_REPOSITORY_5}}'
   type: 'container-registry'
   repository: '{{.CONTAINER_REPOSITORY_5}}'
   private: true
   username: '{{.CONTAINER_REPOSITORY_USERNAME_5}}'
   password: '{{.CONTAINER_REPOSITORY_PASSWORD_5}}'
+  whitelistedPipelines: '{{.CONTAINER_REPOSITORY_WHITELISTED_PIPELINES_5}}'
 - name: 'container-registry-{{.CONTAINER_REPOSITORY_6}}'
   type: 'container-registry'
   repository: '{{.CONTAINER_REPOSITORY_6}}'
   private: true
   username: '{{.CONTAINER_REPOSITORY_USERNAME_6}}'
   password: '{{.CONTAINER_REPOSITORY_PASSWORD_6}}'
+  whitelistedPipelines: '{{.CONTAINER_REPOSITORY_WHITELISTED_PIPELINES_6}}'
 - name: 'container-registry-{{.CONTAINER_REPOSITORY_7}}'
   type: 'container-registry'
   repository: '{{.CONTAINER_REPOSITORY_7}}'
   private: false
   username: '{{.CONTAINER_REPOSITORY_USERNAME_7}}'
   password: '{{.CONTAINER_REPOSITORY_PASSWORD_7}}'
+  whitelistedPipelines: '{{.CONTAINER_REPOSITORY_WHITELISTED_PIPELINES_7}}'
 - name: '{{.GKE_CREDENTIAL_1}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_1}}
@@ -429,6 +436,7 @@ trustedImages:
 - path: golang
   runDocker: true
   allowCommands: true
+  whitelistedPipelines: github.com/estafette/estafette-ci-builder
 - path: {{.TRUSTED_IMAGE_PATH_1}}
   runDocker: true
   injectedCredentialTypes:

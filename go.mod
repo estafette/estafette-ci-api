@@ -14,7 +14,7 @@ require (
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/ericchiang/k8s v1.2.0
-	github.com/estafette/estafette-ci-contracts v0.0.156
+	github.com/estafette/estafette-ci-contracts v0.0.157
 	github.com/estafette/estafette-ci-crypt v0.0.23
 	github.com/estafette/estafette-ci-manifest v0.1.131
 	github.com/estafette/estafette-foundation v0.0.24
