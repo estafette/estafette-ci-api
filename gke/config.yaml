@@ -359,10 +359,12 @@ credentials:
   type: slack-webhook
   workspace: {{.SLACK_WEBHOOK_WORKSPACE_1}}
   webhook: {{.SLACK_WEBHOOK_WEBHOOK_1}}
+  whitelistedPipelines: '{{.SLACK_WEBHOOK_NAME_WHITELISTED_PIPELINES_1}}'
 - name: {{.SLACK_WEBHOOK_NAME_2}}
   type: slack-webhook
   workspace: {{.SLACK_WEBHOOK_WORKSPACE_2}}
   webhook: {{.SLACK_WEBHOOK_WEBHOOK_2}}
+  whitelistedPipelines: '{{.SLACK_WEBHOOK_NAME_WHITELISTED_PIPELINES_2}}'
 - name: {{.NUGET_SERVER_NAME_1}}
   type: nuget-server
   apiUrl: {{.NUGET_SERVER_API_URL_1}}
@@ -431,6 +433,7 @@ trustedImages:
   - sonarqube-server
 - path: estafette/estafette-ci-builder
   runPrivileged: true
+  whitelistedPipelines: github.com/estafette/estafette-ci-builder
 - path: docker
   runDocker: true
 - path: golang
