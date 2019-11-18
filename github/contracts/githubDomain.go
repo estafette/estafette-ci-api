@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+// AnyEvent represents any of the Github webhook events, to check if installation is whitelisted
+type AnyEvent struct {
+	Installation Installation `json:"installation"`
+}
+
 // PushEvent represents a Github webhook push event
 type PushEvent struct {
 	After        string       `json:"after"`
@@ -103,9 +108,10 @@ func (pe *PushEvent) GetRepository() string {
 
 // RepositoryEvent represents a Github webhook repository event
 type RepositoryEvent struct {
-	Action     string            `json:"action"`
-	Changes    RepositoryChanges `json:"changes"`
-	Repository Repository        `json:"repository"`
+	Action       string            `json:"action"`
+	Changes      RepositoryChanges `json:"changes"`
+	Repository   Repository        `json:"repository"`
+	Installation Installation      `json:"installation"`
 }
 
 // RepositoryChanges records changes made to a repository

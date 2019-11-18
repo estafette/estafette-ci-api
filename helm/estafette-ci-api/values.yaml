@@ -204,6 +204,7 @@ trustedImages:
   - sonarqube-server
 - path: estafette/estafette-ci-builder
   runPrivileged: true
+  whitelistedPipelines: github.com/estafette/estafette-ci-builder
 - path: extensions/cloudflare-purge
   injectedCredentialTypes:
   - cloudflare

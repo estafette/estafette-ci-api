@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"runtime"
 	"sync"
@@ -44,7 +45,7 @@ var (
 	// flags
 	apiAddress                   = kingpin.Flag("api-listen-address", "The address to listen on for api HTTP requests.").Default(":5000").String()
 	configFilePath               = kingpin.Flag("config-file-path", "The path to yaml config file configuring this application.").Default("/configs/config.yaml").String()
-	secretDecryptionKeyBase64    = kingpin.Flag("secret-decryption-key-base64", "The base64 encoded AES-256 key used to decrypt secrets that have been encrypted with it.").Envar("SECRET_DECRYPTION_KEY_BASE64").String()
+	secretDecryptionKeyPath      = kingpin.Flag("secret-decryption-key-path", "The path to the AES-256 key used to decrypt secrets that have been encrypted with it.").Default("/secrets/secretDecryptionKey").OverrideDefaultFromEnvar("SECRET_DECRYPTION_KEY_PATH").String()
 	gracefulShutdownDelaySeconds = kingpin.Flag("graceful-shutdown-delay-seconds", "The number of seconds to wait with graceful shutdown in order to let endpoints update propagation finish.").Default("15").OverrideDefaultFromEnvar("GRACEFUL_SHUTDOWN_DELAY_SECONDS").Int()
 
 	// prometheusInboundEventTotals is the prometheus timeline serie that keeps track of inbound events
@@ -78,7 +79,7 @@ func main() {
 	kingpin.Parse()
 
 	// configure json logging
-	foundation.InitLogging(appgroup, app, version, branch, revision, buildDate)
+	foundation.InitV3Logging(appgroup, app, version, branch, revision, buildDate)
 
 	closer := initJaeger()
 	defer closer.Close()
@@ -112,7 +113,17 @@ func main() {
 
 func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *http.Server {
 
-	secretHelper := crypt.NewSecretHelper(*secretDecryptionKeyBase64, true)
+	// read decryption key from secretDecryptionKeyPath
+	if !foundation.FileExists(*secretDecryptionKeyPath) {
+		log.Fatal().Msgf("Cannot find secret decryption key at path %v", *secretDecryptionKeyPath)
+	}
+
+	secretDecryptionKeyBytes, err := ioutil.ReadFile(*secretDecryptionKeyPath)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Failed reading secret decryption key from path %v", *secretDecryptionKeyPath)
+	}
+
+	secretHelper := crypt.NewSecretHelper(string(secretDecryptionKeyBytes), false)
 	configReader := config.NewConfigReader(secretHelper)
 
 	config, err := configReader.ReadConfigFromFile(*configFilePath, true)

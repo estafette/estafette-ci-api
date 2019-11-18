@@ -79,6 +79,20 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 		return
 	}
 
+	// unmarshal json body to check if installation is whitelisted
+	var anyEvent ghcontracts.AnyEvent
+	err = json.Unmarshal(body, &anyEvent)
+	if err != nil {
+		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubAnyEvent failed")
+		return
+	}
+
+	// verify installation id is whitelisted
+	if !h.IsWhitelistedInstallation(anyEvent.Installation) {
+		c.Status(http.StatusUnauthorized)
+		return
+	}
+
 	switch eventType {
 	case "push": // Any Git push to a Repository, including editing tags or branches. Commits via API actions that update references are also counted. This is the default event.
 
@@ -280,4 +294,19 @@ func (h *eventHandlerImpl) Rename(ctx context.Context, fromRepoSource, fromRepoO
 	defer span.Finish()
 
 	return h.buildService.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+func (h *eventHandlerImpl) IsWhitelistedInstallation(installation ghcontracts.Installation) bool {
+
+	if len(h.config.WhitelistedInstallations) == 0 {
+		return true
+	}
+
+	for _, id := range h.config.WhitelistedInstallations {
+		if id == installation.ID {
+			return true
+		}
+	}
+
+	return false
 }

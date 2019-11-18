@@ -5,6 +5,10 @@ integrations:
     clientID: {{.GITHUB_APP_OAUTH_CLIENT_ID}}
     clientSecret: {{.GITHUB_APP_OAUTH_CLIENT_SECRET}}
     webhookSecret: {{.GITHUB_WEBHOOK_SECRET}}
+    whitelistedInstallations:
+    - {{.GITHUB_INSTALLATION_ID_1}}
+    - {{.GITHUB_INSTALLATION_ID_2}}
+    - {{.GITHUB_INSTALLATION_ID_3}}
 
   bitbucket:
     apiKey: {{.BITBUCKET_API_KEY}}
@@ -69,42 +73,49 @@ credentials:
   private: false
   username: '{{.CONTAINER_REPOSITORY_USERNAME_1}}'
   password: '{{.CONTAINER_REPOSITORY_PASSWORD_1}}'
+  whitelistedPipelines: '{{.CONTAINER_REPOSITORY_WHITELISTED_PIPELINES_1}}'
 - name: 'container-registry-{{.CONTAINER_REPOSITORY_2}}'
   type: 'container-registry'
   repository: '{{.CONTAINER_REPOSITORY_2}}'
   private: false
   username: '{{.CONTAINER_REPOSITORY_USERNAME_2}}'
   password: '{{.CONTAINER_REPOSITORY_PASSWORD_2}}'
+  whitelistedPipelines: '{{.CONTAINER_REPOSITORY_WHITELISTED_PIPELINES_2}}'
 - name: 'container-registry-{{.CONTAINER_REPOSITORY_3}}'
   type: 'container-registry'
   repository: '{{.CONTAINER_REPOSITORY_3}}'
   private: false
   username: '{{.CONTAINER_REPOSITORY_USERNAME_3}}'
   password: '{{.CONTAINER_REPOSITORY_PASSWORD_3}}'
+  whitelistedPipelines: '{{.CONTAINER_REPOSITORY_WHITELISTED_PIPELINES_3}}'
 - name: 'container-registry-{{.CONTAINER_REPOSITORY_4}}'
   type: 'container-registry'
   repository: '{{.CONTAINER_REPOSITORY_4}}'
   private: true
   username: '{{.CONTAINER_REPOSITORY_USERNAME_4}}'
   password: '{{.CONTAINER_REPOSITORY_PASSWORD_4}}'
+  whitelistedPipelines: '{{.CONTAINER_REPOSITORY_WHITELISTED_PIPELINES_4}}'
 - name: 'container-registry-{{.CONTAINER_REPOSITORY_5}}'
   type: 'container-registry'
   repository: '{{.CONTAINER_REPOSITORY_5}}'
   private: true
   username: '{{.CONTAINER_REPOSITORY_USERNAME_5}}'
   password: '{{.CONTAINER_REPOSITORY_PASSWORD_5}}'
+  whitelistedPipelines: '{{.CONTAINER_REPOSITORY_WHITELISTED_PIPELINES_5}}'
 - name: 'container-registry-{{.CONTAINER_REPOSITORY_6}}'
   type: 'container-registry'
   repository: '{{.CONTAINER_REPOSITORY_6}}'
   private: true
   username: '{{.CONTAINER_REPOSITORY_USERNAME_6}}'
   password: '{{.CONTAINER_REPOSITORY_PASSWORD_6}}'
+  whitelistedPipelines: '{{.CONTAINER_REPOSITORY_WHITELISTED_PIPELINES_6}}'
 - name: 'container-registry-{{.CONTAINER_REPOSITORY_7}}'
   type: 'container-registry'
   repository: '{{.CONTAINER_REPOSITORY_7}}'
   private: false
   username: '{{.CONTAINER_REPOSITORY_USERNAME_7}}'
   password: '{{.CONTAINER_REPOSITORY_PASSWORD_7}}'
+  whitelistedPipelines: '{{.CONTAINER_REPOSITORY_WHITELISTED_PIPELINES_7}}'
 - name: '{{.GKE_CREDENTIAL_1}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_1}}
@@ -123,16 +134,15 @@ credentials:
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_2}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_2}}
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_2}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_2}}
     autoscale:
       min: 1
       max: 5
     hosts:
-    - ${ESTAFETTE_LABEL_APP}.dev.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_2}}
+    - ${ESTAFETTE_LABEL_APP}.development.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_2}}
     internalhosts:
-    - ${ESTAFETTE_LABEL_APP}.dev.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_2}}
+    - ${ESTAFETTE_LABEL_APP}.development.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_2}}
 - name: '{{.GKE_CREDENTIAL_3}}'
   type: 'kubernetes-engine'
   project: {{.GKE_PROJECT_3}}
@@ -335,23 +345,26 @@ credentials:
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_15}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_15}}
+    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_15}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_15}}
     autoscale:
       min: 2
       max: 10
     hosts:
-    - ${ESTAFETTE_LABEL_APP}.staging.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_15}}
+    - ${ESTAFETTE_LABEL_APP}.stg.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_15}}
     internalhosts:
-    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_15}}
+    - ${ESTAFETTE_LABEL_APP}.stg.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_15}}
 - name: {{.SLACK_WEBHOOK_NAME_1}}
   type: slack-webhook
   workspace: {{.SLACK_WEBHOOK_WORKSPACE_1}}
   webhook: {{.SLACK_WEBHOOK_WEBHOOK_1}}
+  whitelistedPipelines: '{{.SLACK_WEBHOOK_NAME_WHITELISTED_PIPELINES_1}}'
 - name: {{.SLACK_WEBHOOK_NAME_2}}
   type: slack-webhook
   workspace: {{.SLACK_WEBHOOK_WORKSPACE_2}}
   webhook: {{.SLACK_WEBHOOK_WEBHOOK_2}}
+  whitelistedPipelines: '{{.SLACK_WEBHOOK_NAME_WHITELISTED_PIPELINES_2}}'
 - name: {{.NUGET_SERVER_NAME_1}}
   type: nuget-server
   apiUrl: {{.NUGET_SERVER_API_URL_1}}
@@ -362,6 +375,7 @@ credentials:
 - name: {{.ROLE_BINDER_NAME_1}}
   type: role-binder
   serviceAccountKeyfile: '{{.ROLE_BINDER_SA_KEYFILE_1}}'
+  whitelistedPipelines: '{{.ROLE_BINDER_WHITELISTED_PIPELINES_1}'
 - name: cloudflare
   type: cloudflare
   email: '{{.CLOUDFLARE_API_EMAIL}}'
@@ -393,6 +407,9 @@ trustedImages:
 - path: extensions/helm
   injectedCredentialTypes:
   - kubernetes-engine
+- path: extensions/port-forward
+  injectedCredentialTypes:
+  - kubernetes-engine
 - path: extensions/cloud-function
   injectedCredentialTypes:
   - kubernetes-engine
@@ -417,11 +434,13 @@ trustedImages:
   - sonarqube-server
 - path: estafette/estafette-ci-builder
   runPrivileged: true
+  whitelistedPipelines: github.com/estafette/estafette-ci-builder
 - path: docker
   runDocker: true
 - path: golang
   runDocker: true
   allowCommands: true
+  whitelistedPipelines: github.com/estafette/estafette-ci-builder
 - path: {{.TRUSTED_IMAGE_PATH_1}}
   runDocker: true
   injectedCredentialTypes:
@@ -430,6 +449,7 @@ trustedImages:
   injectedCredentialTypes:
   - role-binder
   - bitbucket-api-token
+  whitelistedPipelines: '{{.TRUSTED_IMAGE_WHITELISTED_PIPELINES_2}'
 - path: extensions/cloudflare-purge
   injectedCredentialTypes:
   - cloudflare

@@ -1,6 +1,8 @@
 package estafette
 
 import (
+	"fmt"
+
 	"github.com/estafette/estafette-ci-api/cockroach"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
@@ -50,6 +52,11 @@ type CiBuilderParams struct {
 	BuildID            int
 	TriggeredByEvents  []manifest.EstafetteEvent
 	JobResources       cockroach.JobResources
+}
+
+// GetFullRepoPath returns the full path of the pipeline / build / release repository with source, owner and name
+func (cbp *CiBuilderParams) GetFullRepoPath() string {
+	return fmt.Sprintf("%v/%v/%v", cbp.RepoSource, cbp.RepoOwner, cbp.RepoName)
 }
 
 type zeroLogLine struct {

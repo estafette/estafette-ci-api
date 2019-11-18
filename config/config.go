@@ -76,11 +76,12 @@ type APIConfigIntegrations struct {
 
 // GithubConfig is used to configure github integration
 type GithubConfig struct {
-	PrivateKeyPath string `yaml:"privateKeyPath"`
-	AppID          string `yaml:"appID"`
-	ClientID       string `yaml:"clientID"`
-	ClientSecret   string `yaml:"clientSecret"`
-	WebhookSecret  string `yaml:"webhookSecret"`
+	PrivateKeyPath           string `yaml:"privateKeyPath"`
+	AppID                    string `yaml:"appID"`
+	ClientID                 string `yaml:"clientID"`
+	ClientSecret             string `yaml:"clientSecret"`
+	WebhookSecret            string `yaml:"webhookSecret"`
+	WhitelistedInstallations []int  `yaml:"whitelistedInstallations"`
 }
 
 // BitbucketConfig is used to configure bitbucket integration
