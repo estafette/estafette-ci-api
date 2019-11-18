@@ -376,6 +376,7 @@ credentials:
   type: role-binder
   serviceAccountKeyfile: '{{.ROLE_BINDER_SA_KEYFILE_1}}'
   whitelistedPipelines: '{{.ROLE_BINDER_WHITELISTED_PIPELINES_1}}'
+  whitelistedTrustedImages: '{{.TRUSTED_IMAGE_PATH_2}}'
 - name: cloudflare
   type: cloudflare
   email: '{{.CLOUDFLARE_API_EMAIL}}'
