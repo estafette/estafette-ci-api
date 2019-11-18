@@ -375,7 +375,7 @@ credentials:
 - name: {{.ROLE_BINDER_NAME_1}}
   type: role-binder
   serviceAccountKeyfile: '{{.ROLE_BINDER_SA_KEYFILE_1}}'
-  whitelistedPipelines: '{{.ROLE_BINDER_WHITELISTED_PIPELINES_1}'
+  whitelistedPipelines: '{{.ROLE_BINDER_WHITELISTED_PIPELINES_1}}'
 - name: cloudflare
   type: cloudflare
   email: '{{.CLOUDFLARE_API_EMAIL}}'
@@ -449,7 +449,7 @@ trustedImages:
   injectedCredentialTypes:
   - role-binder
   - bitbucket-api-token
-  whitelistedPipelines: '{{.TRUSTED_IMAGE_WHITELISTED_PIPELINES_2}'
+  whitelistedPipelines: '{{.TRUSTED_IMAGE_WHITELISTED_PIPELINES_2}}'
 - path: extensions/cloudflare-purge
   injectedCredentialTypes:
   - cloudflare
