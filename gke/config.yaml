@@ -438,10 +438,6 @@ trustedImages:
   whitelistedPipelines: github.com/estafette/estafette-ci-builder
 - path: docker
   runDocker: true
-- path: golang
-  runDocker: true
-  allowCommands: true
-  whitelistedPipelines: github.com/estafette/estafette-ci-builder
 - path: {{.TRUSTED_IMAGE_PATH_1}}
   runDocker: true
   injectedCredentialTypes:
