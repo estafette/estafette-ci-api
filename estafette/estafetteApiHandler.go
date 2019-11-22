@@ -440,7 +440,7 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	}
 
 	// hand off to build service
-	createdBuild, err := h.buildService.CreateBuild(ctx, *failedBuild, true)
+	createdBuild, err := h.buildService.CreateBuild(ctx, *failedBuild, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed creating build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
 		log.Error().Err(err).Msg(errorMessage)
