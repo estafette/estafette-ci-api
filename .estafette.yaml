@@ -72,10 +72,10 @@ releases:
         visibility: iap
         iapOauthClientID: estafette.secret(vvhB3V2t9OVQAeSA.vXxiMmme6sb5A_F1JFbGFXIHaGBFs3_9zNjU7_T97xS0regbyPN5qBo_AzUJuAvIL5XVj6znw1EnKvWj5vjiBEMn2fnuEi6sAJgKVR8H8ul-asiTGHng7coGqiW84alwwEkSxqEtV0S3kZrXIsCVl8p_RSs=)
         iapOauthClientSecret: estafette.secret(zhD1Yzqpq0vmnIqj.EXrL8ypjScc3vpBW8jyR58_mGbbXVh71QtliNXPlZ6qB1yxyA_yQNfHjRX1QShID)
-        env:
-          ESTAFETTE_LOG_FORMAT: v3
         container:
           repository: estafette
+          env:
+            ESTAFETTE_LOG_FORMAT: v3
           cpu:
             request: 60m
             limit: 120m
