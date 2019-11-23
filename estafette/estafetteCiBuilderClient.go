@@ -132,6 +132,8 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 		return
 	}
 
+	estafetteLogFormatName := "ESTAFETTE_LOG_FORMAT"
+	estafetteLogFormatValue := os.Getenv("ESTAFETTE_LOG_FORMAT")
 	jaegerServiceNameName := "JAEGER_SERVICE_NAME"
 	jaegerServiceNameValue := "estafette-ci-builder"
 	jaegerAgentHostName := "JAEGER_AGENT_HOST"
@@ -146,6 +148,10 @@ func (cbc *ciBuilderClientImpl) CreateCiBuilderJob(ctx context.Context, ciBuilde
 		&corev1.EnvVar{
 			Name:  &builderConfigPathName,
 			Value: &builderConfigPathValue,
+		},
+		&corev1.EnvVar{
+			Name:  &estafetteLogFormatName,
+			Value: &estafetteLogFormatValue,
 		},
 		&corev1.EnvVar{
 			Name:  &jaegerServiceNameName,
