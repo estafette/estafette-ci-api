@@ -78,8 +78,8 @@ func main() {
 	// parse command line parameters
 	kingpin.Parse()
 
-	// configure json logging
-	foundation.InitV3Logging(appgroup, app, version, branch, revision, buildDate)
+	// init log format from envvar ESTAFETTE_LOG_FORMAT
+	foundation.InitLoggingFromEnv(appgroup, app, version, branch, revision, buildDate)
 
 	closer := initJaeger()
 	defer closer.Close()

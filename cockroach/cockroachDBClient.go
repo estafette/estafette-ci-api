@@ -57,7 +57,7 @@ type DBClient interface {
 	GetLastPipelineBuildForBranch(context.Context, string, string, string, string) (*contracts.Build, error)
 	GetLastPipelineRelease(context.Context, string, string, string, string, string) (*contracts.Release, error)
 	GetFirstPipelineRelease(context.Context, string, string, string, string, string) (*contracts.Release, error)
-	GetPipelineBuildsByVersion(context.Context, string, string, string, string, bool) ([]*contracts.Build, error)
+	GetPipelineBuildsByVersion(context.Context, string, string, string, string, []string, uint64, bool) ([]*contracts.Build, error)
 	GetPipelineBuildLogs(context.Context, string, string, string, string, string, string) (*contracts.BuildLog, error)
 	GetPipelineBuildMaxResourceUtilization(context.Context, string, string, string, int) (JobResources, int, error)
 	GetPipelineReleases(context.Context, string, string, string, int, int, map[string][]string) ([]*contracts.Release, error)
@@ -1582,7 +1582,7 @@ func (dbc *cockroachDBClientImpl) GetFirstPipelineRelease(ctx context.Context, r
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, optimized bool) (builds []*contracts.Build, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildsByVersion")
 	defer span.Finish()
@@ -1595,7 +1595,9 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(ctx context.Context
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
 		Where(sq.Eq{"a.build_version": buildVersion}).
-		OrderBy("a.inserted_at DESC")
+		Where(sq.Eq{"a.build_status": statuses}).
+		OrderBy("a.inserted_at DESC").
+		Limit(limit)
 
 	// execute query
 	rows, err := query.RunWith(dbc.databaseConnection).Query()

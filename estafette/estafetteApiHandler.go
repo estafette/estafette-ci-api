@@ -392,8 +392,15 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	}
 
 	// check if version exists and is valid to re-run
-	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(ctx, buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, false)
+	failedBuilds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(ctx, buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, []string{"failed", "canceled"}, 1, false)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
 
+	nonFailedBuilds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(ctx, buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, []string{"succeeded", "running", "pending", "canceling"}, 1, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
 		log.Error().Err(err).Msg(errorMessage)
@@ -402,15 +409,13 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	}
 
 	var failedBuild *contracts.Build
-	// ensure there's no succeeded or running builds
-	hasNonFailedBuilds := false
-	for _, b := range builds {
-		if b.BuildStatus == "failed" || b.BuildStatus == "canceled" {
-			failedBuild = b
-		} else {
-			hasNonFailedBuilds = true
-		}
+	// get first failed build
+	if len(failedBuilds) > 0 {
+		failedBuild = failedBuilds[0]
 	}
+
+	// ensure there's no succeeded or running builds
+	hasNonFailedBuilds := len(nonFailedBuilds) > 0
 
 	if failedBuild == nil {
 		errorMessage := fmt.Sprintf("No failed build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
@@ -435,7 +440,7 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	}
 
 	// hand off to build service
-	createdBuild, err := h.buildService.CreateBuild(ctx, *failedBuild, true)
+	createdBuild, err := h.buildService.CreateBuild(ctx, *failedBuild, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed creating build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
 		log.Error().Err(err).Msg(errorMessage)
@@ -826,7 +831,7 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 	}
 
 	// check if version exists and is valid to release
-	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(ctx, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion, false)
+	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(ctx, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion, []string{"succeeded"}, 1, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
 		log.Error().Err(err).Msg(errorMessage)
@@ -835,12 +840,9 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 	}
 
 	var build *contracts.Build
-	// get succeeded build
-	for _, b := range builds {
-		if b.BuildStatus == "succeeded" {
-			build = b
-			break
-		}
+	// get first build
+	if len(builds) > 0 {
+		build = builds[0]
 	}
 
 	if build == nil {

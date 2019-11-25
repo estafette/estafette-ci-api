@@ -320,8 +320,8 @@ func (s *buildServiceImpl) CreateBuild(ctx context.Context, build contracts.Buil
 			RepoName:     createdBuild.RepoName,
 			RepoBranch:   createdBuild.RepoBranch,
 			RepoRevision: createdBuild.RepoRevision,
-			Steps: []contracts.BuildLogStep{
-				contracts.BuildLogStep{
+			Steps: []*contracts.BuildLogStep{
+				&contracts.BuildLogStep{
 					Step:         "validate-manifest",
 					ExitCode:     1,
 					Status:       "FAILED",

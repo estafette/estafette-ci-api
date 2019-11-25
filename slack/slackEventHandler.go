@@ -167,7 +167,7 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					}
 
 					// check if version exists
-					builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion, false)
+					builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion, []string{"succeeded"}, 1, false)
 
 					if err != nil {
 						c.String(http.StatusOK, fmt.Sprintf("Retrieving the build for repository %v and version %v from the database failed: %v", fullRepoName, buildVersion, err))
@@ -175,14 +175,10 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 					}
 
 					var build *contracts.Build
-					// get succeeded build
-					for _, b := range builds {
-						if b.BuildStatus == "succeeded" {
-							build = b
-							break
-						}
+					// get first build
+					if len(builds) > 0 {
+						build = builds[0]
 					}
-
 					if build == nil {
 						c.String(http.StatusOK, fmt.Sprintf("The version %v in your command does not exist", buildVersion))
 						return
