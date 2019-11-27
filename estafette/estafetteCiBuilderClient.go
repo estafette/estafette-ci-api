@@ -819,14 +819,14 @@ func (cbc *ciBuilderClientImpl) GetJobName(jobType, repoOwner, repoName, id stri
 	maxJobNameLength := 63
 
 	re := regexp.MustCompile("[^a-zA-Z0-9]+")
-	repoName := re.ReplaceAllString(fmt.Sprintf("%v/%v", repoOwner, repoName), "-")
+	fullRepoName := re.ReplaceAllString(fmt.Sprintf("%v/%v", repoOwner, repoName), "-")
 
 	maxRepoNameLength := maxJobNameLength - len(jobType) - 1 - len(id) - 1
-	if len(repoName) > maxRepoNameLength {
-		repoName = repoName[:maxRepoNameLength]
+	if len(fullRepoName) > maxRepoNameLength {
+		fullRepoName = fullRepoName[:maxRepoNameLength]
 	}
 
-	return strings.ToLower(fmt.Sprintf("%v-%v-%v", jobType, repoName, id))
+	return strings.ToLower(fmt.Sprintf("%v-%v-%v", jobType, fullRepoName, id))
 }
 
 // GetJobName returns the job name for a build or release job
