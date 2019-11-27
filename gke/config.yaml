@@ -426,6 +426,9 @@ trustedImages:
 - path: extensions/helm
   injectedCredentialTypes:
   - kubernetes-engine
+- path: extensions/gke-stage-runner
+  injectedCredentialTypes:
+  - kubernetes-engine
 - path: extensions/port-forward
   injectedCredentialTypes:
   - kubernetes-engine
