@@ -813,13 +813,13 @@ func (cbc *ciBuilderClientImpl) TailCiBuilderJobLogs(ctx context.Context, jobNam
 }
 
 // GetJobName returns the job name for a build or release job
-func (cbc *ciBuilderClientImpl) GetJobName(jobType, repoOwner, repoSource, id string) string {
+func (cbc *ciBuilderClientImpl) GetJobName(jobType, repoOwner, repoName, id string) string {
 
 	// create job name of max 63 chars
 	maxJobNameLength := 63
 
 	re := regexp.MustCompile("[^a-zA-Z0-9]+")
-	repoName := re.ReplaceAllString(fmt.Sprintf("%v/%v", repoOwner, repoSource), "-")
+	repoName := re.ReplaceAllString(fmt.Sprintf("%v/%v", repoOwner, repoName), "-")
 
 	maxRepoNameLength := maxJobNameLength - len(jobType) - 1 - len(id) - 1
 	if len(repoName) > maxRepoNameLength {
