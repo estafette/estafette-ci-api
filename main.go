@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"runtime"
 	"sync"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/estafette/estafette-ci-api/slack"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	foundation "github.com/estafette/estafette-foundation"
+	"github.com/fsnotify/fsnotify"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
@@ -118,62 +120,26 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		log.Fatal().Msgf("Cannot find secret decryption key at path %v", *secretDecryptionKeyPath)
 	}
 
+	// read decryption key
 	secretDecryptionKeyBytes, err := ioutil.ReadFile(*secretDecryptionKeyPath)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed reading secret decryption key from path %v", *secretDecryptionKeyPath)
 	}
-
 	secretHelper := crypt.NewSecretHelper(string(secretDecryptionKeyBytes), false)
-	configReader := config.NewConfigReader(secretHelper)
 
+	// read configmap
+	configReader := config.NewConfigReader(secretHelper)
 	config, err := configReader.ReadConfigFromFile(*configFilePath, true)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed reading configuration")
 	}
-
 	encryptedConfig, err := configReader.ReadConfigFromFile(*configFilePath, false)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed reading configuration without decrypting")
 	}
 
-	githubAPIClient := github.NewGithubAPIClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
-	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
-	slackAPIClient := slack.NewSlackAPIClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
-	pubSubAPIClient, err := pubsub.NewPubSubAPIClient(*config.Integrations.Pubsub)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating new PubSubAPIClient has failed")
-	}
-	cockroachDBClient := cockroach.NewCockroachDBClient(*config.Database, prometheusOutboundAPICallTotals)
-	ciBuilderClient, err := estafette.NewCiBuilderClient(*config, *encryptedConfig, secretHelper, prometheusOutboundAPICallTotals)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
-	}
-
-	bigqueryClient, err := bigquery.NewBigQueryClient(config.Integrations.BigQuery)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating new BigQueryClient has failed")
-	}
-	err = bigqueryClient.Init()
-	if err != nil {
-		log.Error().Err(err).Msg("Initializing BigQuery tables has failed")
-	}
-
-	// set up database
-	err = cockroachDBClient.Connect()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed connecting to CockroachDB")
-	}
-
-	log.Debug().Msg("Creating services, handlers and helpers...")
-	prometheusClient := prom.NewPrometheusClient(*config.Integrations.Prometheus)
-	estafetteBuildService := estafette.NewBuildService(*config.Jobs, cockroachDBClient, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
-	githubEventHandler := github.NewGithubEventHandler(githubAPIClient, pubSubAPIClient, estafetteBuildService, *config.Integrations.Github, prometheusInboundEventTotals)
-	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketAPIClient, pubSubAPIClient, estafetteBuildService, prometheusInboundEventTotals)
-	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, slackAPIClient, cockroachDBClient, *config.APIServer, estafetteBuildService, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc(), prometheusInboundEventTotals)
-	pubsubEventHandler := pubsub.NewPubSubEventHandler(pubSubAPIClient, estafetteBuildService)
-	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, ciBuilderClient, prometheusClient, estafetteBuildService, cockroachDBClient, prometheusInboundEventTotals)
-	warningHelper := estafette.NewWarningHelper()
-	estafetteAPIHandler := estafette.NewAPIHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, ciBuilderClient, estafetteBuildService, warningHelper, secretHelper, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
+	// initialize instances
+	githubEventHandler, bitbucketEventHandler, slackEventHandler, pubsubEventHandler, estafetteEventHandler, estafetteAPIHandler := getInstances(secretHelper, config, encryptedConfig)
 
 	// run gin in release mode and other defaults
 	gin.SetMode(gin.ReleaseMode)
@@ -200,6 +166,58 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	log.Debug().Msg("Adding auth middleware...")
 	authMiddleware := auth.NewAuthMiddleware(*config.Auth)
 
+	initRoutes(router, authMiddleware, githubEventHandler, bitbucketEventHandler, slackEventHandler, pubsubEventHandler, estafetteEventHandler, estafetteAPIHandler)
+
+	// instantiate servers instead of using router.Run in order to handle graceful shutdown
+	log.Debug().Msg("Starting server...")
+	srv := &http.Server{
+		Addr:        *apiAddress,
+		Handler:     router,
+		ReadTimeout: 30 * time.Second,
+		//WriteTimeout:   30 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	// watch for configmap changes
+	foundation.WatchForFileChanges(*configFilePath, func(event fsnotify.Event) {
+		log.Info().Msgf("Configmap at %v was updated, refreshing instances...", *configFilePath)
+
+		config, err = configReader.ReadConfigFromFile(*configFilePath, true)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed reading configuration")
+		}
+		encryptedConfig, err = configReader.ReadConfigFromFile(*configFilePath, false)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed reading configuration without decrypting")
+		}
+
+		// refresh instances
+		githubEventHandler, bitbucketEventHandler, slackEventHandler, pubsubEventHandler, estafetteEventHandler, estafetteAPIHandler = getInstances(secretHelper, config, encryptedConfig)
+
+		initRoutes(router, authMiddleware, githubEventHandler, bitbucketEventHandler, slackEventHandler, pubsubEventHandler, estafetteEventHandler, estafetteAPIHandler)
+	})
+
+	// watch for service account key file changes
+	foundation.WatchForFileChanges(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), func(event fsnotify.Event) {
+		log.Info().Msg("Service account key file was updated, refreshing instances...")
+
+		// refresh instances
+		githubEventHandler, bitbucketEventHandler, slackEventHandler, pubsubEventHandler, estafetteEventHandler, estafetteAPIHandler = getInstances(secretHelper, config, encryptedConfig)
+
+		initRoutes(router, authMiddleware, githubEventHandler, bitbucketEventHandler, slackEventHandler, pubsubEventHandler, estafetteEventHandler, estafetteAPIHandler)
+	})
+
+	go func() {
+		log.Debug().Msg("Listening for incoming requests...")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal().Err(err).Msg("Starting gin router failed")
+		}
+	}()
+
+	return srv
+}
+
+func initRoutes(router *gin.Engine, authMiddleware auth.Middleware, githubEventHandler github.EventHandler, bitbucketEventHandler bitbucket.EventHandler, slackEventHandler slack.EventHandler, pubsubEventHandler pubsub.EventHandler, estafetteEventHandler estafette.EventHandler, estafetteAPIHandler estafette.APIHandler) {
 	log.Debug().Msg("Setting up routes...")
 	router.POST("/api/integrations/github/events", githubEventHandler.Handle)
 	router.GET("/api/integrations/github/status", func(c *gin.Context) { c.String(200, "Github, I'm cool!") })
@@ -284,25 +302,6 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	router.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Page not found"})
 	})
-
-	// instantiate servers instead of using router.Run in order to handle graceful shutdown
-	log.Debug().Msg("Starting server...")
-	srv := &http.Server{
-		Addr:        *apiAddress,
-		Handler:     router,
-		ReadTimeout: 30 * time.Second,
-		//WriteTimeout:   30 * time.Second,
-		MaxHeaderBytes: 1 << 20,
-	}
-
-	go func() {
-		log.Debug().Msg("Listening for incoming requests...")
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal().Err(err).Msg("Starting gin router failed")
-		}
-	}()
-
-	return srv
 }
 
 // initJaeger returns an instance of Jaeger Tracer that can be configured with environment variables
@@ -321,4 +320,48 @@ func initJaeger() io.Closer {
 	}
 
 	return closer
+}
+
+func getInstances(secretHelper crypt.SecretHelper, config *config.APIConfig, encryptedConfig *config.APIConfig) (github.EventHandler, bitbucket.EventHandler, slack.EventHandler, pubsub.EventHandler, estafette.EventHandler, estafette.APIHandler) {
+
+	githubAPIClient := github.NewGithubAPIClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
+	bitbucketAPIClient := bitbucket.NewBitbucketAPIClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
+	slackAPIClient := slack.NewSlackAPIClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
+	pubSubAPIClient, err := pubsub.NewPubSubAPIClient(*config.Integrations.Pubsub)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating new PubSubAPIClient has failed")
+	}
+	cockroachDBClient := cockroach.NewCockroachDBClient(*config.Database, prometheusOutboundAPICallTotals)
+	ciBuilderClient, err := estafette.NewCiBuilderClient(*config, *encryptedConfig, secretHelper, prometheusOutboundAPICallTotals)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
+	}
+
+	bigqueryClient, err := bigquery.NewBigQueryClient(config.Integrations.BigQuery)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating new BigQueryClient has failed")
+	}
+	err = bigqueryClient.Init()
+	if err != nil {
+		log.Error().Err(err).Msg("Initializing BigQuery tables has failed")
+	}
+
+	// set up database
+	err = cockroachDBClient.Connect()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed connecting to CockroachDB")
+	}
+
+	log.Debug().Msg("Creating services, handlers and helpers...")
+	prometheusClient := prom.NewPrometheusClient(*config.Integrations.Prometheus)
+	estafetteBuildService := estafette.NewBuildService(*config.Jobs, cockroachDBClient, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
+	githubEventHandler := github.NewGithubEventHandler(githubAPIClient, pubSubAPIClient, estafetteBuildService, *config.Integrations.Github, prometheusInboundEventTotals)
+	bitbucketEventHandler := bitbucket.NewBitbucketEventHandler(bitbucketAPIClient, pubSubAPIClient, estafetteBuildService, prometheusInboundEventTotals)
+	slackEventHandler := slack.NewSlackEventHandler(secretHelper, *config.Integrations.Slack, slackAPIClient, cockroachDBClient, *config.APIServer, estafetteBuildService, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc(), prometheusInboundEventTotals)
+	pubsubEventHandler := pubsub.NewPubSubEventHandler(pubSubAPIClient, estafetteBuildService)
+	estafetteEventHandler := estafette.NewEstafetteEventHandler(*config.APIServer, ciBuilderClient, prometheusClient, estafetteBuildService, cockroachDBClient, prometheusInboundEventTotals)
+	warningHelper := estafette.NewWarningHelper()
+	estafetteAPIHandler := estafette.NewAPIHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, ciBuilderClient, estafetteBuildService, warningHelper, secretHelper, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
+
+	return githubEventHandler, bitbucketEventHandler, slackEventHandler, pubsubEventHandler, estafetteEventHandler, estafetteAPIHandler
 }
