@@ -118,6 +118,7 @@ credentials:
   whitelistedPipelines: '{{.CONTAINER_REPOSITORY_WHITELISTED_PIPELINES_7}}'
 - name: '{{.GKE_CREDENTIAL_1}}'
   type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/helm|extensions/cloud-function
   project: {{.GKE_PROJECT_1}}
   cluster: {{.GKE_CLUSTER_1}}
   region: {{.GKE_REGION_1}}
@@ -127,6 +128,7 @@ credentials:
     namespace: {{.GKE_DEFAULT_NAMESPACE_1}}
 - name: '{{.GKE_CREDENTIAL_2}}'
   type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/helm|extensions/cloud-function|extensions/gke-stage-runner|extensions/port-forward
   project: {{.GKE_PROJECT_2}}
   cluster: {{.GKE_CLUSTER_2}}
   region: {{.GKE_REGION_2}}
@@ -145,6 +147,7 @@ credentials:
     - ${ESTAFETTE_LABEL_APP}.development.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_2}}
 - name: '{{.GKE_CREDENTIAL_3}}'
   type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/helm|extensions/cloud-function|extensions/gke-stage-runner|extensions/port-forward
   project: {{.GKE_PROJECT_3}}
   cluster: {{.GKE_CLUSTER_3}}
   region: {{.GKE_REGION_3}}
@@ -163,6 +166,7 @@ credentials:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_3}}
 - name: '{{.GKE_CREDENTIAL_4}}'
   type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/helm|extensions/cloud-function
   project: {{.GKE_PROJECT_4}}
   cluster: {{.GKE_CLUSTER_4}}
   region: {{.GKE_REGION_4}}
@@ -181,6 +185,7 @@ credentials:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_4}}
 - name: '{{.GKE_CREDENTIAL_5}}'
   type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/helm|extensions/cloud-function
   project: {{.GKE_PROJECT_5}}
   cluster: {{.GKE_CLUSTER_5}}
   region: {{.GKE_REGION_5}}
@@ -196,6 +201,7 @@ credentials:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_5}}
 - name: '{{.GKE_CREDENTIAL_6}}'
   type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/helm|extensions/cloud-function
   project: {{.GKE_PROJECT_6}}
   cluster: {{.GKE_CLUSTER_6}}
   region: {{.GKE_REGION_6}}
@@ -211,6 +217,7 @@ credentials:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_6}}
 - name: '{{.GKE_CREDENTIAL_7}}'
   type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/helm|extensions/cloud-function
   project: {{.GKE_PROJECT_7}}
   cluster: {{.GKE_CLUSTER_7}}
   region: {{.GKE_REGION_7}}
@@ -225,6 +232,7 @@ credentials:
     - ${ESTAFETTE_LABEL_APP}.staging.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_7}}
 - name: '{{.GKE_CREDENTIAL_8}}'
   type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/helm|extensions/cloud-function
   project: {{.GKE_PROJECT_8}}
   cluster: {{.GKE_CLUSTER_8}}
   region: {{.GKE_REGION_8}}
@@ -239,6 +247,7 @@ credentials:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_8}}
 - name: '{{.GKE_CREDENTIAL_9}}'
   type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/helm|extensions/cloud-function
   project: {{.GKE_PROJECT_9}}
   cluster: {{.GKE_CLUSTER_9}}
   region: {{.GKE_REGION_9}}
@@ -253,6 +262,7 @@ credentials:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_9}}
 - name: '{{.GKE_CREDENTIAL_10}}'
   type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/helm|extensions/cloud-function
   project: {{.GKE_PROJECT_10}}
   cluster: {{.GKE_CLUSTER_10}}
   region: {{.GKE_REGION_10}}
@@ -270,6 +280,7 @@ credentials:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_10}}
 - name: '{{.GKE_CREDENTIAL_11}}'
   type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/helm|extensions/cloud-function
   project: {{.GKE_PROJECT_11}}
   cluster: {{.GKE_CLUSTER_11}}
   region: {{.GKE_REGION_11}}
@@ -287,6 +298,7 @@ credentials:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_11}}
 - name: '{{.GKE_CREDENTIAL_12}}'
   type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/helm|extensions/cloud-function
   project: {{.GKE_PROJECT_12}}
   cluster: {{.GKE_CLUSTER_12}}
   region: {{.GKE_REGION_12}}
@@ -304,6 +316,7 @@ credentials:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_12}}
 - name: '{{.GKE_CREDENTIAL_13}}'
   type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/helm|extensions/cloud-function
   project: {{.GKE_PROJECT_13}}
   cluster: {{.GKE_CLUSTER_13}}
   region: {{.GKE_REGION_13}}
@@ -321,6 +334,7 @@ credentials:
     - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_13}}
 - name: '{{.GKE_CREDENTIAL_14}}'
   type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/helm|extensions/cloud-function
   project: {{.GKE_PROJECT_14}}
   cluster: {{.GKE_CLUSTER_14}}
   region: {{.GKE_REGION_14}}
@@ -339,6 +353,7 @@ credentials:
     - ${ESTAFETTE_LABEL_APP}.dev.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_14}}
 - name: '{{.GKE_CREDENTIAL_15}}'
   type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/helm|extensions/cloud-function
   project: {{.GKE_PROJECT_15}}
   cluster: {{.GKE_CLUSTER_15}}
   region: {{.GKE_REGION_15}}
@@ -357,6 +372,7 @@ credentials:
     - ${ESTAFETTE_LABEL_APP}.stg.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_15}}
 - name: '{{.GKE_CREDENTIAL_16}}'
   type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/helm|extensions/cloud-function
   project: {{.GKE_PROJECT_16}}
   cluster: {{.GKE_CLUSTER_16}}
   region: {{.GKE_REGION_16}}
