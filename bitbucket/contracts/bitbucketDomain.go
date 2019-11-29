@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+// AnyEvent represents any Bitbucket event to check for whitelisted owners
+type AnyEvent struct {
+	Repository Repository `json:"repository"`
+}
+
 // RepositoryPushEvent represents a Bitbucket push event
 type RepositoryPushEvent struct {
 	Actor      Owner      `json:"actor"`
