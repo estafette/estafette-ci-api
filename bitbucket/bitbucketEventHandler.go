@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	bbcontracts "github.com/estafette/estafette-ci-api/bitbucket/contracts"
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/estafette"
 	"github.com/estafette/estafette-ci-api/pubsub"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -25,6 +26,7 @@ type EventHandler interface {
 }
 
 type eventHandlerImpl struct {
+	config                       config.BitbucketConfig
 	apiClient                    APIClient
 	pubsubAPIClient              pubsub.APIClient
 	buildService                 estafette.BuildService
@@ -32,8 +34,9 @@ type eventHandlerImpl struct {
 }
 
 // NewBitbucketEventHandler returns a new bitbucket.EventHandler
-func NewBitbucketEventHandler(apiClient APIClient, pubsubAPIClient pubsub.APIClient, buildService estafette.BuildService, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
+func NewBitbucketEventHandler(config config.BitbucketConfig, apiClient APIClient, pubsubAPIClient pubsub.APIClient, buildService estafette.BuildService, prometheusInboundEventTotals *prometheus.CounterVec) EventHandler {
 	return &eventHandlerImpl{
+		config:                       config,
 		apiClient:                    apiClient,
 		pubsubAPIClient:              pubsubAPIClient,
 		buildService:                 buildService,
@@ -55,6 +58,20 @@ func (h *eventHandlerImpl) Handle(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body from Bitbucket webhook failed")
 		c.String(http.StatusInternalServerError, "Reading body from Bitbucket webhook failed")
+		return
+	}
+
+	// unmarshal json body to check if installation is whitelisted
+	var anyEvent bbcontracts.AnyEvent
+	err = json.Unmarshal(body, &anyEvent)
+	if err != nil {
+		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to BitbucketAnyEvent failed")
+		return
+	}
+
+	// verify owner is whitelisted
+	if !h.IsWhitelistedOwner(anyEvent.Repository) {
+		c.Status(http.StatusUnauthorized)
 		return
 	}
 
@@ -220,4 +237,19 @@ func (h *eventHandlerImpl) Rename(ctx context.Context, fromRepoSource, fromRepoO
 	defer span.Finish()
 
 	return h.buildService.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+func (h *eventHandlerImpl) IsWhitelistedOwner(repository bbcontracts.Repository) bool {
+
+	if len(h.config.WhitelistedOwners) == 0 {
+		return true
+	}
+
+	for _, owner := range h.config.WhitelistedOwners {
+		if owner == repository.Owner.UserName {
+			return true
+		}
+	}
+
+	return false
 }

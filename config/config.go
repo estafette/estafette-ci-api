@@ -86,9 +86,10 @@ type GithubConfig struct {
 
 // BitbucketConfig is used to configure bitbucket integration
 type BitbucketConfig struct {
-	APIKey         string `yaml:"apiKey"`
-	AppOAuthKey    string `yaml:"appOAuthKey"`
-	AppOAuthSecret string `yaml:"appOAuthSecret"`
+	APIKey            string   `yaml:"apiKey"`
+	AppOAuthKey       string   `yaml:"appOAuthKey"`
+	AppOAuthSecret    string   `yaml:"appOAuthSecret"`
+	WhitelistedOwners []string `yaml:"whitelistedOwners"`
 }
 
 // SlackConfig is used to configure slack integration
