@@ -132,6 +132,7 @@ releases:
             BITBUCKET_API_KEY: estafette.secret(47y2CIuUFqs1HbsK.DgdL4SVZlRjDwY-D21N8TKX_GhFkpjD4pvke87NDeXYpZKBZF1SzdfnIYBkA4qBDhHqEAqiV1wDknEO6cXJRUpOPgdhIer3sKPKCVHH27E4n5JpsD40sKaaix0TPsOjUXM9yfbykvujCmbNJSIJOvXMHPA==)
             BITBUCKET_APP_OAUTH_KEY: estafette.secret(31YKzmAh68AYALVM.dcZbuGZVkA6Axw9RrCskRIYISTd0GgIG_UE6Ic_devJopA==)
             BITBUCKET_APP_OAUTH_SECRET: estafette.secret(Hvj29bP08FVq38mL.h3-o_WzZQM1AUAj9H8YF8lUN1xBoh3WY7MGjQ8hfO6zLRTa-rGqncBEc7glXu9rBIUYY-54T8BdphNCtFjl0-bdf6qP6_YqUOQxNreCzSATIzQR4XUrAaqTRxTMXlDpkNWZiEiT8CGO2LLIy_fiPDQZMiA==)
+            BITBUCKET_OWNER_1: estafette.secret(vfnP-HWGmghcpoUo.pxgd3_Ojq3zwt2RSLEldjF_MJO1XOg==)
             SLACK_APP_CLIENT_ID: estafette.secret(dSXypkz_E8XTZQug.Oxr-ntjAr7UKHFli17RTP0CcVa8X71mXmVzrFaxEPyvEViFbZPvv)
             SLACK_APP_CLIENT_SECRET: estafette.secret(a-bPCUUL1A8CUJXy.NyD9n0qiG4hkuakFU0iar6Ck3fyy-ma1MIoJRP_k_iPy1hUcMJlmpURoEY2kJQfTBacRd0MouibvQifZiVAgFORNbeh6rceJkCQCpVJpxrklbdmLzJvjMTVl7KIxnttzpSYm0OnGEumDP3Uibu98TQOW0Q==)
             SLACK_APP_VERIFICATION_TOKEN: estafette.secret(rIfJDdEqO-mEHj72.mVvvVV1LHuJXtdsTSKcsn0Swme9wIQ2QQAEH8szHy2vfIZ_wcZ8mT6jyZZOj3TMUwNABCjAJEaKxZKG_Qn74aPkmPfz7dFWQrxxPcut6ue4brF94RKYuwKhQFShh5-jU8aZFm1Pm_CDt7-E=)

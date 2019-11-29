@@ -51,6 +51,8 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "sd9ewiwuejkwejkewk", bitbucketConfig.APIKey)
 		assert.Equal(t, "2390w3e90jdsk", bitbucketConfig.AppOAuthKey)
 		assert.Equal(t, "this is my secret", bitbucketConfig.AppOAuthSecret)
+		assert.Equal(t, 1, len(bitbucketConfig.WhitelistedOwners))
+		assert.Equal(t, "estafette", bitbucketConfig.WhitelistedOwners[0])
 	})
 
 	t.Run("ReturnsSlackConfig", func(t *testing.T) {
