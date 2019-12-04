@@ -10,29 +10,29 @@ version:
 
 stages:
   restore:
-    image: mcr.microsoft.com/dotnet/core/sdk:3.0-alpine
+    image: mcr.microsoft.com/dotnet/core/sdk:3.1-alpine
     env:
       PRIVATE_NUGET_SOURCE: {{.PrivateNugetSource}}
     commands:
     - dotnet restore --source https://www.nuget.org/api/v1 --source ${PRIVATE_NUGET_SOURCE} --packages .nuget/packages
 
   build:
-    image: mcr.microsoft.com/dotnet/core/sdk:3.0-alpine
+    image: mcr.microsoft.com/dotnet/core/sdk:3.1-alpine
     commands:
     - dotnet build --configuration Release /p:Version=${ESTAFETTE_BUILD_VERSION} --no-restore
 
   unit-tests:
-    image: mcr.microsoft.com/dotnet/core/sdk:3.0-alpine
+    image: mcr.microsoft.com/dotnet/core/sdk:3.1-alpine
     commands:
     - ls test/**/*.UnitTests.csproj | xargs -n1 dotnet test --configuration Release --no-build --no-restore
 
   pack:
-    image: mcr.microsoft.com/dotnet/core/sdk:3.0-alpine
+    image: mcr.microsoft.com/dotnet/core/sdk:3.1-alpine
     commands:
     - dotnet pack --configuration Release /p:Version=${ESTAFETTE_BUILD_VERSION} --no-restore
 
   push:
-    image: mcr.microsoft.com/dotnet/core/sdk:3.0-alpine
+    image: mcr.microsoft.com/dotnet/core/sdk:3.1-alpine
     env:
       PRIVATE_NUGET_SOURCE: {{.PrivateNugetSource}}
     commands:
