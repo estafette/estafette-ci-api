@@ -10,7 +10,7 @@ version:
 
 stages:
   build:
-    image: golang:1.13.1-alpine3.10
+    image: golang:1.13.4-alpine
     workDir: /go/src/${ESTAFETTE_GIT_SOURCE}/${ESTAFETTE_GIT_OWNER}/${ESTAFETTE_GIT_NAME}
     env:
       CGO_ENABLED: 0

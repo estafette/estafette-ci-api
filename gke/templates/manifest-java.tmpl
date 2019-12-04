@@ -10,7 +10,7 @@ version:
 
 stages:
   build:
-    image: maven:3.6.2-jdk-11-slim
+    image: maven:3.6.3-jdk-11-slim
     commands:
     - mvn package -DoutputDirectory=./publish
 
