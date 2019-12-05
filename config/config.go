@@ -66,12 +66,13 @@ type DatabaseConfig struct {
 
 // APIConfigIntegrations contains config for 3rd party integrations
 type APIConfigIntegrations struct {
-	Github     *GithubConfig     `yaml:"github,omitempty"`
-	Bitbucket  *BitbucketConfig  `yaml:"bitbucket,omitempty"`
-	Slack      *SlackConfig      `yaml:"slack,omitempty"`
-	Pubsub     *PubsubConfig     `yaml:"pubsub,omitempty"`
-	Prometheus *PrometheusConfig `yaml:"prometheus,omitempty"`
-	BigQuery   *BigQueryConfig   `yaml:"bigquery,omitempty"`
+	Github       *GithubConfig       `yaml:"github,omitempty"`
+	Bitbucket    *BitbucketConfig    `yaml:"bitbucket,omitempty"`
+	Slack        *SlackConfig        `yaml:"slack,omitempty"`
+	Pubsub       *PubsubConfig       `yaml:"pubsub,omitempty"`
+	Prometheus   *PrometheusConfig   `yaml:"prometheus,omitempty"`
+	BigQuery     *BigQueryConfig     `yaml:"bigquery,omitempty"`
+	CloudStorage *CloudStorageConfig `yaml:"gcs,omitempty"`
 }
 
 // GithubConfig is used to configure github integration
@@ -108,6 +109,13 @@ type PubsubConfig struct {
 	ServiceAccountEmail            string `yaml:"serviceAccountEmail"`
 	SubscriptionNameSuffix         string `yaml:"subscriptionNameSuffix"`
 	SubscriptionIdleExpirationDays int    `yaml:"subscriptionIdleExpirationDays"`
+}
+
+// CloudStorageConfig is used to configure a google cloud storage bucket to be used to store logs
+type CloudStorageConfig struct {
+	ProjectID     string `yaml:"projectID"`
+	Bucket        string `yaml:"bucket"`
+	LogsDirectory string `yaml:"logsDir"`
 }
 
 // PrometheusConfig configures where to find prometheus for retrieving max cpu and memory consumption of build and release jobs

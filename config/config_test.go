@@ -97,6 +97,20 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "my-dataset", bigqueryConfig.Dataset)
 	})
 
+	t.Run("ReturnsCloudStorageConfig", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		cloudStorageConfig := config.Integrations.CloudStorage
+
+		assert.Equal(t, "my-gcp-project", cloudStorageConfig.ProjectID)
+		assert.Equal(t, "my-bucket", cloudStorageConfig.Bucket)
+		assert.Equal(t, "/logs", cloudStorageConfig.LogsDirectory)
+	})
+
 	t.Run("ReturnsAPIServerConfig", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
