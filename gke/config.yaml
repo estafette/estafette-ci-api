@@ -48,6 +48,10 @@ integrations:
 apiServer:
   baseURL: https://{{.HOSTNAMES}}/
   serviceURL: https://{{.INTERNAL_HOSTNAME}}/
+  logWriters:
+  - database
+  - cloudstorage
+  logReader: database
 
 auth:
   iap:

@@ -3,6 +3,7 @@ package config
 import (
 	"io/ioutil"
 
+	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	"github.com/rs/zerolog/log"
@@ -26,8 +27,30 @@ type APIConfig struct {
 
 // APIServerConfig represents configuration for the api server
 type APIServerConfig struct {
-	BaseURL    string `yaml:"baseURL"`
-	ServiceURL string `yaml:"serviceURL"`
+	BaseURL    string   `yaml:"baseURL"`
+	ServiceURL string   `yaml:"serviceURL"`
+	LogWriters []string `yaml:"logWriters"`
+	LogReader  string   `yaml:"logReader"`
+}
+
+// WriteLogToDatabase indicates if database is in the logWriters config
+func (c *APIServerConfig) WriteLogToDatabase() bool {
+	return len(c.LogWriters) == 0 || helpers.StringArrayContains(c.LogWriters, "database")
+}
+
+// WriteLogToCloudStorage indicates if cloudstorage is in the logWriters config
+func (c *APIServerConfig) WriteLogToCloudStorage() bool {
+	return helpers.StringArrayContains(c.LogWriters, "cloudstorage")
+}
+
+// ReadLogFromDatabase indicates if logReader config is database
+func (c *APIServerConfig) ReadLogFromDatabase() bool {
+	return c.LogReader == "" || c.LogReader == "database"
+}
+
+// ReadLogFromCloudStorage indicates if logReader config is cloudstorage
+func (c *APIServerConfig) ReadLogFromCloudStorage() bool {
+	return c.LogReader == "cloudstorage"
 }
 
 // AuthConfig determines whether to use IAP for authentication and authorization

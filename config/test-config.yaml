@@ -39,6 +39,10 @@ integrations:
 apiServer:
   baseURL: https://ci.estafette.io/
   serviceURL: http://estafette-ci-api.estafette.svc.cluster.local/
+  logWriters:
+  - database
+  - cloudstorage
+  logReader: database
 
 auth:
   iap:

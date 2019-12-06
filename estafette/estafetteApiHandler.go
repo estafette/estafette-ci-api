@@ -18,6 +18,8 @@ import (
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/config"
+	"github.com/estafette/estafette-ci-api/gcs"
+	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
@@ -88,6 +90,7 @@ type apiHandlerImpl struct {
 	authConfig           config.AuthConfig
 	encryptedConfig      config.APIConfig
 	cockroachDBClient    cockroach.DBClient
+	cloudStorageClient   gcs.CloudStorageClient
 	ciBuilderClient      CiBuilderClient
 	buildService         BuildService
 	warningHelper        WarningHelper
@@ -97,7 +100,7 @@ type apiHandlerImpl struct {
 }
 
 // NewAPIHandler returns a new estafette.APIHandler
-func NewAPIHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, buildService BuildService, warningHelper WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) (apiHandler APIHandler) {
+func NewAPIHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroach.DBClient, cloudStorageClient gcs.CloudStorageClient, ciBuilderClient CiBuilderClient, buildService BuildService, warningHelper WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) (apiHandler APIHandler) {
 
 	apiHandler = &apiHandlerImpl{
 		configFilePath:       configFilePath,
@@ -105,6 +108,7 @@ func NewAPIHandler(configFilePath string, config config.APIServerConfig, authCon
 		authConfig:           authConfig,
 		encryptedConfig:      encryptedConfig,
 		cockroachDBClient:    cockroachDBClient,
+		cloudStorageClient:   cloudStorageClient,
 		ciBuilderClient:      ciBuilderClient,
 		buildService:         buildService,
 		warningHelper:        warningHelper,
@@ -659,10 +663,18 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 		buildLog.BuildID = revisionOrID
 	}
 
-	err = h.cockroachDBClient.InsertBuildLog(ctx, buildLog)
+	insertedBuildLog, err := h.cockroachDBClient.InsertBuildLog(ctx, buildLog, h.config.WriteLogToDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed inserting logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
+	}
+
+	if h.config.WriteLogToCloudStorage() {
+		err = h.cloudStorageClient.InsertBuildLog(ctx, insertedBuildLog)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed inserting logs into cloudstorage for %v/%v/%v/%v", source, owner, repo, revisionOrID)
+		}
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
@@ -1133,10 +1145,18 @@ func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 		return
 	}
 
-	err = h.cockroachDBClient.InsertReleaseLog(ctx, releaseLog)
+	insertedReleaseLog, err := h.cockroachDBClient.InsertReleaseLog(ctx, releaseLog, h.config.WriteLogToDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed inserting release logs for %v/%v/%v/%v", source, owner, repo, id)
+	}
+
+	if h.config.WriteLogToCloudStorage() {
+		err = h.cloudStorageClient.InsertReleaseLog(ctx, insertedReleaseLog)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed inserting release logs into cloud storage for %v/%v/%v/%v", source, owner, repo, id)
+		}
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
@@ -1857,7 +1877,7 @@ func (h *apiHandlerImpl) GetManifestTemplates(c *gin.Context) {
 			// reduce and deduplicate [["{{.Application}}","Application"],["{{.Team}}","Team"],["{{.ProjectName}}","ProjectName"],["{{.ProjectName}}","ProjectName"]] to ["Application","Team","ProjectName"]
 			placeholders := []string{}
 			for _, m := range placeholderMatches {
-				if len(m) == 2 && !stringArrayContains(placeholders, m[1]) {
+				if len(m) == 2 && !helpers.StringArrayContains(placeholders, m[1]) {
 					placeholders = append(placeholders, m[1])
 				}
 			}
@@ -1872,15 +1892,6 @@ func (h *apiHandlerImpl) GetManifestTemplates(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"templates": templates})
-}
-
-func stringArrayContains(array []string, value string) bool {
-	for _, v := range array {
-		if v == value {
-			return true
-		}
-	}
-	return false
 }
 
 func (h *apiHandlerImpl) GenerateManifest(c *gin.Context) {

@@ -36,8 +36,8 @@ type DBClient interface {
 	InsertRelease(context.Context, contracts.Release, JobResources) (*contracts.Release, error)
 	UpdateReleaseStatus(context.Context, string, string, string, int, string) error
 	UpdateReleaseResourceUtilization(context.Context, string, string, string, int, JobResources) error
-	InsertBuildLog(context.Context, contracts.BuildLog) error
-	InsertReleaseLog(context.Context, contracts.ReleaseLog) error
+	InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (insertedBuildLog contracts.BuildLog, err error)
+	InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (insertedReleaseLog contracts.ReleaseLog, err error)
 
 	UpsertComputedPipeline(context.Context, string, string, string) error
 	UpdateComputedPipelineFirstInsertedAt(context.Context, string, string, string) error
@@ -623,24 +623,29 @@ func (dbc *cockroachDBClientImpl) UpdateReleaseResourceUtilization(ctx context.C
 	return
 }
 
-func (dbc *cockroachDBClientImpl) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error) {
+func (dbc *cockroachDBClientImpl) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (insertedBuildLog contracts.BuildLog, err error) {
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::InsertBuildLog")
 	defer span.Finish()
 
+	insertedBuildLog = buildLog
+
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	bytes, err := json.Marshal(buildLog.Steps)
-	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
-		return
+	var bytes []byte
+	if writeLogToDatabase {
+		bytes, err = json.Marshal(buildLog.Steps)
+		if err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
+			return
+		}
 	}
 
 	buildID, err := strconv.Atoi(buildLog.BuildID)
 	if err != nil {
 		// insert logs
-		_, err = dbc.databaseConnection.Exec(
+		row := dbc.databaseConnection.QueryRow(
 			`
 			INSERT INTO
 				build_logs
@@ -661,6 +666,8 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(ctx context.Context, buildLog c
 				$5,
 				$6
 			)
+			RETURNING
+				id
 			`,
 			buildLog.RepoSource,
 			buildLog.RepoOwner,
@@ -670,7 +677,7 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(ctx context.Context, buildLog c
 			bytes,
 		)
 
-		if err != nil {
+		if err = row.Scan(&insertedBuildLog.ID); err != nil {
 			// log extra detail for filing a ticket regarding 'pq: command is too large: xxx bytes (max: 67108864)' issue
 			nrLines := 0
 			for _, s := range buildLog.Steps {
@@ -690,7 +697,7 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(ctx context.Context, buildLog c
 	}
 
 	// insert logs
-	_, err = dbc.databaseConnection.Exec(
+	row := dbc.databaseConnection.QueryRow(
 		`
 		INSERT INTO
 			build_logs
@@ -713,6 +720,8 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(ctx context.Context, buildLog c
 			$6,
 			$7
 		)
+		RETURNING
+			id
 		`,
 		buildLog.RepoSource,
 		buildLog.RepoOwner,
@@ -723,7 +732,7 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(ctx context.Context, buildLog c
 		bytes,
 	)
 
-	if err != nil {
+	if err = row.Scan(&insertedBuildLog.ID); err != nil {
 		// log extra detail for filing a ticket regarding 'pq: command is too large: xxx bytes (max: 67108864)' issue
 		nrLines := 0
 		for _, s := range buildLog.Steps {
@@ -739,29 +748,34 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(ctx context.Context, buildLog c
 	return
 }
 
-func (dbc *cockroachDBClientImpl) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) (err error) {
+func (dbc *cockroachDBClientImpl) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (insertedReleaseLog contracts.ReleaseLog, err error) {
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::InsertReleaseLog")
 	defer span.Finish()
 
+	insertedReleaseLog = releaseLog
+
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
-	bytes, err := json.Marshal(releaseLog.Steps)
-	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
-		return
+	var bytes []byte
+	if writeLogToDatabase {
+		bytes, err = json.Marshal(releaseLog.Steps)
+		if err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
+			return
+		}
 	}
 
 	releaseID, err := strconv.Atoi(releaseLog.ReleaseID)
 	if err != nil {
 		ext.Error.Set(span, true)
 		span.LogFields(otlog.Error(err))
-		return err
+		return insertedReleaseLog, err
 	}
 
 	// insert logs
-	_, err = dbc.databaseConnection.Exec(
+	row := dbc.databaseConnection.QueryRow(
 		`
 		INSERT INTO
 			release_logs
@@ -780,6 +794,8 @@ func (dbc *cockroachDBClientImpl) InsertReleaseLog(ctx context.Context, releaseL
 			$4,
 			$5
 		)
+		RETURNING
+			id		
 		`,
 		releaseLog.RepoSource,
 		releaseLog.RepoOwner,
@@ -788,7 +804,7 @@ func (dbc *cockroachDBClientImpl) InsertReleaseLog(ctx context.Context, releaseL
 		bytes,
 	)
 
-	if err != nil {
+	if err = row.Scan(&insertedReleaseLog.ID); err != nil {
 		// log extra detail for filing a ticket regarding 'pq: command is too large: xxx bytes (max: 67108864)' issue
 		nrLines := 0
 		for _, s := range releaseLog.Steps {
