@@ -10,6 +10,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
+	"github.com/opentracing/opentracing-go"
 )
 
 // CloudStorageClient is the interface for connecting to google cloud storage
@@ -49,6 +50,9 @@ func NewCloudStorageClient(config *config.CloudStorageConfig) (CloudStorageClien
 
 func (impl *cloudStorageClientImpl) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error) {
 
+	span, ctx := opentracing.StartSpanFromContext(ctx, "CloudStorageClient::InsertBuildLog")
+	defer span.Finish()
+
 	logPath := impl.getBuildLogPath(buildLog)
 
 	return impl.insertLog(ctx, logPath, buildLog.Steps)
@@ -56,12 +60,18 @@ func (impl *cloudStorageClientImpl) InsertBuildLog(ctx context.Context, buildLog
 
 func (impl *cloudStorageClientImpl) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) (err error) {
 
+	span, ctx := opentracing.StartSpanFromContext(ctx, "CloudStorageClient::InsertReleaseLog")
+	defer span.Finish()
+
 	logPath := impl.getReleaseLogPath(releaseLog)
 
 	return impl.insertLog(ctx, logPath, releaseLog.Steps)
 }
 
 func (impl *cloudStorageClientImpl) GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog) (updatedBuildLog contracts.BuildLog, err error) {
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, "CloudStorageClient::GetPipelineBuildLogs")
+	defer span.Finish()
 
 	logPath := impl.getBuildLogPath(buildLog)
 
@@ -77,6 +87,9 @@ func (impl *cloudStorageClientImpl) GetPipelineBuildLogs(ctx context.Context, bu
 }
 
 func (impl *cloudStorageClientImpl) GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog) (updatedReleaseLog contracts.ReleaseLog, err error) {
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, "CloudStorageClient::GetPipelineReleaseLogs")
+	defer span.Finish()
 
 	logPath := impl.getReleaseLogPath(releaseLog)
 
