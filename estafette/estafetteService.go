@@ -10,6 +10,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/config"
+	"github.com/estafette/estafette-ci-api/gcs"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
@@ -33,17 +34,20 @@ type BuildService interface {
 
 type buildServiceImpl struct {
 	jobsConfig           config.JobsConfig
+	apiServerConfig      config.APIServerConfig
 	cockroachDBClient    cockroach.DBClient
+	cloudStorageClient   gcs.CloudStorageClient
 	ciBuilderClient      CiBuilderClient
 	githubJobVarsFunc    func(context.Context, string, string, string) (string, string, error)
 	bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)
 }
 
 // NewBuildService returns a new estafette.BuildService
-func NewBuildService(jobsConfig config.JobsConfig, cockroachDBClient cockroach.DBClient, ciBuilderClient CiBuilderClient, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) (buildService BuildService) {
+func NewBuildService(jobsConfig config.JobsConfig, apiServerConfig config.APIServerConfig, cockroachDBClient cockroach.DBClient, cloudStorageClient gcs.CloudStorageClient, ciBuilderClient CiBuilderClient, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) (buildService BuildService) {
 
 	buildService = &buildServiceImpl{
 		jobsConfig:           jobsConfig,
+		apiServerConfig:      apiServerConfig,
 		cockroachDBClient:    cockroachDBClient,
 		ciBuilderClient:      ciBuilderClient,
 		githubJobVarsFunc:    githubJobVarsFunc,
@@ -339,10 +343,18 @@ func (s *buildServiceImpl) CreateBuild(ctx context.Context, build contracts.Buil
 			},
 		}
 
-		err = s.cockroachDBClient.InsertBuildLog(ctx, buildLog)
+		insertedBuildLog, err := s.cockroachDBClient.InsertBuildLog(ctx, buildLog, s.apiServerConfig.WriteLogToDatabase())
 		if err != nil {
 			log.Warn().Err(err).Msgf("Failed inserting build log for invalid manifest")
 		}
+
+		if s.apiServerConfig.WriteLogToCloudStorage() {
+			err = s.cloudStorageClient.InsertBuildLog(ctx, insertedBuildLog)
+			if err != nil {
+				log.Warn().Err(err).Msgf("Failed inserting build log into cloud storage for invalid manifest")
+			}
+		}
+
 	}
 
 	return

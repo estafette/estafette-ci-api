@@ -97,6 +97,20 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "my-dataset", bigqueryConfig.Dataset)
 	})
 
+	t.Run("ReturnsCloudStorageConfig", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		cloudStorageConfig := config.Integrations.CloudStorage
+
+		assert.Equal(t, "my-gcp-project", cloudStorageConfig.ProjectID)
+		assert.Equal(t, "my-bucket", cloudStorageConfig.Bucket)
+		assert.Equal(t, "/logs", cloudStorageConfig.LogsDirectory)
+	})
+
 	t.Run("ReturnsAPIServerConfig", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
@@ -108,6 +122,10 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		assert.Equal(t, "https://ci.estafette.io/", apiServerConfig.BaseURL)
 		assert.Equal(t, "http://estafette-ci-api.estafette.svc.cluster.local/", apiServerConfig.ServiceURL)
+		assert.Equal(t, 2, len(apiServerConfig.LogWriters))
+		assert.Equal(t, "database", apiServerConfig.LogWriters[0])
+		assert.Equal(t, "cloudstorage", apiServerConfig.LogWriters[1])
+		assert.Equal(t, "database", apiServerConfig.LogReader)
 	})
 
 	t.Run("ReturnsAuthConfig", func(t *testing.T) {
@@ -270,3 +288,179 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "{\"name\":\"gke-estafette-production\",\"type\":\"kubernetes-engine\",\"additionalProperties\":{\"cluster\":\"production-europe-west2\",\"defaults\":{\"autoscale\":{\"min\":2},\"container\":{\"repository\":\"estafette\"},\"namespace\":\"estafette\",\"sidecars\":[{\"image\":\"estafette/openresty-sidecar:1.13.6.1-alpine\",\"type\":\"openresty\"}]},\"project\":\"estafette-production\",\"region\":\"europe-west2\",\"serviceAccountKeyfile\":\"{}\"}}", string(bytes))
 	})
 }
+
+func TestWriteLogToDatabase(t *testing.T) {
+
+	t.Run("ReturnsTrueIfLogWritersIsEmpty", func(t *testing.T) {
+
+		config := APIServerConfig{
+			LogWriters: []string{},
+		}
+
+		// act
+		result := config.WriteLogToDatabase()
+
+		assert.True(t, result)
+	})
+
+	t.Run("ReturnsTrueIfLogWritersContainsDatabase", func(t *testing.T) {
+
+		config := APIServerConfig{
+			LogWriters: []string{
+				"cloudstorage",
+				"database",
+			},
+		}
+
+		// act
+		result := config.WriteLogToDatabase()
+
+		assert.True(t, result)
+	})
+
+	t.Run("ReturnsFalseIfLogWritersDoesNotContainDatabase", func(t *testing.T) {
+
+		config := APIServerConfig{
+			LogWriters: []string{
+				"cloudstorage",
+			},
+		}
+
+		// act
+		result := config.WriteLogToDatabase()
+
+		assert.False(t, result)
+	})
+}
+
+func TestWriteLogToCloudStorage(t *testing.T) {
+
+	t.Run("ReturnsFalseIfLogWritersIsEmpty", func(t *testing.T) {
+
+		config := APIServerConfig{
+			LogWriters: []string{},
+		}
+
+		// act
+		result := config.WriteLogToCloudStorage()
+
+		assert.False(t, result)
+	})
+
+	t.Run("ReturnsTrueIfLogWritersContainsCloudStorage", func(t *testing.T) {
+
+		config := APIServerConfig{
+			LogWriters: []string{
+				"cloudstorage",
+				"database",
+			},
+		}
+
+		// act
+		result := config.WriteLogToCloudStorage()
+
+		assert.True(t, result)
+	})
+
+	t.Run("ReturnsFalseIfLogWritersDoesNotContainCloudStorage", func(t *testing.T) {
+
+		config := APIServerConfig{
+			LogWriters: []string{
+				"database",
+			},
+		}
+
+		// act
+		result := config.WriteLogToCloudStorage()
+
+		assert.False(t, result)
+	})
+}
+
+func TestReadLogFromDatabase(t *testing.T) {
+
+	t.Run("ReturnsTrueIfLogReaderIsEmpty", func(t *testing.T) {
+
+		config := APIServerConfig{
+			LogReader: "",
+		}
+
+		// act
+		result := config.ReadLogFromDatabase()
+
+		assert.True(t, result)
+	})
+
+	t.Run("ReturnsTrueIfLogReaderEqualsDatabase", func(t *testing.T) {
+
+		config := APIServerConfig{
+			LogReader: "database",
+		}
+
+		// act
+		result := config.ReadLogFromDatabase()
+
+		assert.True(t, result)
+	})
+
+	t.Run("ReturnsFalseIfLogReaderDoesNotEqualDatabase", func(t *testing.T) {
+
+		config := APIServerConfig{
+			LogReader: "cloudstorage",
+		}
+
+		// act
+		result := config.ReadLogFromDatabase()
+
+		assert.False(t, result)
+	})
+}
+
+func TestReadLogFromCloudStorage(t *testing.T) {
+
+	t.Run("ReturnsFalseIfLogReaderIsEmpty", func(t *testing.T) {
+
+		config := APIServerConfig{
+			LogReader: "",
+		}
+
+		// act
+		result := config.ReadLogFromCloudStorage()
+
+		assert.False(t, result)
+	})
+
+	t.Run("ReturnsTrueIfLogReaderEqualsCloudStorage", func(t *testing.T) {
+
+		config := APIServerConfig{
+			LogReader: "cloudstorage",
+		}
+
+		// act
+		result := config.ReadLogFromCloudStorage()
+
+		assert.True(t, result)
+	})
+
+	t.Run("ReturnsFalseIfLogReaderDoesNotCloudStorage", func(t *testing.T) {
+
+		config := APIServerConfig{
+			LogReader: "database",
+		}
+
+		// act
+		result := config.ReadLogFromCloudStorage()
+
+		assert.False(t, result)
+	})
+}
+
+// // ReadLogFromDatabase indicates if logReader config is database
+// func (c *APIServerConfig) ReadLogFromDatabase() bool {
+// 	return c.LogReader == "database"
+// }
+
+// // ReadLogFromCloudStorage indicates if logReader config is cloudstorage
+// func (c *APIServerConfig) ReadLogFromCloudStorage() bool {
+// 	return c.LogReader == "cloudstorage"
+// }

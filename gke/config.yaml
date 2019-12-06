@@ -40,9 +40,18 @@ integrations:
     projectID: {{.BIGQUERY_PROJECT}}
     dataset: {{.BIGQUERY_DATASET}}
 
+  gcs:
+    projectID: {{.GCS_PROJECT}}
+    bucket: {{.GCS_BUCKET}}
+    logsDir: /logs
+
 apiServer:
   baseURL: https://{{.HOSTNAMES}}/
   serviceURL: https://{{.INTERNAL_HOSTNAME}}/
+  logWriters:
+  - database
+  - cloudstorage
+  logReader: database
 
 auth:
   iap:

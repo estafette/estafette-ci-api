@@ -145,6 +145,8 @@ releases:
             BIGQUERY_ENABLED: true
             BIGQUERY_PROJECT: estafette.secret(1lPI_NGTMRnDDDhA.mrk90yihnaF5m3BiBTTAQ58kmcnGvb9fAQy6EVW7BeQ_GN-NIF8=)
             BIGQUERY_DATASET: estafette.secret(nGD0saRGkh7gFwgj.s5OEH5W_SGuO2vK4ELUDMNKC2ocsr8ZGnlkvfg==)
+            GCS_PROJECT: estafette.secret(LIjgWfp08nYecZp7.cOHELtluCzWPEadxlPYunj8wtN05faVoeIzRj5v6new9qa9WSNo=)
+            GCS_BUCKET: estafette.secret(64NRos_WoXPpM-k3.ZISQfPOjRkVeyPf3pjxFCzfjt_DyAUn-S8IQBQ==)
             ESTAFETTE_CI_API_KEY: estafette.secret(IhMzR1XM4wCysGPN.cGRQKuqylJjPnWPKQHS3Sbso3bBUshtJDpOjDU39bbJrkC0nuXdLzBy51eYlrB02SfYQeg8_muLZd3Fb1AcLy1zXKeJZ-83-McjbI9_BHC_fabixDTnfbPgQvtGymiSW3Jyt_3-Elo7_X93jeXklQ56XkQ==)
             IAP_AUDIENCE: estafette.secret(8PWwRhfBLO0N4eai.LLC-WvS8oz_z-J16dqJZnIMeA7nH50KgoMlCnbYDxZPRGVY8TjfdMNhhcwx5vWciJDTQLk9_9m9RajsmSDsqckI8O-deCTDTQabFEkmDiW9SnQ==)
             CONTAINER_REPOSITORY_1: estafette.secret(IttHCpEKQGXIaQBE.x7dPyVFhQeuL6JUUp4lJOLTKjwnc6A==)
