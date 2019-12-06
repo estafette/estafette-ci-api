@@ -2094,6 +2094,8 @@ func (h *apiHandlerImpl) CopyLogsToCloudStorage(c *gin.Context) {
 				return
 			}
 		}
+
+		pageNumber++
 	}
 
 	c.String(http.StatusOK, "Aye aye!")

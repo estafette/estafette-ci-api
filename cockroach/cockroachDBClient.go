@@ -1757,10 +1757,6 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogsPerPage(ctx context.Contex
 			return
 		}
 
-		if rowBuildID.Valid {
-			buildLog.BuildID = strconv.FormatInt(rowBuildID.Int64, 10)
-		}
-
 		buildLogs = append(buildLogs, buildLog)
 	}
 
