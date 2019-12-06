@@ -257,6 +257,8 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	router.POST("/api/manifest/encrypt", estafetteAPIHandler.EncryptSecret)
 	router.GET("/api/labels/frequent", estafetteAPIHandler.GetFrequentLabels)
 
+	router.GET("/api/copylogstocloudstorage", estafetteAPIHandler.CopyLogsToCloudStorage)
+
 	// api key protected endpoints
 	apiKeyAuthorizedRoutes := router.Group("/", authMiddleware.APIKeyMiddlewareFunc())
 	{

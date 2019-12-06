@@ -59,6 +59,7 @@ type DBClient interface {
 	GetFirstPipelineRelease(context.Context, string, string, string, string, string) (*contracts.Release, error)
 	GetPipelineBuildsByVersion(context.Context, string, string, string, string, []string, uint64, bool) ([]*contracts.Build, error)
 	GetPipelineBuildLogs(context.Context, string, string, string, string, string, string) (*contracts.BuildLog, error)
+	GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
 	GetPipelineBuildMaxResourceUtilization(context.Context, string, string, string, int) (JobResources, int, error)
 	GetPipelineReleases(context.Context, string, string, string, int, int, map[string][]string) ([]*contracts.Release, error)
 	GetPipelineReleasesCount(context.Context, string, string, string, map[string][]string) (int, error)
@@ -1700,6 +1701,70 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(ctx context.Context, repo
 	}
 
 	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error) {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildLogsPerPage")
+	defer span.Finish()
+
+	buildLogs = make([]*contracts.BuildLog, 0)
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query := dbc.selectBuildLogsQuery().
+		Where(sq.Eq{"a.repo_source": repoSource}).
+		Where(sq.Eq{"a.repo_owner": repoOwner}).
+		Where(sq.Eq{"a.repo_name": repoName}).
+		OrderBy("a.inserted_at").
+		Limit(uint64(pageSize)).
+		Offset(uint64((pageNumber - 1) * pageSize))
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	if err != nil {
+		return buildLogs, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		buildLog := &contracts.BuildLog{}
+		var stepsData []uint8
+		var rowBuildID sql.NullInt64
+
+		// execute query
+		if err = rows.Scan(&buildLog.ID,
+			&buildLog.RepoSource,
+			&buildLog.RepoOwner,
+			&buildLog.RepoName,
+			&buildLog.RepoBranch,
+			&buildLog.RepoRevision,
+			&rowBuildID,
+			&stepsData,
+			&buildLog.InsertedAt); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
+			return
+		}
+
+		if err = json.Unmarshal(stepsData, &buildLog.Steps); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
+			return
+		}
+
+		if rowBuildID.Valid {
+			buildLog.BuildID = strconv.FormatInt(rowBuildID.Int64, 10)
+		}
+
+		buildLogs = append(buildLogs, buildLog)
+	}
+
+	return buildLogs, nil
 }
 
 func (dbc *cockroachDBClientImpl) GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobResources JobResources, recordCount int, err error) {

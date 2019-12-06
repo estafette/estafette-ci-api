@@ -82,6 +82,8 @@ type APIHandler interface {
 	EncryptSecret(*gin.Context)
 
 	PostCronEvent(*gin.Context)
+
+	CopyLogsToCloudStorage(c *gin.Context)
 }
 
 type apiHandlerImpl struct {
@@ -2053,6 +2055,48 @@ func (h *apiHandlerImpl) PostCronEvent(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Hey Cron, here's a tock for your tick"})
+}
+
+func (h *apiHandlerImpl) CopyLogsToCloudStorage(c *gin.Context) {
+
+	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
+		log.Error().Msgf("Authentication for /api/copylogstocloudstorage failed")
+		c.Status(http.StatusUnauthorized)
+		return
+	}
+
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::CopyLogsToCloudStorage")
+	defer span.Finish()
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
+
+	pageNumber := 0
+	pageSize := 5
+	for true {
+		buildLogs, err := h.cockroachDBClient.GetPipelineBuildLogsPerPage(ctx, source, owner, repo, pageNumber, pageSize)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
+			return
+		}
+
+		if len(buildLogs) == 0 {
+			break
+		}
+
+		for _, bl := range buildLogs {
+			err = h.cloudStorageClient.InsertBuildLog(ctx, *bl)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
+				return
+			}
+		}
+	}
+
+	c.String(http.StatusOK, "Aye aye!")
 }
 
 func (h *apiHandlerImpl) getSinceFilter(c *gin.Context) []string {
