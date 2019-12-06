@@ -2068,58 +2068,63 @@ func (h *apiHandlerImpl) CopyLogsToCloudStorage(c *gin.Context) {
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::CopyLogsToCloudStorage")
 	defer span.Finish()
 
+	pageNumber, pageSize, filters := h.getQueryParameters(c)
+
+	searchValue := "builds"
+	if search, ok := filters["search"]; ok && len(search) > 0 && search[0] != "" {
+		searchValue = search[0]
+	}
+
 	source := c.Param("source")
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
 	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
 
-	pageNumber := 1
-	pageSize := 5
-	for true {
-		buildLogs, err := h.cockroachDBClient.GetPipelineBuildLogsPerPage(ctx, source, owner, repo, pageNumber, pageSize)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
-			return
-		}
-
-		if len(buildLogs) == 0 {
-			break
-		}
-
-		for _, bl := range buildLogs {
-			err = h.cloudStorageClient.InsertBuildLog(ctx, *bl)
+	if searchValue == "builds" {
+		for true {
+			buildLogs, err := h.cockroachDBClient.GetPipelineBuildLogsPerPage(ctx, source, owner, repo, pageNumber, pageSize)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
 				return
 			}
+
+			if len(buildLogs) == 0 {
+				break
+			}
+
+			for _, bl := range buildLogs {
+				err = h.cloudStorageClient.InsertBuildLog(ctx, *bl)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
+					return
+				}
+			}
+
+			pageNumber++
 		}
-
-		pageNumber++
-	}
-
-	pageNumber = 1
-	pageSize = 5
-	for true {
-		releaseLogs, err := h.cockroachDBClient.GetPipelineReleaseLogsPerPage(ctx, source, owner, repo, pageNumber, pageSize)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
-			return
-		}
-
-		if len(releaseLogs) == 0 {
-			break
-		}
-
-		for _, rl := range releaseLogs {
-			err = h.cloudStorageClient.InsertReleaseLog(ctx, *rl)
+	} else if searchValue == "releases" {
+		for true {
+			releaseLogs, err := h.cockroachDBClient.GetPipelineReleaseLogsPerPage(ctx, source, owner, repo, pageNumber, pageSize)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
 				return
 			}
-		}
 
-		pageNumber++
+			if len(releaseLogs) == 0 {
+				break
+			}
+
+			for _, rl := range releaseLogs {
+				err = h.cloudStorageClient.InsertReleaseLog(ctx, *rl)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
+					return
+				}
+			}
+
+			pageNumber++
+		}
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
