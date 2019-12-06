@@ -66,6 +66,7 @@ type DBClient interface {
 	GetPipelineRelease(context.Context, string, string, string, int) (*contracts.Release, error)
 	GetPipelineLastReleasesByName(context.Context, string, string, string, string, []string) ([]contracts.Release, error)
 	GetPipelineReleaseLogs(context.Context, string, string, string, int) (*contracts.ReleaseLog, error)
+	GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (releaseLogs []*contracts.ReleaseLog, err error)
 	GetPipelineReleaseMaxResourceUtilization(context.Context, string, string, string, string, int) (JobResources, int, error)
 	GetBuildsCount(context.Context, map[string][]string) (int, error)
 	GetReleasesCount(context.Context, map[string][]string) (int, error)
@@ -1998,6 +1999,68 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogs(ctx context.Context, re
 	}
 
 	return
+}
+
+func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (releaseLogs []*contracts.ReleaseLog, err error) {
+
+	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineReleaseLogsPerPage")
+	defer span.Finish()
+
+	releaseLogs = make([]*contracts.ReleaseLog, 0)
+
+	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+
+	// generate query
+	query := dbc.selectReleaseLogsQuery().
+		Where(sq.Eq{"a.repo_source": repoSource}).
+		Where(sq.Eq{"a.repo_owner": repoOwner}).
+		Where(sq.Eq{"a.repo_name": repoName}).
+		OrderBy("a.inserted_at").
+		Limit(uint64(pageSize)).
+		Offset(uint64((pageNumber - 1) * pageSize))
+
+	sqlquery, _, _ := query.ToSql()
+	log.Debug().Str("sql", sqlquery).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Query for GetPipelineBuildLogsPerPage")
+
+	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	if err != nil {
+		return releaseLogs, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		releaseLog := &contracts.ReleaseLog{}
+		var stepsData []uint8
+		var releaseID int
+
+		if err = rows.Scan(&releaseLog.ID,
+			&releaseLog.RepoSource,
+			&releaseLog.RepoOwner,
+			&releaseLog.RepoName,
+			&releaseID,
+			&stepsData,
+			&releaseLog.InsertedAt); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
+			return
+		}
+
+		releaseLog.ReleaseID = strconv.Itoa(releaseID)
+
+		if err = json.Unmarshal(stepsData, &releaseLog.Steps); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
+			return
+		}
+
+		releaseLogs = append(releaseLogs, releaseLog)
+	}
+
+	return releaseLogs, nil
 }
 
 func (dbc *cockroachDBClientImpl) GetPipelineReleaseMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobResources JobResources, recordCount int, err error) {
