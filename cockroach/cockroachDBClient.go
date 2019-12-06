@@ -1721,13 +1721,13 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogsPerPage(ctx context.Contex
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
+	sqlquery, _, _ := query.ToSql()
+	log.Debug().Str("sql", sqlquery).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Query for GetPipelineBuildLogsPerPage")
+
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 	if err != nil {
 		return buildLogs, err
 	}
-
-	sqlquery, _, _ := query.ToSql()
-	log.Debug().Str("sql", sqlquery).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Query for GetPipelineBuildLogsPerPage")
 
 	defer rows.Close()
 	for rows.Next() {
