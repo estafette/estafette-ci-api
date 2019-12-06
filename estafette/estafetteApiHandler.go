@@ -2082,49 +2082,41 @@ func (h *apiHandlerImpl) CopyLogsToCloudStorage(c *gin.Context) {
 	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", source, owner, repo))
 
 	if searchValue == "builds" {
-		for true {
-			buildLogs, err := h.cockroachDBClient.GetPipelineBuildLogsPerPage(ctx, source, owner, repo, pageNumber, pageSize)
+		buildLogs, err := h.cockroachDBClient.GetPipelineBuildLogsPerPage(ctx, source, owner, repo, pageNumber, pageSize)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
+			return
+		}
+
+		for _, bl := range buildLogs {
+			err = h.cloudStorageClient.InsertBuildLog(ctx, *bl)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
 				return
 			}
-
-			if len(buildLogs) == 0 {
-				break
-			}
-
-			for _, bl := range buildLogs {
-				err = h.cloudStorageClient.InsertBuildLog(ctx, *bl)
-				if err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
-					return
-				}
-			}
-
-			pageNumber++
 		}
+
+		c.String(http.StatusOK, strconv.Itoa(len(buildLogs)))
+		return
+
 	} else if searchValue == "releases" {
-		for true {
-			releaseLogs, err := h.cockroachDBClient.GetPipelineReleaseLogsPerPage(ctx, source, owner, repo, pageNumber, pageSize)
+		releaseLogs, err := h.cockroachDBClient.GetPipelineReleaseLogsPerPage(ctx, source, owner, repo, pageNumber, pageSize)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
+			return
+		}
+
+		for _, rl := range releaseLogs {
+			err = h.cloudStorageClient.InsertReleaseLog(ctx, *rl)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
 				return
 			}
-
-			if len(releaseLogs) == 0 {
-				break
-			}
-
-			for _, rl := range releaseLogs {
-				err = h.cloudStorageClient.InsertReleaseLog(ctx, *rl)
-				if err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
-					return
-				}
-			}
-
-			pageNumber++
 		}
+
+		c.String(http.StatusOK, strconv.Itoa(len(releaseLogs)))
+		return
+
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
