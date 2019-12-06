@@ -1726,6 +1726,9 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogsPerPage(ctx context.Contex
 		return buildLogs, err
 	}
 
+	sqlquery, _, _ := query.ToSql()
+	log.Debug().Str("sql", sqlquery).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Query for GetPipelineBuildLogsPerPage")
+
 	defer rows.Close()
 	for rows.Next() {
 
