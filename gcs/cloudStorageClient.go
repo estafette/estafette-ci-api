@@ -124,7 +124,10 @@ func (impl *cloudStorageClientImpl) insertLog(ctx context.Context, path string, 
 	defer writer.Close()
 
 	// write compressed bytes
-	gz := gzip.NewWriter(writer)
+	gz, err := gzip.NewWriterLevel(writer, gzip.BestSpeed)
+	if err != nil {
+		return err
+	}
 	_, err = gz.Write(jsonBytes)
 	if err != nil {
 		_ = writer.Close()
