@@ -108,7 +108,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		assert.Equal(t, "my-gcp-project", cloudStorageConfig.ProjectID)
 		assert.Equal(t, "my-bucket", cloudStorageConfig.Bucket)
-		assert.Equal(t, "/logs", cloudStorageConfig.LogsDirectory)
+		assert.Equal(t, "logs", cloudStorageConfig.LogsDirectory)
 	})
 
 	t.Run("ReturnsAPIServerConfig", func(t *testing.T) {

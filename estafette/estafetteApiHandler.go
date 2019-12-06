@@ -658,6 +658,8 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed binding v2 logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
+		c.String(http.StatusInternalServerError, "Oops, something went wrong")
+		return
 	}
 
 	if len(revisionOrID) != 40 {

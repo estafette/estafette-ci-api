@@ -43,7 +43,7 @@ integrations:
   gcs:
     projectID: {{.GCS_PROJECT}}
     bucket: {{.GCS_BUCKET}}
-    logsDir: /logs
+    logsDir: logs
 
 apiServer:
   baseURL: https://{{.HOSTNAMES}}/

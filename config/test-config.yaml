@@ -34,7 +34,7 @@ integrations:
   gcs:
     projectID: my-gcp-project
     bucket: my-bucket
-    logsDir: /logs    
+    logsDir: logs
 
 apiServer:
   baseURL: https://ci.estafette.io/
