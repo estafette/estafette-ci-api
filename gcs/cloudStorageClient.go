@@ -117,15 +117,28 @@ func (impl *cloudStorageClientImpl) insertLog(ctx context.Context, path string, 
 
 	// create writer for cloud storage object
 	logObject := bucket.Object(path)
+
+	// don't allow overwrites, return when file already exists
+	_, err = logObject.Attrs(ctx)
+	if err == nil {
+		// log file already exists, return
+		return nil
+	}
+	if err != nil && err != storage.ErrObjectNotExist {
+		// some other error happened, return it
+		return err
+	}
+
+	// object doesn't exist, okay to write it
 	writer := logObject.NewWriter(ctx)
 	if writer == nil {
 		return fmt.Errorf("Writer for logobject %v is nil", path)
 	}
-	defer writer.Close()
 
 	// write compressed bytes
 	gz, err := gzip.NewWriterLevel(writer, gzip.BestSpeed)
 	if err != nil {
+		_ = writer.Close()
 		return err
 	}
 	_, err = gz.Write(jsonBytes)
