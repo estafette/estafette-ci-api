@@ -2059,14 +2059,13 @@ func (h *apiHandlerImpl) PostCronEvent(c *gin.Context) {
 
 func (h *apiHandlerImpl) CopyLogsToCloudStorage(c *gin.Context) {
 
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::CopyLogsToCloudStorage")
+	defer span.Finish()
+
 	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
-		log.Error().Msgf("Authentication for /api/copylogstocloudstorage failed")
 		c.Status(http.StatusUnauthorized)
 		return
 	}
-
-	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::CopyLogsToCloudStorage")
-	defer span.Finish()
 
 	pageNumber, pageSize, filters := h.getQueryParameters(c)
 
