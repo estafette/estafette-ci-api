@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"sync"
 	"text/template"
 	"time"
 
@@ -2087,12 +2088,30 @@ func (h *apiHandlerImpl) CopyLogsToCloudStorage(c *gin.Context) {
 			return
 		}
 
+		errors := make(chan error, len(buildLogs))
+
+		var wg sync.WaitGroup
+		wg.Add(len(buildLogs))
+
 		for _, bl := range buildLogs {
-			err = h.cloudStorageClient.InsertBuildLog(ctx, *bl)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
-				return
-			}
+			go func(ctx context.Context, bl contracts.BuildLog) {
+				defer wg.Done()
+
+				err = h.cloudStorageClient.InsertBuildLog(ctx, bl)
+				if err != nil {
+					errors <- err
+				}
+			}(ctx, *bl)
+		}
+
+		// wait for all parallel runs to finish
+		wg.Wait()
+
+		// return error if any of them have been generated
+		close(errors)
+		for e := range errors {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": e})
+			return
 		}
 
 		c.String(http.StatusOK, strconv.Itoa(len(buildLogs)))
@@ -2105,17 +2124,34 @@ func (h *apiHandlerImpl) CopyLogsToCloudStorage(c *gin.Context) {
 			return
 		}
 
+		errors := make(chan error, len(releaseLogs))
+
+		var wg sync.WaitGroup
+		wg.Add(len(releaseLogs))
+
 		for _, rl := range releaseLogs {
-			err = h.cloudStorageClient.InsertReleaseLog(ctx, *rl)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
-				return
-			}
+			go func(ctx context.Context, rl contracts.ReleaseLog) {
+				defer wg.Done()
+
+				err = h.cloudStorageClient.InsertReleaseLog(ctx, rl)
+				if err != nil {
+					errors <- err
+				}
+			}(ctx, *rl)
+		}
+
+		// wait for all parallel runs to finish
+		wg.Wait()
+
+		// return error if any of them have been generated
+		close(errors)
+		for e := range errors {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": e})
+			return
 		}
 
 		c.String(http.StatusOK, strconv.Itoa(len(releaseLogs)))
 		return
-
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
