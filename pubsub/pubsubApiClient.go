@@ -21,6 +21,8 @@ type APIClient interface {
 	SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error
 }
 
+const topicProjectAttributeName = "project"
+
 type apiClient struct {
 	config       config.PubsubConfig
 	pubsubClient *ps.Client
@@ -46,7 +48,7 @@ func (ac *apiClient) SubscriptionForTopic(ctx context.Context, message pscontrac
 	span, ctx := opentracing.StartSpanFromContext(ctx, "PubSubApi::SubscriptionForTopic")
 	defer span.Finish()
 
-	projectID := message.GetProject()
+	projectID := message.GetProject(topicProjectAttributeName)
 	subscriptionName := message.GetSubscription()
 
 	span.SetTag("project", projectID)
@@ -113,7 +115,8 @@ func (ac *apiClient) SubscribeToTopic(ctx context.Context, projectID, topicID st
 	_, err = ac.pubsubClient.CreateSubscription(context.Background(), subscriptionName, ps.SubscriptionConfig{
 		Topic: topic,
 		PushConfig: ps.PushConfig{
-			Endpoint: ac.config.Endpoint,
+			Endpoint:   ac.config.Endpoint,
+			Attributes: map[string]string{topicProjectAttributeName: projectID},
 			AuthenticationMethod: &ps.OIDCToken{
 				Audience:            ac.config.Audience,
 				ServiceAccountEmail: ac.config.ServiceAccountEmail,
