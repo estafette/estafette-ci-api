@@ -21,7 +21,7 @@ type APIClient interface {
 	SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error
 }
 
-const topicAttributeName = "topic"
+var topicAttributeName = "topic"
 
 type apiClient struct {
 	config       config.PubsubConfig
