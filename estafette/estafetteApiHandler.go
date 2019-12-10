@@ -2084,6 +2084,7 @@ func (h *apiHandlerImpl) CopyLogsToCloudStorage(c *gin.Context) {
 	if searchValue == "builds" {
 		buildLogs, err := h.cockroachDBClient.GetPipelineBuildLogsPerPage(ctx, source, owner, repo, pageNumber, pageSize)
 		if err != nil {
+			log.Error().Err(err).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Failed retrieving build logs for %v/%v/%v", source, owner, repo)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
 			return
 		}
@@ -2110,6 +2111,7 @@ func (h *apiHandlerImpl) CopyLogsToCloudStorage(c *gin.Context) {
 		// return error if any of them have been generated
 		close(errors)
 		for e := range errors {
+			log.Error().Err(err).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Failed inserting build logs for %v/%v/%v into cloud storage", source, owner, repo)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": e})
 			return
 		}
@@ -2120,6 +2122,7 @@ func (h *apiHandlerImpl) CopyLogsToCloudStorage(c *gin.Context) {
 	} else if searchValue == "releases" {
 		releaseLogs, err := h.cockroachDBClient.GetPipelineReleaseLogsPerPage(ctx, source, owner, repo, pageNumber, pageSize)
 		if err != nil {
+			log.Error().Err(err).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Failed retrieving release logs for %v/%v/%v", source, owner, repo)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
 			return
 		}
@@ -2146,6 +2149,7 @@ func (h *apiHandlerImpl) CopyLogsToCloudStorage(c *gin.Context) {
 		// return error if any of them have been generated
 		close(errors)
 		for e := range errors {
+			log.Error().Err(err).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Failed inserting release logs for %v/%v/%v into cloud storage", source, owner, repo)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": e})
 			return
 		}
