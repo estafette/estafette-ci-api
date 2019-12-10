@@ -21,6 +21,8 @@ type APIClient interface {
 	SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error
 }
 
+var topicAttributeName = "topic"
+
 type apiClient struct {
 	config       config.PubsubConfig
 	pubsubClient *ps.Client
@@ -48,32 +50,24 @@ func (ac *apiClient) SubscriptionForTopic(ctx context.Context, message pscontrac
 
 	projectID := message.GetProject()
 	subscriptionName := message.GetSubscription()
+	topicID, err := message.GetTopic(topicAttributeName)
+	if err != nil {
+		if strings.HasSuffix(subscriptionName, ac.config.SubscriptionNameSuffix) {
+			topicID = strings.TrimSuffix(subscriptionName, ac.config.SubscriptionNameSuffix)
+		}
+	}
+
+	if len(topicID) == 0 {
+		return nil, fmt.Errorf("Can't find topic for subscription %v in project %v", subscriptionName, projectID)
+	}
 
 	span.SetTag("project", projectID)
 	span.SetTag("subscription", subscriptionName)
-
-	if strings.HasSuffix(subscriptionName, ac.config.SubscriptionNameSuffix) {
-		return &manifest.EstafettePubSubEvent{
-			Project: projectID,
-			Topic:   strings.TrimSuffix(subscriptionName, ac.config.SubscriptionNameSuffix),
-		}, nil
-	}
-
-	subscription := ac.pubsubClient.SubscriptionInProject(subscriptionName, projectID)
-	if subscription == nil {
-		return nil, fmt.Errorf("Can't find subscription %v in project %v", subscriptionName, projectID)
-	}
-
-	subscriptionConfig, err := subscription.Config(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	span.SetTag("topic", subscriptionConfig.Topic.ID())
+	span.SetTag("topic", topicID)
 
 	return &manifest.EstafettePubSubEvent{
 		Project: projectID,
-		Topic:   subscriptionConfig.Topic.ID(),
+		Topic:   topicID,
 	}, nil
 }
 
@@ -113,7 +107,8 @@ func (ac *apiClient) SubscribeToTopic(ctx context.Context, projectID, topicID st
 	_, err = ac.pubsubClient.CreateSubscription(context.Background(), subscriptionName, ps.SubscriptionConfig{
 		Topic: topic,
 		PushConfig: ps.PushConfig{
-			Endpoint: ac.config.Endpoint,
+			Endpoint:   ac.config.Endpoint,
+			Attributes: map[string]string{topicAttributeName: topicID},
 			AuthenticationMethod: &ps.OIDCToken{
 				Audience:            ac.config.Audience,
 				ServiceAccountEmail: ac.config.ServiceAccountEmail,
