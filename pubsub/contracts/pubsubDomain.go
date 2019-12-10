@@ -2,7 +2,6 @@ package contracts
 
 import (
 	"encoding/base64"
-	"fmt"
 	"strings"
 )
 
@@ -34,19 +33,4 @@ func (m PubSubPushMessage) GetDecodedData() string {
 		return m.Message.Data
 	}
 	return string(data)
-}
-
-// GetTopic returns TopicID. Expects Topic set in attributes of the message
-func (m PubSubPushMessage) GetTopic(topicAttributeName string) (string, error) {
-
-	if m.Message.Attributes == nil {
-		return "", fmt.Errorf("Attribute '%v' is not found in pubsub message. Attributes are nil", topicAttributeName)
-	}
-
-	topicID, ok := (*m.Message.Attributes)[topicAttributeName]
-	if !ok {
-		return "", fmt.Errorf("Attribute '%v' is not found in pubsub message. Attributes: %v", topicAttributeName, (*m.Message.Attributes))
-	}
-
-	return topicID, nil
 }
