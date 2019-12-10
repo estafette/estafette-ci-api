@@ -1,6 +1,7 @@
 package pubsub
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/estafette/estafette-ci-api/estafette"
@@ -61,7 +62,8 @@ func (eh *eventHandler) PostPubsubEvent(c *gin.Context) {
 	log.Info().
 		Interface("msg", message).
 		Str("data", message.GetDecodedData()).
-		Str("project", message.GetProject()).
+		Str("subscriptionProject", message.GetSubscriptionProject()).
+		Str("attributes", fmt.Sprintf("%v", message.GetAttributes())).
 		Str("subscription", message.GetSubscription()).
 		Str("topic", pubsubEvent.Topic).
 		Msg("Successfully binded pubsub push event")

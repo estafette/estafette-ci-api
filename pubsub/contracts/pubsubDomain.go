@@ -16,20 +16,26 @@ type PubSubPushMessage struct {
 	Subscription string `json:"subscription,omitempty"`
 }
 
-// GetProject returns the project id for the pubsub subscription
-func (m PubSubPushMessage) GetProject(topicProjectAttributeName string) string {
-	var projectNameFromSubscription = strings.Split(m.Subscription, "/")[1]
+// GetTopicProject returns the project id which owns the topic
+func (m PubSubPushMessage) GetTopicProject(topicProjectAttributeName string) string {
+	var subscriptionProject = m.GetSubscriptionProject()
 
-	if m.Message.Attributes == nil {
-		return projectNameFromSubscription
+	attributes := m.GetAttributes()
+	if attributes == nil {
+		return subscriptionProject
 	}
 
-	projectNameFromAttribute, ok := (*m.Message.Attributes)[topicProjectAttributeName]
-	if !ok || len(projectNameFromAttribute) == 0 {
-		return projectNameFromSubscription
+	topicOwnerProject, ok := attributes[topicProjectAttributeName]
+	if !ok || len(topicOwnerProject) == 0 {
+		return subscriptionProject
 	}
 
-	return projectNameFromAttribute
+	return topicOwnerProject
+}
+
+// GetSubscriptionProject returns the project id for the pubsub subscription
+func (m PubSubPushMessage) GetSubscriptionProject() string {
+	return strings.Split(m.Subscription, "/")[1]
 }
 
 // GetSubscription returns the subscription name
@@ -44,4 +50,13 @@ func (m PubSubPushMessage) GetDecodedData() string {
 		return m.Message.Data
 	}
 	return string(data)
+}
+
+// GetAttributes returns the attributes of the message
+func (m PubSubPushMessage) GetAttributes() map[string]string {
+	if m.Message.Attributes == nil {
+		return nil
+	}
+
+	return (*m.Message.Attributes)
 }

@@ -21,7 +21,7 @@ type APIClient interface {
 	SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error
 }
 
-const topicProjectAttributeName = "project"
+const topicProjectAttributeName = "topic_project"
 
 type apiClient struct {
 	config       config.PubsubConfig
@@ -48,22 +48,24 @@ func (ac *apiClient) SubscriptionForTopic(ctx context.Context, message pscontrac
 	span, ctx := opentracing.StartSpanFromContext(ctx, "PubSubApi::SubscriptionForTopic")
 	defer span.Finish()
 
-	projectID := message.GetProject(topicProjectAttributeName)
+	topicProjectID := message.GetTopicProject(topicProjectAttributeName)
+	subscriptionProjectID := message.GetSubscriptionProject()
 	subscriptionName := message.GetSubscription()
 
-	span.SetTag("project", projectID)
+	span.SetTag("topicProject", topicProjectID)
+	span.SetTag("subscriptionProject", subscriptionProjectID)
 	span.SetTag("subscription", subscriptionName)
 
 	if strings.HasSuffix(subscriptionName, ac.config.SubscriptionNameSuffix) {
 		return &manifest.EstafettePubSubEvent{
-			Project: projectID,
+			Project: topicProjectID,
 			Topic:   strings.TrimSuffix(subscriptionName, ac.config.SubscriptionNameSuffix),
 		}, nil
 	}
 
-	subscription := ac.pubsubClient.SubscriptionInProject(subscriptionName, projectID)
+	subscription := ac.pubsubClient.SubscriptionInProject(subscriptionName, subscriptionProjectID)
 	if subscription == nil {
-		return nil, fmt.Errorf("Can't find subscription %v in project %v", subscriptionName, projectID)
+		return nil, fmt.Errorf("Can't find subscription %v in project %v", subscriptionName, subscriptionProjectID)
 	}
 
 	subscriptionConfig, err := subscription.Config(context.Background())
@@ -74,7 +76,7 @@ func (ac *apiClient) SubscriptionForTopic(ctx context.Context, message pscontrac
 	span.SetTag("topic", subscriptionConfig.Topic.ID())
 
 	return &manifest.EstafettePubSubEvent{
-		Project: projectID,
+		Project: topicProjectID,
 		Topic:   subscriptionConfig.Topic.ID(),
 	}, nil
 }
