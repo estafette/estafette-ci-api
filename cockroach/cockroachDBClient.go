@@ -1718,7 +1718,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogsPerPage(ctx context.Contex
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
-		OrderBy("a.inserted_at").
+		OrderBy("a.id").
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
@@ -2015,12 +2015,12 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogsPerPage(ctx context.Cont
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
-		OrderBy("a.inserted_at").
+		OrderBy("a.id").
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
 	sqlquery, _, _ := query.ToSql()
-	log.Debug().Str("sql", sqlquery).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Query for GetPipelineBuildLogsPerPage")
+	log.Debug().Str("sql", sqlquery).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Query for GetPipelineReleaseLogsPerPage")
 
 	rows, err := query.RunWith(dbc.databaseConnection).Query()
 	if err != nil {
