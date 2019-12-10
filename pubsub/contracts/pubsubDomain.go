@@ -25,12 +25,12 @@ func (m PubSubPushMessage) GetTopicProject(topicProjectAttributeName string) str
 		return subscriptionProject
 	}
 
-	topicOwnerProject, ok := attributes[topicProjectAttributeName]
-	if !ok || len(topicOwnerProject) == 0 {
+	topicProject, ok := attributes[topicProjectAttributeName]
+	if !ok || len(topicProject) == 0 {
 		return subscriptionProject
 	}
 
-	return topicOwnerProject
+	return topicProject
 }
 
 // GetSubscriptionProject returns the project id for the pubsub subscription
