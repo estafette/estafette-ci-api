@@ -51,7 +51,7 @@ apiServer:
   logWriters:
   - database
   - cloudstorage
-  logReader: database
+  logReader: cloudstorage
 
 auth:
   iap:
