@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"path"
 
 	"cloud.google.com/go/storage"
@@ -178,9 +179,14 @@ func (impl *cloudStorageClientImpl) getLog(ctx context.Context, path string) (st
 	}
 	defer gzr.Close()
 
+	// read entire file
+	bytes, err := ioutil.ReadAll(gzr)
+	if err != nil {
+		return nil, err
+	}
+
 	// unmarshal json
-	decoder := json.NewDecoder(gzr)
-	err = decoder.Decode(&steps)
+	err = json.Unmarshal(bytes, &steps)
 	if err != nil {
 		return nil, err
 	}
