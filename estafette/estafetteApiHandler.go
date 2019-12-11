@@ -599,6 +599,7 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusOK, buildLogFromCloudStorage)
+		return
 	}
 
 	c.JSON(http.StatusOK, buildLog)
@@ -1099,6 +1100,7 @@ func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusOK, releaseLogFromCloudStorage)
+		return
 	}
 
 	c.JSON(http.StatusOK, releaseLog)
