@@ -164,35 +164,23 @@ func (impl *cloudStorageClientImpl) getLog(ctx context.Context, path string) (st
 	bucket := impl.client.Bucket(impl.config.Bucket)
 
 	// create reader for cloud storage object
-	logObject := bucket.Object(path)
+	logObject := bucket.Object(path).ReadCompressed(true)
 	reader, err := logObject.NewReader(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if reader == nil {
-		return nil, fmt.Errorf("Writer for logobject %v is nil", path)
-	}
+	defer reader.Close()
 
 	// read compressed bytes
-	var jsonBytes []byte
-	gz, err := gzip.NewReader(reader)
-	_, err = gz.Read(jsonBytes)
-	if err != nil {
-		_ = reader.Close()
-		return nil, err
-	}
-	err = gz.Close()
-	if err != nil {
-		_ = reader.Close()
-		return nil, err
-	}
-	err = reader.Close()
+	gzr, err := gzip.NewReader(reader)
 	if err != nil {
 		return nil, err
 	}
+	defer gzr.Close()
 
 	// unmarshal json
-	err = json.Unmarshal(jsonBytes, &steps)
+	decoder := json.NewDecoder(gzr)
+	err = decoder.Decode(&steps)
 	if err != nil {
 		return nil, err
 	}
