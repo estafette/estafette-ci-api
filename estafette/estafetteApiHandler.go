@@ -580,7 +580,7 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 		return
 	}
 
-	buildLog, err := h.cockroachDBClient.GetPipelineBuildLogs(ctx, source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID)
+	buildLog, err := h.cockroachDBClient.GetPipelineBuildLogs(ctx, source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID, h.config.ReadLogFromDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from db", source, owner, repo, revisionOrID)
@@ -1081,7 +1081,7 @@ func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 		return
 	}
 
-	releaseLog, err := h.cockroachDBClient.GetPipelineReleaseLogs(ctx, source, owner, repo, id)
+	releaseLog, err := h.cockroachDBClient.GetPipelineReleaseLogs(ctx, source, owner, repo, id, h.config.ReadLogFromDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving release logs for %v/%v/%v/%v from db", source, owner, repo, id)

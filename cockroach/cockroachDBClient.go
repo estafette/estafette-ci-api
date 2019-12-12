@@ -58,14 +58,14 @@ type DBClient interface {
 	GetLastPipelineRelease(context.Context, string, string, string, string, string) (*contracts.Release, error)
 	GetFirstPipelineRelease(context.Context, string, string, string, string, string) (*contracts.Release, error)
 	GetPipelineBuildsByVersion(context.Context, string, string, string, string, []string, uint64, bool) ([]*contracts.Build, error)
-	GetPipelineBuildLogs(context.Context, string, string, string, string, string, string) (*contracts.BuildLog, error)
+	GetPipelineBuildLogs(context.Context, string, string, string, string, string, string, bool) (*contracts.BuildLog, error)
 	GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
 	GetPipelineBuildMaxResourceUtilization(context.Context, string, string, string, int) (JobResources, int, error)
 	GetPipelineReleases(context.Context, string, string, string, int, int, map[string][]string) ([]*contracts.Release, error)
 	GetPipelineReleasesCount(context.Context, string, string, string, map[string][]string) (int, error)
 	GetPipelineRelease(context.Context, string, string, string, int) (*contracts.Release, error)
 	GetPipelineLastReleasesByName(context.Context, string, string, string, string, []string) ([]contracts.Release, error)
-	GetPipelineReleaseLogs(context.Context, string, string, string, int) (*contracts.ReleaseLog, error)
+	GetPipelineReleaseLogs(context.Context, string, string, string, int, bool) (*contracts.ReleaseLog, error)
 	GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (releaseLogs []*contracts.ReleaseLog, err error)
 	GetPipelineReleaseMaxResourceUtilization(context.Context, string, string, string, string, int) (JobResources, int, error)
 	GetBuildsCount(context.Context, map[string][]string) (int, error)
@@ -1635,7 +1635,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildsByVersion(ctx context.Context
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string) (buildLog *contracts.BuildLog, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildLog *contracts.BuildLog, err error) {
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildLogs")
 	defer span.Finish()
@@ -1650,7 +1650,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(ctx context.Context, repo
 	}
 
 	// generate query
-	query := dbc.selectBuildLogsQuery().
+	query := dbc.selectBuildLogsQuery(readLogFromDatabase).
 		Where(sq.Eq{"a.build_id": buildIDAsInt}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -1661,32 +1661,52 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogs(ctx context.Context, repo
 		Limit(uint64(1))
 
 	buildLog = &contracts.BuildLog{}
-	var stepsData []uint8
 	var rowBuildID sql.NullInt64
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if err = row.Scan(&buildLog.ID,
-		&buildLog.RepoSource,
-		&buildLog.RepoOwner,
-		&buildLog.RepoName,
-		&buildLog.RepoBranch,
-		&buildLog.RepoRevision,
-		&rowBuildID,
-		&stepsData,
-		&buildLog.InsertedAt); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
-		return
-	}
+	if readLogFromDatabase {
 
-	if err = json.Unmarshal(stepsData, &buildLog.Steps); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
-		return
+		var stepsData []uint8
+		if err = row.Scan(&buildLog.ID,
+			&buildLog.RepoSource,
+			&buildLog.RepoOwner,
+			&buildLog.RepoName,
+			&buildLog.RepoBranch,
+			&buildLog.RepoRevision,
+			&rowBuildID,
+			&stepsData,
+			&buildLog.InsertedAt); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
+			return
+		}
+
+		if err = json.Unmarshal(stepsData, &buildLog.Steps); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
+			return
+		}
+
+	} else {
+		if err = row.Scan(&buildLog.ID,
+			&buildLog.RepoSource,
+			&buildLog.RepoOwner,
+			&buildLog.RepoName,
+			&buildLog.RepoBranch,
+			&buildLog.RepoRevision,
+			&rowBuildID,
+			&buildLog.InsertedAt); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
+			return
+		}
 	}
 
 	if rowBuildID.Valid {
@@ -1714,7 +1734,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineBuildLogsPerPage(ctx context.Contex
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectBuildLogsQuery().
+	query := dbc.selectBuildLogsQuery(true).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -1952,7 +1972,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineLastReleasesByName(ctx context.Cont
 	return
 }
 
-func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, id int) (releaseLog *contracts.ReleaseLog, err error) {
+func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, id int, readLogFromDatabase bool) (releaseLog *contracts.ReleaseLog, err error) {
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineReleaseLogs")
 	defer span.Finish()
@@ -1960,7 +1980,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogs(ctx context.Context, re
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectReleaseLogsQuery().
+	query := dbc.selectReleaseLogsQuery(readLogFromDatabase).
 		Where(sq.Eq{"a.release_id": id}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -1970,33 +1990,49 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogs(ctx context.Context, re
 
 	releaseLog = &contracts.ReleaseLog{}
 
-	var stepsData []uint8
 	var releaseID int
 
 	// execute query
 	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if err = row.Scan(&releaseLog.ID,
-		&releaseLog.RepoSource,
-		&releaseLog.RepoOwner,
-		&releaseLog.RepoName,
-		&releaseID,
-		&stepsData,
-		&releaseLog.InsertedAt); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
+	if readLogFromDatabase {
+		var stepsData []uint8
+		if err = row.Scan(&releaseLog.ID,
+			&releaseLog.RepoSource,
+			&releaseLog.RepoOwner,
+			&releaseLog.RepoName,
+			&releaseID,
+			&stepsData,
+			&releaseLog.InsertedAt); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
+			return
 		}
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
-		return
+
+		if err = json.Unmarshal(stepsData, &releaseLog.Steps); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
+			return
+		}
+	} else {
+		if err = row.Scan(&releaseLog.ID,
+			&releaseLog.RepoSource,
+			&releaseLog.RepoOwner,
+			&releaseLog.RepoName,
+			&releaseID,
+			&releaseLog.InsertedAt); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			ext.Error.Set(span, true)
+			span.LogFields(otlog.Error(err))
+			return
+		}
 	}
 
 	releaseLog.ReleaseID = strconv.Itoa(releaseID)
-
-	if err = json.Unmarshal(stepsData, &releaseLog.Steps); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
-		return
-	}
 
 	return
 }
@@ -2011,7 +2047,7 @@ func (dbc *cockroachDBClientImpl) GetPipelineReleaseLogsPerPage(ctx context.Cont
 	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectReleaseLogsQuery().
+	query := dbc.selectReleaseLogsQuery(true).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -3968,19 +4004,31 @@ func (dbc *cockroachDBClientImpl) selectComputedReleasesQuery() sq.SelectBuilder
 		From("computed_releases a")
 }
 
-func (dbc *cockroachDBClientImpl) selectBuildLogsQuery() sq.SelectBuilder {
+func (dbc *cockroachDBClientImpl) selectBuildLogsQuery(readLogFromDatabase bool) sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
+	if readLogFromDatabase {
+		return psql.
+			Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_id, a.steps, a.inserted_at").
+			From("build_logs a")
+	}
+
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_id, a.steps, a.inserted_at").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_id, a.inserted_at").
 		From("build_logs a")
 }
 
-func (dbc *cockroachDBClientImpl) selectReleaseLogsQuery() sq.SelectBuilder {
+func (dbc *cockroachDBClientImpl) selectReleaseLogsQuery(readLogFromDatabase bool) sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
+	if readLogFromDatabase {
+		return psql.
+			Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release_id, a.steps, a.inserted_at").
+			From("release_logs a")
+	}
+
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release_id, a.steps, a.inserted_at").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release_id, a.inserted_at").
 		From("release_logs a")
 }
 
