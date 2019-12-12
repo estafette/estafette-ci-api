@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/estafette/estafette-ci-api/config"
+	foundation "github.com/estafette/estafette-foundation"
 	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
 )
@@ -37,14 +38,28 @@ func (pc *prometheusClientImpl) AwaitScrapeInterval() {
 	time.Sleep(time.Duration(pc.config.ScrapeIntervalSeconds) * time.Second)
 }
 
-func (pc *prometheusClientImpl) GetMaxMemoryByPodName(podName string) (float64, error) {
+func (pc *prometheusClientImpl) GetMaxMemoryByPodName(podName string) (maxMemory float64, err error) {
+
 	query := fmt.Sprintf("max_over_time(container_memory_working_set_bytes{container_name=\"estafette-ci-builder\",pod_name=\"%v\"}[3h])", podName)
-	return pc.getQueryResult(query)
+
+	err = foundation.Retry(func() error {
+		maxMemory, err = pc.getQueryResult(query)
+		return err
+	}, foundation.DelayMillisecond(5000), foundation.Attempts(5))
+
+	return
 }
 
-func (pc *prometheusClientImpl) GetMaxCPUByPodName(podName string) (float64, error) {
+func (pc *prometheusClientImpl) GetMaxCPUByPodName(podName string) (maxCPU float64, err error) {
+
 	query := fmt.Sprintf("max_over_time(container_cpu_usage_rate1m{container_name=\"estafette-ci-builder\",pod_name=\"%v\"}[3h])", podName)
-	return pc.getQueryResult(query)
+
+	err = foundation.Retry(func() error {
+		maxCPU, err = pc.getQueryResult(query)
+		return err
+	}, foundation.DelayMillisecond(5000), foundation.Attempts(5))
+
+	return
 }
 
 func (pc *prometheusClientImpl) getQueryResult(query string) (float64, error) {
