@@ -11,6 +11,7 @@ import (
 	"github.com/estafette/estafette-ci-api/cockroach"
 	"github.com/estafette/estafette-ci-api/config"
 	prom "github.com/estafette/estafette-ci-api/prometheus"
+	foundation "github.com/estafette/estafette-foundation"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
@@ -186,14 +187,22 @@ func (h *eventHandlerImpl) UpdateJobResources(ctx context.Context, ciBuilderEven
 
 		h.prometheusClient.AwaitScrapeInterval()
 
-		maxCPU, err := h.prometheusClient.GetMaxCPUByPodName(ciBuilderEvent.PodName)
+		var maxCPU float64
+		foundation.Retry(func() error {
+			maxCPU, err = h.prometheusClient.GetMaxCPUByPodName(ciBuilderEvent.PodName)
+			return err
+		}, foundation.DelayMillisecond(5000), foundation.Attempts(5))
 		if err != nil {
 			return err
 		}
 
 		log.Info().Msgf("Max cpu usage for pod %v is %v", ciBuilderEvent.PodName, maxCPU)
 
-		maxMemory, err := h.prometheusClient.GetMaxMemoryByPodName(ciBuilderEvent.PodName)
+		var maxMemory float64
+		foundation.Retry(func() error {
+			maxMemory, err = h.prometheusClient.GetMaxMemoryByPodName(ciBuilderEvent.PodName)
+			return err
+		}, foundation.DelayMillisecond(5000), foundation.Attempts(5))
 		if err != nil {
 			return err
 		}
