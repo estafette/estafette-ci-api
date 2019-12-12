@@ -917,6 +917,16 @@ func (s *buildServiceImpl) fireRelease(ctx context.Context, p contracts.Pipeline
 		"latest":
 		versionToRelease = p.BuildVersion
 
+	case "same":
+		if e.Pipeline != nil {
+			versionToRelease = e.Pipeline.BuildVersion
+		} else if e.Release != nil {
+			versionToRelease = e.Release.ReleaseVersion
+		} else {
+			log.Warn().Msgf("Can't get build version from event for 'same' release action version for pipeline %v, defaulting to pipeline version", p.GetFullRepoPath())
+			versionToRelease = p.BuildVersion
+		}
+
 	case "current":
 		if t.ReleaseAction.Version == "current" {
 			for _, rt := range p.ReleaseTargets {
