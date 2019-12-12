@@ -11,6 +11,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
+	foundation "github.com/estafette/estafette-foundation"
 	"github.com/opentracing/opentracing-go"
 )
 
@@ -56,7 +57,9 @@ func (impl *cloudStorageClientImpl) InsertBuildLog(ctx context.Context, buildLog
 
 	logPath := impl.getBuildLogPath(buildLog)
 
-	return impl.insertLog(ctx, logPath, buildLog.Steps)
+	return foundation.Retry(func() error {
+		return impl.insertLog(ctx, logPath, buildLog.Steps)
+	})
 }
 
 func (impl *cloudStorageClientImpl) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) (err error) {
@@ -66,7 +69,9 @@ func (impl *cloudStorageClientImpl) InsertReleaseLog(ctx context.Context, releas
 
 	logPath := impl.getReleaseLogPath(releaseLog)
 
-	return impl.insertLog(ctx, logPath, releaseLog.Steps)
+	return foundation.Retry(func() error {
+		return impl.insertLog(ctx, logPath, releaseLog.Steps)
+	})
 }
 
 func (impl *cloudStorageClientImpl) GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog) (updatedBuildLog contracts.BuildLog, err error) {
@@ -76,11 +81,14 @@ func (impl *cloudStorageClientImpl) GetPipelineBuildLogs(ctx context.Context, bu
 
 	logPath := impl.getBuildLogPath(buildLog)
 
-	steps, err := impl.getLog(ctx, logPath)
+	var steps []*contracts.BuildLogStep
+	err = foundation.Retry(func() error {
+		steps, err = impl.getLog(ctx, logPath)
+		return err
+	})
 	if err != nil {
 		return buildLog, err
 	}
-
 	updatedBuildLog = buildLog
 	updatedBuildLog.Steps = steps
 
@@ -94,7 +102,11 @@ func (impl *cloudStorageClientImpl) GetPipelineReleaseLogs(ctx context.Context, 
 
 	logPath := impl.getReleaseLogPath(releaseLog)
 
-	steps, err := impl.getLog(ctx, logPath)
+	var steps []*contracts.BuildLogStep
+	err = foundation.Retry(func() error {
+		steps, err = impl.getLog(ctx, logPath)
+		return err
+	})
 	if err != nil {
 		return releaseLog, err
 	}
