@@ -642,6 +642,9 @@ func (dbc *cockroachDBClientImpl) InsertBuildLog(ctx context.Context, buildLog c
 			span.LogFields(otlog.Error(err))
 			return
 		}
+	} else {
+		var steps []*contracts.BuildLogStep
+		bytes, err = json.Marshal(steps)
 	}
 
 	buildID, err := strconv.Atoi(buildLog.BuildID)
@@ -767,6 +770,9 @@ func (dbc *cockroachDBClientImpl) InsertReleaseLog(ctx context.Context, releaseL
 			span.LogFields(otlog.Error(err))
 			return
 		}
+	} else {
+		var steps []*contracts.BuildLogStep
+		bytes, err = json.Marshal(steps)
 	}
 
 	releaseID, err := strconv.Atoi(releaseLog.ReleaseID)
