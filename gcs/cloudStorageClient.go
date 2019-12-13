@@ -172,7 +172,6 @@ func (impl *cloudStorageClientImpl) getLog(ctx context.Context, path string, acc
 	if acceptGzipEncoding {
 		responseWriter.Header().Set("Content-Encoding", "gzip")
 		responseWriter.Header().Set("Vary", "Accept-Encoding")
-		responseWriter.Header().Set("Connection", "Upgrade")
 	} else {
 		gzr, err := gzip.NewReader(reader)
 		if err != nil {

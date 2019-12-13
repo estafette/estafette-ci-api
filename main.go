@@ -200,65 +200,67 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 
 	// Gzip and logging middleware
 	log.Debug().Msg("Adding gzip middleware...")
-	router.Use(gzip.Gzip(gzip.BestSpeed, gzip.WithExcludedExtensions([]string{".stream"})))
+
+	alreadyZippedRoutes := router.Group("/")
+	routes := router.Group("/", gzip.Gzip(gzip.BestSpeed))
 
 	// middleware to handle auth for different endpoints
 	log.Debug().Msg("Adding auth middleware...")
 	authMiddleware := auth.NewAuthMiddleware(*config.Auth)
 
 	log.Debug().Msg("Setting up routes...")
-	router.POST("/api/integrations/github/events", githubEventHandler.Handle)
-	router.GET("/api/integrations/github/status", func(c *gin.Context) { c.String(200, "Github, I'm cool!") })
+	routes.POST("/api/integrations/github/events", githubEventHandler.Handle)
+	routes.GET("/api/integrations/github/status", func(c *gin.Context) { c.String(200, "Github, I'm cool!") })
 
-	router.POST("/api/integrations/bitbucket/events", bitbucketEventHandler.Handle)
-	router.GET("/api/integrations/bitbucket/status", func(c *gin.Context) { c.String(200, "Bitbucket, I'm cool!") })
+	routes.POST("/api/integrations/bitbucket/events", bitbucketEventHandler.Handle)
+	routes.GET("/api/integrations/bitbucket/status", func(c *gin.Context) { c.String(200, "Bitbucket, I'm cool!") })
 
-	router.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
-	router.GET("/api/integrations/slack/status", func(c *gin.Context) { c.String(200, "Slack, I'm cool!") })
+	routes.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
+	routes.GET("/api/integrations/slack/status", func(c *gin.Context) { c.String(200, "Slack, I'm cool!") })
 
 	// google jwt auth protected endpoints
-	googleAuthorizedRoutes := router.Group("/", authMiddleware.GoogleJWTMiddlewareFunc())
+	googleAuthorizedRoutes := routes.Group("/", authMiddleware.GoogleJWTMiddlewareFunc())
 	{
 		googleAuthorizedRoutes.POST("/api/integrations/pubsub/events", pubsubEventHandler.PostPubsubEvent)
 	}
-	router.GET("/api/integrations/pubsub/status", func(c *gin.Context) { c.String(200, "Pub/Sub, I'm cool!") })
+	routes.GET("/api/integrations/pubsub/status", func(c *gin.Context) { c.String(200, "Pub/Sub, I'm cool!") })
 
-	router.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
-	router.GET("/api/pipelines/:source/:owner/:repo", estafetteAPIHandler.GetPipeline)
-	router.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)
-	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteAPIHandler.GetPipelineBuild)
-	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteAPIHandler.GetPipelineBuildLogs)
-	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/warnings", estafetteAPIHandler.GetPipelineBuildWarnings)
-	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs/tail", estafetteAPIHandler.TailPipelineBuildLogs)
-	router.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs.stream", estafetteAPIHandler.TailPipelineBuildLogs)
-	router.GET("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.GetPipelineReleases)
-	router.GET("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteAPIHandler.GetPipelineRelease)
-	router.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteAPIHandler.GetPipelineReleaseLogs)
-	router.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs/tail", estafetteAPIHandler.TailPipelineReleaseLogs)
-	router.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs.stream", estafetteAPIHandler.TailPipelineReleaseLogs)
-	router.GET("/api/pipelines/:source/:owner/:repo/stats/buildsdurations", estafetteAPIHandler.GetPipelineStatsBuildsDurations)
-	router.GET("/api/pipelines/:source/:owner/:repo/stats/releasesdurations", estafetteAPIHandler.GetPipelineStatsReleasesDurations)
-	router.GET("/api/pipelines/:source/:owner/:repo/stats/buildscpu", estafetteAPIHandler.GetPipelineStatsBuildsCPUUsageMeasurements)
-	router.GET("/api/pipelines/:source/:owner/:repo/stats/releasescpu", estafetteAPIHandler.GetPipelineStatsReleasesCPUUsageMeasurements)
-	router.GET("/api/pipelines/:source/:owner/:repo/stats/buildsmemory", estafetteAPIHandler.GetPipelineStatsBuildsMemoryUsageMeasurements)
-	router.GET("/api/pipelines/:source/:owner/:repo/stats/releasesmemory", estafetteAPIHandler.GetPipelineStatsReleasesMemoryUsageMeasurements)
-	router.GET("/api/pipelines/:source/:owner/:repo/warnings", estafetteAPIHandler.GetPipelineWarnings)
-	router.GET("/api/stats/pipelinescount", estafetteAPIHandler.GetStatsPipelinesCount)
-	router.GET("/api/stats/buildscount", estafetteAPIHandler.GetStatsBuildsCount)
-	router.GET("/api/stats/releasescount", estafetteAPIHandler.GetStatsReleasesCount)
-	router.GET("/api/stats/buildsduration", estafetteAPIHandler.GetStatsBuildsDuration)
-	router.GET("/api/stats/buildsadoption", estafetteAPIHandler.GetStatsBuildsAdoption)
-	router.GET("/api/stats/releasesadoption", estafetteAPIHandler.GetStatsReleasesAdoption)
-	router.GET("/api/stats/mostbuilds", estafetteAPIHandler.GetStatsMostBuilds)
-	router.GET("/api/stats/mostreleases", estafetteAPIHandler.GetStatsMostReleases)
-	router.GET("/api/manifest/templates", estafetteAPIHandler.GetManifestTemplates)
-	router.POST("/api/manifest/generate", estafetteAPIHandler.GenerateManifest)
-	router.POST("/api/manifest/validate", estafetteAPIHandler.ValidateManifest)
-	router.POST("/api/manifest/encrypt", estafetteAPIHandler.EncryptSecret)
-	router.GET("/api/labels/frequent", estafetteAPIHandler.GetFrequentLabels)
+	routes.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
+	routes.GET("/api/pipelines/:source/:owner/:repo", estafetteAPIHandler.GetPipeline)
+	routes.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)
+	routes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteAPIHandler.GetPipelineBuild)
+	routes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/warnings", estafetteAPIHandler.GetPipelineBuildWarnings)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteAPIHandler.GetPipelineBuildLogs)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs/tail", estafetteAPIHandler.TailPipelineBuildLogs)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs.stream", estafetteAPIHandler.TailPipelineBuildLogs)
+	routes.GET("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.GetPipelineReleases)
+	routes.GET("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteAPIHandler.GetPipelineRelease)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteAPIHandler.GetPipelineReleaseLogs)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs/tail", estafetteAPIHandler.TailPipelineReleaseLogs)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs.stream", estafetteAPIHandler.TailPipelineReleaseLogs)
+	routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildsdurations", estafetteAPIHandler.GetPipelineStatsBuildsDurations)
+	routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesdurations", estafetteAPIHandler.GetPipelineStatsReleasesDurations)
+	routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildscpu", estafetteAPIHandler.GetPipelineStatsBuildsCPUUsageMeasurements)
+	routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasescpu", estafetteAPIHandler.GetPipelineStatsReleasesCPUUsageMeasurements)
+	routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildsmemory", estafetteAPIHandler.GetPipelineStatsBuildsMemoryUsageMeasurements)
+	routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesmemory", estafetteAPIHandler.GetPipelineStatsReleasesMemoryUsageMeasurements)
+	routes.GET("/api/pipelines/:source/:owner/:repo/warnings", estafetteAPIHandler.GetPipelineWarnings)
+	routes.GET("/api/stats/pipelinescount", estafetteAPIHandler.GetStatsPipelinesCount)
+	routes.GET("/api/stats/buildscount", estafetteAPIHandler.GetStatsBuildsCount)
+	routes.GET("/api/stats/releasescount", estafetteAPIHandler.GetStatsReleasesCount)
+	routes.GET("/api/stats/buildsduration", estafetteAPIHandler.GetStatsBuildsDuration)
+	routes.GET("/api/stats/buildsadoption", estafetteAPIHandler.GetStatsBuildsAdoption)
+	routes.GET("/api/stats/releasesadoption", estafetteAPIHandler.GetStatsReleasesAdoption)
+	routes.GET("/api/stats/mostbuilds", estafetteAPIHandler.GetStatsMostBuilds)
+	routes.GET("/api/stats/mostreleases", estafetteAPIHandler.GetStatsMostReleases)
+	routes.GET("/api/manifest/templates", estafetteAPIHandler.GetManifestTemplates)
+	routes.POST("/api/manifest/generate", estafetteAPIHandler.GenerateManifest)
+	routes.POST("/api/manifest/validate", estafetteAPIHandler.ValidateManifest)
+	routes.POST("/api/manifest/encrypt", estafetteAPIHandler.EncryptSecret)
+	routes.GET("/api/labels/frequent", estafetteAPIHandler.GetFrequentLabels)
 
 	// api key protected endpoints
-	apiKeyAuthorizedRoutes := router.Group("/", authMiddleware.APIKeyMiddlewareFunc())
+	apiKeyAuthorizedRoutes := routes.Group("/", authMiddleware.APIKeyMiddlewareFunc())
 	{
 		apiKeyAuthorizedRoutes.POST("/api/commands", estafetteEventHandler.Handle)
 		apiKeyAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteAPIHandler.PostPipelineBuildLogs)
@@ -268,7 +270,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	}
 
 	// iap protected endpoints
-	iapAuthorizedRoutes := router.Group("/", authMiddleware.IAPJWTMiddlewareFunc())
+	iapAuthorizedRoutes := routes.Group("/", authMiddleware.IAPJWTMiddlewareFunc())
 	{
 		iapAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.CreatePipelineBuild)
 		iapAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.CreatePipelineRelease)
@@ -282,10 +284,10 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	}
 
 	// default routes
-	router.GET("/liveness", func(c *gin.Context) {
+	routes.GET("/liveness", func(c *gin.Context) {
 		c.String(200, "I'm alive!")
 	})
-	router.GET("/readiness", func(c *gin.Context) {
+	routes.GET("/readiness", func(c *gin.Context) {
 		c.String(200, "I'm ready!")
 	})
 	router.NoRoute(func(c *gin.Context) {
