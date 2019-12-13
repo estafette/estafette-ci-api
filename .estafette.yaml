@@ -35,7 +35,7 @@ stages:
       COPY sleep /bin/sleep
       COPY ${ESTAFETTE_GIT_NAME} /
 
-      ENV GRACEFUL_SHUTDOWN_DELAY_SECONDS="0"
+      ENV GRACEFUL_SHUTDOWN_DELAY_SECONDS="15"
 
       ENTRYPOINT ["/${ESTAFETTE_GIT_NAME}"]
     repositories:
