@@ -200,7 +200,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 
 	// Gzip and logging middleware
 	log.Debug().Msg("Adding gzip middleware...")
-	router.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedExtensions([]string{".stream"})))
+	router.Use(gzip.Gzip(gzip.BestSpeed, gzip.WithExcludedExtensions([]string{".stream"})))
 
 	// middleware to handle auth for different endpoints
 	log.Debug().Msg("Adding auth middleware...")

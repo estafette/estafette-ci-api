@@ -5,7 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"net/http"
 	"path"
 
 	"cloud.google.com/go/storage"
@@ -19,8 +20,8 @@ import (
 type CloudStorageClient interface {
 	InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error)
 	InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) (err error)
-	GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog) (steps []*contracts.BuildLogStep, err error)
-	GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog) (steps []*contracts.BuildLogStep, err error)
+	GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error)
+	GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error)
 }
 
 type cloudStorageClientImpl struct {
@@ -72,42 +73,6 @@ func (impl *cloudStorageClientImpl) InsertReleaseLog(ctx context.Context, releas
 	return foundation.Retry(func() error {
 		return impl.insertLog(ctx, logPath, releaseLog.Steps)
 	})
-}
-
-func (impl *cloudStorageClientImpl) GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog) (steps []*contracts.BuildLogStep, err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "CloudStorageClient::GetPipelineBuildLogs")
-	defer span.Finish()
-
-	logPath := impl.getBuildLogPath(buildLog)
-
-	err = foundation.Retry(func() error {
-		steps, err = impl.getLog(ctx, logPath)
-		return err
-	})
-	if err != nil {
-		return
-	}
-
-	return steps, nil
-}
-
-func (impl *cloudStorageClientImpl) GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog) (steps []*contracts.BuildLogStep, err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "CloudStorageClient::GetPipelineReleaseLogs")
-	defer span.Finish()
-
-	logPath := impl.getReleaseLogPath(releaseLog)
-
-	err = foundation.Retry(func() error {
-		steps, err = impl.getLog(ctx, logPath)
-		return err
-	})
-	if err != nil {
-		return
-	}
-
-	return steps, nil
 }
 
 func (impl *cloudStorageClientImpl) insertLog(ctx context.Context, path string, steps []*contracts.BuildLogStep) (err error) {
@@ -164,7 +129,33 @@ func (impl *cloudStorageClientImpl) insertLog(ctx context.Context, path string, 
 	return nil
 }
 
-func (impl *cloudStorageClientImpl) getLog(ctx context.Context, path string) (steps []*contracts.BuildLogStep, err error) {
+func (impl *cloudStorageClientImpl) GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, "CloudStorageClient::GetPipelineBuildLogs")
+	defer span.Finish()
+
+	logPath := impl.getBuildLogPath(buildLog)
+
+	return impl.getLog(ctx, logPath, acceptGzipEncoding, responseWriter)
+}
+
+func (impl *cloudStorageClientImpl) GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, "CloudStorageClient::GetPipelineReleaseLogs")
+	defer span.Finish()
+
+	logPath := impl.getReleaseLogPath(releaseLog)
+
+	return impl.getLog(ctx, logPath, acceptGzipEncoding, responseWriter)
+}
+
+func (impl *cloudStorageClientImpl) getLog(ctx context.Context, path string, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, "CloudStorageClient::getLog")
+	defer span.Finish()
+
+	span.SetTag("log-path", path)
+	span.SetTag("accept-gzip-encoding", acceptGzipEncoding)
 
 	bucket := impl.client.Bucket(impl.config.Bucket)
 
@@ -172,30 +163,35 @@ func (impl *cloudStorageClientImpl) getLog(ctx context.Context, path string) (st
 	logObject := bucket.Object(path).ReadCompressed(true)
 	reader, err := logObject.NewReader(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer reader.Close()
 
-	// read compressed bytes
-	gzr, err := gzip.NewReader(reader)
-	if err != nil {
-		return nil, err
-	}
-	defer gzr.Close()
-
-	// read entire file
-	bytes, err := ioutil.ReadAll(gzr)
-	if err != nil {
-		return nil, err
-	}
-
-	// unmarshal json
-	err = json.Unmarshal(bytes, &steps)
-	if err != nil {
-		return nil, err
+	// create source reader to either copy compressed bytes or decompress them first
+	sourceReader := io.Reader(reader)
+	if acceptGzipEncoding {
+		responseWriter.Header().Set("Content-Encoding", "gzip")
+		responseWriter.Header().Set("Vary", "Accept-Encoding")
+		responseWriter.Header().Set("Connection", "Upgrade")
+	} else {
+		gzr, err := gzip.NewReader(reader)
+		if err != nil {
+			return err
+		}
+		defer gzr.Close()
+		sourceReader = io.Reader(gzr)
 	}
 
-	return
+	responseWriter.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	writtenBytes, err := io.Copy(responseWriter, sourceReader)
+	if err != nil {
+		return err
+	}
+
+	responseWriter.Header().Set("Content-Length", fmt.Sprint(writtenBytes))
+
+	return nil
 }
 
 func (impl *cloudStorageClientImpl) getBuildLogPath(buildLog contracts.BuildLog) (logPath string) {

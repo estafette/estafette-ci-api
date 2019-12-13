@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"text/template"
 	"time"
@@ -591,14 +592,14 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 	}
 
 	if h.config.ReadLogFromCloudStorage() {
-		buildLogStepsFromCloudStorage, err := h.cloudStorageClient.GetPipelineBuildLogs(ctx, *buildLog)
+		err := h.cloudStorageClient.GetPipelineBuildLogs(ctx, *buildLog, strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip"), c.Writer)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from cloud storage", source, owner, repo, revisionOrID)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 			return
 		}
-		c.JSON(http.StatusOK, buildLogStepsFromCloudStorage)
+		c.Writer.Flush()
 		return
 	}
 
@@ -1092,14 +1093,14 @@ func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 	}
 
 	if h.config.ReadLogFromCloudStorage() {
-		releaseLogStepsFromCloudStorage, err := h.cloudStorageClient.GetPipelineReleaseLogs(ctx, *releaseLog)
+		err := h.cloudStorageClient.GetPipelineReleaseLogs(ctx, *releaseLog, strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip"), c.Writer)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving release logs for %v/%v/%v/%v from cloud storage", source, owner, repo, id)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 			return
 		}
-		c.JSON(http.StatusOK, releaseLogStepsFromCloudStorage)
+		c.Writer.Flush()
 		return
 	}
 
