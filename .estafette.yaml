@@ -32,7 +32,6 @@ stages:
             description="The ${ESTAFETTE_GIT_NAME} is the component that handles api requests and starts build jobs using the estafette-ci-builder"
 
       COPY ca-certificates.crt /etc/ssl/certs/
-      COPY sleep /bin/sleep
       COPY ${ESTAFETTE_GIT_NAME} /
 
       ENV GRACEFUL_SHUTDOWN_DELAY_SECONDS="15"
@@ -43,7 +42,6 @@ stages:
     path: ./publish
     copy:
     - /etc/ssl/certs/ca-certificates.crt
-    - /bin/sleep
 
   push-to-docker-hub:
     image: extensions/docker:dev
@@ -86,6 +84,8 @@ releases:
             limit: 472Mi
           metrics:
             port: 9001
+          lifecycle:
+            prestopsleep: false
         sidecars:
         - type: openresty
           image: estafette/openresty-sidecar:0.8.0-opentracing
