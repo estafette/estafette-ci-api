@@ -591,18 +591,18 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 	}
 
 	if h.config.ReadLogFromCloudStorage() {
-		buildLogFromCloudStorage, err := h.cloudStorageClient.GetPipelineBuildLogs(ctx, *buildLog)
+		buildLogStepsFromCloudStorage, err := h.cloudStorageClient.GetPipelineBuildLogs(ctx, *buildLog)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from cloud storage", source, owner, repo, revisionOrID)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 			return
 		}
-		c.JSON(http.StatusOK, buildLogFromCloudStorage)
+		c.JSON(http.StatusOK, buildLogStepsFromCloudStorage)
 		return
 	}
 
-	c.JSON(http.StatusOK, buildLog)
+	c.JSON(http.StatusOK, buildLog.Steps)
 }
 
 func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
@@ -1092,18 +1092,18 @@ func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 	}
 
 	if h.config.ReadLogFromCloudStorage() {
-		releaseLogFromCloudStorage, err := h.cloudStorageClient.GetPipelineReleaseLogs(ctx, *releaseLog)
+		releaseLogStepsFromCloudStorage, err := h.cloudStorageClient.GetPipelineReleaseLogs(ctx, *releaseLog)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving release logs for %v/%v/%v/%v from cloud storage", source, owner, repo, id)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 			return
 		}
-		c.JSON(http.StatusOK, releaseLogFromCloudStorage)
+		c.JSON(http.StatusOK, releaseLogStepsFromCloudStorage)
 		return
 	}
 
-	c.JSON(http.StatusOK, releaseLog)
+	c.JSON(http.StatusOK, releaseLog.Steps)
 }
 
 func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {

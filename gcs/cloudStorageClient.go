@@ -19,8 +19,8 @@ import (
 type CloudStorageClient interface {
 	InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error)
 	InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) (err error)
-	GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog) (updatedBuildLog contracts.BuildLog, err error)
-	GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog) (updatedReleaseLog contracts.ReleaseLog, err error)
+	GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog) (steps []*contracts.BuildLogStep, err error)
+	GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog) (steps []*contracts.BuildLogStep, err error)
 }
 
 type cloudStorageClientImpl struct {
@@ -74,48 +74,40 @@ func (impl *cloudStorageClientImpl) InsertReleaseLog(ctx context.Context, releas
 	})
 }
 
-func (impl *cloudStorageClientImpl) GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog) (updatedBuildLog contracts.BuildLog, err error) {
+func (impl *cloudStorageClientImpl) GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog) (steps []*contracts.BuildLogStep, err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, "CloudStorageClient::GetPipelineBuildLogs")
 	defer span.Finish()
 
 	logPath := impl.getBuildLogPath(buildLog)
 
-	var steps []*contracts.BuildLogStep
 	err = foundation.Retry(func() error {
 		steps, err = impl.getLog(ctx, logPath)
 		return err
 	})
 	if err != nil {
-		return buildLog, err
+		return
 	}
-	updatedBuildLog = buildLog
-	updatedBuildLog.Steps = steps
 
-	return updatedBuildLog, nil
+	return steps, nil
 }
 
-func (impl *cloudStorageClientImpl) GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog) (updatedReleaseLog contracts.ReleaseLog, err error) {
+func (impl *cloudStorageClientImpl) GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog) (steps []*contracts.BuildLogStep, err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, "CloudStorageClient::GetPipelineReleaseLogs")
 	defer span.Finish()
 
 	logPath := impl.getReleaseLogPath(releaseLog)
 
-	var steps []*contracts.BuildLogStep
 	err = foundation.Retry(func() error {
 		steps, err = impl.getLog(ctx, logPath)
 		return err
 	})
 	if err != nil {
-		return releaseLog, err
+		return
 	}
 
-	updatedReleaseLog = releaseLog
-	updatedReleaseLog.Steps = steps
-
-	return updatedReleaseLog, nil
-
+	return steps, nil
 }
 
 func (impl *cloudStorageClientImpl) insertLog(ctx context.Context, path string, steps []*contracts.BuildLogStep) (err error) {
