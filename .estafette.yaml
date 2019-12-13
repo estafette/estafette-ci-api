@@ -13,7 +13,7 @@ version:
 
 stages:
   build:
-    image: golang:1.13.4-alpine
+    image: golang:1.13.5-alpine
     env:
       CGO_ENABLED: 0
       GOOS: linux
