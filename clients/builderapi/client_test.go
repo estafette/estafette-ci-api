@@ -1,4 +1,4 @@
-package estafette
+package builderapi
 
 import (
 	"testing"

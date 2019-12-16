@@ -20,8 +20,8 @@ import (
 
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/clients/cloudstorage"
-	"github.com/estafette/estafette-ci-api/clients/cockroach"
-	estafetteclt "github.com/estafette/estafette-ci-api/clients/estafette"
+	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
+	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/config"
 	estafettedom "github.com/estafette/estafette-ci-api/domain/estafette"
 	"github.com/estafette/estafette-ci-api/helpers"
@@ -98,9 +98,9 @@ type apiHandlerImpl struct {
 	config               config.APIServerConfig
 	authConfig           config.AuthConfig
 	encryptedConfig      config.APIConfig
-	cockroachDBClient    cockroach.Client
+	cockroachDBClient    cockroachdb.Client
 	cloudStorageClient   cloudstorage.Client
-	ciBuilderClient      estafetteclt.Client
+	ciBuilderClient      builderapi.Client
 	buildService         Service
 	warningHelper        helpers.WarningHelper
 	secretHelper         crypt.SecretHelper
@@ -109,7 +109,7 @@ type apiHandlerImpl struct {
 }
 
 // NewAPIHandler returns a new estafette.APIHandler
-func NewAPIHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroach.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient estafetteclt.Client, buildService Service, warningHelper helpers.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) (apiHandler APIHandler) {
+func NewAPIHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper helpers.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) (apiHandler APIHandler) {
 
 	apiHandler = &apiHandlerImpl{
 		configFilePath:       configFilePath,

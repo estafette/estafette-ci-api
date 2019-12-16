@@ -1,4 +1,4 @@
-package estafette
+package builderapi
 
 import (
 	"bufio"
@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"regexp"
@@ -19,7 +18,7 @@ import (
 	corev1 "github.com/ericchiang/k8s/apis/core/v1"
 	metav1 "github.com/ericchiang/k8s/apis/meta/v1"
 	"github.com/ericchiang/k8s/apis/resource"
-	"github.com/estafette/estafette-ci-api/clients/dockerhub"
+	"github.com/estafette/estafette-ci-api/clients/dockerhubapi"
 	"github.com/estafette/estafette-ci-api/config"
 	estafettedom "github.com/estafette/estafette-ci-api/domain/estafette"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -28,7 +27,6 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
-	yaml "gopkg.in/yaml.v2"
 )
 
 // Client is the interface for running kubernetes commands specific to this application
@@ -44,43 +42,9 @@ type Client interface {
 }
 
 // NewClient returns a new estafette.Client
-func NewClient(config config.APIConfig, encryptedConfig config.APIConfig, secretHelper crypt.SecretHelper, prometheusOutboundAPICallTotals *prometheus.CounterVec) (ciBuilderClient Client, err error) {
+func NewClient(config config.APIConfig, encryptedConfig config.APIConfig, secretHelper crypt.SecretHelper, kubeClient *k8s.Client, dockerHubClient dockerhubapi.Client, prometheusOutboundAPICallTotals *prometheus.CounterVec) Client {
 
-	var kubeClient *k8s.Client
-
-	if os.Getenv("KUBERNETES_SERVICE_HOST") != "" && os.Getenv("KUBERNETES_SERVICE_PORT") != "" {
-
-		kubeClient, err = k8s.NewInClusterClient()
-		if err != nil {
-			log.Error().Err(err).Msg("Creating k8s client failed")
-			return
-		}
-
-	} else {
-
-		homeDir := os.Getenv("HOME")
-
-		data, err := ioutil.ReadFile(fmt.Sprintf("%v/.kube/config", homeDir))
-		if err != nil {
-			log.Error().Err(err).Msg("Reading kube config failed")
-			return nil, err
-		}
-
-		var config k8s.Config
-		if err := yaml.Unmarshal(data, &config); err != nil {
-			log.Error().Err(err).Msg("Deserializing kube config failed")
-			return nil, err
-		}
-
-		kubeClient, err = k8s.NewClient(&config)
-	}
-
-	dockerHubClient, err := dockerhub.NewClient()
-	if err != nil {
-		return
-	}
-
-	ciBuilderClient = &client{
+	return &client{
 		kubeClient:                      kubeClient,
 		dockerHubClient:                 dockerHubClient,
 		config:                          config,
@@ -88,13 +52,11 @@ func NewClient(config config.APIConfig, encryptedConfig config.APIConfig, secret
 		secretHelper:                    secretHelper,
 		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
-
-	return
 }
 
 type client struct {
 	kubeClient                      *k8s.Client
-	dockerHubClient                 dockerhub.Client
+	dockerHubClient                 dockerhubapi.Client
 	config                          config.APIConfig
 	encryptedConfig                 config.APIConfig
 	secretHelper                    crypt.SecretHelper

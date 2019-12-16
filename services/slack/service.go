@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/estafette/estafette-ci-api/clients/cockroach"
-	slackclt "github.com/estafette/estafette-ci-api/clients/slack"
+	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
+	"github.com/estafette/estafette-ci-api/clients/slackapi"
 	"github.com/estafette/estafette-ci-api/config"
 	slackdom "github.com/estafette/estafette-ci-api/domain/slack"
 	"github.com/estafette/estafette-ci-api/services/estafette"
@@ -29,8 +29,8 @@ type Service interface {
 type service struct {
 	secretHelper                 crypt.SecretHelper
 	config                       config.SlackConfig
-	slackAPIClient               slackclt.Client
-	cockroachDBClient            cockroach.Client
+	slackAPIClient               slackapi.Client
+	cockroachDBClient            cockroachdb.Client
 	apiConfig                    config.APIServerConfig
 	buildService                 estafette.Service
 	githubJobVarsFunc            func(context.Context, string, string, string) (string, string, error)
@@ -39,7 +39,7 @@ type service struct {
 }
 
 // NewService returns a new slack.Service
-func NewService(secretHelper crypt.SecretHelper, config config.SlackConfig, slackAPIClient slackclt.Client, cockroachDBClient cockroach.Client, apiConfig config.APIServerConfig, buildService estafette.Service, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), prometheusInboundEventTotals *prometheus.CounterVec) Service {
+func NewService(secretHelper crypt.SecretHelper, config config.SlackConfig, slackAPIClient slackapi.Client, cockroachDBClient cockroachdb.Client, apiConfig config.APIServerConfig, buildService estafette.Service, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), prometheusInboundEventTotals *prometheus.CounterVec) Service {
 	return &service{
 		secretHelper:                 secretHelper,
 		config:                       config,

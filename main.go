@@ -9,7 +9,11 @@ import (
 	"sync"
 	"time"
 
+	stdbigquery "cloud.google.com/go/bigquery"
+	stdpubsub "cloud.google.com/go/pubsub"
+	stdstorage "cloud.google.com/go/storage"
 	"github.com/alecthomas/kingpin"
+	"github.com/ericchiang/k8s"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	foundation "github.com/estafette/estafette-foundation"
 	"github.com/gin-contrib/gzip"
@@ -25,14 +29,15 @@ import (
 	"github.com/estafette/estafette-ci-api/helpers"
 
 	"github.com/estafette/estafette-ci-api/clients/bigquery"
-	bitbucketclt "github.com/estafette/estafette-ci-api/clients/bitbucket"
+	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudstorage"
-	"github.com/estafette/estafette-ci-api/clients/cockroach"
-	estafetteclt "github.com/estafette/estafette-ci-api/clients/estafette"
-	githubclt "github.com/estafette/estafette-ci-api/clients/github"
-	prometheusclt "github.com/estafette/estafette-ci-api/clients/prometheus"
-	pubsubclt "github.com/estafette/estafette-ci-api/clients/pubsub"
-	slackclt "github.com/estafette/estafette-ci-api/clients/slack"
+	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
+	"github.com/estafette/estafette-ci-api/clients/dockerhubapi"
+	"github.com/estafette/estafette-ci-api/clients/builderapi"
+	"github.com/estafette/estafette-ci-api/clients/githubapi"
+	"github.com/estafette/estafette-ci-api/clients/prometheus"
+	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
+	"github.com/estafette/estafette-ci-api/clients/slackapi"
 
 	"github.com/estafette/estafette-ci-api/services/bitbucket"
 	"github.com/estafette/estafette-ci-api/services/estafette"
@@ -128,6 +133,8 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		log.Fatal().Msgf("Cannot find secret decryption key at path %v", *secretDecryptionKeyPath)
 	}
 
+	ctx := context.Background()
+
 	secretDecryptionKeyBytes, err := ioutil.ReadFile(*secretDecryptionKeyPath)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed reading secret decryption key from path %v", *secretDecryptionKeyPath)
@@ -146,32 +153,45 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		log.Fatal().Err(err).Msg("Failed reading configuration without decrypting")
 	}
 
-	githubAPIClient := githubclt.NewClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
-	bitbucketAPIClient := bitbucketclt.NewClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
-	slackAPIClient := slackclt.NewClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
-	pubSubAPIClient, err := pubsubclt.NewClient(*config.Integrations.Pubsub)
+	// init clients
+	githubAPIClient := githubapi.NewClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
+
+	bitbucketAPIClient := bitbucketapi.NewClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
+
+	slackAPIClient := slackapi.NewClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
+
+	pubsubClient, err := stdpubsub.NewClient(ctx, config.Integrations.Pubsub.DefaultProject)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new PubSubAPIClient has failed")
 	}
-	cockroachDBClient := cockroach.NewClient(*config.Database, prometheusOutboundAPICallTotals)
-	ciBuilderClient, err := estafetteclt.NewClient(*config, *encryptedConfig, secretHelper, prometheusOutboundAPICallTotals)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating new CiBuilderClient has failed")
-	}
+	pubSubAPIClient := pubsubapi.NewClient(*config.Integrations.Pubsub, pubsubClient)
 
-	bigqueryClient, err := bigquery.NewClient(config.Integrations.BigQuery)
+	cockroachDBClient := cockroachdb.NewClient(*config.Database, prometheusOutboundAPICallTotals)
+
+	dockerHubClient := dockerhubapi.NewClient()
+
+	kubeClient, err := k8s.NewInClusterClient()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating k8s client failed")
+	}
+	ciBuilderClient := builderapi.NewClient(*config, *encryptedConfig, secretHelper, kubeClient, dockerHubClient, prometheusOutboundAPICallTotals)
+
+	bqClient, err := stdbigquery.NewClient(ctx, config.Integrations.BigQuery.ProjectID)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new BigQueryClient has failed")
 	}
+	bigqueryClient := bigquery.NewClient(config.Integrations.BigQuery, bqClient)
+
 	err = bigqueryClient.Init()
 	if err != nil {
 		log.Error().Err(err).Msg("Initializing BigQuery tables has failed")
 	}
 
-	cloudStorageClient, err := cloudstorage.NewClient(config.Integrations.CloudStorage)
+	gcsClient, err := stdstorage.NewClient(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new CloudStorageClient has failed")
 	}
+	cloudStorageClient := cloudstorage.NewClient(config.Integrations.CloudStorage, gcsClient)
 
 	// set up database
 	err = cockroachDBClient.Connect()
@@ -180,7 +200,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	}
 
 	log.Debug().Msg("Creating services, handlers and helpers...")
-	prometheusClient := prometheusclt.NewClient(*config.Integrations.Prometheus)
+	prometheusClient := prometheus.NewClient(*config.Integrations.Prometheus)
 	estafetteBuildService := estafette.NewService(*config.Jobs, *config.APIServer, cockroachDBClient, prometheusClient, cloudStorageClient, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
 	githubEventHandler := github.NewService(githubAPIClient, pubSubAPIClient, estafetteBuildService, *config.Integrations.Github, prometheusInboundEventTotals)
 	bitbucketEventHandler := bitbucket.NewService(*config.Integrations.Bitbucket, bitbucketAPIClient, pubSubAPIClient, estafetteBuildService, prometheusInboundEventTotals)

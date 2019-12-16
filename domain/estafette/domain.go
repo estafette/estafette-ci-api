@@ -3,7 +3,7 @@ package estafette
 import (
 	"fmt"
 
-	"github.com/estafette/estafette-ci-api/clients/cockroach"
+	cockroachdbdom "github.com/estafette/estafette-ci-api/domain/cockroachdb"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
@@ -30,7 +30,7 @@ type CiBuilderParams struct {
 	ReleaseTriggeredBy string
 	BuildID            int
 	TriggeredByEvents  []manifest.EstafetteEvent
-	JobResources       cockroach.JobResources
+	JobResources       cockroachdbdom.JobResources
 }
 
 // GetFullRepoPath returns the full path of the pipeline / build / release repository with source, owner and name

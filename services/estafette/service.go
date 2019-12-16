@@ -9,10 +9,11 @@ import (
 	"time"
 
 	"github.com/estafette/estafette-ci-api/clients/cloudstorage"
-	"github.com/estafette/estafette-ci-api/clients/cockroach"
-	estafetteclt "github.com/estafette/estafette-ci-api/clients/estafette"
+	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
+	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/prometheus"
 	"github.com/estafette/estafette-ci-api/config"
+	cockroachdbdom "github.com/estafette/estafette-ci-api/domain/cockroachdb"
 	estafettedom "github.com/estafette/estafette-ci-api/domain/estafette"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -42,16 +43,16 @@ type Service interface {
 type service struct {
 	jobsConfig           config.JobsConfig
 	apiServerConfig      config.APIServerConfig
-	cockroachDBClient    cockroach.Client
+	cockroachDBClient    cockroachdb.Client
 	prometheusClient     prometheus.Client
 	cloudStorageClient   cloudstorage.Client
-	ciBuilderClient      estafetteclt.Client
+	ciBuilderClient      builderapi.Client
 	githubJobVarsFunc    func(context.Context, string, string, string) (string, string, error)
 	bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)
 }
 
 // NewService returns a new estafette.Service
-func NewService(jobsConfig config.JobsConfig, apiServerConfig config.APIServerConfig, cockroachDBClient cockroach.Client, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient estafetteclt.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
+func NewService(jobsConfig config.JobsConfig, apiServerConfig config.APIServerConfig, cockroachDBClient cockroachdb.Client, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
 
 	return &service{
 		jobsConfig:           jobsConfig,
@@ -213,7 +214,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	}
 
 	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
-	jobResources := cockroach.JobResources{
+	jobResources := cockroachdbdom.JobResources{
 		CPURequest:    s.jobsConfig.MaxCPUCores,
 		CPULimit:      s.jobsConfig.MaxCPUCores,
 		MemoryRequest: s.jobsConfig.MaxMemoryBytes,
@@ -445,7 +446,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	}
 
 	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
-	jobResources := cockroach.JobResources{
+	jobResources := cockroachdbdom.JobResources{
 		CPURequest:    s.jobsConfig.MaxCPUCores,
 		CPULimit:      s.jobsConfig.MaxCPUCores,
 		MemoryRequest: s.jobsConfig.MaxMemoryBytes,
@@ -1078,7 +1079,7 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent estafet
 
 		log.Info().Msgf("Max memory usage for pod %v is %v", ciBuilderEvent.PodName, maxMemory)
 
-		jobResources := cockroach.JobResources{
+		jobResources := cockroachdbdom.JobResources{
 			CPUMaxUsage:    maxCPU,
 			MemoryMaxUsage: maxMemory,
 		}

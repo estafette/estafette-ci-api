@@ -11,8 +11,8 @@ import (
 	"net/http"
 	"strings"
 
-	githubclt "github.com/estafette/estafette-ci-api/clients/github"
-	"github.com/estafette/estafette-ci-api/clients/pubsub"
+	"github.com/estafette/estafette-ci-api/clients/githubapi"
+	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/config"
 	githubdom "github.com/estafette/estafette-ci-api/domain/github"
 	"github.com/estafette/estafette-ci-api/services/estafette"
@@ -33,15 +33,15 @@ type Service interface {
 }
 
 type service struct {
-	apiClient                    githubclt.Client
-	pubsubAPIClient              pubsub.Client
+	apiClient                    githubapi.Client
+	pubsubAPIClient              pubsubapi.Client
 	buildService                 estafette.Service
 	config                       config.GithubConfig
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewService returns a github.Service to handle incoming webhook events
-func NewService(apiClient githubclt.Client, pubsubAPIClient pubsub.Client, buildService estafette.Service, config config.GithubConfig, prometheusInboundEventTotals *prometheus.CounterVec) Service {
+func NewService(apiClient githubapi.Client, pubsubAPIClient pubsubapi.Client, buildService estafette.Service, config config.GithubConfig, prometheusInboundEventTotals *prometheus.CounterVec) Service {
 	return &service{
 		apiClient:                    apiClient,
 		pubsubAPIClient:              pubsubAPIClient,

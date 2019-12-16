@@ -30,25 +30,18 @@ type client struct {
 }
 
 // NewClient returns new gcs.Client
-func NewClient(config *config.CloudStorageConfig) (Client, error) {
+func NewClient(config *config.CloudStorageConfig, storageClient *storage.Client) Client {
 
 	if config == nil {
 		return &client{
 			config: config,
-		}, nil
-	}
-
-	ctx := context.Background()
-
-	storageClient, err := storage.NewClient(ctx)
-	if err != nil {
-		return nil, err
+		}
 	}
 
 	return &client{
 		client: storageClient,
 		config: config,
-	}, nil
+	}
 }
 
 func (impl *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error) {

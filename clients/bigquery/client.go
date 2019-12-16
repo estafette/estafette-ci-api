@@ -118,19 +118,12 @@ type Job struct {
 }
 
 // NewClient returns new bigquery.Client
-func NewClient(config *config.BigQueryConfig) (Client, error) {
+func NewClient(config *config.BigQueryConfig, bigqueryClient *bigquery.Client) Client {
 
 	if config == nil || !config.Enable {
 		return &client{
 			config: config,
-		}, nil
-	}
-
-	ctx := context.Background()
-
-	bigqueryClient, err := bigquery.NewClient(ctx, config.ProjectID)
-	if err != nil {
-		return nil, err
+		}
 	}
 
 	return &client{
@@ -138,7 +131,7 @@ func NewClient(config *config.BigQueryConfig) (Client, error) {
 		config:                 config,
 		buildEventsTableName:   "estafette_ci_build_events",
 		releaseEventsTableName: "estafette_ci_release_events",
-	}, nil
+	}
 }
 
 type client struct {

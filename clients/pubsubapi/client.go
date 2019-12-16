@@ -1,4 +1,4 @@
-package pubsub
+package pubsubapi
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	ps "cloud.google.com/go/pubsub"
+	stdpubsub "cloud.google.com/go/pubsub"
 	"github.com/estafette/estafette-ci-api/config"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/opentracing/opentracing-go"
@@ -23,7 +23,7 @@ type Client interface {
 
 type client struct {
 	config       config.PubsubConfig
-	pubsubClient *ps.Client
+	pubsubClient *stdpubsub.Client
 }
 
 // PubSubPushMessage is a container for a pubsub push message
@@ -57,18 +57,11 @@ func (m PubSubPushMessage) GetDecodedData() string {
 }
 
 // NewClient returns a new pubsub.Client
-func NewClient(config config.PubsubConfig) (Client, error) {
-
-	ctx := context.Background()
-	pubsubClient, err := ps.NewClient(ctx, config.DefaultProject)
-	if err != nil {
-		return nil, err
-	}
-
+func NewClient(config config.PubsubConfig, pubsubClient *stdpubsub.Client) Client {
 	return &client{
 		config:       config,
 		pubsubClient: pubsubClient,
-	}, nil
+	}
 }
 
 func (ac *client) SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (*manifest.EstafettePubSubEvent, error) {
@@ -140,11 +133,11 @@ func (ac *client) SubscribeToTopic(ctx context.Context, projectID, topicID strin
 
 	// create a subscription to the topic
 	log.Info().Msgf("Creating subscription %v for topic %v in project %v...", subscriptionName, topicID, projectID)
-	_, err = ac.pubsubClient.CreateSubscription(context.Background(), subscriptionName, ps.SubscriptionConfig{
+	_, err = ac.pubsubClient.CreateSubscription(context.Background(), subscriptionName, stdpubsub.SubscriptionConfig{
 		Topic: topic,
-		PushConfig: ps.PushConfig{
+		PushConfig: stdpubsub.PushConfig{
 			Endpoint: ac.config.Endpoint,
-			AuthenticationMethod: &ps.OIDCToken{
+			AuthenticationMethod: &stdpubsub.OIDCToken{
 				Audience:            ac.config.Audience,
 				ServiceAccountEmail: ac.config.ServiceAccountEmail,
 			},

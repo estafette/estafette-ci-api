@@ -3,7 +3,7 @@ package pubsub
 import (
 	"net/http"
 
-	"github.com/estafette/estafette-ci-api/clients/pubsub"
+	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	"github.com/gin-gonic/gin"
 	"github.com/opentracing/opentracing-go"
@@ -16,12 +16,12 @@ type Service interface {
 }
 
 type service struct {
-	apiClient    pubsub.Client
+	apiClient    pubsubapi.Client
 	buildService estafette.Service
 }
 
 // NewService returns a pubsub.Service
-func NewService(apiClient pubsub.Client, buildService estafette.Service) Service {
+func NewService(apiClient pubsubapi.Client, buildService estafette.Service) Service {
 	return &service{
 		apiClient:    apiClient,
 		buildService: buildService,
@@ -38,7 +38,7 @@ func (eh *service) PostPubsubEvent(c *gin.Context) {
 		return
 	}
 
-	var message pubsub.PubSubPushMessage
+	var message pubsubapi.PubSubPushMessage
 	err := c.BindJSON(&message)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed binding pubsub push event")

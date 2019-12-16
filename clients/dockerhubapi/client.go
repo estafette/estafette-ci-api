@@ -1,4 +1,4 @@
-package dockerhub
+package dockerhubapi
 
 import (
 	"context"
@@ -26,11 +26,11 @@ type client struct {
 }
 
 // NewClient returns a new docker.Client
-func NewClient() (Client, error) {
+func NewClient() Client {
 	return &client{
 		tokens:  make(map[string]DockerHubToken),
 		digests: make(map[string]DockerImageDigest),
-	}, nil
+	}
 }
 
 // GetToken creates an estafette-ci-builder job in Kubernetes to run the estafette build

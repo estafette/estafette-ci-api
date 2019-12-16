@@ -1,4 +1,4 @@
-package dockerhub
+package dockerhubapi
 
 import (
 	"context"
@@ -12,7 +12,7 @@ func TestGetToken(t *testing.T) {
 
 	t.Run("ReturnsTokenForRepository", func(t *testing.T) {
 
-		client, err := NewClient()
+		client := NewClient()
 
 		// act
 		token, err := client.GetToken("estafette/estafette-ci-builder")
@@ -27,7 +27,7 @@ func TestGetDigest(t *testing.T) {
 
 	t.Run("ReturnsDigestForRepositoryAndTag", func(t *testing.T) {
 
-		client, err := NewClient()
+		client := NewClient()
 		token, err := client.GetToken("estafette/estafette-ci-builder")
 
 		// act
@@ -42,7 +42,7 @@ func TestGetDigestCached(t *testing.T) {
 
 	t.Run("ReturnsDigestForRepositoryAndTag", func(t *testing.T) {
 
-		client, err := NewClient()
+		client := NewClient()
 
 		// act
 		digest, err := client.GetDigestCached(context.Background(), "estafette/estafette-ci-builder", "0.0.245")

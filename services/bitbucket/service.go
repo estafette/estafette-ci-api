@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	bitbucketclt "github.com/estafette/estafette-ci-api/clients/bitbucket"
-	"github.com/estafette/estafette-ci-api/clients/pubsub"
+	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
+	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/config"
 	bitbucketdom "github.com/estafette/estafette-ci-api/domain/bitbucket"
 	"github.com/estafette/estafette-ci-api/services/estafette"
@@ -28,14 +28,14 @@ type Service interface {
 
 type service struct {
 	config                       config.BitbucketConfig
-	apiClient                    bitbucketclt.Client
-	pubsubAPIClient              pubsub.Client
+	apiClient                    bitbucketapi.Client
+	pubsubAPIClient              pubsubapi.Client
 	buildService                 estafette.Service
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 // NewService returns a new bitbucket.Service
-func NewService(config config.BitbucketConfig, apiClient bitbucketclt.Client, pubsubAPIClient pubsub.Client, buildService estafette.Service, prometheusInboundEventTotals *prometheus.CounterVec) Service {
+func NewService(config config.BitbucketConfig, apiClient bitbucketapi.Client, pubsubAPIClient pubsubapi.Client, buildService estafette.Service, prometheusInboundEventTotals *prometheus.CounterVec) Service {
 	return &service{
 		config:                       config,
 		apiClient:                    apiClient,
