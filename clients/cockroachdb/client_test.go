@@ -8,19 +8,11 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/estafette/estafette-ci-api/config"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	cdbClient = NewClient(config.DatabaseConfig{}, prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "estafette_ci_api_outbound_api_call_totals",
-			Help: "Total of outgoing api calls.",
-		},
-		[]string{"target"},
-	))
+	cdbClient = client{}
 )
 
 func TestQueryBuilder(t *testing.T) {

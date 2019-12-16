@@ -25,17 +25,14 @@ type Service interface {
 	FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) error
 	CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (*contracts.Release, error)
 	FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) error
-
 	FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) error
 	FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) error
 	FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) error
 	FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) error
 	FireCronTriggers(ctx context.Context) error
-
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
-
-	UpdateBuildStatus(context.Context, builderapi.CiBuilderEvent) error
-	UpdateJobResources(context.Context, builderapi.CiBuilderEvent) error
+	UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) error
+	UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) error
 }
 
 type service struct {
@@ -1061,16 +1058,16 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent builder
 
 	if ciBuilderEvent.PodName != "" {
 
-		s.prometheusClient.AwaitScrapeInterval()
+		s.prometheusClient.AwaitScrapeInterval(ctx)
 
-		maxCPU, err := s.prometheusClient.GetMaxCPUByPodName(ciBuilderEvent.PodName)
+		maxCPU, err := s.prometheusClient.GetMaxCPUByPodName(ctx, ciBuilderEvent.PodName)
 		if err != nil {
 			return err
 		}
 
 		log.Info().Msgf("Max cpu usage for pod %v is %v", ciBuilderEvent.PodName, maxCPU)
 
-		maxMemory, err := s.prometheusClient.GetMaxMemoryByPodName(ciBuilderEvent.PodName)
+		maxMemory, err := s.prometheusClient.GetMaxMemoryByPodName(ctx, ciBuilderEvent.PodName)
 		if err != nil {
 			return err
 		}

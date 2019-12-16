@@ -6,32 +6,23 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	"github.com/gin-gonic/gin"
-	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 )
 
-// Service handles http events for Pubsub integration
-type Service interface {
-	PostPubsubEvent(*gin.Context)
-}
-
-type service struct {
+type Handler struct {
 	apiClient    pubsubapi.Client
 	buildService estafette.Service
 }
 
-// NewService returns a pubsub.Service
-func NewService(apiClient pubsubapi.Client, buildService estafette.Service) Service {
-	return &service{
+// NewHandler returns a pubsub.Handler
+func NewHandler(apiClient pubsubapi.Client, buildService estafette.Service) Handler {
+	return Handler{
 		apiClient:    apiClient,
 		buildService: buildService,
 	}
 }
 
-func (eh *service) PostPubsubEvent(c *gin.Context) {
-
-	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "PubSub::PostPubsubEvent")
-	defer span.Finish()
+func (eh *Handler) PostPubsubEvent(c *gin.Context) {
 
 	if c.MustGet(gin.AuthUserKey).(string) != "google-jwt" {
 		c.Status(http.StatusUnauthorized)
@@ -46,7 +37,7 @@ func (eh *service) PostPubsubEvent(c *gin.Context) {
 		return
 	}
 
-	pubsubEvent, err := eh.apiClient.SubscriptionForTopic(ctx, message)
+	pubsubEvent, err := eh.apiClient.SubscriptionForTopic(c.Request.Context(), message)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed retrieving topic for pubsub subscription")
 		c.String(http.StatusInternalServerError, "Oop, something's wrong!")
@@ -66,7 +57,7 @@ func (eh *service) PostPubsubEvent(c *gin.Context) {
 		Str("topic", pubsubEvent.Topic).
 		Msg("Successfully binded pubsub push event")
 
-	err = eh.buildService.FirePubSubTriggers(ctx, *pubsubEvent)
+	err = eh.buildService.FirePubSubTriggers(c.Request.Context(), *pubsubEvent)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed firing pubsub triggers for topic %v in project %v", pubsubEvent.Topic, pubsubEvent.Project)
 		c.String(http.StatusInternalServerError, "Oop, something's wrong!")

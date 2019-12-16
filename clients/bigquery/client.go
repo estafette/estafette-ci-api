@@ -12,109 +12,13 @@ import (
 
 // Client is the interface for connecting to bigquery
 type Client interface {
-	Init() error
-	CheckIfDatasetExists() bool
-	CheckIfTableExists(table string) bool
-	CreateTable(table string, typeForSchema interface{}, partitionField string, waitReady bool) error
-	UpdateTableSchema(table string, typeForSchema interface{}) error
-	InsertBuildEvent(event PipelineBuildEvent) error
-	InsertReleaseEvent(event PipelineReleaseEvent) error
-}
-
-// PipelineBuildEvent tracks a build once it's finished
-type PipelineBuildEvent struct {
-	BuildID      int    `bigquery:"build_id"`
-	RepoSource   string `bigquery:"repo_source"`
-	RepoOwner    string `bigquery:"repo_owner"`
-	RepoName     string `bigquery:"repo_name"`
-	RepoBranch   string `bigquery:"repo_branch"`
-	RepoRevision string `bigquery:"repo_revision"`
-	BuildVersion string `bigquery:"build_version"`
-	BuildStatus  string `bigquery:"build_status"`
-
-	Labels []struct {
-		Key   string `bigquery:"key"`
-		Value string `bigquery:"value"`
-	} `bigquery:"labels"`
-
-	InsertedAt time.Time `bigquery:"inserted_at"`
-	UpdatedAt  time.Time `bigquery:"updated_at"`
-
-	Commits []struct {
-		Message string `bigquery:"message"`
-		Author  struct {
-			Email string `bigquery:"email"`
-		} `bigquery:"author"`
-	} `bigquery:"commits"`
-
-	CPURequest     bigquery.NullFloat64 `bigquery:"cpu_request"`
-	CPULimit       bigquery.NullFloat64 `bigquery:"cpu_limit"`
-	CPUMaxUsage    bigquery.NullFloat64 `bigquery:"cpu_max_usage"`
-	MemoryRequest  bigquery.NullFloat64 `bigquery:"memory_request"`
-	MemoryLimit    bigquery.NullFloat64 `bigquery:"memory_limit"`
-	MemoryMaxUsage bigquery.NullFloat64 `bigquery:"memory_max_usage"`
-
-	TotalDuration time.Duration `bigquery:"duration"`
-	TimeToRunning time.Duration `bigquery:"time_to_running"`
-
-	Manifest string `bigquery:"manifest"`
-
-	Jobs []Job `bigquery:"logs"`
-}
-
-// PipelineReleaseEvent tracks a release once it's finished
-type PipelineReleaseEvent struct {
-	ReleaseID      int    `bigquery:"release_id"`
-	RepoSource     string `bigquery:"repo_source"`
-	RepoOwner      string `bigquery:"repo_owner"`
-	RepoName       string `bigquery:"repo_name"`
-	ReleaseTarget  string `bigquery:"release_target"`
-	ReleaseVersion string `bigquery:"release_version"`
-	ReleaseStatus  string `bigquery:"release_status"`
-
-	Labels []struct {
-		Key   string `bigquery:"key"`
-		Value string `bigquery:"value"`
-	} `bigquery:"labels"`
-
-	InsertedAt time.Time `bigquery:"inserted_at"`
-	UpdatedAt  time.Time `bigquery:"updated_at"`
-
-	CPURequest     bigquery.NullFloat64 `bigquery:"cpu_request"`
-	CPULimit       bigquery.NullFloat64 `bigquery:"cpu_limit"`
-	CPUMaxUsage    bigquery.NullFloat64 `bigquery:"cpu_max_usage"`
-	MemoryRequest  bigquery.NullFloat64 `bigquery:"memory_request"`
-	MemoryLimit    bigquery.NullFloat64 `bigquery:"memory_limit"`
-	MemoryMaxUsage bigquery.NullFloat64 `bigquery:"memory_max_usage"`
-
-	TotalDuration time.Duration `bigquery:"duration"`
-	TimeToRunning time.Duration `bigquery:"time_to_running"`
-
-	Jobs []Job `bigquery:"logs"`
-}
-
-// Job represent and actual job execution; a build / release can have multiple runs of a job if Kubernetes reschedules it
-type Job struct {
-	JobID  int `bigquery:"job_id"`
-	Stages []struct {
-		Name           string `bigquery:"name"`
-		ContainerImage struct {
-			Name         string        `bigquery:"name"`
-			Tag          string        `bigquery:"tag"`
-			IsPulled     bool          `bigquery:"is_pulled"`
-			ImageSize    int           `bigquery:"image_size"`
-			PullDuration time.Duration `bigquery:"pull_duration"`
-			IsTrusted    bool          `bigquery:"is_trusted"`
-		} `bigquery:"container_image"`
-
-		RunDuration time.Duration `bigquery:"run_duration"`
-		LogLines    []struct {
-			Timestamp  time.Time `bigquery:"timestamp"`
-			StreamType string    `bigquery:"stream_type"`
-			Text       string    `bigquery:"text"`
-		} `bigquery:"log_lines"`
-	} `bigquery:"stages"`
-	InsertedAt time.Time `bigquery:"inserted_at"`
+	Init(ctx context.Context) error
+	CheckIfDatasetExists(ctx context.Context) bool
+	CheckIfTableExists(ctx context.Context, table string) bool
+	CreateTable(ctx context.Context, table string, typeForSchema interface{}, partitionField string, waitReady bool) error
+	UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) error
+	InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) error
+	InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) error
 }
 
 // NewClient returns new bigquery.Client
@@ -141,7 +45,7 @@ type client struct {
 	releaseEventsTableName string
 }
 
-func (bqc *client) Init() (err error) {
+func (bqc *client) Init(ctx context.Context) (err error) {
 
 	if bqc.config == nil || !bqc.config.Enable {
 		return
@@ -149,26 +53,26 @@ func (bqc *client) Init() (err error) {
 
 	log.Info().Msgf("Initializing BigQuery tables %v and %v...", bqc.buildEventsTableName, bqc.releaseEventsTableName)
 
-	datasetExists := bqc.CheckIfDatasetExists()
+	datasetExists := bqc.CheckIfDatasetExists(ctx)
 	if !datasetExists {
 		return fmt.Errorf("Dataset %v does not exist, create it first; make sure to set the region you want your data to reside in", bqc.config.Dataset)
 	}
 
-	buildEventsTableExists := bqc.CheckIfTableExists(bqc.buildEventsTableName)
+	buildEventsTableExists := bqc.CheckIfTableExists(ctx, bqc.buildEventsTableName)
 	if buildEventsTableExists {
-		err = bqc.UpdateTableSchema(bqc.buildEventsTableName, PipelineBuildEvent{})
+		err = bqc.UpdateTableSchema(ctx, bqc.buildEventsTableName, PipelineBuildEvent{})
 	} else {
-		err = bqc.CreateTable(bqc.buildEventsTableName, PipelineBuildEvent{}, "inserted_at", true)
+		err = bqc.CreateTable(ctx, bqc.buildEventsTableName, PipelineBuildEvent{}, "inserted_at", true)
 	}
 	if err != nil {
 		return
 	}
 
-	releaseEventsTableExists := bqc.CheckIfTableExists(bqc.releaseEventsTableName)
+	releaseEventsTableExists := bqc.CheckIfTableExists(ctx, bqc.releaseEventsTableName)
 	if releaseEventsTableExists {
-		err = bqc.UpdateTableSchema(bqc.releaseEventsTableName, PipelineReleaseEvent{})
+		err = bqc.UpdateTableSchema(ctx, bqc.releaseEventsTableName, PipelineReleaseEvent{})
 	} else {
-		err = bqc.CreateTable(bqc.releaseEventsTableName, PipelineReleaseEvent{}, "inserted_at", true)
+		err = bqc.CreateTable(ctx, bqc.releaseEventsTableName, PipelineReleaseEvent{}, "inserted_at", true)
 	}
 	if err != nil {
 		return
@@ -177,7 +81,7 @@ func (bqc *client) Init() (err error) {
 	return nil
 }
 
-func (bqc *client) CheckIfDatasetExists() bool {
+func (bqc *client) CheckIfDatasetExists(ctx context.Context) bool {
 
 	log.Info().Msgf("Checking if BigQuery dataset %v exists...", bqc.config.Dataset)
 
@@ -191,7 +95,7 @@ func (bqc *client) CheckIfDatasetExists() bool {
 	return md != nil
 }
 
-func (bqc *client) CheckIfTableExists(table string) bool {
+func (bqc *client) CheckIfTableExists(ctx context.Context, table string) bool {
 
 	log.Info().Msgf("Checking if BigQuery table %v exists...", table)
 
@@ -205,7 +109,7 @@ func (bqc *client) CheckIfTableExists(table string) bool {
 	return md != nil
 }
 
-func (bqc *client) CreateTable(table string, typeForSchema interface{}, partitionField string, waitReady bool) error {
+func (bqc *client) CreateTable(ctx context.Context, table string, typeForSchema interface{}, partitionField string, waitReady bool) error {
 
 	log.Info().Msgf("Creating BigQuery table %v in dataset %v...", table, bqc.config.Dataset)
 
@@ -236,7 +140,7 @@ func (bqc *client) CreateTable(table string, typeForSchema interface{}, partitio
 
 	if waitReady {
 		for {
-			if bqc.CheckIfTableExists(table) {
+			if bqc.CheckIfTableExists(ctx, table) {
 				break
 			}
 			time.Sleep(time.Second)
@@ -248,7 +152,7 @@ func (bqc *client) CreateTable(table string, typeForSchema interface{}, partitio
 	return nil
 }
 
-func (bqc *client) UpdateTableSchema(table string, typeForSchema interface{}) error {
+func (bqc *client) UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) error {
 
 	log.Info().Msgf("Updating BigQuery table %v schema in dataset %v...", table, bqc.config.Dataset)
 
@@ -275,7 +179,7 @@ func (bqc *client) UpdateTableSchema(table string, typeForSchema interface{}) er
 	return nil
 }
 
-func (bqc *client) InsertBuildEvent(event PipelineBuildEvent) error {
+func (bqc *client) InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) error {
 
 	if bqc.config == nil || !bqc.config.Enable {
 		return nil
@@ -292,7 +196,7 @@ func (bqc *client) InsertBuildEvent(event PipelineBuildEvent) error {
 	return nil
 }
 
-func (bqc *client) InsertReleaseEvent(event PipelineReleaseEvent) error {
+func (bqc *client) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) error {
 
 	if bqc.config == nil || !bqc.config.Enable {
 		return nil

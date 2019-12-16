@@ -24,13 +24,11 @@ import (
 // Client is the interface for communicating with the github api
 type Client interface {
 	GetGithubAppToken(ctx context.Context) (string, error)
-	GetInstallationID(context.Context, string) (int, error)
-	GetInstallationToken(context.Context, int) (AccessToken, error)
-	GetAuthenticatedRepositoryURL(AccessToken, string) (string, error)
-	GetEstafetteManifest(context.Context, AccessToken, PushEvent) (bool, string, error)
-	callGithubAPI(opentracing.Span, string, string, interface{}, string, string) (int, []byte, error)
-
-	JobVarsFunc() func(context.Context, string, string, string) (string, string, error)
+	GetInstallationID(ctx context.Context, repoOwner string) (int, error)
+	GetInstallationToken(ctx context.Context, installationID int) (AccessToken, error)
+	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (string, error)
+	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (bool, string, error)
+	JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error)
 }
 
 type client struct {
@@ -149,7 +147,7 @@ func (gh *client) GetInstallationToken(ctx context.Context, installationID int) 
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (gh *client) GetAuthenticatedRepositoryURL(accessToken AccessToken, htmlURL string) (url string, err error) {
+func (gh *client) GetAuthenticatedRepositoryURL(ctx context.Context, accessToken AccessToken, htmlURL string) (url string, err error) {
 
 	url = strings.Replace(htmlURL, "https://github.com", fmt.Sprintf("https://x-access-token:%v@github.com", accessToken.Token), -1)
 
@@ -195,7 +193,7 @@ func (gh *client) GetEstafetteManifest(ctx context.Context, accessToken AccessTo
 }
 
 // JobVarsFunc returns a function that can get an access token and authenticated url for a repository
-func (gh *client) JobVarsFunc() func(context.Context, string, string, string) (string, string, error) {
+func (gh *client) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error) {
 	return func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 		// get installation id with just the repo owner
 		installationID, err := gh.GetInstallationID(ctx, repoOwner)
@@ -210,7 +208,7 @@ func (gh *client) JobVarsFunc() func(context.Context, string, string, string) (s
 		}
 
 		// get authenticated url for the repository
-		url, err = gh.GetAuthenticatedRepositoryURL(accessToken, fmt.Sprintf("https://%v/%v/%v", repoSource, repoOwner, repoName))
+		url, err = gh.GetAuthenticatedRepositoryURL(ctx, accessToken, fmt.Sprintf("https://%v/%v/%v", repoSource, repoOwner, repoName))
 		if err != nil {
 			return "", "", err
 		}

@@ -26,62 +26,62 @@ import (
 
 // Client is the interface for communicating with CockroachDB
 type Client interface {
-	Connect() error
-	ConnectWithDriverAndSource(driverName, dataSourceName string) error
+	Connect(ctx context.Context) error
+	ConnectWithDriverAndSource(ctx context.Context, driverName, dataSourceName string) error
 
 	GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwner, repoName string) (int, error)
-	InsertBuild(context.Context, contracts.Build, JobResources) (*contracts.Build, error)
-	UpdateBuildStatus(context.Context, string, string, string, int, string) error
-	UpdateBuildResourceUtilization(context.Context, string, string, string, int, JobResources) error
-	InsertRelease(context.Context, contracts.Release, JobResources) (*contracts.Release, error)
-	UpdateReleaseStatus(context.Context, string, string, string, int, string) error
-	UpdateReleaseResourceUtilization(context.Context, string, string, string, int, JobResources) error
-	InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (insertedBuildLog contracts.BuildLog, err error)
-	InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (insertedReleaseLog contracts.ReleaseLog, err error)
+	InsertBuild(ctx context.Context, build contracts.Build, jobResources JobResources) (*contracts.Build, error)
+	UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) error
+	UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources JobResources) error
+	InsertRelease(ctx context.Context, release contracts.Release, jobResources JobResources) (*contracts.Release, error)
+	UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus string) error
+	UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) error
+	InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (contracts.BuildLog, error)
+	InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (contracts.ReleaseLog, error)
 
-	UpsertComputedPipeline(context.Context, string, string, string) error
-	UpdateComputedPipelineFirstInsertedAt(context.Context, string, string, string) error
-	UpsertComputedRelease(context.Context, string, string, string, string, string) error
-	UpdateComputedReleaseFirstInsertedAt(context.Context, string, string, string, string, string) error
+	UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) error
+	UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName string) error
+	UpsertComputedRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) error
+	UpdateComputedReleaseFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) error
 
-	GetPipelines(context.Context, int, int, map[string][]string, bool) ([]*contracts.Pipeline, error)
-	GetPipelinesByRepoName(context.Context, string, bool) ([]*contracts.Pipeline, error)
-	GetPipelinesCount(context.Context, map[string][]string) (int, error)
-	GetPipeline(context.Context, string, string, string, bool) (*contracts.Pipeline, error)
-	GetPipelineBuilds(context.Context, string, string, string, int, int, map[string][]string, bool) ([]*contracts.Build, error)
-	GetPipelineBuildsCount(context.Context, string, string, string, map[string][]string) (int, error)
-	GetPipelineBuild(context.Context, string, string, string, string, bool) (*contracts.Build, error)
-	GetPipelineBuildByID(context.Context, string, string, string, int, bool) (*contracts.Build, error)
-	GetLastPipelineBuild(context.Context, string, string, string, bool) (*contracts.Build, error)
-	GetFirstPipelineBuild(context.Context, string, string, string, bool) (*contracts.Build, error)
-	GetLastPipelineBuildForBranch(context.Context, string, string, string, string) (*contracts.Build, error)
-	GetLastPipelineRelease(context.Context, string, string, string, string, string) (*contracts.Release, error)
-	GetFirstPipelineRelease(context.Context, string, string, string, string, string) (*contracts.Release, error)
-	GetPipelineBuildsByVersion(context.Context, string, string, string, string, []string, uint64, bool) ([]*contracts.Build, error)
-	GetPipelineBuildLogs(context.Context, string, string, string, string, string, string, bool) (*contracts.BuildLog, error)
+	GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) ([]*contracts.Pipeline, error)
+	GetPipelinesByRepoName(ctx context.Context, repoName string, optimized bool) ([]*contracts.Pipeline, error)
+	GetPipelinesCount(ctx context.Context, filters map[string][]string) (int, error)
+	GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (*contracts.Pipeline, error)
+	GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, optimized bool) ([]*contracts.Build, error)
+	GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (int, error)
+	GetPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName, repoRevision string, optimized bool) (*contracts.Build, error)
+	GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, id int, optimized bool) (*contracts.Build, error)
+	GetLastPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (*contracts.Build, error)
+	GetFirstPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (*contracts.Build, error)
+	GetLastPipelineBuildForBranch(ctx context.Context, repoSource, repoOwner, repoName, branch string) (*contracts.Build, error)
+	GetLastPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (*contracts.Release, error)
+	GetFirstPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (*contracts.Release, error)
+	GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) ([]*contracts.Build, error)
+	GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (*contracts.BuildLog, error)
 	GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
-	GetPipelineBuildMaxResourceUtilization(context.Context, string, string, string, int) (JobResources, int, error)
-	GetPipelineReleases(context.Context, string, string, string, int, int, map[string][]string) ([]*contracts.Release, error)
-	GetPipelineReleasesCount(context.Context, string, string, string, map[string][]string) (int, error)
-	GetPipelineRelease(context.Context, string, string, string, int) (*contracts.Release, error)
-	GetPipelineLastReleasesByName(context.Context, string, string, string, string, []string) ([]contracts.Release, error)
-	GetPipelineReleaseLogs(context.Context, string, string, string, int, bool) (*contracts.ReleaseLog, error)
-	GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (releaseLogs []*contracts.ReleaseLog, err error)
-	GetPipelineReleaseMaxResourceUtilization(context.Context, string, string, string, string, int) (JobResources, int, error)
-	GetBuildsCount(context.Context, map[string][]string) (int, error)
-	GetReleasesCount(context.Context, map[string][]string) (int, error)
-	GetBuildsDuration(context.Context, map[string][]string) (time.Duration, error)
-	GetFirstBuildTimes(context.Context) ([]time.Time, error)
-	GetFirstReleaseTimes(context.Context) ([]time.Time, error)
-	GetPipelineBuildsDurations(context.Context, string, string, string, map[string][]string) ([]map[string]interface{}, error)
-	GetPipelineReleasesDurations(context.Context, string, string, string, map[string][]string) ([]map[string]interface{}, error)
-	GetPipelineBuildsCPUUsageMeasurements(context.Context, string, string, string, map[string][]string) ([]map[string]interface{}, error)
-	GetPipelineReleasesCPUUsageMeasurements(context.Context, string, string, string, map[string][]string) ([]map[string]interface{}, error)
-	GetPipelineBuildsMemoryUsageMeasurements(context.Context, string, string, string, map[string][]string) ([]map[string]interface{}, error)
-	GetPipelineReleasesMemoryUsageMeasurements(context.Context, string, string, string, map[string][]string) ([]map[string]interface{}, error)
+	GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (JobResources, int, error)
+	GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string) ([]*contracts.Release, error)
+	GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (int, error)
+	GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, id int) (*contracts.Release, error)
+	GetPipelineLastReleasesByName(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) ([]contracts.Release, error)
+	GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, id int, readLogFromDatabase bool) (*contracts.ReleaseLog, error)
+	GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) ([]*contracts.ReleaseLog, error)
+	GetPipelineReleaseMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (JobResources, int, error)
+	GetBuildsCount(ctx context.Context, filters map[string][]string) (int, error)
+	GetReleasesCount(ctx context.Context, filters map[string][]string) (int, error)
+	GetBuildsDuration(ctx context.Context, filters map[string][]string) (time.Duration, error)
+	GetFirstBuildTimes(ctx context.Context) ([]time.Time, error)
+	GetFirstReleaseTimes(ctx context.Context) ([]time.Time, error)
+	GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) ([]map[string]interface{}, error)
+	GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) ([]map[string]interface{}, error)
+	GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) ([]map[string]interface{}, error)
+	GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) ([]map[string]interface{}, error)
+	GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) ([]map[string]interface{}, error)
+	GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) ([]map[string]interface{}, error)
 
-	GetFrequentLabels(context.Context, int, int, map[string][]string) ([]map[string]interface{}, error)
-	GetFrequentLabelsCount(context.Context, map[string][]string) (int, error)
+	GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) ([]map[string]interface{}, error)
+	GetFrequentLabelsCount(ctx context.Context, filters map[string][]string) (int, error)
 
 	GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) ([]map[string]interface{}, error)
 	GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[string][]string) (int, error)
@@ -93,7 +93,7 @@ type Client interface {
 	GetPipelineTriggers(ctx context.Context, build contracts.Build, event string) ([]*contracts.Pipeline, error)
 	GetReleaseTriggers(ctx context.Context, release contracts.Release, event string) ([]*contracts.Pipeline, error)
 	GetPubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) ([]*contracts.Pipeline, error)
-	GetCronTriggers(context.Context) ([]*contracts.Pipeline, error)
+	GetCronTriggers(ctx context.Context) ([]*contracts.Pipeline, error)
 
 	Rename(ctx context.Context, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName string) error
 	RenameBuildVersion(ctx context.Context, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName string) error
@@ -103,10 +103,6 @@ type Client interface {
 	RenameReleaseLogs(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
 	RenameComputedPipelines(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
 	RenameComputedReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
-
-	selectBuildsQuery() sq.SelectBuilder
-	selectPipelinesQuery() sq.SelectBuilder
-	selectReleasesQuery() sq.SelectBuilder
 }
 
 // BuildVersionDetail represents a specific build, including version number, repo, branch, revision and manifest
@@ -140,7 +136,7 @@ func NewClient(config config.DatabaseConfig, prometheusOutboundAPICallTotals *pr
 }
 
 // Connect sets up a connection with CockroachDB
-func (dbc *client) Connect() (err error) {
+func (dbc *client) Connect(ctx context.Context) (err error) {
 
 	log.Debug().Msgf("Connecting to database %v on host %v...", dbc.config.DatabaseName, dbc.config.Host)
 
@@ -151,11 +147,11 @@ func (dbc *client) Connect() (err error) {
 
 	dataSourceName := fmt.Sprintf("postgresql://%v:%v@%v:%v/%v%v", dbc.config.User, dbc.config.Password, dbc.config.Host, dbc.config.Port, dbc.config.DatabaseName, sslMode)
 
-	return dbc.ConnectWithDriverAndSource(dbc.databaseDriver, dataSourceName)
+	return dbc.ConnectWithDriverAndSource(ctx, dbc.databaseDriver, dataSourceName)
 }
 
 // ConnectWithDriverAndSource set up a connection with any database
-func (dbc *client) ConnectWithDriverAndSource(driverName, dataSourceName string) (err error) {
+func (dbc *client) ConnectWithDriverAndSource(ctx context.Context, driverName, dataSourceName string) (err error) {
 
 	dbc.databaseConnection, err = sql.Open(driverName, dataSourceName)
 	if err != nil {

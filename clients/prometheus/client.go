@@ -1,6 +1,7 @@
 package prometheus
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -17,9 +18,9 @@ import (
 
 // Client is the interface for communicating with prometheus
 type Client interface {
-	AwaitScrapeInterval()
-	GetMaxMemoryByPodName(podName string) (float64, error)
-	GetMaxCPUByPodName(podName string) (float64, error)
+	AwaitScrapeInterval(ctx context.Context)
+	GetMaxMemoryByPodName(ctx context.Context, podName string) (float64, error)
+	GetMaxCPUByPodName(ctx context.Context, podName string) (float64, error)
 }
 
 type PrometheusQueryResponse struct {
@@ -50,12 +51,12 @@ func NewClient(config config.PrometheusConfig) Client {
 	}
 }
 
-func (pc *client) AwaitScrapeInterval() {
+func (pc *client) AwaitScrapeInterval(ctx context.Context) {
 	log.Debug().Msgf("Waiting for %v seconds before querying Prometheus", pc.config.ScrapeIntervalSeconds)
 	time.Sleep(time.Duration(pc.config.ScrapeIntervalSeconds) * time.Second)
 }
 
-func (pc *client) GetMaxMemoryByPodName(podName string) (maxMemory float64, err error) {
+func (pc *client) GetMaxMemoryByPodName(ctx context.Context, podName string) (maxMemory float64, err error) {
 
 	query := fmt.Sprintf("max_over_time(container_memory_working_set_bytes{container_name=\"estafette-ci-builder\",pod_name=\"%v\"}[3h])", podName)
 
@@ -67,7 +68,7 @@ func (pc *client) GetMaxMemoryByPodName(podName string) (maxMemory float64, err 
 	return
 }
 
-func (pc *client) GetMaxCPUByPodName(podName string) (maxCPU float64, err error) {
+func (pc *client) GetMaxCPUByPodName(ctx context.Context, podName string) (maxCPU float64, err error) {
 
 	query := fmt.Sprintf("max_over_time(container_cpu_usage_rate1m{container_name=\"estafette-ci-builder\",pod_name=\"%v\"}[3h])", podName)
 

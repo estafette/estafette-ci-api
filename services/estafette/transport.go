@@ -19,9 +19,9 @@ import (
 	"time"
 
 	"github.com/estafette/estafette-ci-api/auth"
+	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudstorage"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
-	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -33,66 +33,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// APIHandler handles all api calls
-type APIHandler interface {
-	GetPipelines(*gin.Context)
-	GetPipeline(*gin.Context)
-	GetPipelineBuilds(*gin.Context)
-	GetPipelineBuild(*gin.Context)
-	CreatePipelineBuild(*gin.Context)
-	CancelPipelineBuild(*gin.Context)
-	GetPipelineBuildLogs(*gin.Context)
-	TailPipelineBuildLogs(*gin.Context)
-	PostPipelineBuildLogs(*gin.Context)
-	GetPipelineBuildWarnings(*gin.Context)
-	GetPipelineReleases(*gin.Context)
-	GetPipelineRelease(*gin.Context)
-	CreatePipelineRelease(*gin.Context)
-	CancelPipelineRelease(*gin.Context)
-	GetPipelineReleaseLogs(*gin.Context)
-	TailPipelineReleaseLogs(*gin.Context)
-	PostPipelineReleaseLogs(*gin.Context)
-	GetFrequentLabels(*gin.Context)
-
-	GetPipelineStatsBuildsDurations(*gin.Context)
-	GetPipelineStatsReleasesDurations(*gin.Context)
-	GetPipelineStatsBuildsCPUUsageMeasurements(*gin.Context)
-	GetPipelineStatsReleasesCPUUsageMeasurements(*gin.Context)
-	GetPipelineStatsBuildsMemoryUsageMeasurements(*gin.Context)
-	GetPipelineStatsReleasesMemoryUsageMeasurements(*gin.Context)
-	GetPipelineWarnings(*gin.Context)
-
-	GetStatsPipelinesCount(*gin.Context)
-	GetStatsBuildsCount(*gin.Context)
-	GetStatsReleasesCount(*gin.Context)
-
-	GetStatsMostBuilds(*gin.Context)
-	GetStatsMostReleases(*gin.Context)
-
-	GetStatsBuildsDuration(*gin.Context)
-	GetStatsBuildsAdoption(*gin.Context)
-	GetStatsReleasesAdoption(*gin.Context)
-
-	GetLoggedInUser(*gin.Context)
-	UpdateComputedTables(*gin.Context)
-
-	GetConfig(*gin.Context)
-	GetConfigCredentials(*gin.Context)
-	GetConfigTrustedImages(*gin.Context)
-
-	GetManifestTemplates(*gin.Context)
-	GenerateManifest(*gin.Context)
-	ValidateManifest(*gin.Context)
-	EncryptSecret(*gin.Context)
-
-	PostCronEvent(*gin.Context)
-
-	CopyLogsToCloudStorage(c *gin.Context)
-
-	Commands(*gin.Context)
-}
-
-type apiHandlerImpl struct {
+type Handler struct {
 	configFilePath       string
 	config               config.APIServerConfig
 	authConfig           config.AuthConfig
@@ -107,10 +48,10 @@ type apiHandlerImpl struct {
 	bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)
 }
 
-// NewAPIHandler returns a new estafette.APIHandler
-func NewAPIHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper helpers.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) (apiHandler APIHandler) {
+// NewHandler returns a new estafette.Handler
+func NewHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper helpers.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
 
-	apiHandler = &apiHandlerImpl{
+	return Handler{
 		configFilePath:       configFilePath,
 		config:               config,
 		authConfig:           authConfig,
@@ -124,12 +65,9 @@ func NewAPIHandler(configFilePath string, config config.APIServerConfig, authCon
 		githubJobVarsFunc:    githubJobVarsFunc,
 		bitbucketJobVarsFunc: bitbucketJobVarsFunc,
 	}
-
-	return
-
 }
 
-func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
+func (h *Handler) GetPipelines(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelines")
 	defer span.Finish()
@@ -199,7 +137,7 @@ func (h *apiHandlerImpl) GetPipelines(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *apiHandlerImpl) GetPipeline(c *gin.Context) {
+func (h *Handler) GetPipeline(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipeline")
 	defer span.Finish()
@@ -223,7 +161,7 @@ func (h *apiHandlerImpl) GetPipeline(c *gin.Context) {
 	c.JSON(http.StatusOK, pipeline)
 }
 
-func (h *apiHandlerImpl) GetPipelineBuilds(c *gin.Context) {
+func (h *Handler) GetPipelineBuilds(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineBuilds")
 	defer span.Finish()
@@ -306,7 +244,7 @@ func (h *apiHandlerImpl) GetPipelineBuilds(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
+func (h *Handler) GetPipelineBuild(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineBuild")
 	defer span.Finish()
@@ -373,7 +311,7 @@ func (h *apiHandlerImpl) GetPipelineBuild(c *gin.Context) {
 	c.JSON(http.StatusOK, build)
 }
 
-func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
+func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::CreatePipelineBuild")
 	defer span.Finish()
@@ -463,7 +401,7 @@ func (h *apiHandlerImpl) CreatePipelineBuild(c *gin.Context) {
 	c.JSON(http.StatusCreated, createdBuild)
 }
 
-func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
+func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::CancelPipelineBuild")
 	defer span.Finish()
@@ -499,7 +437,7 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 	}
 	if build.BuildStatus == "canceling" {
 		// apparently cancel was already clicked, but somehow the job didn't update the status to canceled
-		jobName := h.ciBuilderClient.GetJobName("build", build.RepoOwner, build.RepoName, build.ID)
+		jobName := h.ciBuilderClient.GetJobName(ctx, "build", build.RepoOwner, build.RepoName, build.ID)
 		h.ciBuilderClient.CancelCiBuilderJob(ctx, jobName)
 		h.cockroachDBClient.UpdateBuildStatus(ctx, build.RepoSource, build.RepoOwner, build.RepoName, id, "canceled")
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", user.Email)})
@@ -512,7 +450,7 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 	}
 
 	// this build can be canceled, set status 'canceling' and cancel the build job
-	jobName := h.ciBuilderClient.GetJobName("build", build.RepoOwner, build.RepoName, build.ID)
+	jobName := h.ciBuilderClient.GetJobName(ctx, "build", build.RepoOwner, build.RepoName, build.ID)
 	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(ctx, jobName)
 	buildStatus := "canceling"
 	if build.BuildStatus == "pending" {
@@ -540,7 +478,7 @@ func (h *apiHandlerImpl) CancelPipelineBuild(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", user.Email)})
 }
 
-func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
+func (h *Handler) GetPipelineBuildLogs(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineBuildLogs")
 	defer span.Finish()
@@ -610,7 +548,7 @@ func (h *apiHandlerImpl) GetPipelineBuildLogs(c *gin.Context) {
 	c.JSON(http.StatusOK, buildLog.Steps)
 }
 
-func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
+func (h *Handler) TailPipelineBuildLogs(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::TailPipelineBuildLogs")
 	defer span.Finish()
@@ -619,7 +557,7 @@ func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
 	repo := c.Param("repo")
 	id := c.Param("revisionOrId")
 
-	jobName := h.ciBuilderClient.GetJobName("build", owner, repo, id)
+	jobName := h.ciBuilderClient.GetJobName(ctx, "build", owner, repo, id)
 
 	logChannel := make(chan contracts.TailLogLine, 50)
 
@@ -645,7 +583,7 @@ func (h *apiHandlerImpl) TailPipelineBuildLogs(c *gin.Context) {
 	})
 }
 
-func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
+func (h *Handler) PostPipelineBuildLogs(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::PostPipelineBuildLogs")
 	defer span.Finish()
@@ -704,7 +642,7 @@ func (h *apiHandlerImpl) PostPipelineBuildLogs(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
-func (h *apiHandlerImpl) GetPipelineBuildWarnings(c *gin.Context) {
+func (h *Handler) GetPipelineBuildWarnings(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineBuildWarnings")
 	defer span.Finish()
@@ -746,7 +684,7 @@ func (h *apiHandlerImpl) GetPipelineBuildWarnings(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"warnings": warnings})
 }
 
-func (h *apiHandlerImpl) GetPipelineReleases(c *gin.Context) {
+func (h *Handler) GetPipelineReleases(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineReleases")
 	defer span.Finish()
@@ -822,7 +760,7 @@ func (h *apiHandlerImpl) GetPipelineReleases(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
+func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::CreatePipelineRelease")
 	defer span.Finish()
@@ -958,7 +896,7 @@ func (h *apiHandlerImpl) CreatePipelineRelease(c *gin.Context) {
 	c.JSON(http.StatusCreated, createdRelease)
 }
 
-func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
+func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::CancelPipelineRelease")
 	defer span.Finish()
@@ -991,7 +929,7 @@ func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 		return
 	}
 	if release.ReleaseStatus == "canceling" {
-		jobName := h.ciBuilderClient.GetJobName("release", release.RepoOwner, release.RepoName, release.ID)
+		jobName := h.ciBuilderClient.GetJobName(ctx, "release", release.RepoOwner, release.RepoName, release.ID)
 		h.ciBuilderClient.CancelCiBuilderJob(ctx, jobName)
 		h.cockroachDBClient.UpdateReleaseStatus(ctx, release.RepoSource, release.RepoOwner, release.RepoName, id, "canceled")
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", user.Email)})
@@ -1003,7 +941,7 @@ func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 	}
 
 	// this release can be canceled, set status 'canceling' and cancel the release job
-	jobName := h.ciBuilderClient.GetJobName("release", release.RepoOwner, release.RepoName, release.ID)
+	jobName := h.ciBuilderClient.GetJobName(ctx, "release", release.RepoOwner, release.RepoName, release.ID)
 	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(ctx, jobName)
 	releaseStatus := "canceling"
 	if release.ReleaseStatus == "pending" {
@@ -1031,7 +969,7 @@ func (h *apiHandlerImpl) CancelPipelineRelease(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", user.Email)})
 }
 
-func (h *apiHandlerImpl) GetPipelineRelease(c *gin.Context) {
+func (h *Handler) GetPipelineRelease(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineRelease")
 	defer span.Finish()
@@ -1065,7 +1003,7 @@ func (h *apiHandlerImpl) GetPipelineRelease(c *gin.Context) {
 	c.JSON(http.StatusOK, release)
 }
 
-func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
+func (h *Handler) GetPipelineReleaseLogs(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineReleaseLogs")
 	defer span.Finish()
@@ -1111,7 +1049,7 @@ func (h *apiHandlerImpl) GetPipelineReleaseLogs(c *gin.Context) {
 	c.JSON(http.StatusOK, releaseLog.Steps)
 }
 
-func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
+func (h *Handler) TailPipelineReleaseLogs(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::TailPipelineReleaseLogs")
 	defer span.Finish()
@@ -1120,7 +1058,7 @@ func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
 	repo := c.Param("repo")
 	id := c.Param("id")
 
-	jobName := h.ciBuilderClient.GetJobName("release", owner, repo, id)
+	jobName := h.ciBuilderClient.GetJobName(ctx, "release", owner, repo, id)
 
 	logChannel := make(chan contracts.TailLogLine, 50)
 
@@ -1146,7 +1084,7 @@ func (h *apiHandlerImpl) TailPipelineReleaseLogs(c *gin.Context) {
 	})
 }
 
-func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
+func (h *Handler) PostPipelineReleaseLogs(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::PostPipelineReleaseLogs")
 	defer span.Finish()
@@ -1200,7 +1138,7 @@ func (h *apiHandlerImpl) PostPipelineReleaseLogs(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
-func (h *apiHandlerImpl) GetFrequentLabels(c *gin.Context) {
+func (h *Handler) GetFrequentLabels(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetFrequentLabels")
 	defer span.Finish()
@@ -1270,7 +1208,7 @@ func (h *apiHandlerImpl) GetFrequentLabels(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *apiHandlerImpl) GetPipelineStatsBuildsDurations(c *gin.Context) {
+func (h *Handler) GetPipelineStatsBuildsDurations(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineStatsBuildsDurations")
 	defer span.Finish()
@@ -1299,7 +1237,7 @@ func (h *apiHandlerImpl) GetPipelineStatsBuildsDurations(c *gin.Context) {
 	})
 }
 
-func (h *apiHandlerImpl) GetPipelineStatsReleasesDurations(c *gin.Context) {
+func (h *Handler) GetPipelineStatsReleasesDurations(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineStatsReleasesDurations")
 	defer span.Finish()
@@ -1328,7 +1266,7 @@ func (h *apiHandlerImpl) GetPipelineStatsReleasesDurations(c *gin.Context) {
 	})
 }
 
-func (h *apiHandlerImpl) GetPipelineStatsBuildsCPUUsageMeasurements(c *gin.Context) {
+func (h *Handler) GetPipelineStatsBuildsCPUUsageMeasurements(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineStatsBuildsCPUUsageMeasurements")
 	defer span.Finish()
@@ -1357,7 +1295,7 @@ func (h *apiHandlerImpl) GetPipelineStatsBuildsCPUUsageMeasurements(c *gin.Conte
 	})
 }
 
-func (h *apiHandlerImpl) GetPipelineStatsReleasesCPUUsageMeasurements(c *gin.Context) {
+func (h *Handler) GetPipelineStatsReleasesCPUUsageMeasurements(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineStatsReleasesCPUUsageMeasurements")
 	defer span.Finish()
@@ -1386,7 +1324,7 @@ func (h *apiHandlerImpl) GetPipelineStatsReleasesCPUUsageMeasurements(c *gin.Con
 	})
 }
 
-func (h *apiHandlerImpl) GetPipelineStatsBuildsMemoryUsageMeasurements(c *gin.Context) {
+func (h *Handler) GetPipelineStatsBuildsMemoryUsageMeasurements(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineStatsBuildsMemoryUsageMeasurements")
 	defer span.Finish()
@@ -1415,7 +1353,7 @@ func (h *apiHandlerImpl) GetPipelineStatsBuildsMemoryUsageMeasurements(c *gin.Co
 	})
 }
 
-func (h *apiHandlerImpl) GetPipelineStatsReleasesMemoryUsageMeasurements(c *gin.Context) {
+func (h *Handler) GetPipelineStatsReleasesMemoryUsageMeasurements(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineStatsReleasesMemoryUsageMeasurements")
 	defer span.Finish()
@@ -1444,7 +1382,7 @@ func (h *apiHandlerImpl) GetPipelineStatsReleasesMemoryUsageMeasurements(c *gin.
 	})
 }
 
-func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
+func (h *Handler) GetPipelineWarnings(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetPipelineWarnings")
 	defer span.Finish()
@@ -1514,7 +1452,7 @@ func (h *apiHandlerImpl) GetPipelineWarnings(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"warnings": warnings})
 }
 
-func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {
+func (h *Handler) GetStatsPipelinesCount(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetStatsPipelinesCount")
 	defer span.Finish()
@@ -1535,7 +1473,7 @@ func (h *apiHandlerImpl) GetStatsPipelinesCount(c *gin.Context) {
 	})
 }
 
-func (h *apiHandlerImpl) GetStatsReleasesCount(c *gin.Context) {
+func (h *Handler) GetStatsReleasesCount(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetStatsReleasesCount")
 	defer span.Finish()
@@ -1556,7 +1494,7 @@ func (h *apiHandlerImpl) GetStatsReleasesCount(c *gin.Context) {
 	})
 }
 
-func (h *apiHandlerImpl) GetStatsBuildsCount(c *gin.Context) {
+func (h *Handler) GetStatsBuildsCount(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetStatsBuildsCount")
 	defer span.Finish()
@@ -1577,7 +1515,7 @@ func (h *apiHandlerImpl) GetStatsBuildsCount(c *gin.Context) {
 	})
 }
 
-func (h *apiHandlerImpl) GetStatsMostBuilds(c *gin.Context) {
+func (h *Handler) GetStatsMostBuilds(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetStatsMostBuilds")
 	defer span.Finish()
@@ -1619,7 +1557,7 @@ func (h *apiHandlerImpl) GetStatsMostBuilds(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *apiHandlerImpl) GetStatsMostReleases(c *gin.Context) {
+func (h *Handler) GetStatsMostReleases(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetStatsMostReleases")
 	defer span.Finish()
@@ -1661,7 +1599,7 @@ func (h *apiHandlerImpl) GetStatsMostReleases(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *apiHandlerImpl) GetStatsBuildsDuration(c *gin.Context) {
+func (h *Handler) GetStatsBuildsDuration(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetStatsBuildsDuration")
 	defer span.Finish()
@@ -1682,7 +1620,7 @@ func (h *apiHandlerImpl) GetStatsBuildsDuration(c *gin.Context) {
 	})
 }
 
-func (h *apiHandlerImpl) GetStatsBuildsAdoption(c *gin.Context) {
+func (h *Handler) GetStatsBuildsAdoption(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetStatsBuildsAdoption")
 	defer span.Finish()
@@ -1700,7 +1638,7 @@ func (h *apiHandlerImpl) GetStatsBuildsAdoption(c *gin.Context) {
 	})
 }
 
-func (h *apiHandlerImpl) GetStatsReleasesAdoption(c *gin.Context) {
+func (h *Handler) GetStatsReleasesAdoption(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetStatsReleasesAdoption")
 	defer span.Finish()
@@ -1718,7 +1656,7 @@ func (h *apiHandlerImpl) GetStatsReleasesAdoption(c *gin.Context) {
 	})
 }
 
-func (h *apiHandlerImpl) GetLoggedInUser(c *gin.Context) {
+func (h *Handler) GetLoggedInUser(c *gin.Context) {
 
 	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetLoggedInUser")
 	defer span.Finish()
@@ -1728,7 +1666,7 @@ func (h *apiHandlerImpl) GetLoggedInUser(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-func (h *apiHandlerImpl) UpdateComputedTables(c *gin.Context) {
+func (h *Handler) UpdateComputedTables(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::UpdateComputedTables")
 	defer span.Finish()
@@ -1776,7 +1714,7 @@ func (h *apiHandlerImpl) UpdateComputedTables(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-func (h *apiHandlerImpl) GetConfig(c *gin.Context) {
+func (h *Handler) GetConfig(c *gin.Context) {
 
 	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetConfig")
 	defer span.Finish()
@@ -1805,7 +1743,7 @@ func (h *apiHandlerImpl) GetConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"config": configString})
 }
 
-func (h *apiHandlerImpl) GetConfigCredentials(c *gin.Context) {
+func (h *Handler) GetConfigCredentials(c *gin.Context) {
 
 	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetConfigCredentials")
 	defer span.Finish()
@@ -1834,7 +1772,7 @@ func (h *apiHandlerImpl) GetConfigCredentials(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"config": configString})
 }
 
-func (h *apiHandlerImpl) GetConfigTrustedImages(c *gin.Context) {
+func (h *Handler) GetConfigTrustedImages(c *gin.Context) {
 
 	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetConfigTrustedImages")
 	defer span.Finish()
@@ -1863,11 +1801,11 @@ func (h *apiHandlerImpl) GetConfigTrustedImages(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"config": configString})
 }
 
-func (h *apiHandlerImpl) getStatusFilter(c *gin.Context) []string {
+func (h *Handler) getStatusFilter(c *gin.Context) []string {
 	return h.getStatusFilterWithDefault(c, []string{})
 }
 
-func (h *apiHandlerImpl) getStatusFilterWithDefault(c *gin.Context, defaultStatuses []string) []string {
+func (h *Handler) getStatusFilterWithDefault(c *gin.Context, defaultStatuses []string) []string {
 
 	filterStatusValues, filterStatusExist := c.GetQueryArray("filter[status]")
 	if filterStatusExist && len(filterStatusValues) > 0 && filterStatusValues[0] != "" {
@@ -1877,7 +1815,7 @@ func (h *apiHandlerImpl) getStatusFilterWithDefault(c *gin.Context, defaultStatu
 	return defaultStatuses
 }
 
-func (h *apiHandlerImpl) GetManifestTemplates(c *gin.Context) {
+func (h *Handler) GetManifestTemplates(c *gin.Context) {
 
 	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GetManifestTemplates")
 	defer span.Finish()
@@ -1932,7 +1870,7 @@ func (h *apiHandlerImpl) GetManifestTemplates(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"templates": templates})
 }
 
-func (h *apiHandlerImpl) GenerateManifest(c *gin.Context) {
+func (h *Handler) GenerateManifest(c *gin.Context) {
 
 	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "Api::GenerateManifest")
 	defer span.Finish()
@@ -1975,7 +1913,7 @@ func (h *apiHandlerImpl) GenerateManifest(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"manifest": renderedTemplate.String()})
 }
 
-func (h *apiHandlerImpl) ValidateManifest(c *gin.Context) {
+func (h *Handler) ValidateManifest(c *gin.Context) {
 
 	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "Api::ValidateManifest")
 	defer span.Finish()
@@ -2002,7 +1940,7 @@ func (h *apiHandlerImpl) ValidateManifest(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": status, "errors": errorString})
 }
 
-func (h *apiHandlerImpl) EncryptSecret(c *gin.Context) {
+func (h *Handler) EncryptSecret(c *gin.Context) {
 
 	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "Api::EncryptSecret")
 	defer span.Finish()
@@ -2044,7 +1982,7 @@ func (h *apiHandlerImpl) EncryptSecret(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"secret": encryptedString})
 }
 
-func (h *apiHandlerImpl) PostCronEvent(c *gin.Context) {
+func (h *Handler) PostCronEvent(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::PostCronEvent")
 	defer span.Finish()
@@ -2065,7 +2003,7 @@ func (h *apiHandlerImpl) PostCronEvent(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Hey Cron, here's a tock for your tick"})
 }
 
-func (h *apiHandlerImpl) CopyLogsToCloudStorage(c *gin.Context) {
+func (h *Handler) CopyLogsToCloudStorage(c *gin.Context) {
 
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Api::CopyLogsToCloudStorage")
 	defer span.Finish()
@@ -2168,7 +2106,7 @@ func (h *apiHandlerImpl) CopyLogsToCloudStorage(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
-func (h *apiHandlerImpl) getSinceFilter(c *gin.Context) []string {
+func (h *Handler) getSinceFilter(c *gin.Context) []string {
 
 	filterSinceValues, filterSinceExist := c.GetQueryArray("filter[since]")
 	if filterSinceExist {
@@ -2178,7 +2116,7 @@ func (h *apiHandlerImpl) getSinceFilter(c *gin.Context) []string {
 	return []string{"eternity"}
 }
 
-func (h *apiHandlerImpl) getLastFilter(c *gin.Context, defaultValue int) []string {
+func (h *Handler) getLastFilter(c *gin.Context, defaultValue int) []string {
 
 	filterLastValues, filterLastExist := c.GetQueryArray("filter[last]")
 	if filterLastExist {
@@ -2188,7 +2126,7 @@ func (h *apiHandlerImpl) getLastFilter(c *gin.Context, defaultValue int) []strin
 	return []string{strconv.Itoa(defaultValue)}
 }
 
-func (h *apiHandlerImpl) getLabelsFilter(c *gin.Context) []string {
+func (h *Handler) getLabelsFilter(c *gin.Context) []string {
 	filterLabelsValues, filterLabelsExist := c.GetQueryArray("filter[labels]")
 	if filterLabelsExist {
 		return filterLabelsValues
@@ -2197,7 +2135,7 @@ func (h *apiHandlerImpl) getLabelsFilter(c *gin.Context) []string {
 	return []string{}
 }
 
-func (h *apiHandlerImpl) getSearchFilter(c *gin.Context) []string {
+func (h *Handler) getSearchFilter(c *gin.Context) []string {
 	filterSearchValues, filterSearchExist := c.GetQueryArray("filter[search]")
 	if filterSearchExist {
 		return filterSearchValues
@@ -2206,11 +2144,11 @@ func (h *apiHandlerImpl) getSearchFilter(c *gin.Context) []string {
 	return []string{}
 }
 
-func (h *apiHandlerImpl) getQueryParameters(c *gin.Context) (int, int, map[string][]string) {
+func (h *Handler) getQueryParameters(c *gin.Context) (int, int, map[string][]string) {
 	return h.getPageNumber(c), h.getPageSize(c), h.getFilters(c)
 }
 
-func (h *apiHandlerImpl) getPageNumber(c *gin.Context) int {
+func (h *Handler) getPageNumber(c *gin.Context) int {
 	// get page number query string value or default to 1
 	pageNumberValue := c.DefaultQuery("page[number]", "1")
 	pageNumber, err := strconv.Atoi(pageNumberValue)
@@ -2221,7 +2159,7 @@ func (h *apiHandlerImpl) getPageNumber(c *gin.Context) int {
 	return pageNumber
 }
 
-func (h *apiHandlerImpl) getPageSize(c *gin.Context) int {
+func (h *Handler) getPageSize(c *gin.Context) int {
 	// get page number query string value or default to 20 (maximize at 100)
 	pageSizeValue := c.DefaultQuery("page[size]", "20")
 	pageSize, err := strconv.Atoi(pageSizeValue)
@@ -2235,7 +2173,7 @@ func (h *apiHandlerImpl) getPageSize(c *gin.Context) int {
 	return pageSize
 }
 
-func (h *apiHandlerImpl) getFilters(c *gin.Context) map[string][]string {
+func (h *Handler) getFilters(c *gin.Context) map[string][]string {
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w&filter[labels]=team%3Destafette-team)
 	filters := map[string][]string{}
 	filters["status"] = h.getStatusFilter(c)
@@ -2246,7 +2184,7 @@ func (h *apiHandlerImpl) getFilters(c *gin.Context) map[string][]string {
 	return filters
 }
 
-func (h *apiHandlerImpl) obfuscateSecrets(input string) (string, error) {
+func (h *Handler) obfuscateSecrets(input string) (string, error) {
 
 	r, err := regexp.Compile(`estafette\.secret\(([a-zA-Z0-9.=_-]+)\)`)
 	if err != nil {
@@ -2257,7 +2195,7 @@ func (h *apiHandlerImpl) obfuscateSecrets(input string) (string, error) {
 	return r.ReplaceAllLiteralString(input, "***"), nil
 }
 
-func (h *apiHandlerImpl) Commands(c *gin.Context) {
+func (h *Handler) Commands(c *gin.Context) {
 
 	ctx := c.Request.Context()
 

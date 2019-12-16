@@ -17,7 +17,7 @@ import (
 
 // Client is the interface for communicating with the Slack api
 type Client interface {
-	GetUserProfile(context.Context, string) (*UserProfile, error)
+	GetUserProfile(ctx context.Context, userID string) (*UserProfile, error)
 }
 
 type client struct {

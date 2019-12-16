@@ -1,4 +1,4 @@
-package main
+package transport
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ func OpenTracingMiddleware() gin.HandlerFunc {
 		tracingCtx, _ := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(c.Request.Header))
 
 		// create a span for the http request
-		span := opentracing.StartSpan(fmt.Sprintf("%v %v", c.Request.Method, c.Request.URL.Path), ext.RPCServerOption(tracingCtx))
+		span := opentracing.StartSpan(fmt.Sprintf("%v:%v", c.Request.Method, c.Request.URL.Path), ext.RPCServerOption(tracingCtx))
 		defer span.Finish()
 
 		ext.SpanKindRPCServer.Set(span)

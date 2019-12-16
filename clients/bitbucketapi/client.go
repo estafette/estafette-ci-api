@@ -21,11 +21,10 @@ import (
 
 // Client is the interface for communicating with the bitbucket api
 type Client interface {
-	GetAccessToken(context.Context) (AccessToken, error)
-	GetAuthenticatedRepositoryURL(AccessToken, string) (string, error)
-	GetEstafetteManifest(context.Context, AccessToken, RepositoryPushEvent) (bool, string, error)
-
-	JobVarsFunc() func(context.Context, string, string, string) (string, string, error)
+	GetAccessToken(ctx context.Context) (AccessToken, error)
+	GetAuthenticatedRepositoryURL(ctx context.Context, accessToken AccessToken, htmlURL string) (string, error)
+	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (bool, string, error)
+	JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error)
 }
 
 // NewClient returns a new bitbucket.Client
@@ -101,7 +100,7 @@ func (bb *client) GetAccessToken(ctx context.Context) (accessToken AccessToken, 
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (bb *client) GetAuthenticatedRepositoryURL(accessToken AccessToken, htmlURL string) (url string, err error) {
+func (bb *client) GetAuthenticatedRepositoryURL(ctx context.Context, accessToken AccessToken, htmlURL string) (url string, err error) {
 
 	url = strings.Replace(htmlURL, "https://bitbucket.org", fmt.Sprintf("https://x-token-auth:%v@bitbucket.org", accessToken.AccessToken), -1)
 
@@ -160,7 +159,7 @@ func (bb *client) GetEstafetteManifest(ctx context.Context, accessToken AccessTo
 }
 
 // JobVarsFunc returns a function that can get an access token and authenticated url for a repository
-func (bb *client) JobVarsFunc() func(context.Context, string, string, string) (string, string, error) {
+func (bb *client) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error) {
 	return func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 		// get access token
 		accessToken, err := bb.GetAccessToken(ctx)
@@ -168,7 +167,7 @@ func (bb *client) JobVarsFunc() func(context.Context, string, string, string) (s
 			return "", "", err
 		}
 		// get authenticated url for the repository
-		url, err = bb.GetAuthenticatedRepositoryURL(accessToken, fmt.Sprintf("https://%v/%v/%v", repoSource, repoOwner, repoName))
+		url, err = bb.GetAuthenticatedRepositoryURL(ctx, accessToken, fmt.Sprintf("https://%v/%v/%v", repoSource, repoOwner, repoName))
 		if err != nil {
 			return "", "", err
 		}

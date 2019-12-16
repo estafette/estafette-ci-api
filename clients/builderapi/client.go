@@ -30,14 +30,14 @@ import (
 
 // Client is the interface for running kubernetes commands specific to this application
 type Client interface {
-	CreateCiBuilderJob(context.Context, CiBuilderParams) (*batchv1.Job, error)
-	RemoveCiBuilderJob(context.Context, string) error
-	CancelCiBuilderJob(context.Context, string) error
-	RemoveCiBuilderConfigMap(context.Context, string) error
-	RemoveCiBuilderSecret(context.Context, string) error
-	TailCiBuilderJobLogs(context.Context, string, chan contracts.TailLogLine) error
-	GetJobName(string, string, string, string) string
-	GetBuilderConfig(CiBuilderParams, string) contracts.BuilderConfig
+	CreateCiBuilderJob(ctx context.Context, params CiBuilderParams) (*batchv1.Job, error)
+	RemoveCiBuilderJob(ctx context.Context, jobName string) error
+	CancelCiBuilderJob(ctx context.Context, jobName string) error
+	RemoveCiBuilderConfigMap(ctx context.Context, configmapName string) error
+	RemoveCiBuilderSecret(ctx context.Context, secretName string) error
+	TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) error
+	GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) string
+	GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) contracts.BuilderConfig
 }
 
 // NewClient returns a new estafette.Client
@@ -74,13 +74,13 @@ func (cbc *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBui
 		id = strconv.Itoa(ciBuilderParams.ReleaseID)
 	}
 
-	jobName := cbc.GetJobName(ciBuilderParams.JobType, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, id)
+	jobName := cbc.GetJobName(ctx, ciBuilderParams.JobType, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, id)
 	span.SetTag("job-name", jobName)
 
 	log.Info().Msgf("Creating job %v...", jobName)
 
 	// extend builder config to parameterize the builder and replace all other envvars to improve security
-	localBuilderConfig := cbc.GetBuilderConfig(ciBuilderParams, jobName)
+	localBuilderConfig := cbc.GetBuilderConfig(ctx, ciBuilderParams, jobName)
 
 	builderConfigPathName := "BUILDER_CONFIG_PATH"
 	builderConfigPathValue := "/configs/builder-config.json"
@@ -775,7 +775,7 @@ func (cbc *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, log
 }
 
 // GetJobName returns the job name for a build or release job
-func (cbc *client) GetJobName(jobType, repoOwner, repoName, id string) string {
+func (cbc *client) GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) string {
 
 	// create job name of max 63 chars
 	maxJobNameLength := 63
@@ -792,7 +792,7 @@ func (cbc *client) GetJobName(jobType, repoOwner, repoName, id string) string {
 }
 
 // GetJobName returns the job name for a build or release job
-func (cbc *client) GetBuilderConfig(ciBuilderParams CiBuilderParams, jobName string) contracts.BuilderConfig {
+func (cbc *client) GetBuilderConfig(ctx context.Context, ciBuilderParams CiBuilderParams, jobName string) contracts.BuilderConfig {
 
 	// retrieve stages to filter trusted images and credentials
 	stages := ciBuilderParams.Manifest.Stages

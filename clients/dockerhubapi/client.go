@@ -15,9 +15,9 @@ import (
 
 // Client communicates with docker hub api
 type Client interface {
-	GetToken(string) (DockerHubToken, error)
-	GetDigest(context.Context, DockerHubToken, string, string) (DockerImageDigest, error)
-	GetDigestCached(context.Context, string, string) (DockerImageDigest, error)
+	GetToken(ctx context.Context, repository string) (DockerHubToken, error)
+	GetDigest(ctx context.Context, token DockerHubToken, repository string, tag string) (DockerImageDigest, error)
+	GetDigestCached(ctx context.Context, repository string, tag string) (DockerImageDigest, error)
 }
 
 type client struct {
@@ -34,7 +34,7 @@ func NewClient() Client {
 }
 
 // GetToken creates an estafette-ci-builder job in Kubernetes to run the estafette build
-func (cl *client) GetToken(repository string) (token DockerHubToken, err error) {
+func (cl *client) GetToken(ctx context.Context, repository string) (token DockerHubToken, err error) {
 
 	url := fmt.Sprintf("https://auth.docker.io/token?service=registry.docker.io&scope=repository:%v:pull", repository)
 
@@ -121,7 +121,7 @@ func (cl *client) GetDigestCached(ctx context.Context, repository string, tag st
 	var token DockerHubToken
 	if val, ok := cl.tokens[repository]; !ok || val.IsExpired() {
 		// token doesn't exist or is no longer valid, renew
-		token, err = cl.GetToken(repository)
+		token, err = cl.GetToken(ctx, repository)
 		if err != nil {
 			return
 		}

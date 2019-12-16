@@ -14,18 +14,11 @@ import (
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
-	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
 
-// Service handles http events for Slack integration
-type Service interface {
-	Handle(*gin.Context)
-	HasValidVerificationToken(slackapi.SlashCommand) bool
-}
-
-type service struct {
+type Handler struct {
 	secretHelper                 crypt.SecretHelper
 	config                       config.SlackConfig
 	slackAPIClient               slackapi.Client
@@ -37,9 +30,9 @@ type service struct {
 	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
-// NewService returns a new slack.Service
-func NewService(secretHelper crypt.SecretHelper, config config.SlackConfig, slackAPIClient slackapi.Client, cockroachDBClient cockroachdb.Client, apiConfig config.APIServerConfig, buildService estafette.Service, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), prometheusInboundEventTotals *prometheus.CounterVec) Service {
-	return &service{
+// NewHandler returns a pubsub.Handler
+func NewHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, slackAPIClient slackapi.Client, cockroachDBClient cockroachdb.Client, apiConfig config.APIServerConfig, buildService estafette.Service, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), prometheusInboundEventTotals *prometheus.CounterVec) Handler {
+	return Handler{
 		secretHelper:                 secretHelper,
 		config:                       config,
 		slackAPIClient:               slackAPIClient,
@@ -52,14 +45,9 @@ func NewService(secretHelper crypt.SecretHelper, config config.SlackConfig, slac
 	}
 }
 
-func (h *service) Handle(c *gin.Context) {
-
-	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Slack::Handle")
-	defer span.Finish()
+func (h *Handler) Handle(c *gin.Context) {
 
 	// https://api.slack.com/slash-commands
-
-	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": "", "source": "slack"}).Inc()
 
 	var slashCommand slackapi.SlashCommand
 	// This will infer what binder to use depending on the content-type header.
@@ -70,14 +58,12 @@ func (h *service) Handle(c *gin.Context) {
 		return
 	}
 
-	hasValidVerificationToken := h.HasValidVerificationToken(slashCommand)
+	hasValidVerificationToken := h.hasValidVerificationToken(slashCommand)
 	if !hasValidVerificationToken {
 		log.Warn().Str("expectedToken", h.config.AppVerificationToken).Str("actualToken", slashCommand.Token).Msg("Verification token for Slack command is invalid")
 		c.String(http.StatusBadRequest, "Verification token for Slack command is invalid")
 		return
 	}
-
-	span.SetTag("slash-command", slashCommand.Command)
 
 	if slashCommand.Command == "/estafette" {
 		if slashCommand.Text != "" {
@@ -133,7 +119,7 @@ func (h *service) Handle(c *gin.Context) {
 
 					var pipeline *contracts.Pipeline
 					if len(fullRepoNameArray) == 1 {
-						pipelines, err := h.cockroachDBClient.GetPipelinesByRepoName(ctx, fullRepoName, false)
+						pipelines, err := h.cockroachDBClient.GetPipelinesByRepoName(c.Request.Context(), fullRepoName, false)
 						if err != nil {
 							log.Error().Err(err).Msgf("Failed retrieving pipelines for repo name %v by name", fullRepoName)
 							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
@@ -153,7 +139,7 @@ func (h *service) Handle(c *gin.Context) {
 						}
 						pipeline = pipelines[0]
 					} else {
-						pipeline, err := h.cockroachDBClient.GetPipeline(ctx, fullRepoNameArray[0], fullRepoNameArray[1], fullRepoNameArray[2], false)
+						pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), fullRepoNameArray[0], fullRepoNameArray[1], fullRepoNameArray[2], false)
 						if err != nil {
 							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
 							return
@@ -165,7 +151,7 @@ func (h *service) Handle(c *gin.Context) {
 					}
 
 					// check if version exists
-					builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion, []string{"succeeded"}, 1, false)
+					builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(c.Request.Context(), pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion, []string{"succeeded"}, 1, false)
 
 					if err != nil {
 						c.String(http.StatusOK, fmt.Sprintf("Retrieving the build for repository %v and version %v from the database failed: %v", fullRepoName, buildVersion, err))
@@ -203,14 +189,14 @@ func (h *service) Handle(c *gin.Context) {
 					}
 
 					// get user profile from api to set email address for TriggeredBy
-					profile, err := h.slackAPIClient.GetUserProfile(ctx, slashCommand.UserID)
+					profile, err := h.slackAPIClient.GetUserProfile(c.Request.Context(), slashCommand.UserID)
 					if err != nil {
 						c.String(http.StatusOK, fmt.Sprintf("Failed retrieving Slack user profile for user id %v: %v", slashCommand.UserID, err))
 						return
 					}
 
 					// create release object and hand off to build service
-					createdRelease, err := h.buildService.CreateRelease(ctx, contracts.Release{
+					createdRelease, err := h.buildService.CreateRelease(c.Request.Context(), contracts.Release{
 						Name:           releaseName,
 						Action:         "", // no support for releas action yet
 						RepoSource:     build.RepoSource,
@@ -244,6 +230,6 @@ func (h *service) Handle(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
-func (h *service) HasValidVerificationToken(slashCommand slackapi.SlashCommand) bool {
+func (h *Handler) hasValidVerificationToken(slashCommand slackapi.SlashCommand) bool {
 	return slashCommand.Token == h.config.AppVerificationToken
 }

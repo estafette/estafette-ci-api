@@ -27,13 +27,14 @@ import (
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/transport"
 
 	"github.com/estafette/estafette-ci-api/clients/bigquery"
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
+	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudstorage"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
 	"github.com/estafette/estafette-ci-api/clients/dockerhubapi"
-	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
 	"github.com/estafette/estafette-ci-api/clients/prometheus"
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
@@ -140,7 +141,13 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		log.Fatal().Err(err).Msgf("Failed reading secret decryption key from path %v", *secretDecryptionKeyPath)
 	}
 
+	log.Debug().Msg("Creating helpers...")
+
+	warningHelper := helpers.NewWarningHelper()
 	secretHelper := crypt.NewSecretHelper(string(secretDecryptionKeyBytes), false)
+
+	log.Debug().Msg("Creating config reader...")
+
 	configReader := config.NewConfigReader(secretHelper)
 
 	config, err := configReader.ReadConfigFromFile(*configFilePath, true)
@@ -153,61 +160,80 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		log.Fatal().Err(err).Msg("Failed reading configuration without decrypting")
 	}
 
-	// init clients
-	githubAPIClient := githubapi.NewClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
-
-	bitbucketAPIClient := bitbucketapi.NewClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
-
-	slackAPIClient := slackapi.NewClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
-
-	pubsubClient, err := stdpubsub.NewClient(ctx, config.Integrations.Pubsub.DefaultProject)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating new PubSubAPIClient has failed")
-	}
-	pubSubAPIClient := pubsubapi.NewClient(*config.Integrations.Pubsub, pubsubClient)
-
-	cockroachDBClient := cockroachdb.NewClient(*config.Database, prometheusOutboundAPICallTotals)
-
-	dockerHubClient := dockerhubapi.NewClient()
-
-	kubeClient, err := k8s.NewInClusterClient()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating k8s client failed")
-	}
-	ciBuilderClient := builderapi.NewClient(*config, *encryptedConfig, secretHelper, kubeClient, dockerHubClient, prometheusOutboundAPICallTotals)
+	log.Debug().Msg("Creating clients...")
 
 	bqClient, err := stdbigquery.NewClient(ctx, config.Integrations.BigQuery.ProjectID)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new BigQueryClient has failed")
 	}
 	bigqueryClient := bigquery.NewClient(config.Integrations.BigQuery, bqClient)
-
-	err = bigqueryClient.Init()
+	bigqueryClient = bigquery.NewTracingClient(bigqueryClient)
+	err = bigqueryClient.Init(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Initializing BigQuery tables has failed")
 	}
+
+	bitbucketAPIClient := bitbucketapi.NewClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
+	bitbucketAPIClient = bitbucketapi.NewTracingClient(bitbucketAPIClient)
+
+	githubAPIClient := githubapi.NewClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
+	githubAPIClient = githubapi.NewTracingClient(githubAPIClient)
+
+	slackAPIClient := slackapi.NewClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
+	slackAPIClient = slackapi.NewTracingClient(slackAPIClient)
+
+	pubsubClient, err := stdpubsub.NewClient(ctx, config.Integrations.Pubsub.DefaultProject)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating new PubSubAPIClient has failed")
+	}
+	pubSubAPIClient := pubsubapi.NewClient(*config.Integrations.Pubsub, pubsubClient)
+	pubSubAPIClient = pubsubapi.NewTracingClient(pubSubAPIClient)
+
+	cockroachDBClient := cockroachdb.NewClient(*config.Database, prometheusOutboundAPICallTotals)
+
+	dockerHubClient := dockerhubapi.NewClient()
+	dockerHubClient = dockerhubapi.NewTracingClient(dockerHubClient)
+
+	kubeClient, err := k8s.NewInClusterClient()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating k8s client failed")
+	}
+	ciBuilderClient := builderapi.NewClient(*config, *encryptedConfig, secretHelper, kubeClient, dockerHubClient, prometheusOutboundAPICallTotals)
+	ciBuilderClient = builderapi.NewTracingClient(ciBuilderClient)
 
 	gcsClient, err := stdstorage.NewClient(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new CloudStorageClient has failed")
 	}
 	cloudStorageClient := cloudstorage.NewClient(config.Integrations.CloudStorage, gcsClient)
+	cloudStorageClient = cloudstorage.NewTracingClient(cloudStorageClient)
+
+	prometheusClient := prometheus.NewClient(*config.Integrations.Prometheus)
+	prometheusClient = prometheus.NewTracingClient(prometheusClient)
 
 	// set up database
-	err = cockroachDBClient.Connect()
+	err = cockroachDBClient.Connect(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed connecting to CockroachDB")
 	}
 
-	log.Debug().Msg("Creating services, handlers and helpers...")
-	prometheusClient := prometheus.NewClient(*config.Integrations.Prometheus)
-	estafetteBuildService := estafette.NewService(*config.Jobs, *config.APIServer, cockroachDBClient, prometheusClient, cloudStorageClient, ciBuilderClient, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
-	githubEventHandler := github.NewService(githubAPIClient, pubSubAPIClient, estafetteBuildService, *config.Integrations.Github, prometheusInboundEventTotals)
-	bitbucketEventHandler := bitbucket.NewService(*config.Integrations.Bitbucket, bitbucketAPIClient, pubSubAPIClient, estafetteBuildService, prometheusInboundEventTotals)
-	slackEventHandler := slack.NewService(secretHelper, *config.Integrations.Slack, slackAPIClient, cockroachDBClient, *config.APIServer, estafetteBuildService, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc(), prometheusInboundEventTotals)
-	pubsubEventHandler := pubsub.NewService(pubSubAPIClient, estafetteBuildService)
-	warningHelper := helpers.NewWarningHelper()
-	estafetteAPIHandler := estafette.NewAPIHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, cloudStorageClient, ciBuilderClient, estafetteBuildService, warningHelper, secretHelper, githubAPIClient.JobVarsFunc(), bitbucketAPIClient.JobVarsFunc())
+	log.Debug().Msg("Creating services...")
+
+	estafetteService := estafette.NewService(*config.Jobs, *config.APIServer, cockroachDBClient, prometheusClient, cloudStorageClient, ciBuilderClient, githubAPIClient.JobVarsFunc(ctx), bitbucketAPIClient.JobVarsFunc(ctx))
+	estafetteService = estafette.NewTracingService(estafetteService)
+
+	githubService := github.NewService(githubAPIClient, pubSubAPIClient, estafetteService, *config.Integrations.Github, prometheusInboundEventTotals)
+	githubService = github.NewTracingService(githubService)
+
+	bitbucketService := bitbucket.NewService(*config.Integrations.Bitbucket, bitbucketAPIClient, pubSubAPIClient, estafetteService, prometheusInboundEventTotals)
+	bitbucketService = bitbucket.NewTracingService(bitbucketService)
+
+	// transport
+	bitbucketHandler := bitbucket.NewHandler(bitbucketService)
+	githubHandler := github.NewHandler(githubService)
+	estafetteHandler := estafette.NewHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, cloudStorageClient, ciBuilderClient, estafetteService, warningHelper, secretHelper, githubAPIClient.JobVarsFunc(ctx), bitbucketAPIClient.JobVarsFunc(ctx))
+	pubsubHandler := pubsub.NewHandler(pubSubAPIClient, estafetteService)
+	slackHandler := slack.NewHandler(secretHelper, *config.Integrations.Slack, slackAPIClient, cockroachDBClient, *config.APIServer, estafetteService, githubAPIClient.JobVarsFunc(ctx), bitbucketAPIClient.JobVarsFunc(ctx), prometheusInboundEventTotals)
 
 	// run gin in release mode and other defaults
 	gin.SetMode(gin.ReleaseMode)
@@ -224,7 +250,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 
 	// opentracing middleware
 	log.Debug().Msg("Adding opentracing middleware...")
-	router.Use(OpenTracingMiddleware())
+	router.Use(transport.OpenTracingMiddleware())
 
 	// Gzip and logging middleware
 	log.Debug().Msg("Adding gzip middleware...")
@@ -237,78 +263,78 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	authMiddleware := auth.NewAuthMiddleware(*config.Auth)
 
 	log.Debug().Msg("Setting up routes...")
-	routes.POST("/api/integrations/github/events", githubEventHandler.Handle)
+	routes.POST("/api/integrations/github/events", githubHandler.Handle)
 	routes.GET("/api/integrations/github/status", func(c *gin.Context) { c.String(200, "Github, I'm cool!") })
 
-	routes.POST("/api/integrations/bitbucket/events", bitbucketEventHandler.Handle)
+	routes.POST("/api/integrations/bitbucket/events", bitbucketHandler.Handle)
 	routes.GET("/api/integrations/bitbucket/status", func(c *gin.Context) { c.String(200, "Bitbucket, I'm cool!") })
 
-	routes.POST("/api/integrations/slack/slash", slackEventHandler.Handle)
+	routes.POST("/api/integrations/slack/slash", slackHandler.Handle)
 	routes.GET("/api/integrations/slack/status", func(c *gin.Context) { c.String(200, "Slack, I'm cool!") })
 
 	// google jwt auth protected endpoints
 	googleAuthorizedRoutes := routes.Group("/", authMiddleware.GoogleJWTMiddlewareFunc())
 	{
-		googleAuthorizedRoutes.POST("/api/integrations/pubsub/events", pubsubEventHandler.PostPubsubEvent)
+		googleAuthorizedRoutes.POST("/api/integrations/pubsub/events", pubsubHandler.PostPubsubEvent)
 	}
 	routes.GET("/api/integrations/pubsub/status", func(c *gin.Context) { c.String(200, "Pub/Sub, I'm cool!") })
 
-	routes.GET("/api/pipelines", estafetteAPIHandler.GetPipelines)
-	routes.GET("/api/pipelines/:source/:owner/:repo", estafetteAPIHandler.GetPipeline)
-	routes.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.GetPipelineBuilds)
-	routes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteAPIHandler.GetPipelineBuild)
-	routes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/warnings", estafetteAPIHandler.GetPipelineBuildWarnings)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteAPIHandler.GetPipelineBuildLogs)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs/tail", estafetteAPIHandler.TailPipelineBuildLogs)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs.stream", estafetteAPIHandler.TailPipelineBuildLogs)
-	routes.GET("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.GetPipelineReleases)
-	routes.GET("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteAPIHandler.GetPipelineRelease)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteAPIHandler.GetPipelineReleaseLogs)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs/tail", estafetteAPIHandler.TailPipelineReleaseLogs)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs.stream", estafetteAPIHandler.TailPipelineReleaseLogs)
-	routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildsdurations", estafetteAPIHandler.GetPipelineStatsBuildsDurations)
-	routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesdurations", estafetteAPIHandler.GetPipelineStatsReleasesDurations)
-	routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildscpu", estafetteAPIHandler.GetPipelineStatsBuildsCPUUsageMeasurements)
-	routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasescpu", estafetteAPIHandler.GetPipelineStatsReleasesCPUUsageMeasurements)
-	routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildsmemory", estafetteAPIHandler.GetPipelineStatsBuildsMemoryUsageMeasurements)
-	routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesmemory", estafetteAPIHandler.GetPipelineStatsReleasesMemoryUsageMeasurements)
-	routes.GET("/api/pipelines/:source/:owner/:repo/warnings", estafetteAPIHandler.GetPipelineWarnings)
-	routes.GET("/api/stats/pipelinescount", estafetteAPIHandler.GetStatsPipelinesCount)
-	routes.GET("/api/stats/buildscount", estafetteAPIHandler.GetStatsBuildsCount)
-	routes.GET("/api/stats/releasescount", estafetteAPIHandler.GetStatsReleasesCount)
-	routes.GET("/api/stats/buildsduration", estafetteAPIHandler.GetStatsBuildsDuration)
-	routes.GET("/api/stats/buildsadoption", estafetteAPIHandler.GetStatsBuildsAdoption)
-	routes.GET("/api/stats/releasesadoption", estafetteAPIHandler.GetStatsReleasesAdoption)
-	routes.GET("/api/stats/mostbuilds", estafetteAPIHandler.GetStatsMostBuilds)
-	routes.GET("/api/stats/mostreleases", estafetteAPIHandler.GetStatsMostReleases)
-	routes.GET("/api/manifest/templates", estafetteAPIHandler.GetManifestTemplates)
-	routes.POST("/api/manifest/generate", estafetteAPIHandler.GenerateManifest)
-	routes.POST("/api/manifest/validate", estafetteAPIHandler.ValidateManifest)
-	routes.POST("/api/manifest/encrypt", estafetteAPIHandler.EncryptSecret)
-	routes.GET("/api/labels/frequent", estafetteAPIHandler.GetFrequentLabels)
+	routes.GET("/api/pipelines", estafetteHandler.GetPipelines)
+	routes.GET("/api/pipelines/:source/:owner/:repo", estafetteHandler.GetPipeline)
+	routes.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteHandler.GetPipelineBuilds)
+	routes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteHandler.GetPipelineBuild)
+	routes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/warnings", estafetteHandler.GetPipelineBuildWarnings)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteHandler.GetPipelineBuildLogs)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs/tail", estafetteHandler.TailPipelineBuildLogs)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs.stream", estafetteHandler.TailPipelineBuildLogs)
+	routes.GET("/api/pipelines/:source/:owner/:repo/releases", estafetteHandler.GetPipelineReleases)
+	routes.GET("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.GetPipelineRelease)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteHandler.GetPipelineReleaseLogs)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs/tail", estafetteHandler.TailPipelineReleaseLogs)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs.stream", estafetteHandler.TailPipelineReleaseLogs)
+	routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildsdurations", estafetteHandler.GetPipelineStatsBuildsDurations)
+	routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesdurations", estafetteHandler.GetPipelineStatsReleasesDurations)
+	routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildscpu", estafetteHandler.GetPipelineStatsBuildsCPUUsageMeasurements)
+	routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasescpu", estafetteHandler.GetPipelineStatsReleasesCPUUsageMeasurements)
+	routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildsmemory", estafetteHandler.GetPipelineStatsBuildsMemoryUsageMeasurements)
+	routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesmemory", estafetteHandler.GetPipelineStatsReleasesMemoryUsageMeasurements)
+	routes.GET("/api/pipelines/:source/:owner/:repo/warnings", estafetteHandler.GetPipelineWarnings)
+	routes.GET("/api/stats/pipelinescount", estafetteHandler.GetStatsPipelinesCount)
+	routes.GET("/api/stats/buildscount", estafetteHandler.GetStatsBuildsCount)
+	routes.GET("/api/stats/releasescount", estafetteHandler.GetStatsReleasesCount)
+	routes.GET("/api/stats/buildsduration", estafetteHandler.GetStatsBuildsDuration)
+	routes.GET("/api/stats/buildsadoption", estafetteHandler.GetStatsBuildsAdoption)
+	routes.GET("/api/stats/releasesadoption", estafetteHandler.GetStatsReleasesAdoption)
+	routes.GET("/api/stats/mostbuilds", estafetteHandler.GetStatsMostBuilds)
+	routes.GET("/api/stats/mostreleases", estafetteHandler.GetStatsMostReleases)
+	routes.GET("/api/manifest/templates", estafetteHandler.GetManifestTemplates)
+	routes.POST("/api/manifest/generate", estafetteHandler.GenerateManifest)
+	routes.POST("/api/manifest/validate", estafetteHandler.ValidateManifest)
+	routes.POST("/api/manifest/encrypt", estafetteHandler.EncryptSecret)
+	routes.GET("/api/labels/frequent", estafetteHandler.GetFrequentLabels)
 
 	// api key protected endpoints
 	apiKeyAuthorizedRoutes := routes.Group("/", authMiddleware.APIKeyMiddlewareFunc())
 	{
-		apiKeyAuthorizedRoutes.POST("/api/commands", estafetteAPIHandler.Commands)
-		apiKeyAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteAPIHandler.PostPipelineBuildLogs)
-		apiKeyAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteAPIHandler.PostPipelineReleaseLogs)
-		apiKeyAuthorizedRoutes.POST("/api/integrations/cron/events", estafetteAPIHandler.PostCronEvent)
-		apiKeyAuthorizedRoutes.GET("/api/copylogstocloudstorage/:source/:owner/:repo", estafetteAPIHandler.CopyLogsToCloudStorage)
+		apiKeyAuthorizedRoutes.POST("/api/commands", estafetteHandler.Commands)
+		apiKeyAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteHandler.PostPipelineBuildLogs)
+		apiKeyAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteHandler.PostPipelineReleaseLogs)
+		apiKeyAuthorizedRoutes.POST("/api/integrations/cron/events", estafetteHandler.PostCronEvent)
+		apiKeyAuthorizedRoutes.GET("/api/copylogstocloudstorage/:source/:owner/:repo", estafetteHandler.CopyLogsToCloudStorage)
 	}
 
 	// iap protected endpoints
 	iapAuthorizedRoutes := routes.Group("/", authMiddleware.IAPJWTMiddlewareFunc())
 	{
-		iapAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/builds", estafetteAPIHandler.CreatePipelineBuild)
-		iapAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/releases", estafetteAPIHandler.CreatePipelineRelease)
-		iapAuthorizedRoutes.DELETE("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteAPIHandler.CancelPipelineBuild)
-		iapAuthorizedRoutes.DELETE("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteAPIHandler.CancelPipelineRelease)
-		iapAuthorizedRoutes.GET("/api/users/me", estafetteAPIHandler.GetLoggedInUser)
-		iapAuthorizedRoutes.GET("/api/config", estafetteAPIHandler.GetConfig)
-		iapAuthorizedRoutes.GET("/api/config/credentials", estafetteAPIHandler.GetConfigCredentials)
-		iapAuthorizedRoutes.GET("/api/config/trustedimages", estafetteAPIHandler.GetConfigTrustedImages)
-		iapAuthorizedRoutes.GET("/api/update-computed-tables", estafetteAPIHandler.UpdateComputedTables)
+		iapAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/builds", estafetteHandler.CreatePipelineBuild)
+		iapAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/releases", estafetteHandler.CreatePipelineRelease)
+		iapAuthorizedRoutes.DELETE("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteHandler.CancelPipelineBuild)
+		iapAuthorizedRoutes.DELETE("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.CancelPipelineRelease)
+		iapAuthorizedRoutes.GET("/api/users/me", estafetteHandler.GetLoggedInUser)
+		iapAuthorizedRoutes.GET("/api/config", estafetteHandler.GetConfig)
+		iapAuthorizedRoutes.GET("/api/config/credentials", estafetteHandler.GetConfigCredentials)
+		iapAuthorizedRoutes.GET("/api/config/trustedimages", estafetteHandler.GetConfigTrustedImages)
+		iapAuthorizedRoutes.GET("/api/update-computed-tables", estafetteHandler.UpdateComputedTables)
 	}
 
 	// default routes
