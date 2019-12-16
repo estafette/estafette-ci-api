@@ -23,32 +23,15 @@ type Client interface {
 	GetMaxCPUByPodName(ctx context.Context, podName string) (float64, error)
 }
 
-type PrometheusQueryResponse struct {
-	Status string                      `json:"status"`
-	Data   PrometheusQueryResponseData `json:"data"`
-}
-
-// PrometheusQueryResponseData is used to unmarshal the response from a prometheus query
-type PrometheusQueryResponseData struct {
-	ResultType string                              `json:"resultType"`
-	Result     []PrometheusQueryResponseDataResult `json:"result"`
-}
-
-// PrometheusQueryResponseDataResult is used to unmarshal the response from a prometheus query
-type PrometheusQueryResponseDataResult struct {
-	Metric interface{}   `json:"metric"`
-	Value  []interface{} `json:"value"`
-}
-
-type client struct {
-	config config.PrometheusConfig
-}
-
 // NewClient creates an prometheus.Client to communicate with Prometheus
 func NewClient(config config.PrometheusConfig) Client {
 	return &client{
 		config: config,
 	}
+}
+
+type client struct {
+	config config.PrometheusConfig
 }
 
 func (c *client) AwaitScrapeInterval(ctx context.Context) {

@@ -20,14 +20,6 @@ type Service interface {
 	IsWhitelistedOwner(repository bitbucketapi.Repository) bool
 }
 
-type service struct {
-	config                       config.BitbucketConfig
-	apiClient                    bitbucketapi.Client
-	pubsubAPIClient              pubsubapi.Client
-	buildService                 estafette.Service
-	prometheusInboundEventTotals *prometheus.CounterVec
-}
-
 // NewService returns a new bitbucket.Service
 func NewService(config config.BitbucketConfig, apiClient bitbucketapi.Client, pubsubAPIClient pubsubapi.Client, buildService estafette.Service, prometheusInboundEventTotals *prometheus.CounterVec) Service {
 	return &service{
@@ -37,6 +29,14 @@ func NewService(config config.BitbucketConfig, apiClient bitbucketapi.Client, pu
 		buildService:                 buildService,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
+}
+
+type service struct {
+	config                       config.BitbucketConfig
+	apiClient                    bitbucketapi.Client
+	pubsubAPIClient              pubsubapi.Client
+	buildService                 estafette.Service
+	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbucketapi.RepositoryPushEvent) {

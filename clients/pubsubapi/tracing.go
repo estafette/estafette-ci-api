@@ -9,13 +9,13 @@ import (
 	"github.com/opentracing/opentracing-go/log"
 )
 
-type tracingClient struct {
-	Client
-}
-
 // NewTracingClient returns a new instance of a tracing Client.
 func NewTracingClient(c Client) Client {
 	return &tracingClient{c}
+}
+
+type tracingClient struct {
+	Client
 }
 
 func (c *tracingClient) SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (*manifest.EstafettePubSubEvent, error) {

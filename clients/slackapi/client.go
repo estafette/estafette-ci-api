@@ -20,17 +20,17 @@ type Client interface {
 	GetUserProfile(ctx context.Context, userID string) (*UserProfile, error)
 }
 
-type client struct {
-	config                          config.SlackConfig
-	prometheusOutboundAPICallTotals *prometheus.CounterVec
-}
-
 // NewClient returns a slack.Client to communicate with the Slack API
 func NewClient(config config.SlackConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) Client {
 	return &client{
 		config:                          config,
 		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
+}
+
+type client struct {
+	config                          config.SlackConfig
+	prometheusOutboundAPICallTotals *prometheus.CounterVec
 }
 
 // GetUserProfile returns a Slack user profile

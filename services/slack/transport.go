@@ -18,18 +18,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type Handler struct {
-	secretHelper                 crypt.SecretHelper
-	config                       config.SlackConfig
-	slackAPIClient               slackapi.Client
-	cockroachDBClient            cockroachdb.Client
-	apiConfig                    config.APIServerConfig
-	buildService                 estafette.Service
-	githubJobVarsFunc            func(context.Context, string, string, string) (string, string, error)
-	bitbucketJobVarsFunc         func(context.Context, string, string, string) (string, string, error)
-	prometheusInboundEventTotals *prometheus.CounterVec
-}
-
 // NewHandler returns a pubsub.Handler
 func NewHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, slackAPIClient slackapi.Client, cockroachDBClient cockroachdb.Client, apiConfig config.APIServerConfig, buildService estafette.Service, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), prometheusInboundEventTotals *prometheus.CounterVec) Handler {
 	return Handler{
@@ -43,6 +31,18 @@ func NewHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, slac
 		bitbucketJobVarsFunc:         bitbucketJobVarsFunc,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
+}
+
+type Handler struct {
+	secretHelper                 crypt.SecretHelper
+	config                       config.SlackConfig
+	slackAPIClient               slackapi.Client
+	cockroachDBClient            cockroachdb.Client
+	apiConfig                    config.APIServerConfig
+	buildService                 estafette.Service
+	githubJobVarsFunc            func(context.Context, string, string, string) (string, string, error)
+	bitbucketJobVarsFunc         func(context.Context, string, string, string) (string, string, error)
+	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 func (h *Handler) Handle(c *gin.Context) {

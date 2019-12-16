@@ -20,17 +20,17 @@ type Client interface {
 	GetDigestCached(ctx context.Context, repository string, tag string) (DockerImageDigest, error)
 }
 
-type client struct {
-	tokens  map[string]DockerHubToken
-	digests map[string]DockerImageDigest
-}
-
-// NewClient returns a new docker.Client
+// NewClient returns a new dockerhubapi.Client
 func NewClient() Client {
 	return &client{
 		tokens:  make(map[string]DockerHubToken),
 		digests: make(map[string]DockerImageDigest),
 	}
+}
+
+type client struct {
+	tokens  map[string]DockerHubToken
+	digests map[string]DockerImageDigest
 }
 
 // GetToken creates an estafette-ci-builder job in Kubernetes to run the estafette build

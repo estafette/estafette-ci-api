@@ -31,18 +31,18 @@ type Client interface {
 	JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error)
 }
 
-type client struct {
-	config                          config.GithubConfig
-	prometheusOutboundAPICallTotals *prometheus.CounterVec
-	tracer                          opentracing.Tracer
-}
-
-// NewClient creates an github.Client to communicate with the Github api
+// NewClient creates an githubapi.Client to communicate with the Github api
 func NewClient(config config.GithubConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) Client {
 	return &client{
 		config:                          config,
 		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
+}
+
+type client struct {
+	config                          config.GithubConfig
+	prometheusOutboundAPICallTotals *prometheus.CounterVec
+	tracer                          opentracing.Tracer
 }
 
 // GetGithubAppToken returns a Github app token with which to retrieve an installation token

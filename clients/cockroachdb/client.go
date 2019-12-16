@@ -103,26 +103,6 @@ type Client interface {
 	RenameComputedReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
 }
 
-// BuildVersionDetail represents a specific build, including version number, repo, branch, revision and manifest
-type BuildVersionDetail struct {
-	ID           int
-	BuildVersion string
-	RepoSource   string
-	RepoFullName string
-	RepoBranch   string
-	RepoRevision string
-	Manifest     string
-	InsertedAt   time.Time
-}
-
-type client struct {
-	databaseDriver                  string
-	config                          config.DatabaseConfig
-	PrometheusOutboundAPICallTotals *prometheus.CounterVec
-	databaseConnection              *sql.DB
-	tracer                          opentracing.Tracer
-}
-
 // NewClient returns a new cockroach.Client
 func NewClient(config config.DatabaseConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) Client {
 
@@ -131,6 +111,14 @@ func NewClient(config config.DatabaseConfig, prometheusOutboundAPICallTotals *pr
 		config:                          config,
 		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
 	}
+}
+
+type client struct {
+	databaseDriver                  string
+	config                          config.DatabaseConfig
+	PrometheusOutboundAPICallTotals *prometheus.CounterVec
+	databaseConnection              *sql.DB
+	tracer                          opentracing.Tracer
 }
 
 // Connect sets up a connection with CockroachDB

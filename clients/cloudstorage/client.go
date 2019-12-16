@@ -23,12 +23,7 @@ type Client interface {
 	GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error)
 }
 
-type client struct {
-	client *storage.Client
-	config *config.CloudStorageConfig
-}
-
-// NewClient returns new gcs.Client
+// NewClient returns new cloudstorage.Client
 func NewClient(config *config.CloudStorageConfig, storageClient *storage.Client) Client {
 
 	if config == nil {
@@ -41,6 +36,11 @@ func NewClient(config *config.CloudStorageConfig, storageClient *storage.Client)
 		client: storageClient,
 		config: config,
 	}
+}
+
+type client struct {
+	client *storage.Client
+	config *config.CloudStorageConfig
 }
 
 func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error) {

@@ -10,14 +10,14 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type Handler struct {
-	service Service
-}
-
 func NewHandler(service Service) Handler {
 	return Handler{
 		service: service,
 	}
+}
+
+type Handler struct {
+	service Service
 }
 
 func (h *Handler) Handle(c *gin.Context) {

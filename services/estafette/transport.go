@@ -32,21 +32,6 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-type Handler struct {
-	configFilePath       string
-	config               config.APIServerConfig
-	authConfig           config.AuthConfig
-	encryptedConfig      config.APIConfig
-	cockroachDBClient    cockroachdb.Client
-	cloudStorageClient   cloudstorage.Client
-	ciBuilderClient      builderapi.Client
-	buildService         Service
-	warningHelper        helpers.WarningHelper
-	secretHelper         crypt.SecretHelper
-	githubJobVarsFunc    func(context.Context, string, string, string) (string, string, error)
-	bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)
-}
-
 // NewHandler returns a new estafette.Handler
 func NewHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper helpers.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
 
@@ -64,6 +49,21 @@ func NewHandler(configFilePath string, config config.APIServerConfig, authConfig
 		githubJobVarsFunc:    githubJobVarsFunc,
 		bitbucketJobVarsFunc: bitbucketJobVarsFunc,
 	}
+}
+
+type Handler struct {
+	configFilePath       string
+	config               config.APIServerConfig
+	authConfig           config.AuthConfig
+	encryptedConfig      config.APIConfig
+	cockroachDBClient    cockroachdb.Client
+	cloudStorageClient   cloudstorage.Client
+	ciBuilderClient      builderapi.Client
+	buildService         Service
+	warningHelper        helpers.WarningHelper
+	secretHelper         crypt.SecretHelper
+	githubJobVarsFunc    func(context.Context, string, string, string) (string, string, error)
+	bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)
 }
 
 func (h *Handler) GetPipelines(c *gin.Context) {

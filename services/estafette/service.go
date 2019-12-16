@@ -35,17 +35,6 @@ type Service interface {
 	UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) error
 }
 
-type service struct {
-	jobsConfig           config.JobsConfig
-	apiServerConfig      config.APIServerConfig
-	cockroachDBClient    cockroachdb.Client
-	prometheusClient     prometheus.Client
-	cloudStorageClient   cloudstorage.Client
-	ciBuilderClient      builderapi.Client
-	githubJobVarsFunc    func(context.Context, string, string, string) (string, string, error)
-	bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)
-}
-
 // NewService returns a new estafette.Service
 func NewService(jobsConfig config.JobsConfig, apiServerConfig config.APIServerConfig, cockroachDBClient cockroachdb.Client, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
 
@@ -58,6 +47,17 @@ func NewService(jobsConfig config.JobsConfig, apiServerConfig config.APIServerCo
 		githubJobVarsFunc:    githubJobVarsFunc,
 		bitbucketJobVarsFunc: bitbucketJobVarsFunc,
 	}
+}
+
+type service struct {
+	jobsConfig           config.JobsConfig
+	apiServerConfig      config.APIServerConfig
+	cockroachDBClient    cockroachdb.Client
+	prometheusClient     prometheus.Client
+	cloudStorageClient   cloudstorage.Client
+	ciBuilderClient      builderapi.Client
+	githubJobVarsFunc    func(context.Context, string, string, string) (string, string, error)
+	bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)
 }
 
 func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (createdBuild *contracts.Build, err error) {

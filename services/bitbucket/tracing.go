@@ -9,13 +9,13 @@ import (
 	"github.com/opentracing/opentracing-go/log"
 )
 
-type tracingService struct {
-	Service
-}
-
 // NewTracingService returns a new instance of a tracing Service.
 func NewTracingService(s Service) Service {
 	return &tracingService{s}
+}
+
+type tracingService struct {
+	Service
 }
 
 func (s *tracingService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) {

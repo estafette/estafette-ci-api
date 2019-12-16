@@ -9,17 +9,17 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type Handler struct {
-	apiClient    pubsubapi.Client
-	buildService estafette.Service
-}
-
 // NewHandler returns a pubsub.Handler
 func NewHandler(apiClient pubsubapi.Client, buildService estafette.Service) Handler {
 	return Handler{
 		apiClient:    apiClient,
 		buildService: buildService,
 	}
+}
+
+type Handler struct {
+	apiClient    pubsubapi.Client
+	buildService estafette.Service
 }
 
 func (eh *Handler) PostPubsubEvent(c *gin.Context) {

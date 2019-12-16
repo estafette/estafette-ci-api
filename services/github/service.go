@@ -26,14 +26,6 @@ type Service interface {
 	IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) bool
 }
 
-type service struct {
-	apiClient                    githubapi.Client
-	pubsubAPIClient              pubsubapi.Client
-	buildService                 estafette.Service
-	config                       config.GithubConfig
-	prometheusInboundEventTotals *prometheus.CounterVec
-}
-
 // NewService returns a github.Service to handle incoming webhook events
 func NewService(apiClient githubapi.Client, pubsubAPIClient pubsubapi.Client, buildService estafette.Service, config config.GithubConfig, prometheusInboundEventTotals *prometheus.CounterVec) Service {
 	return &service{
@@ -43,6 +35,14 @@ func NewService(apiClient githubapi.Client, pubsubAPIClient pubsubapi.Client, bu
 		config:                       config,
 		prometheusInboundEventTotals: prometheusInboundEventTotals,
 	}
+}
+
+type service struct {
+	apiClient                    githubapi.Client
+	pubsubAPIClient              pubsubapi.Client
+	buildService                 estafette.Service
+	config                       config.GithubConfig
+	prometheusInboundEventTotals *prometheus.CounterVec
 }
 
 func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubapi.PushEvent) {
