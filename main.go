@@ -168,6 +168,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	}
 	bigqueryClient := bigquery.NewClient(config.Integrations.BigQuery, bqClient)
 	bigqueryClient = bigquery.NewTracingClient(bigqueryClient)
+	bigqueryClient = bigquery.NewLoggingClient(bigqueryClient)
 	err = bigqueryClient.Init(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Initializing BigQuery tables has failed")

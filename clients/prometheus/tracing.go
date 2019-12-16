@@ -25,36 +25,35 @@ func (c *tracingClient) AwaitScrapeInterval(ctx context.Context) {
 	c.Client.AwaitScrapeInterval(ctx)
 }
 
-func (c *tracingClient) GetMaxMemoryByPodName(ctx context.Context, podName string) (float64, error) {
+func (c *tracingClient) GetMaxMemoryByPodName(ctx context.Context, podName string) (max float64, err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetMaxMemoryByPodName"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		c.handleError(span, err)
+	}(span)
 
-	max, err := c.Client.GetMaxMemoryByPodName(ctx, podName)
-	c.handleError(span, err)
-
-	return max, err
+	return c.Client.GetMaxMemoryByPodName(ctx, podName)
 }
 
-func (c *tracingClient) GetMaxCPUByPodName(ctx context.Context, podName string) (float64, error) {
+func (c *tracingClient) GetMaxCPUByPodName(ctx context.Context, podName string) (max float64, err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetMaxCPUByPodName"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		c.handleError(span, err)
+	}(span)
 
-	max, err := c.Client.GetMaxCPUByPodName(ctx, podName)
-	c.handleError(span, err)
-
-	return max, err
+	return c.Client.GetMaxCPUByPodName(ctx, podName)
 }
 
 func (c *tracingClient) getSpanName(funcName string) string {
 	return "prometheus:" + funcName
 }
 
-func (c *tracingClient) handleError(span opentracing.Span, err error) error {
+func (c *tracingClient) handleError(span opentracing.Span, err error) {
 	if err != nil {
 		ext.Error.Set(span, true)
 		span.LogFields(log.Error(err))
 	}
-	return err
 }

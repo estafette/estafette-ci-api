@@ -20,104 +20,133 @@ type tracingService struct {
 	Service
 }
 
-func (s *tracingService) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (*contracts.Build, error) {
+func (s *tracingService) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("CreateBuild"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		s.handleError(span, err)
+	}(span)
 
-	b, err := s.Service.CreateBuild(ctx, build, waitForJobToStart)
-	s.handleError(span, err)
-
-	return b, err
+	return s.Service.CreateBuild(ctx, build, waitForJobToStart)
 }
 
-func (s *tracingService) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) error {
+func (s *tracingService) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("FinishBuild"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		s.handleError(span, err)
+	}(span)
 
-	return s.handleError(span, s.Service.FinishBuild(ctx, repoSource, repoOwner, repoName, buildID, buildStatus))
+	return s.Service.FinishBuild(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
 }
 
-func (s *tracingService) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (*contracts.Release, error) {
+func (s *tracingService) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (r *contracts.Release, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("CreateRelease"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		s.handleError(span, err)
+	}(span)
 
-	r, err := s.Service.CreateRelease(ctx, release, mft, repoBranch, repoRevision, waitForJobToStart)
-	s.handleError(span, err)
-
-	return r, err
+	return s.Service.CreateRelease(ctx, release, mft, repoBranch, repoRevision, waitForJobToStart)
 }
 
-func (s *tracingService) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) error {
+func (s *tracingService) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("FinishRelease"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		s.handleError(span, err)
+	}(span)
 
-	return s.handleError(span, s.Service.FinishRelease(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus))
+	return s.Service.FinishRelease(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)
 }
 
-func (s *tracingService) FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) error {
+func (s *tracingService) FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("FireGitTriggers"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		s.handleError(span, err)
+	}(span)
 
-	return s.handleError(span, s.Service.FireGitTriggers(ctx, gitEvent))
+	return s.Service.FireGitTriggers(ctx, gitEvent)
 }
 
-func (s *tracingService) FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) error {
+func (s *tracingService) FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("FirePipelineTriggers"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		s.handleError(span, err)
+	}(span)
 
-	return s.handleError(span, s.Service.FirePipelineTriggers(ctx, build, event))
+	return s.Service.FirePipelineTriggers(ctx, build, event)
 }
 
-func (s *tracingService) FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) error {
+func (s *tracingService) FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("FireReleaseTriggers"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		s.handleError(span, err)
+	}(span)
 
-	return s.handleError(span, s.Service.FireReleaseTriggers(ctx, release, event))
+	return s.Service.FireReleaseTriggers(ctx, release, event)
 }
 
-func (s *tracingService) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) error {
+func (s *tracingService) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("FirePubSubTriggers"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		s.handleError(span, err)
+	}(span)
 
-	return s.handleError(span, s.Service.FirePubSubTriggers(ctx, pubsubEvent))
+	return s.Service.FirePubSubTriggers(ctx, pubsubEvent)
 }
 
-func (s *tracingService) FireCronTriggers(ctx context.Context) error {
+func (s *tracingService) FireCronTriggers(ctx context.Context) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("FireCronTriggers"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		s.handleError(span, err)
+	}(span)
 
-	return s.handleError(span, s.Service.FireCronTriggers(ctx))
+	return s.Service.FireCronTriggers(ctx)
 }
 
-func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("Rename"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		s.handleError(span, err)
+	}(span)
 
-	return s.handleError(span, s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName))
+	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
-func (s *tracingService) UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) error {
+func (s *tracingService) UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("UpdateBuildStatus"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		s.handleError(span, err)
+	}(span)
 
-	return s.handleError(span, s.Service.UpdateBuildStatus(ctx, event))
+	return s.Service.UpdateBuildStatus(ctx, event)
 }
 
-func (s *tracingService) UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) error {
+func (s *tracingService) UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("UpdateJobResources"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		s.handleError(span, err)
+	}(span)
 
-	return s.handleError(span, s.Service.UpdateJobResources(ctx, event))
+	return s.Service.UpdateJobResources(ctx, event)
 }
 
 func (s *tracingService) getSpanName(funcName string) string {
 	return "estafette:" + funcName
 }
 
-func (s *tracingService) handleError(span opentracing.Span, err error) error {
+func (s *tracingService) handleError(span opentracing.Span, err error) {
 	if err != nil {
 		ext.Error.Set(span, true)
 		span.LogFields(log.Error(err))
 	}
-	return err
 }

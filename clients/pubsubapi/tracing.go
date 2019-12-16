@@ -18,41 +18,46 @@ type tracingClient struct {
 	Client
 }
 
-func (c *tracingClient) SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (*manifest.EstafettePubSubEvent, error) {
+func (c *tracingClient) SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (event *manifest.EstafettePubSubEvent, err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("SubscriptionForTopic"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		c.handleError(span, err)
+	}(span)
 
-	event, err := c.Client.SubscriptionForTopic(ctx, message)
-	c.handleError(span, err)
-
-	return event, err
+	return c.Client.SubscriptionForTopic(ctx, message)
 }
 
-func (c *tracingClient) SubscribeToTopic(ctx context.Context, projectID, topicID string) error {
+func (c *tracingClient) SubscribeToTopic(ctx context.Context, projectID, topicID string) (err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("SubscribeToTopic"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		c.handleError(span, err)
+	}(span)
 
-	return c.handleError(span, c.Client.SubscribeToTopic(ctx, projectID, topicID))
+	return c.Client.SubscribeToTopic(ctx, projectID, topicID)
 }
 
-func (c *tracingClient) SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error {
+func (c *tracingClient) SubscribeToPubsubTriggers(ctx context.Context, manifestString string) (err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("SubscribeToPubsubTriggers"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		c.handleError(span, err)
+	}(span)
 
-	return c.handleError(span, c.Client.SubscribeToPubsubTriggers(ctx, manifestString))
+	return c.Client.SubscribeToPubsubTriggers(ctx, manifestString)
 }
 
 func (c *tracingClient) getSpanName(funcName string) string {
 	return "pubsubapi:" + funcName
 }
 
-func (c *tracingClient) handleError(span opentracing.Span, err error) error {
+func (c *tracingClient) handleError(span opentracing.Span, err error) {
 	if err != nil {
 		ext.Error.Set(span, true)
 		span.LogFields(log.Error(err))
 	}
-	return err
 }

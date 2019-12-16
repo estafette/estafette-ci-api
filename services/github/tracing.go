@@ -25,21 +25,24 @@ func (s *tracingService) CreateJobForGithubPush(ctx context.Context, event githu
 	s.Service.CreateJobForGithubPush(ctx, event)
 }
 
-func (s *tracingService) HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (bool, error) {
+func (s *tracingService) HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (valid bool, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("HasValidSignature"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		s.handleError(span, err)
+	}(span)
 
-	valid, err := s.Service.HasValidSignature(ctx, body, signatureHeader)
-	s.handleError(span, err)
-
-	return valid, err
+	return s.Service.HasValidSignature(ctx, body, signatureHeader)
 }
 
-func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("Rename"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		s.handleError(span, err)
+	}(span)
 
-	return s.handleError(span, s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName))
+	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
 func (s *tracingService) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) bool {
@@ -53,10 +56,9 @@ func (s *tracingService) getSpanName(funcName string) string {
 	return "github:" + funcName
 }
 
-func (s *tracingService) handleError(span opentracing.Span, err error) error {
+func (s *tracingService) handleError(span opentracing.Span, err error) {
 	if err != nil {
 		ext.Error.Set(span, true)
 		span.LogFields(log.Error(err))
 	}
-	return err
 }

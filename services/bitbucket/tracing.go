@@ -26,22 +26,24 @@ func (s *tracingService) CreateJobForBitbucketPush(ctx context.Context, event bi
 	s.Service.CreateJobForBitbucketPush(ctx, event)
 }
 
-func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("Rename"))
 	defer span.Finish()
+	defer func(span opentracing.Span) {
+		s.handleError(span, err)
+	}(span)
 
-	return s.handleError(span, s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName))
+	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
 func (s *tracingService) getSpanName(funcName string) string {
 	return "bitbucket:" + funcName
 }
 
-func (s *tracingService) handleError(span opentracing.Span, err error) error {
+func (s *tracingService) handleError(span opentracing.Span, err error) {
 	if err != nil {
 		ext.Error.Set(span, true)
 		span.LogFields(log.Error(err))
 	}
-	return err
 }
