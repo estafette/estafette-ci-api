@@ -14,7 +14,6 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/config"
-	githubdom "github.com/estafette/estafette-ci-api/domain/github"
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
@@ -27,7 +26,7 @@ import (
 // Service handles http events for Github integration
 type Service interface {
 	Handle(*gin.Context)
-	CreateJobForGithubPush(context.Context, githubdom.PushEvent)
+	CreateJobForGithubPush(context.Context, githubapi.PushEvent)
 	HasValidSignature([]byte, string) (bool, error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
 }
@@ -81,7 +80,7 @@ func (h *service) Handle(c *gin.Context) {
 	}
 
 	// unmarshal json body to check if installation is whitelisted
-	var anyEvent githubdom.AnyEvent
+	var anyEvent githubapi.AnyEvent
 	err = json.Unmarshal(body, &anyEvent)
 	if err != nil {
 		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubAnyEvent failed")
@@ -98,7 +97,7 @@ func (h *service) Handle(c *gin.Context) {
 	case "push": // Any Git push to a Repository, including editing tags or branches. Commits via API actions that update references are also counted. This is the default event.
 
 		// unmarshal json body
-		var pushEvent githubdom.PushEvent
+		var pushEvent githubapi.PushEvent
 		err := json.Unmarshal(body, &pushEvent)
 		if err != nil {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubPushEvent failed")
@@ -145,7 +144,7 @@ func (h *service) Handle(c *gin.Context) {
 		log.Debug().Str("event", eventType).Str("requestBody", string(body)).Msgf("Github webhook event of type '%v', logging request body", eventType)
 
 		// unmarshal json body
-		var repositoryEvent githubdom.RepositoryEvent
+		var repositoryEvent githubapi.RepositoryEvent
 		err := json.Unmarshal(body, &repositoryEvent)
 		if err != nil {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubRepositoryEvent failed")
@@ -168,7 +167,7 @@ func (h *service) Handle(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
-func (h *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubdom.PushEvent) {
+func (h *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubapi.PushEvent) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, "Github::CreateJobForGithubPush")
 	defer span.Finish()
@@ -297,7 +296,7 @@ func (h *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fro
 	return h.buildService.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
-func (h *service) IsWhitelistedInstallation(installation githubdom.Installation) bool {
+func (h *service) IsWhitelistedInstallation(installation githubapi.Installation) bool {
 
 	if len(h.config.WhitelistedInstallations) == 0 {
 		return true

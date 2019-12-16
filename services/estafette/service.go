@@ -13,8 +13,6 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/prometheus"
 	"github.com/estafette/estafette-ci-api/config"
-	cockroachdbdom "github.com/estafette/estafette-ci-api/domain/cockroachdb"
-	estafettedom "github.com/estafette/estafette-ci-api/domain/estafette"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
@@ -36,8 +34,8 @@ type Service interface {
 
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
 
-	UpdateBuildStatus(context.Context, estafettedom.CiBuilderEvent) error
-	UpdateJobResources(context.Context, estafettedom.CiBuilderEvent) error
+	UpdateBuildStatus(context.Context, builderapi.CiBuilderEvent) error
+	UpdateJobResources(context.Context, builderapi.CiBuilderEvent) error
 }
 
 type service struct {
@@ -214,7 +212,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	}
 
 	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
-	jobResources := cockroachdbdom.JobResources{
+	jobResources := cockroachdb.JobResources{
 		CPURequest:    s.jobsConfig.MaxCPUCores,
 		CPULimit:      s.jobsConfig.MaxCPUCores,
 		MemoryRequest: s.jobsConfig.MaxMemoryBytes,
@@ -278,7 +276,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	}
 
 	// define ci builder params
-	ciBuilderParams := estafettedom.CiBuilderParams{
+	ciBuilderParams := builderapi.CiBuilderParams{
 		JobType:              "build",
 		RepoSource:           build.RepoSource,
 		RepoOwner:            build.RepoOwner,
@@ -307,7 +305,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 				return
 			}
 		} else {
-			go func(ciBuilderParams estafettedom.CiBuilderParams) {
+			go func(ciBuilderParams builderapi.CiBuilderParams) {
 				_, err = s.ciBuilderClient.CreateCiBuilderJob(ctx, ciBuilderParams)
 				if err != nil {
 					log.Warn().Err(err).Msgf("Failed creating async build job")
@@ -446,7 +444,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	}
 
 	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
-	jobResources := cockroachdbdom.JobResources{
+	jobResources := cockroachdb.JobResources{
 		CPURequest:    s.jobsConfig.MaxCPUCores,
 		CPULimit:      s.jobsConfig.MaxCPUCores,
 		MemoryRequest: s.jobsConfig.MaxMemoryBytes,
@@ -515,7 +513,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	}
 
 	// define ci builder params
-	ciBuilderParams := estafettedom.CiBuilderParams{
+	ciBuilderParams := builderapi.CiBuilderParams{
 		JobType:              "release",
 		RepoSource:           release.RepoSource,
 		RepoOwner:            release.RepoOwner,
@@ -544,7 +542,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 			return
 		}
 	} else {
-		go func(ciBuilderParams estafettedom.CiBuilderParams) {
+		go func(ciBuilderParams builderapi.CiBuilderParams) {
 			_, err = s.ciBuilderClient.CreateCiBuilderJob(ctx, ciBuilderParams)
 			if err != nil {
 				log.Warn().Err(err).Msgf("Failed creating async release job")
@@ -1013,7 +1011,7 @@ func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fro
 	return s.cockroachDBClient.Rename(ctx, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName)
 }
 
-func (s *service) UpdateBuildStatus(ctx context.Context, ciBuilderEvent estafettedom.CiBuilderEvent) (err error) {
+func (s *service) UpdateBuildStatus(ctx context.Context, ciBuilderEvent builderapi.CiBuilderEvent) (err error) {
 
 	log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("UpdateBuildStatus executing...")
 
@@ -1057,7 +1055,7 @@ func (s *service) UpdateBuildStatus(ctx context.Context, ciBuilderEvent estafett
 	return fmt.Errorf("CiBuilderEvent has invalid state, not updating build status")
 }
 
-func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent estafettedom.CiBuilderEvent) (err error) {
+func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent builderapi.CiBuilderEvent) (err error) {
 
 	log.Info().Msgf("Updating job resources for pod %v", ciBuilderEvent.PodName)
 
@@ -1079,7 +1077,7 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent estafet
 
 		log.Info().Msgf("Max memory usage for pod %v is %v", ciBuilderEvent.PodName, maxMemory)
 
-		jobResources := cockroachdbdom.JobResources{
+		jobResources := cockroachdb.JobResources{
 			CPUMaxUsage:    maxCPU,
 			MemoryMaxUsage: maxMemory,
 		}

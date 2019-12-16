@@ -13,7 +13,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/estafette/estafette-ci-api/config"
-	cockroachdbdom "github.com/estafette/estafette-ci-api/domain/cockroachdb"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	_ "github.com/lib/pq" // use postgres client library to connect to cockroachdb
@@ -31,12 +30,12 @@ type Client interface {
 	ConnectWithDriverAndSource(driverName, dataSourceName string) error
 
 	GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwner, repoName string) (int, error)
-	InsertBuild(context.Context, contracts.Build, cockroachdbdom.JobResources) (*contracts.Build, error)
+	InsertBuild(context.Context, contracts.Build, JobResources) (*contracts.Build, error)
 	UpdateBuildStatus(context.Context, string, string, string, int, string) error
-	UpdateBuildResourceUtilization(context.Context, string, string, string, int, cockroachdbdom.JobResources) error
-	InsertRelease(context.Context, contracts.Release, cockroachdbdom.JobResources) (*contracts.Release, error)
+	UpdateBuildResourceUtilization(context.Context, string, string, string, int, JobResources) error
+	InsertRelease(context.Context, contracts.Release, JobResources) (*contracts.Release, error)
 	UpdateReleaseStatus(context.Context, string, string, string, int, string) error
-	UpdateReleaseResourceUtilization(context.Context, string, string, string, int, cockroachdbdom.JobResources) error
+	UpdateReleaseResourceUtilization(context.Context, string, string, string, int, JobResources) error
 	InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (insertedBuildLog contracts.BuildLog, err error)
 	InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (insertedReleaseLog contracts.ReleaseLog, err error)
 
@@ -61,14 +60,14 @@ type Client interface {
 	GetPipelineBuildsByVersion(context.Context, string, string, string, string, []string, uint64, bool) ([]*contracts.Build, error)
 	GetPipelineBuildLogs(context.Context, string, string, string, string, string, string, bool) (*contracts.BuildLog, error)
 	GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
-	GetPipelineBuildMaxResourceUtilization(context.Context, string, string, string, int) (cockroachdbdom.JobResources, int, error)
+	GetPipelineBuildMaxResourceUtilization(context.Context, string, string, string, int) (JobResources, int, error)
 	GetPipelineReleases(context.Context, string, string, string, int, int, map[string][]string) ([]*contracts.Release, error)
 	GetPipelineReleasesCount(context.Context, string, string, string, map[string][]string) (int, error)
 	GetPipelineRelease(context.Context, string, string, string, int) (*contracts.Release, error)
 	GetPipelineLastReleasesByName(context.Context, string, string, string, string, []string) ([]contracts.Release, error)
 	GetPipelineReleaseLogs(context.Context, string, string, string, int, bool) (*contracts.ReleaseLog, error)
 	GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (releaseLogs []*contracts.ReleaseLog, err error)
-	GetPipelineReleaseMaxResourceUtilization(context.Context, string, string, string, string, int) (cockroachdbdom.JobResources, int, error)
+	GetPipelineReleaseMaxResourceUtilization(context.Context, string, string, string, string, int) (JobResources, int, error)
 	GetBuildsCount(context.Context, map[string][]string) (int, error)
 	GetReleasesCount(context.Context, map[string][]string) (int, error)
 	GetBuildsDuration(context.Context, map[string][]string) (time.Duration, error)
@@ -242,7 +241,7 @@ func (dbc *client) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOw
 	return
 }
 
-func (dbc *client) InsertBuild(ctx context.Context, build contracts.Build, jobResources cockroachdbdom.JobResources) (insertedBuild *contracts.Build, err error) {
+func (dbc *client) InsertBuild(ctx context.Context, build contracts.Build, jobResources JobResources) (insertedBuild *contracts.Build, err error) {
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::InsertBuild")
 	defer span.Finish()
@@ -423,7 +422,7 @@ func (dbc *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner,
 	return
 }
 
-func (dbc *client) UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources cockroachdbdom.JobResources) (err error) {
+func (dbc *client) UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources JobResources) (err error) {
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpdateBuildResourceUtilization")
 	defer span.Finish()
@@ -452,7 +451,7 @@ func (dbc *client) UpdateBuildResourceUtilization(ctx context.Context, repoSourc
 	return
 }
 
-func (dbc *client) InsertRelease(ctx context.Context, release contracts.Release, jobResources cockroachdbdom.JobResources) (insertedRelease *contracts.Release, err error) {
+func (dbc *client) InsertRelease(ctx context.Context, release contracts.Release, jobResources JobResources) (insertedRelease *contracts.Release, err error) {
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::InsertRelease")
 	defer span.Finish()
@@ -607,7 +606,7 @@ func (dbc *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwne
 	return
 }
 
-func (dbc *client) UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources cockroachdbdom.JobResources) (err error) {
+func (dbc *client) UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) (err error) {
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpdateReleaseResourceUtilization")
 	defer span.Finish()
@@ -1804,7 +1803,7 @@ func (dbc *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, 
 	return buildLogs, nil
 }
 
-func (dbc *client) GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobResources cockroachdbdom.JobResources, recordCount int, err error) {
+func (dbc *client) GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobResources JobResources, recordCount int, err error) {
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildMaxResourceUtilization")
 	defer span.Finish()
@@ -2116,7 +2115,7 @@ func (dbc *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource
 	return releaseLogs, nil
 }
 
-func (dbc *client) GetPipelineReleaseMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobResources cockroachdbdom.JobResources, recordCount int, err error) {
+func (dbc *client) GetPipelineReleaseMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobResources JobResources, recordCount int, err error) {
 
 	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildMaxResourceUtilization")
 	defer span.Finish()

@@ -1,7 +1,5 @@
 package cockroachdb
 
-
-
 // JobResources represents the used cpu and memory resources for a job and the measured maximum once it's done
 type JobResources struct {
 	CPURequest     float64

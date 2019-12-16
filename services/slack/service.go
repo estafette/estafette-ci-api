@@ -9,7 +9,6 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
 	"github.com/estafette/estafette-ci-api/clients/slackapi"
 	"github.com/estafette/estafette-ci-api/config"
-	slackdom "github.com/estafette/estafette-ci-api/domain/slack"
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
@@ -23,7 +22,7 @@ import (
 // Service handles http events for Slack integration
 type Service interface {
 	Handle(*gin.Context)
-	HasValidVerificationToken(slackdom.SlashCommand) bool
+	HasValidVerificationToken(slackapi.SlashCommand) bool
 }
 
 type service struct {
@@ -62,7 +61,7 @@ func (h *service) Handle(c *gin.Context) {
 
 	h.prometheusInboundEventTotals.With(prometheus.Labels{"event": "", "source": "slack"}).Inc()
 
-	var slashCommand slackdom.SlashCommand
+	var slashCommand slackapi.SlashCommand
 	// This will infer what binder to use depending on the content-type header.
 	err := c.Bind(&slashCommand)
 	if err != nil {
@@ -245,6 +244,6 @@ func (h *service) Handle(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
-func (h *service) HasValidVerificationToken(slashCommand slackdom.SlashCommand) bool {
+func (h *service) HasValidVerificationToken(slashCommand slackapi.SlashCommand) bool {
 	return slashCommand.Token == h.config.AppVerificationToken
 }

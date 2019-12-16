@@ -14,7 +14,6 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/config"
-	githubdom "github.com/estafette/estafette-ci-api/domain/github"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
@@ -26,9 +25,9 @@ import (
 type Client interface {
 	GetGithubAppToken(ctx context.Context) (string, error)
 	GetInstallationID(context.Context, string) (int, error)
-	GetInstallationToken(context.Context, int) (githubdom.AccessToken, error)
-	GetAuthenticatedRepositoryURL(githubdom.AccessToken, string) (string, error)
-	GetEstafetteManifest(context.Context, githubdom.AccessToken, githubdom.PushEvent) (bool, string, error)
+	GetInstallationToken(context.Context, int) (AccessToken, error)
+	GetAuthenticatedRepositoryURL(AccessToken, string) (string, error)
+	GetEstafetteManifest(context.Context, AccessToken, PushEvent) (bool, string, error)
 	callGithubAPI(opentracing.Span, string, string, interface{}, string, string) (int, []byte, error)
 
 	JobVarsFunc() func(context.Context, string, string, string) (string, string, error)
@@ -128,7 +127,7 @@ func (gh *client) GetInstallationID(ctx context.Context, repoOwner string) (inst
 }
 
 // GetInstallationToken returns an access token for an installation of a Github app
-func (gh *client) GetInstallationToken(ctx context.Context, installationID int) (accessToken githubdom.AccessToken, err error) {
+func (gh *client) GetInstallationToken(ctx context.Context, installationID int) (accessToken AccessToken, err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, "GithubApi::GetInstallationToken")
 	defer span.Finish()
@@ -150,14 +149,14 @@ func (gh *client) GetInstallationToken(ctx context.Context, installationID int) 
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (gh *client) GetAuthenticatedRepositoryURL(accessToken githubdom.AccessToken, htmlURL string) (url string, err error) {
+func (gh *client) GetAuthenticatedRepositoryURL(accessToken AccessToken, htmlURL string) (url string, err error) {
 
 	url = strings.Replace(htmlURL, "https://github.com", fmt.Sprintf("https://x-access-token:%v@github.com", accessToken.Token), -1)
 
 	return
 }
 
-func (gh *client) GetEstafetteManifest(ctx context.Context, accessToken githubdom.AccessToken, pushEvent githubdom.PushEvent) (exists bool, manifest string, err error) {
+func (gh *client) GetEstafetteManifest(ctx context.Context, accessToken AccessToken, pushEvent PushEvent) (exists bool, manifest string, err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, "GithubApi::GetEstafetteManifest")
 	defer span.Finish()
@@ -173,7 +172,7 @@ func (gh *client) GetEstafetteManifest(ctx context.Context, accessToken githubdo
 		return
 	}
 
-	var content githubdom.RepositoryContent
+	var content RepositoryContent
 
 	// unmarshal json body
 	err = json.Unmarshal(body, &content)

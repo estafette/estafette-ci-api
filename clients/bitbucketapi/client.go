@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/estafette/estafette-ci-api/config"
-	bitbucketdom "github.com/estafette/estafette-ci-api/domain/bitbucket"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
@@ -22,9 +21,9 @@ import (
 
 // Client is the interface for communicating with the bitbucket api
 type Client interface {
-	GetAccessToken(context.Context) (bitbucketdom.AccessToken, error)
-	GetAuthenticatedRepositoryURL(bitbucketdom.AccessToken, string) (string, error)
-	GetEstafetteManifest(context.Context, bitbucketdom.AccessToken, bitbucketdom.RepositoryPushEvent) (bool, string, error)
+	GetAccessToken(context.Context) (AccessToken, error)
+	GetAuthenticatedRepositoryURL(AccessToken, string) (string, error)
+	GetEstafetteManifest(context.Context, AccessToken, RepositoryPushEvent) (bool, string, error)
 
 	JobVarsFunc() func(context.Context, string, string, string) (string, string, error)
 }
@@ -43,7 +42,7 @@ type client struct {
 }
 
 // GetAccessToken returns an access token to access the Bitbucket api
-func (bb *client) GetAccessToken(ctx context.Context) (accessToken bitbucketdom.AccessToken, err error) {
+func (bb *client) GetAccessToken(ctx context.Context) (accessToken AccessToken, err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, "BitbucketApi::GetAccessToken")
 	defer span.Finish()
@@ -102,14 +101,14 @@ func (bb *client) GetAccessToken(ctx context.Context) (accessToken bitbucketdom.
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (bb *client) GetAuthenticatedRepositoryURL(accessToken bitbucketdom.AccessToken, htmlURL string) (url string, err error) {
+func (bb *client) GetAuthenticatedRepositoryURL(accessToken AccessToken, htmlURL string) (url string, err error) {
 
 	url = strings.Replace(htmlURL, "https://bitbucket.org", fmt.Sprintf("https://x-token-auth:%v@bitbucket.org", accessToken.AccessToken), -1)
 
 	return
 }
 
-func (bb *client) GetEstafetteManifest(ctx context.Context, accessToken bitbucketdom.AccessToken, pushEvent bitbucketdom.RepositoryPushEvent) (exists bool, manifest string, err error) {
+func (bb *client) GetEstafetteManifest(ctx context.Context, accessToken AccessToken, pushEvent RepositoryPushEvent) (exists bool, manifest string, err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, "BitbucketApi::GetEstafetteManifest")
 	defer span.Finish()

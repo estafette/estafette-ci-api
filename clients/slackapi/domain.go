@@ -1,4 +1,4 @@
-package slack
+package slackapi
 
 // SlashCommand represents a slash command from Slack
 type SlashCommand struct {

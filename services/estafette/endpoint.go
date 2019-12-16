@@ -23,7 +23,6 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/config"
-	estafettedom "github.com/estafette/estafette-ci-api/domain/estafette"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
@@ -2293,7 +2292,7 @@ func (h *apiHandlerImpl) Commands(c *gin.Context) {
 		"builder:canceled":
 
 		// unmarshal json body
-		var ciBuilderEvent estafettedom.CiBuilderEvent
+		var ciBuilderEvent builderapi.CiBuilderEvent
 		err = json.Unmarshal(body, &ciBuilderEvent)
 		if err != nil {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to CiBuilderEvent failed")
@@ -2313,7 +2312,7 @@ func (h *apiHandlerImpl) Commands(c *gin.Context) {
 	case "builder:clean":
 
 		// unmarshal json body
-		var ciBuilderEvent estafettedom.CiBuilderEvent
+		var ciBuilderEvent builderapi.CiBuilderEvent
 		err = json.Unmarshal(body, &ciBuilderEvent)
 		if err != nil {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to CiBuilderEvent failed")
@@ -2334,7 +2333,7 @@ func (h *apiHandlerImpl) Commands(c *gin.Context) {
 			log.Info().Msgf("Job %v is already removed by cancellation, no need to remove for event %v", eventJobname, eventType)
 		}
 
-		go func(ctx context.Context, ciBuilderEvent estafettedom.CiBuilderEvent) {
+		go func(ctx context.Context, ciBuilderEvent builderapi.CiBuilderEvent) {
 			err := h.buildService.UpdateJobResources(ctx, ciBuilderEvent)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed updating max cpu and memory from prometheus for pod %v", ciBuilderEvent.PodName)

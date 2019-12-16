@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/estafette/estafette-ci-api/config"
-	slackdom "github.com/estafette/estafette-ci-api/domain/slack"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
@@ -18,7 +17,7 @@ import (
 
 // Client is the interface for communicating with the Slack api
 type Client interface {
-	GetUserProfile(context.Context, string) (*slackdom.UserProfile, error)
+	GetUserProfile(context.Context, string) (*UserProfile, error)
 }
 
 type client struct {
@@ -35,7 +34,7 @@ func NewClient(config config.SlackConfig, prometheusOutboundAPICallTotals *prome
 }
 
 // GetUserProfile returns a Slack user profile
-func (sl *client) GetUserProfile(ctx context.Context, userID string) (profile *slackdom.UserProfile, err error) {
+func (sl *client) GetUserProfile(ctx context.Context, userID string) (profile *UserProfile, err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, "SlackApi::GetUserProfile")
 	defer span.Finish()
@@ -78,7 +77,7 @@ func (sl *client) GetUserProfile(ctx context.Context, userID string) (profile *s
 		return
 	}
 
-	var profileResponse slackdom.GetUserProfileResponse
+	var profileResponse GetUserProfileResponse
 
 	// unmarshal json body
 	err = json.Unmarshal(body, &profileResponse)

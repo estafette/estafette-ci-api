@@ -20,7 +20,6 @@ import (
 	"github.com/ericchiang/k8s/apis/resource"
 	"github.com/estafette/estafette-ci-api/clients/dockerhubapi"
 	"github.com/estafette/estafette-ci-api/config"
-	estafettedom "github.com/estafette/estafette-ci-api/domain/estafette"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
@@ -31,14 +30,14 @@ import (
 
 // Client is the interface for running kubernetes commands specific to this application
 type Client interface {
-	CreateCiBuilderJob(context.Context, estafettedom.CiBuilderParams) (*batchv1.Job, error)
+	CreateCiBuilderJob(context.Context, CiBuilderParams) (*batchv1.Job, error)
 	RemoveCiBuilderJob(context.Context, string) error
 	CancelCiBuilderJob(context.Context, string) error
 	RemoveCiBuilderConfigMap(context.Context, string) error
 	RemoveCiBuilderSecret(context.Context, string) error
 	TailCiBuilderJobLogs(context.Context, string, chan contracts.TailLogLine) error
 	GetJobName(string, string, string, string) string
-	GetBuilderConfig(estafettedom.CiBuilderParams, string) contracts.BuilderConfig
+	GetBuilderConfig(CiBuilderParams, string) contracts.BuilderConfig
 }
 
 // NewClient returns a new estafette.Client
@@ -64,7 +63,7 @@ type client struct {
 }
 
 // CreateCiBuilderJob creates an estafette-ci-builder job in Kubernetes to run the estafette build
-func (cbc *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams estafettedom.CiBuilderParams) (job *batchv1.Job, err error) {
+func (cbc *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuilderParams) (job *batchv1.Job, err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, "KubernetesApi::CreateCiBuilderJob")
 	defer span.Finish()
@@ -760,7 +759,7 @@ func (cbc *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, log
 			}
 
 			// only forward if it's a json object with property 'tailLogLine'
-			var zeroLogLine estafettedom.ZeroLogLine
+			var zeroLogLine ZeroLogLine
 			err = json.Unmarshal(line, &zeroLogLine)
 			if err == nil {
 				if zeroLogLine.TailLogLine != nil {
@@ -793,7 +792,7 @@ func (cbc *client) GetJobName(jobType, repoOwner, repoName, id string) string {
 }
 
 // GetJobName returns the job name for a build or release job
-func (cbc *client) GetBuilderConfig(ciBuilderParams estafettedom.CiBuilderParams, jobName string) contracts.BuilderConfig {
+func (cbc *client) GetBuilderConfig(ciBuilderParams CiBuilderParams, jobName string) contracts.BuilderConfig {
 
 	// retrieve stages to filter trusted images and credentials
 	stages := ciBuilderParams.Manifest.Stages
