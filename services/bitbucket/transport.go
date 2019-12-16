@@ -7,7 +7,6 @@ import (
 
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/gin-gonic/gin"
-	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 )
 
@@ -22,9 +21,6 @@ func NewHandler(service Service) Handler {
 }
 
 func (h *Handler) Handle(c *gin.Context) {
-
-	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "Bitbucket::Handle")
-	defer span.Finish()
 
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
 
@@ -63,7 +59,7 @@ func (h *Handler) Handle(c *gin.Context) {
 			return
 		}
 
-		h.service.CreateJobForBitbucketPush(ctx, pushEvent)
+		h.service.CreateJobForBitbucketPush(c.Request.Context(), pushEvent)
 
 	case
 		"repo:fork",
@@ -99,7 +95,7 @@ func (h *Handler) Handle(c *gin.Context) {
 
 		if repoUpdatedEvent.IsValidRenameEvent() {
 			log.Info().Msgf("Renaming repository from %v/%v/%v to %v/%v/%v", repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetOldRepoOwner(), repoUpdatedEvent.GetOldRepoName(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetNewRepoOwner(), repoUpdatedEvent.GetNewRepoName())
-			err = h.service.Rename(ctx, repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetOldRepoOwner(), repoUpdatedEvent.GetOldRepoName(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetNewRepoOwner(), repoUpdatedEvent.GetNewRepoName())
+			err = h.service.Rename(c.Request.Context(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetOldRepoOwner(), repoUpdatedEvent.GetOldRepoName(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetNewRepoOwner(), repoUpdatedEvent.GetNewRepoName())
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed renaming repository from %v/%v/%v to %v/%v/%v", repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetOldRepoOwner(), repoUpdatedEvent.GetOldRepoName(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetNewRepoOwner(), repoUpdatedEvent.GetNewRepoName())
 				return

@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	"github.com/opentracing/opentracing-go/log"
 )
 
 type tracingClient struct {
@@ -15,30 +17,47 @@ func NewTracingClient(c Client) Client {
 	return &tracingClient{c}
 }
 
-func (s *tracingClient) GetToken(ctx context.Context, repository string) (DockerHubToken, error) {
+func (c *tracingClient) GetToken(ctx context.Context, repository string) (DockerHubToken, error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("GetToken"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetToken"))
 	defer span.Finish()
 
-	return s.Client.GetToken(ctx, repository)
+	token, err := c.Client.GetToken(ctx, repository)
+	c.handleError(span, err)
+
+	return token, err
 }
 
-func (s *tracingClient) GetDigest(ctx context.Context, token DockerHubToken, repository string, tag string) (DockerImageDigest, error) {
+func (c *tracingClient) GetDigest(ctx context.Context, token DockerHubToken, repository string, tag string) (DockerImageDigest, error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("GetDigest"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetDigest"))
 	defer span.Finish()
 
-	return s.Client.GetDigest(ctx, token, repository, tag)
+	digest, err := c.Client.GetDigest(ctx, token, repository, tag)
+	c.handleError(span, err)
+
+	return digest, err
 }
 
-func (s *tracingClient) GetDigestCached(ctx context.Context, repository string, tag string) (DockerImageDigest, error) {
+func (c *tracingClient) GetDigestCached(ctx context.Context, repository string, tag string) (DockerImageDigest, error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("GetDigestCached"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetDigestCached"))
 	defer span.Finish()
 
-	return s.Client.GetDigestCached(ctx, repository, tag)
+	digest, err := c.Client.GetDigestCached(ctx, repository, tag)
+	c.handleError(span, err)
+
+	return digest, err
 }
 
-func (s *tracingClient) getSpanName(funcName string) string {
+func (c *tracingClient) getSpanName(funcName string) string {
 	return "dockerhubapi:" + funcName
+}
+
+func (c *tracingClient) handleError(span opentracing.Span, err error) error {
+	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(log.Error(err))
+	}
+	return err
 }

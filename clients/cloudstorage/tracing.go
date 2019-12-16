@@ -6,6 +6,8 @@ import (
 
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	"github.com/opentracing/opentracing-go/log"
 )
 
 type tracingClient struct {
@@ -17,38 +19,46 @@ func NewTracingClient(c Client) Client {
 	return &tracingClient{c}
 }
 
-func (s *tracingClient) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) error {
+func (c *tracingClient) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) error {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("InsertBuildLog"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("InsertBuildLog"))
 	defer span.Finish()
 
-	return s.Client.InsertBuildLog(ctx, buildLog)
+	return c.handleError(span, c.Client.InsertBuildLog(ctx, buildLog))
 }
 
-func (s *tracingClient) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) (err error) {
+func (c *tracingClient) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) error {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("InsertReleaseLog"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("InsertReleaseLog"))
 	defer span.Finish()
 
-	return s.Client.InsertReleaseLog(ctx, releaseLog)
+	return c.handleError(span, c.Client.InsertReleaseLog(ctx, releaseLog))
 }
 
-func (s *tracingClient) GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
+func (c *tracingClient) GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) error {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("GetPipelineBuildLogs"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetPipelineBuildLogs"))
 	defer span.Finish()
 
-	return s.Client.GetPipelineBuildLogs(ctx, buildLog, acceptGzipEncoding, responseWriter)
+	return c.handleError(span, c.Client.GetPipelineBuildLogs(ctx, buildLog, acceptGzipEncoding, responseWriter))
 }
 
-func (s *tracingClient) GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
+func (c *tracingClient) GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) error {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("GetPipelineReleaseLogs"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetPipelineReleaseLogs"))
 	defer span.Finish()
 
-	return s.Client.GetPipelineReleaseLogs(ctx, releaseLog, acceptGzipEncoding, responseWriter)
+	return c.handleError(span, c.Client.GetPipelineReleaseLogs(ctx, releaseLog, acceptGzipEncoding, responseWriter))
 }
 
-func (s *tracingClient) getSpanName(funcName string) string {
+func (c *tracingClient) getSpanName(funcName string) string {
 	return "cloudstorage:" + funcName
+}
+
+func (c *tracingClient) handleError(span opentracing.Span, err error) error {
+	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(log.Error(err))
+	}
+	return err
 }

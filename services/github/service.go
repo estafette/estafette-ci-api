@@ -14,7 +14,6 @@ import (
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
-	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
@@ -46,20 +45,12 @@ func NewService(apiClient githubapi.Client, pubsubAPIClient pubsubapi.Client, bu
 	}
 }
 
-func (h *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubapi.PushEvent) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "Github::CreateJobForGithubPush")
-	defer span.Finish()
+func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubapi.PushEvent) {
 
 	// check to see that it's a cloneable event
 	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
 		return
 	}
-
-	span.SetTag("git-repo", pushEvent.GetRepository())
-	span.SetTag("git-branch", pushEvent.GetRepoBranch())
-	span.SetTag("git-revision", pushEvent.GetRepoRevision())
-	span.SetTag("event", "push")
 
 	gitEvent := manifest.EstafetteGitEvent{
 		Event:      "push",
@@ -69,7 +60,7 @@ func (h *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 
 	// handle git triggers
 	go func() {
-		err := h.buildService.FireGitTriggers(ctx, gitEvent)
+		err := s.buildService.FireGitTriggers(ctx, gitEvent)
 		if err != nil {
 			log.Error().Err(err).
 				Interface("gitEvent", gitEvent).
@@ -78,7 +69,7 @@ func (h *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 	}()
 
 	// get access token
-	accessToken, err := h.apiClient.GetInstallationToken(ctx, pushEvent.Installation.ID)
+	accessToken, err := s.apiClient.GetInstallationToken(ctx, pushEvent.Installation.ID)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving access token failed")
@@ -86,7 +77,7 @@ func (h *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 	}
 
 	// get manifest file
-	manifestExists, manifestString, err := h.apiClient.GetEstafetteManifest(ctx, accessToken, pushEvent)
+	manifestExists, manifestString, err := s.apiClient.GetEstafetteManifest(ctx, accessToken, pushEvent)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
@@ -110,7 +101,7 @@ func (h *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 	}
 
 	// create build object and hand off to build service
-	_, err = h.buildService.CreateBuild(ctx, contracts.Build{
+	_, err = s.buildService.CreateBuild(ctx, contracts.Build{
 		RepoSource:   pushEvent.GetRepoSource(),
 		RepoOwner:    pushEvent.GetRepoOwner(),
 		RepoName:     pushEvent.GetRepoName(),
@@ -134,14 +125,14 @@ func (h *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 	log.Info().Msgf("Created build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
 
 	go func() {
-		err := h.pubsubAPIClient.SubscribeToPubsubTriggers(ctx, manifestString)
+		err := s.pubsubAPIClient.SubscribeToPubsubTriggers(ctx, manifestString)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed subscribing to topics for pubsub triggers for build %v/%v/%v revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
 		}
 	}()
 }
 
-func (h *service) HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (bool, error) {
+func (s *service) HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (bool, error) {
 
 	// https://developer.github.com/webhooks/securing/
 	signature := strings.Replace(signatureHeader, "sha1=", "", 1)
@@ -151,7 +142,7 @@ func (h *service) HasValidSignature(ctx context.Context, body []byte, signatureH
 	}
 
 	// calculate expected MAC
-	mac := hmac.New(sha1.New, []byte(h.config.WebhookSecret))
+	mac := hmac.New(sha1.New, []byte(s.config.WebhookSecret))
 	mac.Write(body)
 	expectedMAC := mac.Sum(nil)
 
@@ -168,20 +159,17 @@ func (h *service) HasValidSignature(ctx context.Context, body []byte, signatureH
 	return false, nil
 }
 
-func (h *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "Github::Rename")
-	defer span.Finish()
-
-	return h.buildService.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+	return s.buildService.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
-func (h *service) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) bool {
+func (s *service) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) bool {
 
-	if len(h.config.WhitelistedInstallations) == 0 {
+	if len(s.config.WhitelistedInstallations) == 0 {
 		return true
 	}
 
-	for _, id := range h.config.WhitelistedInstallations {
+	for _, id := range s.config.WhitelistedInstallations {
 		if id == installation.ID {
 			return true
 		}

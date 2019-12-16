@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	"github.com/opentracing/opentracing-go/log"
 )
 
 type tracingClient struct {
@@ -15,14 +17,25 @@ func NewTracingClient(c Client) Client {
 	return &tracingClient{c}
 }
 
-func (s *tracingClient) GetUserProfile(ctx context.Context, userID string) (*UserProfile, error) {
+func (c *tracingClient) GetUserProfile(ctx context.Context, userID string) (*UserProfile, error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("GetUserProfile"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetUserProfile"))
 	defer span.Finish()
 
-	return s.Client.GetUserProfile(ctx, userID)
+	profile, err := c.Client.GetUserProfile(ctx, userID)
+	c.handleError(span, err)
+
+	return profile, err
 }
 
-func (s *tracingClient) getSpanName(funcName string) string {
+func (c *tracingClient) getSpanName(funcName string) string {
 	return "slackapi:" + funcName
+}
+
+func (c *tracingClient) handleError(span opentracing.Span, err error) error {
+	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(log.Error(err))
+	}
+	return err
 }

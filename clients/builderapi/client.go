@@ -23,7 +23,6 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
-	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
@@ -63,10 +62,7 @@ type client struct {
 }
 
 // CreateCiBuilderJob creates an estafette-ci-builder job in Kubernetes to run the estafette build
-func (cbc *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuilderParams) (job *batchv1.Job, err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "KubernetesApi::CreateCiBuilderJob")
-	defer span.Finish()
+func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuilderParams) (job *batchv1.Job, err error) {
 
 	// create job name of max 63 chars
 	id := strconv.Itoa(ciBuilderParams.BuildID)
@@ -74,13 +70,12 @@ func (cbc *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBui
 		id = strconv.Itoa(ciBuilderParams.ReleaseID)
 	}
 
-	jobName := cbc.GetJobName(ctx, ciBuilderParams.JobType, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, id)
-	span.SetTag("job-name", jobName)
+	jobName := c.GetJobName(ctx, ciBuilderParams.JobType, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, id)
 
 	log.Info().Msgf("Creating job %v...", jobName)
 
 	// extend builder config to parameterize the builder and replace all other envvars to improve security
-	localBuilderConfig := cbc.GetBuilderConfig(ctx, ciBuilderParams, jobName)
+	localBuilderConfig := c.GetBuilderConfig(ctx, ciBuilderParams, jobName)
 
 	builderConfigPathName := "BUILDER_CONFIG_PATH"
 	builderConfigPathValue := "/configs/builder-config.json"
@@ -89,7 +84,7 @@ func (cbc *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBui
 		return
 	}
 	builderConfigValue := string(builderConfigJSONBytes)
-	builderConfigValue, newKey, err := cbc.secretHelper.ReencryptAllEnvelopes(builderConfigValue, false)
+	builderConfigValue, newKey, err := c.secretHelper.ReencryptAllEnvelopes(builderConfigValue, false)
 	if err != nil {
 		return
 	}
@@ -178,7 +173,7 @@ func (cbc *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBui
 	tag := ciBuilderParams.Track
 	image := fmt.Sprintf("%v:%v", repository, tag)
 	imagePullPolicy := "Always"
-	digest, err := cbc.dockerHubClient.GetDigestCached(ctx, repository, tag)
+	digest, err := c.dockerHubClient.GetDigestCached(ctx, repository, tag)
 	if err == nil && digest.Digest != "" {
 		image = fmt.Sprintf("%v@%v", repository, digest.Digest)
 		imagePullPolicy = "IfNotPresent"
@@ -201,7 +196,7 @@ func (cbc *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBui
 	configmap := &corev1.ConfigMap{
 		Metadata: &metav1.ObjectMeta{
 			Name:      &builderConfigConfigmapName,
-			Namespace: &cbc.config.Jobs.Namespace,
+			Namespace: &c.config.Jobs.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
 				"jobType":   ciBuilderParams.JobType,
@@ -212,8 +207,8 @@ func (cbc *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBui
 		},
 	}
 
-	err = cbc.kubeClient.Create(context.Background(), configmap)
-	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	err = c.kubeClient.Create(context.Background(), configmap)
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		return
 	}
@@ -227,7 +222,7 @@ func (cbc *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBui
 	secret := &corev1.Secret{
 		Metadata: &metav1.ObjectMeta{
 			Name:      &decryptionKeySecretName,
-			Namespace: &cbc.config.Jobs.Namespace,
+			Namespace: &c.config.Jobs.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
 				"jobType":   ciBuilderParams.JobType,
@@ -238,8 +233,8 @@ func (cbc *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBui
 		},
 	}
 
-	err = cbc.kubeClient.Create(context.Background(), secret)
-	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	err = c.kubeClient.Create(context.Background(), secret)
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		return
 	}
@@ -443,7 +438,7 @@ func (cbc *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBui
 	job = &batchv1.Job{
 		Metadata: &metav1.ObjectMeta{
 			Name:      &jobName,
-			Namespace: &cbc.config.Jobs.Namespace,
+			Namespace: &c.config.Jobs.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
 				"jobType":   ciBuilderParams.JobType,
@@ -496,8 +491,8 @@ func (cbc *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBui
 	}
 
 	// "error":"unregistered type *v1.Job",
-	err = cbc.kubeClient.Create(context.Background(), job)
-	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	err = c.kubeClient.Create(context.Background(), job)
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 
 	if err != nil {
 		return
@@ -509,18 +504,14 @@ func (cbc *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBui
 }
 
 // RemoveCiBuilderJob waits for a job to finish and then removes it
-func (cbc *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "KubernetesApi::RemoveCiBuilderJob")
-	defer span.Finish()
-	span.SetTag("job-name", jobName)
+func (c *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err error) {
 
 	log.Info().Msgf("Deleting job %v...", jobName)
 
 	// check if job is finished
 	var job batchv1.Job
-	err = cbc.kubeClient.Get(context.Background(), cbc.config.Jobs.Namespace, jobName, &job)
-	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	err = c.kubeClient.Get(context.Background(), c.config.Jobs.Namespace, jobName, &job)
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).
@@ -532,10 +523,10 @@ func (cbc *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err 
 
 		// watch for job updates
 		var job batchv1.Job
-		watcher, err := cbc.kubeClient.Watch(context.Background(), cbc.config.Jobs.Namespace, &job, k8s.Timeout(time.Duration(300)*time.Second))
+		watcher, err := c.kubeClient.Watch(context.Background(), c.config.Jobs.Namespace, &job, k8s.Timeout(time.Duration(300)*time.Second))
 		defer watcher.Close()
 
-		cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+		c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 		if err != nil {
 			log.Error().Err(err).
 				Str("jobName", jobName).
@@ -558,8 +549,8 @@ func (cbc *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err 
 	}
 
 	// delete job
-	err = cbc.kubeClient.Delete(context.Background(), &job)
-	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	err = c.kubeClient.Delete(context.Background(), &job)
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).
@@ -569,17 +560,17 @@ func (cbc *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err 
 
 	log.Info().Msgf("Job %v is deleted", jobName)
 
-	cbc.RemoveCiBuilderConfigMap(ctx, jobName)
-	cbc.RemoveCiBuilderSecret(ctx, jobName)
+	c.RemoveCiBuilderConfigMap(ctx, jobName)
+	c.RemoveCiBuilderSecret(ctx, jobName)
 
 	return
 }
 
-func (cbc *client) RemoveCiBuilderConfigMap(ctx context.Context, configmapName string) (err error) {
+func (c *client) RemoveCiBuilderConfigMap(ctx context.Context, configmapName string) (err error) {
 
 	// check if configmap exists
 	var configmap corev1.ConfigMap
-	err = cbc.kubeClient.Get(context.Background(), cbc.config.Jobs.Namespace, configmapName, &configmap)
+	err = c.kubeClient.Get(context.Background(), c.config.Jobs.Namespace, configmapName, &configmap)
 	if err != nil {
 		log.Error().Err(err).
 			Str("configmap", configmapName).
@@ -588,8 +579,8 @@ func (cbc *client) RemoveCiBuilderConfigMap(ctx context.Context, configmapName s
 	}
 
 	// delete configmap
-	err = cbc.kubeClient.Delete(context.Background(), &configmap)
-	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	err = c.kubeClient.Delete(context.Background(), &configmap)
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("configmap", configmapName).
@@ -602,11 +593,11 @@ func (cbc *client) RemoveCiBuilderConfigMap(ctx context.Context, configmapName s
 	return
 }
 
-func (cbc *client) RemoveCiBuilderSecret(ctx context.Context, secretName string) (err error) {
+func (c *client) RemoveCiBuilderSecret(ctx context.Context, secretName string) (err error) {
 
 	// check if secret exists
 	var secret corev1.Secret
-	err = cbc.kubeClient.Get(context.Background(), cbc.config.Jobs.Namespace, secretName, &secret)
+	err = c.kubeClient.Get(context.Background(), c.config.Jobs.Namespace, secretName, &secret)
 	if err != nil {
 		log.Error().Err(err).
 			Str("secret", secretName).
@@ -615,8 +606,8 @@ func (cbc *client) RemoveCiBuilderSecret(ctx context.Context, secretName string)
 	}
 
 	// delete secret
-	err = cbc.kubeClient.Delete(context.Background(), &secret)
-	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	err = c.kubeClient.Delete(context.Background(), &secret)
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("secret", secretName).
@@ -630,18 +621,14 @@ func (cbc *client) RemoveCiBuilderSecret(ctx context.Context, secretName string)
 }
 
 // CancelCiBuilderJob removes a job and its pods to cancel a build/release
-func (cbc *client) CancelCiBuilderJob(ctx context.Context, jobName string) (err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "KubernetesApi::CancelCiBuilderJob")
-	defer span.Finish()
-	span.SetTag("job-name", jobName)
+func (c *client) CancelCiBuilderJob(ctx context.Context, jobName string) (err error) {
 
 	log.Info().Msgf("Canceling job %v...", jobName)
 
 	// check if job is finished
 	var job batchv1.Job
-	err = cbc.kubeClient.Get(context.Background(), cbc.config.Jobs.Namespace, jobName, &job)
-	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	err = c.kubeClient.Get(context.Background(), c.config.Jobs.Namespace, jobName, &job)
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).
@@ -650,8 +637,8 @@ func (cbc *client) CancelCiBuilderJob(ctx context.Context, jobName string) (err 
 	}
 
 	// delete job
-	err = cbc.kubeClient.Delete(context.Background(), &job)
-	cbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
+	err = c.kubeClient.Delete(context.Background(), &job)
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).
@@ -661,18 +648,14 @@ func (cbc *client) CancelCiBuilderJob(ctx context.Context, jobName string) (err 
 
 	log.Info().Msgf("Job %v is canceled", jobName)
 
-	cbc.RemoveCiBuilderConfigMap(ctx, jobName)
-	cbc.RemoveCiBuilderSecret(ctx, jobName)
+	c.RemoveCiBuilderConfigMap(ctx, jobName)
+	c.RemoveCiBuilderSecret(ctx, jobName)
 
 	return
 }
 
 // TailCiBuilderJobLogs tails logs of a running job
-func (cbc *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "KubernetesApi::TailCiBuilderJobLogs")
-	defer span.Finish()
-	span.SetTag("job-name", jobName)
+func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error) {
 
 	// close channel so api handler can finish it's response
 	defer close(logChannel)
@@ -681,7 +664,7 @@ func (cbc *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, log
 	labels.Eq("job-name", jobName)
 
 	var pods corev1.PodList
-	if err := cbc.kubeClient.List(context.Background(), cbc.config.Jobs.Namespace, &pods, labels.Selector()); err != nil {
+	if err := c.kubeClient.List(context.Background(), c.config.Jobs.Namespace, &pods, labels.Selector()); err != nil {
 		return err
 	}
 
@@ -690,7 +673,7 @@ func (cbc *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, log
 		if *pod.Status.Phase == "Pending" {
 			// watch for pod to go into Running state (or out of Pending state)
 			var pendingPod corev1.Pod
-			watcher, err := cbc.kubeClient.Watch(context.Background(), cbc.config.Jobs.Namespace, &pendingPod, k8s.Timeout(time.Duration(300)*time.Second))
+			watcher, err := c.kubeClient.Watch(context.Background(), c.config.Jobs.Namespace, &pendingPod, k8s.Timeout(time.Duration(300)*time.Second))
 
 			if err != nil {
 				return err
@@ -717,7 +700,7 @@ func (cbc *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, log
 		}
 
 		// follow logs from pod
-		url := fmt.Sprintf("%v/api/v1/namespaces/%v/pods/%v/log?follow=true", cbc.kubeClient.Endpoint, cbc.config.Jobs.Namespace, *pod.Metadata.Name)
+		url := fmt.Sprintf("%v/api/v1/namespaces/%v/pods/%v/log?follow=true", c.kubeClient.Endpoint, c.config.Jobs.Namespace, *pod.Metadata.Name)
 
 		ct := "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
 
@@ -726,8 +709,8 @@ func (cbc *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, log
 			log.Error().Err(err).Msgf("Failed generating request for retrieving logs from pod %v for job %v", *pod.Metadata.Name, jobName)
 			return err
 		}
-		if cbc.kubeClient.SetHeaders != nil {
-			if err := cbc.kubeClient.SetHeaders(req.Header); err != nil {
+		if c.kubeClient.SetHeaders != nil {
+			if err := c.kubeClient.SetHeaders(req.Header); err != nil {
 				log.Error().Err(err).Msgf("Failed setting request headers for retrieving logs from pod %v for job %v", *pod.Metadata.Name, jobName)
 				return err
 			}
@@ -736,7 +719,7 @@ func (cbc *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, log
 
 		req.Header.Set("Accept", ct)
 
-		resp, err := cbc.kubeClient.Client.Do(req)
+		resp, err := c.kubeClient.Client.Do(req)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed performing request for retrieving logs from pod %v for job %v", *pod.Metadata.Name, jobName)
 			return err
@@ -775,7 +758,7 @@ func (cbc *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, log
 }
 
 // GetJobName returns the job name for a build or release job
-func (cbc *client) GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) string {
+func (c *client) GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) string {
 
 	// create job name of max 63 chars
 	maxJobNameLength := 63
@@ -792,7 +775,7 @@ func (cbc *client) GetJobName(ctx context.Context, jobType, repoOwner, repoName,
 }
 
 // GetJobName returns the job name for a build or release job
-func (cbc *client) GetBuilderConfig(ctx context.Context, ciBuilderParams CiBuilderParams, jobName string) contracts.BuilderConfig {
+func (c *client) GetBuilderConfig(ctx context.Context, ciBuilderParams CiBuilderParams, jobName string) contracts.BuilderConfig {
 
 	// retrieve stages to filter trusted images and credentials
 	stages := ciBuilderParams.Manifest.Stages
@@ -811,7 +794,7 @@ func (cbc *client) GetBuilderConfig(ctx context.Context, ciBuilderParams CiBuild
 	}
 
 	// get configured credentials
-	credentials := cbc.encryptedConfig.Credentials
+	credentials := c.encryptedConfig.Credentials
 
 	// add dynamic github api token credential
 	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_GITHUB_API_TOKEN"]; ok {
@@ -836,19 +819,19 @@ func (cbc *client) GetBuilderConfig(ctx context.Context, ciBuilderParams CiBuild
 	}
 
 	// filter to only what's needed by the build/release job
-	trustedImages := contracts.FilterTrustedImages(cbc.encryptedConfig.TrustedImages, stages, ciBuilderParams.GetFullRepoPath())
+	trustedImages := contracts.FilterTrustedImages(c.encryptedConfig.TrustedImages, stages, ciBuilderParams.GetFullRepoPath())
 	credentials = contracts.FilterCredentials(credentials, trustedImages, ciBuilderParams.GetFullRepoPath())
 
 	// add container-registry credentials to allow private registry images to be used in stages
-	credentials = contracts.AddCredentialsIfNotPresent(credentials, contracts.FilterCredentialsByPipelinesWhitelist(contracts.GetCredentialsByType(cbc.encryptedConfig.Credentials, "container-registry"), ciBuilderParams.GetFullRepoPath()))
+	credentials = contracts.AddCredentialsIfNotPresent(credentials, contracts.FilterCredentialsByPipelinesWhitelist(contracts.GetCredentialsByType(c.encryptedConfig.Credentials, "container-registry"), ciBuilderParams.GetFullRepoPath()))
 
 	localBuilderConfig := contracts.BuilderConfig{
 		Credentials:     credentials,
 		TrustedImages:   trustedImages,
-		RegistryMirror:  cbc.config.RegistryMirror,
-		DockerDaemonMTU: cbc.config.DockerDaemonMTU,
-		DockerDaemonBIP: cbc.config.DockerDaemonBIP,
-		DockerNetwork:   cbc.config.DockerNetwork,
+		RegistryMirror:  c.config.RegistryMirror,
+		DockerDaemonMTU: c.config.DockerDaemonMTU,
+		DockerDaemonBIP: c.config.DockerDaemonBIP,
+		DockerNetwork:   c.config.DockerNetwork,
 	}
 
 	localBuilderConfig.Action = &ciBuilderParams.JobType
@@ -887,14 +870,14 @@ func (cbc *client) GetBuilderConfig(ctx context.Context, ciBuilderParams CiBuild
 
 	localBuilderConfig.JobName = &jobName
 	localBuilderConfig.CIServer = &contracts.CIServerConfig{
-		BaseURL:          cbc.config.APIServer.BaseURL,
-		BuilderEventsURL: strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + "/api/commands",
-		PostLogsURL:      strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.BuildID),
-		APIKey:           cbc.config.Auth.APIKey,
+		BaseURL:          c.config.APIServer.BaseURL,
+		BuilderEventsURL: strings.TrimRight(c.config.APIServer.ServiceURL, "/") + "/api/commands",
+		PostLogsURL:      strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.BuildID),
+		APIKey:           c.config.Auth.APIKey,
 	}
 
 	if ciBuilderParams.ReleaseID > 0 {
-		localBuilderConfig.CIServer.PostLogsURL = strings.TrimRight(cbc.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/releases/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.ReleaseID)
+		localBuilderConfig.CIServer.PostLogsURL = strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/releases/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.ReleaseID)
 	}
 
 	if *localBuilderConfig.Action == "build" {

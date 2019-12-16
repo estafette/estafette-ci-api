@@ -41,15 +41,12 @@ type client struct {
 }
 
 // GetAccessToken returns an access token to access the Bitbucket api
-func (bb *client) GetAccessToken(ctx context.Context) (accessToken AccessToken, err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "BitbucketApi::GetAccessToken")
-	defer span.Finish()
+func (c *client) GetAccessToken(ctx context.Context) (accessToken AccessToken, err error) {
 
 	// track call via prometheus
-	bb.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
+	c.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
 
-	basicAuthenticationToken := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", bb.config.AppOAuthKey, bb.config.AppOAuthSecret)))
+	basicAuthenticationToken := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", c.config.AppOAuthKey, c.config.AppOAuthSecret)))
 
 	// form values
 	data := url.Values{}
@@ -66,11 +63,15 @@ func (bb *client) GetAccessToken(ctx context.Context) (accessToken AccessToken, 
 		return
 	}
 
-	// add tracing context
-	request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
+	span := opentracing.SpanFromContext(ctx)
+	var ht *nethttp.Tracer
+	if span != nil {
+		// add tracing context
+		request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
 
-	// collect additional information on setting up connections
-	request, ht := nethttp.TraceRequest(span.Tracer(), request)
+		// collect additional information on setting up connections
+		request, ht = nethttp.TraceRequest(span.Tracer(), request)
+	}
 
 	// add headers
 	request.Header.Add("Authorization", fmt.Sprintf("%v %v", "Basic", basicAuthenticationToken))
@@ -83,7 +84,9 @@ func (bb *client) GetAccessToken(ctx context.Context) (accessToken AccessToken, 
 	}
 
 	defer response.Body.Close()
-	ht.Finish()
+	if ht != nil {
+		ht.Finish()
+	}
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
@@ -100,20 +103,17 @@ func (bb *client) GetAccessToken(ctx context.Context) (accessToken AccessToken, 
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (bb *client) GetAuthenticatedRepositoryURL(ctx context.Context, accessToken AccessToken, htmlURL string) (url string, err error) {
+func (c *client) GetAuthenticatedRepositoryURL(ctx context.Context, accessToken AccessToken, htmlURL string) (url string, err error) {
 
 	url = strings.Replace(htmlURL, "https://bitbucket.org", fmt.Sprintf("https://x-token-auth:%v@bitbucket.org", accessToken.AccessToken), -1)
 
 	return
 }
 
-func (bb *client) GetEstafetteManifest(ctx context.Context, accessToken AccessToken, pushEvent RepositoryPushEvent) (exists bool, manifest string, err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "BitbucketApi::GetEstafetteManifest")
-	defer span.Finish()
+func (c *client) GetEstafetteManifest(ctx context.Context, accessToken AccessToken, pushEvent RepositoryPushEvent) (exists bool, manifest string, err error) {
 
 	// track call via prometheus
-	bb.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
+	c.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
 
 	// create client, in order to add headers
 	client := pester.NewExtendedClient(&http.Client{Transport: &nethttp.Transport{}})
@@ -127,11 +127,15 @@ func (bb *client) GetEstafetteManifest(ctx context.Context, accessToken AccessTo
 		return
 	}
 
-	// add tracing context
-	request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
+	span := opentracing.SpanFromContext(ctx)
+	var ht *nethttp.Tracer
+	if span != nil {
+		// add tracing context
+		request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
 
-	// collect additional information on setting up connections
-	request, ht := nethttp.TraceRequest(span.Tracer(), request)
+		// collect additional information on setting up connections
+		request, ht = nethttp.TraceRequest(span.Tracer(), request)
+	}
 
 	// add headers
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", accessToken.AccessToken))
@@ -143,7 +147,9 @@ func (bb *client) GetEstafetteManifest(ctx context.Context, accessToken AccessTo
 	}
 
 	defer response.Body.Close()
-	ht.Finish()
+	if ht != nil {
+		ht.Finish()
+	}
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
@@ -159,15 +165,15 @@ func (bb *client) GetEstafetteManifest(ctx context.Context, accessToken AccessTo
 }
 
 // JobVarsFunc returns a function that can get an access token and authenticated url for a repository
-func (bb *client) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error) {
+func (c *client) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error) {
 	return func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 		// get access token
-		accessToken, err := bb.GetAccessToken(ctx)
+		accessToken, err := c.GetAccessToken(ctx)
 		if err != nil {
 			return "", "", err
 		}
 		// get authenticated url for the repository
-		url, err = bb.GetAuthenticatedRepositoryURL(ctx, accessToken, fmt.Sprintf("https://%v/%v/%v", repoSource, repoOwner, repoName))
+		url, err = c.GetAuthenticatedRepositoryURL(ctx, accessToken, fmt.Sprintf("https://%v/%v/%v", repoSource, repoOwner, repoName))
 		if err != nil {
 			return "", "", err
 		}

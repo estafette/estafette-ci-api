@@ -190,6 +190,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	pubSubAPIClient = pubsubapi.NewTracingClient(pubSubAPIClient)
 
 	cockroachDBClient := cockroachdb.NewClient(*config.Database, prometheusOutboundAPICallTotals)
+	cockroachDBClient = cockroachdb.NewTracingClient(cockroachDBClient)
 
 	dockerHubClient := dockerhubapi.NewClient()
 	dockerHubClient = dockerhubapi.NewTracingClient(dockerHubClient)

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudstorage"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
-	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/prometheus"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"

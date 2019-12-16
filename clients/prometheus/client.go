@@ -51,38 +51,38 @@ func NewClient(config config.PrometheusConfig) Client {
 	}
 }
 
-func (pc *client) AwaitScrapeInterval(ctx context.Context) {
-	log.Debug().Msgf("Waiting for %v seconds before querying Prometheus", pc.config.ScrapeIntervalSeconds)
-	time.Sleep(time.Duration(pc.config.ScrapeIntervalSeconds) * time.Second)
+func (c *client) AwaitScrapeInterval(ctx context.Context) {
+	log.Debug().Msgf("Waiting for %v seconds before querying Prometheus", c.config.ScrapeIntervalSeconds)
+	time.Sleep(time.Duration(c.config.ScrapeIntervalSeconds) * time.Second)
 }
 
-func (pc *client) GetMaxMemoryByPodName(ctx context.Context, podName string) (maxMemory float64, err error) {
+func (c *client) GetMaxMemoryByPodName(ctx context.Context, podName string) (maxMemory float64, err error) {
 
 	query := fmt.Sprintf("max_over_time(container_memory_working_set_bytes{container_name=\"estafette-ci-builder\",pod_name=\"%v\"}[3h])", podName)
 
 	err = foundation.Retry(func() error {
-		maxMemory, err = pc.getQueryResult(query)
+		maxMemory, err = c.getQueryResult(query)
 		return err
 	}, foundation.DelayMillisecond(5000), foundation.Attempts(5))
 
 	return
 }
 
-func (pc *client) GetMaxCPUByPodName(ctx context.Context, podName string) (maxCPU float64, err error) {
+func (c *client) GetMaxCPUByPodName(ctx context.Context, podName string) (maxCPU float64, err error) {
 
 	query := fmt.Sprintf("max_over_time(container_cpu_usage_rate1m{container_name=\"estafette-ci-builder\",pod_name=\"%v\"}[3h])", podName)
 
 	err = foundation.Retry(func() error {
-		maxCPU, err = pc.getQueryResult(query)
+		maxCPU, err = c.getQueryResult(query)
 		return err
 	}, foundation.DelayMillisecond(5000), foundation.Attempts(5))
 
 	return
 }
 
-func (pc *client) getQueryResult(query string) (float64, error) {
+func (c *client) getQueryResult(query string) (float64, error) {
 
-	prometheusQueryURL := fmt.Sprintf("%v/api/v1/query?query=%v", pc.config.ServerURL, url.QueryEscape(query))
+	prometheusQueryURL := fmt.Sprintf("%v/api/v1/query?query=%v", c.config.ServerURL, url.QueryEscape(query))
 	resp, err := pester.Get(prometheusQueryURL)
 	if err != nil {
 		return 0, fmt.Errorf("Executing prometheus query for query %v failed", query)

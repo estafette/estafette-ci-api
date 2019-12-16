@@ -10,7 +10,6 @@ import (
 	stdpubsub "cloud.google.com/go/pubsub"
 	"github.com/estafette/estafette-ci-api/config"
 	manifest "github.com/estafette/estafette-ci-manifest"
-	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 )
 
@@ -64,25 +63,19 @@ func NewClient(config config.PubsubConfig, pubsubClient *stdpubsub.Client) Clien
 	}
 }
 
-func (ac *client) SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (*manifest.EstafettePubSubEvent, error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "PubSubApi::SubscriptionForTopic")
-	defer span.Finish()
+func (c *client) SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (*manifest.EstafettePubSubEvent, error) {
 
 	projectID := message.GetProject()
 	subscriptionName := message.GetSubscription()
 
-	span.SetTag("project", projectID)
-	span.SetTag("subscription", subscriptionName)
-
-	if strings.HasSuffix(subscriptionName, ac.config.SubscriptionNameSuffix) {
+	if strings.HasSuffix(subscriptionName, c.config.SubscriptionNameSuffix) {
 		return &manifest.EstafettePubSubEvent{
 			Project: projectID,
-			Topic:   strings.TrimSuffix(subscriptionName, ac.config.SubscriptionNameSuffix),
+			Topic:   strings.TrimSuffix(subscriptionName, c.config.SubscriptionNameSuffix),
 		}, nil
 	}
 
-	subscription := ac.pubsubClient.SubscriptionInProject(subscriptionName, projectID)
+	subscription := c.pubsubClient.SubscriptionInProject(subscriptionName, projectID)
 	if subscription == nil {
 		return nil, fmt.Errorf("Can't find subscription %v in project %v", subscriptionName, projectID)
 	}
@@ -92,24 +85,16 @@ func (ac *client) SubscriptionForTopic(ctx context.Context, message PubSubPushMe
 		return nil, err
 	}
 
-	span.SetTag("topic", subscriptionConfig.Topic.ID())
-
 	return &manifest.EstafettePubSubEvent{
 		Project: projectID,
 		Topic:   subscriptionConfig.Topic.ID(),
 	}, nil
 }
 
-func (ac *client) SubscribeToTopic(ctx context.Context, projectID, topicID string) error {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "PubSubApi::SubscribeToTopic")
-	defer span.Finish()
-
-	span.SetTag("project", projectID)
-	span.SetTag("topic", topicID)
+func (c *client) SubscribeToTopic(ctx context.Context, projectID, topicID string) error {
 
 	// check if topic exists
-	topic := ac.pubsubClient.TopicInProject(topicID, projectID)
+	topic := c.pubsubClient.TopicInProject(topicID, projectID)
 	topicExists, err := topic.Exists(context.Background())
 	if err != nil {
 		return err
@@ -119,8 +104,8 @@ func (ac *client) SubscribeToTopic(ctx context.Context, projectID, topicID strin
 	}
 
 	// check if subscription already exists
-	subscriptionName := ac.getSubscriptionName(topicID)
-	subscription := ac.pubsubClient.SubscriptionInProject(subscriptionName, projectID)
+	subscriptionName := c.getSubscriptionName(topicID)
+	subscription := c.pubsubClient.SubscriptionInProject(subscriptionName, projectID)
 	log.Info().Msgf("Checking if subscription %v for topic %v in project %v exists...", subscriptionName, topicID, projectID)
 	subscriptionExists, err := subscription.Exists(context.Background())
 	if err != nil {
@@ -133,18 +118,18 @@ func (ac *client) SubscribeToTopic(ctx context.Context, projectID, topicID strin
 
 	// create a subscription to the topic
 	log.Info().Msgf("Creating subscription %v for topic %v in project %v...", subscriptionName, topicID, projectID)
-	_, err = ac.pubsubClient.CreateSubscription(context.Background(), subscriptionName, stdpubsub.SubscriptionConfig{
+	_, err = c.pubsubClient.CreateSubscription(context.Background(), subscriptionName, stdpubsub.SubscriptionConfig{
 		Topic: topic,
 		PushConfig: stdpubsub.PushConfig{
-			Endpoint: ac.config.Endpoint,
+			Endpoint: c.config.Endpoint,
 			AuthenticationMethod: &stdpubsub.OIDCToken{
-				Audience:            ac.config.Audience,
-				ServiceAccountEmail: ac.config.ServiceAccountEmail,
+				Audience:            c.config.Audience,
+				ServiceAccountEmail: c.config.ServiceAccountEmail,
 			},
 		},
 		AckDeadline:       20 * time.Second,
 		RetentionDuration: 3 * time.Hour,
-		ExpirationPolicy:  time.Duration(ac.config.SubscriptionIdleExpirationDays) * 24 * time.Hour,
+		ExpirationPolicy:  time.Duration(c.config.SubscriptionIdleExpirationDays) * 24 * time.Hour,
 	})
 	if err != nil {
 		return err
@@ -155,15 +140,12 @@ func (ac *client) SubscribeToTopic(ctx context.Context, projectID, topicID strin
 	return nil
 }
 
-func (ac *client) getSubscriptionName(topicName string) string {
+func (c *client) getSubscriptionName(topicName string) string {
 	// it must start with a letter, and contain only letters ([A-Za-z]), numbers ([0-9]), dashes (-), underscores (_), periods (.), tildes (~), plus (+) or percent signs (%). It must be between 3 and 255 characters in length, and must not start with "goog".
-	return topicName + ac.config.SubscriptionNameSuffix
+	return topicName + c.config.SubscriptionNameSuffix
 }
 
-func (ac *client) SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "PubSubApi::SubscribeToPubsubTriggers")
-	defer span.Finish()
+func (c *client) SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error {
 
 	mft, err := manifest.ReadManifest(manifestString)
 	if err != nil {
@@ -173,7 +155,7 @@ func (ac *client) SubscribeToPubsubTriggers(ctx context.Context, manifestString 
 	if len(mft.Triggers) > 0 {
 		for _, t := range mft.Triggers {
 			if t.PubSub != nil {
-				err := ac.SubscribeToTopic(ctx, t.PubSub.Project, t.PubSub.Topic)
+				err := c.SubscribeToTopic(ctx, t.PubSub.Project, t.PubSub.Topic)
 				if err != nil {
 					return err
 				}

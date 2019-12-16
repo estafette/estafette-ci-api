@@ -13,7 +13,6 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	foundation "github.com/estafette/estafette-foundation"
-	"github.com/opentracing/opentracing-go"
 )
 
 // Client is the interface for connecting to google cloud storage
@@ -44,33 +43,27 @@ func NewClient(config *config.CloudStorageConfig, storageClient *storage.Client)
 	}
 }
 
-func (impl *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error) {
+func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "CloudStorageClient::InsertBuildLog")
-	defer span.Finish()
-
-	logPath := impl.getBuildLogPath(buildLog)
+	logPath := c.getBuildLogPath(buildLog)
 
 	return foundation.Retry(func() error {
-		return impl.insertLog(ctx, logPath, buildLog.Steps)
+		return c.insertLog(ctx, logPath, buildLog.Steps)
 	})
 }
 
-func (impl *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) (err error) {
+func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) (err error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "CloudStorageClient::InsertReleaseLog")
-	defer span.Finish()
-
-	logPath := impl.getReleaseLogPath(releaseLog)
+	logPath := c.getReleaseLogPath(releaseLog)
 
 	return foundation.Retry(func() error {
-		return impl.insertLog(ctx, logPath, releaseLog.Steps)
+		return c.insertLog(ctx, logPath, releaseLog.Steps)
 	})
 }
 
-func (impl *client) insertLog(ctx context.Context, path string, steps []*contracts.BuildLogStep) (err error) {
+func (c *client) insertLog(ctx context.Context, path string, steps []*contracts.BuildLogStep) (err error) {
 
-	bucket := impl.client.Bucket(impl.config.Bucket)
+	bucket := c.client.Bucket(c.config.Bucket)
 
 	// marshal json
 	jsonBytes, err := json.Marshal(steps)
@@ -122,35 +115,23 @@ func (impl *client) insertLog(ctx context.Context, path string, steps []*contrac
 	return nil
 }
 
-func (impl *client) GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
+func (c *client) GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "CloudStorageClient::GetPipelineBuildLogs")
-	defer span.Finish()
+	logPath := c.getBuildLogPath(buildLog)
 
-	logPath := impl.getBuildLogPath(buildLog)
-
-	return impl.getLog(ctx, logPath, acceptGzipEncoding, responseWriter)
+	return c.getLog(ctx, logPath, acceptGzipEncoding, responseWriter)
 }
 
-func (impl *client) GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
+func (c *client) GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "CloudStorageClient::GetPipelineReleaseLogs")
-	defer span.Finish()
+	logPath := c.getReleaseLogPath(releaseLog)
 
-	logPath := impl.getReleaseLogPath(releaseLog)
-
-	return impl.getLog(ctx, logPath, acceptGzipEncoding, responseWriter)
+	return c.getLog(ctx, logPath, acceptGzipEncoding, responseWriter)
 }
 
-func (impl *client) getLog(ctx context.Context, path string, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
+func (c *client) getLog(ctx context.Context, path string, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "CloudStorageClient::getLog")
-	defer span.Finish()
-
-	span.SetTag("log-path", path)
-	span.SetTag("accept-gzip-encoding", acceptGzipEncoding)
-
-	bucket := impl.client.Bucket(impl.config.Bucket)
+	bucket := c.client.Bucket(c.config.Bucket)
 
 	// create reader for cloud storage object
 	logObject := bucket.Object(path).ReadCompressed(true)
@@ -186,16 +167,16 @@ func (impl *client) getLog(ctx context.Context, path string, acceptGzipEncoding 
 	return nil
 }
 
-func (impl *client) getBuildLogPath(buildLog contracts.BuildLog) (logPath string) {
+func (c *client) getBuildLogPath(buildLog contracts.BuildLog) (logPath string) {
 
-	logPath = path.Join(impl.config.LogsDirectory, buildLog.RepoSource, buildLog.RepoOwner, buildLog.RepoName, "builds", fmt.Sprintf("%v.log", buildLog.ID))
+	logPath = path.Join(c.config.LogsDirectory, buildLog.RepoSource, buildLog.RepoOwner, buildLog.RepoName, "builds", fmt.Sprintf("%v.log", buildLog.ID))
 
 	return logPath
 }
 
-func (impl *client) getReleaseLogPath(releaseLog contracts.ReleaseLog) (logPath string) {
+func (c *client) getReleaseLogPath(releaseLog contracts.ReleaseLog) (logPath string) {
 
-	logPath = path.Join(impl.config.LogsDirectory, releaseLog.RepoSource, releaseLog.RepoOwner, releaseLog.RepoName, "releases", fmt.Sprintf("%v.log", releaseLog.ID))
+	logPath = path.Join(c.config.LogsDirectory, releaseLog.RepoSource, releaseLog.RepoOwner, releaseLog.RepoName, "releases", fmt.Sprintf("%v.log", releaseLog.ID))
 
 	return logPath
 }

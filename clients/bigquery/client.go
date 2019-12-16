@@ -45,34 +45,34 @@ type client struct {
 	releaseEventsTableName string
 }
 
-func (bqc *client) Init(ctx context.Context) (err error) {
+func (c *client) Init(ctx context.Context) (err error) {
 
-	if bqc.config == nil || !bqc.config.Enable {
+	if c.config == nil || !c.config.Enable {
 		return
 	}
 
-	log.Info().Msgf("Initializing BigQuery tables %v and %v...", bqc.buildEventsTableName, bqc.releaseEventsTableName)
+	log.Info().Msgf("Initializing BigQuery tables %v and %v...", c.buildEventsTableName, c.releaseEventsTableName)
 
-	datasetExists := bqc.CheckIfDatasetExists(ctx)
+	datasetExists := c.CheckIfDatasetExists(ctx)
 	if !datasetExists {
-		return fmt.Errorf("Dataset %v does not exist, create it first; make sure to set the region you want your data to reside in", bqc.config.Dataset)
+		return fmt.Errorf("Dataset %v does not exist, create it first; make sure to set the region you want your data to reside in", c.config.Dataset)
 	}
 
-	buildEventsTableExists := bqc.CheckIfTableExists(ctx, bqc.buildEventsTableName)
+	buildEventsTableExists := c.CheckIfTableExists(ctx, c.buildEventsTableName)
 	if buildEventsTableExists {
-		err = bqc.UpdateTableSchema(ctx, bqc.buildEventsTableName, PipelineBuildEvent{})
+		err = c.UpdateTableSchema(ctx, c.buildEventsTableName, PipelineBuildEvent{})
 	} else {
-		err = bqc.CreateTable(ctx, bqc.buildEventsTableName, PipelineBuildEvent{}, "inserted_at", true)
+		err = c.CreateTable(ctx, c.buildEventsTableName, PipelineBuildEvent{}, "inserted_at", true)
 	}
 	if err != nil {
 		return
 	}
 
-	releaseEventsTableExists := bqc.CheckIfTableExists(ctx, bqc.releaseEventsTableName)
+	releaseEventsTableExists := c.CheckIfTableExists(ctx, c.releaseEventsTableName)
 	if releaseEventsTableExists {
-		err = bqc.UpdateTableSchema(ctx, bqc.releaseEventsTableName, PipelineReleaseEvent{})
+		err = c.UpdateTableSchema(ctx, c.releaseEventsTableName, PipelineReleaseEvent{})
 	} else {
-		err = bqc.CreateTable(ctx, bqc.releaseEventsTableName, PipelineReleaseEvent{}, "inserted_at", true)
+		err = c.CreateTable(ctx, c.releaseEventsTableName, PipelineReleaseEvent{}, "inserted_at", true)
 	}
 	if err != nil {
 		return
@@ -81,39 +81,39 @@ func (bqc *client) Init(ctx context.Context) (err error) {
 	return nil
 }
 
-func (bqc *client) CheckIfDatasetExists(ctx context.Context) bool {
+func (c *client) CheckIfDatasetExists(ctx context.Context) bool {
 
-	log.Info().Msgf("Checking if BigQuery dataset %v exists...", bqc.config.Dataset)
+	log.Info().Msgf("Checking if BigQuery dataset %v exists...", c.config.Dataset)
 
-	ds := bqc.client.Dataset(bqc.config.Dataset)
+	ds := c.client.Dataset(c.config.Dataset)
 
 	md, err := ds.Metadata(context.Background())
 	if err != nil {
-		log.Warn().Err(err).Msgf("Error retrieving metadata for dataset %v", bqc.config.Dataset)
+		log.Warn().Err(err).Msgf("Error retrieving metadata for dataset %v", c.config.Dataset)
 	}
 
 	return md != nil
 }
 
-func (bqc *client) CheckIfTableExists(ctx context.Context, table string) bool {
+func (c *client) CheckIfTableExists(ctx context.Context, table string) bool {
 
 	log.Info().Msgf("Checking if BigQuery table %v exists...", table)
 
-	tbl := bqc.client.Dataset(bqc.config.Dataset).Table(table)
+	tbl := c.client.Dataset(c.config.Dataset).Table(table)
 
 	md, err := tbl.Metadata(context.Background())
 	if err != nil {
-		log.Warn().Err(err).Msgf("Error retrieving metadata for table %v in dataset %v", table, bqc.config.Dataset)
+		log.Warn().Err(err).Msgf("Error retrieving metadata for table %v in dataset %v", table, c.config.Dataset)
 	}
 
 	return md != nil
 }
 
-func (bqc *client) CreateTable(ctx context.Context, table string, typeForSchema interface{}, partitionField string, waitReady bool) error {
+func (c *client) CreateTable(ctx context.Context, table string, typeForSchema interface{}, partitionField string, waitReady bool) error {
 
-	log.Info().Msgf("Creating BigQuery table %v in dataset %v...", table, bqc.config.Dataset)
+	log.Info().Msgf("Creating BigQuery table %v in dataset %v...", table, c.config.Dataset)
 
-	tbl := bqc.client.Dataset(bqc.config.Dataset).Table(table)
+	tbl := c.client.Dataset(c.config.Dataset).Table(table)
 
 	// infer the schema of the type
 	schema, err := bigquery.InferSchema(typeForSchema)
@@ -140,23 +140,23 @@ func (bqc *client) CreateTable(ctx context.Context, table string, typeForSchema 
 
 	if waitReady {
 		for {
-			if bqc.CheckIfTableExists(ctx, table) {
+			if c.CheckIfTableExists(ctx, table) {
 				break
 			}
 			time.Sleep(time.Second)
 		}
 	}
 
-	log.Info().Msgf("Finished creating BigQuery table %v in dataset %v", table, bqc.config.Dataset)
+	log.Info().Msgf("Finished creating BigQuery table %v in dataset %v", table, c.config.Dataset)
 
 	return nil
 }
 
-func (bqc *client) UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) error {
+func (c *client) UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) error {
 
-	log.Info().Msgf("Updating BigQuery table %v schema in dataset %v...", table, bqc.config.Dataset)
+	log.Info().Msgf("Updating BigQuery table %v schema in dataset %v...", table, c.config.Dataset)
 
-	tbl := bqc.client.Dataset(bqc.config.Dataset).Table(table)
+	tbl := c.client.Dataset(c.config.Dataset).Table(table)
 
 	// infer the schema of the type
 	schema, err := bigquery.InferSchema(typeForSchema)
@@ -179,13 +179,13 @@ func (bqc *client) UpdateTableSchema(ctx context.Context, table string, typeForS
 	return nil
 }
 
-func (bqc *client) InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) error {
+func (c *client) InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) error {
 
-	if bqc.config == nil || !bqc.config.Enable {
+	if c.config == nil || !c.config.Enable {
 		return nil
 	}
 
-	tbl := bqc.client.Dataset(bqc.config.Dataset).Table(bqc.buildEventsTableName)
+	tbl := c.client.Dataset(c.config.Dataset).Table(c.buildEventsTableName)
 
 	u := tbl.Uploader()
 
@@ -196,13 +196,13 @@ func (bqc *client) InsertBuildEvent(ctx context.Context, event PipelineBuildEven
 	return nil
 }
 
-func (bqc *client) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) error {
+func (c *client) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) error {
 
-	if bqc.config == nil || !bqc.config.Enable {
+	if c.config == nil || !c.config.Enable {
 		return nil
 	}
 
-	tbl := bqc.client.Dataset(bqc.config.Dataset).Table(bqc.releaseEventsTableName)
+	tbl := c.client.Dataset(c.config.Dataset).Table(c.releaseEventsTableName)
 
 	u := tbl.Uploader()
 

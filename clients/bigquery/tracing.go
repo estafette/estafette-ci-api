@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	"github.com/opentracing/opentracing-go/log"
 )
 
 type tracingClient struct {
@@ -15,62 +17,70 @@ func NewTracingClient(c Client) Client {
 	return &tracingClient{c}
 }
 
-func (s *tracingClient) Init(ctx context.Context) error {
+func (c *tracingClient) Init(ctx context.Context) error {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("Init"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("Init"))
 	defer span.Finish()
 
-	return s.Client.Init(ctx)
+	return c.handleError(span, c.Client.Init(ctx))
 }
 
-func (s *tracingClient) CheckIfDatasetExists(ctx context.Context) bool {
+func (c *tracingClient) CheckIfDatasetExists(ctx context.Context) bool {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("CheckIfDatasetExists"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("CheckIfDatasetExists"))
 	defer span.Finish()
 
-	return s.Client.CheckIfDatasetExists(ctx)
+	return c.Client.CheckIfDatasetExists(ctx)
 }
 
-func (s *tracingClient) CheckIfTableExists(ctx context.Context, table string) bool {
+func (c *tracingClient) CheckIfTableExists(ctx context.Context, table string) bool {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("CheckIfTableExists"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("CheckIfTableExists"))
 	defer span.Finish()
 
-	return s.Client.CheckIfTableExists(ctx, table)
+	return c.Client.CheckIfTableExists(ctx, table)
 }
 
-func (s *tracingClient) CreateTable(ctx context.Context, table string, typeForSchema interface{}, partitionField string, waitReady bool) error {
+func (c *tracingClient) CreateTable(ctx context.Context, table string, typeForSchema interface{}, partitionField string, waitReady bool) error {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("CreateTable"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("CreateTable"))
 	defer span.Finish()
 
-	return s.Client.CreateTable(ctx, table, typeForSchema, partitionField, waitReady)
+	return c.handleError(span, c.Client.CreateTable(ctx, table, typeForSchema, partitionField, waitReady))
 }
 
-func (s *tracingClient) UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) error {
+func (c *tracingClient) UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) error {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("UpdateTableSchema"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("UpdateTableSchema"))
 	defer span.Finish()
 
-	return s.Client.UpdateTableSchema(ctx, table, typeForSchema)
+	return c.handleError(span, c.Client.UpdateTableSchema(ctx, table, typeForSchema))
 }
 
-func (s *tracingClient) InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) error {
+func (c *tracingClient) InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) error {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("InsertBuildEvent"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("InsertBuildEvent"))
 	defer span.Finish()
 
-	return s.Client.InsertBuildEvent(ctx, event)
+	return c.handleError(span, c.Client.InsertBuildEvent(ctx, event))
 }
 
-func (s *tracingClient) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) error {
+func (c *tracingClient) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) error {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("InsertReleaseEvent"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("InsertReleaseEvent"))
 	defer span.Finish()
 
-	return s.Client.InsertReleaseEvent(ctx, event)
+	return c.handleError(span, c.Client.InsertReleaseEvent(ctx, event))
 }
 
-func (s *tracingClient) getSpanName(funcName string) string {
+func (c *tracingClient) getSpanName(funcName string) string {
 	return "bigquery:" + funcName
+}
+
+func (c *tracingClient) handleError(span opentracing.Span, err error) error {
+	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(log.Error(err))
+	}
+	return err
 }

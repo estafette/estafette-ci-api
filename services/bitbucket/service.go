@@ -9,7 +9,6 @@ import (
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
-	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
@@ -40,20 +39,12 @@ func NewService(config config.BitbucketConfig, apiClient bitbucketapi.Client, pu
 	}
 }
 
-func (h *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbucketapi.RepositoryPushEvent) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "Bitbucket::CreateJobForBitbucketPush")
-	defer span.Finish()
+func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbucketapi.RepositoryPushEvent) {
 
 	// check to see that it's a cloneable event
 	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil || pushEvent.Push.Changes[0].New.Type != "branch" || len(pushEvent.Push.Changes[0].New.Target.Hash) == 0 {
 		return
 	}
-
-	span.SetTag("git-repo", pushEvent.GetRepository())
-	span.SetTag("git-branch", pushEvent.GetRepoBranch())
-	span.SetTag("git-revision", pushEvent.GetRepoRevision())
-	span.SetTag("event", "repo:push")
 
 	gitEvent := manifest.EstafetteGitEvent{
 		Event:      "push",
@@ -63,7 +54,7 @@ func (h *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 
 	// handle git triggers
 	go func() {
-		err := h.buildService.FireGitTriggers(ctx, gitEvent)
+		err := s.buildService.FireGitTriggers(ctx, gitEvent)
 		if err != nil {
 			log.Error().Err(err).
 				Interface("gitEvent", gitEvent).
@@ -72,7 +63,7 @@ func (h *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	}()
 
 	// get access token
-	accessToken, err := h.apiClient.GetAccessToken(ctx)
+	accessToken, err := s.apiClient.GetAccessToken(ctx)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
@@ -80,7 +71,7 @@ func (h *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	}
 
 	// get manifest file
-	manifestExists, manifestString, err := h.apiClient.GetEstafetteManifest(ctx, accessToken, pushEvent)
+	manifestExists, manifestString, err := s.apiClient.GetEstafetteManifest(ctx, accessToken, pushEvent)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
@@ -106,7 +97,7 @@ func (h *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	}
 
 	// create build object and hand off to build service
-	_, err = h.buildService.CreateBuild(ctx, contracts.Build{
+	_, err = s.buildService.CreateBuild(ctx, contracts.Build{
 		RepoSource:   pushEvent.GetRepoSource(),
 		RepoOwner:    pushEvent.GetRepoOwner(),
 		RepoName:     pushEvent.GetRepoName(),
@@ -129,27 +120,24 @@ func (h *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	log.Info().Msgf("Created build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
 
 	go func() {
-		err := h.pubsubAPIClient.SubscribeToPubsubTriggers(ctx, manifestString)
+		err := s.pubsubAPIClient.SubscribeToPubsubTriggers(ctx, manifestString)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed subscribing to topics for pubsub triggers for build %v/%v/%v revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
 		}
 	}()
 }
 
-func (h *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "Bitbucket::Rename")
-	defer span.Finish()
-
-	return h.buildService.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+	return s.buildService.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
-func (h *service) IsWhitelistedOwner(repository bitbucketapi.Repository) bool {
+func (s *service) IsWhitelistedOwner(repository bitbucketapi.Repository) bool {
 
-	if len(h.config.WhitelistedOwners) == 0 {
+	if len(s.config.WhitelistedOwners) == 0 {
 		return true
 	}
 
-	for _, owner := range h.config.WhitelistedOwners {
+	for _, owner := range s.config.WhitelistedOwners {
 		if owner == repository.Owner.UserName {
 			return true
 		}

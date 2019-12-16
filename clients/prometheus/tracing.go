@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	"github.com/opentracing/opentracing-go/log"
 )
 
 type tracingClient struct {
@@ -15,30 +17,44 @@ func NewTracingClient(c Client) Client {
 	return &tracingClient{c}
 }
 
-func (s *tracingClient) AwaitScrapeInterval(ctx context.Context) {
+func (c *tracingClient) AwaitScrapeInterval(ctx context.Context) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("AwaitScrapeInterval"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("AwaitScrapeInterval"))
 	defer span.Finish()
 
-	s.Client.AwaitScrapeInterval(ctx)
+	c.Client.AwaitScrapeInterval(ctx)
 }
 
-func (s *tracingClient) GetMaxMemoryByPodName(ctx context.Context, podName string) (float64, error) {
+func (c *tracingClient) GetMaxMemoryByPodName(ctx context.Context, podName string) (float64, error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("GetMaxMemoryByPodName"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetMaxMemoryByPodName"))
 	defer span.Finish()
 
-	return s.Client.GetMaxMemoryByPodName(ctx, podName)
+	max, err := c.Client.GetMaxMemoryByPodName(ctx, podName)
+	c.handleError(span, err)
+
+	return max, err
 }
 
-func (s *tracingClient) GetMaxCPUByPodName(ctx context.Context, podName string) (float64, error) {
+func (c *tracingClient) GetMaxCPUByPodName(ctx context.Context, podName string) (float64, error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("GetMaxCPUByPodName"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetMaxCPUByPodName"))
 	defer span.Finish()
 
-	return s.Client.GetMaxCPUByPodName(ctx, podName)
+	max, err := c.Client.GetMaxCPUByPodName(ctx, podName)
+	c.handleError(span, err)
+
+	return max, err
 }
 
-func (s *tracingClient) getSpanName(funcName string) string {
+func (c *tracingClient) getSpanName(funcName string) string {
 	return "prometheus:" + funcName
+}
+
+func (c *tracingClient) handleError(span opentracing.Span, err error) error {
+	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(log.Error(err))
+	}
+	return err
 }

@@ -5,6 +5,8 @@ import (
 
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	"github.com/opentracing/opentracing-go/log"
 )
 
 type tracingService struct {
@@ -27,14 +29,17 @@ func (s *tracingService) HasValidSignature(ctx context.Context, body []byte, sig
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("HasValidSignature"))
 	defer span.Finish()
 
-	return s.Service.HasValidSignature(ctx, body, signatureHeader)
+	valid, err := s.Service.HasValidSignature(ctx, body, signatureHeader)
+	s.handleError(span, err)
+
+	return valid, err
 }
 
 func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("Rename"))
 	defer span.Finish()
 
-	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	return s.handleError(span, s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName))
 }
 
 func (s *tracingService) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) bool {
@@ -46,4 +51,12 @@ func (s *tracingService) IsWhitelistedInstallation(ctx context.Context, installa
 
 func (s *tracingService) getSpanName(funcName string) string {
 	return "github:" + funcName
+}
+
+func (s *tracingService) handleError(span opentracing.Span, err error) error {
+	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(log.Error(err))
+	}
+	return err
 }

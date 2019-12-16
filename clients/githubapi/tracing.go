@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	"github.com/opentracing/opentracing-go/log"
 )
 
 type tracingClient struct {
@@ -15,54 +17,77 @@ func NewTracingClient(c Client) Client {
 	return &tracingClient{c}
 }
 
-func (s *tracingClient) GetGithubAppToken(ctx context.Context) (string, error) {
+func (c *tracingClient) GetGithubAppToken(ctx context.Context) (string, error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("GetGithubAppToken"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetGithubAppToken"))
 	defer span.Finish()
 
-	return s.Client.GetGithubAppToken(ctx)
+	token, err := c.Client.GetGithubAppToken(ctx)
+	c.handleError(span, err)
+
+	return token, err
 }
 
-func (s *tracingClient) GetInstallationID(ctx context.Context, repoOwner string) (int, error) {
+func (c *tracingClient) GetInstallationID(ctx context.Context, repoOwner string) (int, error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("GetInstallationID"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetInstallationID"))
 	defer span.Finish()
 
-	return s.Client.GetInstallationID(ctx, repoOwner)
+	installationid, err := c.Client.GetInstallationID(ctx, repoOwner)
+	c.handleError(span, err)
+
+	return installationid, err
 }
 
-func (s *tracingClient) GetInstallationToken(ctx context.Context, installationID int) (AccessToken, error) {
+func (c *tracingClient) GetInstallationToken(ctx context.Context, installationID int) (AccessToken, error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("GetInstallationToken"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetInstallationToken"))
 	defer span.Finish()
 
-	return s.Client.GetInstallationToken(ctx, installationID)
+	token, err := c.Client.GetInstallationToken(ctx, installationID)
+	c.handleError(span, err)
+
+	return token, err
 }
 
-func (s *tracingClient) GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (string, error) {
+func (c *tracingClient) GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (string, error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("GetAuthenticatedRepositoryURL"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetAuthenticatedRepositoryURL"))
 	defer span.Finish()
 
-	return s.Client.GetAuthenticatedRepositoryURL(ctx, accesstoken, htmlURL)
+	url, err := c.Client.GetAuthenticatedRepositoryURL(ctx, accesstoken, htmlURL)
+	c.handleError(span, err)
+
+	return url, err
 }
 
-func (s *tracingClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (bool, string, error) {
+func (c *tracingClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (bool, string, error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("GetEstafetteManifest"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetEstafetteManifest"))
 	defer span.Finish()
 
-	return s.Client.GetEstafetteManifest(ctx, accesstoken, event)
+	valid, manifest, err := c.Client.GetEstafetteManifest(ctx, accesstoken, event)
+	c.handleError(span, err)
+
+	return valid, manifest, err
 }
 
-func (s *tracingClient) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error) {
+func (c *tracingClient) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("JobVarsFunc"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("JobVarsFunc"))
 	defer span.Finish()
 
-	return s.Client.JobVarsFunc(ctx)
+	return c.Client.JobVarsFunc(ctx)
 }
 
-func (s *tracingClient) getSpanName(funcName string) string {
+func (c *tracingClient) getSpanName(funcName string) string {
 	return "githubapi:" + funcName
+}
+
+func (c *tracingClient) handleError(span opentracing.Span, err error) error {
+	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(log.Error(err))
+	}
+	return err
 }

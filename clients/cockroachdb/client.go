@@ -17,8 +17,6 @@ import (
 	manifest "github.com/estafette/estafette-ci-manifest"
 	_ "github.com/lib/pq" // use postgres client library to connect to cockroachdb
 	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
-	otlog "github.com/opentracing/opentracing-go/log"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
@@ -136,24 +134,24 @@ func NewClient(config config.DatabaseConfig, prometheusOutboundAPICallTotals *pr
 }
 
 // Connect sets up a connection with CockroachDB
-func (dbc *client) Connect(ctx context.Context) (err error) {
+func (c *client) Connect(ctx context.Context) (err error) {
 
-	log.Debug().Msgf("Connecting to database %v on host %v...", dbc.config.DatabaseName, dbc.config.Host)
+	log.Debug().Msgf("Connecting to database %v on host %v...", c.config.DatabaseName, c.config.Host)
 
 	sslMode := ""
-	if dbc.config.Insecure {
+	if c.config.Insecure {
 		sslMode = "?sslmode=disable"
 	}
 
-	dataSourceName := fmt.Sprintf("postgresql://%v:%v@%v:%v/%v%v", dbc.config.User, dbc.config.Password, dbc.config.Host, dbc.config.Port, dbc.config.DatabaseName, sslMode)
+	dataSourceName := fmt.Sprintf("postgresql://%v:%v@%v:%v/%v%v", c.config.User, c.config.Password, c.config.Host, c.config.Port, c.config.DatabaseName, sslMode)
 
-	return dbc.ConnectWithDriverAndSource(ctx, dbc.databaseDriver, dataSourceName)
+	return c.ConnectWithDriverAndSource(ctx, c.databaseDriver, dataSourceName)
 }
 
 // ConnectWithDriverAndSource set up a connection with any database
-func (dbc *client) ConnectWithDriverAndSource(ctx context.Context, driverName, dataSourceName string) (err error) {
+func (c *client) ConnectWithDriverAndSource(ctx context.Context, driverName, dataSourceName string) (err error) {
 
-	dbc.databaseConnection, err = sql.Open(driverName, dataSourceName)
+	c.databaseConnection, err = sql.Open(driverName, dataSourceName)
 	if err != nil {
 		return
 	}
@@ -162,17 +160,14 @@ func (dbc *client) ConnectWithDriverAndSource(ctx context.Context, driverName, d
 }
 
 // GetAutoIncrement returns the autoincrement number for a pipeline
-func (dbc *client) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {
+func (c *client) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetAutoIncrement")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	repoFullName := fmt.Sprintf("%v/%v", repoOwner, repoName)
 
 	// insert or increment if record for repo_source and repo_full_name combination already exists
-	_, err = dbc.databaseConnection.Exec(
+	_, err = c.databaseConnection.Exec(
 		`
 		INSERT INTO
 			build_versions
@@ -198,15 +193,14 @@ func (dbc *client) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOw
 		repoFullName,
 	)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// fetching auto_increment value, because RETURNING is not supported with UPSERT / INSERT ON CONFLICT (see issue https://github.com/cockroachdb/cockroach/issues/6637)
-	rows, err := dbc.databaseConnection.Query(
+	rows, err := c.databaseConnection.Query(
 		`
 		SELECT
 			auto_increment
@@ -220,16 +214,14 @@ func (dbc *client) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOw
 		repoFullName,
 	)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	defer rows.Close()
 	for rows.Next() {
 		if err = rows.Scan(&autoincrement); err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 	}
@@ -237,12 +229,9 @@ func (dbc *client) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOw
 	return
 }
 
-func (dbc *client) InsertBuild(ctx context.Context, build contracts.Build, jobResources JobResources) (insertedBuild *contracts.Build, err error) {
+func (c *client) InsertBuild(ctx context.Context, build contracts.Build, jobResources JobResources) (insertedBuild *contracts.Build, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::InsertBuild")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	sort.Slice(build.Labels, func(i, j int) bool {
 		return build.Labels[i].Key < build.Labels[j].Key
@@ -250,37 +239,32 @@ func (dbc *client) InsertBuild(ctx context.Context, build contracts.Build, jobRe
 
 	labelsBytes, err := json.Marshal(build.Labels)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 	releaseTargetsBytes, err := json.Marshal(build.ReleaseTargets)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 	commitsBytes, err := json.Marshal(build.Commits)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 	triggersBytes, err := json.Marshal(build.Triggers)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 	eventsBytes, err := json.Marshal(build.Events)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// insert logs
-	row := dbc.databaseConnection.QueryRow(
+	row := c.databaseConnection.QueryRow(
 		`
 		INSERT INTO
 			builds
@@ -348,23 +332,19 @@ func (dbc *client) InsertBuild(ctx context.Context, build contracts.Build, jobRe
 	insertedBuild = &build
 
 	if err = row.Scan(&insertedBuild.ID); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// update computed tables
-	go dbc.UpsertComputedPipeline(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName)
+	go c.UpsertComputedPipeline(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName)
 
 	return
 }
 
-func (dbc *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
+func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpdateBuildStatus")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	allowedBuildStatusesToTransitionFrom := []string{}
 	switch buildStatus {
@@ -400,12 +380,11 @@ func (dbc *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner,
 	}
 
 	// update build status
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	row := query.RunWith(c.databaseConnection).QueryRow()
 
-	_, err = dbc.scanBuild(ctx, row, false, false)
+	_, err = c.scanBuild(ctx, row, false, false)
 	if err != nil && err != sql.ErrNoRows {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	} else if err != nil {
 		log.Warn().Err(err).Msgf("Updating build status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, buildStatus, allowedBuildStatusesToTransitionFrom, buildStatus)
@@ -413,17 +392,14 @@ func (dbc *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner,
 	}
 
 	// update computed tables
-	go dbc.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
+	go c.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
 
 	return
 }
 
-func (dbc *client) UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources JobResources) (err error) {
+func (c *client) UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources JobResources) (err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpdateBuildResourceUtilization")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -437,32 +413,27 @@ func (dbc *client) UpdateBuildResourceUtilization(ctx context.Context, repoSourc
 		Where(sq.Eq{"repo_name": repoName})
 
 	// update build resources
-	_, err = query.RunWith(dbc.databaseConnection).Exec()
+	_, err = query.RunWith(c.databaseConnection).Exec()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) InsertRelease(ctx context.Context, release contracts.Release, jobResources JobResources) (insertedRelease *contracts.Release, err error) {
+func (c *client) InsertRelease(ctx context.Context, release contracts.Release, jobResources JobResources) (insertedRelease *contracts.Release, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::InsertRelease")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	eventsBytes, err := json.Marshal(release.Events)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// insert logs
-	rows, err := dbc.databaseConnection.Query(
+	rows, err := c.databaseConnection.Query(
 		`
 		INSERT INTO
 			releases
@@ -513,8 +484,7 @@ func (dbc *client) InsertRelease(ctx context.Context, release contracts.Release,
 	)
 
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return insertedRelease, err
 	}
 
@@ -527,26 +497,22 @@ func (dbc *client) InsertRelease(ctx context.Context, release contracts.Release,
 
 	insertedRelease = &release
 	if err = rows.Scan(&insertedRelease.ID); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// update computed tables
 	go func() {
-		dbc.UpsertComputedRelease(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.Name, insertedRelease.Action)
-		dbc.UpsertComputedPipeline(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName)
+		c.UpsertComputedRelease(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.Name, insertedRelease.Action)
+		c.UpsertComputedPipeline(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName)
 	}()
 
 	return
 }
 
-func (dbc *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus string) (err error) {
+func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus string) (err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpdateReleaseStatus")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	allowedReleaseStatusesToTransitionFrom := []string{}
 	switch releaseStatus {
@@ -582,11 +548,10 @@ func (dbc *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwne
 	}
 
 	// update release status
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	insertedRelease, err := dbc.scanRelease(row)
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	insertedRelease, err := c.scanRelease(row)
 	if err != nil && err != sql.ErrNoRows {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	} else if err != nil {
 		log.Warn().Err(err).Msgf("Updating release status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, id, allowedReleaseStatusesToTransitionFrom, releaseStatus)
@@ -595,19 +560,16 @@ func (dbc *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwne
 
 	// update computed tables
 	go func() {
-		dbc.UpsertComputedRelease(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.Name, insertedRelease.Action)
-		dbc.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
+		c.UpsertComputedRelease(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.Name, insertedRelease.Action)
+		c.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
 	}()
 
 	return
 }
 
-func (dbc *client) UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) (err error) {
+func (c *client) UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) (err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpdateReleaseResourceUtilization")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -621,31 +583,26 @@ func (dbc *client) UpdateReleaseResourceUtilization(ctx context.Context, repoSou
 		Where(sq.Eq{"repo_name": repoName})
 
 	// update release resources
-	_, err = query.RunWith(dbc.databaseConnection).Exec()
+	_, err = query.RunWith(c.databaseConnection).Exec()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (insertedBuildLog contracts.BuildLog, err error) {
-
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::InsertBuildLog")
-	defer span.Finish()
+func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (insertedBuildLog contracts.BuildLog, err error) {
 
 	insertedBuildLog = buildLog
 
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	var bytes []byte
 	if writeLogToDatabase {
 		bytes, err = json.Marshal(buildLog.Steps)
 		if err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 	} else {
@@ -656,7 +613,7 @@ func (dbc *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildL
 	buildID, err := strconv.Atoi(buildLog.BuildID)
 	if err != nil {
 		// insert logs
-		row := dbc.databaseConnection.QueryRow(
+		row := c.databaseConnection.QueryRow(
 			`
 			INSERT INTO
 				build_logs
@@ -695,20 +652,15 @@ func (dbc *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildL
 				nrLines += len(s.LogLines)
 			}
 			log.Error().Msgf("INSERT INTO build_logs: failed for %v/%v/%v/%v (%v steps, %v lines, %v bytes)", buildLog.RepoSource, buildLog.RepoOwner, buildLog.RepoName, buildLog.RepoRevision, len(buildLog.Steps), nrLines, len(bytes))
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
 
 			return
 		}
-
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
 
 		return
 	}
 
 	// insert logs
-	row := dbc.databaseConnection.QueryRow(
+	row := c.databaseConnection.QueryRow(
 		`
 		INSERT INTO
 			build_logs
@@ -750,8 +702,6 @@ func (dbc *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildL
 			nrLines += len(s.LogLines)
 		}
 		log.Error().Msgf("INSERT INTO build_logs: failed for %v/%v/%v/%v (%v steps, %v lines, %v bytes)", buildLog.RepoSource, buildLog.RepoOwner, buildLog.RepoName, buildLog.RepoRevision, len(buildLog.Steps), nrLines, len(bytes))
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
 
 		return
 	}
@@ -759,21 +709,17 @@ func (dbc *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildL
 	return
 }
 
-func (dbc *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (insertedReleaseLog contracts.ReleaseLog, err error) {
-
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::InsertReleaseLog")
-	defer span.Finish()
+func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (insertedReleaseLog contracts.ReleaseLog, err error) {
 
 	insertedReleaseLog = releaseLog
 
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	var bytes []byte
 	if writeLogToDatabase {
 		bytes, err = json.Marshal(releaseLog.Steps)
 		if err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 	} else {
@@ -783,13 +729,12 @@ func (dbc *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Re
 
 	releaseID, err := strconv.Atoi(releaseLog.ReleaseID)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return insertedReleaseLog, err
 	}
 
 	// insert logs
-	row := dbc.databaseConnection.QueryRow(
+	row := c.databaseConnection.QueryRow(
 		`
 		INSERT INTO
 			release_logs
@@ -825,8 +770,6 @@ func (dbc *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Re
 			nrLines += len(s.LogLines)
 		}
 		log.Error().Msgf("INSERT INTO build_logs: failed for %v/%v/%v/%v (%v steps, %v lines, %v bytes)", releaseLog.RepoSource, releaseLog.RepoOwner, releaseLog.RepoName, releaseLog.ReleaseID, len(releaseLog.Steps), nrLines, len(bytes))
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
 
 		return
 	}
@@ -834,19 +777,15 @@ func (dbc *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Re
 	return
 }
 
-func (dbc *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpsertComputedPipeline")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// get last build
-	lastBuild, err := dbc.GetLastPipelineBuild(ctx, repoSource, repoOwner, repoName, false)
+	lastBuild, err := c.GetLastPipelineBuild(ctx, repoSource, repoOwner, repoName, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last build for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 	if lastBuild == nil {
@@ -854,10 +793,10 @@ func (dbc *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoO
 		return
 	}
 
-	upsertedPipeline := dbc.mapBuildToPipeline(lastBuild)
+	upsertedPipeline := c.mapBuildToPipeline(lastBuild)
 
 	// add releases
-	dbc.enrichPipeline(ctx, upsertedPipeline)
+	c.enrichPipeline(ctx, upsertedPipeline)
 
 	// set LastUpdatedAt from both builds and releases
 	upsertedPipeline.LastUpdatedAt = upsertedPipeline.InsertedAt
@@ -883,41 +822,36 @@ func (dbc *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoO
 	labelsBytes, err := json.Marshal(upsertedPipeline.Labels)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 	releaseTargetsBytes, err := json.Marshal(upsertedPipeline.ReleaseTargets)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 	commitsBytes, err := json.Marshal(upsertedPipeline.Commits)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 	triggersBytes, err := json.Marshal(upsertedPipeline.Triggers)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 	eventsBytes, err := json.Marshal(upsertedPipeline.Events)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// upsert computed pipeline
-	_, err = dbc.databaseConnection.Exec(
+	_, err = c.databaseConnection.Exec(
 		`
 		INSERT INTO
 			computed_pipelines
@@ -1008,27 +942,22 @@ func (dbc *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoO
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+func (c *client) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpdateComputedPipelineFirstInsertedAt")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// get first build
-	firstBuild, err := dbc.GetFirstPipelineBuild(ctx, repoSource, repoOwner, repoName, false)
+	firstBuild, err := c.GetFirstPipelineBuild(ctx, repoSource, repoOwner, repoName, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting first build for updating computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 	if firstBuild == nil {
@@ -1036,10 +965,10 @@ func (dbc *client) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, re
 		return
 	}
 
-	updatedPipeline := dbc.mapBuildToPipeline(firstBuild)
+	updatedPipeline := c.mapBuildToPipeline(firstBuild)
 
 	// update computed pipeline
-	_, err = dbc.databaseConnection.Exec(
+	_, err = c.databaseConnection.Exec(
 		`
 		UPDATE
 			computed_pipelines
@@ -1057,27 +986,22 @@ func (dbc *client) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, re
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed updating computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error) {
+func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpsertComputedRelease")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// get last release
-	lastRelease, err := dbc.GetLastPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
+	lastRelease, err := c.GetLastPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last release for upserting computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 	if lastRelease == nil {
@@ -1087,13 +1011,12 @@ func (dbc *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOw
 
 	eventsBytes, err := json.Marshal(lastRelease.Events)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// upsert computed release
-	_, err = dbc.databaseConnection.Exec(
+	_, err = c.databaseConnection.Exec(
 		`
 		INSERT INTO
 			computed_releases
@@ -1159,27 +1082,22 @@ func (dbc *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOw
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) UpdateComputedReleaseFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error) {
+func (c *client) UpdateComputedReleaseFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::UpdateComputedReleaseFirstInsertedAt")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// get first release
-	firstRelease, err := dbc.GetFirstPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
+	firstRelease, err := c.GetFirstPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting first release for updating computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 	if firstRelease == nil {
@@ -1188,7 +1106,7 @@ func (dbc *client) UpdateComputedReleaseFirstInsertedAt(ctx context.Context, rep
 	}
 
 	// update computed release
-	_, err = dbc.databaseConnection.Exec(
+	_, err = c.databaseConnection.Exec(
 		`
 		UPDATE
 			computed_releases
@@ -1210,23 +1128,19 @@ func (dbc *client) UpdateComputedReleaseFirstInsertedAt(ctx context.Context, rep
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed updating computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
+func (c *client) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelines")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectPipelinesQuery().
+	query := c.selectPipelinesQuery().
 		OrderBy("a.repo_source,a.repo_owner,a.repo_name").
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
@@ -1234,64 +1148,53 @@ func (dbc *client) GetPipelines(ctx context.Context, pageNumber, pageSize int, f
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "last_updated_at", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// execute query
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// read rows
-	if pipelines, err = dbc.scanPipelines(rows, optimized); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+	if pipelines, err = c.scanPipelines(rows, optimized); err != nil {
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetPipelinesByRepoName(ctx context.Context, repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
+func (c *client) GetPipelinesByRepoName(ctx context.Context, repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelinesByRepoName")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectPipelinesQuery().
+	query := c.selectPipelinesQuery().
 		Where(sq.Eq{"a.repo_name": repoName})
 
 	// execute query
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// read rows
-	if pipelines, err = dbc.scanPipelines(rows, optimized); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+	if pipelines, err = c.scanPipelines(rows, optimized); err != nil {
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetPipelinesCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
+func (c *client) GetPipelinesCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelinesCount")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query :=
@@ -1302,33 +1205,26 @@ func (dbc *client) GetPipelinesCount(ctx context.Context, filters map[string][]s
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "last_updated_at", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error) {
+func (c *client) GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipeline")
-	defer span.Finish()
-
-	span.SetTag("git-repo", fmt.Sprintf("%v/%v/%v", repoSource, repoOwner, repoName))
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectPipelinesQuery().
+	query := c.selectPipelinesQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -1336,25 +1232,21 @@ func (dbc *client) GetPipeline(ctx context.Context, repoSource, repoOwner, repoN
 		Limit(uint64(1))
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if pipeline, err = dbc.scanPipeline(row, optimized); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if pipeline, err = c.scanPipeline(row, optimized); err != nil {
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, optimized bool) (builds []*contracts.Build, err error) {
+func (c *client) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, optimized bool) (builds []*contracts.Build, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuilds")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectBuildsQuery().
+	query := c.selectBuildsQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -1365,35 +1257,29 @@ func (dbc *client) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner,
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// execute query
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// read rows
-	if builds, err = dbc.scanBuilds(rows, optimized); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+	if builds, err = c.scanBuilds(rows, optimized); err != nil {
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (totalCount int, err error) {
+func (c *client) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (totalCount int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildsCount")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query :=
@@ -1407,31 +1293,26 @@ func (dbc *client) GetPipelineBuildsCount(ctx context.Context, repoSource, repoO
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName, repoRevision string, optimized bool) (build *contracts.Build, err error) {
+func (c *client) GetPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName, repoRevision string, optimized bool) (build *contracts.Build, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuild")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectBuildsQuery().
+	query := c.selectBuildsQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -1440,25 +1321,21 @@ func (dbc *client) GetPipelineBuild(ctx context.Context, repoSource, repoOwner, 
 		Limit(uint64(1))
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if build, err = dbc.scanBuild(ctx, row, optimized, true); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if build, err = c.scanBuild(ctx, row, optimized, true); err != nil {
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, id int, optimized bool) (build *contracts.Build, err error) {
+func (c *client) GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, id int, optimized bool) (build *contracts.Build, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildByID")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectBuildsQuery().
+	query := c.selectBuildsQuery().
 		Where(sq.Eq{"a.id": id}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -1467,25 +1344,21 @@ func (dbc *client) GetPipelineBuildByID(ctx context.Context, repoSource, repoOwn
 		Limit(uint64(1))
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if build, err = dbc.scanBuild(ctx, row, optimized, true); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if build, err = c.scanBuild(ctx, row, optimized, true); err != nil {
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetLastPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error) {
+func (c *client) GetLastPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetLastPipelineBuild")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectBuildsQuery().
+	query := c.selectBuildsQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -1493,25 +1366,21 @@ func (dbc *client) GetLastPipelineBuild(ctx context.Context, repoSource, repoOwn
 		Limit(uint64(1))
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if build, err = dbc.scanBuild(ctx, row, optimized, false); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if build, err = c.scanBuild(ctx, row, optimized, false); err != nil {
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetFirstPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error) {
+func (c *client) GetFirstPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetFirstPipelineBuild")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectBuildsQuery().
+	query := c.selectBuildsQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -1519,25 +1388,21 @@ func (dbc *client) GetFirstPipelineBuild(ctx context.Context, repoSource, repoOw
 		Limit(uint64(1))
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if build, err = dbc.scanBuild(ctx, row, optimized, false); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if build, err = c.scanBuild(ctx, row, optimized, false); err != nil {
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetLastPipelineBuildForBranch(ctx context.Context, repoSource, repoOwner, repoName, branch string) (build *contracts.Build, err error) {
+func (c *client) GetLastPipelineBuildForBranch(ctx context.Context, repoSource, repoOwner, repoName, branch string) (build *contracts.Build, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetLastPipelineBuildForBranch")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectBuildsQuery().
+	query := c.selectBuildsQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -1546,25 +1411,21 @@ func (dbc *client) GetLastPipelineBuildForBranch(ctx context.Context, repoSource
 		Limit(uint64(1))
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if build, err = dbc.scanBuild(ctx, row, false, false); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if build, err = c.scanBuild(ctx, row, false, false); err != nil {
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetLastPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {
+func (c *client) GetLastPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetLastPipelineRelease")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectReleasesQuery().
+	query := c.selectReleasesQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -1574,25 +1435,21 @@ func (dbc *client) GetLastPipelineRelease(ctx context.Context, repoSource, repoO
 		Limit(uint64(1))
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if release, err = dbc.scanRelease(row); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if release, err = c.scanRelease(row); err != nil {
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {
+func (c *client) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetFirstPipelineRelease")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectReleasesQuery().
+	query := c.selectReleasesQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -1602,25 +1459,21 @@ func (dbc *client) GetFirstPipelineRelease(ctx context.Context, repoSource, repo
 		Limit(uint64(1))
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if release, err = dbc.scanRelease(row); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if release, err = c.scanRelease(row); err != nil {
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
+func (c *client) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildsByVersion")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectBuildsQuery().
+	query := c.selectBuildsQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -1630,39 +1483,33 @@ func (dbc *client) GetPipelineBuildsByVersion(ctx context.Context, repoSource, r
 		Limit(limit)
 
 	// execute query
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// read rows
-	if builds, err = dbc.scanBuilds(rows, optimized); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+	if builds, err = c.scanBuilds(rows, optimized); err != nil {
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildLog *contracts.BuildLog, err error) {
+func (c *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildLog *contracts.BuildLog, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildLogs")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	buildIDAsInt, err := strconv.Atoi(buildID)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return nil, err
 	}
 
 	// generate query
-	query := dbc.selectBuildLogsQuery(readLogFromDatabase).
+	query := c.selectBuildLogsQuery(readLogFromDatabase).
 		Where(sq.Eq{"a.build_id": buildIDAsInt}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -1676,7 +1523,7 @@ func (dbc *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwn
 	var rowBuildID sql.NullInt64
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	row := query.RunWith(c.databaseConnection).QueryRow()
 	if readLogFromDatabase {
 
 		var stepsData []uint8
@@ -1692,14 +1539,12 @@ func (dbc *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwn
 			if err == sql.ErrNoRows {
 				return nil, nil
 			}
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 
 		if err = json.Unmarshal(stepsData, &buildLog.Steps); err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 
@@ -1715,8 +1560,7 @@ func (dbc *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwn
 			if err == sql.ErrNoRows {
 				return nil, nil
 			}
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 	}
@@ -1736,17 +1580,14 @@ func (dbc *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwn
 	return
 }
 
-func (dbc *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error) {
-
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildLogsPerPage")
-	defer span.Finish()
+func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error) {
 
 	buildLogs = make([]*contracts.BuildLog, 0)
 
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectBuildLogsQuery(true).
+	query := c.selectBuildLogsQuery(true).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -1757,7 +1598,7 @@ func (dbc *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, 
 	sqlquery, _, _ := query.ToSql()
 	log.Debug().Str("sql", sqlquery).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Query for GetPipelineBuildLogsPerPage")
 
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
 		return buildLogs, err
 	}
@@ -1782,14 +1623,12 @@ func (dbc *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, 
 			if err == sql.ErrNoRows {
 				return nil, nil
 			}
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 
 		if err = json.Unmarshal(stepsData, &buildLog.Steps); err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 
@@ -1799,12 +1638,9 @@ func (dbc *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, 
 	return buildLogs, nil
 }
 
-func (dbc *client) GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobResources JobResources, recordCount int, err error) {
+func (c *client) GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobResources JobResources, recordCount int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildMaxResourceUtilization")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
@@ -1824,25 +1660,21 @@ func (dbc *client) GetPipelineBuildMaxResourceUtilization(ctx context.Context, r
 		FromSelect(innerquery, "a")
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&jobResources.CPUMaxUsage, &jobResources.MemoryMaxUsage, &recordCount); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string) (releases []*contracts.Release, err error) {
+func (c *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string) (releases []*contracts.Release, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineReleases")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectReleasesQuery().
+	query := c.selectReleasesQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -1853,35 +1685,29 @@ func (dbc *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwne
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// execute query
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// read rows
-	if releases, err = dbc.scanReleases(rows); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+	if releases, err = c.scanReleases(rows); err != nil {
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (totalCount int, err error) {
+func (c *client) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (totalCount int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineReleasesCount")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query :=
@@ -1895,31 +1721,26 @@ func (dbc *client) GetPipelineReleasesCount(ctx context.Context, repoSource, rep
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, id int) (release *contracts.Release, err error) {
+func (c *client) GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, id int) (release *contracts.Release, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineRelease")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectReleasesQuery().
+	query := c.selectReleasesQuery().
 		Where(sq.Eq{"a.id": id}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -1928,25 +1749,21 @@ func (dbc *client) GetPipelineRelease(ctx context.Context, repoSource, repoOwner
 		Limit(uint64(1))
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
-	if release, err = dbc.scanRelease(row); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if release, err = c.scanRelease(row); err != nil {
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetPipelineLastReleasesByName(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error) {
+func (c *client) GetPipelineLastReleasesByName(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineLastReleasesByName")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectComputedReleasesQuery().
+	query := c.selectComputedReleasesQuery().
 		Where(sq.Eq{"a.release": releaseName}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -1960,18 +1777,16 @@ func (dbc *client) GetPipelineLastReleasesByName(ctx context.Context, repoSource
 	}
 
 	// execute query
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// read rows
 	releasesPointers := []*contracts.Release{}
-	if releasesPointers, err = dbc.scanReleases(rows); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+	if releasesPointers, err = c.scanReleases(rows); err != nil {
+
 		return releases, err
 	}
 
@@ -1984,15 +1799,12 @@ func (dbc *client) GetPipelineLastReleasesByName(ctx context.Context, repoSource
 	return
 }
 
-func (dbc *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, id int, readLogFromDatabase bool) (releaseLog *contracts.ReleaseLog, err error) {
+func (c *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, id int, readLogFromDatabase bool) (releaseLog *contracts.ReleaseLog, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineReleaseLogs")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectReleaseLogsQuery(readLogFromDatabase).
+	query := c.selectReleaseLogsQuery(readLogFromDatabase).
 		Where(sq.Eq{"a.release_id": id}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -2005,7 +1817,7 @@ func (dbc *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoO
 	var releaseID int
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	row := query.RunWith(c.databaseConnection).QueryRow()
 	if readLogFromDatabase {
 		var stepsData []uint8
 		if err = row.Scan(&releaseLog.ID,
@@ -2018,14 +1830,12 @@ func (dbc *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoO
 			if err == sql.ErrNoRows {
 				return nil, nil
 			}
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 
 		if err = json.Unmarshal(stepsData, &releaseLog.Steps); err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 	} else {
@@ -2038,8 +1848,7 @@ func (dbc *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoO
 			if err == sql.ErrNoRows {
 				return nil, nil
 			}
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 	}
@@ -2049,17 +1858,14 @@ func (dbc *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoO
 	return
 }
 
-func (dbc *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (releaseLogs []*contracts.ReleaseLog, err error) {
-
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineReleaseLogsPerPage")
-	defer span.Finish()
+func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (releaseLogs []*contracts.ReleaseLog, err error) {
 
 	releaseLogs = make([]*contracts.ReleaseLog, 0)
 
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
-	query := dbc.selectReleaseLogsQuery(true).
+	query := c.selectReleaseLogsQuery(true).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -2070,7 +1876,7 @@ func (dbc *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource
 	sqlquery, _, _ := query.ToSql()
 	log.Debug().Str("sql", sqlquery).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Query for GetPipelineReleaseLogsPerPage")
 
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
 		return releaseLogs, err
 	}
@@ -2092,16 +1898,14 @@ func (dbc *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource
 			if err == sql.ErrNoRows {
 				return nil, nil
 			}
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 
 		releaseLog.ReleaseID = strconv.Itoa(releaseID)
 
 		if err = json.Unmarshal(stepsData, &releaseLog.Steps); err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 
@@ -2111,12 +1915,9 @@ func (dbc *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource
 	return releaseLogs, nil
 }
 
-func (dbc *client) GetPipelineReleaseMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobResources JobResources, recordCount int, err error) {
+func (c *client) GetPipelineReleaseMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobResources JobResources, recordCount int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildMaxResourceUtilization")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
@@ -2137,22 +1938,18 @@ func (dbc *client) GetPipelineReleaseMaxResourceUtilization(ctx context.Context,
 		FromSelect(innerquery, "a")
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&jobResources.CPUMaxUsage, &jobResources.MemoryMaxUsage, &recordCount); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetBuildsCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
+func (c *client) GetBuildsCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetBuildsCount")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query :=
@@ -2163,28 +1960,23 @@ func (dbc *client) GetBuildsCount(ctx context.Context, filters map[string][]stri
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetReleasesCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
+func (c *client) GetReleasesCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetReleasesCount")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query :=
@@ -2195,28 +1987,23 @@ func (dbc *client) GetReleasesCount(ctx context.Context, filters map[string][]st
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetBuildsDuration(ctx context.Context, filters map[string][]string) (totalDuration time.Duration, err error) {
+func (c *client) GetBuildsDuration(ctx context.Context, filters map[string][]string) (totalDuration time.Duration, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetBuildsDuration")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query :=
@@ -2227,38 +2014,32 @@ func (dbc *client) GetBuildsDuration(ctx context.Context, filters map[string][]s
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	row := query.RunWith(c.databaseConnection).QueryRow()
 
 	var totalDurationAsString string
 
 	if err = row.Scan(&totalDurationAsString); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	totalDuration, err = time.ParseDuration(totalDurationAsString)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetFirstBuildTimes(ctx context.Context) (buildTimes []time.Time, err error) {
+func (c *client) GetFirstBuildTimes(ctx context.Context) (buildTimes []time.Time, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetFirstBuildTimes")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query :=
@@ -2270,11 +2051,10 @@ func (dbc *client) GetFirstBuildTimes(ctx context.Context) (buildTimes []time.Ti
 	buildTimes = make([]time.Time, 0)
 
 	// execute query
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2285,8 +2065,7 @@ func (dbc *client) GetFirstBuildTimes(ctx context.Context) (buildTimes []time.Ti
 
 		if err = rows.Scan(
 			&insertedAt); err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 
@@ -2296,12 +2075,9 @@ func (dbc *client) GetFirstBuildTimes(ctx context.Context) (buildTimes []time.Ti
 	return
 }
 
-func (dbc *client) GetFirstReleaseTimes(ctx context.Context) (releaseTimes []time.Time, err error) {
+func (c *client) GetFirstReleaseTimes(ctx context.Context) (releaseTimes []time.Time, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetFirstReleaseTimes")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query :=
@@ -2313,11 +2089,10 @@ func (dbc *client) GetFirstReleaseTimes(ctx context.Context) (releaseTimes []tim
 
 	releaseTimes = make([]time.Time, 0)
 
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2328,8 +2103,7 @@ func (dbc *client) GetFirstReleaseTimes(ctx context.Context) (releaseTimes []tim
 
 		if err = rows.Scan(
 			&insertedAt); err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 
@@ -2339,12 +2113,9 @@ func (dbc *client) GetFirstReleaseTimes(ctx context.Context) (releaseTimes []tim
 	return
 }
 
-func (dbc *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (durations []map[string]interface{}, err error) {
+func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (durations []map[string]interface{}, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildsDurations")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	innerquery :=
@@ -2358,15 +2129,13 @@ func (dbc *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, r
 
 	innerquery, err = whereClauseGeneratorForBuildStatusFilter(innerquery, "a", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2378,11 +2147,10 @@ func (dbc *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, r
 
 	durations = make([]map[string]interface{}, 0)
 
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2394,8 +2162,7 @@ func (dbc *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, r
 
 		if err = rows.Scan(
 			&insertedAt, &seconds); err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 
@@ -2410,12 +2177,9 @@ func (dbc *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, r
 	return
 }
 
-func (dbc *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (durations []map[string]interface{}, err error) {
+func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (durations []map[string]interface{}, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineReleasesDurations")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	innerquery :=
@@ -2429,15 +2193,13 @@ func (dbc *client) GetPipelineReleasesDurations(ctx context.Context, repoSource,
 
 	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2449,11 +2211,10 @@ func (dbc *client) GetPipelineReleasesDurations(ctx context.Context, repoSource,
 
 	durations = make([]map[string]interface{}, 0)
 
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2466,8 +2227,7 @@ func (dbc *client) GetPipelineReleasesDurations(ctx context.Context, repoSource,
 
 		if err = rows.Scan(
 			&insertedAt, &releaseName, &releaseAction, &seconds); err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 
@@ -2484,12 +2244,9 @@ func (dbc *client) GetPipelineReleasesDurations(ctx context.Context, repoSource,
 	return
 }
 
-func (dbc *client) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+func (c *client) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildsCPUUsageMeasurements")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	innerquery :=
@@ -2504,15 +2261,13 @@ func (dbc *client) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, re
 
 	innerquery, err = whereClauseGeneratorForBuildStatusFilter(innerquery, "a", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2524,11 +2279,10 @@ func (dbc *client) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, re
 
 	measurements = make([]map[string]interface{}, 0)
 
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2540,8 +2294,7 @@ func (dbc *client) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, re
 
 		if err = rows.Scan(
 			&insertedAt, &cpuMaxUsage); err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 
@@ -2554,12 +2307,9 @@ func (dbc *client) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, re
 	return
 }
 
-func (dbc *client) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+func (c *client) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineReleasesCPUUsageMeasurements")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	innerquery :=
@@ -2574,15 +2324,13 @@ func (dbc *client) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, 
 
 	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2594,11 +2342,10 @@ func (dbc *client) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, 
 
 	measurements = make([]map[string]interface{}, 0)
 
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2611,8 +2358,7 @@ func (dbc *client) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, 
 
 		if err = rows.Scan(
 			&insertedAt, &releaseName, &releaseAction, &cpuMaxUsage); err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 
@@ -2627,12 +2373,9 @@ func (dbc *client) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, 
 	return
 }
 
-func (dbc *client) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+func (c *client) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineBuildsMemoryUsageMeasurements")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	innerquery :=
@@ -2647,15 +2390,13 @@ func (dbc *client) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context,
 
 	innerquery, err = whereClauseGeneratorForBuildStatusFilter(innerquery, "a", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2667,11 +2408,10 @@ func (dbc *client) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context,
 
 	measurements = make([]map[string]interface{}, 0)
 
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2683,8 +2423,7 @@ func (dbc *client) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context,
 
 		if err = rows.Scan(
 			&insertedAt, &memoryMaxUsage); err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 
@@ -2697,12 +2436,9 @@ func (dbc *client) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context,
 	return
 }
 
-func (dbc *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+func (c *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelineReleasesMemoryUsageMeasurements")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	innerquery :=
@@ -2717,15 +2453,13 @@ func (dbc *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Contex
 
 	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2737,11 +2471,10 @@ func (dbc *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Contex
 
 	measurements = make([]map[string]interface{}, 0)
 
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2754,8 +2487,7 @@ func (dbc *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Contex
 
 		if err = rows.Scan(
 			&insertedAt, &releaseName, &releaseAction, &memoryMaxUsage); err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return
 		}
 
@@ -2770,12 +2502,9 @@ func (dbc *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Contex
 	return
 }
 
-func (dbc *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {
+func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetFrequentLabels")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// see https://github.com/cockroachdb/cockroach/issues/35848
 
@@ -2811,22 +2540,19 @@ func (dbc *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize i
 
 	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2850,11 +2576,10 @@ func (dbc *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize i
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2872,8 +2597,7 @@ func (dbc *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize i
 
 		// Scan the result into the column pointers...
 		if err = rows.Scan(columnPointers...); err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return nil, err
 		}
 
@@ -2891,12 +2615,9 @@ func (dbc *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize i
 	return
 }
 
-func (dbc *client) GetFrequentLabelsCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
+func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetFrequentLabelsCount")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// see https://github.com/cockroachdb/cockroach/issues/35848
 
@@ -2932,22 +2653,19 @@ func (dbc *client) GetFrequentLabelsCount(ctx context.Context, filters map[strin
 
 	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -2969,22 +2687,18 @@ func (dbc *client) GetFrequentLabelsCount(ctx context.Context, filters map[strin
 			Where(sq.Gt{"pipelinesCount": 1})
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	return
 }
 
-func (dbc *client) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
+func (c *client) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelinesWithMostBuilds")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query :=
@@ -2998,32 +2712,28 @@ func (dbc *client) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, p
 
 	query, err = whereClauseGeneratorForSinceFilter(query, "a", "inserted_at", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	query, err = whereClauseGeneratorForBuildStatusFilter(query, "a", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	query, err = whereClauseGeneratorForLabelsFilter(query, "a", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	pipelines = make([]map[string]interface{}, 0)
 
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -3041,8 +2751,7 @@ func (dbc *client) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, p
 
 		// Scan the result into the column pointers...
 		if err = rows.Scan(columnPointers...); err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return nil, err
 		}
 
@@ -3060,16 +2769,13 @@ func (dbc *client) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, p
 	return
 }
 
-func (dbc *client) GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
-	return dbc.GetPipelinesCount(ctx, filters)
+func (c *client) GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
+	return c.GetPipelinesCount(ctx, filters)
 }
 
-func (dbc *client) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
+func (c *client) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelinesWithMostReleases")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query :=
@@ -3083,25 +2789,22 @@ func (dbc *client) GetPipelinesWithMostReleases(ctx context.Context, pageNumber,
 
 	query, err = whereClauseGeneratorForSinceFilter(query, "a", "inserted_at", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	query, err = whereClauseGeneratorForReleaseStatusFilter(query, "a", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	pipelines = make([]map[string]interface{}, 0)
 
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -3119,8 +2822,7 @@ func (dbc *client) GetPipelinesWithMostReleases(ctx context.Context, pageNumber,
 
 		// Scan the result into the column pointers...
 		if err = rows.Scan(columnPointers...); err != nil {
-			ext.Error.Set(span, true)
-			span.LogFields(otlog.Error(err))
+
 			return nil, err
 		}
 
@@ -3138,12 +2840,9 @@ func (dbc *client) GetPipelinesWithMostReleases(ctx context.Context, pageNumber,
 	return
 }
 
-func (dbc *client) GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
+func (c *client) GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetPipelinesWithMostReleasesCount")
-	defer span.Finish()
-
-	dbc.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
+	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	innerquery :=
@@ -3154,15 +2853,13 @@ func (dbc *client) GetPipelinesWithMostReleasesCount(ctx context.Context, filter
 
 	innerquery, err = whereClauseGeneratorForSinceFilter(innerquery, "a", "inserted_at", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -3172,10 +2869,9 @@ func (dbc *client) GetPipelinesWithMostReleasesCount(ctx context.Context, filter
 			FromSelect(innerquery, "a")
 
 	// execute query
-	row := query.RunWith(dbc.databaseConnection).QueryRow()
+	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
@@ -3312,7 +3008,7 @@ func limitClauseGeneratorForLastFilter(query sq.SelectBuilder, filters map[strin
 	return query, nil
 }
 
-func (dbc *client) scanBuild(ctx context.Context, row sq.RowScanner, optimized, enriched bool) (build *contracts.Build, err error) {
+func (c *client) scanBuild(ctx context.Context, row sq.RowScanner, optimized, enriched bool) (build *contracts.Build, err error) {
 
 	build = &contracts.Build{}
 	var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8
@@ -3344,10 +3040,10 @@ func (dbc *client) scanBuild(ctx context.Context, row sq.RowScanner, optimized, 
 
 	build.Duration = time.Duration(seconds) * time.Second
 
-	dbc.setBuildPropertiesFromJSONB(build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
+	c.setBuildPropertiesFromJSONB(build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
 
 	if enriched {
-		dbc.enrichBuild(ctx, build)
+		c.enrichBuild(ctx, build)
 	}
 
 	if optimized {
@@ -3359,7 +3055,7 @@ func (dbc *client) scanBuild(ctx context.Context, row sq.RowScanner, optimized, 
 	return
 }
 
-func (dbc *client) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contracts.Build, err error) {
+func (c *client) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contracts.Build, err error) {
 
 	builds = make([]*contracts.Build, 0)
 
@@ -3393,7 +3089,7 @@ func (dbc *client) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contrac
 
 		build.Duration = time.Duration(seconds) * time.Second
 
-		dbc.setBuildPropertiesFromJSONB(&build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
+		c.setBuildPropertiesFromJSONB(&build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
 
 		if optimized {
 			// clear some properties for reduced size and improved performance over the network
@@ -3407,7 +3103,7 @@ func (dbc *client) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contrac
 	return
 }
 
-func (dbc *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *contracts.Pipeline, err error) {
+func (c *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *contracts.Pipeline, err error) {
 
 	pipeline = &contracts.Pipeline{}
 	var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8
@@ -3440,7 +3136,7 @@ func (dbc *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *co
 
 	pipeline.Duration = time.Duration(seconds) * time.Second
 
-	dbc.setPipelinePropertiesFromJSONB(pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
+	c.setPipelinePropertiesFromJSONB(pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
 
 	if optimized {
 		// clear some properties for reduced size and improved performance over the network
@@ -3451,7 +3147,7 @@ func (dbc *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *co
 	return
 }
 
-func (dbc *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*contracts.Pipeline, err error) {
+func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 
 	pipelines = make([]*contracts.Pipeline, 0)
 
@@ -3486,7 +3182,7 @@ func (dbc *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*c
 
 		pipeline.Duration = time.Duration(seconds) * time.Second
 
-		dbc.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
+		c.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
 
 		if optimized {
 			// clear some properties for reduced size and improved performance over the network
@@ -3500,7 +3196,7 @@ func (dbc *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*c
 	return
 }
 
-func (dbc *client) scanRelease(row sq.RowScanner) (release *contracts.Release, err error) {
+func (c *client) scanRelease(row sq.RowScanner) (release *contracts.Release, err error) {
 
 	release = &contracts.Release{}
 	var seconds int
@@ -3539,7 +3235,7 @@ func (dbc *client) scanRelease(row sq.RowScanner) (release *contracts.Release, e
 	return
 }
 
-func (dbc *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, err error) {
+func (c *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, err error) {
 
 	releases = make([]*contracts.Release, 0)
 
@@ -3583,14 +3279,10 @@ func (dbc *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, 
 	return
 }
 
-func (dbc *client) GetTriggers(ctx context.Context, triggerType, identifier, event string) (pipelines []*contracts.Pipeline, err error) {
-
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::GetTriggers")
-	defer span.Finish()
-	span.SetTag("trigger-type", triggerType)
+func (c *client) GetTriggers(ctx context.Context, triggerType, identifier, event string) (pipelines []*contracts.Pipeline, err error) {
 
 	// generate query
-	query := dbc.selectPipelinesQuery()
+	query := c.selectPipelinesQuery()
 
 	trigger := manifest.EstafetteTrigger{}
 
@@ -3602,9 +3294,6 @@ func (dbc *client) GetTriggers(ctx context.Context, triggerType, identifier, eve
 			Name:  identifier,
 		}
 
-		span.SetTag("trigger-event", event)
-		span.SetTag("trigger-identifier", identifier)
-
 		break
 
 	case "release":
@@ -3613,9 +3302,6 @@ func (dbc *client) GetTriggers(ctx context.Context, triggerType, identifier, eve
 			Event: event,
 			Name:  identifier,
 		}
-
-		span.SetTag("trigger-event", event)
-		span.SetTag("trigger-identifier", identifier)
 
 		break
 
@@ -3632,9 +3318,6 @@ func (dbc *client) GetTriggers(ctx context.Context, triggerType, identifier, eve
 			Repository: identifier,
 		}
 
-		span.SetTag("trigger-event", event)
-		span.SetTag("trigger-identifier", identifier)
-
 		break
 
 	case "pubsub":
@@ -3650,76 +3333,68 @@ func (dbc *client) GetTriggers(ctx context.Context, triggerType, identifier, eve
 
 	bytes, err := json.Marshal([]manifest.EstafetteTrigger{trigger})
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return pipelines, err
 	}
 
 	query = query.Where("a.triggers @> ?", string(bytes))
 
 	// execute query
-	rows, err := query.RunWith(dbc.databaseConnection).Query()
+	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return
 	}
 
 	// read rows
-	if pipelines, err = dbc.scanPipelines(rows, false); err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+	if pipelines, err = c.scanPipelines(rows, false); err != nil {
+
 		return
 	}
-
-	span.SetTag("trigger-pipelines-count", len(pipelines))
 
 	return
 }
 
-func (dbc *client) GetGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) ([]*contracts.Pipeline, error) {
+func (c *client) GetGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) ([]*contracts.Pipeline, error) {
 
 	triggerType := "git"
 	name := gitEvent.Repository
 	event := gitEvent.Event
 
-	return dbc.GetTriggers(ctx, triggerType, name, event)
+	return c.GetTriggers(ctx, triggerType, name, event)
 }
 
-func (dbc *client) GetPipelineTriggers(ctx context.Context, build contracts.Build, event string) ([]*contracts.Pipeline, error) {
+func (c *client) GetPipelineTriggers(ctx context.Context, build contracts.Build, event string) ([]*contracts.Pipeline, error) {
 
 	triggerType := "pipeline"
 	name := fmt.Sprintf("%v/%v/%v", build.RepoSource, build.RepoOwner, build.RepoName)
 
-	return dbc.GetTriggers(ctx, triggerType, name, event)
+	return c.GetTriggers(ctx, triggerType, name, event)
 }
 
-func (dbc *client) GetReleaseTriggers(ctx context.Context, release contracts.Release, event string) ([]*contracts.Pipeline, error) {
+func (c *client) GetReleaseTriggers(ctx context.Context, release contracts.Release, event string) ([]*contracts.Pipeline, error) {
 
 	triggerType := "release"
 	name := fmt.Sprintf("%v/%v/%v", release.RepoSource, release.RepoOwner, release.RepoName)
 
-	return dbc.GetTriggers(ctx, triggerType, name, event)
+	return c.GetTriggers(ctx, triggerType, name, event)
 }
 
-func (dbc *client) GetPubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) ([]*contracts.Pipeline, error) {
+func (c *client) GetPubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) ([]*contracts.Pipeline, error) {
 
 	triggerType := "pubsub"
 
-	return dbc.GetTriggers(ctx, triggerType, "", "")
+	return c.GetTriggers(ctx, triggerType, "", "")
 }
 
-func (dbc *client) GetCronTriggers(ctx context.Context) ([]*contracts.Pipeline, error) {
+func (c *client) GetCronTriggers(ctx context.Context) ([]*contracts.Pipeline, error) {
 
 	triggerType := "cron"
 
-	return dbc.GetTriggers(ctx, triggerType, "", "")
+	return c.GetTriggers(ctx, triggerType, "", "")
 }
 
-func (dbc *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName string) error {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "CockroachDb::Rename")
-	defer span.Finish()
+func (c *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName string) error {
 
 	nrOfQueries := 7
 	var wg sync.WaitGroup
@@ -3729,7 +3404,7 @@ func (dbc *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSour
 
 	go func(wg *sync.WaitGroup, ctx context.Context, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName string) {
 		defer wg.Done()
-		err := dbc.RenameBuildVersion(ctx, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName)
+		err := c.RenameBuildVersion(ctx, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName)
 		if err != nil {
 			errors <- err
 		}
@@ -3737,7 +3412,7 @@ func (dbc *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSour
 
 	go func(wg *sync.WaitGroup, ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) {
 		defer wg.Done()
-		err := dbc.RenameBuilds(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+		err := c.RenameBuilds(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 		if err != nil {
 			errors <- err
 		}
@@ -3745,7 +3420,7 @@ func (dbc *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSour
 
 	go func(wg *sync.WaitGroup, ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) {
 		defer wg.Done()
-		err := dbc.RenameBuildLogs(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+		err := c.RenameBuildLogs(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 		if err != nil {
 			errors <- err
 		}
@@ -3753,7 +3428,7 @@ func (dbc *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSour
 
 	go func(wg *sync.WaitGroup, ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) {
 		defer wg.Done()
-		err := dbc.RenameReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+		err := c.RenameReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 		if err != nil {
 			errors <- err
 		}
@@ -3761,7 +3436,7 @@ func (dbc *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSour
 
 	go func(wg *sync.WaitGroup, ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) {
 		defer wg.Done()
-		err := dbc.RenameReleaseLogs(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+		err := c.RenameReleaseLogs(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 		if err != nil {
 			errors <- err
 		}
@@ -3769,7 +3444,7 @@ func (dbc *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSour
 
 	go func(wg *sync.WaitGroup, ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) {
 		defer wg.Done()
-		err := dbc.RenameComputedPipelines(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+		err := c.RenameComputedPipelines(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 		if err != nil {
 			errors <- err
 		}
@@ -3777,7 +3452,7 @@ func (dbc *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSour
 
 	go func(wg *sync.WaitGroup, ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) {
 		defer wg.Done()
-		err := dbc.RenameComputedReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+		err := c.RenameComputedReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 		if err != nil {
 			errors <- err
 		}
@@ -3787,26 +3462,20 @@ func (dbc *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSour
 
 	close(errors)
 	for e := range errors {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(e))
 		return e
 	}
 
 	// update computed tables
-	err := dbc.UpsertComputedPipeline(ctx, toRepoSource, toRepoOwner, toRepoName)
+	err := c.UpsertComputedPipeline(ctx, toRepoSource, toRepoOwner, toRepoName)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return err
 	}
 
 	return nil
 }
 
-func (dbc *client) RenameBuildVersion(ctx context.Context, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName string) error {
-
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameBuildVersion")
-	defer span.Finish()
+func (c *client) RenameBuildVersion(ctx context.Context, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName string) error {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -3818,20 +3487,16 @@ func (dbc *client) RenameBuildVersion(ctx context.Context, shortFromRepoSource, 
 		Where(sq.Eq{"repo_full_name": fmt.Sprintf("%v/%v", fromRepoOwner, fromRepoName)}).
 		Limit(uint64(1))
 
-	_, err := query.RunWith(dbc.databaseConnection).Exec()
+	_, err := query.RunWith(c.databaseConnection).Exec()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return err
 	}
 
 	return nil
 }
 
-func (dbc *client) RenameBuilds(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameBuilds")
-	defer span.Finish()
+func (c *client) RenameBuilds(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -3844,20 +3509,16 @@ func (dbc *client) RenameBuilds(ctx context.Context, fromRepoSource, fromRepoOwn
 		Where(sq.Eq{"repo_owner": fromRepoOwner}).
 		Where(sq.Eq{"repo_name": fromRepoName})
 
-	_, err := query.RunWith(dbc.databaseConnection).Exec()
+	_, err := query.RunWith(c.databaseConnection).Exec()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return err
 	}
 
 	return nil
 }
 
-func (dbc *client) RenameBuildLogs(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameBuildLogs")
-	defer span.Finish()
+func (c *client) RenameBuildLogs(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -3870,20 +3531,16 @@ func (dbc *client) RenameBuildLogs(ctx context.Context, fromRepoSource, fromRepo
 		Where(sq.Eq{"repo_owner": fromRepoOwner}).
 		Where(sq.Eq{"repo_name": fromRepoName})
 
-	_, err := query.RunWith(dbc.databaseConnection).Exec()
+	_, err := query.RunWith(c.databaseConnection).Exec()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return err
 	}
 
 	return nil
 }
 
-func (dbc *client) RenameReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameReleases")
-	defer span.Finish()
+func (c *client) RenameReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -3896,20 +3553,16 @@ func (dbc *client) RenameReleases(ctx context.Context, fromRepoSource, fromRepoO
 		Where(sq.Eq{"repo_owner": fromRepoOwner}).
 		Where(sq.Eq{"repo_name": fromRepoName})
 
-	_, err := query.RunWith(dbc.databaseConnection).Exec()
+	_, err := query.RunWith(c.databaseConnection).Exec()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return err
 	}
 
 	return nil
 }
 
-func (dbc *client) RenameReleaseLogs(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameReleaseLogs")
-	defer span.Finish()
+func (c *client) RenameReleaseLogs(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -3922,20 +3575,16 @@ func (dbc *client) RenameReleaseLogs(ctx context.Context, fromRepoSource, fromRe
 		Where(sq.Eq{"repo_owner": fromRepoOwner}).
 		Where(sq.Eq{"repo_name": fromRepoName})
 
-	_, err := query.RunWith(dbc.databaseConnection).Exec()
+	_, err := query.RunWith(c.databaseConnection).Exec()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return err
 	}
 
 	return nil
 }
 
-func (dbc *client) RenameComputedPipelines(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameComputedPipelines")
-	defer span.Finish()
+func (c *client) RenameComputedPipelines(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -3948,20 +3597,16 @@ func (dbc *client) RenameComputedPipelines(ctx context.Context, fromRepoSource, 
 		Where(sq.Eq{"repo_owner": fromRepoOwner}).
 		Where(sq.Eq{"repo_name": fromRepoName})
 
-	_, err := query.RunWith(dbc.databaseConnection).Exec()
+	_, err := query.RunWith(c.databaseConnection).Exec()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return err
 	}
 
 	return nil
 }
 
-func (dbc *client) RenameComputedReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-
-	span, _ := opentracing.StartSpanFromContext(ctx, "CockroachDb::RenameComputedReleases")
-	defer span.Finish()
+func (c *client) RenameComputedReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -3974,17 +3619,16 @@ func (dbc *client) RenameComputedReleases(ctx context.Context, fromRepoSource, f
 		Where(sq.Eq{"repo_owner": fromRepoOwner}).
 		Where(sq.Eq{"repo_name": fromRepoName})
 
-	_, err := query.RunWith(dbc.databaseConnection).Exec()
+	_, err := query.RunWith(c.databaseConnection).Exec()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(otlog.Error(err))
+
 		return err
 	}
 
 	return nil
 }
 
-func (dbc *client) selectBuildsQuery() sq.SelectBuilder {
+func (c *client) selectBuildsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
@@ -3992,7 +3636,7 @@ func (dbc *client) selectBuildsQuery() sq.SelectBuilder {
 		From("builds a")
 }
 
-func (dbc *client) selectPipelinesQuery() sq.SelectBuilder {
+func (c *client) selectPipelinesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
@@ -4000,7 +3644,7 @@ func (dbc *client) selectPipelinesQuery() sq.SelectBuilder {
 		From("computed_pipelines a")
 }
 
-func (dbc *client) selectReleasesQuery() sq.SelectBuilder {
+func (c *client) selectReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
@@ -4008,7 +3652,7 @@ func (dbc *client) selectReleasesQuery() sq.SelectBuilder {
 		From("releases a")
 }
 
-func (dbc *client) selectComputedReleasesQuery() sq.SelectBuilder {
+func (c *client) selectComputedReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
@@ -4016,7 +3660,7 @@ func (dbc *client) selectComputedReleasesQuery() sq.SelectBuilder {
 		From("computed_releases a")
 }
 
-func (dbc *client) selectBuildLogsQuery(readLogFromDatabase bool) sq.SelectBuilder {
+func (c *client) selectBuildLogsQuery(readLogFromDatabase bool) sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	if readLogFromDatabase {
@@ -4030,7 +3674,7 @@ func (dbc *client) selectBuildLogsQuery(readLogFromDatabase bool) sq.SelectBuild
 		From("build_logs a")
 }
 
-func (dbc *client) selectReleaseLogsQuery(readLogFromDatabase bool) sq.SelectBuilder {
+func (c *client) selectReleaseLogsQuery(readLogFromDatabase bool) sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	if readLogFromDatabase {
@@ -4044,7 +3688,7 @@ func (dbc *client) selectReleaseLogsQuery(readLogFromDatabase bool) sq.SelectBui
 		From("release_logs a")
 }
 
-func (dbc *client) selectPipelineTriggersQuery() sq.SelectBuilder {
+func (c *client) selectPipelineTriggersQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
@@ -4052,15 +3696,15 @@ func (dbc *client) selectPipelineTriggersQuery() sq.SelectBuilder {
 		From("pipeline_triggers a")
 }
 
-func (dbc *client) enrichPipeline(ctx context.Context, pipeline *contracts.Pipeline) {
-	dbc.getLatestReleasesForPipeline(ctx, pipeline)
+func (c *client) enrichPipeline(ctx context.Context, pipeline *contracts.Pipeline) {
+	c.getLatestReleasesForPipeline(ctx, pipeline)
 }
 
-func (dbc *client) enrichBuild(ctx context.Context, build *contracts.Build) {
-	dbc.getLatestReleasesForBuild(ctx, build)
+func (c *client) enrichBuild(ctx context.Context, build *contracts.Build) {
+	c.getLatestReleasesForBuild(ctx, build)
 }
 
-func (dbc *client) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8, optimized bool) (err error) {
+func (c *client) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8, optimized bool) (err error) {
 
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &pipeline.Labels); err != nil {
@@ -4112,7 +3756,7 @@ func (dbc *client) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, 
 	return
 }
 
-func (dbc *client) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8, optimized bool) (err error) {
+func (c *client) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8, optimized bool) (err error) {
 
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
@@ -4164,22 +3808,22 @@ func (dbc *client) setBuildPropertiesFromJSONB(build *contracts.Build, labelsDat
 	return
 }
 
-func (dbc *client) getLatestReleasesForPipeline(ctx context.Context, pipeline *contracts.Pipeline) {
-	pipeline.ReleaseTargets = dbc.getLatestReleases(ctx, pipeline.ReleaseTargets, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
+func (c *client) getLatestReleasesForPipeline(ctx context.Context, pipeline *contracts.Pipeline) {
+	pipeline.ReleaseTargets = c.getLatestReleases(ctx, pipeline.ReleaseTargets, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
 }
 
-func (dbc *client) getLatestReleasesForBuild(ctx context.Context, build *contracts.Build) {
-	build.ReleaseTargets = dbc.getLatestReleases(ctx, build.ReleaseTargets, build.RepoSource, build.RepoOwner, build.RepoName)
+func (c *client) getLatestReleasesForBuild(ctx context.Context, build *contracts.Build) {
+	build.ReleaseTargets = c.getLatestReleases(ctx, build.ReleaseTargets, build.RepoSource, build.RepoOwner, build.RepoName)
 }
 
-func (dbc *client) getLatestReleases(ctx context.Context, releaseTargets []contracts.ReleaseTarget, repoSource, repoOwner, repoName string) []contracts.ReleaseTarget {
+func (c *client) getLatestReleases(ctx context.Context, releaseTargets []contracts.ReleaseTarget, repoSource, repoOwner, repoName string) []contracts.ReleaseTarget {
 
 	// set latest release version per release targets
 	updatedReleaseTargets := make([]contracts.ReleaseTarget, 0)
 	for _, rt := range releaseTargets {
 
 		actions := getActionNamesFromReleaseTarget(rt)
-		latestReleases, err := dbc.GetPipelineLastReleasesByName(ctx, repoSource, repoOwner, repoName, rt.Name, actions)
+		latestReleases, err := c.GetPipelineLastReleasesByName(ctx, repoSource, repoOwner, repoName, rt.Name, actions)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed retrieving latest release for %v/%v/%v %v", repoSource, repoOwner, repoName, rt.Name)
 		} else {
@@ -4204,7 +3848,7 @@ func getActionNamesFromReleaseTarget(releaseTarget contracts.ReleaseTarget) (act
 	return
 }
 
-func (dbc *client) mapBuildToPipeline(build *contracts.Build) (pipeline *contracts.Pipeline) {
+func (c *client) mapBuildToPipeline(build *contracts.Build) (pipeline *contracts.Pipeline) {
 	return &contracts.Pipeline{
 		ID:                   build.ID,
 		RepoSource:           build.RepoSource,

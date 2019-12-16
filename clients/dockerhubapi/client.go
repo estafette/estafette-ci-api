@@ -34,7 +34,7 @@ func NewClient() Client {
 }
 
 // GetToken creates an estafette-ci-builder job in Kubernetes to run the estafette build
-func (cl *client) GetToken(ctx context.Context, repository string) (token DockerHubToken, err error) {
+func (c *client) GetToken(ctx context.Context, repository string) (token DockerHubToken, err error) {
 
 	url := fmt.Sprintf("https://auth.docker.io/token?service=registry.docker.io&scope=repository:%v:pull", repository)
 
@@ -58,10 +58,7 @@ func (cl *client) GetToken(ctx context.Context, repository string) (token Docker
 	return
 }
 
-func (cl *client) GetDigest(ctx context.Context, token DockerHubToken, repository string, tag string) (digest DockerImageDigest, err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "DockerHubApi::GetDigest")
-	defer span.Finish()
+func (c *client) GetDigest(ctx context.Context, token DockerHubToken, repository string, tag string) (digest DockerImageDigest, err error) {
 
 	url := fmt.Sprintf("https://index.docker.io/v2/%v/manifests/%v", repository, tag)
 
@@ -76,11 +73,15 @@ func (cl *client) GetDigest(ctx context.Context, token DockerHubToken, repositor
 		return
 	}
 
-	// add tracing context
-	request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
+	span := opentracing.SpanFromContext(ctx)
+	var ht *nethttp.Tracer
+	if span != nil {
+		// add tracing context
+		request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
 
-	// collect additional information on setting up connections
-	request, ht := nethttp.TraceRequest(span.Tracer(), request)
+		// collect additional information on setting up connections
+		request, ht = nethttp.TraceRequest(span.Tracer(), request)
+	}
 
 	// add headers
 	request.Header.Add("Authorization", fmt.Sprintf("%v %v", "Bearer", token.Token))
@@ -92,7 +93,9 @@ func (cl *client) GetDigest(ctx context.Context, token DockerHubToken, repositor
 		return
 	}
 	defer response.Body.Close()
-	ht.Finish()
+	if ht != nil {
+		ht.Finish()
+	}
 
 	digest = DockerImageDigest{
 		Digest:    response.Header.Get("Docker-Content-Digest"),
@@ -103,15 +106,12 @@ func (cl *client) GetDigest(ctx context.Context, token DockerHubToken, repositor
 	return
 }
 
-func (cl *client) GetDigestCached(ctx context.Context, repository string, tag string) (digest DockerImageDigest, err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "DockerHubApi::GetDigestCached")
-	defer span.Finish()
+func (c *client) GetDigestCached(ctx context.Context, repository string, tag string) (digest DockerImageDigest, err error) {
 
 	key := fmt.Sprintf("%v:%v", repository, tag)
 
 	// fetch digest from cache or renew
-	if val, ok := cl.digests[key]; ok && !val.IsExpired() {
+	if val, ok := c.digests[key]; ok && !val.IsExpired() {
 		// digest exists and is still valid
 		digest = val
 		return
@@ -119,22 +119,22 @@ func (cl *client) GetDigestCached(ctx context.Context, repository string, tag st
 
 	// fetch token from cache or renew
 	var token DockerHubToken
-	if val, ok := cl.tokens[repository]; !ok || val.IsExpired() {
+	if val, ok := c.tokens[repository]; !ok || val.IsExpired() {
 		// token doesn't exist or is no longer valid, renew
-		token, err = cl.GetToken(ctx, repository)
+		token, err = c.GetToken(ctx, repository)
 		if err != nil {
 			return
 		}
-		cl.tokens[repository] = token
+		c.tokens[repository] = token
 	}
-	token = cl.tokens[repository]
+	token = c.tokens[repository]
 
 	// digest doesn't exist or is no longer valid, renew
-	digest, err = cl.GetDigest(ctx, token, repository, tag)
+	digest, err = c.GetDigest(ctx, token, repository, tag)
 	if err != nil {
 		return
 	}
-	cl.digests[key] = digest
+	c.digests[key] = digest
 
 	return
 }

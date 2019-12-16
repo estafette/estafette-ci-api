@@ -34,13 +34,10 @@ func NewClient(config config.SlackConfig, prometheusOutboundAPICallTotals *prome
 }
 
 // GetUserProfile returns a Slack user profile
-func (sl *client) GetUserProfile(ctx context.Context, userID string) (profile *UserProfile, err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "SlackApi::GetUserProfile")
-	defer span.Finish()
+func (c *client) GetUserProfile(ctx context.Context, userID string) (profile *UserProfile, err error) {
 
 	// track call via prometheus
-	sl.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "slack"}).Inc()
+	c.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "slack"}).Inc()
 
 	url := fmt.Sprintf("https://slack.com/api/users.profile.get?user=%v", userID)
 
@@ -55,14 +52,18 @@ func (sl *client) GetUserProfile(ctx context.Context, userID string) (profile *U
 		return
 	}
 
-	// add tracing context
-	request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
+	span := opentracing.SpanFromContext(ctx)
+	var ht *nethttp.Tracer
+	if span != nil {
+		// add tracing context
+		request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
 
-	// collect additional information on setting up connections
-	request, ht := nethttp.TraceRequest(span.Tracer(), request)
+		// collect additional information on setting up connections
+		request, ht = nethttp.TraceRequest(span.Tracer(), request)
+	}
 
 	// add headers
-	request.Header.Add("Authorization", fmt.Sprintf("%v %v", "Bearer", sl.config.AppOAuthAccessToken))
+	request.Header.Add("Authorization", fmt.Sprintf("%v %v", "Bearer", c.config.AppOAuthAccessToken))
 
 	// perform actual request
 	response, err := client.Do(request)
@@ -70,7 +71,9 @@ func (sl *client) GetUserProfile(ctx context.Context, userID string) (profile *U
 		return
 	}
 	defer response.Body.Close()
-	ht.Finish()
+	if ht != nil {
+		ht.Finish()
+	}
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {

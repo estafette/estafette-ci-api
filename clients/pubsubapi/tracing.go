@@ -5,6 +5,8 @@ import (
 
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	"github.com/opentracing/opentracing-go/log"
 )
 
 type tracingClient struct {
@@ -16,30 +18,41 @@ func NewTracingClient(c Client) Client {
 	return &tracingClient{c}
 }
 
-func (s *tracingClient) SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (*manifest.EstafettePubSubEvent, error) {
+func (c *tracingClient) SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (*manifest.EstafettePubSubEvent, error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("SubscriptionForTopic"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("SubscriptionForTopic"))
 	defer span.Finish()
 
-	return s.Client.SubscriptionForTopic(ctx, message)
+	event, err := c.Client.SubscriptionForTopic(ctx, message)
+	c.handleError(span, err)
+
+	return event, err
 }
 
-func (s *tracingClient) SubscribeToTopic(ctx context.Context, projectID, topicID string) error {
+func (c *tracingClient) SubscribeToTopic(ctx context.Context, projectID, topicID string) error {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("SubscribeToTopic"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("SubscribeToTopic"))
 	defer span.Finish()
 
-	return s.Client.SubscribeToTopic(ctx, projectID, topicID)
+	return c.handleError(span, c.Client.SubscribeToTopic(ctx, projectID, topicID))
 }
 
-func (s *tracingClient) SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error {
+func (c *tracingClient) SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("SubscribeToPubsubTriggers"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("SubscribeToPubsubTriggers"))
 	defer span.Finish()
 
-	return s.Client.SubscribeToPubsubTriggers(ctx, manifestString)
+	return c.handleError(span, c.Client.SubscribeToPubsubTriggers(ctx, manifestString))
 }
 
-func (s *tracingClient) getSpanName(funcName string) string {
+func (c *tracingClient) getSpanName(funcName string) string {
 	return "pubsubapi:" + funcName
+}
+
+func (c *tracingClient) handleError(span opentracing.Span, err error) error {
+	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(log.Error(err))
+	}
+	return err
 }

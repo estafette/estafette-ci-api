@@ -46,15 +46,12 @@ func NewClient(config config.GithubConfig, prometheusOutboundAPICallTotals *prom
 }
 
 // GetGithubAppToken returns a Github app token with which to retrieve an installation token
-func (gh *client) GetGithubAppToken(ctx context.Context) (githubAppToken string, err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "GithubApi::GetGithubAppToken")
-	defer span.Finish()
+func (c *client) GetGithubAppToken(ctx context.Context) (githubAppToken string, err error) {
 
 	// https://developer.github.com/apps/building-integrations/setting-up-and-registering-github-apps/about-authentication-options-for-github-apps/
 
 	// load private key from pem file
-	pemFileByteArray, err := ioutil.ReadFile(gh.config.PrivateKeyPath)
+	pemFileByteArray, err := ioutil.ReadFile(c.config.PrivateKeyPath)
 	if err != nil {
 		return
 	}
@@ -71,7 +68,7 @@ func (gh *client) GetGithubAppToken(ctx context.Context) (githubAppToken string,
 		// JWT expiration time (10 minute maximum)
 		"exp": epoch + 500,
 		// GitHub App's identifier
-		"iss": gh.config.AppID,
+		"iss": c.config.AppID,
 	})
 
 	// sign and get the complete encoded token as a string using the private key
@@ -84,12 +81,9 @@ func (gh *client) GetGithubAppToken(ctx context.Context) (githubAppToken string,
 }
 
 // GetInstallationID returns the id for an installation of a Github app
-func (gh *client) GetInstallationID(ctx context.Context, repoOwner string) (installationID int, err error) {
+func (c *client) GetInstallationID(ctx context.Context, repoOwner string) (installationID int, err error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "GithubApi::GetInstallationID")
-	defer span.Finish()
-
-	githubAppToken, err := gh.GetGithubAppToken(ctx)
+	githubAppToken, err := c.GetGithubAppToken(ctx)
 	if err != nil {
 		return
 	}
@@ -103,7 +97,7 @@ func (gh *client) GetInstallationID(ctx context.Context, repoOwner string) (inst
 		Account InstallationAccount `json:"account"`
 	}
 
-	_, body, err := gh.callGithubAPI(span, "GET", "https://api.github.com/app/installations", nil, "Bearer", githubAppToken)
+	_, body, err := c.callGithubAPI(ctx, "GET", "https://api.github.com/app/installations", nil, "Bearer", githubAppToken)
 
 	var installations []InstallationResponse
 
@@ -121,21 +115,18 @@ func (gh *client) GetInstallationID(ctx context.Context, repoOwner string) (inst
 		}
 	}
 
-	return installationID, fmt.Errorf("Github installation of app %v with account login %v can't be found", gh.config.AppID, repoOwner)
+	return installationID, fmt.Errorf("Github installation of app %v with account login %v can't be found", c.config.AppID, repoOwner)
 }
 
 // GetInstallationToken returns an access token for an installation of a Github app
-func (gh *client) GetInstallationToken(ctx context.Context, installationID int) (accessToken AccessToken, err error) {
+func (c *client) GetInstallationToken(ctx context.Context, installationID int) (accessToken AccessToken, err error) {
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "GithubApi::GetInstallationToken")
-	defer span.Finish()
-
-	githubAppToken, err := gh.GetGithubAppToken(ctx)
+	githubAppToken, err := c.GetGithubAppToken(ctx)
 	if err != nil {
 		return
 	}
 
-	_, body, err := gh.callGithubAPI(span, "POST", fmt.Sprintf("https://api.github.com/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
+	_, body, err := c.callGithubAPI(ctx, "POST", fmt.Sprintf("https://api.github.com/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
 
 	// unmarshal json body
 	err = json.Unmarshal(body, &accessToken)
@@ -147,21 +138,18 @@ func (gh *client) GetInstallationToken(ctx context.Context, installationID int) 
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (gh *client) GetAuthenticatedRepositoryURL(ctx context.Context, accessToken AccessToken, htmlURL string) (url string, err error) {
+func (c *client) GetAuthenticatedRepositoryURL(ctx context.Context, accessToken AccessToken, htmlURL string) (url string, err error) {
 
 	url = strings.Replace(htmlURL, "https://github.com", fmt.Sprintf("https://x-access-token:%v@github.com", accessToken.Token), -1)
 
 	return
 }
 
-func (gh *client) GetEstafetteManifest(ctx context.Context, accessToken AccessToken, pushEvent PushEvent) (exists bool, manifest string, err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, "GithubApi::GetEstafetteManifest")
-	defer span.Finish()
+func (c *client) GetEstafetteManifest(ctx context.Context, accessToken AccessToken, pushEvent PushEvent) (exists bool, manifest string, err error) {
 
 	// https://developer.github.com/v3/repos/contents/
 
-	statusCode, body, err := gh.callGithubAPI(span, "GET", fmt.Sprintf("https://api.github.com/repos/%v/contents/.estafette.yaml?ref=%v", pushEvent.Repository.FullName, pushEvent.After), nil, "token", accessToken.Token)
+	statusCode, body, err := c.callGithubAPI(ctx, "GET", fmt.Sprintf("https://api.github.com/repos/%v/contents/.estafette.yaml?ref=%v", pushEvent.Repository.FullName, pushEvent.After), nil, "token", accessToken.Token)
 	if err != nil {
 		return
 	}
@@ -193,22 +181,22 @@ func (gh *client) GetEstafetteManifest(ctx context.Context, accessToken AccessTo
 }
 
 // JobVarsFunc returns a function that can get an access token and authenticated url for a repository
-func (gh *client) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error) {
+func (c *client) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error) {
 	return func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 		// get installation id with just the repo owner
-		installationID, err := gh.GetInstallationID(ctx, repoOwner)
+		installationID, err := c.GetInstallationID(ctx, repoOwner)
 		if err != nil {
 			return "", "", err
 		}
 
 		// get access token
-		accessToken, err := gh.GetInstallationToken(ctx, installationID)
+		accessToken, err := c.GetInstallationToken(ctx, installationID)
 		if err != nil {
 			return "", "", err
 		}
 
 		// get authenticated url for the repository
-		url, err = gh.GetAuthenticatedRepositoryURL(ctx, accessToken, fmt.Sprintf("https://%v/%v/%v", repoSource, repoOwner, repoName))
+		url, err = c.GetAuthenticatedRepositoryURL(ctx, accessToken, fmt.Sprintf("https://%v/%v/%v", repoSource, repoOwner, repoName))
 		if err != nil {
 			return "", "", err
 		}
@@ -217,10 +205,10 @@ func (gh *client) JobVarsFunc(ctx context.Context) func(context.Context, string,
 	}
 }
 
-func (gh *client) callGithubAPI(span opentracing.Span, method, url string, params interface{}, authorizationType, token string) (statusCode int, body []byte, err error) {
+func (c *client) callGithubAPI(ctx context.Context, method, url string, params interface{}, authorizationType, token string) (statusCode int, body []byte, err error) {
 
 	// track call via prometheus
-	gh.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "github"}).Inc()
+	c.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "github"}).Inc()
 
 	// convert params to json if they're present
 	var requestBody io.Reader
@@ -243,11 +231,15 @@ func (gh *client) callGithubAPI(span opentracing.Span, method, url string, param
 		return
 	}
 
-	// add tracing context
-	request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
+	span := opentracing.SpanFromContext(ctx)
+	var ht *nethttp.Tracer
+	if span != nil {
+		// add tracing context
+		request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
 
-	// collect additional information on setting up connections
-	request, ht := nethttp.TraceRequest(span.Tracer(), request)
+		// collect additional information on setting up connections
+		request, ht = nethttp.TraceRequest(span.Tracer(), request)
+	}
 
 	// add headers
 	request.Header.Add("Authorization", fmt.Sprintf("%v %v", authorizationType, token))
@@ -260,7 +252,9 @@ func (gh *client) callGithubAPI(span opentracing.Span, method, url string, param
 	}
 
 	defer response.Body.Close()
-	ht.Finish()
+	if ht != nil {
+		ht.Finish()
+	}
 
 	statusCode = response.StatusCode
 
