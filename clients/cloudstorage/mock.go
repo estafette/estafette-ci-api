@@ -16,28 +16,28 @@ type MockClient struct {
 
 func (c *MockClient) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error) {
 	if c.InsertBuildLogFunc == nil {
-		return nil
+		return
 	}
 	return c.InsertBuildLogFunc(ctx, buildLog)
 }
 
 func (c *MockClient) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) (err error) {
 	if c.InsertReleaseLogFunc == nil {
-		return nil
+		return
 	}
 	return c.InsertReleaseLogFunc(ctx, releaseLog)
 }
 
 func (c *MockClient) GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
 	if c.GetPipelineBuildLogsFunc == nil {
-		return nil
+		return
 	}
 	return c.GetPipelineBuildLogsFunc(ctx, buildLog, acceptGzipEncoding, responseWriter)
 }
 
 func (c *MockClient) GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
 	if c.GetPipelineReleaseLogsFunc == nil {
-		return nil
+		return
 	}
 	return c.GetPipelineReleaseLogsFunc(ctx, releaseLog, acceptGzipEncoding, responseWriter)
 }

@@ -23,12 +23,12 @@ import (
 
 // Client is the interface for communicating with the github api
 type Client interface {
-	GetGithubAppToken(ctx context.Context) (string, error)
-	GetInstallationID(ctx context.Context, repoOwner string) (int, error)
-	GetInstallationToken(ctx context.Context, installationID int) (AccessToken, error)
-	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (string, error)
-	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (bool, string, error)
-	JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error)
+	GetGithubAppToken(ctx context.Context) (token string, err error)
+	GetInstallationID(ctx context.Context, repoOwner string) (installationID int, err error)
+	GetInstallationToken(ctx context.Context, installationID int) (token AccessToken, err error)
+	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error)
+	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (valid bool, manifest string, err error)
+	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) 
 }
 
 // NewClient creates an githubapi.Client to communicate with the Github api

@@ -15,9 +15,9 @@ import (
 
 // Client communicates with docker hub api
 type Client interface {
-	GetToken(ctx context.Context, repository string) (DockerHubToken, error)
-	GetDigest(ctx context.Context, token DockerHubToken, repository string, tag string) (DockerImageDigest, error)
-	GetDigestCached(ctx context.Context, repository string, tag string) (DockerImageDigest, error)
+	GetToken(ctx context.Context, repository string) (token DockerHubToken, err error)
+	GetDigest(ctx context.Context, token DockerHubToken, repository string, tag string) (digest DockerImageDigest, err error)
+	GetDigestCached(ctx context.Context, repository string, tag string) (digest DockerImageDigest, err error)
 }
 
 // NewClient returns a new dockerhubapi.Client

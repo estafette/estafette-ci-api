@@ -14,9 +14,9 @@ import (
 
 // Client is the interface for communicating with the pubsub apis
 type Client interface {
-	SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (*manifest.EstafettePubSubEvent, error)
-	SubscribeToTopic(ctx context.Context, projectID, topicID string) error
-	SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error
+	SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (event *manifest.EstafettePubSubEvent, err error)
+	SubscribeToTopic(ctx context.Context, projectID, topicID string) (err error)
+	SubscribeToPubsubTriggers(ctx context.Context, manifestString string) (err error)
 }
 
 // NewClient returns a new pubsub.Client

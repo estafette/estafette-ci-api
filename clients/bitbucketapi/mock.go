@@ -11,21 +11,21 @@ type MockClient struct {
 
 func (c *MockClient) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
 	if c.GetAccessTokenFunc == nil {
-		return AccessToken{}, nil
+		return
 	}
 	return c.GetAccessTokenFunc(ctx)
 }
 
 func (c *MockClient) GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error) {
 	if c.GetAuthenticatedRepositoryURLFunc == nil {
-		return "", nil
+		return
 	}
 	return c.GetAuthenticatedRepositoryURLFunc(ctx, accesstoken, htmlURL)
 }
 
 func (c *MockClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error) {
 	if c.GetEstafetteManifestFunc == nil {
-		return false, "", nil
+		return
 	}
 	return c.GetEstafetteManifestFunc(ctx, accesstoken, event)
 }

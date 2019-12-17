@@ -19,8 +19,8 @@ import (
 // Client is the interface for communicating with prometheus
 type Client interface {
 	AwaitScrapeInterval(ctx context.Context)
-	GetMaxMemoryByPodName(ctx context.Context, podName string) (float64, error)
-	GetMaxCPUByPodName(ctx context.Context, podName string) (float64, error)
+	GetMaxMemoryByPodName(ctx context.Context, podName string) (max float64, err error)
+	GetMaxCPUByPodName(ctx context.Context, podName string) (max float64, err error)
 }
 
 // NewClient creates an prometheus.Client to communicate with Prometheus
