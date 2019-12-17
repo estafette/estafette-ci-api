@@ -9,69 +9,59 @@ import (
 
 // NewTracingClient returns a new instance of a tracing Client.
 func NewTracingClient(c Client) Client {
-	return &tracingClient{c}
+	return &tracingClient{c, "bigquery"}
 }
 
 type tracingClient struct {
 	Client
+	prefix string
 }
 
 func (c *tracingClient) Init(ctx context.Context) (err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("Init"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "Init"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.Init(ctx)
 }
 
 func (c *tracingClient) CheckIfDatasetExists(ctx context.Context) bool {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("CheckIfDatasetExists"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "CheckIfDatasetExists"))
 	defer func() { helpers.FinishSpan(span) }()
 
 	return c.Client.CheckIfDatasetExists(ctx)
 }
 
 func (c *tracingClient) CheckIfTableExists(ctx context.Context, table string) bool {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("CheckIfTableExists"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "CheckIfTableExists"))
 	defer func() { helpers.FinishSpan(span) }()
 
 	return c.Client.CheckIfTableExists(ctx, table)
 }
 
 func (c *tracingClient) CreateTable(ctx context.Context, table string, typeForSchema interface{}, partitionField string, waitReady bool) (err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("CreateTable"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "CreateTable"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.CreateTable(ctx, table, typeForSchema, partitionField, waitReady)
 }
 
 func (c *tracingClient) UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) (err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("UpdateTableSchema"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "UpdateTableSchema"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.UpdateTableSchema(ctx, table, typeForSchema)
 }
 
 func (c *tracingClient) InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) (err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("InsertBuildEvent"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "InsertBuildEvent"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.InsertBuildEvent(ctx, event)
 }
 
 func (c *tracingClient) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) (err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("InsertReleaseEvent"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "InsertReleaseEvent"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.InsertReleaseEvent(ctx, event)
-}
-
-func (c *tracingClient) getSpanName(funcName string) string {
-	return "bigquery:" + funcName
 }

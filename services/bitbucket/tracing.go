@@ -10,29 +10,24 @@ import (
 
 // NewTracingService returns a new instance of a tracing Service.
 func NewTracingService(s Service) Service {
-	return &tracingService{s}
+	return &tracingService{s, "bitbucket"}
 }
 
 type tracingService struct {
 	Service
+	prefix string
 }
 
 func (s *tracingService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("CreateJobForBitbucketPush"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "CreateJobForBitbucketPush"))
 	defer func() { helpers.FinishSpan(span) }()
 
 	s.Service.CreateJobForBitbucketPush(ctx, event)
 }
 
 func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
-
-	span, ctx := opentracing.StartSpanFromContext(ctx, s.getSpanName("Rename"))
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "Rename"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-}
-
-func (s *tracingService) getSpanName(funcName string) string {
-	return "bitbucket:" + funcName
 }
