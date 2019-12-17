@@ -29,14 +29,14 @@ import (
 
 // Client is the interface for running kubernetes commands specific to this application
 type Client interface {
-	CreateCiBuilderJob(ctx context.Context, params CiBuilderParams) (*batchv1.Job, error)
-	RemoveCiBuilderJob(ctx context.Context, jobName string) error
-	CancelCiBuilderJob(ctx context.Context, jobName string) error
-	RemoveCiBuilderConfigMap(ctx context.Context, configmapName string) error
-	RemoveCiBuilderSecret(ctx context.Context, secretName string) error
-	TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) error
-	GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) string
-	GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) contracts.BuilderConfig
+	CreateCiBuilderJob(ctx context.Context, params CiBuilderParams) (job *batchv1.Job, err error)
+	RemoveCiBuilderJob(ctx context.Context, jobName string) (err error)
+	CancelCiBuilderJob(ctx context.Context, jobName string) (err error)
+	RemoveCiBuilderConfigMap(ctx context.Context, configmapName string) (err error)
+	RemoveCiBuilderSecret(ctx context.Context, secretName string) (err error)
+	TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error)
+	GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) (jobname string)
+	GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) (config contracts.BuilderConfig)
 }
 
 // NewClient returns a new estafette.Client

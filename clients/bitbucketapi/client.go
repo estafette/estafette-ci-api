@@ -21,10 +21,10 @@ import (
 
 // Client is the interface for communicating with the bitbucket api
 type Client interface {
-	GetAccessToken(ctx context.Context) (AccessToken, error)
-	GetAuthenticatedRepositoryURL(ctx context.Context, accessToken AccessToken, htmlURL string) (string, error)
-	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (bool, string, error)
-	JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error)
+	GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error)
+	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error)
+	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error)
+	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) 
 }
 
 // NewClient returns a new bitbucket.Client
@@ -41,7 +41,7 @@ type client struct {
 }
 
 // GetAccessToken returns an access token to access the Bitbucket api
-func (c *client) GetAccessToken(ctx context.Context) (accessToken AccessToken, err error) {
+func (c *client) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
 
 	// track call via prometheus
 	c.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
@@ -94,7 +94,7 @@ func (c *client) GetAccessToken(ctx context.Context) (accessToken AccessToken, e
 	}
 
 	// unmarshal json body
-	err = json.Unmarshal(body, &accessToken)
+	err = json.Unmarshal(body, &accesstoken)
 	if err != nil {
 		return
 	}
@@ -103,14 +103,14 @@ func (c *client) GetAccessToken(ctx context.Context) (accessToken AccessToken, e
 }
 
 // GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (c *client) GetAuthenticatedRepositoryURL(ctx context.Context, accessToken AccessToken, htmlURL string) (url string, err error) {
+func (c *client) GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error) {
 
-	url = strings.Replace(htmlURL, "https://bitbucket.org", fmt.Sprintf("https://x-token-auth:%v@bitbucket.org", accessToken.AccessToken), -1)
+	url = strings.Replace(htmlURL, "https://bitbucket.org", fmt.Sprintf("https://x-token-auth:%v@bitbucket.org", accesstoken.AccessToken), -1)
 
 	return
 }
 
-func (c *client) GetEstafetteManifest(ctx context.Context, accessToken AccessToken, pushEvent RepositoryPushEvent) (exists bool, manifest string, err error) {
+func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, pushEvent RepositoryPushEvent) (exists bool, manifest string, err error) {
 
 	// track call via prometheus
 	c.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
@@ -138,7 +138,7 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accessToken AccessTok
 	}
 
 	// add headers
-	request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", accessToken.AccessToken))
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", accesstoken.AccessToken))
 
 	// perform actual request
 	response, err := client.Do(request)
@@ -165,7 +165,7 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accessToken AccessTok
 }
 
 // JobVarsFunc returns a function that can get an access token and authenticated url for a repository
-func (c *client) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error) {
+func (c *client) JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 	return func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 		// get access token
 		accessToken, err := c.GetAccessToken(ctx)

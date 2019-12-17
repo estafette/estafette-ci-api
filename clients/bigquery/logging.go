@@ -22,11 +22,11 @@ func (c *loggingClient) Init(ctx context.Context) (err error) {
 	return c.Client.Init(ctx)
 }
 
-func (c *loggingClient) CheckIfDatasetExists(ctx context.Context) bool {
+func (c *loggingClient) CheckIfDatasetExists(ctx context.Context) (exists bool) {
 	return c.Client.CheckIfDatasetExists(ctx)
 }
 
-func (c *loggingClient) CheckIfTableExists(ctx context.Context, table string) bool {
+func (c *loggingClient) CheckIfTableExists(ctx context.Context, table string) (exists bool) {
 	return c.Client.CheckIfTableExists(ctx, table)
 }
 

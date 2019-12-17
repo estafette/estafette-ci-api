@@ -12,13 +12,13 @@ import (
 
 // Client is the interface for connecting to bigquery
 type Client interface {
-	Init(ctx context.Context) error
-	CheckIfDatasetExists(ctx context.Context) bool
-	CheckIfTableExists(ctx context.Context, table string) bool
-	CreateTable(ctx context.Context, table string, typeForSchema interface{}, partitionField string, waitReady bool) error
-	UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) error
-	InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) error
-	InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) error
+	Init(ctx context.Context) (err error)
+	CheckIfDatasetExists(ctx context.Context) (exists bool)
+	CheckIfTableExists(ctx context.Context, table string) (exists bool)
+	CreateTable(ctx context.Context, table string, typeForSchema interface{}, partitionField string, waitReady bool) (err error)
+	UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) (err error)
+	InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) (err error)
+	InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) (err error)
 }
 
 // NewClient returns new bigquery.Client

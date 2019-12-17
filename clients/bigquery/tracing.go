@@ -24,14 +24,14 @@ func (c *tracingClient) Init(ctx context.Context) (err error) {
 	return c.Client.Init(ctx)
 }
 
-func (c *tracingClient) CheckIfDatasetExists(ctx context.Context) bool {
+func (c *tracingClient) CheckIfDatasetExists(ctx context.Context) (exists bool) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "CheckIfDatasetExists"))
 	defer func() { helpers.FinishSpan(span) }()
 
 	return c.Client.CheckIfDatasetExists(ctx)
 }
 
-func (c *tracingClient) CheckIfTableExists(ctx context.Context, table string) bool {
+func (c *tracingClient) CheckIfTableExists(ctx context.Context, table string) (exists bool) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "CheckIfTableExists"))
 	defer func() { helpers.FinishSpan(span) }()
 
