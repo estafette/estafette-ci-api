@@ -27,7 +27,7 @@ import (
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
-	"github.com/estafette/estafette-ci-api/transport"
+	"github.com/estafette/estafette-ci-api/middlewares"
 
 	"github.com/estafette/estafette-ci-api/clients/bigquery"
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
@@ -162,11 +162,12 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 
 	log.Debug().Msg("Creating clients...")
 
+	var bigqueryClient bigquery.Client
 	bqClient, err := stdbigquery.NewClient(ctx, config.Integrations.BigQuery.ProjectID)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating new BigQueryClient has failed")
 	}
-	bigqueryClient := bigquery.NewClient(config.Integrations.BigQuery, bqClient)
+	bigqueryClient = bigquery.NewClient(config.Integrations.BigQuery, bqClient)
 	bigqueryClient = bigquery.NewTracingClient(bigqueryClient)
 	bigqueryClient = bigquery.NewLoggingClient(bigqueryClient)
 	err = bigqueryClient.Init(ctx)
@@ -174,60 +175,70 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		log.Error().Err(err).Msg("Initializing BigQuery tables has failed")
 	}
 
-	bitbucketAPIClient := bitbucketapi.NewClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
+	var bitbucketAPIClient bitbucketapi.Client
+	bitbucketAPIClient = bitbucketapi.NewClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
 	bitbucketAPIClient = bitbucketapi.NewTracingClient(bitbucketAPIClient)
 
-	githubAPIClient := githubapi.NewClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
+	var githubAPIClient githubapi.Client
+	githubAPIClient = githubapi.NewClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
 	githubAPIClient = githubapi.NewTracingClient(githubAPIClient)
 
-	slackAPIClient := slackapi.NewClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
+	var slackAPIClient slackapi.Client
+	slackAPIClient = slackapi.NewClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
 	slackAPIClient = slackapi.NewTracingClient(slackAPIClient)
 
+	var pubSubAPIClient pubsubapi.Client
 	pubsubClient, err := stdpubsub.NewClient(ctx, config.Integrations.Pubsub.DefaultProject)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Creating new PubSubAPIClient has failed")
+		log.Fatal().Err(err).Msg("Creating google pubsub client has failed")
 	}
-	pubSubAPIClient := pubsubapi.NewClient(*config.Integrations.Pubsub, pubsubClient)
+	pubSubAPIClient = pubsubapi.NewClient(*config.Integrations.Pubsub, pubsubClient)
 	pubSubAPIClient = pubsubapi.NewTracingClient(pubSubAPIClient)
 
-	cockroachDBClient := cockroachdb.NewClient(*config.Database, prometheusOutboundAPICallTotals)
+	var cockroachDBClient cockroachdb.Client
+	cockroachDBClient = cockroachdb.NewClient(*config.Database, prometheusOutboundAPICallTotals)
 	cockroachDBClient = cockroachdb.NewTracingClient(cockroachDBClient)
-
-	dockerHubClient := dockerhubapi.NewClient()
-	dockerHubClient = dockerhubapi.NewTracingClient(dockerHubClient)
-
-	kubeClient, err := k8s.NewInClusterClient()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating k8s client failed")
-	}
-	ciBuilderClient := builderapi.NewClient(*config, *encryptedConfig, secretHelper, kubeClient, dockerHubClient, prometheusOutboundAPICallTotals)
-	ciBuilderClient = builderapi.NewTracingClient(ciBuilderClient)
-
-	gcsClient, err := stdstorage.NewClient(ctx)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating new CloudStorageClient has failed")
-	}
-	cloudStorageClient := cloudstorage.NewClient(config.Integrations.CloudStorage, gcsClient)
-	cloudStorageClient = cloudstorage.NewTracingClient(cloudStorageClient)
-
-	prometheusClient := prometheus.NewClient(*config.Integrations.Prometheus)
-	prometheusClient = prometheus.NewTracingClient(prometheusClient)
-
-	// set up database
 	err = cockroachDBClient.Connect(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed connecting to CockroachDB")
 	}
 
+	var dockerHubClient dockerhubapi.Client
+	dockerHubClient = dockerhubapi.NewClient()
+	dockerHubClient = dockerhubapi.NewTracingClient(dockerHubClient)
+
+	var ciBuilderClient builderapi.Client
+	kubeClient, err := k8s.NewInClusterClient()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating kubernetes client failed")
+	}
+	ciBuilderClient = builderapi.NewClient(*config, *encryptedConfig, secretHelper, kubeClient, dockerHubClient, prometheusOutboundAPICallTotals)
+	ciBuilderClient = builderapi.NewTracingClient(ciBuilderClient)
+
+	var cloudStorageClient cloudstorage.Client
+	gcsClient, err := stdstorage.NewClient(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating google cloud storage client has failed")
+	}
+	cloudStorageClient = cloudstorage.NewClient(config.Integrations.CloudStorage, gcsClient)
+	cloudStorageClient = cloudstorage.NewTracingClient(cloudStorageClient)
+
+	var prometheusClient prometheus.Client
+	prometheusClient = prometheus.NewClient(*config.Integrations.Prometheus)
+	prometheusClient = prometheus.NewTracingClient(prometheusClient)
+
 	log.Debug().Msg("Creating services...")
 
-	estafetteService := estafette.NewService(*config.Jobs, *config.APIServer, cockroachDBClient, prometheusClient, cloudStorageClient, ciBuilderClient, githubAPIClient.JobVarsFunc(ctx), bitbucketAPIClient.JobVarsFunc(ctx))
+	var estafetteService estafette.Service
+	estafetteService = estafette.NewService(*config.Jobs, *config.APIServer, cockroachDBClient, prometheusClient, cloudStorageClient, ciBuilderClient, githubAPIClient.JobVarsFunc(ctx), bitbucketAPIClient.JobVarsFunc(ctx))
 	estafetteService = estafette.NewTracingService(estafetteService)
 
-	githubService := github.NewService(githubAPIClient, pubSubAPIClient, estafetteService, *config.Integrations.Github, prometheusInboundEventTotals)
+	var githubService github.Service
+	githubService = github.NewService(githubAPIClient, pubSubAPIClient, estafetteService, *config.Integrations.Github, prometheusInboundEventTotals)
 	githubService = github.NewTracingService(githubService)
 
-	bitbucketService := bitbucket.NewService(*config.Integrations.Bitbucket, bitbucketAPIClient, pubSubAPIClient, estafetteService, prometheusInboundEventTotals)
+	var bitbucketService bitbucket.Service
+	bitbucketService = bitbucket.NewService(*config.Integrations.Bitbucket, bitbucketAPIClient, pubSubAPIClient, estafetteService, prometheusInboundEventTotals)
 	bitbucketService = bitbucket.NewTracingService(bitbucketService)
 
 	// transport
@@ -252,7 +263,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 
 	// opentracing middleware
 	log.Debug().Msg("Adding opentracing middleware...")
-	router.Use(transport.OpenTracingMiddleware())
+	router.Use(middlewares.OpenTracingMiddleware())
 
 	// Gzip and logging middleware
 	log.Debug().Msg("Adding gzip middleware...")

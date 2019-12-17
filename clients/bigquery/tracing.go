@@ -3,9 +3,8 @@ package bigquery
 import (
 	"context"
 
+	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
-	"github.com/opentracing/opentracing-go/log"
 )
 
 // NewTracingClient returns a new instance of a tracing Client.
@@ -20,10 +19,7 @@ type tracingClient struct {
 func (c *tracingClient) Init(ctx context.Context) (err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("Init"))
-	defer span.Finish()
-	defer func(span opentracing.Span) {
-		c.handleError(span, err)
-	}(span)
+	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.Init(ctx)
 }
@@ -31,7 +27,7 @@ func (c *tracingClient) Init(ctx context.Context) (err error) {
 func (c *tracingClient) CheckIfDatasetExists(ctx context.Context) bool {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("CheckIfDatasetExists"))
-	defer span.Finish()
+	defer func() { helpers.FinishSpan(span) }()
 
 	return c.Client.CheckIfDatasetExists(ctx)
 }
@@ -39,7 +35,7 @@ func (c *tracingClient) CheckIfDatasetExists(ctx context.Context) bool {
 func (c *tracingClient) CheckIfTableExists(ctx context.Context, table string) bool {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("CheckIfTableExists"))
-	defer span.Finish()
+	defer func() { helpers.FinishSpan(span) }()
 
 	return c.Client.CheckIfTableExists(ctx, table)
 }
@@ -47,10 +43,7 @@ func (c *tracingClient) CheckIfTableExists(ctx context.Context, table string) bo
 func (c *tracingClient) CreateTable(ctx context.Context, table string, typeForSchema interface{}, partitionField string, waitReady bool) (err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("CreateTable"))
-	defer span.Finish()
-	defer func(span opentracing.Span) {
-		c.handleError(span, err)
-	}(span)
+	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.CreateTable(ctx, table, typeForSchema, partitionField, waitReady)
 }
@@ -58,10 +51,7 @@ func (c *tracingClient) CreateTable(ctx context.Context, table string, typeForSc
 func (c *tracingClient) UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) (err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("UpdateTableSchema"))
-	defer span.Finish()
-	defer func(span opentracing.Span) {
-		c.handleError(span, err)
-	}(span)
+	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.UpdateTableSchema(ctx, table, typeForSchema)
 }
@@ -69,10 +59,7 @@ func (c *tracingClient) UpdateTableSchema(ctx context.Context, table string, typ
 func (c *tracingClient) InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) (err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("InsertBuildEvent"))
-	defer span.Finish()
-	defer func(span opentracing.Span) {
-		c.handleError(span, err)
-	}(span)
+	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.InsertBuildEvent(ctx, event)
 }
@@ -80,21 +67,11 @@ func (c *tracingClient) InsertBuildEvent(ctx context.Context, event PipelineBuil
 func (c *tracingClient) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) (err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("InsertReleaseEvent"))
-	defer span.Finish()
-	defer func(span opentracing.Span) {
-		c.handleError(span, err)
-	}(span)
+	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.InsertReleaseEvent(ctx, event)
 }
 
 func (c *tracingClient) getSpanName(funcName string) string {
 	return "bigquery:" + funcName
-}
-
-func (c *tracingClient) handleError(span opentracing.Span, err error) {
-	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(log.Error(err))
-	}
 }

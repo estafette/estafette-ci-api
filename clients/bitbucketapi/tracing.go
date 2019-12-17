@@ -3,9 +3,8 @@ package bitbucketapi
 import (
 	"context"
 
+	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
-	"github.com/opentracing/opentracing-go/log"
 )
 
 // NewTracingClient returns a new instance of a tracing Client.
@@ -20,10 +19,7 @@ type tracingClient struct {
 func (c *tracingClient) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetAccessToken"))
-	defer span.Finish()
-	defer func(span opentracing.Span) {
-		c.handleError(span, err)
-	}(span)
+	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetAccessToken(ctx)
 }
@@ -31,10 +27,7 @@ func (c *tracingClient) GetAccessToken(ctx context.Context) (accesstoken AccessT
 func (c *tracingClient) GetAuthenticatedRepositoryURL(ctx context.Context, accessToken AccessToken, htmlURL string) (url string, err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetAuthenticatedRepositoryURL"))
-	defer span.Finish()
-	defer func(span opentracing.Span) {
-		c.handleError(span, err)
-	}(span)
+	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetAuthenticatedRepositoryURL(ctx, accessToken, htmlURL)
 }
@@ -42,10 +35,7 @@ func (c *tracingClient) GetAuthenticatedRepositoryURL(ctx context.Context, acces
 func (c *tracingClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("GetEstafetteManifest"))
-	defer span.Finish()
-	defer func(span opentracing.Span) {
-		c.handleError(span, err)
-	}(span)
+	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetEstafetteManifest(ctx, accesstoken, event)
 }
@@ -53,18 +43,11 @@ func (c *tracingClient) GetEstafetteManifest(ctx context.Context, accesstoken Ac
 func (c *tracingClient) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error) {
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, c.getSpanName("JobVarsFunc"))
-	defer span.Finish()
+	defer func() { helpers.FinishSpan(span) }()
 
 	return c.Client.JobVarsFunc(ctx)
 }
 
 func (c *tracingClient) getSpanName(funcName string) string {
 	return "bitbucketapi:" + funcName
-}
-
-func (c *tracingClient) handleError(span opentracing.Span, err error) {
-	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(log.Error(err))
-	}
 }
