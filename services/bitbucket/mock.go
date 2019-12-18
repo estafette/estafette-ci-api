@@ -7,26 +7,26 @@ import (
 )
 
 type MockService struct {
-	CreateJobForBitbucketPushFunc func(ctx context.Context, event bitbucketapi.RepositoryPushEvent)
+	CreateJobForBitbucketPushFunc func(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error)
 	RenameFunc                    func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	IsWhitelistedOwnerFunc        func(repository bitbucketapi.Repository) (isWhiteListed bool)
 }
 
-func (s *MockService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) {
+func (s MockService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error) {
 	if s.CreateJobForBitbucketPushFunc == nil {
 		return
 	}
-	s.CreateJobForBitbucketPushFunc(ctx, event)
+	return s.CreateJobForBitbucketPushFunc(ctx, event)
 }
 
-func (s *MockService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
+func (s MockService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
 	if s.RenameFunc == nil {
 		return
 	}
 	return s.RenameFunc(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
-func (s *MockService) IsWhitelistedOwner(repository bitbucketapi.Repository) (isWhiteListed bool) {
+func (s MockService) IsWhitelistedOwner(repository bitbucketapi.Repository) (isWhiteListed bool) {
 	if s.IsWhitelistedOwnerFunc == nil {
 		return
 	}

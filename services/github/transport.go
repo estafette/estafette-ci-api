@@ -71,7 +71,7 @@ func (h *Handler) Handle(c *gin.Context) {
 			return
 		}
 
-		h.service.CreateJobForGithubPush(c.Request.Context(), pushEvent)
+		_ = h.service.CreateJobForGithubPush(c.Request.Context(), pushEvent)
 
 	case
 		"commit_comment",                        // Any time a Commit is commented on.

@@ -18,11 +18,11 @@ type tracingService struct {
 	prefix string
 }
 
-func (s *tracingService) CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) {
+func (s *tracingService) CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "CreateJobForGithubPush"))
-	defer func() { helpers.FinishSpan(span) }()
+	defer func() { helpers.FinishSpanWithError(span, err) }()
 
-	s.Service.CreateJobForGithubPush(ctx, event)
+	return s.Service.CreateJobForGithubPush(ctx, event)
 }
 
 func (s *tracingService) HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (valid bool, err error) {

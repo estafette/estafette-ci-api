@@ -2,6 +2,7 @@ package bitbucket
 
 import (
 	"context"
+	"errors"
 
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
@@ -12,9 +13,14 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+var (
+	ErrNonCloneableEvent = errors.New("The event is not cloneable")
+	ErrNoManifest        = errors.New("The repository has no manifest at the pushed commit")
+)
+
 // Service handles http events for Bitbucket integration
 type Service interface {
-	CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent)
+	CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	IsWhitelistedOwner(repository bitbucketapi.Repository) (isWhiteListed bool)
 }
@@ -36,11 +42,11 @@ type service struct {
 	estafetteService   estafette.Service
 }
 
-func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbucketapi.RepositoryPushEvent) {
+func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbucketapi.RepositoryPushEvent) (err error) {
 
 	// check to see that it's a cloneable event
 	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil || pushEvent.Push.Changes[0].New.Type != "branch" || len(pushEvent.Push.Changes[0].New.Target.Hash) == 0 {
-		return
+		return ErrNonCloneableEvent
 	}
 
 	gitEvent := manifest.EstafetteGitEvent{
@@ -64,7 +70,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
-		return
+		return err
 	}
 
 	// get manifest file
@@ -72,11 +78,11 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
-		return
+		return err
 	}
 
 	if !manifestExists {
-		return
+		return ErrNoManifest
 	}
 
 	var commits []contracts.GitCommit
@@ -111,7 +117,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	}, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed creating build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
-		return
+		return err
 	}
 
 	log.Info().Msgf("Created build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
@@ -122,13 +128,15 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 			log.Error().Err(err).Msgf("Failed subscribing to topics for pubsub triggers for build %v/%v/%v revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
 		}
 	}()
+
+	return nil
 }
 
-func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
 	return s.estafetteService.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
-func (s *service) IsWhitelistedOwner(repository bitbucketapi.Repository) bool {
+func (s *service) IsWhitelistedOwner(repository bitbucketapi.Repository) (isWhiteListed bool) {
 
 	if len(s.config.WhitelistedOwners) == 0 {
 		return true

@@ -19,7 +19,7 @@ import (
 
 // Service handles http events for Github integration
 type Service interface {
-	CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent)
+	CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) (err error)
 	HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (validSignature bool, err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool)
@@ -42,7 +42,7 @@ type service struct {
 	config           config.GithubConfig
 }
 
-func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubapi.PushEvent) {
+func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubapi.PushEvent) (err error) {
 
 	// check to see that it's a cloneable event
 	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
@@ -127,6 +127,8 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 			log.Error().Err(err).Msgf("Failed subscribing to topics for pubsub triggers for build %v/%v/%v revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
 		}
 	}()
+
+	return nil
 }
 
 func (s *service) HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (bool, error) {

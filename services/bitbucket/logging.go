@@ -17,8 +17,10 @@ type loggingService struct {
 	prefix string
 }
 
-func (s *loggingService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) {
-	s.Service.CreateJobForBitbucketPush(ctx, event)
+func (s *loggingService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "CreateJobForBitbucketPush", err) }()
+
+	return s.Service.CreateJobForBitbucketPush(ctx, event)
 }
 
 func (s *loggingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {

@@ -18,11 +18,11 @@ type tracingService struct {
 	prefix string
 }
 
-func (s *tracingService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) {
+func (s *tracingService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "CreateJobForBitbucketPush"))
-	defer func() { helpers.FinishSpan(span) }()
+	defer func() { helpers.FinishSpanWithError(span, err) }()
 
-	s.Service.CreateJobForBitbucketPush(ctx, event)
+	return s.Service.CreateJobForBitbucketPush(ctx, event)
 }
 
 func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {

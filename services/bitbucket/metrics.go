@@ -20,12 +20,12 @@ type metricsService struct {
 	requestLatency metrics.Histogram
 }
 
-func (s *metricsService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) {
+func (s *metricsService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "CreateJobForBitbucketPush", begin)
 	}(time.Now())
 
-	s.Service.CreateJobForBitbucketPush(ctx, event)
+	return s.Service.CreateJobForBitbucketPush(ctx, event)
 }
 
 func (s *metricsService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {

@@ -20,12 +20,12 @@ type metricsService struct {
 	requestLatency metrics.Histogram
 }
 
-func (s *metricsService) CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) {
+func (s *metricsService) CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) (err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "CreateJobForGithubPush", begin)
 	}(time.Now())
 
-	s.Service.CreateJobForGithubPush(ctx, event)
+	return s.Service.CreateJobForGithubPush(ctx, event)
 }
 
 func (s *metricsService) HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (valid bool, err error) {

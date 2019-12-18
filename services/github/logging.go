@@ -17,8 +17,10 @@ type loggingService struct {
 	prefix string
 }
 
-func (s *loggingService) CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) {
-	s.Service.CreateJobForGithubPush(ctx, event)
+func (s *loggingService) CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) (err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "CreateJobForGithubPush", err) }()
+
+	return s.Service.CreateJobForGithubPush(ctx, event)
 }
 
 func (s *loggingService) HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (valid bool, err error) {

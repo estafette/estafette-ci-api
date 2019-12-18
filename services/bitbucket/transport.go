@@ -59,7 +59,7 @@ func (h *Handler) Handle(c *gin.Context) {
 			return
 		}
 
-		h.service.CreateJobForBitbucketPush(c.Request.Context(), pushEvent)
+		_ = h.service.CreateJobForBitbucketPush(c.Request.Context(), pushEvent)
 
 	case
 		"repo:fork",

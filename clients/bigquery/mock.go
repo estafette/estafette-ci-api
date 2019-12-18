@@ -12,49 +12,49 @@ type MockClient struct {
 	InsertReleaseEventFunc   func(ctx context.Context, event PipelineReleaseEvent) (err error)
 }
 
-func (c *MockClient) Init(ctx context.Context) (err error) {
+func (c MockClient) Init(ctx context.Context) (err error) {
 	if c.InitFunc == nil {
 		return
 	}
 	return c.InitFunc(ctx)
 }
 
-func (c *MockClient) CheckIfDatasetExists(ctx context.Context) (exists bool) {
+func (c MockClient) CheckIfDatasetExists(ctx context.Context) (exists bool) {
 	if c.CheckIfDatasetExistsFunc == nil {
 		return
 	}
 	return c.CheckIfDatasetExistsFunc(ctx)
 }
 
-func (c *MockClient) CheckIfTableExists(ctx context.Context, table string) (exists bool) {
+func (c MockClient) CheckIfTableExists(ctx context.Context, table string) (exists bool) {
 	if c.CheckIfTableExistsFunc == nil {
 		return
 	}
 	return c.CheckIfTableExistsFunc(ctx, table)
 }
 
-func (c *MockClient) CreateTable(ctx context.Context, table string, typeForSchema interface{}, partitionField string, waitReady bool) (err error) {
+func (c MockClient) CreateTable(ctx context.Context, table string, typeForSchema interface{}, partitionField string, waitReady bool) (err error) {
 	if c.CreateTableFunc == nil {
 		return
 	}
 	return c.CreateTableFunc(ctx, table, typeForSchema, partitionField, waitReady)
 }
 
-func (c *MockClient) UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) (err error) {
+func (c MockClient) UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) (err error) {
 	if c.UpdateTableSchemaFunc == nil {
 		return
 	}
 	return c.UpdateTableSchemaFunc(ctx, table, typeForSchema)
 }
 
-func (c *MockClient) InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) (err error) {
+func (c MockClient) InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) (err error) {
 	if c.InsertBuildEventFunc == nil {
 		return
 	}
 	return c.InsertBuildEventFunc(ctx, event)
 }
 
-func (c *MockClient) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) (err error) {
+func (c MockClient) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) (err error) {
 	if c.InsertReleaseEventFunc == nil {
 		return
 	}
