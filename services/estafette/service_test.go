@@ -302,6 +302,43 @@ func TestCreateBuild(t *testing.T) {
 	})
 }
 
+func TestFinishBuild(t *testing.T) {
+
+	t.Run("CallsUpdateBuildStatusOnCockroachdbClient", func(t *testing.T) {
+
+		ctx := context.Background()
+
+		jobsConfig := config.JobsConfig{}
+		apiServerConfig := config.APIServerConfig{}
+		cockroachdbClient := cockroachdb.MockClient{}
+		prometheusClient := prometheus.MockClient{}
+		cloudStorageClient := cloudstorage.MockClient{}
+		builderapiClient := builderapi.MockClient{}
+		githubapiClient := githubapi.MockClient{}
+		bitbucketapiClient := bitbucketapi.MockClient{}
+
+		callCount := 0
+		cockroachdbClient.UpdateBuildStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
+			callCount++
+			return
+		}
+
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+
+		repoSource := "github.com"
+		repoOwner := "estafette"
+		repoName := "estafette-ci-api"
+		buildID := 1557
+		buildStatus := "succeeded"
+
+		// act
+		err := service.FinishBuild(context.Background(), repoSource, repoOwner, repoName, buildID, buildStatus)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 1, callCount)
+	})
+}
+
 func TestCreateRelease(t *testing.T) {
 
 	t.Run("CallsInsertBuildOnCockroachdbClient", func(t *testing.T) {
@@ -380,6 +417,43 @@ func TestCreateRelease(t *testing.T) {
 
 		// act
 		_, err := service.CreateRelease(context.Background(), release, mft, branch, revision, true)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 1, callCount)
+	})
+}
+
+func TestFinishRelease(t *testing.T) {
+
+	t.Run("CallsUpdateReleaseStatusOnCockroachdbClient", func(t *testing.T) {
+
+		ctx := context.Background()
+
+		jobsConfig := config.JobsConfig{}
+		apiServerConfig := config.APIServerConfig{}
+		cockroachdbClient := cockroachdb.MockClient{}
+		prometheusClient := prometheus.MockClient{}
+		cloudStorageClient := cloudstorage.MockClient{}
+		builderapiClient := builderapi.MockClient{}
+		githubapiClient := githubapi.MockClient{}
+		bitbucketapiClient := bitbucketapi.MockClient{}
+
+		callCount := 0
+		cockroachdbClient.UpdateReleaseStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
+			callCount++
+			return
+		}
+
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+
+		repoSource := "github.com"
+		repoOwner := "estafette"
+		repoName := "estafette-ci-api"
+		buildID := 1557
+		buildStatus := "succeeded"
+
+		// act
+		err := service.FinishRelease(context.Background(), repoSource, repoOwner, repoName, buildID, buildStatus)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 1, callCount)
