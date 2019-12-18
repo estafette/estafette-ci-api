@@ -26,20 +26,20 @@ type Service interface {
 }
 
 // NewService returns a github.Service to handle incoming webhook events
-func NewService(apiClient githubapi.Client, pubsubAPIClient pubsubapi.Client, buildService estafette.Service, config config.GithubConfig) Service {
+func NewService(githubapiClient githubapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, config config.GithubConfig) Service {
 	return &service{
-		apiClient:       apiClient,
-		pubsubAPIClient: pubsubAPIClient,
-		buildService:    buildService,
-		config:          config,
+		githubapiClient:  githubapiClient,
+		pubsubapiClient:  pubsubapiClient,
+		estafetteService: estafetteService,
+		config:           config,
 	}
 }
 
 type service struct {
-	apiClient       githubapi.Client
-	pubsubAPIClient pubsubapi.Client
-	buildService    estafette.Service
-	config          config.GithubConfig
+	githubapiClient  githubapi.Client
+	pubsubapiClient  pubsubapi.Client
+	estafetteService estafette.Service
+	config           config.GithubConfig
 }
 
 func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubapi.PushEvent) {
@@ -57,7 +57,7 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 
 	// handle git triggers
 	go func() {
-		err := s.buildService.FireGitTriggers(ctx, gitEvent)
+		err := s.estafetteService.FireGitTriggers(ctx, gitEvent)
 		if err != nil {
 			log.Error().Err(err).
 				Interface("gitEvent", gitEvent).
@@ -66,7 +66,7 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 	}()
 
 	// get access token
-	accessToken, err := s.apiClient.GetInstallationToken(ctx, pushEvent.Installation.ID)
+	accessToken, err := s.githubapiClient.GetInstallationToken(ctx, pushEvent.Installation.ID)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving access token failed")
@@ -74,7 +74,7 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 	}
 
 	// get manifest file
-	manifestExists, manifestString, err := s.apiClient.GetEstafetteManifest(ctx, accessToken, pushEvent)
+	manifestExists, manifestString, err := s.githubapiClient.GetEstafetteManifest(ctx, accessToken, pushEvent)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
@@ -98,7 +98,7 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 	}
 
 	// create build object and hand off to build service
-	_, err = s.buildService.CreateBuild(ctx, contracts.Build{
+	_, err = s.estafetteService.CreateBuild(ctx, contracts.Build{
 		RepoSource:   pushEvent.GetRepoSource(),
 		RepoOwner:    pushEvent.GetRepoOwner(),
 		RepoName:     pushEvent.GetRepoName(),
@@ -122,7 +122,7 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 	log.Info().Msgf("Created build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
 
 	go func() {
-		err := s.pubsubAPIClient.SubscribeToPubsubTriggers(ctx, manifestString)
+		err := s.pubsubapiClient.SubscribeToPubsubTriggers(ctx, manifestString)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed subscribing to topics for pubsub triggers for build %v/%v/%v revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
 		}
@@ -157,7 +157,7 @@ func (s *service) HasValidSignature(ctx context.Context, body []byte, signatureH
 }
 
 func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-	return s.buildService.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	return s.estafetteService.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
 func (s *service) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) bool {

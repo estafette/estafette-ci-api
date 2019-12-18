@@ -10,16 +10,16 @@ import (
 )
 
 // NewHandler returns a pubsub.Handler
-func NewHandler(apiClient pubsubapi.Client, buildService estafette.Service) Handler {
+func NewHandler(pubsubapiClient pubsubapi.Client, estafetteService estafette.Service) Handler {
 	return Handler{
-		apiClient:    apiClient,
-		buildService: buildService,
+		pubsubapiClient:  pubsubapiClient,
+		estafetteService: estafetteService,
 	}
 }
 
 type Handler struct {
-	apiClient    pubsubapi.Client
-	buildService estafette.Service
+	pubsubapiClient  pubsubapi.Client
+	estafetteService estafette.Service
 }
 
 func (eh *Handler) PostPubsubEvent(c *gin.Context) {
@@ -37,7 +37,7 @@ func (eh *Handler) PostPubsubEvent(c *gin.Context) {
 		return
 	}
 
-	pubsubEvent, err := eh.apiClient.SubscriptionForTopic(c.Request.Context(), message)
+	pubsubEvent, err := eh.pubsubapiClient.SubscriptionForTopic(c.Request.Context(), message)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed retrieving topic for pubsub subscription")
 		c.String(http.StatusInternalServerError, "Oop, something's wrong!")
@@ -57,7 +57,7 @@ func (eh *Handler) PostPubsubEvent(c *gin.Context) {
 		Str("topic", pubsubEvent.Topic).
 		Msg("Successfully binded pubsub push event")
 
-	err = eh.buildService.FirePubSubTriggers(c.Request.Context(), *pubsubEvent)
+	err = eh.estafetteService.FirePubSubTriggers(c.Request.Context(), *pubsubEvent)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed firing pubsub triggers for topic %v in project %v", pubsubEvent.Topic, pubsubEvent.Project)
 		c.String(http.StatusInternalServerError, "Oop, something's wrong!")

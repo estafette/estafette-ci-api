@@ -18,26 +18,26 @@ import (
 )
 
 // NewHandler returns a pubsub.Handler
-func NewHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, slackAPIClient slackapi.Client, cockroachDBClient cockroachdb.Client, apiConfig config.APIServerConfig, buildService estafette.Service, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
+func NewHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, slackapiClient slackapi.Client, cockroachdbClient cockroachdb.Client, apiConfig config.APIServerConfig, estafetteService estafette.Service, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
 	return Handler{
-		secretHelper:         secretHelper,
 		config:               config,
-		slackAPIClient:       slackAPIClient,
-		cockroachDBClient:    cockroachDBClient,
 		apiConfig:            apiConfig,
-		buildService:         buildService,
+		secretHelper:         secretHelper,
+		slackapiClient:       slackapiClient,
+		cockroachdbClient:    cockroachdbClient,
+		estafetteService:     estafetteService,
 		githubJobVarsFunc:    githubJobVarsFunc,
 		bitbucketJobVarsFunc: bitbucketJobVarsFunc,
 	}
 }
 
 type Handler struct {
-	secretHelper         crypt.SecretHelper
 	config               config.SlackConfig
-	slackAPIClient       slackapi.Client
-	cockroachDBClient    cockroachdb.Client
 	apiConfig            config.APIServerConfig
-	buildService         estafette.Service
+	secretHelper         crypt.SecretHelper
+	slackapiClient       slackapi.Client
+	cockroachdbClient    cockroachdb.Client
+	estafetteService     estafette.Service
 	githubJobVarsFunc    func(context.Context, string, string, string) (string, string, error)
 	bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)
 }
@@ -116,7 +116,7 @@ func (h *Handler) Handle(c *gin.Context) {
 
 					var pipeline *contracts.Pipeline
 					if len(fullRepoNameArray) == 1 {
-						pipelines, err := h.cockroachDBClient.GetPipelinesByRepoName(c.Request.Context(), fullRepoName, false)
+						pipelines, err := h.cockroachdbClient.GetPipelinesByRepoName(c.Request.Context(), fullRepoName, false)
 						if err != nil {
 							log.Error().Err(err).Msgf("Failed retrieving pipelines for repo name %v by name", fullRepoName)
 							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
@@ -136,7 +136,7 @@ func (h *Handler) Handle(c *gin.Context) {
 						}
 						pipeline = pipelines[0]
 					} else {
-						pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), fullRepoNameArray[0], fullRepoNameArray[1], fullRepoNameArray[2], false)
+						pipeline, err := h.cockroachdbClient.GetPipeline(c.Request.Context(), fullRepoNameArray[0], fullRepoNameArray[1], fullRepoNameArray[2], false)
 						if err != nil {
 							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
 							return
@@ -148,7 +148,7 @@ func (h *Handler) Handle(c *gin.Context) {
 					}
 
 					// check if version exists
-					builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(c.Request.Context(), pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion, []string{"succeeded"}, 1, false)
+					builds, err := h.cockroachdbClient.GetPipelineBuildsByVersion(c.Request.Context(), pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion, []string{"succeeded"}, 1, false)
 
 					if err != nil {
 						c.String(http.StatusOK, fmt.Sprintf("Retrieving the build for repository %v and version %v from the database failed: %v", fullRepoName, buildVersion, err))
@@ -186,14 +186,14 @@ func (h *Handler) Handle(c *gin.Context) {
 					}
 
 					// get user profile from api to set email address for TriggeredBy
-					profile, err := h.slackAPIClient.GetUserProfile(c.Request.Context(), slashCommand.UserID)
+					profile, err := h.slackapiClient.GetUserProfile(c.Request.Context(), slashCommand.UserID)
 					if err != nil {
 						c.String(http.StatusOK, fmt.Sprintf("Failed retrieving Slack user profile for user id %v: %v", slashCommand.UserID, err))
 						return
 					}
 
 					// create release object and hand off to build service
-					createdRelease, err := h.buildService.CreateRelease(c.Request.Context(), contracts.Release{
+					createdRelease, err := h.estafetteService.CreateRelease(c.Request.Context(), contracts.Release{
 						Name:           releaseName,
 						Action:         "", // no support for releas action yet
 						RepoSource:     build.RepoSource,

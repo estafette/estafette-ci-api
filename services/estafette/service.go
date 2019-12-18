@@ -36,14 +36,14 @@ type Service interface {
 }
 
 // NewService returns a new estafette.Service
-func NewService(jobsConfig config.JobsConfig, apiServerConfig config.APIServerConfig, cockroachDBClient cockroachdb.Client, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
+func NewService(jobsConfig config.JobsConfig, apiServerConfig config.APIServerConfig, cockroachdbClient cockroachdb.Client, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
 
 	return &service{
 		jobsConfig:           jobsConfig,
 		apiServerConfig:      apiServerConfig,
-		cockroachDBClient:    cockroachDBClient,
+		cockroachdbClient:    cockroachdbClient,
 		prometheusClient:     prometheusClient,
-		ciBuilderClient:      ciBuilderClient,
+		builderapiClient:     builderapiClient,
 		githubJobVarsFunc:    githubJobVarsFunc,
 		bitbucketJobVarsFunc: bitbucketJobVarsFunc,
 	}
@@ -52,10 +52,10 @@ func NewService(jobsConfig config.JobsConfig, apiServerConfig config.APIServerCo
 type service struct {
 	jobsConfig           config.JobsConfig
 	apiServerConfig      config.APIServerConfig
-	cockroachDBClient    cockroachdb.Client
+	cockroachdbClient    cockroachdb.Client
 	prometheusClient     prometheus.Client
 	cloudStorageClient   cloudstorage.Client
-	ciBuilderClient      builderapi.Client
+	builderapiClient     builderapi.Client
 	githubJobVarsFunc    func(context.Context, string, string, string) (string, string, error)
 	bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)
 }
@@ -74,7 +74,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	// if manifest is invalid get the pipeline in order to use same labels as normally
 	var pipeline *contracts.Pipeline
 	if !hasValidManifest {
-		pipeline, _ = s.cockroachDBClient.GetPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName, false)
+		pipeline, _ = s.cockroachdbClient.GetPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName, false)
 	}
 
 	// set builder track
@@ -108,7 +108,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	autoincrement := 0
 	if build.BuildVersion == "" {
 		// get autoincrement number
-		autoincrement, err = s.cockroachDBClient.GetAutoIncrement(ctx, shortRepoSource, build.RepoOwner, build.RepoName)
+		autoincrement, err = s.cockroachdbClient.GetAutoIncrement(ctx, shortRepoSource, build.RepoOwner, build.RepoName)
 		if err != nil {
 			return
 		}
@@ -217,7 +217,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	}
 
 	// get max usage from previous builds
-	measuredResources, nrRecords, err := s.cockroachDBClient.GetPipelineBuildMaxResourceUtilization(ctx, build.RepoSource, build.RepoOwner, build.RepoName, 25)
+	measuredResources, nrRecords, err := s.cockroachdbClient.GetPipelineBuildMaxResourceUtilization(ctx, build.RepoSource, build.RepoOwner, build.RepoName, 25)
 	if err != nil {
 		log.Warn().Err(err).Msgf("Failed retrieving max resource utilization for recent builds of %v/%v/%v, using defaults...", build.RepoSource, build.RepoOwner, build.RepoName)
 	} else if nrRecords < 5 {
@@ -248,7 +248,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	}
 
 	// store build in db
-	createdBuild, err = s.cockroachDBClient.InsertBuild(ctx, contracts.Build{
+	createdBuild, err = s.cockroachdbClient.InsertBuild(ctx, contracts.Build{
 		RepoSource:     build.RepoSource,
 		RepoOwner:      build.RepoOwner,
 		RepoName:       build.RepoName,
@@ -297,13 +297,13 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 		log.Debug().Msgf("Pipeline %v/%v/%v revision %v has valid manifest, creating build job...", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 		// create ci builder job
 		if waitForJobToStart {
-			_, err = s.ciBuilderClient.CreateCiBuilderJob(ctx, ciBuilderParams)
+			_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
 			if err != nil {
 				return
 			}
 		} else {
 			go func(ciBuilderParams builderapi.CiBuilderParams) {
-				_, err = s.ciBuilderClient.CreateCiBuilderJob(ctx, ciBuilderParams)
+				_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
 				if err != nil {
 					log.Warn().Err(err).Msgf("Failed creating async build job")
 				}
@@ -346,7 +346,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 			},
 		}
 
-		insertedBuildLog, err := s.cockroachDBClient.InsertBuildLog(ctx, buildLog, s.apiServerConfig.WriteLogToDatabase())
+		insertedBuildLog, err := s.cockroachdbClient.InsertBuildLog(ctx, buildLog, s.apiServerConfig.WriteLogToDatabase())
 		if err != nil {
 			log.Warn().Err(err).Msgf("Failed inserting build log for invalid manifest")
 		}
@@ -365,14 +365,14 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 
 func (s *service) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) error {
 
-	err := s.cockroachDBClient.UpdateBuildStatus(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
+	err := s.cockroachdbClient.UpdateBuildStatus(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
 	if err != nil {
 		return err
 	}
 
 	// handle triggers
 	go func() {
-		build, err := s.cockroachDBClient.GetPipelineBuildByID(ctx, repoSource, repoOwner, repoName, buildID, false)
+		build, err := s.cockroachdbClient.GetPipelineBuildByID(ctx, repoSource, repoOwner, repoName, buildID, false)
 		if err != nil {
 			return
 		}
@@ -449,7 +449,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	}
 
 	// get max usage from previous releases
-	measuredResources, nrRecords, err := s.cockroachDBClient.GetPipelineReleaseMaxResourceUtilization(ctx, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, 25)
+	measuredResources, nrRecords, err := s.cockroachdbClient.GetPipelineReleaseMaxResourceUtilization(ctx, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, 25)
 	if err != nil {
 		log.Warn().Err(err).Msgf("Failed retrieving max resource utilization for recent releases of %v/%v/%v target %v, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
 	} else if nrRecords < 5 {
@@ -480,7 +480,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	}
 
 	// create release in database
-	createdRelease, err = s.cockroachDBClient.InsertRelease(ctx, contracts.Release{
+	createdRelease, err = s.cockroachdbClient.InsertRelease(ctx, contracts.Release{
 		Name:           release.Name,
 		Action:         release.Action,
 		RepoSource:     release.RepoSource,
@@ -534,13 +534,13 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 
 	// create ci release job
 	if waitForJobToStart {
-		_, err = s.ciBuilderClient.CreateCiBuilderJob(ctx, ciBuilderParams)
+		_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
 		if err != nil {
 			return
 		}
 	} else {
 		go func(ciBuilderParams builderapi.CiBuilderParams) {
-			_, err = s.ciBuilderClient.CreateCiBuilderJob(ctx, ciBuilderParams)
+			_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
 			if err != nil {
 				log.Warn().Err(err).Msgf("Failed creating async release job")
 			}
@@ -559,14 +559,14 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 }
 
 func (s *service) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) error {
-	err := s.cockroachDBClient.UpdateReleaseStatus(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)
+	err := s.cockroachdbClient.UpdateReleaseStatus(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)
 	if err != nil {
 		return err
 	}
 
 	// handle triggers
 	go func() {
-		release, err := s.cockroachDBClient.GetPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseID)
+		release, err := s.cockroachdbClient.GetPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseID)
 		if err != nil {
 			return
 		}
@@ -586,7 +586,7 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 	log.Info().Msgf("[trigger:git(%v-%v:%v)] Checking if triggers need to be fired...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event)
 
 	// retrieve all pipeline triggers
-	pipelines, err := s.cockroachDBClient.GetGitTriggers(ctx, gitEvent)
+	pipelines, err := s.cockroachdbClient.GetGitTriggers(ctx, gitEvent)
 	if err != nil {
 		return err
 	}
@@ -642,7 +642,7 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 	log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Checking if triggers need to be fired...", build.RepoSource, build.RepoOwner, build.RepoName, event)
 
 	// retrieve all pipeline triggers
-	pipelines, err := s.cockroachDBClient.GetPipelineTriggers(ctx, build, event)
+	pipelines, err := s.cockroachdbClient.GetPipelineTriggers(ctx, build, event)
 	if err != nil {
 		return err
 	}
@@ -707,7 +707,7 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 
 	log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v] Checking if triggers need to be fired...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
 
-	pipelines, err := s.cockroachDBClient.GetReleaseTriggers(ctx, release, event)
+	pipelines, err := s.cockroachdbClient.GetReleaseTriggers(ctx, release, event)
 	if err != nil {
 		return err
 	}
@@ -772,7 +772,7 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 	log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Checking if triggers need to be fired...", pubsubEvent.Project, pubsubEvent.Topic)
 
 	// retrieve all pipeline triggers
-	pipelines, err := s.cockroachDBClient.GetPubSubTriggers(ctx, pubsubEvent)
+	pipelines, err := s.cockroachdbClient.GetPubSubTriggers(ctx, pubsubEvent)
 	if err != nil {
 		return err
 	}
@@ -835,7 +835,7 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 
 	log.Info().Msgf("[trigger:cron(%v)] Checking if triggers need to be fired...", ce.Time)
 
-	pipelines, err := s.cockroachDBClient.GetCronTriggers(ctx)
+	pipelines, err := s.cockroachdbClient.GetCronTriggers(ctx)
 	if err != nil {
 		return err
 	}
@@ -888,7 +888,7 @@ func (s *service) fireBuild(ctx context.Context, p contracts.Pipeline, t manifes
 	}
 
 	// get last build for branch defined in 'builds' section
-	lastBuildForBranch, err := s.cockroachDBClient.GetLastPipelineBuildForBranch(ctx, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+	lastBuildForBranch, err := s.cockroachdbClient.GetLastPipelineBuildForBranch(ctx, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 
 	if lastBuildForBranch == nil {
 		return fmt.Errorf("There's no build for pipeline '%v/%v/%v' branch '%v', cannot trigger one", p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
@@ -1005,7 +1005,7 @@ func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fro
 	shortFromRepoSource := s.getShortRepoSource(fromRepoSource)
 	shortToRepoSource := s.getShortRepoSource(toRepoSource)
 
-	return s.cockroachDBClient.Rename(ctx, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName)
+	return s.cockroachdbClient.Rename(ctx, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName)
 }
 
 func (s *service) UpdateBuildStatus(ctx context.Context, ciBuilderEvent builderapi.CiBuilderEvent) (err error) {
@@ -1086,7 +1086,7 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent builder
 				return err
 			}
 
-			err = s.cockroachDBClient.UpdateReleaseResourceUtilization(ctx, ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, releaseID, jobResources)
+			err = s.cockroachdbClient.UpdateReleaseResourceUtilization(ctx, ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, releaseID, jobResources)
 			if err != nil {
 				return err
 			}
@@ -1097,7 +1097,7 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent builder
 				return err
 			}
 
-			err = s.cockroachDBClient.UpdateBuildResourceUtilization(ctx, ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, buildID, jobResources)
+			err = s.cockroachdbClient.UpdateBuildResourceUtilization(ctx, ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, buildID, jobResources)
 			if err != nil {
 				return err
 			}

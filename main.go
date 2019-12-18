@@ -156,105 +156,105 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		log.Error().Err(err).Msg("Initializing BigQuery tables has failed")
 	}
 
-	var bitbucketAPIClient bitbucketapi.Client
+	var bitbucketapiClient bitbucketapi.Client
 	{
-		bitbucketAPIClient = bitbucketapi.NewClient(*config.Integrations.Bitbucket)
-		bitbucketAPIClient = bitbucketapi.NewTracingClient(bitbucketAPIClient)
-		bitbucketAPIClient = bitbucketapi.NewLoggingClient(bitbucketAPIClient)
-		bitbucketAPIClient = bitbucketapi.NewMetricsClient(bitbucketAPIClient,
+		bitbucketapiClient = bitbucketapi.NewClient(*config.Integrations.Bitbucket)
+		bitbucketapiClient = bitbucketapi.NewTracingClient(bitbucketapiClient)
+		bitbucketapiClient = bitbucketapi.NewLoggingClient(bitbucketapiClient)
+		bitbucketapiClient = bitbucketapi.NewMetricsClient(bitbucketapiClient,
 			helpers.NewRequestCounter("bitbucketapi_client"),
 			helpers.NewRequestHistogram("bitbucketapi_client"),
 		)
 	}
 
-	var githubAPIClient githubapi.Client
+	var githubapiClient githubapi.Client
 	{
-		githubAPIClient = githubapi.NewClient(*config.Integrations.Github)
-		githubAPIClient = githubapi.NewTracingClient(githubAPIClient)
-		githubAPIClient = githubapi.NewLoggingClient(githubAPIClient)
-		githubAPIClient = githubapi.NewMetricsClient(githubAPIClient,
+		githubapiClient = githubapi.NewClient(*config.Integrations.Github)
+		githubapiClient = githubapi.NewTracingClient(githubapiClient)
+		githubapiClient = githubapi.NewLoggingClient(githubapiClient)
+		githubapiClient = githubapi.NewMetricsClient(githubapiClient,
 			helpers.NewRequestCounter("githubapi_client"),
 			helpers.NewRequestHistogram("githubapi_client"),
 		)
 	}
 
-	var slackAPIClient slackapi.Client
+	var slackapiClient slackapi.Client
 	{
-		slackAPIClient = slackapi.NewClient(*config.Integrations.Slack)
-		slackAPIClient = slackapi.NewTracingClient(slackAPIClient)
-		slackAPIClient = slackapi.NewLoggingClient(slackAPIClient)
-		slackAPIClient = slackapi.NewMetricsClient(slackAPIClient,
+		slackapiClient = slackapi.NewClient(*config.Integrations.Slack)
+		slackapiClient = slackapi.NewTracingClient(slackapiClient)
+		slackapiClient = slackapi.NewLoggingClient(slackapiClient)
+		slackapiClient = slackapi.NewMetricsClient(slackapiClient,
 			helpers.NewRequestCounter("slackapi_client"),
 			helpers.NewRequestHistogram("slackapi_client"),
 		)
 	}
 
-	var pubSubAPIClient pubsubapi.Client
+	var pubsubapiClient pubsubapi.Client
 	{
 		pubsubClient, err := stdpubsub.NewClient(ctx, config.Integrations.Pubsub.DefaultProject)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Creating google pubsub client has failed")
 		}
-		pubSubAPIClient = pubsubapi.NewClient(*config.Integrations.Pubsub, pubsubClient)
-		pubSubAPIClient = pubsubapi.NewTracingClient(pubSubAPIClient)
-		pubSubAPIClient = pubsubapi.NewLoggingClient(pubSubAPIClient)
-		pubSubAPIClient = pubsubapi.NewMetricsClient(pubSubAPIClient,
+		pubsubapiClient = pubsubapi.NewClient(*config.Integrations.Pubsub, pubsubClient)
+		pubsubapiClient = pubsubapi.NewTracingClient(pubsubapiClient)
+		pubsubapiClient = pubsubapi.NewLoggingClient(pubsubapiClient)
+		pubsubapiClient = pubsubapi.NewMetricsClient(pubsubapiClient,
 			helpers.NewRequestCounter("pubsubapi_client"),
 			helpers.NewRequestHistogram("pubsubapi_client"),
 		)
 	}
 
-	var cockroachDBClient cockroachdb.Client
+	var cockroachdbClient cockroachdb.Client
 	{
-		cockroachDBClient = cockroachdb.NewClient(*config.Database)
-		cockroachDBClient = cockroachdb.NewTracingClient(cockroachDBClient)
-		cockroachDBClient = cockroachdb.NewLoggingClient(cockroachDBClient)
-		cockroachDBClient = cockroachdb.NewMetricsClient(cockroachDBClient,
+		cockroachdbClient = cockroachdb.NewClient(*config.Database)
+		cockroachdbClient = cockroachdb.NewTracingClient(cockroachdbClient)
+		cockroachdbClient = cockroachdb.NewLoggingClient(cockroachdbClient)
+		cockroachdbClient = cockroachdb.NewMetricsClient(cockroachdbClient,
 			helpers.NewRequestCounter("cockroachdb_client"),
 			helpers.NewRequestHistogram("cockroachdb_client"),
 		)
 	}
-	err = cockroachDBClient.Connect(ctx)
+	err = cockroachdbClient.Connect(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed connecting to CockroachDB")
 	}
 
-	var dockerHubClient dockerhubapi.Client
+	var dockerhubapiClient dockerhubapi.Client
 	{
-		dockerHubClient = dockerhubapi.NewClient()
-		dockerHubClient = dockerhubapi.NewTracingClient(dockerHubClient)
-		dockerHubClient = dockerhubapi.NewLoggingClient(dockerHubClient)
-		dockerHubClient = dockerhubapi.NewMetricsClient(dockerHubClient,
+		dockerhubapiClient = dockerhubapi.NewClient()
+		dockerhubapiClient = dockerhubapi.NewTracingClient(dockerhubapiClient)
+		dockerhubapiClient = dockerhubapi.NewLoggingClient(dockerhubapiClient)
+		dockerhubapiClient = dockerhubapi.NewMetricsClient(dockerhubapiClient,
 			helpers.NewRequestCounter("dockerhubapi_client"),
 			helpers.NewRequestHistogram("dockerhubapi_client"),
 		)
 	}
 
-	var ciBuilderClient builderapi.Client
+	var builderapiClient builderapi.Client
 	{
 		kubeClient, err := k8s.NewInClusterClient()
 		if err != nil {
 			log.Fatal().Err(err).Msg("Creating kubernetes client failed")
 		}
-		ciBuilderClient = builderapi.NewClient(*config, *encryptedConfig, secretHelper, kubeClient, dockerHubClient)
-		ciBuilderClient = builderapi.NewTracingClient(ciBuilderClient)
-		ciBuilderClient = builderapi.NewLoggingClient(ciBuilderClient)
-		ciBuilderClient = builderapi.NewMetricsClient(ciBuilderClient,
+		builderapiClient = builderapi.NewClient(*config, *encryptedConfig, secretHelper, kubeClient, dockerhubapiClient)
+		builderapiClient = builderapi.NewTracingClient(builderapiClient)
+		builderapiClient = builderapi.NewLoggingClient(builderapiClient)
+		builderapiClient = builderapi.NewMetricsClient(builderapiClient,
 			helpers.NewRequestCounter("builderapi_client"),
 			helpers.NewRequestHistogram("builderapi_client"),
 		)
 	}
 
-	var cloudStorageClient cloudstorage.Client
+	var cloudstorageClient cloudstorage.Client
 	{
 		gcsClient, err := stdstorage.NewClient(ctx)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Creating google cloud storage client has failed")
 		}
-		cloudStorageClient = cloudstorage.NewClient(config.Integrations.CloudStorage, gcsClient)
-		cloudStorageClient = cloudstorage.NewTracingClient(cloudStorageClient)
-		cloudStorageClient = cloudstorage.NewLoggingClient(cloudStorageClient)
-		cloudStorageClient = cloudstorage.NewMetricsClient(cloudStorageClient,
+		cloudstorageClient = cloudstorage.NewClient(config.Integrations.CloudStorage, gcsClient)
+		cloudstorageClient = cloudstorage.NewTracingClient(cloudstorageClient)
+		cloudstorageClient = cloudstorage.NewLoggingClient(cloudstorageClient)
+		cloudstorageClient = cloudstorage.NewMetricsClient(cloudstorageClient,
 			helpers.NewRequestCounter("cloudstorage_client"),
 			helpers.NewRequestHistogram("cloudstorage_client"),
 		)
@@ -275,7 +275,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 
 	var estafetteService estafette.Service
 	{
-		estafetteService = estafette.NewService(*config.Jobs, *config.APIServer, cockroachDBClient, prometheusClient, cloudStorageClient, ciBuilderClient, githubAPIClient.JobVarsFunc(ctx), bitbucketAPIClient.JobVarsFunc(ctx))
+		estafetteService = estafette.NewService(*config.Jobs, *config.APIServer, cockroachdbClient, prometheusClient, cloudstorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
 		estafetteService = estafette.NewTracingService(estafetteService)
 		estafetteService = estafette.NewLoggingService(estafetteService)
 		estafetteService = estafette.NewMetricsService(estafetteService,
@@ -286,7 +286,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 
 	var githubService github.Service
 	{
-		githubService = github.NewService(githubAPIClient, pubSubAPIClient, estafetteService, *config.Integrations.Github)
+		githubService = github.NewService(githubapiClient, pubsubapiClient, estafetteService, *config.Integrations.Github)
 		githubService = github.NewTracingService(githubService)
 		githubService = github.NewLoggingService(githubService)
 		githubService = github.NewMetricsService(githubService,
@@ -297,7 +297,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 
 	var bitbucketService bitbucket.Service
 	{
-		bitbucketService = bitbucket.NewService(*config.Integrations.Bitbucket, bitbucketAPIClient, pubSubAPIClient, estafetteService)
+		bitbucketService = bitbucket.NewService(*config.Integrations.Bitbucket, bitbucketapiClient, pubsubapiClient, estafetteService)
 		bitbucketService = bitbucket.NewTracingService(bitbucketService)
 		bitbucketService = bitbucket.NewLoggingService(bitbucketService)
 		bitbucketService = bitbucket.NewMetricsService(bitbucketService,
@@ -309,9 +309,9 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	// transport
 	bitbucketHandler := bitbucket.NewHandler(bitbucketService)
 	githubHandler := github.NewHandler(githubService)
-	estafetteHandler := estafette.NewHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, cloudStorageClient, ciBuilderClient, estafetteService, warningHelper, secretHelper, githubAPIClient.JobVarsFunc(ctx), bitbucketAPIClient.JobVarsFunc(ctx))
-	pubsubHandler := pubsub.NewHandler(pubSubAPIClient, estafetteService)
-	slackHandler := slack.NewHandler(secretHelper, *config.Integrations.Slack, slackAPIClient, cockroachDBClient, *config.APIServer, estafetteService, githubAPIClient.JobVarsFunc(ctx), bitbucketAPIClient.JobVarsFunc(ctx))
+	estafetteHandler := estafette.NewHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+	pubsubHandler := pubsub.NewHandler(pubsubapiClient, estafetteService)
+	slackHandler := slack.NewHandler(secretHelper, *config.Integrations.Slack, slackapiClient, cockroachdbClient, *config.APIServer, estafetteService, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
 
 	// run gin in release mode and other defaults
 	gin.SetMode(gin.ReleaseMode)
