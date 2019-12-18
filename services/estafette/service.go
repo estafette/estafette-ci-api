@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
@@ -43,6 +44,7 @@ func NewService(jobsConfig config.JobsConfig, apiServerConfig config.APIServerCo
 		apiServerConfig:      apiServerConfig,
 		cockroachdbClient:    cockroachdbClient,
 		prometheusClient:     prometheusClient,
+		cloudStorageClient:   cloudStorageClient,
 		builderapiClient:     builderapiClient,
 		githubJobVarsFunc:    githubJobVarsFunc,
 		bitbucketJobVarsFunc: bitbucketJobVarsFunc,
@@ -1002,10 +1004,46 @@ func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource,
 
 func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
 
-	shortFromRepoSource := s.getShortRepoSource(fromRepoSource)
-	shortToRepoSource := s.getShortRepoSource(toRepoSource)
+	nrOfGoroutines := 1
+	if s.apiServerConfig.WriteLogToCloudStorage() {
+		nrOfGoroutines++
+	}
+	var wg sync.WaitGroup
+	wg.Add(nrOfGoroutines)
 
-	return s.cockroachdbClient.Rename(ctx, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName)
+	errors := make(chan error, nrOfGoroutines)
+
+	go func(wg *sync.WaitGroup, ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) {
+		defer wg.Done()
+
+		shortFromRepoSource := s.getShortRepoSource(fromRepoSource)
+		shortToRepoSource := s.getShortRepoSource(toRepoSource)
+
+		err := s.cockroachdbClient.Rename(ctx, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName)
+		if err != nil {
+			errors <- err
+		}
+	}(&wg, ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+
+	if s.apiServerConfig.WriteLogToCloudStorage() {
+		go func(wg *sync.WaitGroup, ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) {
+			defer wg.Done()
+
+			err := s.cloudStorageClient.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+			if err != nil {
+				errors <- err
+			}
+		}(&wg, ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	}
+
+	wg.Wait()
+
+	close(errors)
+	for e := range errors {
+		return e
+	}
+
+	return nil
 }
 
 func (s *service) UpdateBuildStatus(ctx context.Context, ciBuilderEvent builderapi.CiBuilderEvent) (err error) {

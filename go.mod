@@ -33,6 +33,6 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/uber/jaeger-client-go v2.20.1+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible
-	google.golang.org/api v0.10.0 // indirect
+	google.golang.org/api v0.10.0
 	gopkg.in/yaml.v2 v2.2.2
 )

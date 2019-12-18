@@ -41,3 +41,9 @@ func (c *loggingClient) GetPipelineReleaseLogs(ctx context.Context, releaseLog c
 
 	return c.Client.GetPipelineReleaseLogs(ctx, releaseLog, acceptGzipEncoding, responseWriter)
 }
+
+func (c *loggingClient) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "Rename", err) }()
+
+	return c.Client.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}

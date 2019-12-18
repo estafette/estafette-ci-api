@@ -12,6 +12,7 @@ type MockClient struct {
 	InsertReleaseLogFunc       func(ctx context.Context, releaseLog contracts.ReleaseLog) (err error)
 	GetPipelineBuildLogsFunc   func(ctx context.Context, buildLog contracts.BuildLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error)
 	GetPipelineReleaseLogsFunc func(ctx context.Context, releaseLog contracts.ReleaseLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error)
+	RenameFunc                 func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 }
 
 func (c MockClient) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error) {
@@ -40,4 +41,11 @@ func (c MockClient) GetPipelineReleaseLogs(ctx context.Context, releaseLog contr
 		return
 	}
 	return c.GetPipelineReleaseLogsFunc(ctx, releaseLog, acceptGzipEncoding, responseWriter)
+}
+
+func (c MockClient) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
+	if c.RenameFunc == nil {
+		return
+	}
+	return c.RenameFunc(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }

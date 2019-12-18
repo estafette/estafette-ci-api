@@ -8,11 +8,13 @@ import (
 	"io"
 	"net/http"
 	"path"
+	"strings"
 
 	"cloud.google.com/go/storage"
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	foundation "github.com/estafette/estafette-foundation"
+	"google.golang.org/api/iterator"
 )
 
 // Client is the interface for connecting to google cloud storage
@@ -21,6 +23,7 @@ type Client interface {
 	InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) (err error)
 	GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error)
 	GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error)
+	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 }
 
 // NewClient returns new cloudstorage.Client
@@ -169,14 +172,88 @@ func (c *client) getLog(ctx context.Context, path string, acceptGzipEncoding boo
 
 func (c *client) getBuildLogPath(buildLog contracts.BuildLog) (logPath string) {
 
-	logPath = path.Join(c.config.LogsDirectory, buildLog.RepoSource, buildLog.RepoOwner, buildLog.RepoName, "builds", fmt.Sprintf("%v.log", buildLog.ID))
+	logDirectory := c.getLogDirectory(buildLog.RepoSource, buildLog.RepoOwner, buildLog.RepoName, "builds")
+
+	logPath = path.Join(logDirectory, fmt.Sprintf("%v.log", buildLog.ID))
 
 	return logPath
 }
 
 func (c *client) getReleaseLogPath(releaseLog contracts.ReleaseLog) (logPath string) {
 
-	logPath = path.Join(c.config.LogsDirectory, releaseLog.RepoSource, releaseLog.RepoOwner, releaseLog.RepoName, "releases", fmt.Sprintf("%v.log", releaseLog.ID))
+	logDirectory := c.getLogDirectory(releaseLog.RepoSource, releaseLog.RepoOwner, releaseLog.RepoName, "releases")
+
+	logPath = path.Join(logDirectory, fmt.Sprintf("%v.log", releaseLog.ID))
 
 	return logPath
+}
+
+func (c *client) getLogDirectory(repoSource, repoOwner, repoName, logType string) (logDirectory string) {
+	logDirectory = path.Join(c.config.LogsDirectory, repoSource, repoOwner, repoName, logType)
+
+	return logDirectory
+}
+
+func (c *client) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
+
+	bucket := c.client.Bucket(c.config.Bucket)
+
+	// list all build log files in old location, rename to new location
+	fromBuildLogDirectory := c.getLogDirectory(fromRepoSource, fromRepoOwner, fromRepoName, "builds")
+	toBuildLogDirectory := c.getLogDirectory(toRepoSource, toRepoOwner, toRepoName, "builds")
+
+	err = c.renameFilesInDirectory(ctx, bucket, fromBuildLogDirectory, toBuildLogDirectory)
+	if err != nil {
+		return err
+	}
+
+	// TODO - list all release log files in old location, rename to new location
+	fromReleaseLogDirectory := c.getLogDirectory(fromRepoSource, fromRepoOwner, fromRepoName, "releases")
+	toReleaseLogDirectory := c.getLogDirectory(toRepoSource, toRepoOwner, toRepoName, "releases")
+
+	err = c.renameFilesInDirectory(ctx, bucket, fromReleaseLogDirectory, toReleaseLogDirectory)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *client) renameFilesInDirectory(ctx context.Context, bucket *storage.BucketHandle, fromLogFileDirectory, toLogFileDirectory string) (err error) {
+	it := bucket.Objects(ctx, &storage.Query{
+		Prefix:    fromLogFileDirectory,
+		Delimiter: "/",
+	})
+	for {
+		attrs, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		fromLogFilePath := attrs.Name
+		toLogFilePath := strings.Replace(fromLogFilePath, fromLogFileDirectory, toLogFileDirectory, 1)
+
+		err = c.renameFile(ctx, bucket, fromLogFilePath, toLogFilePath)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *client) renameFile(ctx context.Context, bucket *storage.BucketHandle, fromLogFilePath, toLogFilePath string) (err error) {
+	src := bucket.Object(fromLogFilePath)
+	dst := bucket.Object(toLogFilePath)
+
+	if _, err := dst.CopierFrom(src).Run(ctx); err != nil {
+		return err
+	}
+	if err := src.Delete(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }

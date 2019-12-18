@@ -46,3 +46,10 @@ func (c *tracingClient) GetPipelineReleaseLogs(ctx context.Context, releaseLog c
 
 	return c.Client.GetPipelineReleaseLogs(ctx, releaseLog, acceptGzipEncoding, responseWriter)
 }
+
+func (c *tracingClient) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "Rename"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
