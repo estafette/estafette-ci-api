@@ -400,3 +400,28 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		assert.True(t, isWhitelisted)
 	})
 }
+
+func TestRename(t *testing.T) {
+
+	t.Run("CallsRenameOnEstafetteService", func(t *testing.T) {
+
+		config := config.BitbucketConfig{}
+		bitbucketapiClient := bitbucketapi.MockClient{}
+		pubsubapiClient := pubsubapi.MockClient{}
+		estafetteService := estafette.MockService{}
+
+		renameCallCount := 0
+		estafetteService.RenameFunc = func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
+			renameCallCount++
+			return
+		}
+
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+
+		// act
+		err := service.Rename(context.Background(), "bitbucket.org", "estafette", "estafette-ci-contracts", "bitbucket.org", "estafette", "estafette-ci-protos")
+
+		assert.Nil(t, err)
+		assert.Equal(t, 1, renameCallCount)
+	})
+}

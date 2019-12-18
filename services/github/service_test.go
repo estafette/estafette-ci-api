@@ -250,3 +250,30 @@ func TestIsWhitelistedInstallation(t *testing.T) {
 		assert.True(t, isWhitelisted)
 	})
 }
+
+func TestRename(t *testing.T) {
+
+	t.Run("CallsRenameOnEstafetteService", func(t *testing.T) {
+
+		config := config.GithubConfig{
+			WhitelistedInstallations: []int{},
+		}
+		githubapiClient := githubapi.MockClient{}
+		pubsubapiClient := pubsubapi.MockClient{}
+		estafetteService := estafette.MockService{}
+
+		renameCallCount := 0
+		estafetteService.RenameFunc = func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
+			renameCallCount++
+			return
+		}
+
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService)
+
+		// act
+		err := service.Rename(context.Background(), "github.com", "estafette", "estafette-ci-contracts", "github.com", "estafette", "estafette-ci-protos")
+
+		assert.Nil(t, err)
+		assert.Equal(t, 1, renameCallCount)
+	})
+}
