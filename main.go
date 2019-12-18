@@ -286,7 +286,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 
 	var githubService github.Service
 	{
-		githubService = github.NewService(githubapiClient, pubsubapiClient, estafetteService, *config.Integrations.Github)
+		githubService = github.NewService(*config.Integrations.Github, githubapiClient, pubsubapiClient, estafetteService)
 		githubService = github.NewTracingService(githubService)
 		githubService = github.NewLoggingService(githubService)
 		githubService = github.NewMetricsService(githubService,

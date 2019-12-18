@@ -17,6 +17,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+var (
+	ErrNonCloneableEvent = errors.New("The event is not cloneable")
+	ErrNoManifest        = errors.New("The repository has no manifest at the pushed commit")
+)
+
 // Service handles http events for Github integration
 type Service interface {
 	CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) (err error)
@@ -26,7 +31,7 @@ type Service interface {
 }
 
 // NewService returns a github.Service to handle incoming webhook events
-func NewService(githubapiClient githubapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, config config.GithubConfig) Service {
+func NewService(config config.GithubConfig, githubapiClient githubapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service) Service {
 	return &service{
 		githubapiClient:  githubapiClient,
 		pubsubapiClient:  pubsubapiClient,
@@ -46,7 +51,7 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 
 	// check to see that it's a cloneable event
 	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
-		return
+		return ErrNonCloneableEvent
 	}
 
 	gitEvent := manifest.EstafetteGitEvent{
@@ -82,7 +87,7 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 	}
 
 	if !manifestExists {
-		return
+		return ErrNoManifest
 	}
 
 	var commits []contracts.GitCommit
