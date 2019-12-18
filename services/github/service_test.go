@@ -182,3 +182,71 @@ func TestCreateJobForGithubPush(t *testing.T) {
 		assert.Equal(t, 1, subscribeToPubsubTriggersCallCount)
 	})
 }
+
+func TestIsWhitelistedInstallation(t *testing.T) {
+
+	t.Run("ReturnsTrueIfWhitelistedInstallationsConfigIsEmpty", func(t *testing.T) {
+
+		config := config.GithubConfig{
+			WhitelistedInstallations: []int{},
+		}
+		githubapiClient := githubapi.MockClient{}
+		pubsubapiClient := pubsubapi.MockClient{}
+		estafetteService := estafette.MockService{}
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService)
+
+		installation := githubapi.Installation{
+			ID: 513,
+		}
+
+		// act
+		isWhitelisted := service.IsWhitelistedInstallation(context.Background(), installation)
+
+		assert.True(t, isWhitelisted)
+	})
+
+	t.Run("ReturnsFalseIfInstallationIDIsNotInWhitelistedInstallationsConfig", func(t *testing.T) {
+
+		config := config.GithubConfig{
+			WhitelistedInstallations: []int{
+				236,
+			},
+		}
+		githubapiClient := githubapi.MockClient{}
+		pubsubapiClient := pubsubapi.MockClient{}
+		estafetteService := estafette.MockService{}
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService)
+
+		installation := githubapi.Installation{
+			ID: 513,
+		}
+
+		// act
+		isWhitelisted := service.IsWhitelistedInstallation(context.Background(), installation)
+
+		assert.False(t, isWhitelisted)
+	})
+
+	t.Run("ReturnsTrueIfInstallationIDIsInWhitelistedInstallationsConfig", func(t *testing.T) {
+
+		config := config.GithubConfig{
+			WhitelistedInstallations: []int{
+				236,
+				513,
+			},
+		}
+		githubapiClient := githubapi.MockClient{}
+		pubsubapiClient := pubsubapi.MockClient{}
+		estafetteService := estafette.MockService{}
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService)
+
+		installation := githubapi.Installation{
+			ID: 513,
+		}
+
+		// act
+		isWhitelisted := service.IsWhitelistedInstallation(context.Background(), installation)
+
+		assert.True(t, isWhitelisted)
+	})
+}

@@ -326,3 +326,77 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		assert.Equal(t, 1, subscribeToPubsubTriggersCallCount)
 	})
 }
+
+func TestIsWhitelistedOwner(t *testing.T) {
+
+	t.Run("ReturnsTrueIfWhitelistedOwnersConfigIsEmpty", func(t *testing.T) {
+
+		config := config.BitbucketConfig{
+			WhitelistedOwners: []string{},
+		}
+		bitbucketapiClient := bitbucketapi.MockClient{}
+		pubsubapiClient := pubsubapi.MockClient{}
+		estafetteService := estafette.MockService{}
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+
+		repository := bitbucketapi.Repository{
+			Owner: bitbucketapi.Owner{
+				UserName: "anyone",
+			},
+		}
+
+		// act
+		isWhitelisted := service.IsWhitelistedOwner(repository)
+
+		assert.True(t, isWhitelisted)
+	})
+
+	t.Run("ReturnsFalseIfOwnerUsernameIsNotInWhitelistedOwnersConfig", func(t *testing.T) {
+
+		config := config.BitbucketConfig{
+			WhitelistedOwners: []string{
+				"someone-else",
+			},
+		}
+		bitbucketapiClient := bitbucketapi.MockClient{}
+		pubsubapiClient := pubsubapi.MockClient{}
+		estafetteService := estafette.MockService{}
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+
+		repository := bitbucketapi.Repository{
+			Owner: bitbucketapi.Owner{
+				UserName: "estafette-in-bitbucket",
+			},
+		}
+
+		// act
+		isWhitelisted := service.IsWhitelistedOwner(repository)
+
+		assert.False(t, isWhitelisted)
+	})
+
+	t.Run("ReturnsTrueIfOwnerUsernameIsInWhitelistedOwnersConfig", func(t *testing.T) {
+
+		config := config.BitbucketConfig{
+			WhitelistedOwners: []string{
+				"someone-else",
+				"estafette-in-bitbucket",
+			},
+		}
+		bitbucketapiClient := bitbucketapi.MockClient{}
+		pubsubapiClient := pubsubapi.MockClient{}
+		estafetteService := estafette.MockService{}
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+
+		repository := bitbucketapi.Repository{
+			Owner: bitbucketapi.Owner{
+				UserName: "estafette-in-bitbucket",
+			},
+		}
+
+		// act
+		isWhitelisted := service.IsWhitelistedOwner(repository)
+
+		assert.True(t, isWhitelisted)
+	})
+}
