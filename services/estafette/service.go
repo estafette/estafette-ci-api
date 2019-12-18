@@ -162,52 +162,9 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 		}
 	}
 
-	if len(build.Labels) == 0 {
-		var labels []contracts.Label
-		if hasValidManifest {
-			for k, v := range mft.Labels {
-				labels = append(labels, contracts.Label{
-					Key:   k,
-					Value: v,
-				})
-			}
-		} else if pipeline != nil {
-			log.Debug().Msgf("Copying previous labels for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
-			labels = pipeline.Labels
-		}
-		build.Labels = labels
-	}
-
-	if len(build.ReleaseTargets) == 0 {
-		var releaseTargets []contracts.ReleaseTarget
-		if hasValidManifest {
-			for _, r := range mft.Releases {
-				releaseTarget := contracts.ReleaseTarget{
-					Name:    r.Name,
-					Actions: make([]manifest.EstafetteReleaseAction, 0),
-				}
-				if r.Actions != nil && len(r.Actions) > 0 {
-					for _, a := range r.Actions {
-						releaseTarget.Actions = append(releaseTarget.Actions, *a)
-					}
-				}
-				releaseTargets = append(releaseTargets, releaseTarget)
-			}
-		} else if pipeline != nil {
-			log.Debug().Msgf("Copying previous release targets for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
-			releaseTargets = pipeline.ReleaseTargets
-		}
-		build.ReleaseTargets = releaseTargets
-	}
-
-	if len(build.Triggers) == 0 {
-		if hasValidManifest {
-			build.Triggers = mft.GetAllTriggers(build.RepoSource, build.RepoOwner, build.RepoName)
-		} else if pipeline != nil {
-			log.Debug().Msgf("Copying previous release targets for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
-			build.Triggers = pipeline.Triggers
-		}
-	}
+	build.Labels = s.getBuildLabels(build, hasValidManifest, mft, pipeline)
+	build.ReleaseTargets = s.getBuildReleaseTargets(build, hasValidManifest, mft, pipeline)
+	build.Triggers = s.getBuildTriggers(build, hasValidManifest, mft, pipeline)
 
 	// get authenticated url
 	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
@@ -1150,4 +1107,63 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent builder
 	}
 
 	return nil
+}
+
+func (s *service) getBuildLabels(build contracts.Build, hasValidManifest bool, mft manifest.EstafetteManifest, pipeline *contracts.Pipeline) []contracts.Label {
+	if len(build.Labels) == 0 {
+		var labels []contracts.Label
+		if hasValidManifest {
+			for k, v := range mft.Labels {
+				labels = append(labels, contracts.Label{
+					Key:   k,
+					Value: v,
+				})
+			}
+		} else if pipeline != nil {
+			log.Debug().Msgf("Copying previous labels for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
+			labels = pipeline.Labels
+		}
+		build.Labels = labels
+	}
+
+	return build.Labels
+}
+
+func (s *service) getBuildReleaseTargets(build contracts.Build, hasValidManifest bool, mft manifest.EstafetteManifest, pipeline *contracts.Pipeline) []contracts.ReleaseTarget {
+
+	if len(build.ReleaseTargets) == 0 {
+		var releaseTargets []contracts.ReleaseTarget
+		if hasValidManifest {
+			for _, r := range mft.Releases {
+				releaseTarget := contracts.ReleaseTarget{
+					Name:    r.Name,
+					Actions: make([]manifest.EstafetteReleaseAction, 0),
+				}
+				if r.Actions != nil && len(r.Actions) > 0 {
+					for _, a := range r.Actions {
+						releaseTarget.Actions = append(releaseTarget.Actions, *a)
+					}
+				}
+				releaseTargets = append(releaseTargets, releaseTarget)
+			}
+		} else if pipeline != nil {
+			log.Debug().Msgf("Copying previous release targets for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
+			releaseTargets = pipeline.ReleaseTargets
+		}
+		build.ReleaseTargets = releaseTargets
+	}
+	return build.ReleaseTargets
+}
+
+func (s *service) getBuildTriggers(build contracts.Build, hasValidManifest bool, mft manifest.EstafetteManifest, pipeline *contracts.Pipeline) []manifest.EstafetteTrigger {
+	if len(build.Triggers) == 0 {
+		if hasValidManifest {
+			build.Triggers = mft.GetAllTriggers(build.RepoSource, build.RepoOwner, build.RepoName)
+		} else if pipeline != nil {
+			log.Debug().Msgf("Copying previous release targets for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
+			build.Triggers = pipeline.Triggers
+		}
+	}
+
+	return build.Triggers
 }

@@ -54,6 +54,41 @@ func TestCreateBuild(t *testing.T) {
 		assert.Equal(t, 1, callCount)
 	})
 
+	t.Run("CallsGetPipelineOnCockroachdbClientIfManifestIsInvalid", func(t *testing.T) {
+
+		ctx := context.Background()
+
+		jobsConfig := config.JobsConfig{}
+		apiServerConfig := config.APIServerConfig{}
+		cockroachdbClient := cockroachdb.MockClient{}
+		prometheusClient := prometheus.MockClient{}
+		cloudStorageClient := cloudstorage.MockClient{}
+		builderapiClient := builderapi.MockClient{}
+		githubapiClient := githubapi.MockClient{}
+		bitbucketapiClient := bitbucketapi.MockClient{}
+
+		callCount := 0
+		cockroachdbClient.GetPipelineFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error) {
+			callCount++
+			return
+		}
+
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+
+		build := contracts.Build{
+			RepoSource: "github.com",
+			RepoOwner:  "estafette",
+			RepoName:   "estafette-ci-api",
+			RepoBranch: "master",
+			Manifest:   "builder:\n  track: dev\nstages:\n", // no stages, thus invalid
+		}
+
+		// act
+		_, _ = service.CreateBuild(context.Background(), build, true)
+
+		assert.Equal(t, 1, callCount)
+	})
+
 	t.Run("CallsGetPipelineBuildMaxResourceUtilizationOnCockroachdbClient", func(t *testing.T) {
 
 		ctx := context.Background()
