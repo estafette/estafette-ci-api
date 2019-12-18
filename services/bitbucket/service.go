@@ -14,9 +14,9 @@ import (
 
 // Service handles http events for Bitbucket integration
 type Service interface {
-	CreateJobForBitbucketPush(context.Context, bitbucketapi.RepositoryPushEvent)
-	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
-	IsWhitelistedOwner(repository bitbucketapi.Repository) bool
+	CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent)
+	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
+	IsWhitelistedOwner(repository bitbucketapi.Repository) (isWhiteListed bool)
 }
 
 // NewService returns a new bitbucket.Service

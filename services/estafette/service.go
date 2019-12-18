@@ -21,18 +21,18 @@ import (
 
 // Service encapsulates build and release creation and re-triggering
 type Service interface {
-	CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (*contracts.Build, error)
-	FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) error
-	CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (*contracts.Release, error)
-	FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) error
-	FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) error
-	FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) error
-	FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) error
-	FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) error
-	FireCronTriggers(ctx context.Context) error
-	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
-	UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) error
-	UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) error
+	CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error)
+	FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error)
+	CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (r *contracts.Release, err error)
+	FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) (err error)
+	FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error)
+	FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) (err error)
+	FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) (err error)
+	FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) (err error)
+	FireCronTriggers(ctx context.Context) (err error)
+	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
+	UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
+	UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 }
 
 // NewService returns a new estafette.Service

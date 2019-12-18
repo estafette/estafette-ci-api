@@ -20,9 +20,9 @@ import (
 // Service handles http events for Github integration
 type Service interface {
 	CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent)
-	HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (bool, error)
-	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error
-	IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) bool
+	HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (validSignature bool, err error)
+	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
+	IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool)
 }
 
 // NewService returns a github.Service to handle incoming webhook events
