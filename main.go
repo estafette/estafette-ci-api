@@ -181,18 +181,21 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	{
 		bitbucketAPIClient = bitbucketapi.NewClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
 		bitbucketAPIClient = bitbucketapi.NewTracingClient(bitbucketAPIClient)
+		bitbucketAPIClient = bitbucketapi.NewLoggingClient(bitbucketAPIClient)
 	}
 
 	var githubAPIClient githubapi.Client
 	{
 		githubAPIClient = githubapi.NewClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
 		githubAPIClient = githubapi.NewTracingClient(githubAPIClient)
+		githubAPIClient = githubapi.NewLoggingClient(githubAPIClient)
 	}
 
 	var slackAPIClient slackapi.Client
 	{
 		slackAPIClient = slackapi.NewClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
 		slackAPIClient = slackapi.NewTracingClient(slackAPIClient)
+		slackAPIClient = slackapi.NewLoggingClient(slackAPIClient)
 	}
 
 	var pubSubAPIClient pubsubapi.Client
@@ -203,12 +206,14 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		}
 		pubSubAPIClient = pubsubapi.NewClient(*config.Integrations.Pubsub, pubsubClient)
 		pubSubAPIClient = pubsubapi.NewTracingClient(pubSubAPIClient)
+		pubSubAPIClient = pubsubapi.NewLoggingClient(pubSubAPIClient)
 	}
 
 	var cockroachDBClient cockroachdb.Client
 	{
 		cockroachDBClient = cockroachdb.NewClient(*config.Database, prometheusOutboundAPICallTotals)
 		cockroachDBClient = cockroachdb.NewTracingClient(cockroachDBClient)
+		cockroachDBClient = cockroachdb.NewLoggingClient(cockroachDBClient)
 	}
 	err = cockroachDBClient.Connect(ctx)
 	if err != nil {
@@ -219,6 +224,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	{
 		dockerHubClient = dockerhubapi.NewClient()
 		dockerHubClient = dockerhubapi.NewTracingClient(dockerHubClient)
+		dockerHubClient = dockerhubapi.NewLoggingClient(dockerHubClient)
 	}
 
 	var ciBuilderClient builderapi.Client
@@ -229,6 +235,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		}
 		ciBuilderClient = builderapi.NewClient(*config, *encryptedConfig, secretHelper, kubeClient, dockerHubClient, prometheusOutboundAPICallTotals)
 		ciBuilderClient = builderapi.NewTracingClient(ciBuilderClient)
+		ciBuilderClient = builderapi.NewLoggingClient(ciBuilderClient)
 	}
 
 	var cloudStorageClient cloudstorage.Client
@@ -239,12 +246,14 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		}
 		cloudStorageClient = cloudstorage.NewClient(config.Integrations.CloudStorage, gcsClient)
 		cloudStorageClient = cloudstorage.NewTracingClient(cloudStorageClient)
+		cloudStorageClient = cloudstorage.NewLoggingClient(cloudStorageClient)
 	}
 
 	var prometheusClient prometheus.Client
 	{
 		prometheusClient = prometheus.NewClient(*config.Integrations.Prometheus)
 		prometheusClient = prometheus.NewTracingClient(prometheusClient)
+		prometheusClient = prometheus.NewLoggingClient(prometheusClient)
 	}
 
 	log.Debug().Msg("Creating services...")
@@ -253,18 +262,21 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	{
 		estafetteService = estafette.NewService(*config.Jobs, *config.APIServer, cockroachDBClient, prometheusClient, cloudStorageClient, ciBuilderClient, githubAPIClient.JobVarsFunc(ctx), bitbucketAPIClient.JobVarsFunc(ctx))
 		estafetteService = estafette.NewTracingService(estafetteService)
+		estafetteService = estafette.NewLoggingService(estafetteService)
 	}
 
 	var githubService github.Service
 	{
 		githubService = github.NewService(githubAPIClient, pubSubAPIClient, estafetteService, *config.Integrations.Github, prometheusInboundEventTotals)
 		githubService = github.NewTracingService(githubService)
+		githubService = github.NewLoggingService(githubService)
 	}
 
 	var bitbucketService bitbucket.Service
 	{
 		bitbucketService = bitbucket.NewService(*config.Integrations.Bitbucket, bitbucketAPIClient, pubSubAPIClient, estafetteService, prometheusInboundEventTotals)
 		bitbucketService = bitbucket.NewTracingService(bitbucketService)
+		bitbucketService = bitbucket.NewLoggingService(bitbucketService)
 	}
 
 	// transport

@@ -3,21 +3,20 @@ package bigquery
 import (
 	"context"
 
-	"github.com/rs/zerolog/log"
+	"github.com/estafette/estafette-ci-api/helpers"
 )
 
 func NewLoggingClient(c Client) Client {
-	return &loggingClient{c}
+	return &loggingClient{c, "bigquery"}
 }
 
 type loggingClient struct {
 	Client
+	prefix string
 }
 
 func (c *loggingClient) Init(ctx context.Context) (err error) {
-	defer func() {
-		c.handleError(err)
-	}()
+	defer func() { helpers.HandleLogError(c.prefix, "Init", err) }()
 
 	return c.Client.Init(ctx)
 }
@@ -31,39 +30,25 @@ func (c *loggingClient) CheckIfTableExists(ctx context.Context, table string) (e
 }
 
 func (c *loggingClient) CreateTable(ctx context.Context, table string, typeForSchema interface{}, partitionField string, waitReady bool) (err error) {
-	defer func() {
-		c.handleError(err)
-	}()
+	defer func() { helpers.HandleLogError(c.prefix, "CreateTable", err) }()
 
 	return c.Client.CreateTable(ctx, table, typeForSchema, partitionField, waitReady)
 }
 
 func (c *loggingClient) UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) (err error) {
-	defer func() {
-		c.handleError(err)
-	}()
+	defer func() { helpers.HandleLogError(c.prefix, "UpdateTableSchema", err) }()
 
 	return c.Client.UpdateTableSchema(ctx, table, typeForSchema)
 }
 
 func (c *loggingClient) InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) (err error) {
-	defer func() {
-		c.handleError(err)
-	}()
+	defer func() { helpers.HandleLogError(c.prefix, "InsertBuildEvent", err) }()
 
 	return c.Client.InsertBuildEvent(ctx, event)
 }
 
 func (c *loggingClient) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) (err error) {
-	defer func() {
-		c.handleError(err)
-	}()
+	defer func() { helpers.HandleLogError(c.prefix, "InsertReleaseEvent", err) }()
 
 	return c.Client.InsertReleaseEvent(ctx, event)
-}
-
-func (c *loggingClient) handleError(err error) {
-	if err != nil {
-		log.Error().Err(err).Msg("Failure")
-	}
 }
