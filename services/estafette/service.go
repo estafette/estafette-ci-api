@@ -70,15 +70,10 @@ type service struct {
 func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (createdBuild *contracts.Build, err error) {
 
 	// validate manifest
-	hasValidManifest := false
 	mft, manifestError := manifest.ReadManifest(build.Manifest)
-	if manifestError != nil {
-		log.Warn().Err(manifestError).Str("manifest", build.Manifest).Msgf("Deserializing Estafette manifest for pipeline %v/%v/%v and revision %v failed, continuing though so developer gets useful feedback", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
-	} else {
-		hasValidManifest = true
-	}
+	hasValidManifest := manifestError == nil
 
-	// if manifest is invalid get the pipeline in order to use same labels as normally
+	// if manifest is invalid get the pipeline in order to use same labels, release targets and triggers as before
 	var pipeline *contracts.Pipeline
 	if !hasValidManifest {
 		pipeline, _ = s.cockroachdbClient.GetPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName, false)
@@ -111,55 +106,9 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 		}
 	}
 
-	// get or set autoincrement and build version
-	autoincrement := 0
-	if build.BuildVersion == "" {
-		// get autoincrement number
-		autoincrement, err = s.cockroachdbClient.GetAutoIncrement(ctx, shortRepoSource, build.RepoOwner, build.RepoName)
-		if err != nil {
-			return
-		}
-
-		// set build version number
-		if hasValidManifest {
-			build.BuildVersion = mft.Version.Version(manifest.EstafetteVersionParams{
-				AutoIncrement: autoincrement,
-				Branch:        build.RepoBranch,
-				Revision:      build.RepoRevision,
-			})
-		} else if pipeline != nil {
-			log.Debug().Msgf("Copying previous versioning for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
-			previousManifest, err := manifest.ReadManifest(build.Manifest)
-			if err != nil {
-				build.BuildVersion = previousManifest.Version.Version(manifest.EstafetteVersionParams{
-					AutoIncrement: autoincrement,
-					Branch:        build.RepoBranch,
-					Revision:      build.RepoRevision,
-				})
-			} else {
-				log.Warn().Msgf("Not using previous versioning for pipeline %v/%v/%v, because its manifest is also invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
-				build.BuildVersion = strconv.Itoa(autoincrement)
-			}
-		} else {
-			// set build version to autoincrement so there's at least a version in the db and gui
-			build.BuildVersion = strconv.Itoa(autoincrement)
-		}
-	} else {
-		// get autoincrement from build version
-		autoincrementCandidate := build.BuildVersion
-		if hasValidManifest && mft.Version.SemVer != nil {
-			re := regexp.MustCompile(`^[0-9]+\.[0-9]+\.([0-9]+)(-[0-9a-z-]+)?$`)
-			match := re.FindStringSubmatch(build.BuildVersion)
-
-			if len(match) > 1 {
-				autoincrementCandidate = match[1]
-			}
-		}
-
-		autoincrement, err = strconv.Atoi(autoincrementCandidate)
-		if err != nil {
-			log.Warn().Err(err).Str("buildversion", build.BuildVersion).Msgf("Failed extracting autoincrement from build version %v for pipeline %v/%v/%v revision %v", build.BuildVersion, build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
-		}
+	autoincrement, err := s.getBuildAutoIncrement(ctx, build, shortRepoSource, hasValidManifest, mft, pipeline)
+	if err != nil {
+		return nil, err
 	}
 
 	build.Labels = s.getBuildLabels(build, hasValidManifest, mft, pipeline)
@@ -172,44 +121,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 		return
 	}
 
-	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
-	jobResources := cockroachdb.JobResources{
-		CPURequest:    s.jobsConfig.MaxCPUCores,
-		CPULimit:      s.jobsConfig.MaxCPUCores,
-		MemoryRequest: s.jobsConfig.MaxMemoryBytes,
-		MemoryLimit:   s.jobsConfig.MaxMemoryBytes,
-	}
-
-	// get max usage from previous builds
-	measuredResources, nrRecords, err := s.cockroachdbClient.GetPipelineBuildMaxResourceUtilization(ctx, build.RepoSource, build.RepoOwner, build.RepoName, 25)
-	if err != nil {
-		log.Warn().Err(err).Msgf("Failed retrieving max resource utilization for recent builds of %v/%v/%v, using defaults...", build.RepoSource, build.RepoOwner, build.RepoName)
-	} else if nrRecords < 5 {
-		log.Info().Msgf("Retrieved max resource utilization for recent builds of %v/%v/%v only has %v records, using defaults...", build.RepoSource, build.RepoOwner, build.RepoName, nrRecords)
-	} else {
-		log.Info().Msgf("Retrieved max resource utilization for recent builds of %v/%v/%v, checking if they are within lower and upper bound...", build.RepoSource, build.RepoOwner, build.RepoName)
-
-		// only override cpu and memory request values if measured values are within min and max
-		if measuredResources.CPUMaxUsage > 0 {
-			if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio <= s.jobsConfig.MinCPUCores {
-				jobResources.CPURequest = s.jobsConfig.MinCPUCores
-			} else if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio >= s.jobsConfig.MaxCPUCores {
-				jobResources.CPURequest = s.jobsConfig.MaxCPUCores
-			} else {
-				jobResources.CPURequest = measuredResources.CPUMaxUsage * s.jobsConfig.CPURequestRatio
-			}
-		}
-
-		if measuredResources.MemoryMaxUsage > 0 {
-			if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio <= s.jobsConfig.MinMemoryBytes {
-				jobResources.MemoryRequest = s.jobsConfig.MinMemoryBytes
-			} else if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio >= s.jobsConfig.MaxMemoryBytes {
-				jobResources.MemoryRequest = s.jobsConfig.MaxMemoryBytes
-			} else {
-				jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.jobsConfig.MemoryRequestRatio
-			}
-		}
-	}
+	jobResources := s.getBuildJobResources(ctx, build)
 
 	// store build in db
 	createdBuild, err = s.cockroachdbClient.InsertBuild(ctx, contracts.Build{
@@ -385,20 +297,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	}
 
 	// get autoincrement from release version
-	autoincrementCandidate := release.ReleaseVersion
-	if mft.Version.SemVer != nil {
-		re := regexp.MustCompile(`^[0-9]+\.[0-9]+\.([0-9]+)(-[0-9a-zA-Z-/]+)?$`)
-		match := re.FindStringSubmatch(release.ReleaseVersion)
-
-		if len(match) > 1 {
-			autoincrementCandidate = match[1]
-		}
-	}
-
-	autoincrement, err := strconv.Atoi(autoincrementCandidate)
-	if err != nil {
-		log.Warn().Err(err).Str("releaseversion", release.ReleaseVersion).Msgf("Failed extracting autoincrement from build version %v for pipeline %v/%v/%v", release.ReleaseVersion, release.RepoSource, release.RepoOwner, release.RepoName)
-	}
+	autoincrement := s.getReleaseAutoIncrement(ctx, release, mft)
 
 	// get authenticated url
 	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, release.RepoSource, release.RepoOwner, release.RepoName)
@@ -406,44 +305,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 		return
 	}
 
-	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
-	jobResources := cockroachdb.JobResources{
-		CPURequest:    s.jobsConfig.MaxCPUCores,
-		CPULimit:      s.jobsConfig.MaxCPUCores,
-		MemoryRequest: s.jobsConfig.MaxMemoryBytes,
-		MemoryLimit:   s.jobsConfig.MaxMemoryBytes,
-	}
-
-	// get max usage from previous releases
-	measuredResources, nrRecords, err := s.cockroachdbClient.GetPipelineReleaseMaxResourceUtilization(ctx, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, 25)
-	if err != nil {
-		log.Warn().Err(err).Msgf("Failed retrieving max resource utilization for recent releases of %v/%v/%v target %v, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
-	} else if nrRecords < 5 {
-		log.Info().Msgf("Retrieved max resource utilization for recent releases of %v/%v/%v target %v only has %v records, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, nrRecords)
-	} else {
-		log.Info().Msgf("Retrieved max resource utilization for recent releases of %v/%v/%v target %v, checking if they are within lower and upper bound...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
-
-		// only override cpu and memory request values if measured values are within min and max
-		if measuredResources.CPUMaxUsage > 0 {
-			if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio <= s.jobsConfig.MinCPUCores {
-				jobResources.CPURequest = s.jobsConfig.MinCPUCores
-			} else if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio >= s.jobsConfig.MaxCPUCores {
-				jobResources.CPURequest = s.jobsConfig.MaxCPUCores
-			} else {
-				jobResources.CPURequest = measuredResources.CPUMaxUsage * s.jobsConfig.CPURequestRatio
-			}
-		}
-
-		if measuredResources.MemoryMaxUsage > 0 {
-			if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio <= s.jobsConfig.MinMemoryBytes {
-				jobResources.MemoryRequest = s.jobsConfig.MinMemoryBytes
-			} else if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio >= s.jobsConfig.MaxMemoryBytes {
-				jobResources.MemoryRequest = s.jobsConfig.MaxMemoryBytes
-			} else {
-				jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.jobsConfig.MemoryRequestRatio
-			}
-		}
-	}
+	jobResources := s.getReleaseJobResources(ctx, release)
 
 	// create release in database
 	createdRelease, err = s.cockroachdbClient.InsertRelease(ctx, contracts.Release{
@@ -1166,4 +1028,167 @@ func (s *service) getBuildTriggers(build contracts.Build, hasValidManifest bool,
 	}
 
 	return build.Triggers
+}
+
+func (s *service) getBuildAutoIncrement(ctx context.Context, build contracts.Build, shortRepoSource string, hasValidManifest bool, mft manifest.EstafetteManifest, pipeline *contracts.Pipeline) (autoincrement int, err error) {
+
+	// get or set autoincrement and build version
+	autoincrement = 0
+	if build.BuildVersion == "" {
+		// get autoincrement number
+		autoincrement, err = s.cockroachdbClient.GetAutoIncrement(ctx, shortRepoSource, build.RepoOwner, build.RepoName)
+		if err != nil {
+			return autoincrement, err
+		}
+
+		// set build version number
+		if hasValidManifest {
+			build.BuildVersion = mft.Version.Version(manifest.EstafetteVersionParams{
+				AutoIncrement: autoincrement,
+				Branch:        build.RepoBranch,
+				Revision:      build.RepoRevision,
+			})
+		} else if pipeline != nil {
+			log.Debug().Msgf("Copying previous versioning for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
+			previousManifest, err := manifest.ReadManifest(build.Manifest)
+			if err != nil {
+				build.BuildVersion = previousManifest.Version.Version(manifest.EstafetteVersionParams{
+					AutoIncrement: autoincrement,
+					Branch:        build.RepoBranch,
+					Revision:      build.RepoRevision,
+				})
+			} else {
+				log.Warn().Msgf("Not using previous versioning for pipeline %v/%v/%v, because its manifest is also invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
+				build.BuildVersion = strconv.Itoa(autoincrement)
+			}
+		} else {
+			// set build version to autoincrement so there's at least a version in the db and gui
+			build.BuildVersion = strconv.Itoa(autoincrement)
+		}
+	} else {
+		// get autoincrement from build version
+		autoincrementCandidate := build.BuildVersion
+		if hasValidManifest && mft.Version.SemVer != nil {
+			re := regexp.MustCompile(`^[0-9]+\.[0-9]+\.([0-9]+)(-[0-9a-z-]+)?$`)
+			match := re.FindStringSubmatch(build.BuildVersion)
+
+			if len(match) > 1 {
+				autoincrementCandidate = match[1]
+			}
+		}
+
+		autoincrement, err = strconv.Atoi(autoincrementCandidate)
+		if err != nil {
+			log.Warn().Err(err).Str("buildversion", build.BuildVersion).Msgf("Failed extracting autoincrement from build version %v for pipeline %v/%v/%v revision %v", build.BuildVersion, build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+		}
+	}
+
+	return autoincrement, nil
+}
+
+func (s *service) getReleaseAutoIncrement(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest) (autoincrement int) {
+
+	autoincrementCandidate := release.ReleaseVersion
+	if mft.Version.SemVer != nil {
+		re := regexp.MustCompile(`^[0-9]+\.[0-9]+\.([0-9]+)(-[0-9a-zA-Z-/]+)?$`)
+		match := re.FindStringSubmatch(release.ReleaseVersion)
+
+		if len(match) > 1 {
+			autoincrementCandidate = match[1]
+		}
+	}
+
+	autoincrement, err := strconv.Atoi(autoincrementCandidate)
+	if err != nil {
+		log.Warn().Err(err).Str("releaseversion", release.ReleaseVersion).Msgf("Failed extracting autoincrement from build version %v for pipeline %v/%v/%v", release.ReleaseVersion, release.RepoSource, release.RepoOwner, release.RepoName)
+	}
+
+	return autoincrement
+}
+
+func (s *service) getBuildJobResources(ctx context.Context, build contracts.Build) cockroachdb.JobResources {
+	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
+	jobResources := cockroachdb.JobResources{
+		CPURequest:    s.jobsConfig.MaxCPUCores,
+		CPULimit:      s.jobsConfig.MaxCPUCores,
+		MemoryRequest: s.jobsConfig.MaxMemoryBytes,
+		MemoryLimit:   s.jobsConfig.MaxMemoryBytes,
+	}
+
+	// get max usage from previous builds
+	measuredResources, nrRecords, err := s.cockroachdbClient.GetPipelineBuildMaxResourceUtilization(ctx, build.RepoSource, build.RepoOwner, build.RepoName, 25)
+	if err != nil {
+		log.Warn().Err(err).Msgf("Failed retrieving max resource utilization for recent builds of %v/%v/%v, using defaults...", build.RepoSource, build.RepoOwner, build.RepoName)
+	} else if nrRecords < 5 {
+		log.Info().Msgf("Retrieved max resource utilization for recent builds of %v/%v/%v only has %v records, using defaults...", build.RepoSource, build.RepoOwner, build.RepoName, nrRecords)
+	} else {
+		log.Info().Msgf("Retrieved max resource utilization for recent builds of %v/%v/%v, checking if they are within lower and upper bound...", build.RepoSource, build.RepoOwner, build.RepoName)
+
+		// only override cpu and memory request values if measured values are within min and max
+		if measuredResources.CPUMaxUsage > 0 {
+			if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio <= s.jobsConfig.MinCPUCores {
+				jobResources.CPURequest = s.jobsConfig.MinCPUCores
+			} else if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio >= s.jobsConfig.MaxCPUCores {
+				jobResources.CPURequest = s.jobsConfig.MaxCPUCores
+			} else {
+				jobResources.CPURequest = measuredResources.CPUMaxUsage * s.jobsConfig.CPURequestRatio
+			}
+		}
+
+		if measuredResources.MemoryMaxUsage > 0 {
+			if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio <= s.jobsConfig.MinMemoryBytes {
+				jobResources.MemoryRequest = s.jobsConfig.MinMemoryBytes
+			} else if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio >= s.jobsConfig.MaxMemoryBytes {
+				jobResources.MemoryRequest = s.jobsConfig.MaxMemoryBytes
+			} else {
+				jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.jobsConfig.MemoryRequestRatio
+			}
+		}
+	}
+
+	return jobResources
+}
+
+func (s *service) getReleaseJobResources(ctx context.Context, release contracts.Release) cockroachdb.JobResources {
+
+	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
+	jobResources := cockroachdb.JobResources{
+		CPURequest:    s.jobsConfig.MaxCPUCores,
+		CPULimit:      s.jobsConfig.MaxCPUCores,
+		MemoryRequest: s.jobsConfig.MaxMemoryBytes,
+		MemoryLimit:   s.jobsConfig.MaxMemoryBytes,
+	}
+
+	// get max usage from previous releases
+	measuredResources, nrRecords, err := s.cockroachdbClient.GetPipelineReleaseMaxResourceUtilization(ctx, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, 25)
+	if err != nil {
+		log.Warn().Err(err).Msgf("Failed retrieving max resource utilization for recent releases of %v/%v/%v target %v, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
+	} else if nrRecords < 5 {
+		log.Info().Msgf("Retrieved max resource utilization for recent releases of %v/%v/%v target %v only has %v records, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, nrRecords)
+	} else {
+		log.Info().Msgf("Retrieved max resource utilization for recent releases of %v/%v/%v target %v, checking if they are within lower and upper bound...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
+
+		// only override cpu and memory request values if measured values are within min and max
+		if measuredResources.CPUMaxUsage > 0 {
+			if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio <= s.jobsConfig.MinCPUCores {
+				jobResources.CPURequest = s.jobsConfig.MinCPUCores
+			} else if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio >= s.jobsConfig.MaxCPUCores {
+				jobResources.CPURequest = s.jobsConfig.MaxCPUCores
+			} else {
+				jobResources.CPURequest = measuredResources.CPUMaxUsage * s.jobsConfig.CPURequestRatio
+			}
+		}
+
+		if measuredResources.MemoryMaxUsage > 0 {
+			if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio <= s.jobsConfig.MinMemoryBytes {
+				jobResources.MemoryRequest = s.jobsConfig.MinMemoryBytes
+			} else if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio >= s.jobsConfig.MaxMemoryBytes {
+				jobResources.MemoryRequest = s.jobsConfig.MaxMemoryBytes
+			} else {
+				jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.jobsConfig.MemoryRequestRatio
+			}
+		}
+	}
+
+	return jobResources
 }
