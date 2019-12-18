@@ -16,7 +16,6 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
 )
@@ -28,21 +27,18 @@ type Client interface {
 	GetInstallationToken(ctx context.Context, installationID int) (token AccessToken, err error)
 	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (valid bool, manifest string, err error)
-	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) 
+	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error)
 }
 
 // NewClient creates an githubapi.Client to communicate with the Github api
-func NewClient(config config.GithubConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) Client {
+func NewClient(config config.GithubConfig) Client {
 	return &client{
-		config:                          config,
-		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
+		config: config,
 	}
 }
 
 type client struct {
-	config                          config.GithubConfig
-	prometheusOutboundAPICallTotals *prometheus.CounterVec
-	tracer                          opentracing.Tracer
+	config config.GithubConfig
 }
 
 // GetGithubAppToken returns a Github app token with which to retrieve an installation token
@@ -206,9 +202,6 @@ func (c *client) JobVarsFunc(ctx context.Context) func(context.Context, string, 
 }
 
 func (c *client) callGithubAPI(ctx context.Context, method, url string, params interface{}, authorizationType, token string) (statusCode int, body []byte, err error) {
-
-	// track call via prometheus
-	c.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "github"}).Inc()
 
 	// convert params to json if they're present
 	var requestBody io.Reader

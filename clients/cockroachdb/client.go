@@ -16,8 +16,6 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	_ "github.com/lib/pq" // use postgres client library to connect to cockroachdb
-	"github.com/opentracing/opentracing-go"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -104,21 +102,18 @@ type Client interface {
 }
 
 // NewClient returns a new cockroach.Client
-func NewClient(config config.DatabaseConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) Client {
+func NewClient(config config.DatabaseConfig) Client {
 
 	return &client{
-		databaseDriver:                  "postgres",
-		config:                          config,
-		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
+		databaseDriver: "postgres",
+		config:         config,
 	}
 }
 
 type client struct {
-	databaseDriver                  string
-	config                          config.DatabaseConfig
-	PrometheusOutboundAPICallTotals *prometheus.CounterVec
-	databaseConnection              *sql.DB
-	tracer                          opentracing.Tracer
+	databaseDriver     string
+	config             config.DatabaseConfig
+	databaseConnection *sql.DB
 }
 
 // Connect sets up a connection with CockroachDB
@@ -149,8 +144,6 @@ func (c *client) ConnectWithDriverAndSource(ctx context.Context, driverName, dat
 
 // GetAutoIncrement returns the autoincrement number for a pipeline
 func (c *client) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	repoFullName := fmt.Sprintf("%v/%v", repoOwner, repoName)
 
@@ -185,8 +178,6 @@ func (c *client) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwne
 		return
 	}
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// fetching auto_increment value, because RETURNING is not supported with UPSERT / INSERT ON CONFLICT (see issue https://github.com/cockroachdb/cockroach/issues/6637)
 	rows, err := c.databaseConnection.Query(
 		`
@@ -218,8 +209,6 @@ func (c *client) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwne
 }
 
 func (c *client) InsertBuild(ctx context.Context, build contracts.Build, jobResources JobResources) (insertedBuild *contracts.Build, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	sort.Slice(build.Labels, func(i, j int) bool {
 		return build.Labels[i].Key < build.Labels[j].Key
@@ -332,8 +321,6 @@ func (c *client) InsertBuild(ctx context.Context, build contracts.Build, jobReso
 
 func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	allowedBuildStatusesToTransitionFrom := []string{}
 	switch buildStatus {
 	case "running":
@@ -387,8 +374,6 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 
 func (c *client) UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources JobResources) (err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -411,8 +396,6 @@ func (c *client) UpdateBuildResourceUtilization(ctx context.Context, repoSource,
 }
 
 func (c *client) InsertRelease(ctx context.Context, release contracts.Release, jobResources JobResources) (insertedRelease *contracts.Release, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	eventsBytes, err := json.Marshal(release.Events)
 	if err != nil {
@@ -500,8 +483,6 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 
 func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus string) (err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	allowedReleaseStatusesToTransitionFrom := []string{}
 	switch releaseStatus {
 	case "running":
@@ -557,8 +538,6 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 
 func (c *client) UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) (err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -583,8 +562,6 @@ func (c *client) UpdateReleaseResourceUtilization(ctx context.Context, repoSourc
 func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (insertedBuildLog contracts.BuildLog, err error) {
 
 	insertedBuildLog = buildLog
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	var bytes []byte
 	if writeLogToDatabase {
@@ -701,8 +678,6 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 
 	insertedReleaseLog = releaseLog
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	var bytes []byte
 	if writeLogToDatabase {
 		bytes, err = json.Marshal(releaseLog.Steps)
@@ -766,8 +741,6 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 }
 
 func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// get last build
 	lastBuild, err := c.GetLastPipelineBuild(ctx, repoSource, repoOwner, repoName, false)
@@ -939,8 +912,6 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 
 func (c *client) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// get first build
 	firstBuild, err := c.GetFirstPipelineBuild(ctx, repoSource, repoOwner, repoName, false)
 	if err != nil {
@@ -982,8 +953,6 @@ func (c *client) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repo
 }
 
 func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// get last release
 	lastRelease, err := c.GetLastPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
@@ -1079,8 +1048,6 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 
 func (c *client) UpdateComputedReleaseFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// get first release
 	firstRelease, err := c.GetFirstPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 	if err != nil {
@@ -1125,8 +1092,6 @@ func (c *client) UpdateComputedReleaseFirstInsertedAt(ctx context.Context, repoS
 
 func (c *client) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query := c.selectPipelinesQuery().
 		OrderBy("a.repo_source,a.repo_owner,a.repo_name").
@@ -1158,8 +1123,6 @@ func (c *client) GetPipelines(ctx context.Context, pageNumber, pageSize int, fil
 
 func (c *client) GetPipelinesByRepoName(ctx context.Context, repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query := c.selectPipelinesQuery().
 		Where(sq.Eq{"a.repo_name": repoName})
@@ -1181,8 +1144,6 @@ func (c *client) GetPipelinesByRepoName(ctx context.Context, repoName string, op
 }
 
 func (c *client) GetPipelinesCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query :=
@@ -1209,8 +1170,6 @@ func (c *client) GetPipelinesCount(ctx context.Context, filters map[string][]str
 
 func (c *client) GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query := c.selectPipelinesQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
@@ -1230,8 +1189,6 @@ func (c *client) GetPipeline(ctx context.Context, repoSource, repoOwner, repoNam
 }
 
 func (c *client) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, optimized bool) (builds []*contracts.Build, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query := c.selectBuildsQuery().
@@ -1267,8 +1224,6 @@ func (c *client) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, r
 
 func (c *client) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (totalCount int, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
@@ -1297,8 +1252,6 @@ func (c *client) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwn
 
 func (c *client) GetPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName, repoRevision string, optimized bool) (build *contracts.Build, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query := c.selectBuildsQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
@@ -1319,8 +1272,6 @@ func (c *client) GetPipelineBuild(ctx context.Context, repoSource, repoOwner, re
 }
 
 func (c *client) GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, id int, optimized bool) (build *contracts.Build, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query := c.selectBuildsQuery().
@@ -1343,8 +1294,6 @@ func (c *client) GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner
 
 func (c *client) GetLastPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query := c.selectBuildsQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
@@ -1364,8 +1313,6 @@ func (c *client) GetLastPipelineBuild(ctx context.Context, repoSource, repoOwner
 }
 
 func (c *client) GetFirstPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query := c.selectBuildsQuery().
@@ -1387,8 +1334,6 @@ func (c *client) GetFirstPipelineBuild(ctx context.Context, repoSource, repoOwne
 
 func (c *client) GetLastPipelineBuildForBranch(ctx context.Context, repoSource, repoOwner, repoName, branch string) (build *contracts.Build, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query := c.selectBuildsQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
@@ -1409,8 +1354,6 @@ func (c *client) GetLastPipelineBuildForBranch(ctx context.Context, repoSource, 
 }
 
 func (c *client) GetLastPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query := c.selectReleasesQuery().
@@ -1434,8 +1377,6 @@ func (c *client) GetLastPipelineRelease(ctx context.Context, repoSource, repoOwn
 
 func (c *client) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query := c.selectReleasesQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
@@ -1457,8 +1398,6 @@ func (c *client) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOw
 }
 
 func (c *client) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query := c.selectBuildsQuery().
@@ -1487,8 +1426,6 @@ func (c *client) GetPipelineBuildsByVersion(ctx context.Context, repoSource, rep
 }
 
 func (c *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildLog *contracts.BuildLog, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	buildIDAsInt, err := strconv.Atoi(buildID)
 	if err != nil {
@@ -1572,8 +1509,6 @@ func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, re
 
 	buildLogs = make([]*contracts.BuildLog, 0)
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query := c.selectBuildLogsQuery(true).
 		Where(sq.Eq{"a.repo_source": repoSource}).
@@ -1628,8 +1563,6 @@ func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, re
 
 func (c *client) GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobResources JobResources, recordCount int, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -1658,8 +1591,6 @@ func (c *client) GetPipelineBuildMaxResourceUtilization(ctx context.Context, rep
 }
 
 func (c *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string) (releases []*contracts.Release, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query := c.selectReleasesQuery().
@@ -1695,8 +1626,6 @@ func (c *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner,
 
 func (c *client) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (totalCount int, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
@@ -1725,8 +1654,6 @@ func (c *client) GetPipelineReleasesCount(ctx context.Context, repoSource, repoO
 
 func (c *client) GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, id int) (release *contracts.Release, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query := c.selectReleasesQuery().
 		Where(sq.Eq{"a.id": id}).
@@ -1747,8 +1674,6 @@ func (c *client) GetPipelineRelease(ctx context.Context, repoSource, repoOwner, 
 }
 
 func (c *client) GetPipelineLastReleasesByName(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query := c.selectComputedReleasesQuery().
@@ -1788,8 +1713,6 @@ func (c *client) GetPipelineLastReleasesByName(ctx context.Context, repoSource, 
 }
 
 func (c *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, id int, readLogFromDatabase bool) (releaseLog *contracts.ReleaseLog, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query := c.selectReleaseLogsQuery(readLogFromDatabase).
@@ -1850,8 +1773,6 @@ func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, 
 
 	releaseLogs = make([]*contracts.ReleaseLog, 0)
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query := c.selectReleaseLogsQuery(true).
 		Where(sq.Eq{"a.repo_source": repoSource}).
@@ -1905,8 +1826,6 @@ func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, 
 
 func (c *client) GetPipelineReleaseMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobResources JobResources, recordCount int, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -1937,8 +1856,6 @@ func (c *client) GetPipelineReleaseMaxResourceUtilization(ctx context.Context, r
 
 func (c *client) GetBuildsCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
@@ -1964,8 +1881,6 @@ func (c *client) GetBuildsCount(ctx context.Context, filters map[string][]string
 
 func (c *client) GetReleasesCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
@@ -1990,8 +1905,6 @@ func (c *client) GetReleasesCount(ctx context.Context, filters map[string][]stri
 }
 
 func (c *client) GetBuildsDuration(ctx context.Context, filters map[string][]string) (totalDuration time.Duration, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query :=
@@ -2026,8 +1939,6 @@ func (c *client) GetBuildsDuration(ctx context.Context, filters map[string][]str
 }
 
 func (c *client) GetFirstBuildTimes(ctx context.Context) (buildTimes []time.Time, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	query :=
@@ -2065,8 +1976,6 @@ func (c *client) GetFirstBuildTimes(ctx context.Context) (buildTimes []time.Time
 
 func (c *client) GetFirstReleaseTimes(ctx context.Context) (releaseTimes []time.Time, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
@@ -2102,8 +2011,6 @@ func (c *client) GetFirstReleaseTimes(ctx context.Context) (releaseTimes []time.
 }
 
 func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (durations []map[string]interface{}, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	innerquery :=
@@ -2166,8 +2073,6 @@ func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, rep
 }
 
 func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (durations []map[string]interface{}, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	innerquery :=
@@ -2234,8 +2139,6 @@ func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, r
 
 func (c *client) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
@@ -2296,8 +2199,6 @@ func (c *client) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repo
 }
 
 func (c *client) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	innerquery :=
@@ -2363,8 +2264,6 @@ func (c *client) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, re
 
 func (c *client) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
@@ -2425,8 +2324,6 @@ func (c *client) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, r
 }
 
 func (c *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	innerquery :=
@@ -2491,8 +2388,6 @@ func (c *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context,
 }
 
 func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// see https://github.com/cockroachdb/cockroach/issues/35848
 
@@ -2605,8 +2500,6 @@ func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int
 
 func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// see https://github.com/cockroachdb/cockroach/issues/35848
 
 	// for time being run following query, where the dynamic where clause is in the innermost select query:
@@ -2686,8 +2579,6 @@ func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[string]
 
 func (c *client) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
@@ -2763,8 +2654,6 @@ func (c *client) GetPipelinesWithMostBuildsCount(ctx context.Context, filters ma
 
 func (c *client) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
 
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
-
 	// generate query
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
@@ -2829,8 +2718,6 @@ func (c *client) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, p
 }
 
 func (c *client) GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
-
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "cockroachdb"}).Inc()
 
 	// generate query
 	innerquery :=

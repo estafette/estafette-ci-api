@@ -18,7 +18,6 @@ import (
 	foundation "github.com/estafette/estafette-foundation"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
-	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
@@ -63,31 +62,7 @@ var (
 	configFilePath               = kingpin.Flag("config-file-path", "The path to yaml config file configuring this application.").Default("/configs/config.yaml").String()
 	secretDecryptionKeyPath      = kingpin.Flag("secret-decryption-key-path", "The path to the AES-256 key used to decrypt secrets that have been encrypted with it.").Default("/secrets/secretDecryptionKey").OverrideDefaultFromEnvar("SECRET_DECRYPTION_KEY_PATH").String()
 	gracefulShutdownDelaySeconds = kingpin.Flag("graceful-shutdown-delay-seconds", "The number of seconds to wait with graceful shutdown in order to let endpoints update propagation finish.").Default("15").OverrideDefaultFromEnvar("GRACEFUL_SHUTDOWN_DELAY_SECONDS").Int()
-
-	// prometheusInboundEventTotals is the prometheus timeline serie that keeps track of inbound events
-	prometheusInboundEventTotals = stdprometheus.NewCounterVec(
-		stdprometheus.CounterOpts{
-			Name: "estafette_ci_api_inbound_event_totals",
-			Help: "Total of inbound events.",
-		},
-		[]string{"event", "source"},
-	)
-
-	// prometheusOutboundAPICallTotals is the prometheus timeline serie that keeps track of outbound api calls
-	prometheusOutboundAPICallTotals = stdprometheus.NewCounterVec(
-		stdprometheus.CounterOpts{
-			Name: "estafette_ci_api_outbound_api_call_totals",
-			Help: "Total of outgoing api calls.",
-		},
-		[]string{"target"},
-	)
 )
-
-func init() {
-	// Metrics have to be registered to be exposed:
-	stdprometheus.MustRegister(prometheusInboundEventTotals)
-	stdprometheus.MustRegister(prometheusOutboundAPICallTotals)
-}
 
 func main() {
 
@@ -171,6 +146,10 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		bigqueryClient = bigquery.NewClient(config.Integrations.BigQuery, bqClient)
 		bigqueryClient = bigquery.NewTracingClient(bigqueryClient)
 		bigqueryClient = bigquery.NewLoggingClient(bigqueryClient)
+		bigqueryClient = bigquery.NewMetricsClient(bigqueryClient,
+			helpers.NewRequestCounter("bigquery_client"),
+			helpers.NewRequestHistogram("bigquery_client"),
+		)
 	}
 	err = bigqueryClient.Init(ctx)
 	if err != nil {
@@ -179,23 +158,35 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 
 	var bitbucketAPIClient bitbucketapi.Client
 	{
-		bitbucketAPIClient = bitbucketapi.NewClient(*config.Integrations.Bitbucket, prometheusOutboundAPICallTotals)
+		bitbucketAPIClient = bitbucketapi.NewClient(*config.Integrations.Bitbucket)
 		bitbucketAPIClient = bitbucketapi.NewTracingClient(bitbucketAPIClient)
 		bitbucketAPIClient = bitbucketapi.NewLoggingClient(bitbucketAPIClient)
+		bitbucketAPIClient = bitbucketapi.NewMetricsClient(bitbucketAPIClient,
+			helpers.NewRequestCounter("bitbucketapi_client"),
+			helpers.NewRequestHistogram("bitbucketapi_client"),
+		)
 	}
 
 	var githubAPIClient githubapi.Client
 	{
-		githubAPIClient = githubapi.NewClient(*config.Integrations.Github, prometheusOutboundAPICallTotals)
+		githubAPIClient = githubapi.NewClient(*config.Integrations.Github)
 		githubAPIClient = githubapi.NewTracingClient(githubAPIClient)
 		githubAPIClient = githubapi.NewLoggingClient(githubAPIClient)
+		githubAPIClient = githubapi.NewMetricsClient(githubAPIClient,
+			helpers.NewRequestCounter("githubapi_client"),
+			helpers.NewRequestHistogram("githubapi_client"),
+		)
 	}
 
 	var slackAPIClient slackapi.Client
 	{
-		slackAPIClient = slackapi.NewClient(*config.Integrations.Slack, prometheusOutboundAPICallTotals)
+		slackAPIClient = slackapi.NewClient(*config.Integrations.Slack)
 		slackAPIClient = slackapi.NewTracingClient(slackAPIClient)
 		slackAPIClient = slackapi.NewLoggingClient(slackAPIClient)
+		slackAPIClient = slackapi.NewMetricsClient(slackAPIClient,
+			helpers.NewRequestCounter("slackapi_client"),
+			helpers.NewRequestHistogram("slackapi_client"),
+		)
 	}
 
 	var pubSubAPIClient pubsubapi.Client
@@ -207,13 +198,21 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		pubSubAPIClient = pubsubapi.NewClient(*config.Integrations.Pubsub, pubsubClient)
 		pubSubAPIClient = pubsubapi.NewTracingClient(pubSubAPIClient)
 		pubSubAPIClient = pubsubapi.NewLoggingClient(pubSubAPIClient)
+		pubSubAPIClient = pubsubapi.NewMetricsClient(pubSubAPIClient,
+			helpers.NewRequestCounter("pubsubapi_client"),
+			helpers.NewRequestHistogram("pubsubapi_client"),
+		)
 	}
 
 	var cockroachDBClient cockroachdb.Client
 	{
-		cockroachDBClient = cockroachdb.NewClient(*config.Database, prometheusOutboundAPICallTotals)
+		cockroachDBClient = cockroachdb.NewClient(*config.Database)
 		cockroachDBClient = cockroachdb.NewTracingClient(cockroachDBClient)
 		cockroachDBClient = cockroachdb.NewLoggingClient(cockroachDBClient)
+		cockroachDBClient = cockroachdb.NewMetricsClient(cockroachDBClient,
+			helpers.NewRequestCounter("cockroachdb_client"),
+			helpers.NewRequestHistogram("cockroachdb_client"),
+		)
 	}
 	err = cockroachDBClient.Connect(ctx)
 	if err != nil {
@@ -225,6 +224,10 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		dockerHubClient = dockerhubapi.NewClient()
 		dockerHubClient = dockerhubapi.NewTracingClient(dockerHubClient)
 		dockerHubClient = dockerhubapi.NewLoggingClient(dockerHubClient)
+		dockerHubClient = dockerhubapi.NewMetricsClient(dockerHubClient,
+			helpers.NewRequestCounter("dockerhubapi_client"),
+			helpers.NewRequestHistogram("dockerhubapi_client"),
+		)
 	}
 
 	var ciBuilderClient builderapi.Client
@@ -233,9 +236,13 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Creating kubernetes client failed")
 		}
-		ciBuilderClient = builderapi.NewClient(*config, *encryptedConfig, secretHelper, kubeClient, dockerHubClient, prometheusOutboundAPICallTotals)
+		ciBuilderClient = builderapi.NewClient(*config, *encryptedConfig, secretHelper, kubeClient, dockerHubClient)
 		ciBuilderClient = builderapi.NewTracingClient(ciBuilderClient)
 		ciBuilderClient = builderapi.NewLoggingClient(ciBuilderClient)
+		ciBuilderClient = builderapi.NewMetricsClient(ciBuilderClient,
+			helpers.NewRequestCounter("builderapi_client"),
+			helpers.NewRequestHistogram("builderapi_client"),
+		)
 	}
 
 	var cloudStorageClient cloudstorage.Client
@@ -247,6 +254,10 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		cloudStorageClient = cloudstorage.NewClient(config.Integrations.CloudStorage, gcsClient)
 		cloudStorageClient = cloudstorage.NewTracingClient(cloudStorageClient)
 		cloudStorageClient = cloudstorage.NewLoggingClient(cloudStorageClient)
+		cloudStorageClient = cloudstorage.NewMetricsClient(cloudStorageClient,
+			helpers.NewRequestCounter("cloudstorage_client"),
+			helpers.NewRequestHistogram("cloudstorage_client"),
+		)
 	}
 
 	var prometheusClient prometheus.Client
@@ -254,6 +265,10 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		prometheusClient = prometheus.NewClient(*config.Integrations.Prometheus)
 		prometheusClient = prometheus.NewTracingClient(prometheusClient)
 		prometheusClient = prometheus.NewLoggingClient(prometheusClient)
+		prometheusClient = prometheus.NewMetricsClient(prometheusClient,
+			helpers.NewRequestCounter("prometheus_client"),
+			helpers.NewRequestHistogram("prometheus_client"),
+		)
 	}
 
 	log.Debug().Msg("Creating services...")
@@ -263,20 +278,32 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		estafetteService = estafette.NewService(*config.Jobs, *config.APIServer, cockroachDBClient, prometheusClient, cloudStorageClient, ciBuilderClient, githubAPIClient.JobVarsFunc(ctx), bitbucketAPIClient.JobVarsFunc(ctx))
 		estafetteService = estafette.NewTracingService(estafetteService)
 		estafetteService = estafette.NewLoggingService(estafetteService)
+		estafetteService = estafette.NewMetricsService(estafetteService,
+			helpers.NewRequestCounter("estafette_service"),
+			helpers.NewRequestHistogram("estafette_service"),
+		)
 	}
 
 	var githubService github.Service
 	{
-		githubService = github.NewService(githubAPIClient, pubSubAPIClient, estafetteService, *config.Integrations.Github, prometheusInboundEventTotals)
+		githubService = github.NewService(githubAPIClient, pubSubAPIClient, estafetteService, *config.Integrations.Github)
 		githubService = github.NewTracingService(githubService)
 		githubService = github.NewLoggingService(githubService)
+		githubService = github.NewMetricsService(githubService,
+			helpers.NewRequestCounter("github_service"),
+			helpers.NewRequestHistogram("github_service"),
+		)
 	}
 
 	var bitbucketService bitbucket.Service
 	{
-		bitbucketService = bitbucket.NewService(*config.Integrations.Bitbucket, bitbucketAPIClient, pubSubAPIClient, estafetteService, prometheusInboundEventTotals)
+		bitbucketService = bitbucket.NewService(*config.Integrations.Bitbucket, bitbucketAPIClient, pubSubAPIClient, estafetteService)
 		bitbucketService = bitbucket.NewTracingService(bitbucketService)
 		bitbucketService = bitbucket.NewLoggingService(bitbucketService)
+		bitbucketService = bitbucket.NewMetricsService(bitbucketService,
+			helpers.NewRequestCounter("bitbucket_service"),
+			helpers.NewRequestHistogram("bitbucket_service"),
+		)
 	}
 
 	// transport
@@ -284,7 +311,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	githubHandler := github.NewHandler(githubService)
 	estafetteHandler := estafette.NewHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachDBClient, cloudStorageClient, ciBuilderClient, estafetteService, warningHelper, secretHelper, githubAPIClient.JobVarsFunc(ctx), bitbucketAPIClient.JobVarsFunc(ctx))
 	pubsubHandler := pubsub.NewHandler(pubSubAPIClient, estafetteService)
-	slackHandler := slack.NewHandler(secretHelper, *config.Integrations.Slack, slackAPIClient, cockroachDBClient, *config.APIServer, estafetteService, githubAPIClient.JobVarsFunc(ctx), bitbucketAPIClient.JobVarsFunc(ctx), prometheusInboundEventTotals)
+	slackHandler := slack.NewHandler(secretHelper, *config.Integrations.Slack, slackAPIClient, cockroachDBClient, *config.APIServer, estafetteService, githubAPIClient.JobVarsFunc(ctx), bitbucketAPIClient.JobVarsFunc(ctx))
 
 	// run gin in release mode and other defaults
 	gin.SetMode(gin.ReleaseMode)

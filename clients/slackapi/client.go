@@ -11,7 +11,6 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sethgrid/pester"
 )
 
@@ -21,23 +20,18 @@ type Client interface {
 }
 
 // NewClient returns a slack.Client to communicate with the Slack API
-func NewClient(config config.SlackConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) Client {
+func NewClient(config config.SlackConfig) Client {
 	return &client{
-		config:                          config,
-		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
+		config: config,
 	}
 }
 
 type client struct {
-	config                          config.SlackConfig
-	prometheusOutboundAPICallTotals *prometheus.CounterVec
+	config config.SlackConfig
 }
 
 // GetUserProfile returns a Slack user profile
 func (c *client) GetUserProfile(ctx context.Context, userID string) (profile *UserProfile, err error) {
-
-	// track call via prometheus
-	c.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "slack"}).Inc()
 
 	url := fmt.Sprintf("https://slack.com/api/users.profile.get?user=%v", userID)
 

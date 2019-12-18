@@ -16,9 +16,10 @@ require (
 	github.com/estafette/estafette-ci-contracts v0.0.179
 	github.com/estafette/estafette-ci-crypt v0.0.23
 	github.com/estafette/estafette-ci-manifest v0.1.141
-	github.com/estafette/estafette-foundation v0.0.44
+	github.com/estafette/estafette-foundation v0.0.45
 	github.com/gin-contrib/gzip v0.0.2-0.20190827144029-5602d8b438ea
 	github.com/gin-gonic/gin v1.4.0
+	github.com/go-kit/kit v0.8.0
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
 	github.com/lib/pq v1.0.0
 	github.com/mattn/go-sqlite3 v1.2.0 // indirect

@@ -15,7 +15,6 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sethgrid/pester"
 )
 
@@ -24,27 +23,22 @@ type Client interface {
 	GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error)
 	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error)
-	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) 
+	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error)
 }
 
 // NewClient returns a new bitbucket.Client
-func NewClient(config config.BitbucketConfig, prometheusOutboundAPICallTotals *prometheus.CounterVec) Client {
+func NewClient(config config.BitbucketConfig) Client {
 	return &client{
-		config:                          config,
-		prometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
+		config: config,
 	}
 }
 
 type client struct {
-	config                          config.BitbucketConfig
-	prometheusOutboundAPICallTotals *prometheus.CounterVec
+	config config.BitbucketConfig
 }
 
 // GetAccessToken returns an access token to access the Bitbucket api
 func (c *client) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
-
-	// track call via prometheus
-	c.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
 
 	basicAuthenticationToken := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", c.config.AppOAuthKey, c.config.AppOAuthSecret)))
 
@@ -111,9 +105,6 @@ func (c *client) GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken 
 }
 
 func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, pushEvent RepositoryPushEvent) (exists bool, manifest string, err error) {
-
-	// track call via prometheus
-	c.prometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "bitbucket"}).Inc()
 
 	// create client, in order to add headers
 	client := pester.NewExtendedClient(&http.Client{Transport: &nethttp.Transport{}})

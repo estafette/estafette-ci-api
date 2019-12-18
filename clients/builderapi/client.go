@@ -40,15 +40,14 @@ type Client interface {
 }
 
 // NewClient returns a new estafette.Client
-func NewClient(config config.APIConfig, encryptedConfig config.APIConfig, secretHelper crypt.SecretHelper, kubeClient *k8s.Client, dockerHubClient dockerhubapi.Client, prometheusOutboundAPICallTotals *prometheus.CounterVec) Client {
+func NewClient(config config.APIConfig, encryptedConfig config.APIConfig, secretHelper crypt.SecretHelper, kubeClient *k8s.Client, dockerHubClient dockerhubapi.Client) Client {
 
 	return &client{
-		kubeClient:                      kubeClient,
-		dockerHubClient:                 dockerHubClient,
-		config:                          config,
-		encryptedConfig:                 encryptedConfig,
-		secretHelper:                    secretHelper,
-		PrometheusOutboundAPICallTotals: prometheusOutboundAPICallTotals,
+		kubeClient:      kubeClient,
+		dockerHubClient: dockerHubClient,
+		config:          config,
+		encryptedConfig: encryptedConfig,
+		secretHelper:    secretHelper,
 	}
 }
 

@@ -9,7 +9,6 @@ import (
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
 
@@ -21,22 +20,20 @@ type Service interface {
 }
 
 // NewService returns a new bitbucket.Service
-func NewService(config config.BitbucketConfig, apiClient bitbucketapi.Client, pubsubAPIClient pubsubapi.Client, buildService estafette.Service, prometheusInboundEventTotals *prometheus.CounterVec) Service {
+func NewService(config config.BitbucketConfig, apiClient bitbucketapi.Client, pubsubAPIClient pubsubapi.Client, buildService estafette.Service) Service {
 	return &service{
-		config:                       config,
-		apiClient:                    apiClient,
-		pubsubAPIClient:              pubsubAPIClient,
-		buildService:                 buildService,
-		prometheusInboundEventTotals: prometheusInboundEventTotals,
+		config:          config,
+		apiClient:       apiClient,
+		pubsubAPIClient: pubsubAPIClient,
+		buildService:    buildService,
 	}
 }
 
 type service struct {
-	config                       config.BitbucketConfig
-	apiClient                    bitbucketapi.Client
-	pubsubAPIClient              pubsubapi.Client
-	buildService                 estafette.Service
-	prometheusInboundEventTotals *prometheus.CounterVec
+	config          config.BitbucketConfig
+	apiClient       bitbucketapi.Client
+	pubsubAPIClient pubsubapi.Client
+	buildService    estafette.Service
 }
 
 func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbucketapi.RepositoryPushEvent) {

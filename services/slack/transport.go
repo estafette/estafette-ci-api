@@ -14,35 +14,32 @@ import (
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
 
 // NewHandler returns a pubsub.Handler
-func NewHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, slackAPIClient slackapi.Client, cockroachDBClient cockroachdb.Client, apiConfig config.APIServerConfig, buildService estafette.Service, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), prometheusInboundEventTotals *prometheus.CounterVec) Handler {
+func NewHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, slackAPIClient slackapi.Client, cockroachDBClient cockroachdb.Client, apiConfig config.APIServerConfig, buildService estafette.Service, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
 	return Handler{
-		secretHelper:                 secretHelper,
-		config:                       config,
-		slackAPIClient:               slackAPIClient,
-		cockroachDBClient:            cockroachDBClient,
-		apiConfig:                    apiConfig,
-		buildService:                 buildService,
-		githubJobVarsFunc:            githubJobVarsFunc,
-		bitbucketJobVarsFunc:         bitbucketJobVarsFunc,
-		prometheusInboundEventTotals: prometheusInboundEventTotals,
+		secretHelper:         secretHelper,
+		config:               config,
+		slackAPIClient:       slackAPIClient,
+		cockroachDBClient:    cockroachDBClient,
+		apiConfig:            apiConfig,
+		buildService:         buildService,
+		githubJobVarsFunc:    githubJobVarsFunc,
+		bitbucketJobVarsFunc: bitbucketJobVarsFunc,
 	}
 }
 
 type Handler struct {
-	secretHelper                 crypt.SecretHelper
-	config                       config.SlackConfig
-	slackAPIClient               slackapi.Client
-	cockroachDBClient            cockroachdb.Client
-	apiConfig                    config.APIServerConfig
-	buildService                 estafette.Service
-	githubJobVarsFunc            func(context.Context, string, string, string) (string, string, error)
-	bitbucketJobVarsFunc         func(context.Context, string, string, string) (string, string, error)
-	prometheusInboundEventTotals *prometheus.CounterVec
+	secretHelper         crypt.SecretHelper
+	config               config.SlackConfig
+	slackAPIClient       slackapi.Client
+	cockroachDBClient    cockroachdb.Client
+	apiConfig            config.APIServerConfig
+	buildService         estafette.Service
+	githubJobVarsFunc    func(context.Context, string, string, string) (string, string, error)
+	bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)
 }
 
 func (h *Handler) Handle(c *gin.Context) {

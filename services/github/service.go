@@ -14,7 +14,6 @@ import (
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
 
@@ -27,22 +26,20 @@ type Service interface {
 }
 
 // NewService returns a github.Service to handle incoming webhook events
-func NewService(apiClient githubapi.Client, pubsubAPIClient pubsubapi.Client, buildService estafette.Service, config config.GithubConfig, prometheusInboundEventTotals *prometheus.CounterVec) Service {
+func NewService(apiClient githubapi.Client, pubsubAPIClient pubsubapi.Client, buildService estafette.Service, config config.GithubConfig) Service {
 	return &service{
-		apiClient:                    apiClient,
-		pubsubAPIClient:              pubsubAPIClient,
-		buildService:                 buildService,
-		config:                       config,
-		prometheusInboundEventTotals: prometheusInboundEventTotals,
+		apiClient:       apiClient,
+		pubsubAPIClient: pubsubAPIClient,
+		buildService:    buildService,
+		config:          config,
 	}
 }
 
 type service struct {
-	apiClient                    githubapi.Client
-	pubsubAPIClient              pubsubapi.Client
-	buildService                 estafette.Service
-	config                       config.GithubConfig
-	prometheusInboundEventTotals *prometheus.CounterVec
+	apiClient       githubapi.Client
+	pubsubAPIClient pubsubapi.Client
+	buildService    estafette.Service
+	config          config.GithubConfig
 }
 
 func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubapi.PushEvent) {
