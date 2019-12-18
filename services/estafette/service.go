@@ -2,6 +2,7 @@ package estafette
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -18,6 +19,10 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
+)
+
+var (
+	ErrNoBuildCreated = errors.New("No build is created")
 )
 
 // Service encapsulates build and release creation and re-triggering
@@ -268,6 +273,9 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	if err != nil {
 		return
 	}
+	if createdBuild == nil {
+		return nil, ErrNoBuildCreated
+	}
 
 	buildID, err := strconv.Atoi(createdBuild.ID)
 	if err != nil {
@@ -359,7 +367,6 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 				log.Warn().Err(err).Msgf("Failed inserting build log into cloud storage for invalid manifest")
 			}
 		}
-
 	}
 
 	return

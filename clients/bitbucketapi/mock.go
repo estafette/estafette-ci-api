@@ -32,7 +32,9 @@ func (c MockClient) GetEstafetteManifest(ctx context.Context, accesstoken Access
 
 func (c MockClient) JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 	if c.JobVarsFuncFunc == nil {
-		return nil
+		return func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
 	}
 	return c.JobVarsFuncFunc(ctx)
 }
