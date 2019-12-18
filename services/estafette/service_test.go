@@ -13,6 +13,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/prometheus"
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -298,6 +299,90 @@ func TestCreateBuild(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 0, createcibuilderjobCallCount)
 		assert.Equal(t, 1, insertbuildlogCallCount)
+	})
+}
+
+func TestCreateRelease(t *testing.T) {
+
+	t.Run("CallsInsertBuildOnCockroachdbClient", func(t *testing.T) {
+
+		ctx := context.Background()
+
+		jobsConfig := config.JobsConfig{}
+		apiServerConfig := config.APIServerConfig{}
+		cockroachdbClient := cockroachdb.MockClient{}
+		prometheusClient := prometheus.MockClient{}
+		cloudStorageClient := cloudstorage.MockClient{}
+		builderapiClient := builderapi.MockClient{}
+		githubapiClient := githubapi.MockClient{}
+		bitbucketapiClient := bitbucketapi.MockClient{}
+
+		callCount := 0
+		cockroachdbClient.InsertReleaseFunc = func(ctx context.Context, release contracts.Release, jobResources cockroachdb.JobResources) (r *contracts.Release, err error) {
+			callCount++
+			return
+		}
+
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+
+		release := contracts.Release{
+			RepoSource:     "github.com",
+			RepoOwner:      "estafette",
+			RepoName:       "estafette-ci-api",
+			ReleaseVersion: "1.0.256",
+		}
+		mft := manifest.EstafetteManifest{}
+		branch := "master"
+		revision := "f0677f01cc6d54a5b042224a9eb374e98f979985"
+
+		// act
+		_, _ = service.CreateRelease(context.Background(), release, mft, branch, revision, true)
+
+		// assert.Nil(t, err)
+		assert.Equal(t, 1, callCount)
+	})
+
+	t.Run("CallsCreateCiBuilderJobOnBuilderapiClient", func(t *testing.T) {
+
+		ctx := context.Background()
+
+		jobsConfig := config.JobsConfig{}
+		apiServerConfig := config.APIServerConfig{}
+		cockroachdbClient := cockroachdb.MockClient{}
+		prometheusClient := prometheus.MockClient{}
+		cloudStorageClient := cloudstorage.MockClient{}
+		builderapiClient := builderapi.MockClient{}
+		githubapiClient := githubapi.MockClient{}
+		bitbucketapiClient := bitbucketapi.MockClient{}
+
+		cockroachdbClient.InsertReleaseFunc = func(ctx context.Context, release contracts.Release, jobResources cockroachdb.JobResources) (r *contracts.Release, err error) {
+			r = &release
+			r.ID = "5"
+			return
+		}
+		callCount := 0
+		builderapiClient.CreateCiBuilderJobFunc = func(ctx context.Context, params builderapi.CiBuilderParams) (job *batchv1.Job, err error) {
+			callCount++
+			return
+		}
+
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+
+		release := contracts.Release{
+			RepoSource:     "github.com",
+			RepoOwner:      "estafette",
+			RepoName:       "estafette-ci-api",
+			ReleaseVersion: "1.0.256",
+		}
+		mft := manifest.EstafetteManifest{}
+		branch := "master"
+		revision := "f0677f01cc6d54a5b042224a9eb374e98f979985"
+
+		// act
+		_, err := service.CreateRelease(context.Background(), release, mft, branch, revision, true)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 1, callCount)
 	})
 }
 

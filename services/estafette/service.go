@@ -22,7 +22,8 @@ import (
 )
 
 var (
-	ErrNoBuildCreated = errors.New("No build is created")
+	ErrNoBuildCreated   = errors.New("No build is created")
+	ErrNoReleaseCreated = errors.New("No release is created")
 )
 
 // Service encapsulates build and release creation and re-triggering
@@ -320,6 +321,9 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	}, jobResources)
 	if err != nil {
 		return
+	}
+	if createdRelease == nil {
+		return nil, ErrNoReleaseCreated
 	}
 
 	insertedReleaseID, err := strconv.Atoi(createdRelease.ID)
