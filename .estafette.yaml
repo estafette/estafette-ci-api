@@ -43,6 +43,12 @@ stages:
     copy:
     - /etc/ssl/certs/ca-certificates.crt
 
+  dive:
+    image: extensions/docker:dev
+    action: dive
+    repositories:
+    - estafette
+
   push-to-docker-hub:
     image: extensions/docker:dev
     action: push
