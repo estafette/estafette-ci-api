@@ -23,7 +23,6 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
 
@@ -52,12 +51,11 @@ func NewClient(config config.APIConfig, encryptedConfig config.APIConfig, secret
 }
 
 type client struct {
-	kubeClient                      *k8s.Client
-	dockerHubClient                 dockerhubapi.Client
-	config                          config.APIConfig
-	encryptedConfig                 config.APIConfig
-	secretHelper                    crypt.SecretHelper
-	PrometheusOutboundAPICallTotals *prometheus.CounterVec
+	kubeClient      *k8s.Client
+	dockerHubClient dockerhubapi.Client
+	config          config.APIConfig
+	encryptedConfig config.APIConfig
+	secretHelper    crypt.SecretHelper
 }
 
 // CreateCiBuilderJob creates an estafette-ci-builder job in Kubernetes to run the estafette build
@@ -207,7 +205,6 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 	}
 
 	err = c.kubeClient.Create(context.Background(), configmap)
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		return
 	}
@@ -233,7 +230,6 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 	}
 
 	err = c.kubeClient.Create(context.Background(), secret)
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		return
 	}
@@ -491,7 +487,6 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 
 	// "error":"unregistered type *v1.Job",
 	err = c.kubeClient.Create(context.Background(), job)
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 
 	if err != nil {
 		return
@@ -510,7 +505,6 @@ func (c *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err er
 	// check if job is finished
 	var job batchv1.Job
 	err = c.kubeClient.Get(context.Background(), c.config.Jobs.Namespace, jobName, &job)
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).
@@ -525,7 +519,6 @@ func (c *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err er
 		watcher, err := c.kubeClient.Watch(context.Background(), c.config.Jobs.Namespace, &job, k8s.Timeout(time.Duration(300)*time.Second))
 		defer watcher.Close()
 
-		c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 		if err != nil {
 			log.Error().Err(err).
 				Str("jobName", jobName).
@@ -549,7 +542,6 @@ func (c *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err er
 
 	// delete job
 	err = c.kubeClient.Delete(context.Background(), &job)
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).
@@ -579,7 +571,6 @@ func (c *client) RemoveCiBuilderConfigMap(ctx context.Context, configmapName str
 
 	// delete configmap
 	err = c.kubeClient.Delete(context.Background(), &configmap)
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("configmap", configmapName).
@@ -606,7 +597,6 @@ func (c *client) RemoveCiBuilderSecret(ctx context.Context, secretName string) (
 
 	// delete secret
 	err = c.kubeClient.Delete(context.Background(), &secret)
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("secret", secretName).
@@ -627,7 +617,6 @@ func (c *client) CancelCiBuilderJob(ctx context.Context, jobName string) (err er
 	// check if job is finished
 	var job batchv1.Job
 	err = c.kubeClient.Get(context.Background(), c.config.Jobs.Namespace, jobName, &job)
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).
@@ -637,7 +626,6 @@ func (c *client) CancelCiBuilderJob(ctx context.Context, jobName string) (err er
 
 	// delete job
 	err = c.kubeClient.Delete(context.Background(), &job)
-	c.PrometheusOutboundAPICallTotals.With(prometheus.Labels{"target": "kubernetes"}).Inc()
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).
