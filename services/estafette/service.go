@@ -107,7 +107,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 		}
 	}
 
-	autoincrement, err := s.getBuildAutoIncrement(ctx, build, shortRepoSource, hasValidManifest, mft, pipeline)
+	autoincrement, build, err := s.getBuildAutoIncrement(ctx, build, shortRepoSource, hasValidManifest, mft, pipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -1034,7 +1034,7 @@ func (s *service) getBuildTriggers(build contracts.Build, hasValidManifest bool,
 	return build.Triggers
 }
 
-func (s *service) getBuildAutoIncrement(ctx context.Context, build contracts.Build, shortRepoSource string, hasValidManifest bool, mft manifest.EstafetteManifest, pipeline *contracts.Pipeline) (autoincrement int, err error) {
+func (s *service) getBuildAutoIncrement(ctx context.Context, build contracts.Build, shortRepoSource string, hasValidManifest bool, mft manifest.EstafetteManifest, pipeline *contracts.Pipeline) (autoincrement int, updatedBuild contracts.Build, err error) {
 
 	// get or set autoincrement and build version
 	autoincrement = 0
@@ -1042,7 +1042,7 @@ func (s *service) getBuildAutoIncrement(ctx context.Context, build contracts.Bui
 		// get autoincrement number
 		autoincrement, err = s.cockroachdbClient.GetAutoIncrement(ctx, shortRepoSource, build.RepoOwner, build.RepoName)
 		if err != nil {
-			return autoincrement, err
+			return autoincrement, build, err
 		}
 
 		// set build version number
@@ -1087,7 +1087,7 @@ func (s *service) getBuildAutoIncrement(ctx context.Context, build contracts.Bui
 		}
 	}
 
-	return autoincrement, nil
+	return autoincrement, build, nil
 }
 
 func (s *service) getReleaseAutoIncrement(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest) (autoincrement int) {

@@ -300,6 +300,49 @@ func TestCreateBuild(t *testing.T) {
 		assert.Equal(t, 0, createcibuilderjobCallCount)
 		assert.Equal(t, 1, insertbuildlogCallCount)
 	})
+
+	t.Run("CallsInsertBuildOnCockroachdbClientWithBuildVersionGeneratedFromAutoincrement", func(t *testing.T) {
+
+		ctx := context.Background()
+
+		jobsConfig := config.JobsConfig{}
+		apiServerConfig := config.APIServerConfig{}
+		cockroachdbClient := cockroachdb.MockClient{}
+		prometheusClient := prometheus.MockClient{}
+		cloudStorageClient := cloudstorage.MockClient{}
+		builderapiClient := builderapi.MockClient{}
+		githubapiClient := githubapi.MockClient{}
+		bitbucketapiClient := bitbucketapi.MockClient{}
+
+		cockroachdbClient.GetAutoIncrementFunc = func(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {
+			return 15, nil
+		}
+
+		callCount := 0
+		cockroachdbClient.InsertBuildFunc = func(ctx context.Context, build contracts.Build, jobResources cockroachdb.JobResources) (b *contracts.Build, err error) {
+			if build.BuildVersion == "0.0.15" {
+				callCount++
+			}
+			return
+		}
+
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+
+		build := contracts.Build{
+			RepoSource: "github.com",
+			RepoOwner:  "estafette",
+			RepoName:   "estafette-ci-api",
+			RepoBranch: "master",
+			Manifest:   "builder:\n  track: dev\nstages:\n  stage-1:\n    image: extensions/doesnothing:dev",
+		}
+
+		// act
+		_, _ = service.CreateBuild(context.Background(), build, true)
+
+		// assert.Nil(t, err)
+		assert.Equal(t, 1, callCount)
+	})
+
 }
 
 func TestFinishBuild(t *testing.T) {
@@ -663,4 +706,5 @@ func TestUpdateJobResources(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 1, callCount)
 	})
+
 }
