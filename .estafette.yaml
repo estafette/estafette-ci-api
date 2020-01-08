@@ -102,7 +102,7 @@ releases:
             prestopsleep: false
         sidecars:
         - type: openresty
-          image: estafette/openresty-sidecar:0.8.0-opentracing
+          image: estafette/openresty-sidecar:1.15.8.2
           cpu:
             request: 43m
             limit: 85m
