@@ -520,7 +520,6 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	insertedRelease, err := c.scanRelease(row)
 	if err != nil && err != sql.ErrNoRows {
-
 		return
 	} else if err != nil {
 		log.Warn().Err(err).Msgf("Updating release status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, id, allowedReleaseStatusesToTransitionFrom, releaseStatus)
@@ -529,7 +528,11 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 
 	// update computed tables
 	go func() {
-		c.UpsertComputedRelease(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.Name, insertedRelease.Action)
+		if insertedRelease != nil {
+			c.UpsertComputedRelease(ctx, repoSource, repoOwner, repoName, insertedRelease.Name, insertedRelease.Action)
+		} else {
+			log.Warn().Msgf("Cannot update computed tables after updating release status for %v/%v/%v id %v from %v to %v", repoSource, repoOwner, repoName, id, allowedReleaseStatusesToTransitionFrom, releaseStatus)
+		}
 		c.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
 	}()
 
