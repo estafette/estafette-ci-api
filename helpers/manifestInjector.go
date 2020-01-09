@@ -42,7 +42,6 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 				"status": "pending",
 			},
 			AutoInjected: true,
-			Retries:      3,
 		})
 	}
 	if !StepExists(injectedManifest.Stages, "envvars") {
@@ -64,7 +63,6 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 			ContainerImage: fmt.Sprintf("extensions/%v-status:%v", gitSource, builderTrack),
 			When:           "status == 'succeeded' || status == 'failed'",
 			AutoInjected:   true,
-			Retries:        3,
 		}
 		injectedManifest.Stages = append(injectedManifest.Stages, setBuildStatusStep)
 	}
