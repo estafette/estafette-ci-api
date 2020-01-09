@@ -2,6 +2,7 @@ package bitbucket
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 
@@ -59,8 +60,12 @@ func (h *Handler) Handle(c *gin.Context) {
 			return
 		}
 
-		_ = h.service.CreateJobForBitbucketPush(c.Request.Context(), pushEvent)
+		err = h.service.CreateJobForBitbucketPush(c.Request.Context(), pushEvent)
 
+		if err != nil && !errors.Is(err, ErrNonCloneableEvent) && !errors.Is(err, ErrNoManifest) {
+			c.String(http.StatusInternalServerError, "Oops, something went wrong!")
+			return
+		}
 	case
 		"repo:fork",
 		"repo:transfer",

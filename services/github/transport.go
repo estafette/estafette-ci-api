@@ -2,6 +2,7 @@ package github
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 
@@ -71,7 +72,12 @@ func (h *Handler) Handle(c *gin.Context) {
 			return
 		}
 
-		_ = h.service.CreateJobForGithubPush(c.Request.Context(), pushEvent)
+		err = h.service.CreateJobForGithubPush(c.Request.Context(), pushEvent)
+
+		if err != nil && !errors.Is(err, ErrNonCloneableEvent) && !errors.Is(err, ErrNoManifest) {
+			c.String(http.StatusInternalServerError, "Oops, something went wrong!")
+			return
+		}
 
 	case
 		"commit_comment",                        // Any time a Commit is commented on.
