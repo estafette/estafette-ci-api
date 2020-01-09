@@ -650,6 +650,8 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 	labels := new(k8s.LabelSelector)
 	labels.Eq("job-name", jobName)
 
+	log.Debug().Msgf("TailCiBuilderJobLogs - listing pods with job-name=%v namespace=%v", jobName, c.config.Jobs.Namespace)
+
 	var pods corev1.PodList
 	if err := c.kubeClient.List(context.Background(), c.config.Jobs.Namespace, &pods, labels.Selector()); err != nil {
 		return err
