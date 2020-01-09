@@ -655,9 +655,14 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 		return err
 	}
 
+	log.Debug().Msgf("TailCiBuilderJobLogs - retrieved %v pods", len(pods.Items))
+
 	for _, pod := range pods.Items {
 
 		if *pod.Status.Phase == "Pending" {
+
+			log.Debug().Msg("TailCiBuilderJobLogs - pod is pending, waiting for running state...")
+
 			// watch for pod to go into Running state (or out of Pending state)
 			var pendingPod corev1.Pod
 			watcher, err := c.kubeClient.Watch(context.Background(), c.config.Jobs.Namespace, &pendingPod, k8s.Timeout(time.Duration(300)*time.Second))
@@ -686,8 +691,12 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 			log.Warn().Msgf("Post %v for job %v has unsupported phase %v", *pod.Metadata.Name, jobName, *pod.Status.Phase)
 		}
 
+		log.Debug().Msg("TailCiBuilderJobLogs - pod has running state...")
+
 		// follow logs from pod
 		url := fmt.Sprintf("%v/api/v1/namespaces/%v/pods/%v/log?follow=true", c.kubeClient.Endpoint, c.config.Jobs.Namespace, *pod.Metadata.Name)
+
+		log.Debug().Msgf("TailCiBuilderJobLogs - k8s api url: %v", url)
 
 		ct := "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
 
@@ -717,6 +726,8 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 			log.Error().Msg(errorMessage)
 			return fmt.Errorf(errorMessage)
 		}
+
+		log.Debug().Msgf("TailCiBuilderJobLogs - streaming logs")
 
 		reader := bufio.NewReader(resp.Body)
 		for {
