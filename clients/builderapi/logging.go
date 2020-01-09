@@ -55,7 +55,7 @@ func (c *loggingClient) TailCiBuilderJobLogs(ctx context.Context, jobName string
 }
 
 func (c *loggingClient) GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) string {
-	return c.Client.GetJobName(ctx, jobType, repoOwner, repoOwner, id)
+	return c.Client.GetJobName(ctx, jobType, repoOwner, repoName, id)
 }
 
 func (c *loggingClient) GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) contracts.BuilderConfig {

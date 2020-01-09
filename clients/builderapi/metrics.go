@@ -72,7 +72,7 @@ func (c *metricsClient) TailCiBuilderJobLogs(ctx context.Context, jobName string
 func (c *metricsClient) GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) string {
 	defer func(begin time.Time) { helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetJobName", begin) }(time.Now())
 
-	return c.Client.GetJobName(ctx, jobType, repoOwner, repoOwner, id)
+	return c.Client.GetJobName(ctx, jobType, repoOwner, repoName, id)
 }
 
 func (c *metricsClient) GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) contracts.BuilderConfig {
