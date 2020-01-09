@@ -18,7 +18,9 @@ type loggingService struct {
 }
 
 func (s *loggingService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error) {
-	defer func() { helpers.HandleLogError(s.prefix, "CreateJobForBitbucketPush", err) }()
+	defer func() {
+		helpers.HandleLogErrorWithIgnoredErrors(s.prefix, "CreateJobForBitbucketPush", err, ErrNonCloneableEvent, ErrNoManifest)
+	}()
 
 	return s.Service.CreateJobForBitbucketPush(ctx, event)
 }

@@ -18,7 +18,9 @@ type loggingService struct {
 }
 
 func (s *loggingService) CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) (err error) {
-	defer func() { helpers.HandleLogError(s.prefix, "CreateJobForGithubPush", err) }()
+	defer func() {
+		helpers.HandleLogErrorWithIgnoredErrors(s.prefix, "CreateJobForGithubPush", err, ErrNonCloneableEvent, ErrNoManifest)
+	}()
 
 	return s.Service.CreateJobForGithubPush(ctx, event)
 }
