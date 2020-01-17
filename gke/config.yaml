@@ -499,6 +499,9 @@ trustedImages:
   - cloudflare
 - path: bsycorp/kind
   runPrivileged: true
+- path: {{.TRUSTED_IMAGE_PATH_3}}
+  injectedCredentialTypes:
+  - bitbucket-api-token
 
 # registryMirror: {{.REGISTRY_MIRROR}}
 dindMtu: {{.DIND_MTU}}
