@@ -333,7 +333,7 @@ releases:
             TRUSTED_IMAGE_PATH_1: estafette.secret(9-HQffnFqJgI7Xiz.B-Zn2mE893IT1zaNv6hijYxYwTFdgQMWy95VZDluQgxc9hf-kHP5C4qcDn4pr7b8AywjDjCTg9nAFwA=)
             TRUSTED_IMAGE_PATH_2: estafette.secret(8epVcE-R69Iiwhwu.uNjZMA0CMJYpLnu15d2giR1xFM_GaTlYoET0PEvmilVnwIk3M5tXqgLatHG_uYm1H_mOo7-3948=)
             TRUSTED_IMAGE_WHITELISTED_PIPELINES_2: estafette.secret(dfiSu7mw5Hvxg7zp.SG0InhFOmT1F--FyQFERYxb4o_j17nGcOWitxyIE3dliCqLyLBSgZ02ah72anOjX7KydlNW1zg5--IhRFez5ROE-JrBSbUPfDgawxpGI04HkXqrahBBBRhPPky-I100io4_Oi4Aw-Q==)
-            TRUSTED_IMAGE_PATH_3: estafette.secret(7WkpgKwRYQsvrUsR.hsqrpwBTXTTHkJNxlBPMs1l_I0oBiZ6v38JuUbqrLFPvdwdny2JIIundLoZojpn1_Q3eCg5Gnu1Qjxeksx7nyUoq4JY6s44L)
+            TRUSTED_IMAGE_PATH_3: estafette.secret(frxGJLi03ZM4fUef.hC1YqFU2rW3-ERWo4dw0TpwGkj7oMSgmEBPHu83RMvaLLtXtLtWVHz6LIdD2w3k8T0ZlIFDCiDULsE3-ujXo9TCHXE_h8SrH3bhe)
             SLACK_WEBHOOK_NAME_1: estafette.secret(hQMGMQZjLleo0jrL.mH83aW_AWhXGnYEnlRGJygHtIE3vCymZtUlQSH37YuiG4X5N)
             SLACK_WEBHOOK_WORKSPACE_1: estafette.secret(qKBEGr8o_W10rHSI.RzHIBV-aeO68orA8lEdZ3-a13GidhA==)
             SLACK_WEBHOOK_WEBHOOK_1: estafette.secret(C4_njC3uXAFPekLK.y0fIMOA_ER9hvoGcvCDYayiAgUQPy66565Ji-3Ek977GTIg_BzI32gasg3_YvjHR1ZPmAAv3dVY7YFXKcTnrci0ETijcujVyUXBZ4SLqkQKyVWLfdDL3TB4YbE9hZQRyCy9cnH1t4wW-GjTk3rbXLulHdlkOMzZEmGRlWrqatgKFQejjaN7kXH0rxxe0B2R73LDJn2oVAJm0ZPcyL5ajH-kyJ-pbW3177FNP13sIcw==)
