@@ -356,7 +356,7 @@ releases:
 
             COCKROACH_DATABASE: estafette.secret(FMiqFetD_wlJM9mB.2_kprGMxMtllfDzFI-95itWfvAeb70ibG-6-CDs4P6A=)
             COCKROACH_HOST: estafette.secret(NBbU-NviD2kCo6t7.BNARNwmU-Lfa4erBVxjeRbz9c4xh9bos4UyO5eMvdQgK1JofvD9GCLDkUJEMdJbbQxbOjUnzw70fopt_mus=)
-            COCKROACH_INSECURE: estafette.secret(rf_0VrGY_WVbUbUK.YH5oq5efOIEX4eBZ2qqMrO6hb3F6)
+            COCKROACH_INSECURE: estafette.secret(zH4TA8KlflUEIhXA.pEC3hEnqCTPOGC8C0Z2wKHk139w=)
             COCKROACH_CERTS_DIR: /cockroach-certs
             COCKROACH_PORT: 26257
             COCKROACH_USER: estafette.secret(O4uXorr5vFlFQoYu.QQFEtau1WrWXciu6o-YgET2MXU3OTIp9dNbsb_vAq_0=)
