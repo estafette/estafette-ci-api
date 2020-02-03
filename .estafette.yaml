@@ -356,7 +356,7 @@ releases:
 
             COCKROACH_DATABASE: estafette.secret(FMiqFetD_wlJM9mB.2_kprGMxMtllfDzFI-95itWfvAeb70ibG-6-CDs4P6A=)
             COCKROACH_HOST: estafette.secret(NBbU-NviD2kCo6t7.BNARNwmU-Lfa4erBVxjeRbz9c4xh9bos4UyO5eMvdQgK1JofvD9GCLDkUJEMdJbbQxbOjUnzw70fopt_mus=)
-            COCKROACH_INSECURE: estafette.secret(zH4TA8KlflUEIhXA.pEC3hEnqCTPOGC8C0Z2wKHk139w=)
+            COCKROACH_INSECURE: estafette.secret(rf_0VrGY_WVbUbUK.YH5oq5efOIEX4eBZ2qqMrO6hb3F6)
             COCKROACH_CERTS_DIR: /cockroach-certs
             COCKROACH_PORT: 26257
             COCKROACH_USER: estafette.secret(O4uXorr5vFlFQoYu.QQFEtau1WrWXciu6o-YgET2MXU3OTIp9dNbsb_vAq_0=)
@@ -394,27 +394,18 @@ releases:
           - gke/secret-sa-gcr.yaml
           data:
             IntegrationsHostname: estafette.secret(mtSBdLZLTVske7fE.3XCz5ZChlXXK72BMFL4PFuOgQz8W11Wh0PR0f5xzJumtkI5ctsTbIcQE2pPcs8PHtQ==)
-        initcontainers:
-        - name: init-certs
-          image: cockroachdb/cockroach-k8s-request-cert:0.4
-          imagePullPolicy: IfNotPresent
-          command:
-            - /bin/ash
-            - -ecx
-            - /request-cert -namespace=${POD_NAMESPACE} -certs-dir=/cockroach-certs -type=client -user=estafette_ci_api -symlink-ca-from=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-          env:
-          - name: POD_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
-          volumeMounts:
-          - name: client-certs
-            mountPath: /cockroach-certs
         volumemounts:
         - name: client-certs
           mountpath: /cockroach-certs
           volume:
-            emptyDir: {}
+            secret:
+              secretName: estafette.client.api
+              items:
+              - key: key
+                path: key
+                mode: 0600
+              - key: cert
+                path: cert
         - name: gcp-service-account-gke
           mountpath: /gcp-service-account-gke
           volume:
