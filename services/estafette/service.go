@@ -781,6 +781,21 @@ func (s *service) fireRelease(ctx context.Context, p contracts.Pipeline, t manif
 		versionToRelease = t.ReleaseAction.Version
 	}
 
+	// get repobranch and reporevision for actually released build if it's not the most recent build that gets released
+	repoBranch := p.RepoBranch
+	repoRevision := p.RepoRevision
+	if versionToRelease != p.BuildVersion {
+		succeededBuilds, err := s.cockroachdbClient.GetPipelineBuildsByVersion(ctx, p.RepoSource, p.RepoOwner, p.RepoName, versionToRelease, []string{"succeeded"}, 1, true)
+		if err != nil {
+			return err
+		}
+		if len(succeededBuilds) == 0 {
+			return fmt.Errorf("No succeeded builds have been found to fire a release trigger")
+		}
+		repoBranch = succeededBuilds[0].RepoBranch
+		repoRevision = succeededBuilds[0].RepoRevision
+	}
+
 	_, err := s.CreateRelease(ctx, contracts.Release{
 		Name:           t.ReleaseAction.Target,
 		Action:         t.ReleaseAction.Action,
@@ -789,7 +804,7 @@ func (s *service) fireRelease(ctx context.Context, p contracts.Pipeline, t manif
 		RepoName:       p.RepoName,
 		ReleaseVersion: versionToRelease,
 		Events:         []manifest.EstafetteEvent{e},
-	}, *p.ManifestObject, p.RepoBranch, p.RepoRevision, true)
+	}, *p.ManifestObject, repoBranch, repoRevision, true)
 	if err != nil {
 		return err
 	}
