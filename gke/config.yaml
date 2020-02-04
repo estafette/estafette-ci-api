@@ -419,16 +419,6 @@ credentials:
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_BUNNY1}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_BUNNY1}}
-- name: '{{.GKE_CREDENTIAL_BUNNY2}}'
-  type: 'kubernetes-engine'
-  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/cloud-function|extensions/helm
-  project: {{.GKE_PROJECT_BUNNY2}}
-  cluster: {{.GKE_CLUSTER_BUNNY2}}
-  region: {{.GKE_REGION_BUNNY2}}
-  zone: {{.GKE_ZONE_BUNNY2}}
-  serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_BUNNY2}}'
-  defaults:
-    namespace: {{.GKE_DEFAULT_NAMESPACE_BUNNY2}}
 - name: '{{.GKE_CREDENTIAL_CAPIVARA1}}'
   type: 'kubernetes-engine'
   whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/cloud-function|extensions/helm
