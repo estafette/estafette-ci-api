@@ -443,6 +443,10 @@ credentials:
   type: nuget-server
   apiUrl: {{.NUGET_SERVER_API_URL_1}}
   apiKey: {{.NUGET_SERVER_API_KEY_1}}
+- name: {{.NUGET_SERVER_NAME_2}}
+  type: nuget-server
+  apiUrl: {{.NUGET_SERVER_API_URL_2}}
+  apiKey: {{.NUGET_SERVER_API_KEY_2}}
 - name: {{.SONARQUBE_SERVER_NAME_1}}
   type: sonarqube-server
   apiUrl: {{.SONARQUBE_SERVER_API_URL_1}}
