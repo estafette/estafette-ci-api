@@ -233,6 +233,44 @@ credentials:
   region: {{.GKE_REGION_7}}
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_7}}'
   defaults:
+    namespace: {{.GKE_DEFAULT_NAMESPACE_7}}
+    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_7}}
+    container:
+      repository: {{.GKE_DEFAULT_REPOSITORY_7}}
+    autoscale:
+      min: 2
+      max: 10
+    hosts:
+    - ${ESTAFETTE_LABEL_APP}.stg.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_7}}
+    internalhosts:
+    - ${ESTAFETTE_LABEL_APP}.stg.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_7}}
+- name: '{{.GKE_CREDENTIAL_8}}'
+  type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/cloud-function
+  project: {{.GKE_PROJECT_8}}
+  cluster: {{.GKE_CLUSTER_8}}
+  region: {{.GKE_REGION_8}}
+  serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_8}}'
+  defaults:
+    namespace: {{.GKE_DEFAULT_NAMESPACE_8}}
+    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_8}}
+    container:
+      repository: {{.GKE_DEFAULT_REPOSITORY_8}}
+    autoscale:
+      min: 3
+      max: 500
+    hosts:
+    - ${ESTAFETTE_LABEL_APP}.prd.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_8}}
+    internalhosts:
+    - ${ESTAFETTE_LABEL_APP}.prd.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_8}}
+- name: '{{.GKE_CREDENTIAL_7}}'
+  type: 'kubernetes-engine'
+  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/cloud-function
+  project: {{.GKE_PROJECT_7}}
+  cluster: {{.GKE_CLUSTER_7}}
+  region: {{.GKE_REGION_7}}
+  serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_7}}'
+  defaults:
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_7}}
     autoscale:
@@ -399,44 +437,6 @@ credentials:
     - ${ESTAFETTE_LABEL_APP}.prd.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_16}}
     internalhosts:
     - ${ESTAFETTE_LABEL_APP}.prd.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_16}}
-- name: '{{.GKE_CREDENTIAL_17}}'
-  type: 'kubernetes-engine'
-  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/cloud-function
-  project: {{.GKE_PROJECT_17}}
-  cluster: {{.GKE_CLUSTER_17}}
-  region: {{.GKE_REGION_17}}
-  serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_17}}'
-  defaults:
-    namespace: {{.GKE_DEFAULT_NAMESPACE_17}}
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_17}}
-    container:
-      repository: {{.GKE_DEFAULT_REPOSITORY_17}}
-    autoscale:
-      min: 2
-      max: 10
-    hosts:
-    - ${ESTAFETTE_LABEL_APP}.stg.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_17}}
-    internalhosts:
-    - ${ESTAFETTE_LABEL_APP}.stg.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_17}}
-- name: '{{.GKE_CREDENTIAL_18}}'
-  type: 'kubernetes-engine'
-  whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/cloud-function
-  project: {{.GKE_PROJECT_18}}
-  cluster: {{.GKE_CLUSTER_18}}
-  region: {{.GKE_REGION_18}}
-  serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_18}}'
-  defaults:
-    namespace: {{.GKE_DEFAULT_NAMESPACE_18}}
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_18}}
-    container:
-      repository: {{.GKE_DEFAULT_REPOSITORY_18}}
-    autoscale:
-      min: 3
-      max: 500
-    hosts:
-    - ${ESTAFETTE_LABEL_APP}.prd.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_18}}
-    internalhosts:
-    - ${ESTAFETTE_LABEL_APP}.prd.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_18}}
 - name: {{.SLACK_WEBHOOK_NAME_1}}
   type: slack-webhook
   workspace: {{.SLACK_WEBHOOK_WORKSPACE_1}}
