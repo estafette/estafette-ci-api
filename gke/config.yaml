@@ -253,16 +253,15 @@ credentials:
   serviceAccountKeyfile: '{{.GKE_SA_KEYFILE_8}}'
   defaults:
     namespace: {{.GKE_DEFAULT_NAMESPACE_8}}
-    certificatesecret: {{.GKE_DEFAULT_CERTIFICATE_8}}
     container:
       repository: {{.GKE_DEFAULT_REPOSITORY_8}}
     autoscale:
       min: 3
       max: 500
     hosts:
-    - ${ESTAFETTE_LABEL_APP}.prd.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_8}}
+    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_HOST_TOP_LEVEL_DOMAIN_8}}
     internalhosts:
-    - ${ESTAFETTE_LABEL_APP}.prd.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_8}}
+    - ${ESTAFETTE_LABEL_APP}.{{.GKE_DEFAULT_INTERNAL_HOST_TOP_LEVEL_DOMAIN_8}}
 - name: '{{.GKE_CREDENTIAL_9}}'
   type: 'kubernetes-engine'
   whitelistedTrustedImages: extensions/gke|extensions/gcs|extensions/cloud-function
