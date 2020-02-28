@@ -58,8 +58,6 @@ github.com/estafette/estafette-ci-manifest v0.1.138 h1:SUUOBzPGd0ixnvmyIaQhCIbv4
 github.com/estafette/estafette-ci-manifest v0.1.138/go.mod h1:tJKMaXeTc7L45SP7/ueP57EIvx95QL6Z9dZiJiyGCzY=
 github.com/estafette/estafette-ci-manifest v0.1.141 h1:UCB0mlRHjMVAJwI1e+DsZudn1BQaUQvfq4TPhPJWQTc=
 github.com/estafette/estafette-ci-manifest v0.1.141/go.mod h1:tJKMaXeTc7L45SP7/ueP57EIvx95QL6Z9dZiJiyGCzY=
-github.com/estafette/estafette-foundation v0.0.44 h1:nqyQCnxx90IfJp0l1O07NosL7nIsMTDL2c2g16Bnc8U=
-github.com/estafette/estafette-foundation v0.0.44/go.mod h1:jiKjbzpX9jlsDgHblHWEHk0ihiI8qS6ZAQIYdmVWzZQ=
 github.com/estafette/estafette-foundation v0.0.45 h1:EH7e4/SYySpNyd2IJ3eZk3dkA167yK19YHhXCU2WLrQ=
 github.com/estafette/estafette-foundation v0.0.45/go.mod h1:TPvybBpORGNSz7NBSHyZ7jKMUeyNxQsiBPSYCoDchAE=
 github.com/fsnotify/fsnotify v1.4.7 h1:IXs+QLmnXW2CcXuY+8Mzv/fWEsPGWxqefPtCP5CnV9I=
@@ -93,6 +91,7 @@ github.com/google/btree v1.0.0/go.mod h1:lNA+9X1NB3Zf8V7Ke586lFgjr2dZNuvo3lPJSGZ
 github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=
 github.com/google/go-cmp v0.3.0 h1:crn/baboCvb5fXaQ0IJ1SGTsTVrWpDsCWC8EGETZijY=
 github.com/google/go-cmp v0.3.0/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
+github.com/google/go-cmp v0.3.1 h1:Xye71clBPdm5HgqGwUkwhbynsUJZhDbS20FvLhQ2izg=
 github.com/google/go-cmp v0.3.1/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/martian v2.1.0+incompatible h1:/CP5g8u/VJHijgedC/Legn3BAbAaWPgecwXBIDzw5no=
 github.com/google/martian v2.1.0+incompatible/go.mod h1:9I4somxYTbIHy5NJKHRl3wXiIaQGbYVAs8BPL6v8lEs=

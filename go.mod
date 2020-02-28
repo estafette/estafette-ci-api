@@ -18,6 +18,7 @@ require (
 	github.com/estafette/estafette-ci-crypt v0.0.23
 	github.com/estafette/estafette-ci-manifest v0.1.141
 	github.com/estafette/estafette-foundation v0.0.45
+	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gin-contrib/gzip v0.0.2-0.20190827144029-5602d8b438ea
 	github.com/gin-gonic/gin v1.4.0
 	github.com/go-kit/kit v0.8.0

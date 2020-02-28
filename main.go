@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"runtime"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/ericchiang/k8s"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	foundation "github.com/estafette/estafette-foundation"
+	"github.com/fsnotify/fsnotify"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -104,12 +106,37 @@ func main() {
 
 func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *http.Server {
 
+	ctx := context.Background()
+
+	config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler := getInstances(ctx)
+
+	srv := configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler)
+
+	// watch for configmap changes
+	foundation.WatchForFileChanges(*configFilePath, func(event fsnotify.Event) {
+		log.Info().Msgf("Configmap at %v was updated, refreshing instances...", *configFilePath)
+
+		// refresh instances
+		config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler = getInstances(ctx)
+	})
+
+	// watch for service account key file changes
+	foundation.WatchForFileChanges(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), func(event fsnotify.Event) {
+		log.Info().Msg("Service account key file was updated, refreshing instances...")
+
+		// refresh instances
+		config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler = getInstances(ctx)
+	})
+
+	return srv
+}
+
+func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *github.Handler, *estafette.Handler, *pubsub.Handler, *slack.Handler) {
+
 	// read decryption key from secretDecryptionKeyPath
 	if !foundation.FileExists(*secretDecryptionKeyPath) {
 		log.Fatal().Msgf("Cannot find secret decryption key at path %v", *secretDecryptionKeyPath)
 	}
-
-	ctx := context.Background()
 
 	secretDecryptionKeyBytes, err := ioutil.ReadFile(*secretDecryptionKeyPath)
 	if err != nil {
@@ -312,6 +339,11 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	estafetteHandler := estafette.NewHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
 	pubsubHandler := pubsub.NewHandler(pubsubapiClient, estafetteService)
 	slackHandler := slack.NewHandler(secretHelper, *config.Integrations.Slack, slackapiClient, cockroachdbClient, *config.APIServer, estafetteService, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+
+	return config, &bitbucketHandler, &githubHandler, &estafetteHandler, &pubsubHandler, &slackHandler
+}
+
+func configureGinGonic(config *config.APIConfig, bitbucketHandler *bitbucket.Handler, githubHandler *github.Handler, estafetteHandler *estafette.Handler, pubsubHandler *pubsub.Handler, slackHandler *slack.Handler) *http.Server {
 
 	// run gin in release mode and other defaults
 	gin.SetMode(gin.ReleaseMode)
