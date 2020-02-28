@@ -147,12 +147,14 @@ releases:
                 path: cert
         - name: app-secrets
           mountpath: /secrets
-          secret:
-            secretName: estafette-ci-config-secrets
+          volume:
+            secret:
+              secretName: estafette-ci-config-secrets
         - name: app-configs
           mountpath: /configs
-          configMap:
-            name: estafette-ci-config-configs
+          volume:
+            configMap:
+              name: estafette-ci-config-configs
         - name: gcp-service-account-gke
           mountpath: /gcp-service-account-gke
           volume:
