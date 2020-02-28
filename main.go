@@ -370,7 +370,7 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler *bitbucket.Han
 
 	// middleware to handle auth for different endpoints
 	log.Debug().Msg("Adding auth middleware...")
-	authMiddleware := auth.NewAuthMiddleware(*config.Auth)
+	authMiddleware := auth.NewAuthMiddleware(config.Auth)
 
 	log.Debug().Msg("Setting up routes...")
 	routes.POST("/api/integrations/github/events", githubHandler.Handle)

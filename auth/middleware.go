@@ -18,11 +18,11 @@ type Middleware interface {
 }
 
 type authMiddlewareImpl struct {
-	config config.AuthConfig
+	config *config.AuthConfig
 }
 
 // NewAuthMiddleware returns a new auth.AuthMiddleware
-func NewAuthMiddleware(config config.AuthConfig) (authMiddleware Middleware) {
+func NewAuthMiddleware(config *config.AuthConfig) (authMiddleware Middleware) {
 
 	authMiddleware = &authMiddlewareImpl{
 		config: config,
