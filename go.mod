@@ -15,7 +15,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/ericchiang/k8s v1.2.0
 	github.com/estafette/estafette-ci-contracts v0.0.179
-	github.com/estafette/estafette-ci-crypt v0.0.32-pipeline-whitelist-regex
+	github.com/estafette/estafette-ci-crypt v0.0.34
 	github.com/estafette/estafette-ci-manifest v0.1.141
 	github.com/estafette/estafette-foundation v0.0.45
 	github.com/fsnotify/fsnotify v1.4.7
