@@ -1743,9 +1743,10 @@ func (h *Handler) ValidateManifest(c *gin.Context) {
 func (h *Handler) EncryptSecret(c *gin.Context) {
 
 	var aux struct {
-		Base64Encode  bool   `json:"base64"`
-		DoubleEncrypt bool   `json:"double"`
-		Value         string `json:"value"`
+		Base64Encode      bool   `json:"base64"`
+		DoubleEncrypt     bool   `json:"double"`
+		PipelineWhitelist string `json:"pipelineWhitelist"`
+		Value             string `json:"value"`
 	}
 
 	err := c.BindJSON(&aux)
@@ -1760,7 +1761,7 @@ func (h *Handler) EncryptSecret(c *gin.Context) {
 		value = base64.URLEncoding.EncodeToString([]byte(value))
 	}
 
-	encryptedString, err := h.secretHelper.EncryptEnvelope(value)
+	encryptedString, err := h.secretHelper.EncryptEnvelope(value, aux.PipelineWhitelist)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed encrypting secret")
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
@@ -1768,7 +1769,7 @@ func (h *Handler) EncryptSecret(c *gin.Context) {
 	}
 
 	if aux.DoubleEncrypt {
-		encryptedString, err = h.secretHelper.EncryptEnvelope(encryptedString)
+		encryptedString, err = h.secretHelper.EncryptEnvelope(encryptedString, crypt.DefaultPipelineWhitelist)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed encrypting secret")
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})

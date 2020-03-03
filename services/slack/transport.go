@@ -73,7 +73,7 @@ func (h *Handler) Handle(c *gin.Context) {
 
 					log.Debug().Msg("Handling slash command /estafette encrypt")
 
-					encryptedString, err := h.secretHelper.Encrypt(strings.Join(arguments, " "))
+					encryptedString, err := h.secretHelper.Encrypt(strings.Join(arguments, " "), "")
 					if err != nil {
 						log.Error().Err(err).Interface("slashCommand", slashCommand).Msg("Failed to encrypt secret")
 						c.String(http.StatusOK, "Incorrect usage of /estafette encrypt")

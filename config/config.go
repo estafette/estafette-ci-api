@@ -183,7 +183,7 @@ func (h *configReaderImpl) ReadConfigFromFile(configPath string, decryptSecrets 
 	// decrypt secrets before unmarshalling
 	if decryptSecrets {
 
-		decryptedData, err := h.secretHelper.DecryptAllEnvelopes(string(data))
+		decryptedData, err := h.secretHelper.DecryptAllEnvelopes(string(data), "")
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed decrypting secrets in config file")
 		}
