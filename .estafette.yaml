@@ -91,11 +91,11 @@ releases:
           env:
             ESTAFETTE_LOG_FORMAT: v3
           cpu:
-            request: 60m
-            limit: 120m
+            request: 158m
+            limit: 316m
           memory:
-            request: 236Mi
-            limit: 472Mi
+            request: 483Mi
+            limit: 976Mi
           metrics:
             port: 9001
           lifecycle:
