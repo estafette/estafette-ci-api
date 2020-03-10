@@ -3,9 +3,9 @@ module github.com/estafette/estafette-ci-api
 go 1.12
 
 require (
-	cloud.google.com/go/bigquery v1.0.1
-	cloud.google.com/go/pubsub v1.0.1
-	cloud.google.com/go/storage v1.0.0
+	cloud.google.com/go/bigquery v1.4.0
+	cloud.google.com/go/pubsub v1.2.0
+	cloud.google.com/go/storage v1.6.0
 	github.com/Masterminds/squirrel v1.1.0
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38 // indirect
@@ -31,9 +31,9 @@ require (
 	github.com/rs/zerolog v1.17.2
 	github.com/sergi/go-diff v1.0.0 // indirect
 	github.com/sethgrid/pester v0.0.0-20170816164208-a86a2d88f4dc
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.4.0
 	github.com/uber/jaeger-client-go v2.20.1+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible
-	google.golang.org/api v0.10.0
+	google.golang.org/api v0.18.0
 	gopkg.in/yaml.v2 v2.2.2
 )
