@@ -11,7 +11,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/ericchiang/k8s v1.2.0
 	github.com/estafette/estafette-ci-contracts v0.0.182
-	github.com/estafette/estafette-ci-crypt v0.0.35
+	github.com/estafette/estafette-ci-crypt v0.0.36
 	github.com/estafette/estafette-ci-manifest v0.1.145
 	github.com/estafette/estafette-foundation v0.0.53
 	github.com/fsnotify/fsnotify v1.4.7

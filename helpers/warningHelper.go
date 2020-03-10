@@ -1,10 +1,12 @@
 package helpers
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	contracts "github.com/estafette/estafette-ci-contracts"
+	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
 
@@ -15,20 +17,24 @@ type WarningHelper interface {
 }
 
 type warningHelperImpl struct {
+	secretHelper crypt.SecretHelper
 }
 
 // NewWarningHelper returns a new estafette.WarningHelper
-func NewWarningHelper() (warningHelper WarningHelper) {
+func NewWarningHelper(secretHelper crypt.SecretHelper) (warningHelper WarningHelper) {
 
-	warningHelper = &warningHelperImpl{}
+	warningHelper = &warningHelperImpl{
+		secretHelper: secretHelper,
+	}
 
 	return
 }
 
-func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteManifest, gitOwner string) (warnings []contracts.Warning, err error) {
+func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteManifest, fullRepoPath string) (warnings []contracts.Warning, err error) {
 	warnings = []contracts.Warning{}
 
-	// unmarshal then marshal manifest to include defaults
+	isEstafettePipeline := strings.HasPrefix(fullRepoPath, "github.com/estafette/")
+
 	if manifest != nil {
 		// check all build and release stages to have a pinned version
 		stagesUsingLatestTag := []string{}
@@ -40,7 +46,7 @@ func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteMani
 					if containerImageTag == "latest" {
 						stagesUsingLatestTag = append(stagesUsingLatestTag, ns.Name)
 					}
-					if containerImageTag == "dev" && containerImageRepo == "extensions" && gitOwner != "estafette" {
+					if containerImageTag == "dev" && containerImageRepo == "extensions" && !isEstafettePipeline {
 						stagesUsingDevTag = append(stagesUsingDevTag, ns.Name)
 					}
 				}
@@ -49,7 +55,7 @@ func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteMani
 				if containerImageTag == "latest" {
 					stagesUsingLatestTag = append(stagesUsingLatestTag, s.Name)
 				}
-				if containerImageTag == "dev" && containerImageRepo == "extensions" && gitOwner != "estafette" {
+				if containerImageTag == "dev" && containerImageRepo == "extensions" && !isEstafettePipeline {
 					stagesUsingDevTag = append(stagesUsingDevTag, s.Name)
 				}
 			}
@@ -63,7 +69,7 @@ func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteMani
 						if containerImageTag == "latest" {
 							stagesUsingLatestTag = append(stagesUsingLatestTag, ns.Name)
 						}
-						if containerImageTag == "dev" && containerImageRepo == "extensions" && gitOwner != "estafette" {
+						if containerImageTag == "dev" && containerImageRepo == "extensions" && !isEstafettePipeline {
 							stagesUsingDevTag = append(stagesUsingDevTag, ns.Name)
 						}
 					}
@@ -72,7 +78,7 @@ func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteMani
 					if containerImageTag == "latest" {
 						stagesUsingLatestTag = append(stagesUsingLatestTag, fmt.Sprintf("%v/%v", r.Name, s.Name))
 					}
-					if containerImageTag == "dev" && containerImageRepo == "extensions" && gitOwner != "estafette" {
+					if containerImageTag == "dev" && containerImageRepo == "extensions" && !isEstafettePipeline {
 						stagesUsingDevTag = append(stagesUsingDevTag, s.Name)
 					}
 				}
@@ -92,11 +98,36 @@ func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteMani
 			})
 		}
 
-		if manifest.Builder.Track == "dev" && gitOwner != "estafette" {
+		if manifest.Builder.Track == "dev" && !isEstafettePipeline {
 			warnings = append(warnings, contracts.Warning{
 				Status:  "warning",
 				Message: "This pipeline uses the **dev** track for the builder; it is [best practice](https://estafette.io/usage/best-practices/#avoid-using-estafette-s-builder-dev-track) to avoid the dev track, since it can be broken at any time.",
 			})
+		}
+
+		manifestBytes, err := json.Marshal(manifest)
+		if err != nil {
+			return warnings, err
+		}
+
+		secretValues, err := w.secretHelper.GetAllSecrets(string(manifestBytes))
+		if err != nil {
+			return warnings, err
+		}
+
+		for _, sv := range secretValues {
+			_, pipelineWhitelist, err := w.secretHelper.Decrypt(sv, fullRepoPath)
+			if err != nil {
+				return warnings, err
+			}
+
+			if pipelineWhitelist == crypt.DefaultPipelineWhitelist {
+				warnings = append(warnings, contracts.Warning{
+					Status:  "warning",
+					Message: "This pipeline uses _global_ secrets which can be used by any pipeline; it is [best practice](https://estafette.io/usage/best-practices/#use-pipeline-restricted-secrets-instead-of-global-secrets) to use _restricted_ secrets instead, that can only be used by this pipeline.",
+				})
+				break
+			}
 		}
 	}
 

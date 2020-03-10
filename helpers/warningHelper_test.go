@@ -3,12 +3,13 @@ package helpers
 import (
 	"testing"
 
+	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	helper = NewWarningHelper()
+	helper = NewWarningHelper(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 )
 
 func TestGetManifestWarnings(t *testing.T) {
@@ -23,9 +24,10 @@ func TestGetManifestWarnings(t *testing.T) {
 				},
 			},
 		}
+		fullRepoPath := "github.com/kubernetes/kubernetes"
 
 		// act
-		warnings, err := helper.GetManifestWarnings(mft, "extensions")
+		warnings, err := helper.GetManifestWarnings(mft, fullRepoPath)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(warnings))
@@ -47,9 +49,10 @@ func TestGetManifestWarnings(t *testing.T) {
 				},
 			},
 		}
+		fullRepoPath := "github.com/kubernetes/kubernetes"
 
 		// act
-		warnings, err := helper.GetManifestWarnings(mft, "extensions")
+		warnings, err := helper.GetManifestWarnings(mft, fullRepoPath)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(warnings))
@@ -65,9 +68,10 @@ func TestGetManifestWarnings(t *testing.T) {
 				},
 			},
 		}
+		fullRepoPath := "github.com/kubernetes/kubernetes"
 
 		// act
-		warnings, err := helper.GetManifestWarnings(mft, "extensions")
+		warnings, err := helper.GetManifestWarnings(mft, fullRepoPath)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(warnings))
@@ -85,9 +89,10 @@ func TestGetManifestWarnings(t *testing.T) {
 				},
 			},
 		}
+		fullRepoPath := "github.com/kubernetes/kubernetes"
 
 		// act
-		warnings, err := helper.GetManifestWarnings(mft, "extensions")
+		warnings, err := helper.GetManifestWarnings(mft, fullRepoPath)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(warnings))
@@ -105,9 +110,10 @@ func TestGetManifestWarnings(t *testing.T) {
 				},
 			},
 		}
+		fullRepoPath := "github.com/kubernetes/kubernetes"
 
 		// act
-		warnings, err := helper.GetManifestWarnings(mft, "extensions")
+		warnings, err := helper.GetManifestWarnings(mft, fullRepoPath)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(warnings))
@@ -125,9 +131,10 @@ func TestGetManifestWarnings(t *testing.T) {
 				},
 			},
 		}
+		fullRepoPath := "github.com/kubernetes/kubernetes"
 
 		// act
-		warnings, err := helper.GetManifestWarnings(mft, "extensions")
+		warnings, err := helper.GetManifestWarnings(mft, fullRepoPath)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(warnings))
@@ -143,9 +150,10 @@ func TestGetManifestWarnings(t *testing.T) {
 				},
 			},
 		}
+		fullRepoPath := "github.com/estafette/estafette-ci-api"
 
 		// act
-		warnings, err := helper.GetManifestWarnings(mft, "estafette")
+		warnings, err := helper.GetManifestWarnings(mft, fullRepoPath)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(warnings))
@@ -158,14 +166,49 @@ func TestGetManifestWarnings(t *testing.T) {
 				Track: "dev",
 			},
 		}
+		fullRepoPath := "github.com/kubernetes/kubernetes"
 
 		// act
-		warnings, err := helper.GetManifestWarnings(mft, "extensions")
+		warnings, err := helper.GetManifestWarnings(mft, fullRepoPath)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(warnings))
 		assert.Equal(t, "warning", warnings[0].Status)
 		assert.Equal(t, "This pipeline uses the **dev** track for the builder; it is [best practice](https://estafette.io/usage/best-practices/#avoid-using-estafette-s-builder-dev-track) to avoid the dev track, since it can be broken at any time.", warnings[0].Message)
+	})
+
+	t.Run("ReturnsWarningIfManifestHasGlobalSecrets", func(t *testing.T) {
+
+		mft := &manifest.EstafetteManifest{
+			GlobalEnvVars: map[string]string{
+				"my-secret": "estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)",
+			},
+		}
+		fullRepoPath := "github.com/estafette/estafette-ci-api"
+
+		// act
+		warnings, err := helper.GetManifestWarnings(mft, fullRepoPath)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(warnings))
+		assert.Equal(t, "warning", warnings[0].Status)
+		assert.Equal(t, "This pipeline uses _global_ secrets which can be used by any pipeline; it is [best practice](https://estafette.io/usage/best-practices/#use-pipeline-restricted-secrets-instead-of-global-secrets) to use _restricted_ secrets instead, that can only be used by this pipeline.", warnings[0].Message)
+	})
+
+	t.Run("ReturnsNoWarningIfManifestOnlyHasRestrictedSecrets", func(t *testing.T) {
+
+		mft := &manifest.EstafetteManifest{
+			GlobalEnvVars: map[string]string{
+				"my-secret": "estafette.secret(7pB-Znp16my5l-Gz.l--UakUaK5N8KYFt-sVNUaOY5uobSpWabJNVXYDEyDWT.hO6JcRARdtB-PY577NJeUrKMVOx-sjg617wTd8IkAh-PvIm9exuATeDeFiYaEr9eQtfreBQ=)",
+			},
+		}
+		fullRepoPath := "github.com/estafette/estafette-ci-api"
+
+		// act
+		warnings, err := helper.GetManifestWarnings(mft, fullRepoPath)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(warnings))
 	})
 }
 

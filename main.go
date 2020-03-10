@@ -145,8 +145,8 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 
 	log.Debug().Msg("Creating helpers...")
 
-	warningHelper := helpers.NewWarningHelper()
 	secretHelper := crypt.NewSecretHelper(string(secretDecryptionKeyBytes), false)
+	warningHelper := helpers.NewWarningHelper(secretHelper)
 
 	log.Debug().Msg("Creating config reader...")
 

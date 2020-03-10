@@ -606,7 +606,7 @@ func (h *Handler) GetPipelineBuildWarnings(c *gin.Context) {
 		return
 	}
 
-	warnings, err := h.warningHelper.GetManifestWarnings(build.ManifestObject, build.RepoOwner)
+	warnings, err := h.warningHelper.GetManifestWarnings(build.ManifestObject, build.GetFullRepoPath())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed getting warnings for %v/%v/%v/builds/%v manifest", source, owner, repo, revisionOrID)
@@ -1294,7 +1294,7 @@ func (h *Handler) GetPipelineWarnings(c *gin.Context) {
 		}
 	}
 
-	manifestWarnings, err := h.warningHelper.GetManifestWarnings(pipeline.ManifestObject, pipeline.RepoOwner)
+	manifestWarnings, err := h.warningHelper.GetManifestWarnings(pipeline.ManifestObject, pipeline.GetFullRepoPath())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed getting warnings for %v/%v/%v manifest", source, owner, repo)
