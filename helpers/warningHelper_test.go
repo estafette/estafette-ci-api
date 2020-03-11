@@ -192,7 +192,7 @@ func TestGetManifestWarnings(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(warnings))
 		assert.Equal(t, "warning", warnings[0].Status)
-		assert.Equal(t, "This pipeline uses _global_ secrets which can be used by any pipeline; it is [best practice](https://estafette.io/usage/best-practices/#use-pipeline-restricted-secrets-instead-of-global-secrets) to use _restricted_ secrets instead, that can only be used by this pipeline.", warnings[0].Message)
+		assert.Equal(t, "This pipeline uses _global_ secrets which can be used by any pipeline; it is [best practice](https://estafette.io/usage/best-practices/#use-pipeline-restricted-secrets-instead-of-global-secrets) to use _restricted_ secrets instead, that can only be used by this pipeline. Please rotate the value stored in the secret and create a new one in the pipeline's secrets tab.", warnings[0].Message)
 	})
 
 	t.Run("ReturnsNoWarningIfManifestOnlyHasRestrictedSecrets", func(t *testing.T) {
