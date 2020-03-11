@@ -84,8 +84,8 @@ releases:
         image: extensions/gke:dev
         namespace: estafette
         visibility: iap
-        iapOauthClientID: estafette.secret(evaMIh0Aa1yS9JE9.WDOtPY4VyP652sCkCcZoSHU9c9_UJ4hqtUFTqhUAgVC5l92Yy704fGQ4PDJeOYwa4HxmFEcVg0AonpaIrcwvGBBSP5XU4yWOeIqPH9SYdpZufFtouXRryxE=.DmroZ8tF0aTkhtj0SZ88QXMoMI-Zc512oRZb7lNR3Fqz24yMlJkee_3AiwCamx07Gljzpg4=)
-        iapOauthClientSecret: estafette.secret(atWfL6usMmnRD1aJ.mDR4J26Ptwl5a3O8WFFwTgT3HJ4blJjSpVF4kV5Qk7eVqbNoULbXjA==.yQ1hNVCa6B1faDa_SF1YYzLOUJNjhaCRMFhuEIVzmBXr30uMX3NoHItYjtXTXr4xe4dTw0k=)
+        iapOauthClientID: estafette.secret(xEufMLLIWhF-dd_K.HnmSC97N6e04cv_6e-2Gl83xSKIXEmFsZmCYhq1lPr9EOV7sFwroy0l4X2KXlIpIS309GR9i0M8UPDJA3b2vplXyDv8sia_SGecBOV-5oemhHE0UIxL3z_bhvnplDe0ioplMaPfNPb-b7S_D2uoN04t37hk=.NESnG-bFhvcZZbvmRc2EwOX8DPZaRVxwSXyrm5RXSbNJQHnoM2VVGGMK4UfTjOKOvdpum-E=)
+        iapOauthClientSecret: estafette.secret(KhumCII9c1i7yXfZ.5O4FQE_HFf6pHlhtqUEBTtvUSz2ru5CceWs12QPYv6feZePYzxoJb_PcCm3gqmfW.zeszXF_OT66lKxNCuFgQReeTVxLX762mV0o49RP44ff29bN4T0d67qJbu7VAs3o91Xi0S5Y=)
         container:
           repository: estafette
           env:
