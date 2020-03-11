@@ -210,6 +210,22 @@ func TestGetManifestWarnings(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(warnings))
 	})
+
+	t.Run("ReturnsNoWarningIfManifestOnlyHasNoSecrets", func(t *testing.T) {
+
+		mft := &manifest.EstafetteManifest{
+			GlobalEnvVars: map[string]string{
+				"my-not-so-secret": "oops i forgot to encrypt",
+			},
+		}
+		fullRepoPath := "github.com/estafette/estafette-ci-api"
+
+		// act
+		warnings, err := helper.GetManifestWarnings(mft, fullRepoPath)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(warnings))
+	})
 }
 
 func TestGetContainerImageParts(t *testing.T) {
