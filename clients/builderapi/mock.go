@@ -15,7 +15,7 @@ type MockClient struct {
 	RemoveCiBuilderSecretFunc    func(ctx context.Context, secretName string) (err error)
 	TailCiBuilderJobLogsFunc     func(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error)
 	GetJobNameFunc               func(ctx context.Context, jobType, repoOwner, repoName, id string) (jobname string)
-	GetBuilderConfigFunc         func(ctx context.Context, params CiBuilderParams, jobName string) (config contracts.BuilderConfig)
+	GetBuilderConfigFunc         func(ctx context.Context, params CiBuilderParams, jobName string) (config contracts.BuilderConfig, err error)
 }
 
 func (c MockClient) CreateCiBuilderJob(ctx context.Context, params CiBuilderParams) (job *batchv1.Job, err error) {
@@ -67,9 +67,9 @@ func (c MockClient) GetJobName(ctx context.Context, jobType, repoOwner, repoName
 	return c.GetJobNameFunc(ctx, jobType, repoOwner, repoName, id)
 }
 
-func (c MockClient) GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) (config contracts.BuilderConfig) {
+func (c MockClient) GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) (config contracts.BuilderConfig, err error) {
 	if c.GetBuilderConfigFunc == nil {
-		return contracts.BuilderConfig{}
+		return contracts.BuilderConfig{}, nil
 	}
 	return c.GetBuilderConfigFunc(ctx, params, jobName)
 }

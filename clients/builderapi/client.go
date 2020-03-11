@@ -35,7 +35,7 @@ type Client interface {
 	RemoveCiBuilderSecret(ctx context.Context, secretName string) (err error)
 	TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error)
 	GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) (jobname string)
-	GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) (config contracts.BuilderConfig)
+	GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) (config contracts.BuilderConfig, err error)
 }
 
 // NewClient returns a new estafette.Client
@@ -72,7 +72,10 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 	log.Info().Msgf("Creating job %v...", jobName)
 
 	// extend builder config to parameterize the builder and replace all other envvars to improve security
-	localBuilderConfig := c.GetBuilderConfig(ctx, ciBuilderParams, jobName)
+	localBuilderConfig, err := c.GetBuilderConfig(ctx, ciBuilderParams, jobName)
+	if err != nil {
+		return
+	}
 
 	builderConfigPathName := "BUILDER_CONFIG_PATH"
 	builderConfigPathValue := "/configs/builder-config.json"
@@ -775,7 +778,7 @@ func (c *client) GetJobName(ctx context.Context, jobType, repoOwner, repoName, i
 }
 
 // GetJobName returns the job name for a build or release job
-func (c *client) GetBuilderConfig(ctx context.Context, ciBuilderParams CiBuilderParams, jobName string) contracts.BuilderConfig {
+func (c *client) GetBuilderConfig(ctx context.Context, ciBuilderParams CiBuilderParams, jobName string) (contracts.BuilderConfig, error) {
 
 	// retrieve stages to filter trusted images and credentials
 	stages := ciBuilderParams.Manifest.Stages
@@ -798,22 +801,34 @@ func (c *client) GetBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 
 	// add dynamic github api token credential
 	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_GITHUB_API_TOKEN"]; ok {
+
+		encryptedTokenEnvelope, err := c.secretHelper.EncryptEnvelope(token, crypt.DefaultPipelineWhitelist)
+		if err != nil {
+			return contracts.BuilderConfig{}, err
+		}
+
 		credentials = append(credentials, &contracts.CredentialConfig{
 			Name: "github-api-token",
 			Type: "github-api-token",
 			AdditionalProperties: map[string]interface{}{
-				"token": token,
+				"token": encryptedTokenEnvelope,
 			},
 		})
 	}
 
 	// add dynamic bitbucket api token credential
 	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_BITBUCKET_API_TOKEN"]; ok {
+
+		encryptedTokenEnvelope, err := c.secretHelper.EncryptEnvelope(token, crypt.DefaultPipelineWhitelist)
+		if err != nil {
+			return contracts.BuilderConfig{}, err
+		}
+
 		credentials = append(credentials, &contracts.CredentialConfig{
 			Name: "bitbucket-api-token",
 			Type: "bitbucket-api-token",
 			AdditionalProperties: map[string]interface{}{
-				"token": token,
+				"token": encryptedTokenEnvelope,
 			},
 		})
 	}
@@ -899,5 +914,5 @@ func (c *client) GetBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 		localBuilderConfig.Events = append(localBuilderConfig.Events, &e)
 	}
 
-	return localBuilderConfig
+	return localBuilderConfig, nil
 }

@@ -58,6 +58,8 @@ func (c *loggingClient) GetJobName(ctx context.Context, jobType, repoOwner, repo
 	return c.Client.GetJobName(ctx, jobType, repoOwner, repoName, id)
 }
 
-func (c *loggingClient) GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) contracts.BuilderConfig {
+func (c *loggingClient) GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) (config contracts.BuilderConfig, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetBuilderConfig", err) }()
+
 	return c.Client.GetBuilderConfig(ctx, params, jobName)
 }
