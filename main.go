@@ -24,6 +24,9 @@ import (
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	jprom "github.com/uber/jaeger-lib/metrics/prometheus"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	sourcerepo "google.golang.org/api/sourcerepo/v1"
 
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/config"
@@ -33,6 +36,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/bigquery"
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
+	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudstorage"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
 	"github.com/estafette/estafette-ci-api/clients/dockerhubapi"
@@ -296,6 +300,28 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 			helpers.NewRequestCounter("prometheus_client"),
 			helpers.NewRequestHistogram("prometheus_client"),
 		)
+	}
+
+	var cloudsourceClient cloudsourceapi.Client
+	{
+		tokenSource, err := google.DefaultTokenSource(ctx, sourcerepo.CloudPlatformScope)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Creating token source for cloud source repo client has failed")
+		}
+
+		sourcerepoService, err := sourcerepo.New(oauth2.NewClient(ctx, tokenSource))
+		if err != nil {
+			log.Fatal().Err(err).Msg("Creating source repo service has failed")
+		}
+
+		cloudsourceClient = cloudsourceapi.NewClient(*config.Integrations.CloudSource, sourcerepoService, tokenSource)
+		cloudsourceClient = cloudsourceapi.NewTracingClient(cloudsourceClient)
+		cloudsourceClient = cloudsourceapi.NewLoggingClient(cloudsourceClient)
+		cloudsourceClient = cloudsourceapi.NewMetricsClient(cloudsourceClient,
+			helpers.NewRequestCounter("cloudsource_client"),
+			helpers.NewRequestHistogram("cloudsource_client"),
+		)
+
 	}
 
 	log.Debug().Msg("Creating services...")
