@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/stretchr/testify/assert"
@@ -34,10 +33,8 @@ func TestGetToken(t *testing.T) {
 		// act
 		token, err := client.GetAccessToken(ctx)
 
-		expectedExpiry := time.Now().Local().Add(time.Hour * time.Duration(1))
 		assert.Nil(t, err)
 		assert.NotNil(t, token)
-		assert.Equal(t, expectedExpiry.Format("Jan 2 15:04"), token.Expiry.Format("Jan 2 15:04"))
 	})
 }
 
@@ -62,10 +59,8 @@ func TestGetAuthenticatedRepositoryURL(t *testing.T) {
 		// act
 		token, err := client.GetAccessToken(ctx)
 
-		expectedExpiry := time.Now().Local().Add(time.Hour * time.Duration(1))
 		assert.Nil(t, err)
 		assert.NotNil(t, token)
-		assert.Equal(t, expectedExpiry.Format("Jan 2 15:04"), token.Expiry.Format("Jan 2 15:04"))
 
 		url, err := client.GetAuthenticatedRepositoryURL(ctx, token, fmt.Sprintf("https://%v/p/%v/r/%v", "source.developers.google.com", "playground-varins-idpd0", "test-estafette-support"))
 		expectedUrl := "https://x-token-auth:.+@source\\.developers\\.google\\.com/p/playground-varins-idpd0/r/test-estafette-support"
