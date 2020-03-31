@@ -3,11 +3,16 @@ package cloudsourceapi
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/estafette/estafette-ci-api/config"
 	"golang.org/x/oauth2"
 	sourcerepo "google.golang.org/api/sourcerepo/v1"
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 // Client is the interface for communicating with the Google Cloud Source Repository api
@@ -59,8 +64,49 @@ func (c *client) GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken 
 	return
 }
 
-func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, pubsubNotification PubSubNotification) (exists bool, manifest string, err error) {
-	// TODO(varins): Find a way to fetch only the estafette manifest. Otherwise will have to clone the whole repo.
+func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, notification PubSubNotification) (exists bool, manifest string, err error) {
+
+	repoSource := notification.GetRepoSource()
+	repoOwner := notification.GetRepoOwner()
+	repoName := notification.GetRepoName()
+	repoRefName := ""
+	for _, refUpdate := range notification.RefUpdateEvent.RefUpdates {
+		repoRefName = refUpdate.RefName
+	}
+
+	// Tempdir to clone the repository
+	dir, err := ioutil.TempDir("", "sourcerepo-manifest")
+	if err != nil {
+		return
+	}
+
+	defer os.RemoveAll(dir) // clean up
+
+	// Clones the repository into the given dir, just as a normal git clone does
+	_, err = git.PlainClone(dir, false, &git.CloneOptions{
+		URL:           fmt.Sprintf("https://estafette:%v@%v/p/%v/r/%v", accesstoken.AccessToken, repoSource, repoOwner, repoName),
+		ReferenceName: plumbing.ReferenceName(repoRefName),
+	})
+	if err != nil {
+		return
+	}
+
+	estafetteFilename := filepath.Join(dir, ".estafette.yaml")
+	if _, fileErr := os.Stat(estafetteFilename); os.IsNotExist(fileErr) {
+		exists = false
+		manifest = ""
+
+		return
+	}
+
+	estafetteFile, err := ioutil.ReadFile(estafetteFilename)
+	if err != nil {
+		return
+	}
+
+	exists = true
+	manifest = string(estafetteFile)
+
 	return
 }
 
