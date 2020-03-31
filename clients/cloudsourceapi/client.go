@@ -75,7 +75,7 @@ func (c *client) JobVarsFunc(ctx context.Context) func(context.Context, string, 
 		token = accesstoken.AccessToken
 
 		// get authenticated url for the repository
-		url, err = c.GetAuthenticatedRepositoryURL(ctx, accesstoken, fmt.Sprintf("https://%v/%v/%v", repoSource, repoOwner, repoName))
+		url, err = c.GetAuthenticatedRepositoryURL(ctx, accesstoken, fmt.Sprintf("https://%v/p/%v/r/%v", repoSource, repoOwner, repoName))
 		if err != nil {
 			return
 		}
