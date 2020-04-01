@@ -21,7 +21,7 @@ var (
 // Service handles pubsub events for Cloud Source Repository integration
 type Service interface {
 	CreateJobForCloudSourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error)
-	IsWhitelistedOwner(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool)
+	IsWhitelistedProject(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool)
 }
 
 // NewService returns a new bitbucket.Service
@@ -134,14 +134,14 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 	return nil
 }
 
-func (s *service) IsWhitelistedOwner(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool) {
+func (s *service) IsWhitelistedProject(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool) {
 
-	if len(s.config.WhitelistedOwners) == 0 {
+	if len(s.config.WhitelistedProjects) == 0 {
 		return true
 	}
 
-	for _, owner := range s.config.WhitelistedOwners {
-		if owner == notification.GetRepoOwner() {
+	for _, project := range s.config.WhitelistedProjects {
+		if project == notification.GetRepoOwner() {
 			return true
 		}
 	}

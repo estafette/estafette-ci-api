@@ -251,12 +251,12 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 	})
 }
 
-func TestIsWhitelistedOwner(t *testing.T) {
+func TestIsWhitelistedProject(t *testing.T) {
 
-	t.Run("ReturnsTrueIfWhitelistedOwnersConfigIsEmpty", func(t *testing.T) {
+	t.Run("ReturnsTrueIfWhitelistedProjectsConfigIsEmpty", func(t *testing.T) {
 
 		config := config.CloudSourceConfig{
-			WhitelistedOwners: []string{},
+			WhitelistedProjects: []string{},
 		}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
@@ -281,15 +281,15 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted := service.IsWhitelistedOwner(notification)
+		isWhitelisted := service.IsWhitelistedProject(notification)
 
 		assert.True(t, isWhitelisted)
 	})
 
-	t.Run("ReturnsFalseIfOwnerUsernameIsNotInWhitelistedOwnersConfig", func(t *testing.T) {
+	t.Run("ReturnsFalseIfOwnerUsernameIsNotInWhitelistedProjectsConfig", func(t *testing.T) {
 
 		config := config.CloudSourceConfig{
-			WhitelistedOwners: []string{
+			WhitelistedProjects: []string{
 				"someone-else",
 			},
 		}
@@ -316,15 +316,15 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted := service.IsWhitelistedOwner(notification)
+		isWhitelisted := service.IsWhitelistedProject(notification)
 
 		assert.False(t, isWhitelisted)
 	})
 
-	t.Run("ReturnsTrueIfOwnerUsernameIsInWhitelistedOwnersConfig", func(t *testing.T) {
+	t.Run("ReturnsTrueIfOwnerUsernameIsInWhitelistedProjectsConfig", func(t *testing.T) {
 
 		config := config.CloudSourceConfig{
-			WhitelistedOwners: []string{
+			WhitelistedProjects: []string{
 				"someone-else",
 				"estafette-in-cloudsource",
 			},
@@ -352,7 +352,7 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted := service.IsWhitelistedOwner(notification)
+		isWhitelisted := service.IsWhitelistedProject(notification)
 
 		assert.True(t, isWhitelisted)
 	})

@@ -157,8 +157,7 @@ type BigQueryConfig struct {
 
 // CloudSourceConfig is used to configure cloudSource integration
 type CloudSourceConfig struct {
-	PrivateKeyPath    string   `yaml:"privateKeyPath"`
-	WhitelistedOwners []string `yaml:"whitelistedOwners"`
+	WhitelistedProjects []string `yaml:"whitelistedProjects"`
 }
 
 // ConfigReader reads the api config from file

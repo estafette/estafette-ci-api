@@ -10,6 +10,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/config"
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	sourcerepo "google.golang.org/api/sourcerepo/v1"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -24,13 +25,24 @@ type Client interface {
 }
 
 // NewClient creates an githubapi.Client to communicate with the Google Cloud Source Repository api
-func NewClient(config config.CloudSourceConfig, sourcerepoService *sourcerepo.Service, tokenSource oauth2.TokenSource) Client {
+func NewClient(config config.CloudSourceConfig) (Client, error) {
+
+	ctx := context.Background()
+	tokenSource, err := google.DefaultTokenSource(ctx, sourcerepo.CloudPlatformScope)
+	if err != nil {
+		return nil, err
+	}
+
+	sourcerepoService, err := sourcerepo.New(oauth2.NewClient(ctx, tokenSource))
+	if err != nil {
+		return nil, err
+	}
 
 	return &client{
 		service:     sourcerepoService,
 		config:      config,
 		tokenSource: tokenSource,
-	}
+	}, nil
 }
 
 type client struct {
@@ -59,7 +71,7 @@ func (c *client) GetAccessToken(ctx context.Context) (accesstoken AccessToken, e
 
 func (c *client) GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error) {
 
-	url = strings.Replace(htmlURL, "https://source.developers.google.com", fmt.Sprintf("https://x-token-auth:%v@source.developers.google.com", accesstoken.AccessToken), -1)
+	url = strings.Replace(htmlURL, "https://source.developers.google.com", fmt.Sprintf("https://estafette:%v@source.developers.google.com", accesstoken.AccessToken), -1)
 
 	return
 }
@@ -86,6 +98,7 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessTok
 	_, err = git.PlainClone(dir, false, &git.CloneOptions{
 		URL:           fmt.Sprintf("https://estafette:%v@%v/p/%v/r/%v", accesstoken.AccessToken, repoSource, repoOwner, repoName),
 		ReferenceName: plumbing.ReferenceName(repoRefName),
+		Depth:         10,
 	})
 	if err != nil {
 		return
