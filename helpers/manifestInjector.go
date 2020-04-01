@@ -34,7 +34,7 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 		})
 	}
 
-	if !StepExists(injectedManifest.Stages, "set-pending-build-status") {
+	if !StepExists(injectedManifest.Stages, "set-pending-build-status") && gitSource != "source" {
 		initStep.ParallelStages = append(initStep.ParallelStages, &manifest.EstafetteStage{
 			Name:           "set-pending-build-status",
 			ContainerImage: fmt.Sprintf("extensions/%v-status:%v", gitSource, builderTrack),
@@ -56,7 +56,7 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string)
 		injectedManifest.Stages = append([]*manifest.EstafetteStage{initStep}, injectedManifest.Stages...)
 	}
 
-	if !StepExists(injectedManifest.Stages, "set-build-status") {
+	if !StepExists(injectedManifest.Stages, "set-build-status") && gitSource != "source" {
 		// add set-build-status at the end if it doesn't exist yet
 		setBuildStatusStep := &manifest.EstafetteStage{
 			Name:           "set-build-status",
