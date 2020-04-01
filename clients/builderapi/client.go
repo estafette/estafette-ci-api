@@ -833,6 +833,23 @@ func (c *client) GetBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 		})
 	}
 
+	// add dynamic cloudsource api token credential
+	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_CLOUDSOURCE_API_TOKEN"]; ok {
+
+		encryptedTokenEnvelope, err := c.secretHelper.EncryptEnvelope(token, crypt.DefaultPipelineWhitelist)
+		if err != nil {
+			return contracts.BuilderConfig{}, err
+		}
+
+		credentials = append(credentials, &contracts.CredentialConfig{
+			Name: "cloudsource-api-token",
+			Type: "cloudsource-api-token",
+			AdditionalProperties: map[string]interface{}{
+				"token": encryptedTokenEnvelope,
+			},
+		})
+	}
+
 	// filter to only what's needed by the build/release job
 	trustedImages := contracts.FilterTrustedImages(c.encryptedConfig.TrustedImages, stages, ciBuilderParams.GetFullRepoPath())
 	credentials = contracts.FilterCredentials(credentials, trustedImages, ciBuilderParams.GetFullRepoPath())

@@ -96,6 +96,7 @@ type APIConfigIntegrations struct {
 	Prometheus   *PrometheusConfig   `yaml:"prometheus,omitempty"`
 	BigQuery     *BigQueryConfig     `yaml:"bigquery,omitempty"`
 	CloudStorage *CloudStorageConfig `yaml:"gcs,omitempty"`
+	CloudSource  *CloudSourceConfig  `yaml:"cloudsource,omitempty"`
 }
 
 // GithubConfig is used to configure github integration
@@ -152,6 +153,11 @@ type BigQueryConfig struct {
 	Enable    bool   `yaml:"enable"`
 	ProjectID string `yaml:"projectID"`
 	Dataset   string `yaml:"dataset"`
+}
+
+// CloudSourceConfig is used to configure cloudSource integration
+type CloudSourceConfig struct {
+	WhitelistedProjects []string `yaml:"whitelistedProjects"`
 }
 
 // ConfigReader reads the api config from file

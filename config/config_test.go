@@ -55,6 +55,18 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "estafette", bitbucketConfig.WhitelistedOwners[0])
 	})
 
+	t.Run("ReturnsCloudsourceConfig", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		cloudsourceConfig := config.Integrations.CloudSource
+
+		assert.Equal(t, "estafette", cloudsourceConfig.WhitelistedProjects[0])
+	})
+
 	t.Run("ReturnsSlackConfig", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
@@ -213,9 +225,10 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		assert.Equal(t, "multiple-git-sources-test", trustedImagesConfig[7].ImagePath)
 		assert.False(t, trustedImagesConfig[7].RunDocker)
-		assert.Equal(t, 2, len(trustedImagesConfig[7].InjectedCredentialTypes))
+		assert.Equal(t, 3, len(trustedImagesConfig[7].InjectedCredentialTypes))
 		assert.Equal(t, "bitbucket-api-token", trustedImagesConfig[7].InjectedCredentialTypes[0])
 		assert.Equal(t, "github-api-token", trustedImagesConfig[7].InjectedCredentialTypes[1])
+		assert.Equal(t, "cloudsource-api-token", trustedImagesConfig[7].InjectedCredentialTypes[2])
 	})
 
 	t.Run("ReturnsRegistryMirror", func(t *testing.T) {

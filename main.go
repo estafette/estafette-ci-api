@@ -33,6 +33,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/bigquery"
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
+	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudstorage"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
 	"github.com/estafette/estafette-ci-api/clients/dockerhubapi"
@@ -42,6 +43,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/slackapi"
 
 	"github.com/estafette/estafette-ci-api/services/bitbucket"
+	"github.com/estafette/estafette-ci-api/services/cloudsource"
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	"github.com/estafette/estafette-ci-api/services/github"
 	"github.com/estafette/estafette-ci-api/services/pubsub"
@@ -108,16 +110,16 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 
 	ctx := context.Background()
 
-	config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler := getInstances(ctx)
+	config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler, cloudsourceHandler := getInstances(ctx)
 
-	srv := configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler)
+	srv := configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler, cloudsourceHandler)
 
 	// watch for configmap changes
 	foundation.WatchForFileChanges(*configFilePath, func(event fsnotify.Event) {
 		log.Info().Msgf("Configmap at %v was updated, refreshing instances...", *configFilePath)
 
 		// refresh instances
-		config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler = getInstances(ctx)
+		config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler, cloudsourceHandler = getInstances(ctx)
 	})
 
 	// watch for service account key file changes
@@ -125,13 +127,13 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		log.Info().Msg("Service account key file was updated, refreshing instances...")
 
 		// refresh instances
-		config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler = getInstances(ctx)
+		config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler, cloudsourceHandler = getInstances(ctx)
 	})
 
 	return srv
 }
 
-func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *github.Handler, *estafette.Handler, *pubsub.Handler, *slack.Handler) {
+func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *github.Handler, *estafette.Handler, *pubsub.Handler, *slack.Handler, *cloudsource.Handler) {
 
 	// read decryption key from secretDecryptionKeyPath
 	if !foundation.FileExists(*secretDecryptionKeyPath) {
@@ -298,11 +300,27 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		)
 	}
 
+	var cloudsourceClient cloudsourceapi.Client
+	{
+
+		cloudsourceClient, err = cloudsourceapi.NewClient(*config.Integrations.CloudSource)
+		if err != nil {
+			log.Error().Err(err).Msg("Creating new client for Cloud Source has failed")
+		}
+		cloudsourceClient = cloudsourceapi.NewTracingClient(cloudsourceClient)
+		cloudsourceClient = cloudsourceapi.NewLoggingClient(cloudsourceClient)
+		cloudsourceClient = cloudsourceapi.NewMetricsClient(cloudsourceClient,
+			helpers.NewRequestCounter("cloudsource_client"),
+			helpers.NewRequestHistogram("cloudsource_client"),
+		)
+
+	}
+
 	log.Debug().Msg("Creating services...")
 
 	var estafetteService estafette.Service
 	{
-		estafetteService = estafette.NewService(*config.Jobs, *config.APIServer, cockroachdbClient, prometheusClient, cloudstorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		estafetteService = estafette.NewService(*config.Jobs, *config.APIServer, cockroachdbClient, prometheusClient, cloudstorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
 		estafetteService = estafette.NewTracingService(estafetteService)
 		estafetteService = estafette.NewLoggingService(estafetteService)
 		estafetteService = estafette.NewMetricsService(estafetteService,
@@ -333,17 +351,29 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		)
 	}
 
+	var cloudsourceService cloudsource.Service
+	{
+		cloudsourceService = cloudsource.NewService(*config.Integrations.CloudSource, cloudsourceClient, pubsubapiClient, estafetteService)
+		cloudsourceService = cloudsource.NewTracingService(cloudsourceService)
+		cloudsourceService = cloudsource.NewLoggingService(cloudsourceService)
+		cloudsourceService = cloudsource.NewMetricsService(cloudsourceService,
+			helpers.NewRequestCounter("cloudsource_service"),
+			helpers.NewRequestHistogram("cloudsource_service"),
+		)
+	}
+
 	// transport
 	bitbucketHandler := bitbucket.NewHandler(bitbucketService)
 	githubHandler := github.NewHandler(githubService)
-	estafetteHandler := estafette.NewHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+	estafetteHandler := estafette.NewHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
 	pubsubHandler := pubsub.NewHandler(pubsubapiClient, estafetteService)
 	slackHandler := slack.NewHandler(secretHelper, *config.Integrations.Slack, slackapiClient, cockroachdbClient, *config.APIServer, estafetteService, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+	cloudsourceHandler := cloudsource.NewHandler(pubsubapiClient, cloudsourceService)
 
-	return config, &bitbucketHandler, &githubHandler, &estafetteHandler, &pubsubHandler, &slackHandler
+	return config, &bitbucketHandler, &githubHandler, &estafetteHandler, &pubsubHandler, &slackHandler, &cloudsourceHandler
 }
 
-func configureGinGonic(config *config.APIConfig, bitbucketHandler *bitbucket.Handler, githubHandler *github.Handler, estafetteHandler *estafette.Handler, pubsubHandler *pubsub.Handler, slackHandler *slack.Handler) *http.Server {
+func configureGinGonic(config *config.APIConfig, bitbucketHandler *bitbucket.Handler, githubHandler *github.Handler, estafetteHandler *estafette.Handler, pubsubHandler *pubsub.Handler, slackHandler *slack.Handler, cloudsourceHandler *cloudsource.Handler) *http.Server {
 
 	// run gin in release mode and other defaults
 	gin.SetMode(gin.ReleaseMode)
@@ -386,8 +416,10 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler *bitbucket.Han
 	googleAuthorizedRoutes := routes.Group("/", authMiddleware.GoogleJWTMiddlewareFunc())
 	{
 		googleAuthorizedRoutes.POST("/api/integrations/pubsub/events", pubsubHandler.PostPubsubEvent)
+		googleAuthorizedRoutes.POST("/api/integrations/cloudsource/events", cloudsourceHandler.PostPubsubEvent)
 	}
 	routes.GET("/api/integrations/pubsub/status", func(c *gin.Context) { c.String(200, "Pub/Sub, I'm cool!") })
+	routes.GET("/api/integrations/cloudsource/status", func(c *gin.Context) { c.String(200, "Cloud Source, I'm cool!") })
 
 	routes.GET("/api/pipelines", estafetteHandler.GetPipelines)
 	routes.GET("/api/pipelines/:source/:owner/:repo", estafetteHandler.GetPipeline)

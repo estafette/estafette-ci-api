@@ -43,29 +43,31 @@ type Service interface {
 }
 
 // NewService returns a new estafette.Service
-func NewService(jobsConfig config.JobsConfig, apiServerConfig config.APIServerConfig, cockroachdbClient cockroachdb.Client, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
+func NewService(jobsConfig config.JobsConfig, apiServerConfig config.APIServerConfig, cockroachdbClient cockroachdb.Client, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
 
 	return &service{
-		jobsConfig:           jobsConfig,
-		apiServerConfig:      apiServerConfig,
-		cockroachdbClient:    cockroachdbClient,
-		prometheusClient:     prometheusClient,
-		cloudStorageClient:   cloudStorageClient,
-		builderapiClient:     builderapiClient,
-		githubJobVarsFunc:    githubJobVarsFunc,
-		bitbucketJobVarsFunc: bitbucketJobVarsFunc,
+		jobsConfig:             jobsConfig,
+		apiServerConfig:        apiServerConfig,
+		cockroachdbClient:      cockroachdbClient,
+		prometheusClient:       prometheusClient,
+		cloudStorageClient:     cloudStorageClient,
+		builderapiClient:       builderapiClient,
+		githubJobVarsFunc:      githubJobVarsFunc,
+		bitbucketJobVarsFunc:   bitbucketJobVarsFunc,
+		cloudsourceJobVarsFunc: cloudsourceJobVarsFunc,
 	}
 }
 
 type service struct {
-	jobsConfig           config.JobsConfig
-	apiServerConfig      config.APIServerConfig
-	cockroachdbClient    cockroachdb.Client
-	prometheusClient     prometheus.Client
-	cloudStorageClient   cloudstorage.Client
-	builderapiClient     builderapi.Client
-	githubJobVarsFunc    func(context.Context, string, string, string) (string, string, error)
-	bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)
+	jobsConfig             config.JobsConfig
+	apiServerConfig        config.APIServerConfig
+	cockroachdbClient      cockroachdb.Client
+	prometheusClient       prometheus.Client
+	cloudStorageClient     cloudstorage.Client
+	builderapiClient       builderapi.Client
+	githubJobVarsFunc      func(context.Context, string, string, string) (string, string, error)
+	bitbucketJobVarsFunc   func(context.Context, string, string, string) (string, string, error)
+	cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)
 }
 
 func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (createdBuild *contracts.Build, err error) {
@@ -841,6 +843,15 @@ func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource,
 			return
 		}
 		environmentVariableWithToken = map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken}
+		return
+
+	case "source.developers.google.com":
+		var accessToken string
+		accessToken, authenticatedRepositoryURL, err = s.cloudsourceJobVarsFunc(ctx, repoSource, repoOwner, repoName)
+		if err != nil {
+			return
+		}
+		environmentVariableWithToken = map[string]string{"ESTAFETTE_CLOUDSOURCE_API_TOKEN": accessToken}
 		return
 	}
 
