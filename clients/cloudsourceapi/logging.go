@@ -28,10 +28,10 @@ func (c *loggingClient) GetAuthenticatedRepositoryURL(ctx context.Context, acces
 	return c.Client.GetAuthenticatedRepositoryURL(ctx, accesstoken, htmlURL)
 }
 
-func (c *loggingClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, notification PubSubNotification) (valid bool, manifest string, err error) {
+func (c *loggingClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, notification PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetEstafetteManifest", err) }()
 
-	return c.Client.GetEstafetteManifest(ctx, accesstoken, notification)
+	return c.Client.GetEstafetteManifest(ctx, accesstoken, notification, gitClone)
 }
 
 func (c *loggingClient) JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {

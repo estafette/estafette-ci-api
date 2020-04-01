@@ -20,11 +20,11 @@ import (
 type Client interface {
 	GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error)
 	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error)
-	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, notification PubSubNotification) (valid bool, manifest string, err error)
+	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, notification PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error)
 	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error)
 }
 
-// NewClient creates an githubapi.Client to communicate with the Google Cloud Source Repository api
+// NewClient creates an cloudsource.Client to communicate with the Google Cloud Source Repository api
 func NewClient(config config.CloudSourceConfig) (Client, error) {
 
 	ctx := context.Background()
@@ -76,7 +76,7 @@ func (c *client) GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken 
 	return
 }
 
-func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, notification PubSubNotification) (exists bool, manifest string, err error) {
+func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, notification PubSubNotification, gitClone func(string, string, string) error) (exists bool, manifest string, err error) {
 
 	repoSource := notification.GetRepoSource()
 	repoOwner := notification.GetRepoOwner()
@@ -86,6 +86,8 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessTok
 		repoRefName = refUpdate.RefName
 	}
 
+	// create /tmp dir if it doesnt exist
+	_ = os.Mkdir(os.TempDir(), os.ModeDir)
 	// Tempdir to clone the repository
 	dir, err := ioutil.TempDir("", "sourcerepo-manifest")
 	if err != nil {
@@ -94,12 +96,12 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessTok
 
 	defer os.RemoveAll(dir) // clean up
 
-	// Clones the repository into the given dir, just as a normal git clone does
-	_, err = git.PlainClone(dir, false, &git.CloneOptions{
-		URL:           fmt.Sprintf("https://estafette:%v@%v/p/%v/r/%v", accesstoken.AccessToken, repoSource, repoOwner, repoName),
-		ReferenceName: plumbing.ReferenceName(repoRefName),
-		Depth:         50,
-	})
+	gitUrl := fmt.Sprintf("https://estafette:%v@%v/p/%v/r/%v", accesstoken.AccessToken, repoSource, repoOwner, repoName)
+	if gitClone == nil {
+		err = c.gitClone(dir, gitUrl, repoRefName)
+	} else {
+		err = gitClone(dir, gitUrl, repoRefName)
+	}
 	if err != nil {
 		return
 	}
@@ -141,4 +143,15 @@ func (c *client) JobVarsFunc(ctx context.Context) func(context.Context, string, 
 
 		return
 	}
+}
+
+func (c *client) gitClone(dir, gitUrl, repoRefName string) error {
+	// Clones the repository into the given dir, just as a normal git clone does
+	_, err := git.PlainClone(dir, false, &git.CloneOptions{
+		URL:           gitUrl,
+		ReferenceName: plumbing.ReferenceName(repoRefName),
+		Depth:         50,
+	})
+
+	return err
 }

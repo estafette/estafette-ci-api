@@ -90,7 +90,7 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 	}
 
 	// get manifest file
-	manifestExists, manifestString, err := s.cloudsourceapiClient.GetEstafetteManifest(ctx, accessToken, notification)
+	manifestExists, manifestString, err := s.cloudsourceapiClient.GetEstafetteManifest(ctx, accessToken, notification, nil)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")

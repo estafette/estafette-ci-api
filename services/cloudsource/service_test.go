@@ -85,7 +85,7 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 		estafetteService := estafette.MockService{}
 
 		getEstafetteManifestCallCount := 0
-		cloudsourceapiClient.GetEstafetteManifestFunc = func(ctx context.Context, accesstoken cloudsourceapi.AccessToken, event cloudsourceapi.PubSubNotification) (valid bool, manifest string, err error) {
+		cloudsourceapiClient.GetEstafetteManifestFunc = func(ctx context.Context, accesstoken cloudsourceapi.AccessToken, event cloudsourceapi.PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error) {
 			getEstafetteManifestCallCount++
 			return true, "builder:\n  track: dev\n", nil
 		}
@@ -123,7 +123,7 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
 
-		cloudsourceapiClient.GetEstafetteManifestFunc = func(ctx context.Context, accesstoken cloudsourceapi.AccessToken, event cloudsourceapi.PubSubNotification) (valid bool, manifest string, err error) {
+		cloudsourceapiClient.GetEstafetteManifestFunc = func(ctx context.Context, accesstoken cloudsourceapi.AccessToken, event cloudsourceapi.PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error) {
 			return true, "builder:\n  track: dev\n", nil
 		}
 
@@ -209,7 +209,7 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
 
-		cloudsourceapiClient.GetEstafetteManifestFunc = func(ctx context.Context, accesstoken cloudsourceapi.AccessToken, event cloudsourceapi.PubSubNotification) (valid bool, manifest string, err error) {
+		cloudsourceapiClient.GetEstafetteManifestFunc = func(ctx context.Context, accesstoken cloudsourceapi.AccessToken, event cloudsourceapi.PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error) {
 			return true, "builder:\n  track: dev\n", nil
 		}
 

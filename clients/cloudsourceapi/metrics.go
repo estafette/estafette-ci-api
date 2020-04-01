@@ -35,12 +35,12 @@ func (c *metricsClient) GetAuthenticatedRepositoryURL(ctx context.Context, acces
 	return c.Client.GetAuthenticatedRepositoryURL(ctx, accesstoken, htmlURL)
 }
 
-func (c *metricsClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, notification PubSubNotification) (valid bool, manifest string, err error) {
+func (c *metricsClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, notification PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetEstafetteManifest", begin)
 	}(time.Now())
 
-	return c.Client.GetEstafetteManifest(ctx, accesstoken, notification)
+	return c.Client.GetEstafetteManifest(ctx, accesstoken, notification, gitClone)
 }
 
 func (c *metricsClient) JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {

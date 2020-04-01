@@ -31,11 +31,11 @@ func (c *tracingClient) GetAuthenticatedRepositoryURL(ctx context.Context, acces
 	return c.Client.GetAuthenticatedRepositoryURL(ctx, accesstoken, htmlURL)
 }
 
-func (c *tracingClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, notification PubSubNotification) (valid bool, manifest string, err error) {
+func (c *tracingClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, notification PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetEstafetteManifest"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetEstafetteManifest(ctx, accesstoken, notification)
+	return c.Client.GetEstafetteManifest(ctx, accesstoken, notification, gitClone)
 }
 
 func (c *tracingClient) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error) {
