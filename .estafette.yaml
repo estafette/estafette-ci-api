@@ -128,6 +128,7 @@ releases:
           - gke/ingress-bitbucket.yaml
           - gke/ingress-slack.yaml
           - gke/ingress-pubsub.yaml
+          - gke/ingress-cloudsource.yaml
           - gke/integrations-certificate-secret.yaml
           - gke/secret-sa-gke.yaml
           - gke/secret-sa-gcr.yaml

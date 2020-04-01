@@ -7,6 +7,7 @@ import (
 	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
+	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudstorage"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
@@ -31,6 +32,7 @@ func TestCreateBuild(t *testing.T) {
 		builderapiClient := builderapi.MockClient{}
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		callCount := 0
 		cockroachdbClient.GetAutoIncrementFunc = func(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {
@@ -38,7 +40,7 @@ func TestCreateBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -67,6 +69,7 @@ func TestCreateBuild(t *testing.T) {
 		builderapiClient := builderapi.MockClient{}
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		callCount := 0
 		cockroachdbClient.GetPipelineFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error) {
@@ -74,7 +77,7 @@ func TestCreateBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -102,6 +105,7 @@ func TestCreateBuild(t *testing.T) {
 		builderapiClient := builderapi.MockClient{}
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		callCount := 0
 		cockroachdbClient.GetPipelineBuildMaxResourceUtilizationFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobresources cockroachdb.JobResources, count int, err error) {
@@ -109,7 +113,7 @@ func TestCreateBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -138,6 +142,7 @@ func TestCreateBuild(t *testing.T) {
 		builderapiClient := builderapi.MockClient{}
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		callCount := 0
 		cockroachdbClient.InsertBuildFunc = func(ctx context.Context, build contracts.Build, jobResources cockroachdb.JobResources) (b *contracts.Build, err error) {
@@ -145,7 +150,7 @@ func TestCreateBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -174,6 +179,7 @@ func TestCreateBuild(t *testing.T) {
 		builderapiClient := builderapi.MockClient{}
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		cockroachdbClient.InsertBuildFunc = func(ctx context.Context, build contracts.Build, jobResources cockroachdb.JobResources) (b *contracts.Build, err error) {
 			b = &build
@@ -186,7 +192,7 @@ func TestCreateBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -215,6 +221,7 @@ func TestCreateBuild(t *testing.T) {
 		builderapiClient := builderapi.MockClient{}
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		cockroachdbClient.InsertBuildFunc = func(ctx context.Context, build contracts.Build, jobResources cockroachdb.JobResources) (b *contracts.Build, err error) {
 			b = &build
@@ -233,7 +240,7 @@ func TestCreateBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -265,6 +272,7 @@ func TestCreateBuild(t *testing.T) {
 		builderapiClient := builderapi.MockClient{}
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		cockroachdbClient.InsertBuildFunc = func(ctx context.Context, build contracts.Build, jobResources cockroachdb.JobResources) (b *contracts.Build, err error) {
 			b = &build
@@ -283,7 +291,7 @@ func TestCreateBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -313,6 +321,7 @@ func TestCreateBuild(t *testing.T) {
 		builderapiClient := builderapi.MockClient{}
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		cockroachdbClient.GetAutoIncrementFunc = func(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {
 			return 15, nil
@@ -326,7 +335,7 @@ func TestCreateBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -359,6 +368,7 @@ func TestFinishBuild(t *testing.T) {
 		builderapiClient := builderapi.MockClient{}
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		callCount := 0
 		cockroachdbClient.UpdateBuildStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
@@ -366,7 +376,7 @@ func TestFinishBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		repoSource := "github.com"
 		repoOwner := "estafette"
@@ -396,6 +406,7 @@ func TestCreateRelease(t *testing.T) {
 		builderapiClient := builderapi.MockClient{}
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		callCount := 0
 		cockroachdbClient.InsertReleaseFunc = func(ctx context.Context, release contracts.Release, jobResources cockroachdb.JobResources) (r *contracts.Release, err error) {
@@ -403,7 +414,7 @@ func TestCreateRelease(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		release := contracts.Release{
 			RepoSource:     "github.com",
@@ -434,6 +445,7 @@ func TestCreateRelease(t *testing.T) {
 		builderapiClient := builderapi.MockClient{}
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		cockroachdbClient.InsertReleaseFunc = func(ctx context.Context, release contracts.Release, jobResources cockroachdb.JobResources) (r *contracts.Release, err error) {
 			r = &release
@@ -446,7 +458,7 @@ func TestCreateRelease(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		release := contracts.Release{
 			RepoSource:     "github.com",
@@ -480,6 +492,7 @@ func TestFinishRelease(t *testing.T) {
 		builderapiClient := builderapi.MockClient{}
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		callCount := 0
 		cockroachdbClient.UpdateReleaseStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
@@ -487,7 +500,7 @@ func TestFinishRelease(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		repoSource := "github.com"
 		repoOwner := "estafette"
@@ -518,6 +531,7 @@ func TestRename(t *testing.T) {
 
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		renameOnCockroachdbClientCallCount := 0
 		cockroachdbClient.RenameFunc = func(ctx context.Context, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName string) (err error) {
@@ -525,7 +539,7 @@ func TestRename(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		// act
 		err := service.Rename(context.Background(), "github.com", "estafette", "estafette-ci-contracts", "github.com", "estafette", "estafette-ci-protos")
@@ -549,6 +563,7 @@ func TestRename(t *testing.T) {
 
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		renameOnCloudstorageClientCallCount := 0
 		cloudStorageClient.RenameFunc = func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
@@ -556,7 +571,7 @@ func TestRename(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		// act
 		err := service.Rename(context.Background(), "github.com", "estafette", "estafette-ci-contracts", "github.com", "estafette", "estafette-ci-protos")
@@ -580,6 +595,7 @@ func TestUpdateBuildStatus(t *testing.T) {
 
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		callCount := 0
 		cockroachdbClient.UpdateBuildStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
@@ -587,7 +603,7 @@ func TestUpdateBuildStatus(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		event := builderapi.CiBuilderEvent{
 			BuildID:     "123456",
@@ -614,6 +630,7 @@ func TestUpdateBuildStatus(t *testing.T) {
 
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		callCount := 0
 		cockroachdbClient.UpdateReleaseStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
@@ -621,7 +638,7 @@ func TestUpdateBuildStatus(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		event := builderapi.CiBuilderEvent{
 			ReleaseID:   "123456",
@@ -650,6 +667,7 @@ func TestUpdateJobResources(t *testing.T) {
 
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		callCount := 0
 		cockroachdbClient.UpdateBuildResourceUtilizationFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources cockroachdb.JobResources) (err error) {
@@ -657,7 +675,7 @@ func TestUpdateJobResources(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		event := builderapi.CiBuilderEvent{
 			PodName:     "build-estafette-estafette-ci-api-123456-mhrzk",
@@ -685,6 +703,7 @@ func TestUpdateJobResources(t *testing.T) {
 
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
+		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		callCount := 0
 		cockroachdbClient.UpdateReleaseResourceUtilizationFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources cockroachdb.JobResources) (err error) {
@@ -692,7 +711,7 @@ func TestUpdateJobResources(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		event := builderapi.CiBuilderEvent{
 			PodName:     "release-estafette-estafette-ci-api-123456-mhrzk",

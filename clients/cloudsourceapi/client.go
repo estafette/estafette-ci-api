@@ -39,7 +39,7 @@ type client struct {
 	tokenSource oauth2.TokenSource
 }
 
-// GetAccessToken returns an access token to access the Bitbucket api
+// GetAccessToken returns an access token to access the Cloud Source api
 func (c *client) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
 
 	token, err := c.tokenSource.Token()
