@@ -98,7 +98,7 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessTok
 	_, err = git.PlainClone(dir, false, &git.CloneOptions{
 		URL:           fmt.Sprintf("https://estafette:%v@%v/p/%v/r/%v", accesstoken.AccessToken, repoSource, repoOwner, repoName),
 		ReferenceName: plumbing.ReferenceName(repoRefName),
-		Depth:         10,
+		Depth:         50,
 	})
 	if err != nil {
 		return
