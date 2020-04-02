@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+const repoSource = "bitbucket.org"
+
 // AccessToken represents a token to use for api requests
 type AccessToken struct {
 	AccessToken  string `json:"access_token"`
@@ -173,7 +175,7 @@ func (u *Author) GetName() string {
 
 // GetRepoSource returns the repository source
 func (pe *RepositoryPushEvent) GetRepoSource() string {
-	return "bitbucket.org"
+	return repoSource
 }
 
 // GetRepoOwner returns the repository owner
@@ -229,7 +231,7 @@ func (pe *RepoUpdatedEvent) IsValidRenameEvent() bool {
 
 // GetRepoSource returns the repository source
 func (pe *RepoUpdatedEvent) GetRepoSource() string {
-	return "bitbucket.org"
+	return repoSource
 }
 
 // GetOldRepoOwner returns the repository owner
@@ -250,4 +252,9 @@ func (pe *RepoUpdatedEvent) GetOldRepoName() string {
 // GetNewRepoName returns the repository name
 func (pe *RepoUpdatedEvent) GetNewRepoName() string {
 	return strings.Split(pe.Changes.FullName.New, "/")[1]
+}
+
+// IsRepoSourceBitbucket returns true if the repo source is from bitbucket
+func IsRepoSourceBitbucket(repoSourceToCompare string) bool {
+	return repoSourceToCompare == repoSource
 }

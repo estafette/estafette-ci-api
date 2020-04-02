@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+const repoSource = "github.com"
+
 // AnyEvent represents any of the Github webhook events, to check if installation is whitelisted
 type AnyEvent struct {
 	Installation Installation `json:"installation"`
@@ -73,7 +75,7 @@ type RepositoryContent struct {
 
 // GetRepoSource returns the repository source
 func (pe *PushEvent) GetRepoSource() string {
-	return "github.com"
+	return repoSource
 }
 
 // GetRepoOwner returns the repository owner
@@ -136,7 +138,7 @@ func (pe *RepositoryEvent) IsValidRenameEvent() bool {
 
 // GetRepoSource returns the repository source
 func (pe *RepositoryEvent) GetRepoSource() string {
-	return "github.com"
+	return repoSource
 }
 
 // GetOldRepoOwner returns the repository owner
@@ -157,4 +159,9 @@ func (pe *RepositoryEvent) GetOldRepoName() string {
 // GetNewRepoName returns the repository name
 func (pe *RepositoryEvent) GetNewRepoName() string {
 	return strings.Split(pe.Repository.FullName, "/")[1]
+}
+
+// IsRepoSourceGithub returns true if the repo source is from github
+func IsRepoSourceGithub(repoSourceToCompare string) bool {
+	return repoSourceToCompare == repoSource
 }
