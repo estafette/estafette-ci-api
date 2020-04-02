@@ -5,7 +5,7 @@ import "context"
 type MockClient struct {
 	GetAccessTokenFunc                func(ctx context.Context) (accesstoken AccessToken, err error)
 	GetAuthenticatedRepositoryURLFunc func(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error)
-	GetEstafetteManifestFunc          func(ctx context.Context, accesstoken AccessToken, notification PubSubNotification) (valid bool, manifest string, err error)
+	GetEstafetteManifestFunc          func(ctx context.Context, accesstoken AccessToken, notification PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error)
 	JobVarsFuncFunc                   func(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error)
 }
 
@@ -23,11 +23,11 @@ func (c MockClient) GetAuthenticatedRepositoryURL(ctx context.Context, accesstok
 	return c.GetAuthenticatedRepositoryURLFunc(ctx, accesstoken, htmlURL)
 }
 
-func (c MockClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, notification PubSubNotification) (valid bool, manifest string, err error) {
+func (c MockClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, notification PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error) {
 	if c.GetEstafetteManifestFunc == nil {
 		return
 	}
-	return c.GetEstafetteManifestFunc(ctx, accesstoken, notification)
+	return c.GetEstafetteManifestFunc(ctx, accesstoken, notification, gitClone)
 }
 
 func (c MockClient) JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {

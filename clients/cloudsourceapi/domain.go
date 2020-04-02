@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+const repoSource = "source.developers.google.com"
+
 // AccessToken represents a token to use for api requests
 type AccessToken struct {
 	AccessToken  string    `json:"access_token"`
@@ -38,7 +40,7 @@ type RefUpdate struct {
 
 // GetRepoSource returns the repository source
 func (psn *PubSubNotification) GetRepoSource() string {
-	return "source.developers.google.com"
+	return repoSource
 }
 
 // GetRepoOwner returns the repository owner
@@ -64,4 +66,9 @@ func (ru *RefUpdate) GetRepoBranch() string {
 // GetRepository returns the full path to the repository
 func (psn *PubSubNotification) GetRepository() string {
 	return fmt.Sprintf("%v/%v", psn.GetRepoSource(), psn.Name)
+}
+
+// IsRepoSourceCloudSource returns true if the repo source is from cloud source
+func IsRepoSourceCloudSource(repoSourceToCompare string) bool {
+	return repoSourceToCompare == repoSource
 }
