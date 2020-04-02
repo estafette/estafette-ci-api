@@ -10,9 +10,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
+	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudstorage"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
+	"github.com/estafette/estafette-ci-api/clients/githubapi"
 	"github.com/estafette/estafette-ci-api/clients/prometheus"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
@@ -101,7 +104,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 
 	// inject build stages
 	if hasValidManifest {
-		mft, err = helpers.InjectSteps(mft, builderTrack, shortRepoSource)
+		mft, err = helpers.InjectSteps(mft, builderTrack, shortRepoSource, s.supportsBuildStatus(build.RepoSource))
 		if err != nil {
 			log.Error().Err(err).
 				Msg("Failed injecting build stages for pipeline %v/%v/%v and revision %v")
@@ -292,7 +295,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	releaseStatus := "pending"
 
 	// inject build stages
-	mft, err = helpers.InjectSteps(mft, builderTrack, shortRepoSource)
+	mft, err = helpers.InjectSteps(mft, builderTrack, shortRepoSource, s.supportsBuildStatus(release.RepoSource))
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed injecting build stages for release to %v of pipeline %v/%v/%v version %v", release.Name, release.RepoSource, release.RepoOwner, release.RepoName, release.ReleaseVersion)
@@ -826,8 +829,8 @@ func (s *service) getShortRepoSource(repoSource string) string {
 
 func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource, repoOwner, repoName string) (authenticatedRepositoryURL string, environmentVariableWithToken map[string]string, err error) {
 
-	switch repoSource {
-	case "github.com":
+	switch {
+	case githubapi.IsRepoSourceGithub(repoSource):
 		var accessToken string
 		accessToken, authenticatedRepositoryURL, err = s.githubJobVarsFunc(ctx, repoSource, repoOwner, repoName)
 		if err != nil {
@@ -836,7 +839,7 @@ func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource,
 		environmentVariableWithToken = map[string]string{"ESTAFETTE_GITHUB_API_TOKEN": accessToken}
 		return
 
-	case "bitbucket.org":
+	case bitbucketapi.IsRepoSourceBitbucket(repoSource):
 		var accessToken string
 		accessToken, authenticatedRepositoryURL, err = s.bitbucketJobVarsFunc(ctx, repoSource, repoOwner, repoName)
 		if err != nil {
@@ -845,7 +848,7 @@ func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource,
 		environmentVariableWithToken = map[string]string{"ESTAFETTE_BITBUCKET_API_TOKEN": accessToken}
 		return
 
-	case "source.developers.google.com":
+	case cloudsourceapi.IsRepoSourceCloudSource(repoSource):
 		var accessToken string
 		accessToken, authenticatedRepositoryURL, err = s.cloudsourceJobVarsFunc(ctx, repoSource, repoOwner, repoName)
 		if err != nil {
@@ -1221,4 +1224,20 @@ func (s *service) getReleaseJobResources(ctx context.Context, release contracts.
 	}
 
 	return jobResources
+}
+
+func (s *service) supportsBuildStatus(repoSource string) bool {
+
+	switch {
+	case githubapi.IsRepoSourceGithub(repoSource):
+		return true
+
+	case bitbucketapi.IsRepoSourceBitbucket(repoSource):
+		return true
+
+	case cloudsourceapi.IsRepoSourceCloudSource(repoSource):
+		return false
+	}
+
+	return false
 }
