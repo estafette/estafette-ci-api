@@ -207,7 +207,7 @@ func (c *client) getLogDirectory(repoSource, repoOwner, repoName, logType string
 
 func (c *client) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
 
-	log.Info().Msgf("Renaming cloud storage logs from %v/%v/%v to %v/%v/%v", fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	log.Info().Msgf("Renaming cloud storage logs from %v/%v/%v to %v/%v/%v for bucket %v", fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName, c.config.Bucket)
 
 	bucket := c.client.Bucket(c.config.Bucket)
 
@@ -233,6 +233,15 @@ func (c *client) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, from
 }
 
 func (c *client) renameFilesInDirectory(ctx context.Context, bucket *storage.BucketHandle, fromLogFileDirectory, toLogFileDirectory string) (err error) {
+
+	bucketName := ""
+	attrs, attrErr := bucket.Attrs(ctx)
+	if attrErr == nil {
+		bucketName = attrs.Name
+	}
+
+	log.Info().Msgf("Renaming cloud storage logs in bucket %v from directory %v to %v", bucketName, fromLogFileDirectory, toLogFileDirectory)
+
 	it := bucket.Objects(ctx, &storage.Query{
 		Prefix:    fromLogFileDirectory,
 		Delimiter: "/",
