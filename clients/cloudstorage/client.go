@@ -234,13 +234,7 @@ func (c *client) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, from
 
 func (c *client) renameFilesInDirectory(ctx context.Context, bucket *storage.BucketHandle, fromLogFileDirectory, toLogFileDirectory string) (err error) {
 
-	bucketName := ""
-	attrs, attrErr := bucket.Attrs(ctx)
-	if attrErr == nil {
-		bucketName = attrs.Name
-	}
-
-	log.Info().Msgf("Renaming cloud storage logs in bucket %v from directory %v to %v", bucketName, fromLogFileDirectory, toLogFileDirectory)
+	log.Info().Interface("bucket", bucket).Msgf("Renaming cloud storage logs in bucket %v from directory %v to %v", bucket, fromLogFileDirectory, toLogFileDirectory)
 
 	it := bucket.Objects(ctx, &storage.Query{
 		Prefix:    fromLogFileDirectory,
@@ -267,6 +261,9 @@ func (c *client) renameFilesInDirectory(ctx context.Context, bucket *storage.Buc
 }
 
 func (c *client) renameFile(ctx context.Context, bucket *storage.BucketHandle, fromLogFilePath, toLogFilePath string) (err error) {
+
+	log.Debug().Interface("bucket", bucket).Msgf("Renaming cloud storage log in bucket %v from path %v to %v", bucket, fromLogFilePath, toLogFilePath)
+
 	src := bucket.Object(fromLogFilePath)
 	dst := bucket.Object(toLogFilePath)
 
