@@ -14,6 +14,7 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	foundation "github.com/estafette/estafette-foundation"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/api/iterator"
 )
 
@@ -195,6 +196,8 @@ func (c *client) getLogDirectory(repoSource, repoOwner, repoName, logType string
 }
 
 func (c *client) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
+
+	log.Info().Msgf("Renaming cloud storage logs from %v/%v/%v to %v/%v/%v", fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 
 	bucket := c.client.Bucket(c.config.Bucket)
 

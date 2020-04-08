@@ -899,6 +899,9 @@ func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fro
 
 	close(errors)
 	for e := range errors {
+		log.Warn().Err(e).Msgf("Failure to rename pipeline logs from %v/%v/%v to %v/%v/%v", fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	}
+	for e := range errors {
 		return e
 	}
 
