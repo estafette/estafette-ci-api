@@ -235,8 +235,7 @@ func (c *client) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, from
 func (c *client) renameFilesInDirectory(ctx context.Context, bucket *storage.BucketHandle, fromLogFileDirectory, toLogFileDirectory string) (err error) {
 
 	query := &storage.Query{
-		Prefix:    fromLogFileDirectory,
-		Delimiter: "/",
+		Prefix: fromLogFileDirectory,
 	}
 	query.SetAttrSelection([]string{"Name"})
 
