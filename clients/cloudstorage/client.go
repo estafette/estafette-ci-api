@@ -234,12 +234,14 @@ func (c *client) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, from
 
 func (c *client) renameFilesInDirectory(ctx context.Context, bucket *storage.BucketHandle, fromLogFileDirectory, toLogFileDirectory string) (err error) {
 
-	it := bucket.Objects(ctx, &storage.Query{
+	query := &storage.Query{
 		Prefix:    fromLogFileDirectory,
 		Delimiter: "/",
-	})
+	}
 
-	log.Info().Interface("bucket", *bucket).Interface("iterator", *it).Msgf("Renaming cloud storage logs in bucket %v from directory %v to %v", bucket, fromLogFileDirectory, toLogFileDirectory)
+	it := bucket.Objects(ctx, query)
+
+	log.Info().Interface("bucket", *bucket).Interface("query", *query).Interface("iterator", *it).Msgf("Renaming cloud storage logs in bucket %v from directory %v to %v", bucket, fromLogFileDirectory, toLogFileDirectory)
 
 	for {
 		attrs, err := it.Next()
