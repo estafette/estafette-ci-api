@@ -211,20 +211,11 @@ func (c *client) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, from
 
 	bucket := c.client.Bucket(c.config.Bucket)
 
-	// list all build log files in old location, rename to new location
-	fromBuildLogDirectory := c.getLogDirectory(fromRepoSource, fromRepoOwner, fromRepoName, "builds")
-	toBuildLogDirectory := c.getLogDirectory(toRepoSource, toRepoOwner, toRepoName, "builds")
+	// list all log files in old location, rename to new location
+	fromLogDirectory := c.getLogDirectory(fromRepoSource, fromRepoOwner, fromRepoName, "")
+	toLogDirectory := c.getLogDirectory(toRepoSource, toRepoOwner, toRepoName, "")
 
-	err = c.renameFilesInDirectory(ctx, bucket, fromBuildLogDirectory, toBuildLogDirectory)
-	if err != nil {
-		return err
-	}
-
-	// list all release log files in old location, rename to new location
-	fromReleaseLogDirectory := c.getLogDirectory(fromRepoSource, fromRepoOwner, fromRepoName, "releases")
-	toReleaseLogDirectory := c.getLogDirectory(toRepoSource, toRepoOwner, toRepoName, "releases")
-
-	err = c.renameFilesInDirectory(ctx, bucket, fromReleaseLogDirectory, toReleaseLogDirectory)
+	err = c.renameFilesInDirectory(ctx, bucket, fromLogDirectory, toLogDirectory)
 	if err != nil {
 		return err
 	}
@@ -240,8 +231,6 @@ func (c *client) renameFilesInDirectory(ctx context.Context, bucket *storage.Buc
 	query.SetAttrSelection([]string{"Name"})
 
 	it := bucket.Objects(ctx, query)
-
-	log.Info().Interface("bucket", *bucket).Interface("query", *query).Interface("iterator", *it).Msgf("Renaming cloud storage logs in bucket %v from directory %v to %v", bucket, fromLogFileDirectory, toLogFileDirectory)
 
 	for {
 		attrs, err := it.Next()
@@ -264,8 +253,6 @@ func (c *client) renameFilesInDirectory(ctx context.Context, bucket *storage.Buc
 }
 
 func (c *client) renameFile(ctx context.Context, bucket *storage.BucketHandle, fromLogFilePath, toLogFilePath string) (err error) {
-
-	log.Debug().Interface("bucket", *bucket).Msgf("Renaming cloud storage log in bucket %v from path %v to %v", bucket, fromLogFilePath, toLogFilePath)
 
 	src := bucket.Object(fromLogFilePath)
 	dst := bucket.Object(toLogFilePath)
