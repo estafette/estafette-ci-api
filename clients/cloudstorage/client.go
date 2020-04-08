@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +16,11 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	foundation "github.com/estafette/estafette-foundation"
 	"google.golang.org/api/iterator"
+)
+
+var (
+	// ErrLogNotExist is returned when a log cannot be found
+	ErrLogNotExist = errors.New("The log does not exist")
 )
 
 // Client is the interface for connecting to google cloud storage
@@ -140,6 +146,10 @@ func (c *client) getLog(ctx context.Context, path string, acceptGzipEncoding boo
 	logObject := bucket.Object(path).ReadCompressed(true)
 	reader, err := logObject.NewReader(ctx)
 	if err != nil {
+		if errors.Is(err, storage.ErrObjectNotExist) {
+			return ErrLogNotExist
+		}
+
 		return err
 	}
 	defer reader.Close()
@@ -207,7 +217,7 @@ func (c *client) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, from
 		return err
 	}
 
-	// TODO - list all release log files in old location, rename to new location
+	// list all release log files in old location, rename to new location
 	fromReleaseLogDirectory := c.getLogDirectory(fromRepoSource, fromRepoOwner, fromRepoName, "releases")
 	toReleaseLogDirectory := c.getLogDirectory(toRepoSource, toRepoOwner, toRepoName, "releases")
 

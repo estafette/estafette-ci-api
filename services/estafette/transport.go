@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -486,6 +487,13 @@ func (h *Handler) GetPipelineBuildLogs(c *gin.Context) {
 	if h.config.ReadLogFromCloudStorage() {
 		err := h.cloudStorageClient.GetPipelineBuildLogs(c.Request.Context(), *buildLog, strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip"), c.Writer)
 		if err != nil {
+
+			if errors.Is(err, cloudstorage.ErrLogNotExist) {
+				log.Warn().Err(err).
+					Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from cloud storage", source, owner, repo, revisionOrID)
+				c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
+			}
+
 			log.Error().Err(err).
 				Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from cloud storage", source, owner, repo, revisionOrID)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
@@ -943,6 +951,13 @@ func (h *Handler) GetPipelineReleaseLogs(c *gin.Context) {
 	if h.config.ReadLogFromCloudStorage() {
 		err := h.cloudStorageClient.GetPipelineReleaseLogs(c.Request.Context(), *releaseLog, strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip"), c.Writer)
 		if err != nil {
+
+			if errors.Is(err, cloudstorage.ErrLogNotExist) {
+				log.Warn().Err(err).
+					Msgf("Failed retrieving release logs for %v/%v/%v/%v from cloud storage", source, owner, repo, id)
+				c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
+			}
+
 			log.Error().Err(err).
 				Msgf("Failed retrieving release logs for %v/%v/%v/%v from cloud storage", source, owner, repo, id)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
