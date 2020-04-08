@@ -15,18 +15,18 @@ func TestRetrievingIAPJSONWebKeys(t *testing.T) {
 	t.Run("ReturnsKeyByKeyID", func(t *testing.T) {
 
 		// act (if fails get new kid from https://www.gstatic.com/iap/verify/public_key-jwk and update expectancies until it works)
-		publicKey, err := GetCachedIAPJWK("6BEeoA")
+		publicKey, err := GetCachedIAPJWK("2nMJtw")
 
 		if assert.Nil(t, err) {
 			assert.Equal(t, elliptic.P256(), publicKey.Curve)
 
 			expectedX := new(big.Int)
-			expectedX, _ = expectedX.SetString("68031932172974693329958482225462951920659526427692013445504061905947812351567", 10)
+			expectedX, _ = expectedX.SetString("111236176958035336161753958507253174611234843254352749064149552866860052399983", 10)
 
 			if assert.Equal(t, expectedX, publicKey.X) {
 
 				expectedY := new(big.Int)
-				expectedY, _ = expectedY.SetString("97749520150416902784140356654158488068549848953340400890084478637468389961468", 10)
+				expectedY, _ = expectedY.SetString("77699774847837505858990555516588693460086847721546939204070991021229938076042", 10)
 
 				assert.Equal(t, expectedY, publicKey.Y)
 			}
