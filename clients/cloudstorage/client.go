@@ -200,7 +200,7 @@ func (c *client) getReleaseLogPath(releaseLog contracts.ReleaseLog) (logPath str
 }
 
 func (c *client) getLogDirectory(repoSource, repoOwner, repoName, logType string) (logDirectory string) {
-	logDirectory = path.Join(c.config.LogsDirectory, repoSource, repoOwner, repoName, logType)
+	logDirectory = path.Join(c.config.LogsDirectory, repoSource, repoOwner, repoName, logType) + "/"
 
 	return logDirectory
 }
