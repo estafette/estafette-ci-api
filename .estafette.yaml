@@ -175,3 +175,94 @@ releases:
         when:
           status == 'succeeded' ||
           status == 'failed'
+
+  tooling-estafette:
+    actions:
+    - name: deploy-canary
+    - name: deploy-stable
+    - name: rollback-canary
+    clone: true
+    stages:
+      deploy:
+        image: extensions/gke:dev
+        namespace: estafette-ci
+        visibility: iap
+        iapOauthClientID: estafette.secret(8Nlk-Aq1sDFySTEg.EH4VgB8zQ_Uhimb_MdSPrVyJiOtqAop23D8zDjnksHbVJQ2Q_maGamkn6Kh0TAnD6a_oUpLNTUOUIuxFYmGy_74FqdOCvvvsB5_crRW4dFVWtLq7GRxy-cXzlJ5KjnUaKzXzCPlr17fqhJnBYVCLWQ==.OUMokSQrOO8DjQDtDOSJ_nWqk70cMMF42Q4-SBfJ33jfZiaK9obT5tkyEZmyyfFtVfSRrHo=)
+        iapOauthClientSecret: estafette.secret(DtIinOnwxATamw47.3YE8gEmg5Bhrjpbm_oYIrSgY8HVUG97ecLjijXxiLhK7eVOkTe_hlJrEgxcgEplB.97AKjl7ynDZlpMnQ38BY_QIkxiEoO9WbdIjrilJSUQMz96JkMouDmp8CKXvS1TGvTrHJB10=)
+        container:
+          repository: estafette
+          env:
+            ESTAFETTE_LOG_FORMAT: v3
+          cpu:
+            request: 158m
+            limit: 316m
+          memory:
+            request: 483Mi
+            limit: 976Mi
+          metrics:
+            port: 9001
+          lifecycle:
+            prestopsleep: false
+        sidecars:
+        - type: openresty
+          image: estafette/openresty-sidecar:1.15.8.2
+          cpu:
+            request: 43m
+            limit: 85m
+          memory:
+            request: 34Mi
+            limit: 68Mi
+        request:
+          timeout: 120s
+          maxbodysize: 128M
+          clientbodybuffersize: 1m
+          proxybuffersnumber: 64
+        hosts:
+        - estafette.secret(Ht4w97zYNegDUn90.dQLWAThFkF4B0GoNQVhFXjx8JvWE53Xicu6t00LcQTu83Kt8OBsR.dxjWCCtCykkLkCYBHFhWWS9hKr7I7WtdamC2R0kOioMqTdAQIZ5gtRV0YovWm3wjjqrcP3Y=)
+        internalhosts:
+        - estafette.secret(Ms16kDpJJsAW2ttz.5PDwuKRZ8U6NztE7E7iBA3d46dHZoekuYWUXHvtqVsvhjIgmkSZ8tUoWxQJHAD8gv4je5E07dg==.5urwsbdeq1mHjp03TriPCn5l89PYrfQuZXEcC-MhD9rp14Au1heNbzww3acBPVN5rAF9dE0=)
+        basepath: /api
+        chaosproof: true
+        useGoogleCloudCredentials: true
+        manifests:
+          files:
+          - gke/ingress.yaml
+          - gke/ingress-github.yaml
+          - gke/ingress-bitbucket.yaml
+          - gke/ingress-slack.yaml
+          - gke/ingress-pubsub.yaml
+          - gke/ingress-cloudsource.yaml
+          - gke/integrations-certificate-secret.yaml
+          data:
+            IntegrationsHostname: estafette.secret(TPjFkETu4Dig2jmS.IW-QvFT96oSyqX5XZHzO2cOtwao1SxwY8WDgHBDuN6iWnXyyYez1I3mmdWiaKHxVdM_6Lw==.I3WQtUf6sJO46TJbOmHBy8O-x65uRwAC4yjxGgX9c7PR03KvYjQidC4lj_f4brZV509_Uo8=)
+        volumemounts:
+        # - name: client-certs
+        #   mountpath: /cockroach-certs
+        #   volume:
+        #     secret:
+        #       secretName: estafette.client.api
+        #       items:
+        #       - key: key
+        #         path: key
+        #         mode: 0600
+        #       - key: cert
+        #         path: cert
+        - name: app-secrets
+          mountpath: /secrets
+          volume:
+            secret:
+              secretName: estafette-ci-config-secrets
+        - name: app-configs
+          mountpath: /configs
+          volume:
+            configMap:
+              name: estafette-ci-config-configs
+
+      slack-notify:
+        image: extensions/slack-build-status:dev
+        workspace: estafette
+        channels:
+        - '#release-status'
+        when:
+          status == 'succeeded' ||
+          status == 'failed'
