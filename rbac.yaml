@@ -56,4 +56,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: estafette-ci-api
-  namespace: estafette
+  namespace: ${NAMESPACE}
