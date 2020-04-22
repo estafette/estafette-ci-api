@@ -21,14 +21,22 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "{{.NginxIngressProxyReadTimeout}}"
     estafette.io/cloudflare-dns: "true"
     estafette.io/cloudflare-proxy: "true"
-    estafette.io/cloudflare-hostnames: "{{.ManifestData.IntegrationsHostname}}"
+    estafette.io/cloudflare-hostnames: "{{.ManifestData.IntegrationsHostname}},{{.ManifestData.IntegrationsHostname2}}"
 spec:
   tls:
   - hosts:
     - {{.ManifestData.IntegrationsHostname}}
+    - {{.ManifestData.IntegrationsHostname2}}
     secretName: {{.Name}}-integrations-letsencrypt-certificate
   rules:
   - host: {{.ManifestData.IntegrationsHostname}}
+    http:
+      paths:
+      - path: /api/integrations/github
+        backend:
+          serviceName: {{.Name}}
+          servicePort: https
+  - host: {{.ManifestData.IntegrationsHostname2}}
     http:
       paths:
       - path: /api/integrations/github

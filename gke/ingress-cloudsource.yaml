@@ -25,9 +25,17 @@ spec:
   tls:
   - hosts:
     - {{.ManifestData.IntegrationsHostname}}
+    - {{.ManifestData.IntegrationsHostname2}}
     secretName: {{.Name}}-integrations-letsencrypt-certificate
   rules:
   - host: {{.ManifestData.IntegrationsHostname}}
+    http:
+      paths:
+      - path: /api/integrations/cloudsource
+        backend:
+          serviceName: {{.Name}}
+          servicePort: https
+  - host: {{.ManifestData.IntegrationsHostname2}}
     http:
       paths:
       - path: /api/integrations/cloudsource

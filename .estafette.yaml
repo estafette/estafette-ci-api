@@ -218,8 +218,10 @@ releases:
           clientbodybuffersize: 1m
           proxybuffersnumber: 64
         hosts:
+        - estafette.secret(IIZF7TwhQlDeDqtY.s9R8iMp30_frYZoLU7dD1pbdvUg3SCELN3JAXBQ5YrwytnVz.sc58gdlwieDhIsEcQbVLyN3KpkBcjX4b30GYjooRz8zQaXWZFrGeEPJz9SHkSsK7YYOq3ms=)
         - estafette.secret(Ht4w97zYNegDUn90.dQLWAThFkF4B0GoNQVhFXjx8JvWE53Xicu6t00LcQTu83Kt8OBsR.dxjWCCtCykkLkCYBHFhWWS9hKr7I7WtdamC2R0kOioMqTdAQIZ5gtRV0YovWm3wjjqrcP3Y=)
         internalhosts:
+        - estafette.secret(P6NY3iwsirEbkO1Z.RETF5WQACjanX8v4AUMWdQyC0IKfltnOj4mX9_yHvKUyOl5dDdLkHJIuIgdR5FAipt0OZQ==.Rl7F7HcHUCGtHJDyHVsefQ7YzYnEltjUj4Pc9_qD568jOVZCR8d5G436StjCQQRcntXGxdo=)
         - estafette.secret(Ms16kDpJJsAW2ttz.5PDwuKRZ8U6NztE7E7iBA3d46dHZoekuYWUXHvtqVsvhjIgmkSZ8tUoWxQJHAD8gv4je5E07dg==.5urwsbdeq1mHjp03TriPCn5l89PYrfQuZXEcC-MhD9rp14Au1heNbzww3acBPVN5rAF9dE0=)
         basepath: /api
         chaosproof: true
@@ -234,7 +236,8 @@ releases:
           - gke/ingress-cloudsource.yaml
           - gke/integrations-certificate-secret.yaml
           data:
-            IntegrationsHostname: estafette.secret(TPjFkETu4Dig2jmS.IW-QvFT96oSyqX5XZHzO2cOtwao1SxwY8WDgHBDuN6iWnXyyYez1I3mmdWiaKHxVdM_6Lw==.I3WQtUf6sJO46TJbOmHBy8O-x65uRwAC4yjxGgX9c7PR03KvYjQidC4lj_f4brZV509_Uo8=)
+            IntegrationsHostname: estafette.secret(TLft87lv4YqRTpEk.RTcbrb0mtJ-y3FK49JErE9kLnhi-mruC2kZPwVQdE4MJqn4UOVqr5TnuIf6G4ftZdw==.Ry0bpK4h7oi4nBSz84AtB90LgxL_jOaCyUFc3FhWXY8NesulkHtkMSQOIPQ6M5ZSbe_CcUE=)
+            IntegrationsHostname2: estafette.secret(TPjFkETu4Dig2jmS.IW-QvFT96oSyqX5XZHzO2cOtwao1SxwY8WDgHBDuN6iWnXyyYez1I3mmdWiaKHxVdM_6Lw==.I3WQtUf6sJO46TJbOmHBy8O-x65uRwAC4yjxGgX9c7PR03KvYjQidC4lj_f4brZV509_Uo8=)
         volumemounts:
         # - name: client-certs
         #   mountpath: /cockroach-certs
