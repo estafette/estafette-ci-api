@@ -153,6 +153,13 @@ func (c *tracingClient) GetPipeline(ctx context.Context, repoSource, repoOwner, 
 	return c.Client.GetPipeline(ctx, repoSource, repoOwner, repoName, optimized)
 }
 
+func (c *tracingClient) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (builds []*contracts.Build, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetPipelineRecentBuilds"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineRecentBuilds(ctx, repoSource, repoOwner, repoName, optimized)
+}
+
 func (c *tracingClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, optimized bool) (builds []*contracts.Build, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetPipelineBuilds"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()

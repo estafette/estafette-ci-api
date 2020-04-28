@@ -152,6 +152,22 @@ func (h *Handler) GetPipeline(c *gin.Context) {
 	c.JSON(http.StatusOK, pipeline)
 }
 
+func (h *Handler) GetPipelineRecentBuilds(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	builds, err := h.cockroachDBClient.GetPipelineRecentBuilds(c.Request.Context(), source, owner, repo, true)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed retrieving recent builds for %v/%v/%v from db", source, owner, repo)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, builds)
+}
+
 func (h *Handler) GetPipelineBuilds(c *gin.Context) {
 
 	source := c.Param("source")

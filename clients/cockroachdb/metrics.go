@@ -163,6 +163,14 @@ func (c *metricsClient) GetPipeline(ctx context.Context, repoSource, repoOwner, 
 	return c.Client.GetPipeline(ctx, repoSource, repoOwner, repoName, optimized)
 }
 
+func (c *metricsClient) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (builds []*contracts.Build, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineRecentBuilds", begin)
+	}(time.Now())
+
+	return c.Client.GetPipelineRecentBuilds(ctx, repoSource, repoOwner, repoName, optimized)
+}
+
 func (c *metricsClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, optimized bool) (builds []*contracts.Build, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineBuilds", begin)

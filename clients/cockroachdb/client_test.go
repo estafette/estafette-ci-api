@@ -213,6 +213,34 @@ func TestQueryBuilder(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "UPDATE releases SET release_status = $1, updated_at = now(), duration = age(now(), inserted_at) WHERE id = $2 AND repo_source = $3 AND repo_owner = $4 AND repo_name = $5 AND release_status IN ($6) RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, updated_at, duration::INT, triggered_by_event", sql)
 	})
+
+	t.Run("GeneratesRecentBuildQuery", func(t *testing.T) {
+
+		psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+		innerquery := psql.
+			Select("a.*, ROW_NUMBER() OVER (PARTITION BY a.repo_branch ORDER BY a.inserted_at DESC) AS rn").
+			From("builds a").
+			Where(sq.Eq{"a.repo_source": "github.com"}).
+			Where(sq.Eq{"a.repo_owner": "estafette"}).
+			Where(sq.Eq{"a.repo_name": "estafette-ci-web"}).
+			OrderBy("a.inserted_at DESC").
+			Limit(uint64(50))
+
+		query := psql.
+			Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT, a.triggered_by_event").
+			Prefix("WITH ranked_builds AS (?)", innerquery).
+			From("ranked_builds a").
+			Where("a.rn = 1").
+			OrderBy("a.inserted_at DESC").
+			Limit(uint64(5))
+
+		// act
+		sql, _, err := query.ToSql()
+
+		assert.Nil(t, err)
+		assert.Equal(t, "WITH ranked_builds AS (SELECT a.*, ROW_NUMBER() OVER (PARTITION BY a.repo_branch ORDER BY a.inserted_at DESC) AS rn FROM builds a WHERE a.repo_source = $1 AND a.repo_owner = $2 AND a.repo_name = $3 ORDER BY a.inserted_at DESC LIMIT 50) SELECT a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT, a.triggered_by_event FROM ranked_builds a WHERE a.rn = 1 ORDER BY a.inserted_at DESC LIMIT 5", sql)
+	})
 }
 
 func TestAutoincrement(t *testing.T) {

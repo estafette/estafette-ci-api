@@ -44,6 +44,7 @@ type Client interface {
 	GetPipelinesByRepoName(ctx context.Context, repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error)
 	GetPipelinesCount(ctx context.Context, filters map[string][]string) (count int, err error)
 	GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error)
+	GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (count int, err error)
 	GetPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName, repoRevision string, optimized bool) (build *contracts.Build, err error)
@@ -1184,6 +1185,43 @@ func (c *client) GetPipeline(ctx context.Context, repoSource, repoOwner, repoNam
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if pipeline, err = c.scanPipeline(row, optimized); err != nil {
+
+		return
+	}
+
+	return
+}
+
+func (c *client) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (builds []*contracts.Build, err error) {
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	innerquery := psql.
+		Select("a.*, ROW_NUMBER() OVER (PARTITION BY a.repo_branch ORDER BY a.inserted_at DESC) AS rn").
+		From("builds a").
+		Where(sq.Eq{"a.repo_source": repoSource}).
+		Where(sq.Eq{"a.repo_owner": repoOwner}).
+		Where(sq.Eq{"a.repo_name": repoName}).
+		OrderBy("a.inserted_at DESC").
+		Limit(uint64(50))
+
+	query := psql.
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT, a.triggered_by_event").
+		Prefix("WITH ranked_builds AS (?)", innerquery).
+		From("ranked_builds a").
+		Where("a.rn = 1").
+		OrderBy("a.inserted_at DESC").
+		Limit(uint64(5))
+
+	// execute query
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+
+		return
+	}
+
+	// read rows
+	if builds, err = c.scanBuilds(rows, optimized); err != nil {
 
 		return
 	}

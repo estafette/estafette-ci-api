@@ -133,6 +133,12 @@ func (c *loggingClient) GetPipeline(ctx context.Context, repoSource, repoOwner, 
 	return c.Client.GetPipeline(ctx, repoSource, repoOwner, repoName, optimized)
 }
 
+func (c *loggingClient) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (builds []*contracts.Build, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetPipelineRecentBuilds", err) }()
+
+	return c.Client.GetPipelineRecentBuilds(ctx, repoSource, repoOwner, repoName, optimized)
+}
+
 func (c *loggingClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, optimized bool) (builds []*contracts.Build, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelineBuilds", err) }()
 
