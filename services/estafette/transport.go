@@ -1791,7 +1791,7 @@ func (h *Handler) EncryptSecret(c *gin.Context) {
 
 	value := aux.Value
 	if aux.Base64Encode {
-		value = base64.URLEncoding.EncodeToString([]byte(value))
+		value = base64.StdEncoding.EncodeToString([]byte(value))
 	}
 
 	encryptedString, err := h.secretHelper.EncryptEnvelope(value, aux.PipelineWhitelist)
