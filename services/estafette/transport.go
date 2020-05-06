@@ -1790,7 +1790,12 @@ func (h *Handler) EncryptSecret(c *gin.Context) {
 	}
 
 	value := aux.Value
+
+	// trim any whitespace and newlines at beginning and end of string
+	value = strings.TrimSpace(value)
+
 	if aux.Base64Encode {
+		// base64 encode for use in a kubernetes secret
 		value = base64.StdEncoding.EncodeToString([]byte(value))
 	}
 
