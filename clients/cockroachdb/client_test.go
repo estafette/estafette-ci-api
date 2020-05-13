@@ -285,6 +285,83 @@ func TestIntegrationUpdateReleaseResourceUtilization(t *testing.T) {
 		assert.Nil(t, err)
 	})
 }
+
+func TestIntegrationInsertBuildLog(t *testing.T) {
+	t.Run("ReturnsInsertedBuildLogWithIDWhenWriteLogToDatabaseIsTrue", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		buildLog := getBuildLog()
+
+		// act
+		insertedBuildLog, err := cockroachdbClient.InsertBuildLog(ctx, buildLog, true)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, insertedBuildLog)
+		assert.True(t, insertedBuildLog.ID != "")
+	})
+
+	t.Run("ReturnsInsertedBuildLogWithIDWhenWriteLogToDatabaseIsFalse", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		buildLog := getBuildLog()
+
+		// act
+		insertedBuildLog, err := cockroachdbClient.InsertBuildLog(ctx, buildLog, false)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, insertedBuildLog)
+		assert.True(t, insertedBuildLog.ID != "")
+	})
+}
+
+func TestIntegrationInsertReleaseLog(t *testing.T) {
+	t.Run("ReturnsInsertedReleaseLogWithIDWhenWriteLogToDatabaseIsTrue", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		releaseLog := getReleaseLog()
+
+		// act
+		insertedReleaseLog, err := cockroachdbClient.InsertReleaseLog(ctx, releaseLog, true)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, insertedReleaseLog)
+		assert.True(t, insertedReleaseLog.ID != "")
+	})
+
+	t.Run("ReturnsInsertedReleaseLogWithIDWhenWriteLogToDatabaseIsFalse", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		releaseLog := getReleaseLog()
+
+		// act
+		insertedReleaseLog, err := cockroachdbClient.InsertReleaseLog(ctx, releaseLog, false)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, insertedReleaseLog)
+		assert.True(t, insertedReleaseLog.ID != "")
+	})
+}
+
 func TestQueryBuilder(t *testing.T) {
 	t.Run("GeneratesQueryWithoutFilters", func(t *testing.T) {
 
@@ -586,5 +663,61 @@ func getJobResources() JobResources {
 		CPULimit:      float64(7.0),
 		MemoryRequest: float64(67108864),
 		MemoryLimit:   float64(21474836480),
+	}
+}
+
+func getBuildLog() contracts.BuildLog {
+	return contracts.BuildLog{
+		RepoSource:   "github.com",
+		RepoOwner:    "estafette",
+		RepoName:     "estafette-ci-api",
+		RepoBranch:   "master",
+		RepoRevision: "08e9480b75154b5584995053344beb4d4aef65f4",
+		Steps: []*contracts.BuildLogStep{
+			&contracts.BuildLogStep{
+				Step: "stage-1",
+				Image: &contracts.BuildLogStepDockerImage{
+					Name: "golang",
+					Tag:  "1.14.2-alpine3.11",
+				},
+				Duration: time.Duration(1234567),
+				Status:   "SUCCEEDED",
+				LogLines: []contracts.BuildLogLine{
+					contracts.BuildLogLine{
+						LineNumber: 1,
+						Timestamp:  time.Now().UTC(),
+						StreamType: "stdout",
+						Text:       "ok",
+					},
+				},
+			},
+		},
+	}
+}
+
+func getReleaseLog() contracts.ReleaseLog {
+	return contracts.ReleaseLog{
+		RepoSource: "github.com",
+		RepoOwner:  "estafette",
+		RepoName:   "estafette-ci-api",
+		Steps: []*contracts.BuildLogStep{
+			&contracts.BuildLogStep{
+				Step: "stage-1",
+				Image: &contracts.BuildLogStepDockerImage{
+					Name: "golang",
+					Tag:  "1.14.2-alpine3.11",
+				},
+				Duration: time.Duration(1234567),
+				Status:   "SUCCEEDED",
+				LogLines: []contracts.BuildLogLine{
+					contracts.BuildLogLine{
+						LineNumber: 1,
+						Timestamp:  time.Now().UTC(),
+						StreamType: "stdout",
+						Text:       "ok",
+					},
+				},
+			},
+		},
 	}
 }
