@@ -49,7 +49,7 @@ stages:
       GOOS: linux
       GOGC: off
     commands:
-    - go test -v -run TestIntegration ./...
+    - go test -run TestIntegration ./...
 
   bake:
     image: extensions/docker:dev
