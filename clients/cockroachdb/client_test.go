@@ -99,7 +99,7 @@ func TestIntegrationUpdateBuildStatus(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	t.Run("UpdatesStatusForNonExistBuild", func(t *testing.T) {
+	t.Run("UpdatesStatusForNonExistingBuild", func(t *testing.T) {
 
 		if testing.Short() {
 			t.Skip("skipping test in short mode.")
@@ -112,6 +112,67 @@ func TestIntegrationUpdateBuildStatus(t *testing.T) {
 
 		// act
 		err := cockroachdbClient.UpdateBuildStatus(ctx, build.RepoSource, build.RepoOwner, build.RepoName, buildID, "succeeded")
+
+		assert.Nil(t, err)
+	})
+}
+
+func TestIntegrationInsertRelease(t *testing.T) {
+	t.Run("ReturnsInsertedReleaseWithID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		release := getRelease()
+		jobResources := getJobResources()
+
+		// act
+		insertedRelease, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, insertedRelease)
+		assert.True(t, insertedRelease.ID != "")
+	})
+}
+
+func TestIntegrationUpdateReleaseStatus(t *testing.T) {
+	t.Run("UpdatesStatusForInsertedRelease", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		release := getRelease()
+		jobResources := getJobResources()
+		insertedRelease, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		assert.Nil(t, err)
+		releaseID, err := strconv.Atoi(insertedRelease.ID)
+		assert.Nil(t, err)
+
+		// act
+		err = cockroachdbClient.UpdateReleaseStatus(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, releaseID, "succeeded")
+
+		assert.Nil(t, err)
+	})
+
+	t.Run("UpdatesStatusForNonExistingRelease", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		release := getRelease()
+		releaseID := 15
+
+		// act
+		err := cockroachdbClient.UpdateReleaseStatus(ctx, release.RepoSource, release.RepoOwner, release.RepoName, releaseID, "succeeded")
 
 		assert.Nil(t, err)
 	})
@@ -399,6 +460,18 @@ func getBuild() contracts.Build {
 	}
 }
 
+func getRelease() contracts.Release {
+	return contracts.Release{
+		Name:           "production",
+		Action:         "",
+		RepoSource:     "github.com",
+		RepoOwner:      "estafette",
+		RepoName:       "estafette-ci-api",
+		ReleaseVersion: "0.0.99",
+		ReleaseStatus:  "pending",
+		Events:         []manifest.EstafetteEvent{},
+	}
+}
 func getJobResources() JobResources {
 	return JobResources{
 		CPURequest:    float64(0.1),
