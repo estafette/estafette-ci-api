@@ -28,35 +28,55 @@ func TestIntegrationInsertBuild(t *testing.T) {
 
 		ctx := context.Background()
 		cockroachdbClient := getCockroachdbClient(ctx, t)
-		build := contracts.Build{
-			RepoSource:     "github.com",
-			RepoOwner:      "estafette",
-			RepoName:       "estafette-ci-api",
-			RepoBranch:     "master",
-			RepoRevision:   "08e9480b75154b5584995053344beb4d4aef65f4",
-			BuildVersion:   "0.0.99",
-			BuildStatus:    "pending",
-			Labels:         []contracts.Label{{Key: "app-group", Value: "estafette-ci"}, {Key: "language", Value: "golang"}},
-			ReleaseTargets: []contracts.ReleaseTarget{},
-			Manifest:       "",
-			Commits:        []contracts.GitCommit{},
-			Triggers:       []manifest.EstafetteTrigger{},
-			Events:         []manifest.EstafetteEvent{},
-		}
-		jobResources := JobResources{
-			CPURequest:    float64(0.1),
-			CPULimit:      float64(7.0),
-			MemoryRequest: float64(67108864),
-			MemoryLimit:   float64(21474836480),
-		}
+		build := getBuild()
+		jobResources := getJobResources()
 
 		// act
-		// 	InsertBuild(ctx context.Context, build contracts.Build, jobResources JobResources) (b *contracts.Build, err error)
 		insertedBuild, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedBuild)
 		assert.True(t, insertedBuild.ID != "")
+	})
+}
+
+func TestIntegrationUpdateBuildStatus(t *testing.T) {
+	t.Run("UpdatesStatusForInsertedBuild", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		insertedBuild, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		buildID, err := strconv.Atoi(insertedBuild.ID)
+		assert.Nil(t, err)
+
+		// act
+		err = cockroachdbClient.UpdateBuildStatus(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName, buildID, "succeeded")
+
+		assert.Nil(t, err)
+	})
+
+	t.Run("UpdatesStatusForNonExistBuild", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		buildID := 15
+
+		// act
+		err := cockroachdbClient.UpdateBuildStatus(ctx, build.RepoSource, build.RepoOwner, build.RepoName, buildID, "succeeded")
+
+		assert.Nil(t, err)
 	})
 }
 
@@ -322,4 +342,31 @@ func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 	assert.Nil(t, err)
 
 	return cockroachdbClient
+}
+
+func getBuild() contracts.Build {
+	return contracts.Build{
+		RepoSource:     "github.com",
+		RepoOwner:      "estafette",
+		RepoName:       "estafette-ci-api",
+		RepoBranch:     "master",
+		RepoRevision:   "08e9480b75154b5584995053344beb4d4aef65f4",
+		BuildVersion:   "0.0.99",
+		BuildStatus:    "pending",
+		Labels:         []contracts.Label{{Key: "app-group", Value: "estafette-ci"}, {Key: "language", Value: "golang"}},
+		ReleaseTargets: []contracts.ReleaseTarget{},
+		Manifest:       "",
+		Commits:        []contracts.GitCommit{},
+		Triggers:       []manifest.EstafetteTrigger{},
+		Events:         []manifest.EstafetteEvent{},
+	}
+}
+
+func getJobResources() JobResources {
+	return JobResources{
+		CPURequest:    float64(0.1),
+		CPULimit:      float64(7.0),
+		MemoryRequest: float64(67108864),
+		MemoryLimit:   float64(21474836480),
+	}
 }
