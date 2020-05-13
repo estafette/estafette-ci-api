@@ -19,7 +19,7 @@ var (
 	cdbClient = client{}
 )
 
-func InsertBuild(t *testing.T) {
+func TestIntegrationInsertBuild(t *testing.T) {
 	t.Run("ReturnsInsertedBuildWithID", func(t *testing.T) {
 
 		if testing.Short() {
