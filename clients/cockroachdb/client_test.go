@@ -673,8 +673,9 @@ func getBuildLog() contracts.BuildLog {
 		RepoName:     "estafette-ci-api",
 		RepoBranch:   "master",
 		RepoRevision: "08e9480b75154b5584995053344beb4d4aef65f4",
+		BuildID:      "15",
 		Steps: []*contracts.BuildLogStep{
-			&contracts.BuildLogStep{
+			{
 				Step: "stage-1",
 				Image: &contracts.BuildLogStepDockerImage{
 					Name: "golang",
@@ -683,7 +684,7 @@ func getBuildLog() contracts.BuildLog {
 				Duration: time.Duration(1234567),
 				Status:   "SUCCEEDED",
 				LogLines: []contracts.BuildLogLine{
-					contracts.BuildLogLine{
+					{
 						LineNumber: 1,
 						Timestamp:  time.Now().UTC(),
 						StreamType: "stdout",
@@ -700,8 +701,9 @@ func getReleaseLog() contracts.ReleaseLog {
 		RepoSource: "github.com",
 		RepoOwner:  "estafette",
 		RepoName:   "estafette-ci-api",
+		ReleaseID:  "15",
 		Steps: []*contracts.BuildLogStep{
-			&contracts.BuildLogStep{
+			{
 				Step: "stage-1",
 				Image: &contracts.BuildLogStepDockerImage{
 					Name: "golang",
@@ -710,7 +712,7 @@ func getReleaseLog() contracts.ReleaseLog {
 				Duration: time.Duration(1234567),
 				Status:   "SUCCEEDED",
 				LogLines: []contracts.BuildLogLine{
-					contracts.BuildLogLine{
+					{
 						LineNumber: 1,
 						Timestamp:  time.Now().UTC(),
 						StreamType: "stdout",
