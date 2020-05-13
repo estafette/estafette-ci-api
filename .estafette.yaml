@@ -19,8 +19,37 @@ stages:
       GOOS: linux
       GOGC: off
     commands:
-    - go test ./...
+    - go test -short ./...
     - go build -a -installsuffix cgo -ldflags "-X main.appgroup=${ESTAFETTE_LABEL_APP_GROUP} -X main.app=${ESTAFETTE_GIT_NAME} -X main.version=${ESTAFETTE_BUILD_VERSION} -X main.revision=${ESTAFETTE_GIT_REVISION} -X main.branch=${ESTAFETTE_GIT_BRANCH} -X main.buildDate=${ESTAFETTE_BUILD_DATETIME}" -o ./publish/${ESTAFETTE_GIT_NAME} .
+
+  integration-tests-prepare:
+    services:
+    - name: cockroachdb
+      multiStage: true
+      image: cockroachdb/cockroach:v20.1.0
+      shell: /bin/bash
+      env:
+        COCKROACH_SKIP_ENABLING_DIAGNOSTIC_REPORTING: "true"
+      readiness:
+        path: /health?ready=1
+        port: 8080
+        timeoutSeconds: 120
+      commands:
+      - /cockroach/cockroach start-single-node --insecure --advertise-addr cockroachdb
+
+    image: estafette/estafette-ci-db-migrator:0.1
+    env:
+      COCKROACH_CONNECTION_STRING: postgresql://root@cockroachdb:26257/defaultdb?sslmode=disable
+      ESTAFETTE_LOG_FORMAT: console
+
+  integration-tests:
+    image: golang:1.14.2-alpine3.11
+    env:
+      CGO_ENABLED: 0
+      GOOS: linux
+      GOGC: off
+    commands:
+    - go test ./...
 
   bake:
     image: extensions/docker:dev

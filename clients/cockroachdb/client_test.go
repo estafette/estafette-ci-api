@@ -1,6 +1,7 @@
 package cockroachdb
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -8,12 +9,56 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/estafette/estafette-ci-api/config"
+	contracts "github.com/estafette/estafette-ci-contracts"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
 	cdbClient = client{}
 )
+
+func InsertBuild(t *testing.T) {
+	t.Run("ReturnsInsertedBuildWithID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := contracts.Build{
+			RepoSource:     "github.com",
+			RepoOwner:      "estafette",
+			RepoName:       "estafette-ci-api",
+			RepoBranch:     "master",
+			RepoRevision:   "08e9480b75154b5584995053344beb4d4aef65f4",
+			BuildVersion:   "0.0.99",
+			BuildStatus:    "pending",
+			Labels:         []contracts.Label{{Key: "app-group", Value: "estafette-ci"}, {Key: "language", Value: "golang"}},
+			ReleaseTargets: []contracts.ReleaseTarget{},
+			Manifest:       "",
+			Commits:        []contracts.GitCommit{},
+			Triggers:       []manifest.EstafetteTrigger{},
+			Events:         []manifest.EstafetteEvent{},
+		}
+		jobResources := JobResources{
+			CPURequest:    float64(0.1),
+			CPULimit:      float64(7.0),
+			MemoryRequest: float64(67108864),
+			MemoryLimit:   float64(21474836480),
+		}
+
+		// act
+		// 	InsertBuild(ctx context.Context, build contracts.Build, jobResources JobResources) (b *contracts.Build, err error)
+		insertedBuild, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, insertedBuild)
+		assert.True(t, insertedBuild.ID != "")
+	})
+}
 
 func TestQueryBuilder(t *testing.T) {
 	t.Run("GeneratesQueryWithoutFilters", func(t *testing.T) {
@@ -257,4 +302,24 @@ func TestAutoincrement(t *testing.T) {
 
 		assert.Equal(t, 126, autoincrement)
 	})
+}
+
+func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
+
+	dbConfig := config.DatabaseConfig{
+		DatabaseName:   "defaultdb",
+		Host:           "cockroachdb",
+		Insecure:       true,
+		CertificateDir: "",
+		Port:           26257,
+		User:           "root",
+		Password:       "",
+	}
+
+	cockroachdbClient := NewClient(dbConfig)
+	err := cockroachdbClient.Connect(ctx)
+
+	assert.Nil(t, err)
+
+	return cockroachdbClient
 }
