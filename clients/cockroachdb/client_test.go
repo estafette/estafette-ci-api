@@ -117,6 +117,60 @@ func TestIntegrationUpdateBuildStatus(t *testing.T) {
 	})
 }
 
+func TestIntegrationUpdateBuildResourceUtilization(t *testing.T) {
+	t.Run("UpdatesJobResourceForInsertedBuild", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		insertedBuild, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		buildID, err := strconv.Atoi(insertedBuild.ID)
+		assert.Nil(t, err)
+
+		newJobResources := JobResources{
+			CPURequest:    float64(0.3),
+			CPULimit:      float64(4.0),
+			MemoryRequest: float64(67108864),
+			MemoryLimit:   float64(21474836480),
+		}
+
+		// act
+		err = cockroachdbClient.UpdateBuildResourceUtilization(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName, buildID, newJobResources)
+
+		assert.Nil(t, err)
+	})
+
+	t.Run("UpdatesJobResourcesForNonExistingBuild", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		buildID := 15
+
+		newJobResources := JobResources{
+			CPURequest:    float64(0.3),
+			CPULimit:      float64(4.0),
+			MemoryRequest: float64(67108864),
+			MemoryLimit:   float64(21474836480),
+		}
+
+		// act
+		err := cockroachdbClient.UpdateBuildResourceUtilization(ctx, build.RepoSource, build.RepoOwner, build.RepoName, buildID, newJobResources)
+
+		assert.Nil(t, err)
+	})
+}
+
 func TestIntegrationInsertRelease(t *testing.T) {
 	t.Run("ReturnsInsertedReleaseWithID", func(t *testing.T) {
 
@@ -178,6 +232,59 @@ func TestIntegrationUpdateReleaseStatus(t *testing.T) {
 	})
 }
 
+func TestIntegrationUpdateReleaseResourceUtilization(t *testing.T) {
+	t.Run("UpdatesJobResourceForInsertedBuild", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		release := getRelease()
+		jobResources := getJobResources()
+		insertedRelease, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		assert.Nil(t, err)
+		releaseID, err := strconv.Atoi(insertedRelease.ID)
+		assert.Nil(t, err)
+
+		newJobResources := JobResources{
+			CPURequest:    float64(0.3),
+			CPULimit:      float64(4.0),
+			MemoryRequest: float64(67108864),
+			MemoryLimit:   float64(21474836480),
+		}
+
+		// act
+		err = cockroachdbClient.UpdateReleaseResourceUtilization(ctx, release.RepoSource, release.RepoOwner, release.RepoName, releaseID, newJobResources)
+
+		assert.Nil(t, err)
+	})
+
+	t.Run("UpdatesJobResourcesForNonExistingBuild", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		release := getRelease()
+		releaseID := 15
+
+		newJobResources := JobResources{
+			CPURequest:    float64(0.3),
+			CPULimit:      float64(4.0),
+			MemoryRequest: float64(67108864),
+			MemoryLimit:   float64(21474836480),
+		}
+
+		// act
+		err := cockroachdbClient.UpdateReleaseResourceUtilization(ctx, release.RepoSource, release.RepoOwner, release.RepoName, releaseID, newJobResources)
+
+		assert.Nil(t, err)
+	})
+}
 func TestQueryBuilder(t *testing.T) {
 	t.Run("GeneratesQueryWithoutFilters", func(t *testing.T) {
 
@@ -472,6 +579,7 @@ func getRelease() contracts.Release {
 		Events:         []manifest.EstafetteEvent{},
 	}
 }
+
 func getJobResources() JobResources {
 	return JobResources{
 		CPURequest:    float64(0.1),

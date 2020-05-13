@@ -11,6 +11,13 @@ version:
     major: 0
     minor: 1
 
+triggers:
+- pipeline:
+    name: github.com/estafette/estafette-ci-db-migrator
+    branch: master
+  builds:
+    branch: master
+
 stages:
   build:
     image: golang:1.14.2-alpine3.11
