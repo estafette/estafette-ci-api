@@ -19,6 +19,43 @@ var (
 	cdbClient = client{}
 )
 
+func TestIntegrationGetAutoIncrement(t *testing.T) {
+	t.Run("ReturnsAnIncrementingCountForUniqueRepo", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+
+		// act
+		autoincrement, err := cockroachdbClient.GetAutoIncrement(ctx, "github", "estafette", "estafette-ci-api")
+
+		assert.Nil(t, err)
+		assert.True(t, autoincrement > 0)
+	})
+
+	t.Run("ReturnsLargerCountForSubsequentRequests", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+
+		// act
+		autoincrement1, err := cockroachdbClient.GetAutoIncrement(ctx, "github", "estafette", "estafette-ci-api")
+		autoincrement2, err := cockroachdbClient.GetAutoIncrement(ctx, "github", "estafette", "estafette-ci-api")
+
+		assert.Nil(t, err)
+		assert.True(t, autoincrement1 > 0)
+		assert.True(t, autoincrement2 > 0)
+		assert.True(t, autoincrement2 > autoincrement1)
+	})
+}
+
 func TestIntegrationInsertBuild(t *testing.T) {
 	t.Run("ReturnsInsertedBuildWithID", func(t *testing.T) {
 
