@@ -215,6 +215,20 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, 3, len(config.ManifestPreferences.BuilderTracksPerOperatingSystem["windows"]))
 	})
 
+	t.Run("ReturnsCatalogConfig", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		catalogConfig := config.Catalog
+
+		assert.Equal(t, 2, len(catalogConfig.Filters))
+		assert.Equal(t, "type", catalogConfig.Filters[0])
+		assert.Equal(t, "team", catalogConfig.Filters[1])
+	})
+
 	t.Run("ReturnsCredentialsConfig", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))

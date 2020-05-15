@@ -371,7 +371,7 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 	// transport
 	bitbucketHandler := bitbucket.NewHandler(bitbucketService)
 	githubHandler := github.NewHandler(githubService)
-	estafetteHandler := estafette.NewHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, *manifestPreferences, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
+	estafetteHandler := estafette.NewHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, config.Catalog, *manifestPreferences, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
 	pubsubHandler := pubsub.NewHandler(pubsubapiClient, estafetteService)
 	slackHandler := slack.NewHandler(secretHelper, *config.Integrations.Slack, slackapiClient, cockroachdbClient, *config.APIServer, estafetteService, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
 	cloudsourceHandler := cloudsource.NewHandler(pubsubapiClient, cloudsourceService)
@@ -448,6 +448,7 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler *bitbucket.Han
 	routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildsmemory", estafetteHandler.GetPipelineStatsBuildsMemoryUsageMeasurements)
 	routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesmemory", estafetteHandler.GetPipelineStatsReleasesMemoryUsageMeasurements)
 	routes.GET("/api/pipelines/:source/:owner/:repo/warnings", estafetteHandler.GetPipelineWarnings)
+	routes.GET("/api/catalog/filters", estafetteHandler.GetCatalogFilters)
 	routes.GET("/api/stats/pipelinescount", estafetteHandler.GetStatsPipelinesCount)
 	routes.GET("/api/stats/buildscount", estafetteHandler.GetStatsBuildsCount)
 	routes.GET("/api/stats/releasescount", estafetteHandler.GetStatsReleasesCount)

@@ -34,13 +34,14 @@ import (
 )
 
 // NewHandler returns a new estafette.Handler
-func NewHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper helpers.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
+func NewHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, catalogConfig *config.CatalogConfig, manifestPreferences manifest.EstafetteManifestPreferences, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper helpers.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
 
 	return Handler{
 		configFilePath:         configFilePath,
 		config:                 config,
 		authConfig:             authConfig,
 		encryptedConfig:        encryptedConfig,
+		catalogConfig:          catalogConfig,
 		manifestPreferences:    manifestPreferences,
 		cockroachDBClient:      cockroachDBClient,
 		cloudStorageClient:     cloudStorageClient,
@@ -59,6 +60,7 @@ type Handler struct {
 	config                 config.APIServerConfig
 	authConfig             config.AuthConfig
 	encryptedConfig        config.APIConfig
+	catalogConfig          *config.CatalogConfig
 	manifestPreferences    manifest.EstafetteManifestPreferences
 	cockroachDBClient      cockroachdb.Client
 	cloudStorageClient     cloudstorage.Client
@@ -1339,6 +1341,16 @@ func (h *Handler) GetPipelineWarnings(c *gin.Context) {
 	warnings = append(warnings, manifestWarnings...)
 
 	c.JSON(http.StatusOK, gin.H{"warnings": warnings})
+}
+
+func (h *Handler) GetCatalogFilters(c *gin.Context) {
+
+	if h.catalogConfig == nil {
+		c.JSON(http.StatusOK, []string{})
+		return
+	}
+
+	c.JSON(http.StatusOK, h.catalogConfig.Filters)
 }
 
 func (h *Handler) GetStatsPipelinesCount(c *gin.Context) {

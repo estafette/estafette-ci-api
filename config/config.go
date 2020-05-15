@@ -19,6 +19,7 @@ type APIConfig struct {
 	Jobs                *JobsConfig                            `yaml:"jobs,omitempty"`
 	Database            *DatabaseConfig                        `yaml:"database,omitempty"`
 	ManifestPreferences *manifest.EstafetteManifestPreferences `yaml:"manifestPreferences,omitempty"`
+	Catalog             *CatalogConfig                         `yaml:"catalog,omitempty"`
 	Credentials         []*contracts.CredentialConfig          `yaml:"credentials,omitempty" json:"credentials,omitempty"`
 	TrustedImages       []*contracts.TrustedImageConfig        `yaml:"trustedImages,omitempty" json:"trustedImages,omitempty"`
 	RegistryMirror      *string                                `yaml:"registryMirror,omitempty" json:"registryMirror,omitempty"`
@@ -87,6 +88,11 @@ type DatabaseConfig struct {
 	Port           int    `yaml:"port"`
 	User           string `yaml:"user"`
 	Password       string `yaml:"password"`
+}
+
+// CatalogConfig configures various aspect of the catalog page
+type CatalogConfig struct {
+	Filters []string `yaml:"filters,omitempty" json:"filters,omitempty"`
 }
 
 // APIConfigIntegrations contains config for 3rd party integrations

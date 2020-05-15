@@ -88,6 +88,11 @@ manifestPreferences:
     - windowsservercore-1909
     - windowsservercore-ltsc2019
 
+catalog:
+  filters:
+  - type
+  - team
+
 credentials:
 - name: container-registry-extensions
   type: container-registry
