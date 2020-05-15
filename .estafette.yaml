@@ -2,6 +2,7 @@ builder:
   track: dev
 
 labels:
+  type: api
   app-group: estafette-ci
   team: estafette-team
   language: golang
