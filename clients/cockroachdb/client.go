@@ -2448,7 +2448,9 @@ func (c *client) GetLabelValues(ctx context.Context, labelKey string) (labels []
 	// 								SELECT
 	// 										l->>'key' AS key, l->>'value' AS value, id
 	// 								FROM
-	// 										(SELECT id, jsonb_array_elements(labels) AS l FROM computed_pipelines where jsonb_typeof(labels) = 'array' WHERE a.labels::JSONB->>'type' is not null)
+	// 										(SELECT id, jsonb_array_elements(labels) AS l FROM computed_pipelines where jsonb_typeof(labels) = 'array')
+	//                WHERE
+	//                  l->>'key' = 'type'
 	// 						)
 	// 				GROUP BY
 	// 						key, value
@@ -2460,13 +2462,13 @@ func (c *client) GetLabelValues(ctx context.Context, labelKey string) (labels []
 		sq.StatementBuilder.
 			Select("a.id, jsonb_array_elements(a.labels) AS l").
 			From("computed_pipelines a").
-			Where("jsonb_typeof(labels) = 'array'").
-			Where("a.labels::JSONB->>'?' is not null", labelKey)
+			Where("jsonb_typeof(labels) = 'array'")
 
 	selectCountQuery :=
 		sq.StatementBuilder.
 			Select("l->>'key' AS key, l->>'value' AS value, id").
-			FromSelect(arrayElementsQuery, "b")
+			FromSelect(arrayElementsQuery, "b").
+			Where(sq.Eq{"l->>'key'": labelKey})
 
 	groupByQuery :=
 		sq.StatementBuilder.

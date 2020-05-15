@@ -364,7 +364,7 @@ func TestIntegrationInsertReleaseLog(t *testing.T) {
 
 func TestIntegrationGetLabelValues(t *testing.T) {
 
-	t.Run("ReturnsInsertedReleaseLogWithIDWhenWriteLogToDatabaseIsFalse", func(t *testing.T) {
+	t.Run("ReturnsLabelValuesForMatchingLabelKey", func(t *testing.T) {
 
 		if testing.Short() {
 			t.Skip("skipping test in short mode.")
@@ -376,20 +376,20 @@ func TestIntegrationGetLabelValues(t *testing.T) {
 		build := getBuild()
 		build.Labels = []contracts.Label{{Key: "type", Value: "api"}}
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
-		assert.Nil(t, err)
+		assert.Nil(t, err, "failed inserting first build record")
 
 		build.Labels = []contracts.Label{{Key: "type", Value: "web"}}
 		_, err = cockroachdbClient.InsertBuild(ctx, build, jobResources)
-		assert.Nil(t, err)
+		assert.Nil(t, err, "failed inserting second build record")
 
 		build.Labels = []contracts.Label{{Key: "type", Value: "library"}}
 		_, err = cockroachdbClient.InsertBuild(ctx, build, jobResources)
-		assert.Nil(t, err)
+		assert.Nil(t, err, "failed inserting third build record")
 
 		// act
 		labels, err := cockroachdbClient.GetLabelValues(ctx, "type")
 
-		assert.Nil(t, err)
+		assert.Nil(t, err, "failed getting label values")
 		assert.Equal(t, 3, len(labels))
 	})
 }
