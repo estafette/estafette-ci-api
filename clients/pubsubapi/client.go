@@ -20,16 +20,18 @@ type Client interface {
 }
 
 // NewClient returns a new pubsub.Client
-func NewClient(config config.PubsubConfig, pubsubClient *stdpubsub.Client) Client {
+func NewClient(config config.PubsubConfig, manifestPreferences manifest.EstafetteManifestPreferences, pubsubClient *stdpubsub.Client) Client {
 	return &client{
-		config:       config,
-		pubsubClient: pubsubClient,
+		config:              config,
+		manifestPreferences: manifestPreferences,
+		pubsubClient:        pubsubClient,
 	}
 }
 
 type client struct {
-	config       config.PubsubConfig
-	pubsubClient *stdpubsub.Client
+	config              config.PubsubConfig
+	manifestPreferences manifest.EstafetteManifestPreferences
+	pubsubClient        *stdpubsub.Client
 }
 
 func (c *client) SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (*manifest.EstafettePubSubEvent, error) {
@@ -116,7 +118,7 @@ func (c *client) getSubscriptionName(topicName string) string {
 
 func (c *client) SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error {
 
-	mft, err := manifest.ReadManifest(manifestString)
+	mft, err := manifest.ReadManifest(&c.manifestPreferences, manifestString)
 	if err != nil {
 		return err
 	}

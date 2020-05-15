@@ -103,18 +103,20 @@ type Client interface {
 }
 
 // NewClient returns a new cockroach.Client
-func NewClient(config config.DatabaseConfig) Client {
+func NewClient(config config.DatabaseConfig, manifestPreferences manifest.EstafetteManifestPreferences) Client {
 
 	return &client{
-		databaseDriver: "postgres",
-		config:         config,
+		databaseDriver:      "postgres",
+		config:              config,
+		manifestPreferences: manifestPreferences,
 	}
 }
 
 type client struct {
-	databaseDriver     string
-	config             config.DatabaseConfig
-	databaseConnection *sql.DB
+	databaseDriver      string
+	config              config.DatabaseConfig
+	manifestPreferences manifest.EstafetteManifestPreferences
+	databaseConnection  *sql.DB
 }
 
 // Connect sets up a connection with CockroachDB
@@ -3655,7 +3657,7 @@ func (c *client) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, la
 
 	if !optimized {
 		// unmarshal then marshal manifest to include defaults
-		manifest, err := manifest.ReadManifest(pipeline.Manifest)
+		manifest, err := manifest.ReadManifest(&c.manifestPreferences, pipeline.Manifest)
 		if err == nil {
 			pipeline.ManifestObject = &manifest
 			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
@@ -3707,7 +3709,7 @@ func (c *client) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData,
 
 	if !optimized {
 		// unmarshal then marshal manifest to include defaults
-		manifest, err := manifest.ReadManifest(build.Manifest)
+		manifest, err := manifest.ReadManifest(&c.manifestPreferences, build.Manifest)
 		if err == nil {
 			build.ManifestObject = &manifest
 			manifestWithDefaultBytes, err := yaml.Marshal(manifest)

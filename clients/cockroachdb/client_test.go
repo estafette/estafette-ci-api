@@ -618,7 +618,7 @@ func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 		Password:       "",
 	}
 
-	cockroachdbClient := NewClient(dbConfig)
+	cockroachdbClient := NewClient(dbConfig, *manifest.GetDefaultManifestPreferences())
 	err := cockroachdbClient.Connect(ctx)
 
 	assert.Nil(t, err)

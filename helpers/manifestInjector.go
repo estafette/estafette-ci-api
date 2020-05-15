@@ -7,7 +7,7 @@ import (
 )
 
 // InjectSteps injects git-clone and build-status steps if not present in manifest
-func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (injectedManifest manifest.EstafetteManifest, err error) {
+func InjectSteps(preferences manifest.EstafetteManifestPreferences, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (injectedManifest manifest.EstafetteManifest, err error) {
 
 	injectedManifest = mft
 
@@ -83,7 +83,7 @@ func InjectSteps(mft manifest.EstafetteManifest, builderTrack, gitSource string,
 	}
 
 	// ensure all injected stages have defaults for shell and working directory matching the target operating system
-	injectedManifest.SetDefaults()
+	injectedManifest.SetDefaults(preferences)
 
 	return
 }

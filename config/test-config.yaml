@@ -72,6 +72,22 @@ database:
   user: myuser
   password: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
 
+manifestPreferences:
+  labelRegexes:
+    type: api|web|library|container
+  builderOperatingSystems:
+  - linux
+  - windows
+  builderTracksPerOperatingSystem:
+    linux:
+    - stable
+    - beta
+    - dev
+    windows:
+    - windowsservercore-1809
+    - windowsservercore-1909
+    - windowsservercore-ltsc2019
+
 credentials:
 - name: container-registry-extensions
   type: container-registry

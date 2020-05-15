@@ -46,11 +46,12 @@ type Service interface {
 }
 
 // NewService returns a new estafette.Service
-func NewService(jobsConfig config.JobsConfig, apiServerConfig config.APIServerConfig, cockroachdbClient cockroachdb.Client, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
+func NewService(jobsConfig config.JobsConfig, apiServerConfig config.APIServerConfig, manifestPreferences manifest.EstafetteManifestPreferences, cockroachdbClient cockroachdb.Client, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
 
 	return &service{
 		jobsConfig:             jobsConfig,
 		apiServerConfig:        apiServerConfig,
+		manifestPreferences:    manifestPreferences,
 		cockroachdbClient:      cockroachdbClient,
 		prometheusClient:       prometheusClient,
 		cloudStorageClient:     cloudStorageClient,
@@ -64,6 +65,7 @@ func NewService(jobsConfig config.JobsConfig, apiServerConfig config.APIServerCo
 type service struct {
 	jobsConfig             config.JobsConfig
 	apiServerConfig        config.APIServerConfig
+	manifestPreferences    manifest.EstafetteManifestPreferences
 	cockroachdbClient      cockroachdb.Client
 	prometheusClient       prometheus.Client
 	cloudStorageClient     cloudstorage.Client
@@ -76,7 +78,7 @@ type service struct {
 func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (createdBuild *contracts.Build, err error) {
 
 	// validate manifest
-	mft, manifestError := manifest.ReadManifest(build.Manifest)
+	mft, manifestError := manifest.ReadManifest(&s.manifestPreferences, build.Manifest)
 	hasValidManifest := manifestError == nil
 
 	// if manifest is invalid get the pipeline in order to use same labels, release targets and triggers as before
@@ -104,7 +106,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 
 	// inject build stages
 	if hasValidManifest {
-		mft, err = helpers.InjectSteps(mft, builderTrack, shortRepoSource, s.supportsBuildStatus(build.RepoSource))
+		mft, err = helpers.InjectSteps(s.manifestPreferences, mft, builderTrack, shortRepoSource, s.supportsBuildStatus(build.RepoSource))
 		if err != nil {
 			log.Error().Err(err).
 				Msg("Failed injecting build stages for pipeline %v/%v/%v and revision %v")
@@ -295,7 +297,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	releaseStatus := "pending"
 
 	// inject build stages
-	mft, err = helpers.InjectSteps(mft, builderTrack, shortRepoSource, s.supportsBuildStatus(release.RepoSource))
+	mft, err = helpers.InjectSteps(s.manifestPreferences, mft, builderTrack, shortRepoSource, s.supportsBuildStatus(release.RepoSource))
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed injecting build stages for release to %v of pipeline %v/%v/%v version %v", release.Name, release.RepoSource, release.RepoOwner, release.RepoName, release.ReleaseVersion)
@@ -1086,7 +1088,7 @@ func (s *service) getBuildAutoIncrement(ctx context.Context, build contracts.Bui
 			})
 		} else if pipeline != nil {
 			log.Debug().Msgf("Copying previous versioning for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
-			previousManifest, err := manifest.ReadManifest(build.Manifest)
+			previousManifest, err := manifest.ReadManifest(&s.manifestPreferences, build.Manifest)
 			if err != nil {
 				build.BuildVersion = previousManifest.Version.Version(manifest.EstafetteVersionParams{
 					AutoIncrement: autoincrement,

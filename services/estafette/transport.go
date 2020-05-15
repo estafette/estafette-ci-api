@@ -34,13 +34,14 @@ import (
 )
 
 // NewHandler returns a new estafette.Handler
-func NewHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper helpers.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
+func NewHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper helpers.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
 
 	return Handler{
 		configFilePath:         configFilePath,
 		config:                 config,
 		authConfig:             authConfig,
 		encryptedConfig:        encryptedConfig,
+		manifestPreferences:    manifestPreferences,
 		cockroachDBClient:      cockroachDBClient,
 		cloudStorageClient:     cloudStorageClient,
 		ciBuilderClient:        ciBuilderClient,
@@ -58,6 +59,7 @@ type Handler struct {
 	config                 config.APIServerConfig
 	authConfig             config.AuthConfig
 	encryptedConfig        config.APIConfig
+	manifestPreferences    manifest.EstafetteManifestPreferences
 	cockroachDBClient      cockroachdb.Client
 	cloudStorageClient     cloudstorage.Client
 	ciBuilderClient        builderapi.Client
@@ -1545,7 +1547,7 @@ func (h *Handler) UpdateComputedTables(c *gin.Context) {
 
 			h.cockroachDBClient.UpsertComputedPipeline(c.Request.Context(), p.RepoSource, p.RepoOwner, p.RepoName)
 			h.cockroachDBClient.UpdateComputedPipelineFirstInsertedAt(c.Request.Context(), p.RepoSource, p.RepoOwner, p.RepoName)
-			manifest, err := manifest.ReadManifest(p.Manifest)
+			manifest, err := manifest.ReadManifest(&h.manifestPreferences, p.Manifest)
 			if err == nil {
 				for _, r := range manifest.Releases {
 					if len(r.Actions) > 0 {
@@ -1762,7 +1764,7 @@ func (h *Handler) ValidateManifest(c *gin.Context) {
 		return
 	}
 
-	_, err = manifest.ReadManifest(aux.Template)
+	_, err = manifest.ReadManifest(&h.manifestPreferences, aux.Template)
 	status := "succeeded"
 	errorString := ""
 	if err != nil {

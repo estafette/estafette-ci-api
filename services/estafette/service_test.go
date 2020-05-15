@@ -40,7 +40,7 @@ func TestCreateBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -77,7 +77,7 @@ func TestCreateBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -113,7 +113,7 @@ func TestCreateBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -150,7 +150,7 @@ func TestCreateBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -192,7 +192,7 @@ func TestCreateBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -240,7 +240,7 @@ func TestCreateBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -291,7 +291,7 @@ func TestCreateBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -335,7 +335,7 @@ func TestCreateBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -376,7 +376,7 @@ func TestFinishBuild(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		repoSource := "github.com"
 		repoOwner := "estafette"
@@ -414,7 +414,7 @@ func TestCreateRelease(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		release := contracts.Release{
 			RepoSource:     "github.com",
@@ -458,7 +458,7 @@ func TestCreateRelease(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		release := contracts.Release{
 			RepoSource:     "github.com",
@@ -500,7 +500,7 @@ func TestFinishRelease(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		repoSource := "github.com"
 		repoOwner := "estafette"
@@ -539,7 +539,7 @@ func TestRename(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		// act
 		err := service.Rename(context.Background(), "github.com", "estafette", "estafette-ci-contracts", "github.com", "estafette", "estafette-ci-protos")
@@ -571,7 +571,7 @@ func TestRename(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		// act
 		err := service.Rename(context.Background(), "github.com", "estafette", "estafette-ci-contracts", "github.com", "estafette", "estafette-ci-protos")
@@ -603,7 +603,7 @@ func TestUpdateBuildStatus(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		event := builderapi.CiBuilderEvent{
 			BuildID:     "123456",
@@ -638,7 +638,7 @@ func TestUpdateBuildStatus(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		event := builderapi.CiBuilderEvent{
 			ReleaseID:   "123456",
@@ -675,7 +675,7 @@ func TestUpdateJobResources(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		event := builderapi.CiBuilderEvent{
 			PodName:     "build-estafette-estafette-ci-api-123456-mhrzk",
@@ -711,7 +711,7 @@ func TestUpdateJobResources(t *testing.T) {
 			return
 		}
 
-		service := NewService(jobsConfig, apiServerConfig, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(jobsConfig, apiServerConfig, *manifest.GetDefaultManifestPreferences(), cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		event := builderapi.CiBuilderEvent{
 			PodName:     "release-estafette-estafette-ci-api-123456-mhrzk",

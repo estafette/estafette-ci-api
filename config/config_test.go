@@ -190,6 +190,31 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "this is my secret", databaseConfig.Password)
 	})
 
+	t.Run("ReturnsManifestPreferences", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
+
+		// act
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		if !assert.Nil(t, err) {
+			return
+		}
+
+		if !assert.NotNil(t, config.ManifestPreferences) {
+			return
+		}
+
+		assert.Equal(t, 1, len(config.ManifestPreferences.LabelRegexes))
+		assert.Equal(t, "api|web|library|container", config.ManifestPreferences.LabelRegexes["type"])
+		assert.Equal(t, 2, len(config.ManifestPreferences.BuilderOperatingSystems))
+		assert.Equal(t, "linux", config.ManifestPreferences.BuilderOperatingSystems[0])
+		assert.Equal(t, "windows", config.ManifestPreferences.BuilderOperatingSystems[1])
+		assert.Equal(t, 2, len(config.ManifestPreferences.BuilderTracksPerOperatingSystem))
+		assert.Equal(t, 3, len(config.ManifestPreferences.BuilderTracksPerOperatingSystem["linux"]))
+		assert.Equal(t, 3, len(config.ManifestPreferences.BuilderTracksPerOperatingSystem["windows"]))
+	})
+
 	t.Run("ReturnsCredentialsConfig", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))

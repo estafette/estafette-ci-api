@@ -16,6 +16,7 @@ import (
 	"github.com/alecthomas/kingpin"
 	"github.com/ericchiang/k8s"
 	crypt "github.com/estafette/estafette-ci-crypt"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	foundation "github.com/estafette/estafette-foundation"
 	"github.com/fsnotify/fsnotify"
 	"github.com/gin-contrib/gzip"
@@ -164,6 +165,11 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		log.Fatal().Err(err).Msg("Failed reading configuration without decrypting")
 	}
 
+	manifestPreferences := manifest.GetDefaultManifestPreferences()
+	if config.ManifestPreferences != nil {
+		manifestPreferences = config.ManifestPreferences
+	}
+
 	log.Debug().Msg("Creating clients...")
 
 	var bigqueryClient bigquery.Client
@@ -224,7 +230,7 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		if err != nil {
 			log.Fatal().Err(err).Msg("Creating google pubsub client has failed")
 		}
-		pubsubapiClient = pubsubapi.NewClient(*config.Integrations.Pubsub, pubsubClient)
+		pubsubapiClient = pubsubapi.NewClient(*config.Integrations.Pubsub, *manifestPreferences, pubsubClient)
 		pubsubapiClient = pubsubapi.NewTracingClient(pubsubapiClient)
 		pubsubapiClient = pubsubapi.NewLoggingClient(pubsubapiClient)
 		pubsubapiClient = pubsubapi.NewMetricsClient(pubsubapiClient,
@@ -235,7 +241,7 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 
 	var cockroachdbClient cockroachdb.Client
 	{
-		cockroachdbClient = cockroachdb.NewClient(*config.Database)
+		cockroachdbClient = cockroachdb.NewClient(*config.Database, *manifestPreferences)
 		cockroachdbClient = cockroachdb.NewTracingClient(cockroachdbClient)
 		cockroachdbClient = cockroachdb.NewLoggingClient(cockroachdbClient)
 		cockroachdbClient = cockroachdb.NewMetricsClient(cockroachdbClient,
@@ -320,7 +326,7 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 
 	var estafetteService estafette.Service
 	{
-		estafetteService = estafette.NewService(*config.Jobs, *config.APIServer, cockroachdbClient, prometheusClient, cloudstorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
+		estafetteService = estafette.NewService(*config.Jobs, *config.APIServer, *manifestPreferences, cockroachdbClient, prometheusClient, cloudstorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
 		estafetteService = estafette.NewTracingService(estafetteService)
 		estafetteService = estafette.NewLoggingService(estafetteService)
 		estafetteService = estafette.NewMetricsService(estafetteService,
@@ -365,7 +371,7 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 	// transport
 	bitbucketHandler := bitbucket.NewHandler(bitbucketService)
 	githubHandler := github.NewHandler(githubService)
-	estafetteHandler := estafette.NewHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
+	estafetteHandler := estafette.NewHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, *manifestPreferences, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
 	pubsubHandler := pubsub.NewHandler(pubsubapiClient, estafetteService)
 	slackHandler := slack.NewHandler(secretHelper, *config.Integrations.Slack, slackapiClient, cockroachdbClient, *config.APIServer, estafetteService, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
 	cloudsourceHandler := cloudsource.NewHandler(pubsubapiClient, cloudsourceService)
