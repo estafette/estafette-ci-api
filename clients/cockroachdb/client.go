@@ -2465,7 +2465,7 @@ func (c *client) GetLabelValues(ctx context.Context, labelKey string) (labels []
 			Where("jsonb_typeof(labels) = 'array'")
 
 	selectCountQuery :=
-		sq.StatementBuilder.
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Select("l->>'key' AS key, l->>'value' AS value, id").
 			FromSelect(arrayElementsQuery, "b").
 			Where(sq.Eq{"l->>'key'": labelKey})
