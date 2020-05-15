@@ -390,7 +390,9 @@ func TestIntegrationGetLabelValues(t *testing.T) {
 		labels, err := cockroachdbClient.GetLabelValues(ctx, "type")
 
 		assert.Nil(t, err, "failed getting label values")
-		assert.Equal(t, 3, len(labels))
+		if !assert.Equal(t, 3, len(labels)) {
+			assert.Equal(t, "", labels)
+		}
 	})
 }
 
