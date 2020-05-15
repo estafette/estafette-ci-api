@@ -77,6 +77,7 @@ type Client interface {
 	GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error)
 	GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error)
 
+	GetLabelValues(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error)
 	GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error)
 	GetFrequentLabelsCount(ctx context.Context, filters map[string][]string) (count int, err error)
 
@@ -2425,6 +2426,94 @@ func (c *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context,
 			"action":         releaseAction,
 			"memoryMaxUsage": memoryMaxUsage,
 		})
+	}
+
+	return
+}
+
+func (c *client) GetLabelValues(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error) {
+
+	// see https://github.com/cockroachdb/cockroach/issues/35848
+
+	// for time being run following query, where the dynamic where clause is in the innermost select query:
+
+	// SELECT
+	// 		key, value, nr_computed_pipelines
+	// FROM
+	// 		(
+	// 				SELECT
+	// 						key, value, count(DISTINCT id) AS nr_computed_pipelines
+	// 				FROM
+	// 						(
+	// 								SELECT
+	// 										l->>'key' AS key, l->>'value' AS value, id
+	// 								FROM
+	// 										(SELECT id, jsonb_array_elements(labels) AS l FROM computed_pipelines where jsonb_typeof(labels) = 'array' WHERE a.labels::JSONB->>'type' is not null)
+	// 						)
+	// 				GROUP BY
+	// 						key, value
+	// 		)
+	// ORDER BY
+	// 		value
+
+	arrayElementsQuery :=
+		sq.StatementBuilder.
+			Select("a.id, jsonb_array_elements(a.labels) AS l").
+			From("computed_pipelines a").
+			Where("jsonb_typeof(labels) = 'array'").
+			Where("a.labels::JSONB->>'?' is not null", labelKey)
+
+	selectCountQuery :=
+		sq.StatementBuilder.
+			Select("l->>'key' AS key, l->>'value' AS value, id").
+			FromSelect(arrayElementsQuery, "b")
+
+	groupByQuery :=
+		sq.StatementBuilder.
+			Select("key, value, count(DISTINCT id) AS pipelinesCount").
+			FromSelect(selectCountQuery, "c").
+			GroupBy("key, value")
+
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("key, value, pipelinesCount").
+			FromSelect(groupByQuery, "d").
+			OrderBy("value")
+
+	rows, err := query.RunWith(c.databaseConnection).Query()
+
+	if err != nil {
+
+		return
+	}
+
+	defer rows.Close()
+
+	cols, _ := rows.Columns()
+	for rows.Next() {
+		// Create a slice of interface{}'s to represent each column,
+		// and a second slice to contain pointers to each item in the columns slice.
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+
+		// Scan the result into the column pointers...
+		if err = rows.Scan(columnPointers...); err != nil {
+
+			return nil, err
+		}
+
+		// Create our map, and retrieve the value for each column from the pointers slice,
+		// storing it in the map with the name of the column as the key.
+		m := make(map[string]interface{})
+		for i, colName := range cols {
+			val := columnPointers[i].(*interface{})
+			m[colName] = *val
+		}
+
+		labels = append(labels, m)
 	}
 
 	return

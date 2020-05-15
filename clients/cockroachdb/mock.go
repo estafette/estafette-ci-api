@@ -60,6 +60,7 @@ type MockClient struct {
 	GetPipelineReleasesCPUUsageMeasurementsFunc    func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error)
 	GetPipelineBuildsMemoryUsageMeasurementsFunc   func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error)
 	GetPipelineReleasesMemoryUsageMeasurementsFunc func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error)
+	GetLabelValuesFunc                             func(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error)
 	GetFrequentLabelsFunc                          func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error)
 	GetFrequentLabelsCountFunc                     func(ctx context.Context, filters map[string][]string) (count int, err error)
 	GetPipelinesWithMostBuildsFunc                 func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error)
@@ -438,6 +439,13 @@ func (c MockClient) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Conte
 		return
 	}
 	return c.GetPipelineReleasesMemoryUsageMeasurementsFunc(ctx, repoSource, repoOwner, repoName, filters)
+}
+
+func (c MockClient) GetLabelValues(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error) {
+	if c.GetLabelValuesFunc == nil {
+		return
+	}
+	return c.GetLabelValuesFunc(ctx, labelKey)
 }
 
 func (c MockClient) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {

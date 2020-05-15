@@ -325,6 +325,12 @@ func (c *loggingClient) GetPipelineReleasesMemoryUsageMeasurements(ctx context.C
 	return c.Client.GetPipelineReleasesMemoryUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
 }
 
+func (c *loggingClient) GetLabelValues(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetLabelValues", err) }()
+
+	return c.Client.GetLabelValues(ctx, labelKey)
+}
+
 func (c *loggingClient) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (measurements []map[string]interface{}, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetFrequentLabels", err) }()
 

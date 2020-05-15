@@ -1353,6 +1353,20 @@ func (h *Handler) GetCatalogFilters(c *gin.Context) {
 	c.JSON(http.StatusOK, h.catalogConfig.Filters)
 }
 
+func (h *Handler) GetCatalogFilterValues(c *gin.Context) {
+
+	labelKey := c.DefaultQuery("filter[labels]", "type")
+
+	labels, err := h.cockroachDBClient.GetLabelValues(c.Request.Context(), labelKey)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving label values from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, labels)
+}
+
 func (h *Handler) GetStatsPipelinesCount(c *gin.Context) {
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w

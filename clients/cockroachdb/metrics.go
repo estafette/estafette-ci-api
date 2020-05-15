@@ -419,6 +419,14 @@ func (c *metricsClient) GetPipelineReleasesMemoryUsageMeasurements(ctx context.C
 	return c.Client.GetPipelineReleasesMemoryUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
 }
 
+func (c *metricsClient) GetLabelValues(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetLabelValues", begin)
+	}(time.Now())
+
+	return c.Client.GetLabelValues(ctx, labelKey)
+}
+
 func (c *metricsClient) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (measurements []map[string]interface{}, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetFrequentLabels", begin)

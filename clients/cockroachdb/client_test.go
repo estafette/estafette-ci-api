@@ -362,6 +362,38 @@ func TestIntegrationInsertReleaseLog(t *testing.T) {
 	})
 }
 
+func TestIntegrationGetLabelValues(t *testing.T) {
+
+	t.Run("ReturnsInsertedReleaseLogWithIDWhenWriteLogToDatabaseIsFalse", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		jobResources := getJobResources()
+		build := getBuild()
+		build.Labels = []contracts.Label{{Key: "type", Value: "api"}}
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+
+		build.Labels = []contracts.Label{{Key: "type", Value: "web"}}
+		_, err = cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+
+		build.Labels = []contracts.Label{{Key: "type", Value: "library"}}
+		_, err = cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+
+		// act
+		labels, err := cockroachdbClient.GetLabelValues(ctx, "type")
+
+		assert.Nil(t, err)
+		assert.Equal(t, 3, len(labels))
+	})
+}
+
 func TestQueryBuilder(t *testing.T) {
 	t.Run("GeneratesQueryWithoutFilters", func(t *testing.T) {
 
@@ -635,7 +667,7 @@ func getBuild() contracts.Build {
 		RepoRevision:   "08e9480b75154b5584995053344beb4d4aef65f4",
 		BuildVersion:   "0.0.99",
 		BuildStatus:    "pending",
-		Labels:         []contracts.Label{{Key: "app-group", Value: "estafette-ci"}, {Key: "language", Value: "golang"}},
+		Labels:         []contracts.Label{{Key: "app-group", Value: "estafette-ci"}, {Key: "language", Value: "golang"}, {Key: "type", Value: "api"}},
 		ReleaseTargets: []contracts.ReleaseTarget{},
 		Manifest:       "",
 		Commits:        []contracts.GitCommit{},

@@ -449,6 +449,7 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler *bitbucket.Han
 	routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesmemory", estafetteHandler.GetPipelineStatsReleasesMemoryUsageMeasurements)
 	routes.GET("/api/pipelines/:source/:owner/:repo/warnings", estafetteHandler.GetPipelineWarnings)
 	routes.GET("/api/catalog/filters", estafetteHandler.GetCatalogFilters)
+	routes.GET("/api/catalog/filtervalues", estafetteHandler.GetCatalogFilterValues)
 	routes.GET("/api/stats/pipelinescount", estafetteHandler.GetStatsPipelinesCount)
 	routes.GET("/api/stats/buildscount", estafetteHandler.GetStatsBuildsCount)
 	routes.GET("/api/stats/releasescount", estafetteHandler.GetStatsReleasesCount)

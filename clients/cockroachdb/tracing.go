@@ -377,6 +377,13 @@ func (c *tracingClient) GetPipelineReleasesMemoryUsageMeasurements(ctx context.C
 	return c.Client.GetPipelineReleasesMemoryUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
 }
 
+func (c *tracingClient) GetLabelValues(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetLabelValues"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetLabelValues(ctx, labelKey)
+}
+
 func (c *tracingClient) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (measurements []map[string]interface{}, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetFrequentLabels"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
