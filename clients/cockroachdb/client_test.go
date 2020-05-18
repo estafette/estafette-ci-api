@@ -426,6 +426,9 @@ func TestIntegrationGetLabelValues(t *testing.T) {
 		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
+		// since updating computed_pipelines is done in a goroutine, wait a bit
+		time.Sleep(time.Duration(1) * time.Second)
+
 		// act
 		labels, err := cockroachdbClient.GetLabelValues(ctx, "type")
 
@@ -463,6 +466,9 @@ func TestIntegrationGetFrequentLabels(t *testing.T) {
 				"1d",
 			},
 		}
+
+		// since updating computed_pipelines is done in a goroutine, wait a bit
+		time.Sleep(time.Duration(1) * time.Second)
 
 		// act
 		labels, err := cockroachdbClient.GetFrequentLabels(ctx, 1, 10, filters)
@@ -503,6 +509,9 @@ func TestIntegrationGetFrequentLabelsCount(t *testing.T) {
 				"1d",
 			},
 		}
+
+		// since updating computed_pipelines is done in a goroutine, wait a bit
+		time.Sleep(time.Duration(1) * time.Second)
 
 		// act
 		count, err := cockroachdbClient.GetFrequentLabelsCount(ctx, filters)
