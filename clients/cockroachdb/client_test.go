@@ -426,14 +426,19 @@ func TestIntegrationGetLabelValues(t *testing.T) {
 		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
-		// since updating computed_pipelines is done in a goroutine, wait a bit
-		time.Sleep(time.Duration(1) * time.Second)
+		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline")
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline for other build")
 
 		// act
 		labels, err := cockroachdbClient.GetLabelValues(ctx, "type")
 
 		assert.Nil(t, err, "failed getting label values")
-		assert.Equal(t, 2, len(labels))
+		if !assert.Equal(t, 2, len(labels)) {
+			assert.Equal(t, "", labels)
+		}
 	})
 }
 
@@ -467,8 +472,11 @@ func TestIntegrationGetFrequentLabels(t *testing.T) {
 			},
 		}
 
-		// since updating computed_pipelines is done in a goroutine, wait a bit
-		time.Sleep(time.Duration(1) * time.Second)
+		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline")
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline for other build")
 
 		// act
 		labels, err := cockroachdbClient.GetFrequentLabels(ctx, 1, 10, filters)
@@ -510,8 +518,11 @@ func TestIntegrationGetFrequentLabelsCount(t *testing.T) {
 			},
 		}
 
-		// since updating computed_pipelines is done in a goroutine, wait a bit
-		time.Sleep(time.Duration(1) * time.Second)
+		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline")
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline for other build")
 
 		// act
 		count, err := cockroachdbClient.GetFrequentLabelsCount(ctx, filters)
