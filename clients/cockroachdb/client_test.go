@@ -432,12 +432,85 @@ func TestIntegrationGetLabelValues(t *testing.T) {
 		labels, err := cockroachdbClient.GetLabelValues(ctx, "type")
 
 		assert.Nil(t, err, "failed getting label values")
+		assert.Equal(t, 1, len(labels))
+	})
+}
+
+func TestIntegrationGetFrequentLabels(t *testing.T) {
+	t.Run("ReturnsFrequentLabelsForMatchingLabels", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		jobResources := getJobResources()
+		build := getBuild()
+		build.Labels = []contracts.Label{{Key: "type", Value: "api"}}
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err, "failed inserting first build record")
+
+		build.Labels = []contracts.Label{{Key: "type", Value: "web"}}
+		_, err = cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err, "failed inserting second build record")
+
+		build.Labels = []contracts.Label{{Key: "type", Value: "library"}}
+		_, err = cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err, "failed inserting third build record")
+
+		filters := map[string][]string{
+			"labels": {
+				"app-group=estafette-ci",
+			},
+		}
+
+		// act
+		labels, err := cockroachdbClient.GetFrequentLabels(ctx, 1, 10, filters)
+
+		assert.Nil(t, err, "failed getting frequent label")
 		if !assert.Equal(t, 1, len(labels)) {
 			assert.Equal(t, "", labels)
 		}
 	})
 }
 
+func TestIntegrationGetFrequentLabelsCount(t *testing.T) {
+	t.Run("ReturnsFrequentLabelCountForMatchingLabels", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		jobResources := getJobResources()
+		build := getBuild()
+		build.Labels = []contracts.Label{{Key: "type", Value: "api"}}
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err, "failed inserting first build record")
+
+		build.Labels = []contracts.Label{{Key: "type", Value: "web"}}
+		_, err = cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err, "failed inserting second build record")
+
+		build.Labels = []contracts.Label{{Key: "type", Value: "library"}}
+		_, err = cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err, "failed inserting third build record")
+
+		filters := map[string][]string{
+			"labels": {
+				"app-group=estafette-ci",
+			},
+		}
+
+		// act
+		count, err := cockroachdbClient.GetFrequentLabelsCount(ctx, filters)
+
+		assert.Nil(t, err, "failed getting frequent label count")
+		assert.Equal(t, 1, count)
+	})
+}
 func TestAutoincrement(t *testing.T) {
 
 	t.Run("TestAutoincrementRegex", func(t *testing.T) {
