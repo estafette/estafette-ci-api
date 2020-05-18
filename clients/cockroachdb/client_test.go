@@ -422,7 +422,7 @@ func TestIntegrationGetLabelValues(t *testing.T) {
 
 		otherBuild := getBuild()
 		otherBuild.RepoName = "estafette-ci-web"
-		build.Labels = []contracts.Label{{Key: "type", Value: "web"}}
+		otherBuild.Labels = []contracts.Label{{Key: "type", Value: "web"}}
 		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 

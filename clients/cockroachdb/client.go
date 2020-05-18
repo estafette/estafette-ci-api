@@ -749,8 +749,6 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 
 func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 
-	log.Debug().Msg("Starting UpsertComputedPipeline")
-
 	// get last build
 	lastBuild, err := c.GetLastPipelineBuild(ctx, repoSource, repoOwner, repoName, false)
 	if err != nil {
@@ -919,8 +917,6 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 
 		return
 	}
-
-	log.Debug().Msg("Finished UpsertComputedPipeline")
 
 	return
 }
@@ -1572,9 +1568,6 @@ func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, re
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
-	sqlquery, _, _ := query.ToSql()
-	log.Debug().Str("sql", sqlquery).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Query for GetPipelineBuildLogsPerPage")
-
 	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
 		return buildLogs, err
@@ -1835,9 +1828,6 @@ func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, 
 		OrderBy("a.id").
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
-
-	sqlquery, _, _ := query.ToSql()
-	log.Debug().Str("sql", sqlquery).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Query for GetPipelineReleaseLogsPerPage")
 
 	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
@@ -2609,9 +2599,6 @@ func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
-	sqlquery, params, err := query.ToSql()
-	log.Debug().Err(err).Str("query", sqlquery).Interface("params", params).Msg("GetFrequentLabels")
-
 	rows, err := query.RunWith(c.databaseConnection).Query()
 
 	if err != nil {
@@ -2722,9 +2709,6 @@ func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[string]
 			Select("COUNT(key)").
 			FromSelect(groupByQuery, "d").
 			Where(sq.Gt{"pipelinesCount": 1})
-
-	sqlquery, params, err := query.ToSql()
-	log.Debug().Err(err).Str("query", sqlquery).Interface("params", params).Msg("GetFrequentLabelsCount")
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
