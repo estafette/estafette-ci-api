@@ -559,7 +559,7 @@ func getBuild() contracts.Build {
 		BuildStatus:    "pending",
 		Labels:         []contracts.Label{{Key: "app-group", Value: "estafette-ci"}, {Key: "language", Value: "golang"}},
 		ReleaseTargets: []contracts.ReleaseTarget{},
-		Manifest:       "",
+		Manifest:       "stages:\n  test:\n    image: golang:1.14.2-alpine3.11\n    commands:\n    - go test -short ./...",
 		Commits:        []contracts.GitCommit{},
 		Triggers:       []manifest.EstafetteTrigger{},
 		Events:         []manifest.EstafetteEvent{},
