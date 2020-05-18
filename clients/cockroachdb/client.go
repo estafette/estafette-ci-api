@@ -837,6 +837,7 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 			manifest,
 			commits,
 			triggers,
+			archived,
 			inserted_at,
 			first_inserted_at,
 			updated_at,
@@ -862,9 +863,10 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 			$14,
 			$15,
 			$16,
-			AGE($16,$15),
 			$17,
-			$18
+			AGE($17,$16),
+			$18,
+			$19
 		)
 		ON CONFLICT
 		(
@@ -883,6 +885,7 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 			manifest = excluded.manifest,
 			commits = excluded.commits,
 			triggers = excluded.triggers,
+			archive = excluded.archived,
 			inserted_at = excluded.inserted_at,
 			updated_at = excluded.updated_at,
 			duration = AGE(excluded.updated_at,excluded.inserted_at),
@@ -902,6 +905,7 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 		upsertedPipeline.Manifest,
 		commitsBytes,
 		triggersBytes,
+		upsertedPipeline.Archived,
 		upsertedPipeline.InsertedAt,
 		upsertedPipeline.InsertedAt,
 		upsertedPipeline.UpdatedAt,
@@ -1102,6 +1106,7 @@ func (c *client) GetPipelines(ctx context.Context, pageNumber, pageSize int, fil
 	// generate query
 	query := c.selectPipelinesQuery().
 		OrderBy("a.repo_source,a.repo_owner,a.repo_name").
+		Where(sq.Eq{"a.archived": false}).
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
@@ -1156,7 +1161,8 @@ func (c *client) GetPipelinesCount(ctx context.Context, filters map[string][]str
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Select("COUNT(a.id)").
-			From("computed_pipelines a")
+			From("computed_pipelines a").
+			Where(sq.Eq{"a.archived": false})
 
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "last_updated_at", filters)
@@ -3132,6 +3138,7 @@ func (c *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *cont
 		&pipeline.Manifest,
 		&commitsData,
 		&triggersData,
+		&pipeline.Archived,
 		&pipeline.InsertedAt,
 		&pipeline.UpdatedAt,
 		&seconds,
@@ -3181,6 +3188,7 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 			&pipeline.Manifest,
 			&commitsData,
 			&triggersData,
+			&pipeline.Archived,
 			&pipeline.InsertedAt,
 			&pipeline.UpdatedAt,
 			&seconds,
@@ -3291,7 +3299,8 @@ func (c *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, er
 func (c *client) GetTriggers(ctx context.Context, triggerType, identifier, event string) (pipelines []*contracts.Pipeline, err error) {
 
 	// generate query
-	query := c.selectPipelinesQuery()
+	query := c.selectPipelinesQuery().
+		Where(sq.Eq{"a.archived": false})
 
 	trigger := manifest.EstafetteTrigger{}
 
@@ -3649,7 +3658,7 @@ func (c *client) selectPipelinesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT, a.last_updated_at, a.triggered_by_event").
+		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.archived, a.inserted_at, a.updated_at, a.duration::INT, a.last_updated_at, a.triggered_by_event").
 		From("computed_pipelines a")
 }
 
@@ -3858,6 +3867,14 @@ func getActionNamesFromReleaseTarget(releaseTarget contracts.ReleaseTarget) (act
 }
 
 func (c *client) mapBuildToPipeline(build *contracts.Build) (pipeline *contracts.Pipeline) {
+
+	// get archived value from manifest
+	mft, err := manifest.ReadManifest(&c.manifestPreferences, build.Manifest)
+	archived := false
+	if err == nil {
+		archived = mft.Archived
+	}
+
 	return &contracts.Pipeline{
 		ID:                   build.ID,
 		RepoSource:           build.RepoSource,
@@ -3873,6 +3890,7 @@ func (c *client) mapBuildToPipeline(build *contracts.Build) (pipeline *contracts
 		ManifestWithDefaults: build.ManifestWithDefaults,
 		Commits:              build.Commits,
 		Triggers:             build.Triggers,
+		Archived:             archived,
 		InsertedAt:           build.InsertedAt,
 		UpdatedAt:            build.UpdatedAt,
 		Duration:             build.Duration,
