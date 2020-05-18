@@ -463,6 +463,9 @@ func TestIntegrationGetFrequentLabels(t *testing.T) {
 			"labels": {
 				"app-group=estafette-ci",
 			},
+			"since": {
+				"1d",
+			},
 		}
 
 		// act
@@ -502,6 +505,9 @@ func TestIntegrationGetFrequentLabelsCount(t *testing.T) {
 			"labels": {
 				"app-group=estafette-ci",
 			},
+			"since": {
+				"1d",
+			},
 		}
 
 		// act
@@ -511,6 +517,7 @@ func TestIntegrationGetFrequentLabelsCount(t *testing.T) {
 		assert.Equal(t, 1, count)
 	})
 }
+
 func TestAutoincrement(t *testing.T) {
 
 	t.Run("TestAutoincrementRegex", func(t *testing.T) {

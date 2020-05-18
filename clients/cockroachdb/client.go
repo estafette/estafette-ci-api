@@ -2464,27 +2464,29 @@ func (c *client) GetLabelValues(ctx context.Context, labelKey string) (labels []
 	// ORDER BY
 	// 		value
 
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
 	arrayElementsQuery :=
-		sq.StatementBuilder.
+		psql.
 			Select("a.id, jsonb_array_elements(a.labels) AS l").
 			From("computed_pipelines a").
 			Where("jsonb_typeof(labels) = 'array'").
 			Where(sq.Eq{"a.archived": false})
 
 	selectCountQuery :=
-		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		psql.
 			Select("l->>'key' AS key, l->>'value' AS value, id").
 			FromSelect(arrayElementsQuery, "b").
 			Where(sq.Eq{"l->>'key'": labelKey})
 
 	groupByQuery :=
-		sq.StatementBuilder.
+		psql.
 			Select("key, value, count(DISTINCT id) AS pipelinesCount").
 			FromSelect(selectCountQuery, "c").
 			GroupBy("key, value")
 
 	query :=
-		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		psql.
 			Select("key, value, pipelinesCount").
 			FromSelect(groupByQuery, "d").
 			OrderBy("value")
@@ -2556,8 +2558,10 @@ func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int
 	// 		nr_computed_pipelines DESC, key, value
 	// LIMIT 10;
 
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
 	arrayElementsQuery :=
-		sq.StatementBuilder.
+		psql.
 			Select("a.id, jsonb_array_elements(a.labels) AS l").
 			From("computed_pipelines a").
 			Where("jsonb_typeof(labels) = 'array'").
@@ -2582,18 +2586,18 @@ func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int
 	}
 
 	selectCountQuery :=
-		sq.StatementBuilder.
+		psql.
 			Select("l->>'key' AS key, l->>'value' AS value, id").
 			FromSelect(arrayElementsQuery, "b")
 
 	groupByQuery :=
-		sq.StatementBuilder.
+		psql.
 			Select("key, value, count(DISTINCT id) AS pipelinesCount").
 			FromSelect(selectCountQuery, "c").
 			GroupBy("key, value")
 
 	query :=
-		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		psql.
 			Select("key, value, pipelinesCount").
 			FromSelect(groupByQuery, "d").
 			Where(sq.Gt{"pipelinesCount": 1}).
@@ -2668,8 +2672,10 @@ func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[string]
 	// 		nr_computed_pipelines DESC, key, value
 	// LIMIT 10;
 
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
 	arrayElementsQuery :=
-		sq.StatementBuilder.
+		psql.
 			Select("a.id, jsonb_array_elements(a.labels) AS l").
 			From("computed_pipelines a").
 			Where("jsonb_typeof(labels) = 'array'").
@@ -2694,18 +2700,18 @@ func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[string]
 	}
 
 	selectCountQuery :=
-		sq.StatementBuilder.
+		psql.
 			Select("l->>'key' AS key, l->>'value' AS value, id").
 			FromSelect(arrayElementsQuery, "b")
 
 	groupByQuery :=
-		sq.StatementBuilder.
+		psql.
 			Select("key, value, count(DISTINCT id) AS pipelinesCount").
 			FromSelect(selectCountQuery, "c").
 			GroupBy("key, value")
 
 	query :=
-		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		psql.
 			Select("COUNT(key)").
 			FromSelect(groupByQuery, "d").
 			Where(sq.Gt{"pipelinesCount": 1})
