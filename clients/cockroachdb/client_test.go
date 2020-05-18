@@ -451,13 +451,10 @@ func TestIntegrationGetFrequentLabels(t *testing.T) {
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting first build record")
 
-		build.Labels = []contracts.Label{{Key: "type", Value: "web"}}
-		_, err = cockroachdbClient.InsertBuild(ctx, build, jobResources)
-		assert.Nil(t, err, "failed inserting second build record")
-
-		build.Labels = []contracts.Label{{Key: "type", Value: "library"}}
-		_, err = cockroachdbClient.InsertBuild(ctx, build, jobResources)
-		assert.Nil(t, err, "failed inserting third build record")
+		otherBuild := getBuild()
+		otherBuild.RepoName = "estafette-ci-db-migrator"
+		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
+		assert.Nil(t, err, "failed inserting other build record")
 
 		filters := map[string][]string{
 			"since": {
@@ -486,19 +483,18 @@ func TestIntegrationGetFrequentLabelsCount(t *testing.T) {
 		cockroachdbClient := getCockroachdbClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
-		build.Labels = []contracts.Label{{Key: "type", Value: "api"}}
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
-		assert.Nil(t, err, "failed inserting first build record")
+		assert.Nil(t, err, "failed inserting build record")
 
-		build.Labels = []contracts.Label{{Key: "type", Value: "web"}}
-		_, err = cockroachdbClient.InsertBuild(ctx, build, jobResources)
-		assert.Nil(t, err, "failed inserting second build record")
-
-		build.Labels = []contracts.Label{{Key: "type", Value: "library"}}
-		_, err = cockroachdbClient.InsertBuild(ctx, build, jobResources)
-		assert.Nil(t, err, "failed inserting third build record")
+		otherBuild := getBuild()
+		otherBuild.RepoName = "estafette-ci-db-migrator"
+		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
+		assert.Nil(t, err, "failed inserting other build record")
 
 		filters := map[string][]string{
+			"labels": {
+				"app-group=estafette-ci",
+			},
 			"since": {
 				"1d",
 			},
