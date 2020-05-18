@@ -460,9 +460,6 @@ func TestIntegrationGetFrequentLabels(t *testing.T) {
 		assert.Nil(t, err, "failed inserting third build record")
 
 		filters := map[string][]string{
-			"labels": {
-				"app-group=estafette-ci",
-			},
 			"since": {
 				"1d",
 			},
@@ -502,9 +499,6 @@ func TestIntegrationGetFrequentLabelsCount(t *testing.T) {
 		assert.Nil(t, err, "failed inserting third build record")
 
 		filters := map[string][]string{
-			"labels": {
-				"app-group=estafette-ci",
-			},
 			"since": {
 				"1d",
 			},
