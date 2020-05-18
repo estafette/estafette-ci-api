@@ -2468,7 +2468,8 @@ func (c *client) GetLabelValues(ctx context.Context, labelKey string) (labels []
 		sq.StatementBuilder.
 			Select("a.id, jsonb_array_elements(a.labels) AS l").
 			From("computed_pipelines a").
-			Where("jsonb_typeof(labels) = 'array'")
+			Where("jsonb_typeof(labels) = 'array'").
+			Where(sq.Eq{"a.archived": false})
 
 	selectCountQuery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
@@ -2559,7 +2560,8 @@ func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int
 		sq.StatementBuilder.
 			Select("a.id, jsonb_array_elements(a.labels) AS l").
 			From("computed_pipelines a").
-			Where("jsonb_typeof(labels) = 'array'")
+			Where("jsonb_typeof(labels) = 'array'").
+			Where(sq.Eq{"a.archived": false})
 
 	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
 	if err != nil {
@@ -2670,7 +2672,8 @@ func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[string]
 		sq.StatementBuilder.
 			Select("a.id, jsonb_array_elements(a.labels) AS l").
 			From("computed_pipelines a").
-			Where("jsonb_typeof(labels) = 'array'")
+			Where("jsonb_typeof(labels) = 'array'").
+			Where(sq.Eq{"a.archived": false})
 
 	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
 	if err != nil {
