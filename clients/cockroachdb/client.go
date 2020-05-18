@@ -2605,6 +2605,9 @@ func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
+	sqlquery, params, err := query.ToSql()
+	log.Debug().Err(err).Str("query", sqlquery).Interface("params", params).Msg("GetFrequentLabels")
+
 	rows, err := query.RunWith(c.databaseConnection).Query()
 
 	if err != nil {
@@ -2715,6 +2718,9 @@ func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[string]
 			Select("COUNT(key)").
 			FromSelect(groupByQuery, "d").
 			Where(sq.Gt{"pipelinesCount": 1})
+
+	sqlquery, params, err := query.ToSql()
+	log.Debug().Err(err).Str("query", sqlquery).Interface("params", params).Msg("GetFrequentLabelsCount")
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
