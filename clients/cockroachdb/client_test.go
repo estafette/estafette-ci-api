@@ -445,17 +445,19 @@ func TestIntegrationGetFrequentLabels(t *testing.T) {
 		cockroachdbClient := getCockroachdbClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
+		build.Labels = []contracts.Label{{Key: "test", Value: "GetFrequentLabels"}}
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting first build record")
 
 		otherBuild := getBuild()
 		otherBuild.RepoName = "estafette-ci-db-migrator"
+		otherBuild.Labels = []contracts.Label{{Key: "test", Value: "GetFrequentLabels"}}
 		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
 		filters := map[string][]string{
 			"labels": {
-				"app-group=estafette-ci",
+				"test=GetFrequentLabels",
 			},
 			"since": {
 				"1d",
@@ -483,17 +485,19 @@ func TestIntegrationGetFrequentLabelsCount(t *testing.T) {
 		cockroachdbClient := getCockroachdbClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
+		build.Labels = []contracts.Label{{Key: "test", Value: "GetFrequentLabelsCount"}}
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting build record")
 
 		otherBuild := getBuild()
+		otherBuild.Labels = []contracts.Label{{Key: "test", Value: "GetFrequentLabelsCount"}}
 		otherBuild.RepoName = "estafette-ci-db-migrator"
 		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
 		filters := map[string][]string{
 			"labels": {
-				"app-group=estafette-ci",
+				"test=GetFrequentLabelsCount",
 			},
 			"since": {
 				"1d",
@@ -553,7 +557,7 @@ func getBuild() contracts.Build {
 		RepoRevision:   "08e9480b75154b5584995053344beb4d4aef65f4",
 		BuildVersion:   "0.0.99",
 		BuildStatus:    "pending",
-		Labels:         []contracts.Label{{Key: "app-group", Value: "estafette-ci"}, {Key: "language", Value: "golang"}, {Key: "type", Value: "api"}},
+		Labels:         []contracts.Label{{Key: "app-group", Value: "estafette-ci"}, {Key: "language", Value: "golang"}},
 		ReleaseTargets: []contracts.ReleaseTarget{},
 		Manifest:       "",
 		Commits:        []contracts.GitCommit{},
