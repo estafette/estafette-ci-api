@@ -749,6 +749,8 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 
 func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 
+	log.Debug().Msg("Starting UpsertComputedPipeline")
+
 	// get last build
 	lastBuild, err := c.GetLastPipelineBuild(ctx, repoSource, repoOwner, repoName, false)
 	if err != nil {
@@ -917,6 +919,8 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 
 		return
 	}
+
+	log.Debug().Msg("Finished UpsertComputedPipeline")
 
 	return
 }
