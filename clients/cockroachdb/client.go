@@ -885,7 +885,7 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 			manifest = excluded.manifest,
 			commits = excluded.commits,
 			triggers = excluded.triggers,
-			archive = excluded.archived,
+			archived = excluded.archived,
 			inserted_at = excluded.inserted_at,
 			updated_at = excluded.updated_at,
 			duration = AGE(excluded.updated_at,excluded.inserted_at),
