@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
@@ -580,8 +579,4 @@ func (c *metricsClient) RenameComputedReleases(ctx context.Context, fromRepoSour
 	}(time.Now())
 
 	return c.Client.RenameComputedReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-}
-
-func (c *metricsClient) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
-	c.Client.RefreshConfig(config, manifestPreferences)
 }

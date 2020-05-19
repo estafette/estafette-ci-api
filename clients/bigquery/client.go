@@ -19,13 +19,12 @@ type Client interface {
 	UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) (err error)
 	InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) (err error)
 	InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) (err error)
-	RefreshConfig(config *config.APIConfig)
 }
 
 // NewClient returns new bigquery.Client
-func NewClient(config *config.BigQueryConfig, bigqueryClient *bigquery.Client) Client {
+func NewClient(config *config.APIConfig, bigqueryClient *bigquery.Client) Client {
 
-	if config == nil || !config.Enable {
+	if config == nil || config.Integrations == nil || config.Integrations.BigQuery == nil || !config.Integrations.BigQuery.Enable {
 		return &client{
 			config: config,
 		}
@@ -41,14 +40,14 @@ func NewClient(config *config.BigQueryConfig, bigqueryClient *bigquery.Client) C
 
 type client struct {
 	client                 *bigquery.Client
-	config                 *config.BigQueryConfig
+	config                 *config.APIConfig
 	buildEventsTableName   string
 	releaseEventsTableName string
 }
 
 func (c *client) Init(ctx context.Context) (err error) {
 
-	if c.config == nil || !c.config.Enable {
+	if c.config == nil || c.config.Integrations == nil || c.config.Integrations.BigQuery == nil || !c.config.Integrations.BigQuery.Enable {
 		return
 	}
 
@@ -56,7 +55,7 @@ func (c *client) Init(ctx context.Context) (err error) {
 
 	datasetExists := c.CheckIfDatasetExists(ctx)
 	if !datasetExists {
-		return fmt.Errorf("Dataset %v does not exist, create it first; make sure to set the region you want your data to reside in", c.config.Dataset)
+		return fmt.Errorf("Dataset %v does not exist, create it first; make sure to set the region you want your data to reside in", c.config.Integrations.BigQuery.Dataset)
 	}
 
 	buildEventsTableExists := c.CheckIfTableExists(ctx, c.buildEventsTableName)
@@ -84,13 +83,17 @@ func (c *client) Init(ctx context.Context) (err error) {
 
 func (c *client) CheckIfDatasetExists(ctx context.Context) bool {
 
-	log.Info().Msgf("Checking if BigQuery dataset %v exists...", c.config.Dataset)
+	if c.config == nil || c.config.Integrations == nil || c.config.Integrations.BigQuery == nil || !c.config.Integrations.BigQuery.Enable {
+		return false
+	}
 
-	ds := c.client.Dataset(c.config.Dataset)
+	log.Info().Msgf("Checking if BigQuery dataset %v exists...", c.config.Integrations.BigQuery.Dataset)
+
+	ds := c.client.Dataset(c.config.Integrations.BigQuery.Dataset)
 
 	md, err := ds.Metadata(context.Background())
 	if err != nil {
-		log.Warn().Err(err).Msgf("Error retrieving metadata for dataset %v", c.config.Dataset)
+		log.Warn().Err(err).Msgf("Error retrieving metadata for dataset %v", c.config.Integrations.BigQuery.Dataset)
 	}
 
 	return md != nil
@@ -98,13 +101,17 @@ func (c *client) CheckIfDatasetExists(ctx context.Context) bool {
 
 func (c *client) CheckIfTableExists(ctx context.Context, table string) bool {
 
+	if c.config == nil || c.config.Integrations == nil || c.config.Integrations.BigQuery == nil || !c.config.Integrations.BigQuery.Enable {
+		return false
+	}
+
 	log.Info().Msgf("Checking if BigQuery table %v exists...", table)
 
-	tbl := c.client.Dataset(c.config.Dataset).Table(table)
+	tbl := c.client.Dataset(c.config.Integrations.BigQuery.Dataset).Table(table)
 
 	md, err := tbl.Metadata(context.Background())
 	if err != nil {
-		log.Warn().Err(err).Msgf("Error retrieving metadata for table %v in dataset %v", table, c.config.Dataset)
+		log.Warn().Err(err).Msgf("Error retrieving metadata for table %v in dataset %v", table, c.config.Integrations.BigQuery.Dataset)
 	}
 
 	return md != nil
@@ -112,9 +119,13 @@ func (c *client) CheckIfTableExists(ctx context.Context, table string) bool {
 
 func (c *client) CreateTable(ctx context.Context, table string, typeForSchema interface{}, partitionField string, waitReady bool) error {
 
-	log.Info().Msgf("Creating BigQuery table %v in dataset %v...", table, c.config.Dataset)
+	if c.config == nil || c.config.Integrations == nil || c.config.Integrations.BigQuery == nil || !c.config.Integrations.BigQuery.Enable {
+		return nil
+	}
 
-	tbl := c.client.Dataset(c.config.Dataset).Table(table)
+	log.Info().Msgf("Creating BigQuery table %v in dataset %v...", table, c.config.Integrations.BigQuery.Dataset)
+
+	tbl := c.client.Dataset(c.config.Integrations.BigQuery.Dataset).Table(table)
 
 	// infer the schema of the type
 	schema, err := bigquery.InferSchema(typeForSchema)
@@ -148,16 +159,20 @@ func (c *client) CreateTable(ctx context.Context, table string, typeForSchema in
 		}
 	}
 
-	log.Info().Msgf("Finished creating BigQuery table %v in dataset %v", table, c.config.Dataset)
+	log.Info().Msgf("Finished creating BigQuery table %v in dataset %v", table, c.config.Integrations.BigQuery.Dataset)
 
 	return nil
 }
 
 func (c *client) UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) error {
 
-	log.Info().Msgf("Updating BigQuery table %v schema in dataset %v...", table, c.config.Dataset)
+	if c.config == nil || c.config.Integrations == nil || c.config.Integrations.BigQuery == nil || !c.config.Integrations.BigQuery.Enable {
+		return nil
+	}
 
-	tbl := c.client.Dataset(c.config.Dataset).Table(table)
+	log.Info().Msgf("Updating BigQuery table %v schema in dataset %v...", table, c.config.Integrations.BigQuery.Dataset)
+
+	tbl := c.client.Dataset(c.config.Integrations.BigQuery.Dataset).Table(table)
 
 	// infer the schema of the type
 	schema, err := bigquery.InferSchema(typeForSchema)
@@ -182,11 +197,11 @@ func (c *client) UpdateTableSchema(ctx context.Context, table string, typeForSch
 
 func (c *client) InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) error {
 
-	if c.config == nil || !c.config.Enable {
+	if c.config == nil || c.config.Integrations == nil || c.config.Integrations.BigQuery == nil || !c.config.Integrations.BigQuery.Enable {
 		return nil
 	}
 
-	tbl := c.client.Dataset(c.config.Dataset).Table(c.buildEventsTableName)
+	tbl := c.client.Dataset(c.config.Integrations.BigQuery.Dataset).Table(c.buildEventsTableName)
 
 	u := tbl.Uploader()
 
@@ -199,11 +214,11 @@ func (c *client) InsertBuildEvent(ctx context.Context, event PipelineBuildEvent)
 
 func (c *client) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) error {
 
-	if c.config == nil || !c.config.Enable {
+	if c.config == nil || c.config.Integrations == nil || c.config.Integrations.BigQuery == nil || !c.config.Integrations.BigQuery.Enable {
 		return nil
 	}
 
-	tbl := c.client.Dataset(c.config.Dataset).Table(c.releaseEventsTableName)
+	tbl := c.client.Dataset(c.config.Integrations.BigQuery.Dataset).Table(c.releaseEventsTableName)
 
 	u := tbl.Uploader()
 
@@ -212,9 +227,4 @@ func (c *client) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEv
 	}
 
 	return nil
-}
-
-func (c *client) RefreshConfig(config *config.APIConfig) {
-	log.Debug().Msg("Refreshing config in bigquery.Client")
-	c.config = config.Integrations.BigQuery
 }

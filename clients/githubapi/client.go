@@ -28,18 +28,17 @@ type Client interface {
 	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (valid bool, manifest string, err error)
 	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error)
-	RefreshConfig(config *config.APIConfig)
 }
 
 // NewClient creates an githubapi.Client to communicate with the Github api
-func NewClient(config config.GithubConfig) Client {
+func NewClient(config *config.APIConfig) Client {
 	return &client{
 		config: config,
 	}
 }
 
 type client struct {
-	config config.GithubConfig
+	config *config.APIConfig
 }
 
 // GetGithubAppToken returns a Github app token with which to retrieve an installation token
@@ -48,7 +47,7 @@ func (c *client) GetGithubAppToken(ctx context.Context) (githubAppToken string, 
 	// https://developer.github.com/apps/building-integrations/setting-up-and-registering-github-apps/about-authentication-options-for-github-apps/
 
 	// load private key from pem file
-	pemFileByteArray, err := ioutil.ReadFile(c.config.PrivateKeyPath)
+	pemFileByteArray, err := ioutil.ReadFile(c.config.Integrations.Github.PrivateKeyPath)
 	if err != nil {
 		return
 	}
@@ -65,7 +64,7 @@ func (c *client) GetGithubAppToken(ctx context.Context) (githubAppToken string, 
 		// JWT expiration time (10 minute maximum)
 		"exp": epoch + 500,
 		// GitHub App's identifier
-		"iss": c.config.AppID,
+		"iss": c.config.Integrations.Github.AppID,
 	})
 
 	// sign and get the complete encoded token as a string using the private key
@@ -112,7 +111,7 @@ func (c *client) GetInstallationID(ctx context.Context, repoOwner string) (insta
 		}
 	}
 
-	return installationID, fmt.Errorf("Github installation of app %v with account login %v can't be found", c.config.AppID, repoOwner)
+	return installationID, fmt.Errorf("Github installation of app %v with account login %v can't be found", c.config.Integrations.Github.AppID, repoOwner)
 }
 
 // GetInstallationToken returns an access token for an installation of a Github app
@@ -274,9 +273,4 @@ func (c *client) callGithubAPI(ctx context.Context, method, url string, params i
 	}
 
 	return
-}
-
-func (c *client) RefreshConfig(config *config.APIConfig) {
-	log.Debug().Msg("Refreshing config in githubapi.Client")
-	c.config = *config.Integrations.Github
 }

@@ -28,11 +28,10 @@ type Service interface {
 	HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (validSignature bool, err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool)
-	RefreshConfig(config *config.APIConfig)
 }
 
 // NewService returns a github.Service to handle incoming webhook events
-func NewService(config config.GithubConfig, githubapiClient githubapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service) Service {
+func NewService(config *config.APIConfig, githubapiClient githubapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service) Service {
 	return &service{
 		githubapiClient:  githubapiClient,
 		pubsubapiClient:  pubsubapiClient,
@@ -45,7 +44,7 @@ type service struct {
 	githubapiClient  githubapi.Client
 	pubsubapiClient  pubsubapi.Client
 	estafetteService estafette.Service
-	config           config.GithubConfig
+	config           *config.APIConfig
 }
 
 func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubapi.PushEvent) (err error) {
@@ -147,7 +146,7 @@ func (s *service) HasValidSignature(ctx context.Context, body []byte, signatureH
 	}
 
 	// calculate expected MAC
-	mac := hmac.New(sha1.New, []byte(s.config.WebhookSecret))
+	mac := hmac.New(sha1.New, []byte(s.config.Integrations.Github.WebhookSecret))
 	mac.Write(body)
 	expectedMAC := mac.Sum(nil)
 
@@ -170,20 +169,15 @@ func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fro
 
 func (s *service) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) bool {
 
-	if len(s.config.WhitelistedInstallations) == 0 {
+	if len(s.config.Integrations.Github.WhitelistedInstallations) == 0 {
 		return true
 	}
 
-	for _, id := range s.config.WhitelistedInstallations {
+	for _, id := range s.config.Integrations.Github.WhitelistedInstallations {
 		if id == installation.ID {
 			return true
 		}
 	}
 
 	return false
-}
-
-func (s *service) RefreshConfig(config *config.APIConfig) {
-	log.Debug().Msg("Refreshing config in github.Service")
-	s.config = *config.Integrations.Github
 }

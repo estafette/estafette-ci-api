@@ -19,7 +19,11 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("ReturnsErrNonCloneableEventIfPushEventHasNoChanges", func(t *testing.T) {
 
-		config := config.BitbucketConfig{}
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				Bitbucket: &config.BitbucketConfig{},
+			},
+		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
@@ -36,7 +40,11 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("ReturnsErrNonCloneableEventIfPushEventChangeHasNoNewObject", func(t *testing.T) {
 
-		config := config.BitbucketConfig{}
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				Bitbucket: &config.BitbucketConfig{},
+			},
+		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
@@ -61,7 +69,11 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("ReturnsErrNonCloneableEventIfPushEventNewTypeDoesNotEqualBranch", func(t *testing.T) {
 
-		config := config.BitbucketConfig{}
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				Bitbucket: &config.BitbucketConfig{},
+			},
+		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
@@ -88,7 +100,11 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("ReturnsErrNonCloneableEventIfPushEventNewTargetHasNoHash", func(t *testing.T) {
 
-		config := config.BitbucketConfig{}
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				Bitbucket: &config.BitbucketConfig{},
+			},
+		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
@@ -118,7 +134,11 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("CallsGetAccessTokenOnBitbucketAPIClient", func(t *testing.T) {
 
-		config := config.BitbucketConfig{}
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				Bitbucket: &config.BitbucketConfig{},
+			},
+		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
@@ -154,7 +174,11 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("CallsGetEstafetteManifestOnBitbucketAPIClient", func(t *testing.T) {
 
-		config := config.BitbucketConfig{}
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				Bitbucket: &config.BitbucketConfig{},
+			},
+		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
@@ -194,7 +218,11 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("CallsCreateBuildOnEstafetteService", func(t *testing.T) {
 
-		config := config.BitbucketConfig{}
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				Bitbucket: &config.BitbucketConfig{},
+			},
+		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
@@ -238,7 +266,11 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("CallsFireGitTriggersOnEstafetteService", func(t *testing.T) {
 
-		config := config.BitbucketConfig{}
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				Bitbucket: &config.BitbucketConfig{},
+			},
+		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
@@ -279,7 +311,11 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("CallsSubscribeToPubsubTriggersOnPubsubAPIClient", func(t *testing.T) {
 
-		config := config.BitbucketConfig{}
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				Bitbucket: &config.BitbucketConfig{},
+			},
+		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
@@ -331,8 +367,12 @@ func TestIsWhitelistedOwner(t *testing.T) {
 
 	t.Run("ReturnsTrueIfWhitelistedOwnersConfigIsEmpty", func(t *testing.T) {
 
-		config := config.BitbucketConfig{
-			WhitelistedOwners: []string{},
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				Bitbucket: &config.BitbucketConfig{
+					WhitelistedOwners: []string{},
+				},
+			},
 		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
@@ -353,9 +393,13 @@ func TestIsWhitelistedOwner(t *testing.T) {
 
 	t.Run("ReturnsFalseIfOwnerUsernameIsNotInWhitelistedOwnersConfig", func(t *testing.T) {
 
-		config := config.BitbucketConfig{
-			WhitelistedOwners: []string{
-				"someone-else",
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				Bitbucket: &config.BitbucketConfig{
+					WhitelistedOwners: []string{
+						"someone-else",
+					},
+				},
 			},
 		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
@@ -377,10 +421,14 @@ func TestIsWhitelistedOwner(t *testing.T) {
 
 	t.Run("ReturnsTrueIfOwnerUsernameIsInWhitelistedOwnersConfig", func(t *testing.T) {
 
-		config := config.BitbucketConfig{
-			WhitelistedOwners: []string{
-				"someone-else",
-				"estafette-in-bitbucket",
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				Bitbucket: &config.BitbucketConfig{
+					WhitelistedOwners: []string{
+						"someone-else",
+						"estafette-in-bitbucket",
+					},
+				},
 			},
 		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
@@ -405,7 +453,11 @@ func TestRename(t *testing.T) {
 
 	t.Run("CallsRenameOnEstafetteService", func(t *testing.T) {
 
-		config := config.BitbucketConfig{}
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				Bitbucket: &config.BitbucketConfig{},
+			},
+		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}

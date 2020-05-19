@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/go-kit/kit/metrics"
 )
@@ -47,8 +46,4 @@ func (s *metricsService) IsWhitelistedInstallation(ctx context.Context, installa
 	defer func(begin time.Time) { helpers.UpdateMetrics(s.requestCount, s.requestLatency, "Rename", begin) }(time.Now())
 
 	return s.Service.IsWhitelistedInstallation(ctx, installation)
-}
-
-func (s *metricsService) RefreshConfig(config *config.APIConfig) {
-	s.Service.RefreshConfig(config)
 }

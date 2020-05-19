@@ -15,7 +15,7 @@ func TestInjectSteps(t *testing.T) {
 		mft := getManifestWithoutBuildStatusSteps()
 
 		// act
-		injectedManifest, err := InjectSteps(*manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
@@ -32,7 +32,7 @@ func TestInjectSteps(t *testing.T) {
 		mft := getManifestWithoutBuildStatusStepsAndWithGitClone()
 
 		// act
-		injectedManifest, err := InjectSteps(*manifest.GetDefaultManifestPreferences(), mft, "dev", "github", true)
+		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "dev", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
@@ -51,7 +51,7 @@ func TestInjectSteps(t *testing.T) {
 		mft := getManifestWithoutBuildStatusSteps()
 
 		// act
-		injectedManifest, err := InjectSteps(*manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
@@ -69,7 +69,7 @@ func TestInjectSteps(t *testing.T) {
 		mft := getManifestWithBuildStatusSteps()
 
 		// act
-		injectedManifest, err := InjectSteps(*manifest.GetDefaultManifestPreferences(), mft, "dev", "github", true)
+		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "dev", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
@@ -89,7 +89,7 @@ func TestInjectSteps(t *testing.T) {
 		mft := getManifestWithoutBuildStatusSteps()
 
 		// act
-		injectedManifest, err := InjectSteps(*manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
@@ -106,7 +106,7 @@ func TestInjectSteps(t *testing.T) {
 		mft := getManifestWithAllSteps()
 
 		// act
-		injectedManifest, err := InjectSteps(*manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 5, len(injectedManifest.Stages)) {
@@ -123,7 +123,7 @@ func TestInjectSteps(t *testing.T) {
 		mft := getManifestWithAllSteps()
 
 		// act
-		injectedManifest, err := InjectSteps(*manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 5, len(injectedManifest.Stages)) {
@@ -140,7 +140,7 @@ func TestInjectSteps(t *testing.T) {
 		mft := getManifestWithoutInjectedStepsButWithInitializeStage()
 
 		// act
-		injectedManifest, err := InjectSteps(*manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
@@ -156,7 +156,7 @@ func TestInjectSteps(t *testing.T) {
 		mft := getManifestWithoutBuildStatusSteps()
 
 		// act
-		injectedManifest, err := InjectSteps(*manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
@@ -170,7 +170,7 @@ func TestInjectSteps(t *testing.T) {
 		mft := getManifestWithBuildStatusSteps()
 
 		// act
-		injectedManifest, err := InjectSteps(*manifest.GetDefaultManifestPreferences(), mft, "dev", "github", true)
+		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "dev", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
@@ -184,7 +184,7 @@ func TestInjectSteps(t *testing.T) {
 		mft := getManifestWithoutBuildStatusSteps()
 
 		// act
-		injectedManifest, err := InjectSteps(*manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 2, len(injectedManifest.Releases[1].Stages)) {
@@ -198,7 +198,7 @@ func TestInjectSteps(t *testing.T) {
 		mft := getManifestWithoutBuildStatusSteps()
 
 		// act
-		injectedManifest, err := InjectSteps(*manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages)) {
@@ -212,7 +212,7 @@ func TestInjectSteps(t *testing.T) {
 		mft := getManifestWithBuildStatusSteps()
 
 		// act
-		injectedManifest, err := InjectSteps(*manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 2, len(injectedManifest.Releases[0].Stages)) {
@@ -226,7 +226,7 @@ func TestInjectSteps(t *testing.T) {
 		mft := getManifestWithoutBuildStatusSteps()
 
 		// act
-		injectedManifest, err := InjectSteps(*manifest.GetDefaultManifestPreferences(), mft, "dev", "source", false)
+		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "dev", "source", false)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 2, len(injectedManifest.Stages)) {

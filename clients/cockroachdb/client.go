@@ -101,38 +101,33 @@ type Client interface {
 	RenameReleaseLogs(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	RenameComputedPipelines(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	RenameComputedReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
-
-	RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences)
 }
 
 // NewClient returns a new cockroach.Client
-func NewClient(config config.DatabaseConfig, manifestPreferences manifest.EstafetteManifestPreferences) Client {
-
+func NewClient(config *config.APIConfig) Client {
 	return &client{
-		databaseDriver:      "postgres",
-		config:              config,
-		manifestPreferences: manifestPreferences,
+		databaseDriver: "postgres",
+		config:         config,
 	}
 }
 
 type client struct {
-	databaseDriver      string
-	config              config.DatabaseConfig
-	manifestPreferences manifest.EstafetteManifestPreferences
-	databaseConnection  *sql.DB
+	databaseDriver     string
+	config             *config.APIConfig
+	databaseConnection *sql.DB
 }
 
 // Connect sets up a connection with CockroachDB
 func (c *client) Connect(ctx context.Context) (err error) {
 
-	log.Debug().Msgf("Connecting to database %v on host %v...", c.config.DatabaseName, c.config.Host)
+	log.Debug().Msgf("Connecting to database %v on host %v...", c.config.Database.DatabaseName, c.config.Database.Host)
 
 	sslMode := ""
-	if c.config.Insecure {
+	if c.config.Database.Insecure {
 		sslMode = "?sslmode=disable"
 	}
 
-	dataSourceName := fmt.Sprintf("postgresql://%v:%v@%v:%v/%v%v", c.config.User, c.config.Password, c.config.Host, c.config.Port, c.config.DatabaseName, sslMode)
+	dataSourceName := fmt.Sprintf("postgresql://%v:%v@%v:%v/%v%v", c.config.Database.User, c.config.Database.Password, c.config.Database.Host, c.config.Database.Port, c.config.Database.DatabaseName, sslMode)
 
 	return c.ConnectWithDriverAndSource(ctx, c.databaseDriver, dataSourceName)
 }
@@ -3762,7 +3757,7 @@ func (c *client) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, la
 
 	if !optimized {
 		// unmarshal then marshal manifest to include defaults
-		manifest, err := manifest.ReadManifest(&c.manifestPreferences, pipeline.Manifest)
+		manifest, err := manifest.ReadManifest(c.config.ManifestPreferences, pipeline.Manifest)
 		if err == nil {
 			pipeline.ManifestObject = &manifest
 			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
@@ -3814,7 +3809,7 @@ func (c *client) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData,
 
 	if !optimized {
 		// unmarshal then marshal manifest to include defaults
-		manifest, err := manifest.ReadManifest(&c.manifestPreferences, build.Manifest)
+		manifest, err := manifest.ReadManifest(c.config.ManifestPreferences, build.Manifest)
 		if err == nil {
 			build.ManifestObject = &manifest
 			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
@@ -3874,7 +3869,7 @@ func getActionNamesFromReleaseTarget(releaseTarget contracts.ReleaseTarget) (act
 func (c *client) mapBuildToPipeline(build *contracts.Build) (pipeline *contracts.Pipeline) {
 
 	// get archived value from manifest
-	mft, err := manifest.ReadManifest(&c.manifestPreferences, build.Manifest)
+	mft, err := manifest.ReadManifest(c.config.ManifestPreferences, build.Manifest)
 	archived := false
 	if err == nil {
 		archived = mft.Archived
@@ -3901,10 +3896,4 @@ func (c *client) mapBuildToPipeline(build *contracts.Build) (pipeline *contracts
 		Duration:             build.Duration,
 		Events:               build.Events,
 	}
-}
-
-func (c *client) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
-	log.Debug().Msg("Refreshing config in cockroachdb.Client")
-	c.config = *config.Database
-	c.manifestPreferences = manifestPreferences
 }

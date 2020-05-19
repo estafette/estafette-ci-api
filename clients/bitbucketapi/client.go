@@ -15,7 +15,6 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
-	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
 )
 
@@ -25,24 +24,28 @@ type Client interface {
 	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error)
 	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error)
-	RefreshConfig(config *config.APIConfig)
 }
 
 // NewClient returns a new bitbucket.Client
-func NewClient(config config.BitbucketConfig) Client {
+func NewClient(config *config.APIConfig) Client {
+
+	if config == nil || config.Integrations == nil || config.Integrations.Bitbucket == nil {
+		return nil
+	}
+
 	return &client{
 		config: config,
 	}
 }
 
 type client struct {
-	config config.BitbucketConfig
+	config *config.APIConfig
 }
 
 // GetAccessToken returns an access token to access the Bitbucket api
 func (c *client) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
 
-	basicAuthenticationToken := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", c.config.AppOAuthKey, c.config.AppOAuthSecret)))
+	basicAuthenticationToken := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", c.config.Integrations.Bitbucket.AppOAuthKey, c.config.Integrations.Bitbucket.AppOAuthSecret)))
 
 	// form values
 	data := url.Values{}
@@ -173,9 +176,4 @@ func (c *client) JobVarsFunc(ctx context.Context) func(ctx context.Context, repo
 
 		return accessToken.AccessToken, url, nil
 	}
-}
-
-func (c *client) RefreshConfig(config *config.APIConfig) {
-	log.Debug().Msg("Refreshing config in bitbucket.Client")
-	c.config = *config.Integrations.Bitbucket
 }

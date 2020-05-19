@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/opentracing/opentracing-go"
 )
@@ -31,8 +30,4 @@ func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwn
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-}
-
-func (s *tracingService) RefreshConfig(config *config.APIConfig) {
-	s.Service.RefreshConfig(config)
 }

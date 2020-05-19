@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/go-kit/kit/metrics"
 )
@@ -70,8 +69,4 @@ func (c *metricsClient) InsertReleaseEvent(ctx context.Context, event PipelineRe
 	}(time.Now())
 
 	return c.Client.InsertReleaseEvent(ctx, event)
-}
-
-func (c *metricsClient) RefreshConfig(config *config.APIConfig) {
-	c.Client.RefreshConfig(config)
 }

@@ -20,7 +20,11 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 	t.Run("ReturnsErrNonCloneableEventIfNotificationHasNoRefUpdate", func(t *testing.T) {
 
-		config := config.CloudSourceConfig{}
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				CloudSource: &config.CloudSourceConfig{},
+			},
+		}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
@@ -41,7 +45,11 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 	t.Run("CallsGetAccessTokenOnCloudSourceAPIClient", func(t *testing.T) {
 
-		config := config.CloudSourceConfig{}
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				CloudSource: &config.CloudSourceConfig{},
+			},
+		}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
@@ -79,7 +87,11 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 	t.Run("CallsGetEstafetteManifestOnCloudSourceAPIClient", func(t *testing.T) {
 
-		config := config.CloudSourceConfig{}
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				CloudSource: &config.CloudSourceConfig{},
+			},
+		}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
@@ -118,7 +130,11 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 	t.Run("CallsCreateBuildOnEstafetteService", func(t *testing.T) {
 
-		config := config.CloudSourceConfig{}
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				CloudSource: &config.CloudSourceConfig{},
+			},
+		}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
@@ -161,7 +177,11 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 	t.Run("CallsFireGitTriggersOnEstafetteService", func(t *testing.T) {
 
-		config := config.CloudSourceConfig{}
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				CloudSource: &config.CloudSourceConfig{},
+			},
+		}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
@@ -204,7 +224,11 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 	t.Run("CallsSubscribeToPubsubTriggersOnPubsubAPIClient", func(t *testing.T) {
 
-		config := config.CloudSourceConfig{}
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				CloudSource: &config.CloudSourceConfig{},
+			},
+		}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
@@ -255,8 +279,12 @@ func TestIsWhitelistedProject(t *testing.T) {
 
 	t.Run("ReturnsTrueIfWhitelistedProjectsConfigIsEmpty", func(t *testing.T) {
 
-		config := config.CloudSourceConfig{
-			WhitelistedProjects: []string{},
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				CloudSource: &config.CloudSourceConfig{
+					WhitelistedProjects: []string{},
+				},
+			},
 		}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
@@ -288,9 +316,13 @@ func TestIsWhitelistedProject(t *testing.T) {
 
 	t.Run("ReturnsFalseIfOwnerUsernameIsNotInWhitelistedProjectsConfig", func(t *testing.T) {
 
-		config := config.CloudSourceConfig{
-			WhitelistedProjects: []string{
-				"someone-else",
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				CloudSource: &config.CloudSourceConfig{
+					WhitelistedProjects: []string{
+						"someone-else",
+					},
+				},
 			},
 		}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
@@ -323,10 +355,14 @@ func TestIsWhitelistedProject(t *testing.T) {
 
 	t.Run("ReturnsTrueIfOwnerUsernameIsInWhitelistedProjectsConfig", func(t *testing.T) {
 
-		config := config.CloudSourceConfig{
-			WhitelistedProjects: []string{
-				"someone-else",
-				"estafette-in-cloudsource",
+		config := &config.APIConfig{
+			Integrations: &config.APIConfigIntegrations{
+				CloudSource: &config.CloudSourceConfig{
+					WhitelistedProjects: []string{
+						"someone-else",
+						"estafette-in-cloudsource",
+					},
+				},
 			},
 		}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}

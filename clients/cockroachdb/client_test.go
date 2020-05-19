@@ -550,17 +550,19 @@ func TestAutoincrement(t *testing.T) {
 
 func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 
-	dbConfig := config.DatabaseConfig{
-		DatabaseName:   "defaultdb",
-		Host:           "cockroachdb",
-		Insecure:       true,
-		CertificateDir: "",
-		Port:           26257,
-		User:           "root",
-		Password:       "",
+	apiConfig := &config.APIConfig{
+		Database: &config.DatabaseConfig{
+			DatabaseName:   "defaultdb",
+			Host:           "cockroachdb",
+			Insecure:       true,
+			CertificateDir: "",
+			Port:           26257,
+			User:           "root",
+			Password:       "",
+		},
 	}
 
-	cockroachdbClient := NewClient(dbConfig, *manifest.GetDefaultManifestPreferences())
+	cockroachdbClient := NewClient(apiConfig)
 	err := cockroachdbClient.Connect(ctx)
 
 	assert.Nil(t, err)

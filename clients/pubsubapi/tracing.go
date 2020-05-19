@@ -3,7 +3,6 @@ package pubsubapi
 import (
 	"context"
 
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/opentracing/opentracing-go"
@@ -38,8 +37,4 @@ func (c *tracingClient) SubscribeToPubsubTriggers(ctx context.Context, manifestS
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.SubscribeToPubsubTriggers(ctx, manifestString)
-}
-
-func (c *tracingClient) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
-	c.Client.RefreshConfig(config, manifestPreferences)
 }

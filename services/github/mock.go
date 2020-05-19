@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
-	"github.com/estafette/estafette-ci-api/config"
 )
 
 type MockService struct {
@@ -40,7 +39,4 @@ func (s MockService) IsWhitelistedInstallation(ctx context.Context, installation
 		return
 	}
 	return s.IsWhitelistedInstallationFunc(ctx, installation)
-}
-
-func (s MockService) RefreshConfig(config *config.APIConfig) {
 }

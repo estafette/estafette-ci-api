@@ -22,11 +22,10 @@ var (
 type Service interface {
 	CreateJobForCloudSourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error)
 	IsWhitelistedProject(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool)
-	RefreshConfig(config *config.APIConfig)
 }
 
 // NewService returns a new bitbucket.Service
-func NewService(config config.CloudSourceConfig, cloudsourceapiClient cloudsourceapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service) Service {
+func NewService(config *config.APIConfig, cloudsourceapiClient cloudsourceapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service) Service {
 	return &service{
 		config:               config,
 		cloudsourceapiClient: cloudsourceapiClient,
@@ -36,7 +35,7 @@ func NewService(config config.CloudSourceConfig, cloudsourceapiClient cloudsourc
 }
 
 type service struct {
-	config               config.CloudSourceConfig
+	config               *config.APIConfig
 	cloudsourceapiClient cloudsourceapi.Client
 	pubsubapiClient      pubsubapi.Client
 	estafetteService     estafette.Service
@@ -137,20 +136,15 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 
 func (s *service) IsWhitelistedProject(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool) {
 
-	if len(s.config.WhitelistedProjects) == 0 {
+	if len(s.config.Integrations.CloudSource.WhitelistedProjects) == 0 {
 		return true
 	}
 
-	for _, project := range s.config.WhitelistedProjects {
+	for _, project := range s.config.Integrations.CloudSource.WhitelistedProjects {
 		if project == notification.GetRepoOwner() {
 			return true
 		}
 	}
 
 	return false
-}
-
-func (s *service) RefreshConfig(config *config.APIConfig) {
-	log.Debug().Msg("Refreshing config in cloudsource.Service")
-	s.config = *config.Integrations.CloudSource
 }

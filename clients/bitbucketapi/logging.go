@@ -3,7 +3,6 @@ package bitbucketapi
 import (
 	"context"
 
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 )
 
@@ -37,8 +36,4 @@ func (c *loggingClient) GetEstafetteManifest(ctx context.Context, accesstoken Ac
 
 func (c *loggingClient) JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 	return c.Client.JobVarsFunc(ctx)
-}
-
-func (c *loggingClient) RefreshConfig(config *config.APIConfig) {
-	c.Client.RefreshConfig(config)
 }

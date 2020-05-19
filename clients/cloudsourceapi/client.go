@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/estafette/estafette-ci-api/config"
-	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 	sourcerepo "google.golang.org/api/sourcerepo/v1"
 	"gopkg.in/src-d/go-git.v4"
@@ -22,22 +20,18 @@ type Client interface {
 	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, notification PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error)
 	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error)
-	RefreshConfig(config *config.APIConfig)
 }
 
 // NewClient creates an cloudsource.Client to communicate with the Google Cloud Source Repository api
-func NewClient(config config.CloudSourceConfig, tokenSource oauth2.TokenSource, sourcerepoService *sourcerepo.Service) (Client, error) {
-
+func NewClient(tokenSource oauth2.TokenSource, sourcerepoService *sourcerepo.Service) (Client, error) {
 	return &client{
 		service:     sourcerepoService,
-		config:      config,
 		tokenSource: tokenSource,
 	}, nil
 }
 
 type client struct {
 	service     *sourcerepo.Service
-	config      config.CloudSourceConfig
 	tokenSource oauth2.TokenSource
 }
 
@@ -144,9 +138,4 @@ func (c *client) gitClone(dir, gitUrl, repoRefName string) error {
 	})
 
 	return err
-}
-
-func (c *client) RefreshConfig(config *config.APIConfig) {
-	log.Debug().Msg("Refreshing config in cloudsourceapi.Client")
-	c.config = *config.Integrations.CloudSource
 }

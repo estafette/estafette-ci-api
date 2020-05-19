@@ -3,7 +3,6 @@ package prometheus
 import (
 	"context"
 
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/opentracing/opentracing-go"
 )
@@ -37,8 +36,4 @@ func (c *tracingClient) GetMaxCPUByPodName(ctx context.Context, podName string) 
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetMaxCPUByPodName(ctx, podName)
-}
-
-func (c *tracingClient) RefreshConfig(config *config.APIConfig) {
-	c.Client.RefreshConfig(config)
 }

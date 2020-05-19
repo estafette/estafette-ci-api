@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
@@ -107,8 +106,4 @@ func (s *metricsService) UpdateJobResources(ctx context.Context, event builderap
 	}(time.Now())
 
 	return s.Service.UpdateJobResources(ctx, event)
-}
-
-func (s *metricsService) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
-	s.Service.RefreshConfig(config, manifestPreferences)
 }

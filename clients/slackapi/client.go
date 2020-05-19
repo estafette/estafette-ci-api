@@ -11,25 +11,23 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
-	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
 )
 
 // Client is the interface for communicating with the Slack api
 type Client interface {
 	GetUserProfile(ctx context.Context, userID string) (profile *UserProfile, err error)
-	RefreshConfig(config *config.APIConfig)
 }
 
 // NewClient returns a slack.Client to communicate with the Slack API
-func NewClient(config config.SlackConfig) Client {
+func NewClient(config *config.APIConfig) Client {
 	return &client{
 		config: config,
 	}
 }
 
 type client struct {
-	config config.SlackConfig
+	config *config.APIConfig
 }
 
 // GetUserProfile returns a Slack user profile
@@ -59,7 +57,7 @@ func (c *client) GetUserProfile(ctx context.Context, userID string) (profile *Us
 	}
 
 	// add headers
-	request.Header.Add("Authorization", fmt.Sprintf("%v %v", "Bearer", c.config.AppOAuthAccessToken))
+	request.Header.Add("Authorization", fmt.Sprintf("%v %v", "Bearer", c.config.Integrations.Slack.AppOAuthAccessToken))
 
 	// perform actual request
 	response, err := client.Do(request)
@@ -85,9 +83,4 @@ func (c *client) GetUserProfile(ctx context.Context, userID string) (profile *Us
 	}
 
 	return profileResponse.Profile, nil
-}
-
-func (c *client) RefreshConfig(config *config.APIConfig) {
-	log.Debug().Msg("Refreshing config in slackapi.Client")
-	c.config = *config.Integrations.Slack
 }

@@ -3,7 +3,6 @@ package pubsubapi
 import (
 	"context"
 
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
@@ -34,8 +33,4 @@ func (c *loggingClient) SubscribeToPubsubTriggers(ctx context.Context, manifestS
 	defer func() { helpers.HandleLogError(c.prefix, "SubscribeToPubsubTriggers", err) }()
 
 	return c.Client.SubscribeToPubsubTriggers(ctx, manifestString)
-}
-
-func (c *loggingClient) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
-	c.Client.RefreshConfig(config, manifestPreferences)
 }

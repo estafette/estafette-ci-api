@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/go-kit/kit/metrics"
@@ -60,8 +59,4 @@ func (c *metricsClient) Rename(ctx context.Context, fromRepoSource, fromRepoOwne
 	}(time.Now())
 
 	return c.Client.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-}
-
-func (c *metricsClient) RefreshConfig(config *config.APIConfig) {
-	c.Client.RefreshConfig(config)
 }

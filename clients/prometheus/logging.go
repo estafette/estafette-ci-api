@@ -3,7 +3,6 @@ package prometheus
 import (
 	"context"
 
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 )
 
@@ -31,8 +30,4 @@ func (c *loggingClient) GetMaxCPUByPodName(ctx context.Context, podName string) 
 	defer func() { helpers.HandleLogError(c.prefix, "GetMaxCPUByPodName", err) }()
 
 	return c.Client.GetMaxCPUByPodName(ctx, podName)
-}
-
-func (c *loggingClient) RefreshConfig(config *config.APIConfig) {
-	c.Client.RefreshConfig(config)
 }

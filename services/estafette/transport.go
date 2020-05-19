@@ -34,15 +34,12 @@ import (
 )
 
 // NewHandler returns a new estafette.Handler
-func NewHandler(configFilePath string, config config.APIServerConfig, authConfig config.AuthConfig, encryptedConfig config.APIConfig, catalogConfig *config.CatalogConfig, manifestPreferences manifest.EstafetteManifestPreferences, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper helpers.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
+func NewHandler(configFilePath string, config *config.APIConfig, encryptedConfig *config.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper helpers.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
 
 	return Handler{
 		configFilePath:         configFilePath,
 		config:                 config,
-		authConfig:             authConfig,
 		encryptedConfig:        encryptedConfig,
-		catalogConfig:          catalogConfig,
-		manifestPreferences:    manifestPreferences,
 		cockroachDBClient:      cockroachDBClient,
 		cloudStorageClient:     cloudStorageClient,
 		ciBuilderClient:        ciBuilderClient,
@@ -57,11 +54,8 @@ func NewHandler(configFilePath string, config config.APIServerConfig, authConfig
 
 type Handler struct {
 	configFilePath         string
-	config                 config.APIServerConfig
-	authConfig             config.AuthConfig
-	encryptedConfig        config.APIConfig
-	catalogConfig          *config.CatalogConfig
-	manifestPreferences    manifest.EstafetteManifestPreferences
+	config                 *config.APIConfig
+	encryptedConfig        *config.APIConfig
 	cockroachDBClient      cockroachdb.Client
 	cloudStorageClient     cloudstorage.Client
 	ciBuilderClient        builderapi.Client
@@ -494,7 +488,7 @@ func (h *Handler) GetPipelineBuildLogs(c *gin.Context) {
 		return
 	}
 
-	buildLog, err := h.cockroachDBClient.GetPipelineBuildLogs(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID, h.config.ReadLogFromDatabase())
+	buildLog, err := h.cockroachDBClient.GetPipelineBuildLogs(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID, h.config.APIServer.ReadLogFromDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from db", source, owner, repo, revisionOrID)
@@ -504,7 +498,7 @@ func (h *Handler) GetPipelineBuildLogs(c *gin.Context) {
 		return
 	}
 
-	if h.config.ReadLogFromCloudStorage() {
+	if h.config.APIServer.ReadLogFromCloudStorage() {
 		err := h.cloudStorageClient.GetPipelineBuildLogs(c.Request.Context(), *buildLog, strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip"), c.Writer)
 		if err != nil {
 
@@ -592,7 +586,7 @@ func (h *Handler) PostPipelineBuildLogs(c *gin.Context) {
 		buildLog.BuildID = revisionOrID
 	}
 
-	insertedBuildLog, err := h.cockroachDBClient.InsertBuildLog(c.Request.Context(), buildLog, h.config.WriteLogToDatabase())
+	insertedBuildLog, err := h.cockroachDBClient.InsertBuildLog(c.Request.Context(), buildLog, h.config.APIServer.WriteLogToDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed inserting logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
@@ -600,7 +594,7 @@ func (h *Handler) PostPipelineBuildLogs(c *gin.Context) {
 		return
 	}
 
-	if h.config.WriteLogToCloudStorage() {
+	if h.config.APIServer.WriteLogToCloudStorage() {
 		err = h.cloudStorageClient.InsertBuildLog(c.Request.Context(), insertedBuildLog)
 		if err != nil {
 			log.Error().Err(err).
@@ -958,7 +952,7 @@ func (h *Handler) GetPipelineReleaseLogs(c *gin.Context) {
 		return
 	}
 
-	releaseLog, err := h.cockroachDBClient.GetPipelineReleaseLogs(c.Request.Context(), source, owner, repo, id, h.config.ReadLogFromDatabase())
+	releaseLog, err := h.cockroachDBClient.GetPipelineReleaseLogs(c.Request.Context(), source, owner, repo, id, h.config.APIServer.ReadLogFromDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving release logs for %v/%v/%v/%v from db", source, owner, repo, id)
@@ -968,7 +962,7 @@ func (h *Handler) GetPipelineReleaseLogs(c *gin.Context) {
 		return
 	}
 
-	if h.config.ReadLogFromCloudStorage() {
+	if h.config.APIServer.ReadLogFromCloudStorage() {
 		err := h.cloudStorageClient.GetPipelineReleaseLogs(c.Request.Context(), *releaseLog, strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip"), c.Writer)
 		if err != nil {
 
@@ -1051,7 +1045,7 @@ func (h *Handler) PostPipelineReleaseLogs(c *gin.Context) {
 		return
 	}
 
-	insertedReleaseLog, err := h.cockroachDBClient.InsertReleaseLog(c.Request.Context(), releaseLog, h.config.WriteLogToDatabase())
+	insertedReleaseLog, err := h.cockroachDBClient.InsertReleaseLog(c.Request.Context(), releaseLog, h.config.APIServer.WriteLogToDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed inserting release logs for %v/%v/%v/%v", source, owner, repo, id)
@@ -1059,7 +1053,7 @@ func (h *Handler) PostPipelineReleaseLogs(c *gin.Context) {
 		return
 	}
 
-	if h.config.WriteLogToCloudStorage() {
+	if h.config.APIServer.WriteLogToCloudStorage() {
 		err = h.cloudStorageClient.InsertReleaseLog(c.Request.Context(), insertedReleaseLog)
 		if err != nil {
 			log.Error().Err(err).
@@ -1345,12 +1339,12 @@ func (h *Handler) GetPipelineWarnings(c *gin.Context) {
 
 func (h *Handler) GetCatalogFilters(c *gin.Context) {
 
-	if h.catalogConfig == nil {
+	if h.config == nil || h.config.Catalog == nil {
 		c.JSON(http.StatusOK, []string{})
 		return
 	}
 
-	c.JSON(http.StatusOK, h.catalogConfig.Filters)
+	c.JSON(http.StatusOK, h.config.Catalog.Filters)
 }
 
 func (h *Handler) GetCatalogFilterValues(c *gin.Context) {
@@ -1573,7 +1567,7 @@ func (h *Handler) UpdateComputedTables(c *gin.Context) {
 
 			h.cockroachDBClient.UpsertComputedPipeline(c.Request.Context(), p.RepoSource, p.RepoOwner, p.RepoName)
 			h.cockroachDBClient.UpdateComputedPipelineFirstInsertedAt(c.Request.Context(), p.RepoSource, p.RepoOwner, p.RepoName)
-			manifest, err := manifest.ReadManifest(&h.manifestPreferences, p.Manifest)
+			manifest, err := manifest.ReadManifest(h.config.ManifestPreferences, p.Manifest)
 			if err == nil {
 				for _, r := range manifest.Releases {
 					if len(r.Actions) > 0 {
@@ -1790,7 +1784,7 @@ func (h *Handler) ValidateManifest(c *gin.Context) {
 		return
 	}
 
-	_, err = manifest.ReadManifest(&h.manifestPreferences, aux.Template)
+	_, err = manifest.ReadManifest(h.config.ManifestPreferences, aux.Template)
 	status := "succeeded"
 	errorString := ""
 	if err != nil {
@@ -2137,13 +2131,4 @@ func (h *Handler) Commands(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
-}
-
-func (h *Handler) RefreshConfig(config *config.APIConfig, encryptedConfig *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
-	log.Debug().Msg("Refreshing config in estafette.Handler")
-	h.config = *config.APIServer
-	h.authConfig = *config.Auth
-	h.encryptedConfig = *encryptedConfig
-	h.catalogConfig = config.Catalog
-	h.manifestPreferences = manifestPreferences
 }

@@ -31,11 +31,10 @@ type Client interface {
 	GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error)
 	GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
-	RefreshConfig(config *config.APIConfig)
 }
 
 // NewClient returns new cloudstorage.Client
-func NewClient(config *config.CloudStorageConfig, storageClient *storage.Client) Client {
+func NewClient(config *config.APIConfig, storageClient *storage.Client) Client {
 
 	if config == nil {
 		return &client{
@@ -51,7 +50,7 @@ func NewClient(config *config.CloudStorageConfig, storageClient *storage.Client)
 
 type client struct {
 	client *storage.Client
-	config *config.CloudStorageConfig
+	config *config.APIConfig
 }
 
 func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error) {
@@ -74,7 +73,7 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 
 func (c *client) insertLog(ctx context.Context, path string, steps []*contracts.BuildLogStep) (err error) {
 
-	bucket := c.client.Bucket(c.config.Bucket)
+	bucket := c.client.Bucket(c.config.Integrations.CloudStorage.Bucket)
 
 	// marshal json
 	jsonBytes, err := json.Marshal(steps)
@@ -142,7 +141,7 @@ func (c *client) GetPipelineReleaseLogs(ctx context.Context, releaseLog contract
 
 func (c *client) getLog(ctx context.Context, path string, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
 
-	bucket := c.client.Bucket(c.config.Bucket)
+	bucket := c.client.Bucket(c.config.Integrations.CloudStorage.Bucket)
 
 	// create reader for cloud storage object
 	logObject := bucket.Object(path).ReadCompressed(true)
@@ -201,16 +200,16 @@ func (c *client) getReleaseLogPath(releaseLog contracts.ReleaseLog) (logPath str
 }
 
 func (c *client) getLogDirectory(repoSource, repoOwner, repoName, logType string) (logDirectory string) {
-	logDirectory = path.Join(c.config.LogsDirectory, repoSource, repoOwner, repoName, logType) + "/"
+	logDirectory = path.Join(c.config.Integrations.CloudStorage.LogsDirectory, repoSource, repoOwner, repoName, logType) + "/"
 
 	return logDirectory
 }
 
 func (c *client) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
 
-	log.Info().Msgf("Renaming cloud storage logs from %v/%v/%v to %v/%v/%v for bucket %v", fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName, c.config.Bucket)
+	log.Info().Msgf("Renaming cloud storage logs from %v/%v/%v to %v/%v/%v for bucket %v", fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName, c.config.Integrations.CloudStorage.Bucket)
 
-	bucket := c.client.Bucket(c.config.Bucket)
+	bucket := c.client.Bucket(c.config.Integrations.CloudStorage.Bucket)
 
 	// list all log files in old location, rename to new location
 	fromLogDirectory := c.getLogDirectory(fromRepoSource, fromRepoOwner, fromRepoName, "")
@@ -266,9 +265,4 @@ func (c *client) renameFile(ctx context.Context, bucket *storage.BucketHandle, f
 	}
 
 	return nil
-}
-
-func (c *client) RefreshConfig(config *config.APIConfig) {
-	log.Debug().Msg("Refreshing config in cloudstorage.Client")
-	c.config = config.Integrations.CloudStorage
 }

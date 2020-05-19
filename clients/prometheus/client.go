@@ -21,23 +21,22 @@ type Client interface {
 	AwaitScrapeInterval(ctx context.Context)
 	GetMaxMemoryByPodName(ctx context.Context, podName string) (max float64, err error)
 	GetMaxCPUByPodName(ctx context.Context, podName string) (max float64, err error)
-	RefreshConfig(config *config.APIConfig)
 }
 
 // NewClient creates an prometheus.Client to communicate with Prometheus
-func NewClient(config config.PrometheusConfig) Client {
+func NewClient(config *config.APIConfig) Client {
 	return &client{
 		config: config,
 	}
 }
 
 type client struct {
-	config config.PrometheusConfig
+	config *config.APIConfig
 }
 
 func (c *client) AwaitScrapeInterval(ctx context.Context) {
-	log.Debug().Msgf("Waiting for %v seconds before querying Prometheus", c.config.ScrapeIntervalSeconds)
-	time.Sleep(time.Duration(c.config.ScrapeIntervalSeconds) * time.Second)
+	log.Debug().Msgf("Waiting for %v seconds before querying Prometheus", c.config.Integrations.Prometheus.ScrapeIntervalSeconds)
+	time.Sleep(time.Duration(c.config.Integrations.Prometheus.ScrapeIntervalSeconds) * time.Second)
 }
 
 func (c *client) GetMaxMemoryByPodName(ctx context.Context, podName string) (maxMemory float64, err error) {
@@ -66,7 +65,7 @@ func (c *client) GetMaxCPUByPodName(ctx context.Context, podName string) (maxCPU
 
 func (c *client) getQueryResult(query string) (float64, error) {
 
-	prometheusQueryURL := fmt.Sprintf("%v/api/v1/query?query=%v", c.config.ServerURL, url.QueryEscape(query))
+	prometheusQueryURL := fmt.Sprintf("%v/api/v1/query?query=%v", c.config.Integrations.Prometheus.ServerURL, url.QueryEscape(query))
 	resp, err := pester.Get(prometheusQueryURL)
 	if err != nil {
 		return 0, fmt.Errorf("Executing prometheus query for query %v failed", query)
@@ -106,9 +105,4 @@ func (c *client) getQueryResult(query string) (float64, error) {
 	}
 
 	return f, nil
-}
-
-func (c *client) RefreshConfig(config *config.APIConfig) {
-	log.Debug().Msg("Refreshing config in prometheus.Client")
-	c.config = *config.Integrations.Prometheus
 }

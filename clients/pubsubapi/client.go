@@ -17,22 +17,19 @@ type Client interface {
 	SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (event *manifest.EstafettePubSubEvent, err error)
 	SubscribeToTopic(ctx context.Context, projectID, topicID string) (err error)
 	SubscribeToPubsubTriggers(ctx context.Context, manifestString string) (err error)
-	RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences)
 }
 
 // NewClient returns a new pubsub.Client
-func NewClient(config config.PubsubConfig, manifestPreferences manifest.EstafetteManifestPreferences, pubsubClient *stdpubsub.Client) Client {
+func NewClient(config *config.APIConfig, pubsubClient *stdpubsub.Client) Client {
 	return &client{
-		config:              config,
-		manifestPreferences: manifestPreferences,
-		pubsubClient:        pubsubClient,
+		config:       config,
+		pubsubClient: pubsubClient,
 	}
 }
 
 type client struct {
-	config              config.PubsubConfig
-	manifestPreferences manifest.EstafetteManifestPreferences
-	pubsubClient        *stdpubsub.Client
+	config       *config.APIConfig
+	pubsubClient *stdpubsub.Client
 }
 
 func (c *client) SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (*manifest.EstafettePubSubEvent, error) {
@@ -40,10 +37,10 @@ func (c *client) SubscriptionForTopic(ctx context.Context, message PubSubPushMes
 	projectID := message.GetProject()
 	subscriptionName := message.GetSubscription()
 
-	if strings.HasSuffix(subscriptionName, c.config.SubscriptionNameSuffix) {
+	if strings.HasSuffix(subscriptionName, c.config.Integrations.Pubsub.SubscriptionNameSuffix) {
 		return &manifest.EstafettePubSubEvent{
 			Project: projectID,
-			Topic:   strings.TrimSuffix(subscriptionName, c.config.SubscriptionNameSuffix),
+			Topic:   strings.TrimSuffix(subscriptionName, c.config.Integrations.Pubsub.SubscriptionNameSuffix),
 		}, nil
 	}
 
@@ -93,15 +90,15 @@ func (c *client) SubscribeToTopic(ctx context.Context, projectID, topicID string
 	_, err = c.pubsubClient.CreateSubscription(context.Background(), subscriptionName, stdpubsub.SubscriptionConfig{
 		Topic: topic,
 		PushConfig: stdpubsub.PushConfig{
-			Endpoint: c.config.Endpoint,
+			Endpoint: c.config.Integrations.Pubsub.Endpoint,
 			AuthenticationMethod: &stdpubsub.OIDCToken{
-				Audience:            c.config.Audience,
-				ServiceAccountEmail: c.config.ServiceAccountEmail,
+				Audience:            c.config.Integrations.Pubsub.Audience,
+				ServiceAccountEmail: c.config.Integrations.Pubsub.ServiceAccountEmail,
 			},
 		},
 		AckDeadline:       20 * time.Second,
 		RetentionDuration: 3 * time.Hour,
-		ExpirationPolicy:  time.Duration(c.config.SubscriptionIdleExpirationDays) * 24 * time.Hour,
+		ExpirationPolicy:  time.Duration(c.config.Integrations.Pubsub.SubscriptionIdleExpirationDays) * 24 * time.Hour,
 	})
 	if err != nil {
 		return err
@@ -114,12 +111,12 @@ func (c *client) SubscribeToTopic(ctx context.Context, projectID, topicID string
 
 func (c *client) getSubscriptionName(topicName string) string {
 	// it must start with a letter, and contain only letters ([A-Za-z]), numbers ([0-9]), dashes (-), underscores (_), periods (.), tildes (~), plus (+) or percent signs (%). It must be between 3 and 255 characters in length, and must not start with "goog".
-	return topicName + c.config.SubscriptionNameSuffix
+	return topicName + c.config.Integrations.Pubsub.SubscriptionNameSuffix
 }
 
 func (c *client) SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error {
 
-	mft, err := manifest.ReadManifest(&c.manifestPreferences, manifestString)
+	mft, err := manifest.ReadManifest(c.config.ManifestPreferences, manifestString)
 	if err != nil {
 		return err
 	}
@@ -135,10 +132,4 @@ func (c *client) SubscribeToPubsubTriggers(ctx context.Context, manifestString s
 		}
 	}
 	return nil
-}
-
-func (c *client) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
-	log.Debug().Msg("Refreshing config in pubsubapi.Client")
-	c.config = *config.Integrations.Pubsub
-	c.manifestPreferences = manifestPreferences
 }

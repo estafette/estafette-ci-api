@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -20,13 +19,8 @@ func TestGetToken(t *testing.T) {
 
 	t.Run("ReturnsTokenForRepository", func(t *testing.T) {
 
-		cloudSourceConfig := config.CloudSourceConfig{
-			WhitelistedProjects: []string{
-				"estafette",
-			},
-		}
 		tokenSource, service := getTokenSourceAndService()
-		client, err := NewClient(cloudSourceConfig, tokenSource, service)
+		client, err := NewClient(tokenSource, service)
 		assert.Nil(t, err)
 
 		// act
@@ -41,13 +35,8 @@ func TestGetAuthenticatedRepositoryURL(t *testing.T) {
 
 	t.Run("ReturnsAuthenticatedURLForRepository", func(t *testing.T) {
 
-		cloudSourceConfig := config.CloudSourceConfig{
-			WhitelistedProjects: []string{
-				"estafette",
-			},
-		}
 		tokenSource, service := getTokenSourceAndService()
-		client, err := NewClient(cloudSourceConfig, tokenSource, service)
+		client, err := NewClient(tokenSource, service)
 		assert.Nil(t, err)
 
 		// act
@@ -85,13 +74,8 @@ func TestGetEstafetteManifest(t *testing.T) {
 
 	t.Run("ReturnsFalseIfNoManifestExists", func(t *testing.T) {
 
-		cloudSourceConfig := config.CloudSourceConfig{
-			WhitelistedProjects: []string{
-				"estafette",
-			},
-		}
 		tokenSource, service := getTokenSourceAndService()
-		client, err := NewClient(cloudSourceConfig, tokenSource, service)
+		client, err := NewClient(tokenSource, service)
 		assert.Nil(t, err)
 
 		ctx := context.Background()
@@ -114,13 +98,8 @@ func TestGetEstafetteManifest(t *testing.T) {
 
 	t.Run("ReturnsTrueIfManifestExists", func(t *testing.T) {
 
-		cloudSourceConfig := config.CloudSourceConfig{
-			WhitelistedProjects: []string{
-				"estafette",
-			},
-		}
 		tokenSource, service := getTokenSourceAndService()
-		client, err := NewClient(cloudSourceConfig, tokenSource, service)
+		client, err := NewClient(tokenSource, service)
 		assert.Nil(t, err)
 
 		ctx := context.Background()

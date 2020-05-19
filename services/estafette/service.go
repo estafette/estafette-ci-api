@@ -43,16 +43,13 @@ type Service interface {
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 	UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
-	RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences)
 }
 
 // NewService returns a new estafette.Service
-func NewService(jobsConfig config.JobsConfig, apiServerConfig config.APIServerConfig, manifestPreferences manifest.EstafetteManifestPreferences, cockroachdbClient cockroachdb.Client, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
+func NewService(config *config.APIConfig, cockroachdbClient cockroachdb.Client, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
 
 	return &service{
-		jobsConfig:             jobsConfig,
-		apiServerConfig:        apiServerConfig,
-		manifestPreferences:    manifestPreferences,
+		config:                 config,
 		cockroachdbClient:      cockroachdbClient,
 		prometheusClient:       prometheusClient,
 		cloudStorageClient:     cloudStorageClient,
@@ -64,9 +61,7 @@ func NewService(jobsConfig config.JobsConfig, apiServerConfig config.APIServerCo
 }
 
 type service struct {
-	jobsConfig             config.JobsConfig
-	apiServerConfig        config.APIServerConfig
-	manifestPreferences    manifest.EstafetteManifestPreferences
+	config                 *config.APIConfig
 	cockroachdbClient      cockroachdb.Client
 	prometheusClient       prometheus.Client
 	cloudStorageClient     cloudstorage.Client
@@ -79,7 +74,7 @@ type service struct {
 func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (createdBuild *contracts.Build, err error) {
 
 	// validate manifest
-	mft, manifestError := manifest.ReadManifest(&s.manifestPreferences, build.Manifest)
+	mft, manifestError := manifest.ReadManifest(s.config.ManifestPreferences, build.Manifest)
 	hasValidManifest := manifestError == nil
 
 	// if manifest is invalid get the pipeline in order to use same labels, release targets and triggers as before
@@ -107,7 +102,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 
 	// inject build stages
 	if hasValidManifest {
-		mft, err = helpers.InjectSteps(s.manifestPreferences, mft, builderTrack, shortRepoSource, s.supportsBuildStatus(build.RepoSource))
+		mft, err = helpers.InjectSteps(s.config.ManifestPreferences, mft, builderTrack, shortRepoSource, s.supportsBuildStatus(build.RepoSource))
 		if err != nil {
 			log.Error().Err(err).
 				Msg("Failed injecting build stages for pipeline %v/%v/%v and revision %v")
@@ -234,12 +229,12 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 			},
 		}
 
-		insertedBuildLog, err := s.cockroachdbClient.InsertBuildLog(ctx, buildLog, s.apiServerConfig.WriteLogToDatabase())
+		insertedBuildLog, err := s.cockroachdbClient.InsertBuildLog(ctx, buildLog, s.config.APIServer.WriteLogToDatabase())
 		if err != nil {
 			log.Warn().Err(err).Msgf("Failed inserting build log for invalid manifest")
 		}
 
-		if s.apiServerConfig.WriteLogToCloudStorage() {
+		if s.config.APIServer.WriteLogToCloudStorage() {
 			err = s.cloudStorageClient.InsertBuildLog(ctx, insertedBuildLog)
 			if err != nil {
 				log.Warn().Err(err).Msgf("Failed inserting build log into cloud storage for invalid manifest")
@@ -298,7 +293,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	releaseStatus := "pending"
 
 	// inject build stages
-	mft, err = helpers.InjectSteps(s.manifestPreferences, mft, builderTrack, shortRepoSource, s.supportsBuildStatus(release.RepoSource))
+	mft, err = helpers.InjectSteps(s.config.ManifestPreferences, mft, builderTrack, shortRepoSource, s.supportsBuildStatus(release.RepoSource))
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed injecting build stages for release to %v of pipeline %v/%v/%v version %v", release.Name, release.RepoSource, release.RepoOwner, release.RepoName, release.ReleaseVersion)
@@ -867,7 +862,7 @@ func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource,
 func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
 
 	nrOfGoroutines := 1
-	if s.apiServerConfig.WriteLogToCloudStorage() {
+	if s.config.APIServer.WriteLogToCloudStorage() {
 		nrOfGoroutines++
 	}
 	var wg sync.WaitGroup
@@ -887,7 +882,7 @@ func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fro
 		}
 	}(&wg, ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 
-	if s.apiServerConfig.WriteLogToCloudStorage() {
+	if s.config.APIServer.WriteLogToCloudStorage() {
 		go func(wg *sync.WaitGroup, ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) {
 			defer wg.Done()
 
@@ -1089,7 +1084,7 @@ func (s *service) getBuildAutoIncrement(ctx context.Context, build contracts.Bui
 			})
 		} else if pipeline != nil {
 			log.Debug().Msgf("Copying previous versioning for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
-			previousManifest, err := manifest.ReadManifest(&s.manifestPreferences, build.Manifest)
+			previousManifest, err := manifest.ReadManifest(s.config.ManifestPreferences, build.Manifest)
 			if err != nil {
 				build.BuildVersion = previousManifest.Version.Version(manifest.EstafetteVersionParams{
 					AutoIncrement: autoincrement,
@@ -1148,10 +1143,10 @@ func (s *service) getReleaseAutoIncrement(ctx context.Context, release contracts
 func (s *service) getBuildJobResources(ctx context.Context, build contracts.Build) cockroachdb.JobResources {
 	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
 	jobResources := cockroachdb.JobResources{
-		CPURequest:    s.jobsConfig.MaxCPUCores,
-		CPULimit:      s.jobsConfig.MaxCPUCores,
-		MemoryRequest: s.jobsConfig.MaxMemoryBytes,
-		MemoryLimit:   s.jobsConfig.MaxMemoryBytes,
+		CPURequest:    s.config.Jobs.MaxCPUCores,
+		CPULimit:      s.config.Jobs.MaxCPUCores,
+		MemoryRequest: s.config.Jobs.MaxMemoryBytes,
+		MemoryLimit:   s.config.Jobs.MaxMemoryBytes,
 	}
 
 	// get max usage from previous builds
@@ -1165,22 +1160,22 @@ func (s *service) getBuildJobResources(ctx context.Context, build contracts.Buil
 
 		// only override cpu and memory request values if measured values are within min and max
 		if measuredResources.CPUMaxUsage > 0 {
-			if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio <= s.jobsConfig.MinCPUCores {
-				jobResources.CPURequest = s.jobsConfig.MinCPUCores
-			} else if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio >= s.jobsConfig.MaxCPUCores {
-				jobResources.CPURequest = s.jobsConfig.MaxCPUCores
+			if measuredResources.CPUMaxUsage*s.config.Jobs.CPURequestRatio <= s.config.Jobs.MinCPUCores {
+				jobResources.CPURequest = s.config.Jobs.MinCPUCores
+			} else if measuredResources.CPUMaxUsage*s.config.Jobs.CPURequestRatio >= s.config.Jobs.MaxCPUCores {
+				jobResources.CPURequest = s.config.Jobs.MaxCPUCores
 			} else {
-				jobResources.CPURequest = measuredResources.CPUMaxUsage * s.jobsConfig.CPURequestRatio
+				jobResources.CPURequest = measuredResources.CPUMaxUsage * s.config.Jobs.CPURequestRatio
 			}
 		}
 
 		if measuredResources.MemoryMaxUsage > 0 {
-			if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio <= s.jobsConfig.MinMemoryBytes {
-				jobResources.MemoryRequest = s.jobsConfig.MinMemoryBytes
-			} else if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio >= s.jobsConfig.MaxMemoryBytes {
-				jobResources.MemoryRequest = s.jobsConfig.MaxMemoryBytes
+			if measuredResources.MemoryMaxUsage*s.config.Jobs.MemoryRequestRatio <= s.config.Jobs.MinMemoryBytes {
+				jobResources.MemoryRequest = s.config.Jobs.MinMemoryBytes
+			} else if measuredResources.MemoryMaxUsage*s.config.Jobs.MemoryRequestRatio >= s.config.Jobs.MaxMemoryBytes {
+				jobResources.MemoryRequest = s.config.Jobs.MaxMemoryBytes
 			} else {
-				jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.jobsConfig.MemoryRequestRatio
+				jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.config.Jobs.MemoryRequestRatio
 			}
 		}
 	}
@@ -1192,10 +1187,10 @@ func (s *service) getReleaseJobResources(ctx context.Context, release contracts.
 
 	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
 	jobResources := cockroachdb.JobResources{
-		CPURequest:    s.jobsConfig.MaxCPUCores,
-		CPULimit:      s.jobsConfig.MaxCPUCores,
-		MemoryRequest: s.jobsConfig.MaxMemoryBytes,
-		MemoryLimit:   s.jobsConfig.MaxMemoryBytes,
+		CPURequest:    s.config.Jobs.MaxCPUCores,
+		CPULimit:      s.config.Jobs.MaxCPUCores,
+		MemoryRequest: s.config.Jobs.MaxMemoryBytes,
+		MemoryLimit:   s.config.Jobs.MaxMemoryBytes,
 	}
 
 	// get max usage from previous releases
@@ -1209,22 +1204,22 @@ func (s *service) getReleaseJobResources(ctx context.Context, release contracts.
 
 		// only override cpu and memory request values if measured values are within min and max
 		if measuredResources.CPUMaxUsage > 0 {
-			if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio <= s.jobsConfig.MinCPUCores {
-				jobResources.CPURequest = s.jobsConfig.MinCPUCores
-			} else if measuredResources.CPUMaxUsage*s.jobsConfig.CPURequestRatio >= s.jobsConfig.MaxCPUCores {
-				jobResources.CPURequest = s.jobsConfig.MaxCPUCores
+			if measuredResources.CPUMaxUsage*s.config.Jobs.CPURequestRatio <= s.config.Jobs.MinCPUCores {
+				jobResources.CPURequest = s.config.Jobs.MinCPUCores
+			} else if measuredResources.CPUMaxUsage*s.config.Jobs.CPURequestRatio >= s.config.Jobs.MaxCPUCores {
+				jobResources.CPURequest = s.config.Jobs.MaxCPUCores
 			} else {
-				jobResources.CPURequest = measuredResources.CPUMaxUsage * s.jobsConfig.CPURequestRatio
+				jobResources.CPURequest = measuredResources.CPUMaxUsage * s.config.Jobs.CPURequestRatio
 			}
 		}
 
 		if measuredResources.MemoryMaxUsage > 0 {
-			if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio <= s.jobsConfig.MinMemoryBytes {
-				jobResources.MemoryRequest = s.jobsConfig.MinMemoryBytes
-			} else if measuredResources.MemoryMaxUsage*s.jobsConfig.MemoryRequestRatio >= s.jobsConfig.MaxMemoryBytes {
-				jobResources.MemoryRequest = s.jobsConfig.MaxMemoryBytes
+			if measuredResources.MemoryMaxUsage*s.config.Jobs.MemoryRequestRatio <= s.config.Jobs.MinMemoryBytes {
+				jobResources.MemoryRequest = s.config.Jobs.MinMemoryBytes
+			} else if measuredResources.MemoryMaxUsage*s.config.Jobs.MemoryRequestRatio >= s.config.Jobs.MaxMemoryBytes {
+				jobResources.MemoryRequest = s.config.Jobs.MaxMemoryBytes
 			} else {
-				jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.jobsConfig.MemoryRequestRatio
+				jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.config.Jobs.MemoryRequestRatio
 			}
 		}
 	}
@@ -1246,11 +1241,4 @@ func (s *service) supportsBuildStatus(repoSource string) bool {
 	}
 
 	return false
-}
-
-func (s *service) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
-	log.Debug().Msg("Refreshing config in estafette.Service")
-	s.jobsConfig = *config.Jobs
-	s.apiServerConfig = *config.APIServer
-	s.manifestPreferences = manifestPreferences
 }

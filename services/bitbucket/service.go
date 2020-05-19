@@ -23,11 +23,10 @@ type Service interface {
 	CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	IsWhitelistedOwner(repository bitbucketapi.Repository) (isWhiteListed bool)
-	RefreshConfig(config *config.APIConfig)
 }
 
 // NewService returns a new bitbucket.Service
-func NewService(config config.BitbucketConfig, bitbucketapiClient bitbucketapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service) Service {
+func NewService(config *config.APIConfig, bitbucketapiClient bitbucketapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service) Service {
 	return &service{
 		config:             config,
 		bitbucketapiClient: bitbucketapiClient,
@@ -37,7 +36,7 @@ func NewService(config config.BitbucketConfig, bitbucketapiClient bitbucketapi.C
 }
 
 type service struct {
-	config             config.BitbucketConfig
+	config             *config.APIConfig
 	bitbucketapiClient bitbucketapi.Client
 	pubsubapiClient    pubsubapi.Client
 	estafetteService   estafette.Service
@@ -139,20 +138,15 @@ func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fro
 
 func (s *service) IsWhitelistedOwner(repository bitbucketapi.Repository) (isWhiteListed bool) {
 
-	if len(s.config.WhitelistedOwners) == 0 {
+	if len(s.config.Integrations.Bitbucket.WhitelistedOwners) == 0 {
 		return true
 	}
 
-	for _, owner := range s.config.WhitelistedOwners {
+	for _, owner := range s.config.Integrations.Bitbucket.WhitelistedOwners {
 		if owner == repository.Owner.UserName {
 			return true
 		}
 	}
 
 	return false
-}
-
-func (s *service) RefreshConfig(config *config.APIConfig) {
-	log.Debug().Msg("Refreshing config in bitbucket.Service")
-	s.config = *config.Integrations.Bitbucket
 }

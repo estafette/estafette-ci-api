@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
@@ -523,8 +522,4 @@ func (c *tracingClient) RenameComputedReleases(ctx context.Context, fromRepoSour
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.RenameComputedReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-}
-
-func (c *tracingClient) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
-	c.Client.RefreshConfig(config, manifestPreferences)
 }

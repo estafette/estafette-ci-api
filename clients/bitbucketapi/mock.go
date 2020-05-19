@@ -2,8 +2,6 @@ package bitbucketapi
 
 import (
 	"context"
-
-	"github.com/estafette/estafette-ci-api/config"
 )
 
 type MockClient struct {
@@ -41,7 +39,4 @@ func (c MockClient) JobVarsFunc(ctx context.Context) func(ctx context.Context, r
 		}
 	}
 	return c.JobVarsFuncFunc(ctx)
-}
-
-func (c MockClient) RefreshConfig(config *config.APIConfig) {
 }

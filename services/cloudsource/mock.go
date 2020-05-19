@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
-	"github.com/estafette/estafette-ci-api/config"
 )
 
 type MockService struct {
@@ -24,7 +23,4 @@ func (s MockService) IsWhitelistedOwner(notification cloudsourceapi.PubSubNotifi
 		return
 	}
 	return s.IsWhitelistedOwnerFunc(notification)
-}
-
-func (s MockService) RefreshConfig(config *config.APIConfig) {
 }

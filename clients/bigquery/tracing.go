@@ -3,7 +3,6 @@ package bigquery
 import (
 	"context"
 
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/opentracing/opentracing-go"
 )
@@ -65,8 +64,4 @@ func (c *tracingClient) InsertReleaseEvent(ctx context.Context, event PipelineRe
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.InsertReleaseEvent(ctx, event)
-}
-
-func (c *tracingClient) RefreshConfig(config *config.APIConfig) {
-	c.Client.RefreshConfig(config)
 }

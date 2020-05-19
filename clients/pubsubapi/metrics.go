@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/go-kit/kit/metrics"
@@ -43,8 +42,4 @@ func (c *metricsClient) SubscribeToPubsubTriggers(ctx context.Context, manifestS
 	}(time.Now())
 
 	return c.Client.SubscribeToPubsubTriggers(ctx, manifestString)
-}
-
-func (c *metricsClient) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
-	c.Client.RefreshConfig(config, manifestPreferences)
 }

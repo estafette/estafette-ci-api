@@ -36,11 +36,10 @@ type Client interface {
 	TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error)
 	GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) (jobname string)
 	GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) (config contracts.BuilderConfig, err error)
-	RefreshConfig(config *config.APIConfig, encryptedConfig *config.APIConfig)
 }
 
 // NewClient returns a new estafette.Client
-func NewClient(config config.APIConfig, encryptedConfig config.APIConfig, secretHelper crypt.SecretHelper, kubeClient *k8s.Client, dockerHubClient dockerhubapi.Client) Client {
+func NewClient(config *config.APIConfig, encryptedConfig *config.APIConfig, secretHelper crypt.SecretHelper, kubeClient *k8s.Client, dockerHubClient dockerhubapi.Client) Client {
 
 	return &client{
 		kubeClient:      kubeClient,
@@ -54,15 +53,9 @@ func NewClient(config config.APIConfig, encryptedConfig config.APIConfig, secret
 type client struct {
 	kubeClient      *k8s.Client
 	dockerHubClient dockerhubapi.Client
-	config          config.APIConfig
-	encryptedConfig config.APIConfig
+	config          *config.APIConfig
+	encryptedConfig *config.APIConfig
 	secretHelper    crypt.SecretHelper
-}
-
-func (c *client) RefreshConfig(config *config.APIConfig, encryptedConfig *config.APIConfig) {
-	log.Debug().Msg("Refreshing config in builderapi.Client")
-	c.config = *config
-	c.encryptedConfig = *encryptedConfig
 }
 
 // CreateCiBuilderJob creates an estafette-ci-builder job in Kubernetes to run the estafette build

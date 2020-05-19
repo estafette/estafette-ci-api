@@ -18,10 +18,9 @@ import (
 )
 
 // NewHandler returns a pubsub.Handler
-func NewHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, slackapiClient slackapi.Client, cockroachdbClient cockroachdb.Client, apiConfig config.APIServerConfig, estafetteService estafette.Service, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
+func NewHandler(secretHelper crypt.SecretHelper, config *config.APIConfig, slackapiClient slackapi.Client, cockroachdbClient cockroachdb.Client, apiConfig config.APIServerConfig, estafetteService estafette.Service, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
 	return Handler{
 		config:               config,
-		apiConfig:            apiConfig,
 		secretHelper:         secretHelper,
 		slackapiClient:       slackapiClient,
 		cockroachdbClient:    cockroachdbClient,
@@ -32,8 +31,7 @@ func NewHandler(secretHelper crypt.SecretHelper, config config.SlackConfig, slac
 }
 
 type Handler struct {
-	config               config.SlackConfig
-	apiConfig            config.APIServerConfig
+	config               *config.APIConfig
 	secretHelper         crypt.SecretHelper
 	slackapiClient       slackapi.Client
 	cockroachdbClient    cockroachdb.Client
@@ -57,7 +55,7 @@ func (h *Handler) Handle(c *gin.Context) {
 
 	hasValidVerificationToken := h.hasValidVerificationToken(slashCommand)
 	if !hasValidVerificationToken {
-		log.Warn().Str("expectedToken", h.config.AppVerificationToken).Str("actualToken", slashCommand.Token).Msg("Verification token for Slack command is invalid")
+		log.Warn().Str("expectedToken", h.config.Integrations.Slack.AppVerificationToken).Str("actualToken", slashCommand.Token).Msg("Verification token for Slack command is invalid")
 		c.String(http.StatusBadRequest, "Verification token for Slack command is invalid")
 		return
 	}
@@ -217,7 +215,7 @@ func (h *Handler) Handle(c *gin.Context) {
 						return
 					}
 
-					c.String(http.StatusOK, fmt.Sprintf("Started releasing version %v to %v: %vpipelines/%v/%v/%v/releases/%v/logs", buildVersion, releaseName, h.apiConfig.BaseURL, build.RepoSource, build.RepoOwner, build.RepoName, createdRelease.ID))
+					c.String(http.StatusOK, fmt.Sprintf("Started releasing version %v to %v: %vpipelines/%v/%v/%v/releases/%v/logs", buildVersion, releaseName, h.config.APIServer.BaseURL, build.RepoSource, build.RepoOwner, build.RepoName, createdRelease.ID))
 					return
 				}
 			}
@@ -228,11 +226,5 @@ func (h *Handler) Handle(c *gin.Context) {
 }
 
 func (h *Handler) hasValidVerificationToken(slashCommand slackapi.SlashCommand) bool {
-	return slashCommand.Token == h.config.AppVerificationToken
-}
-
-func (h *Handler) RefreshConfig(config *config.APIConfig) {
-	log.Debug().Msg("Refreshing config in slack.Handler")
-	h.config = *config.Integrations.Slack
-	h.apiConfig = *config.APIServer
+	return slashCommand.Token == h.config.Integrations.Slack.AppVerificationToken
 }

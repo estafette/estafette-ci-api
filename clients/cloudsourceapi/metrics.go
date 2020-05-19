@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/go-kit/kit/metrics"
 )
@@ -48,8 +47,4 @@ func (c *metricsClient) JobVarsFunc(ctx context.Context) func(ctx context.Contex
 	defer func(begin time.Time) { helpers.UpdateMetrics(c.requestCount, c.requestLatency, "JobVarsFunc", begin) }(time.Now())
 
 	return c.Client.JobVarsFunc(ctx)
-}
-
-func (c *metricsClient) RefreshConfig(config *config.APIConfig) {
-	c.Client.RefreshConfig(config)
 }
