@@ -121,7 +121,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	estafetteService, githubService, bitbucketService, cloudsourceService := getServices(ctx, config, encryptedConfig, manifestPreferences, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient)
 	bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler, cloudsourceHandler := getHandlers(ctx, config, encryptedConfig, manifestPreferences, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient, estafetteService, githubService, bitbucketService, cloudsourceService)
 
-	srv := configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler, cloudsourceHandler)
+	srv, authMiddleware := configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler, cloudsourceHandler)
 
 	// watch for configmap changes
 	foundation.WatchForFileChanges(*configFilePath, func(event fsnotify.Event) {
@@ -129,7 +129,7 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 
 		// refresh config
 		config, encryptedConfig, manifestPreferences, secretHelper := getConfig(ctx)
-		refreshConfig(ctx, config, encryptedConfig, manifestPreferences, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient, estafetteService, githubService, bitbucketService, cloudsourceService, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler, cloudsourceHandler)
+		refreshConfig(ctx, config, encryptedConfig, manifestPreferences, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient, estafetteService, githubService, bitbucketService, cloudsourceService, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler, cloudsourceHandler, authMiddleware)
 	})
 
 	// watch for service account key file changes
@@ -408,7 +408,7 @@ func getHandlers(ctx context.Context, config *config.APIConfig, encryptedConfig 
 	return
 }
 
-func refreshConfig(ctx context.Context, config *config.APIConfig, encryptedConfig *config.APIConfig, manifestPreferences *manifest.EstafetteManifestPreferences, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client, estafetteService estafette.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service, bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler) {
+func refreshConfig(ctx context.Context, config *config.APIConfig, encryptedConfig *config.APIConfig, manifestPreferences *manifest.EstafetteManifestPreferences, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client, estafetteService estafette.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service, bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler, authMiddleware auth.Middleware) {
 
 	bigqueryClient.RefreshConfig(config)
 	bitbucketapiClient.RefreshConfig(config)
@@ -433,9 +433,11 @@ func refreshConfig(ctx context.Context, config *config.APIConfig, encryptedConfi
 	// pubsubHandler.RefreshConfig(config)
 	// slackHandler.RefreshConfig(config)
 	// cloudsourceHandler.RefreshConfig(config)
+
+	authMiddleware.RefreshConfig(config)
 }
 
-func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler) *http.Server {
+func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler) (*http.Server, auth.Middleware) {
 
 	// run gin in release mode and other defaults
 	gin.SetMode(gin.ReleaseMode)
@@ -572,7 +574,7 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 		}
 	}()
 
-	return srv
+	return srv, authMiddleware
 }
 
 // initJaeger returns an instance of Jaeger Tracer that can be configured with environment variables

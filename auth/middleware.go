@@ -15,6 +15,7 @@ type Middleware interface {
 	APIKeyMiddlewareFunc() gin.HandlerFunc
 	IAPJWTMiddlewareFunc() gin.HandlerFunc
 	GoogleJWTMiddlewareFunc() gin.HandlerFunc
+	RefreshConfig(config *config.APIConfig)
 }
 
 type authMiddlewareImpl struct {
@@ -29,10 +30,6 @@ func NewAuthMiddleware(config *config.AuthConfig) (authMiddleware Middleware) {
 	}
 
 	return
-}
-
-func (m *authMiddlewareImpl) RefreshConfig(config *config.APIConfig) {
-	m.config = config.Auth
 }
 
 func (m *authMiddlewareImpl) APIKeyMiddlewareFunc() gin.HandlerFunc {
@@ -102,4 +99,8 @@ func (m *authMiddlewareImpl) GoogleJWTMiddlewareFunc() gin.HandlerFunc {
 		// set 'user' to enforce a handler method to require api key auth with `user := c.MustGet(gin.AuthUserKey).(string)` and ensuring the user equals 'apiKey'
 		c.Set(gin.AuthUserKey, "google-jwt")
 	}
+}
+
+func (m *authMiddlewareImpl) RefreshConfig(config *config.APIConfig) {
+	m.config = config.Auth
 }
