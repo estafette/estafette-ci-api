@@ -116,12 +116,12 @@ github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.m
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
 github.com/ericchiang/k8s v1.2.0 h1:vxrMwEzY43oxu8aZyD/7b1s8tsBM+xoUoxjWECWFbPI=
 github.com/ericchiang/k8s v1.2.0/go.mod h1:/OmBgSq2cd9IANnsGHGlEz27nwMZV2YxlpXuQtU3Bz4=
-github.com/estafette/estafette-ci-contracts v0.0.185 h1:gOiNRujfJuHbWe6VBnSyX/HyvINagd7rEoMyts5U46Y=
-github.com/estafette/estafette-ci-contracts v0.0.185/go.mod h1:2HYoBphw5uDXM63tguUJ4+wlzq9eK9f2QqdlbWq8HpU=
+github.com/estafette/estafette-ci-contracts v0.0.186 h1:nc3yOLvowSuhY/2pzFYRfUYDIseZBBfXABqHAgkC+yE=
+github.com/estafette/estafette-ci-contracts v0.0.186/go.mod h1:TmR8gzMRJUO7R2MTr5VqFiSORSom6ENL/ya64QZsBMQ=
 github.com/estafette/estafette-ci-crypt v0.0.36 h1:qeuZ+mkn9zmdA8ja2d07BUM5TKHRTbPHuHa3TVtLNmw=
 github.com/estafette/estafette-ci-crypt v0.0.36/go.mod h1:yODzGbzW7Jj0xEFjAv1Is+FHcYaugHUtrPdkJdHV8/c=
-github.com/estafette/estafette-ci-manifest v0.1.149 h1:DFd23ALWW62qiGOJq29EW49XoQZ1EChdZuFPdtCTGkg=
-github.com/estafette/estafette-ci-manifest v0.1.149/go.mod h1:POR0DdB7udqxoFxTsheexgwP+NJauoHsDTSbHiLetEo=
+github.com/estafette/estafette-ci-manifest v0.1.151 h1:o+IHfwaeMUJcgQFro6zW43LyB5BD+JRhsr154CPGW5w=
+github.com/estafette/estafette-ci-manifest v0.1.151/go.mod h1:POR0DdB7udqxoFxTsheexgwP+NJauoHsDTSbHiLetEo=
 github.com/estafette/estafette-foundation v0.0.54 h1:EYiKInvQg0B4wtvb6gAvQuMOEvf7Y3Td2+Fx2/asxGU=
 github.com/estafette/estafette-foundation v0.0.54/go.mod h1:3tosAek4nyGDaWbi9dz2jSb2Wa4dAtLw/7c7mDWwaLA=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
