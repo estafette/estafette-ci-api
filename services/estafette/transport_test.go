@@ -59,7 +59,7 @@ func TestGetCatalogFilters(t *testing.T) {
 		assert.Equal(t, "[\"type\"]\n", string(body))
 
 		// act
-		*cfg = config.APIConfig{
+		*cfg = *&config.APIConfig{
 			Catalog: &config.CatalogConfig{
 				Filters: []string{
 					"type",
