@@ -232,6 +232,7 @@ func (h *Handler) hasValidVerificationToken(slashCommand slackapi.SlashCommand) 
 }
 
 func (h *Handler) RefreshConfig(config *config.APIConfig) {
+	log.Debug().Msg("Refreshing config in slack.Handler")
 	h.config = *config.Integrations.Slack
 	h.apiConfig = *config.APIServer
 }

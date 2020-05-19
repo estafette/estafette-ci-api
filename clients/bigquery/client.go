@@ -215,5 +215,6 @@ func (c *client) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEv
 }
 
 func (c *client) RefreshConfig(config *config.APIConfig) {
+	log.Debug().Msg("Refreshing config in bigquery.Client")
 	c.config = config.Integrations.BigQuery
 }

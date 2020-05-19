@@ -184,5 +184,6 @@ func (s *service) IsWhitelistedInstallation(ctx context.Context, installation gi
 }
 
 func (s *service) RefreshConfig(config *config.APIConfig) {
+	log.Debug().Msg("Refreshing config in github.Service")
 	s.config = *config.Integrations.Github
 }

@@ -109,5 +109,6 @@ func (c *client) getQueryResult(query string) (float64, error) {
 }
 
 func (c *client) RefreshConfig(config *config.APIConfig) {
+	log.Debug().Msg("Refreshing config in prometheus.Client")
 	c.config = *config.Integrations.Prometheus
 }

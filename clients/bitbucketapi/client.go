@@ -15,6 +15,7 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
+	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
 )
 
@@ -175,5 +176,6 @@ func (c *client) JobVarsFunc(ctx context.Context) func(ctx context.Context, repo
 }
 
 func (c *client) RefreshConfig(config *config.APIConfig) {
+	log.Debug().Msg("Refreshing config in bitbucket.Client")
 	c.config = *config.Integrations.Bitbucket
 }

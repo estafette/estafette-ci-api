@@ -153,5 +153,6 @@ func (s *service) IsWhitelistedOwner(repository bitbucketapi.Repository) (isWhit
 }
 
 func (s *service) RefreshConfig(config *config.APIConfig) {
+	log.Debug().Msg("Refreshing config in bitbucket.Service")
 	s.config = *config.Integrations.Bitbucket
 }

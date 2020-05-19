@@ -151,5 +151,6 @@ func (s *service) IsWhitelistedProject(notification cloudsourceapi.PubSubNotific
 }
 
 func (s *service) RefreshConfig(config *config.APIConfig) {
+	log.Debug().Msg("Refreshing config in cloudsource.Service")
 	s.config = *config.Integrations.CloudSource
 }

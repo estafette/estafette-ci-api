@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/estafette/estafette-ci-api/config"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 	sourcerepo "google.golang.org/api/sourcerepo/v1"
 	"gopkg.in/src-d/go-git.v4"
@@ -146,5 +147,6 @@ func (c *client) gitClone(dir, gitUrl, repoRefName string) error {
 }
 
 func (c *client) RefreshConfig(config *config.APIConfig) {
+	log.Debug().Msg("Refreshing config in cloudsourceapi.Client")
 	c.config = *config.Integrations.CloudSource
 }

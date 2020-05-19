@@ -1249,6 +1249,7 @@ func (s *service) supportsBuildStatus(repoSource string) bool {
 }
 
 func (s *service) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
+	log.Debug().Msg("Refreshing config in estafette.Service")
 	s.jobsConfig = *config.Jobs
 	s.apiServerConfig = *config.APIServer
 	s.manifestPreferences = manifestPreferences

@@ -277,5 +277,6 @@ func (c *client) callGithubAPI(ctx context.Context, method, url string, params i
 }
 
 func (c *client) RefreshConfig(config *config.APIConfig) {
+	log.Debug().Msg("Refreshing config in githubapi.Client")
 	c.config = *config.Integrations.Github
 }

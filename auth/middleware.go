@@ -102,5 +102,6 @@ func (m *authMiddlewareImpl) GoogleJWTMiddlewareFunc() gin.HandlerFunc {
 }
 
 func (m *authMiddlewareImpl) RefreshConfig(config *config.APIConfig) {
+	log.Debug().Msg("Refreshing config in Auth Middleware")
 	m.config = config.Auth
 }

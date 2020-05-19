@@ -138,6 +138,7 @@ func (c *client) SubscribeToPubsubTriggers(ctx context.Context, manifestString s
 }
 
 func (c *client) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
+	log.Debug().Msg("Refreshing config in pubsubapi.Client")
 	c.config = *config.Integrations.Pubsub
 	c.manifestPreferences = manifestPreferences
 }

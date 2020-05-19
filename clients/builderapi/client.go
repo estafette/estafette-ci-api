@@ -60,6 +60,7 @@ type client struct {
 }
 
 func (c *client) RefreshConfig(config *config.APIConfig, encryptedConfig *config.APIConfig) {
+	log.Debug().Msg("Refreshing config in builderapi.Client")
 	c.config = *config
 	c.encryptedConfig = *encryptedConfig
 }

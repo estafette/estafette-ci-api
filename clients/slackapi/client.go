@@ -11,6 +11,7 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
+	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
 )
 
@@ -87,5 +88,6 @@ func (c *client) GetUserProfile(ctx context.Context, userID string) (profile *Us
 }
 
 func (c *client) RefreshConfig(config *config.APIConfig) {
+	log.Debug().Msg("Refreshing config in slackapi.Client")
 	c.config = *config.Integrations.Slack
 }

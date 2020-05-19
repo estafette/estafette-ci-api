@@ -269,5 +269,6 @@ func (c *client) renameFile(ctx context.Context, bucket *storage.BucketHandle, f
 }
 
 func (c *client) RefreshConfig(config *config.APIConfig) {
+	log.Debug().Msg("Refreshing config in cloudstorage.Client")
 	c.config = config.Integrations.CloudStorage
 }

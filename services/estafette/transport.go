@@ -2140,6 +2140,7 @@ func (h *Handler) Commands(c *gin.Context) {
 }
 
 func (h *Handler) RefreshConfig(config *config.APIConfig, encryptedConfig *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
+	log.Debug().Msg("Refreshing config in estafette.Handler")
 	h.config = *config.APIServer
 	h.authConfig = *config.Auth
 	h.encryptedConfig = *encryptedConfig

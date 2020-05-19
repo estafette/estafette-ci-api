@@ -3904,6 +3904,7 @@ func (c *client) mapBuildToPipeline(build *contracts.Build) (pipeline *contracts
 }
 
 func (c *client) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
+	log.Debug().Msg("Refreshing config in cockroachdb.Client")
 	c.config = *config.Database
 	c.manifestPreferences = manifestPreferences
 }
