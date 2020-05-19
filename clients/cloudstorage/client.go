@@ -269,5 +269,5 @@ func (c *client) renameFile(ctx context.Context, bucket *storage.BucketHandle, f
 }
 
 func (c *client) RefreshConfig(config *config.APIConfig) {
-	c.config = *&config.Integrations.CloudStorage
+	c.config = config.Integrations.CloudStorage
 }

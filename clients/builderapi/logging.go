@@ -65,6 +65,6 @@ func (c *loggingClient) GetBuilderConfig(ctx context.Context, params CiBuilderPa
 	return c.Client.GetBuilderConfig(ctx, params, jobName)
 }
 
-func (c *loggingClient) RefreshConfig(config *config.APIConfig) {
-	c.Client.RefreshConfig(config)
+func (c *loggingClient) RefreshConfig(config *config.APIConfig, encryptedConfig *config.APIConfig) {
+	c.Client.RefreshConfig(config, encryptedConfig)
 }

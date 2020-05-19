@@ -230,3 +230,8 @@ func (h *Handler) Handle(c *gin.Context) {
 func (h *Handler) hasValidVerificationToken(slashCommand slackapi.SlashCommand) bool {
 	return slashCommand.Token == h.config.AppVerificationToken
 }
+
+func (h *Handler) RefreshConfig(config *config.APIConfig) {
+	h.config = *config.Integrations.Slack
+	h.apiConfig = *config.APIServer
+}

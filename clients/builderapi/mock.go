@@ -75,5 +75,5 @@ func (c MockClient) GetBuilderConfig(ctx context.Context, params CiBuilderParams
 	return c.GetBuilderConfigFunc(ctx, params, jobName)
 }
 
-func (c MockClient) RefreshConfig(config *config.APIConfig) {
+func (c MockClient) RefreshConfig(config *config.APIConfig, encryptedConfig *config.APIConfig) {
 }

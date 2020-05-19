@@ -417,7 +417,7 @@ func refreshConfig(ctx context.Context, config *config.APIConfig, encryptedConfi
 	pubsubapiClient.RefreshConfig(config, *manifestPreferences)
 	cockroachdbClient.RefreshConfig(config, *manifestPreferences)
 	// dockerhubapiClient.RefreshConfig(config)
-	builderapiClient.RefreshConfig(config)
+	builderapiClient.RefreshConfig(config, encryptedConfig)
 	cloudstorageClient.RefreshConfig(config)
 	prometheusClient.RefreshConfig(config)
 	cloudsourceClient.RefreshConfig(config)
@@ -431,7 +431,7 @@ func refreshConfig(ctx context.Context, config *config.APIConfig, encryptedConfi
 	// githubHandler.RefreshConfig(config)
 	estafetteHandler.RefreshConfig(config, encryptedConfig, *manifestPreferences)
 	// pubsubHandler.RefreshConfig(config)
-	// slackHandler.RefreshConfig(config)
+	slackHandler.RefreshConfig(config)
 	// cloudsourceHandler.RefreshConfig(config)
 
 	authMiddleware.RefreshConfig(config)
