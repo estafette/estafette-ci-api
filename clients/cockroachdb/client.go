@@ -102,7 +102,7 @@ type Client interface {
 	RenameComputedPipelines(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	RenameComputedReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 
-	RefreshConfig(config *config.APIConfig)
+	RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences)
 }
 
 // NewClient returns a new cockroach.Client
@@ -3903,6 +3903,7 @@ func (c *client) mapBuildToPipeline(build *contracts.Build) (pipeline *contracts
 	}
 }
 
-func (c *client) RefreshConfig(config *config.APIConfig) {
+func (c *client) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
 	c.config = *config.Database
+	c.manifestPreferences = manifestPreferences
 }

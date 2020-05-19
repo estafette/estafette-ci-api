@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/opentracing/opentracing-go"
 )
@@ -23,4 +24,8 @@ func (s *tracingService) CreateJobForCloudsourcePush(ctx context.Context, notifi
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return s.Service.CreateJobForCloudSourcePush(ctx, notification)
+}
+
+func (s *tracingService) RefreshConfig(config *config.APIConfig) {
+	s.Service.RefreshConfig(config)
 }

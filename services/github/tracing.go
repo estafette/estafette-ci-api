@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/opentracing/opentracing-go"
 )
@@ -44,4 +45,8 @@ func (s *tracingService) IsWhitelistedInstallation(ctx context.Context, installa
 	defer func() { helpers.FinishSpan(span) }()
 
 	return s.Service.IsWhitelistedInstallation(ctx, installation)
+}
+
+func (s *tracingService) RefreshConfig(config *config.APIConfig) {
+	s.Service.RefreshConfig(config)
 }

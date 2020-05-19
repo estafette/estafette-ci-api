@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/go-kit/kit/metrics"
 )
@@ -25,4 +26,8 @@ func (c *metricsClient) GetUserProfile(ctx context.Context, userID string) (prof
 	}(time.Now())
 
 	return c.Client.GetUserProfile(ctx, userID)
+}
+
+func (c *metricsClient) RefreshConfig(config *config.APIConfig) {
+	c.Client.RefreshConfig(config)
 }

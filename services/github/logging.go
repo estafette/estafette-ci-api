@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 )
 
@@ -39,4 +40,8 @@ func (s *loggingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwn
 
 func (s *loggingService) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) bool {
 	return s.Service.IsWhitelistedInstallation(ctx, installation)
+}
+
+func (s *loggingService) RefreshConfig(config *config.APIConfig) {
+	s.Service.RefreshConfig(config)
 }

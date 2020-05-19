@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 )
 
@@ -23,4 +24,8 @@ func (s *loggingService) CreateJobForCloudSourcePush(ctx context.Context, notifi
 	}()
 
 	return s.Service.CreateJobForCloudSourcePush(ctx, notification)
+}
+
+func (s *loggingService) RefreshConfig(config *config.APIConfig) {
+	s.Service.RefreshConfig(config)
 }

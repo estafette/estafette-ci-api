@@ -108,5 +108,5 @@ func (s MockService) UpdateJobResources(ctx context.Context, event builderapi.Ci
 	return s.UpdateJobResourcesFunc(ctx, event)
 }
 
-func (s MockService) RefreshConfig(config *config.APIConfig) {
+func (s MockService) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
 }

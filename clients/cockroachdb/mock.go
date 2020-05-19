@@ -589,5 +589,5 @@ func (c MockClient) RenameComputedReleases(ctx context.Context, fromRepoSource, 
 	return c.RenameComputedReleasesFunc(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
-func (c MockClient) RefreshConfig(config *config.APIConfig) {
+func (c MockClient) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
 }

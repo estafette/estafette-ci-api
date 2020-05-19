@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/go-kit/kit/metrics"
 )
@@ -26,4 +27,8 @@ func (s *metricsService) CreateJobForCloudSourcePush(ctx context.Context, notifi
 	}(time.Now())
 
 	return s.Service.CreateJobForCloudSourcePush(ctx, notification)
+}
+
+func (s *metricsService) RefreshConfig(config *config.APIConfig) {
+	s.Service.RefreshConfig(config)
 }

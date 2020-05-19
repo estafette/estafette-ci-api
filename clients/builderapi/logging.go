@@ -4,6 +4,7 @@ import (
 	"context"
 
 	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 )
@@ -62,4 +63,8 @@ func (c *loggingClient) GetBuilderConfig(ctx context.Context, params CiBuilderPa
 	defer func() { helpers.HandleLogError(c.prefix, "GetBuilderConfig", err) }()
 
 	return c.Client.GetBuilderConfig(ctx, params, jobName)
+}
+
+func (c *loggingClient) RefreshConfig(config *config.APIConfig) {
+	c.Client.RefreshConfig(config)
 }

@@ -3,6 +3,7 @@ package bitbucketapi
 import (
 	"context"
 
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/opentracing/opentracing-go"
 )
@@ -43,4 +44,8 @@ func (c *tracingClient) JobVarsFunc(ctx context.Context) func(ctx context.Contex
 	defer func() { helpers.FinishSpan(span) }()
 
 	return c.Client.JobVarsFunc(ctx)
+}
+
+func (c *tracingClient) RefreshConfig(config *config.APIConfig) {
+	c.Client.RefreshConfig(config)
 }

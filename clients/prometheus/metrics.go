@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/go-kit/kit/metrics"
 )
@@ -41,4 +42,8 @@ func (c *metricsClient) GetMaxCPUByPodName(ctx context.Context, podName string) 
 	}(time.Now())
 
 	return c.Client.GetMaxCPUByPodName(ctx, podName)
+}
+
+func (c *metricsClient) RefreshConfig(config *config.APIConfig) {
+	c.Client.RefreshConfig(config)
 }

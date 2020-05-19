@@ -34,5 +34,5 @@ func (c MockClient) SubscribeToPubsubTriggers(ctx context.Context, manifestStrin
 	return c.SubscribeToPubsubTriggersFunc(ctx, manifestString)
 }
 
-func (c MockClient) RefreshConfig(config *config.APIConfig) {
+func (c MockClient) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
 }

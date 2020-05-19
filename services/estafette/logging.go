@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
@@ -89,4 +90,8 @@ func (s *loggingService) UpdateJobResources(ctx context.Context, event builderap
 	defer func() { helpers.HandleLogError(s.prefix, "UpdateJobResources", err) }()
 
 	return s.Service.UpdateJobResources(ctx, event)
+}
+
+func (s *loggingService) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
+	s.Service.RefreshConfig(config, manifestPreferences)
 }

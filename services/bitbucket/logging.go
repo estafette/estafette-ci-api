@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 )
 
@@ -29,4 +30,8 @@ func (s *loggingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwn
 	defer func() { helpers.HandleLogError(s.prefix, "Rename", err) }()
 
 	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+func (s *loggingService) RefreshConfig(config *config.APIConfig) {
+	s.Service.RefreshConfig(config)
 }

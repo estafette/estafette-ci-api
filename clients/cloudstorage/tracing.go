@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/opentracing/opentracing-go"
@@ -52,4 +53,8 @@ func (c *tracingClient) Rename(ctx context.Context, fromRepoSource, fromRepoOwne
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+func (c *tracingClient) RefreshConfig(config *config.APIConfig) {
+	c.Client.RefreshConfig(config)
 }

@@ -17,7 +17,7 @@ type Client interface {
 	SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (event *manifest.EstafettePubSubEvent, err error)
 	SubscribeToTopic(ctx context.Context, projectID, topicID string) (err error)
 	SubscribeToPubsubTriggers(ctx context.Context, manifestString string) (err error)
-	RefreshConfig(config *config.APIConfig)
+	RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences)
 }
 
 // NewClient returns a new pubsub.Client
@@ -137,6 +137,7 @@ func (c *client) SubscribeToPubsubTriggers(ctx context.Context, manifestString s
 	return nil
 }
 
-func (c *client) RefreshConfig(config *config.APIConfig) {
+func (c *client) RefreshConfig(config *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
 	c.config = *config.Integrations.Pubsub
+	c.manifestPreferences = manifestPreferences
 }

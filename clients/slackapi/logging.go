@@ -3,6 +3,7 @@ package slackapi
 import (
 	"context"
 
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 )
 
@@ -20,4 +21,8 @@ func (c *loggingClient) GetUserProfile(ctx context.Context, userID string) (prof
 	defer func() { helpers.HandleLogError(c.prefix, "GetUserProfile", err) }()
 
 	return c.Client.GetUserProfile(ctx, userID)
+}
+
+func (c *loggingClient) RefreshConfig(config *config.APIConfig) {
+	c.Client.RefreshConfig(config)
 }

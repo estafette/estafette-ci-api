@@ -4,6 +4,7 @@ import (
 	"context"
 
 	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/opentracing/opentracing-go"
@@ -73,4 +74,8 @@ func (c *tracingClient) GetBuilderConfig(ctx context.Context, params CiBuilderPa
 	defer func() { helpers.FinishSpan(span) }()
 
 	return c.Client.GetBuilderConfig(ctx, params, jobName)
+}
+
+func (c *tracingClient) RefreshConfig(config *config.APIConfig) {
+	c.Client.RefreshConfig(config)
 }

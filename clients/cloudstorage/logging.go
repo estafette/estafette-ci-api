@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 )
@@ -46,4 +47,8 @@ func (c *loggingClient) Rename(ctx context.Context, fromRepoSource, fromRepoOwne
 	defer func() { helpers.HandleLogError(c.prefix, "Rename", err) }()
 
 	return c.Client.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+func (c *loggingClient) RefreshConfig(config *config.APIConfig) {
+	c.Client.RefreshConfig(config)
 }
