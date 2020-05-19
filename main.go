@@ -127,8 +127,19 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		log.Info().Msgf("Configmap at %v was updated, refreshing instances...", *configFilePath)
 
 		// refresh config
-		config, encryptedConfig, secretHelper = getConfig(ctx)
-		bqClient, pubsubClient, gcsClient, sourcerepoTokenSource, sourcerepoService = getGoogleCloudClients(ctx, config)
+		newConfig, newEncryptedConfig, _ := getConfig(ctx)
+
+		*config = *newConfig
+		*encryptedConfig = *newEncryptedConfig
+
+		// refresh google cloud clients
+		newBqClient, newPubsubClient, newGcsClient, newSourcerepoTokenSource, newSourcerepoService := getGoogleCloudClients(ctx, config)
+
+		*bqClient = *newBqClient
+		*pubsubClient = *newPubsubClient
+		*gcsClient = *newGcsClient
+		sourcerepoTokenSource = newSourcerepoTokenSource
+		*sourcerepoService = *newSourcerepoService
 	})
 
 	// watch for service account key file changes
@@ -136,7 +147,13 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 		log.Info().Msg("Service account key file was updated, refreshing instances...")
 
 		// refresh google cloud clients
-		bqClient, pubsubClient, gcsClient, sourcerepoTokenSource, sourcerepoService = getGoogleCloudClients(ctx, config)
+		newBqClient, newPubsubClient, newGcsClient, newSourcerepoTokenSource, newSourcerepoService := getGoogleCloudClients(ctx, config)
+
+		*bqClient = *newBqClient
+		*pubsubClient = *newPubsubClient
+		*gcsClient = *newGcsClient
+		sourcerepoTokenSource = newSourcerepoTokenSource
+		*sourcerepoService = *newSourcerepoService
 	})
 
 	return srv
@@ -381,7 +398,7 @@ func getHandlers(ctx context.Context, config *config.APIConfig, encryptedConfig 
 	githubHandler = github.NewHandler(githubService)
 	estafetteHandler = estafette.NewHandler(*configFilePath, config, encryptedConfig, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
 	pubsubHandler = pubsub.NewHandler(pubsubapiClient, estafetteService)
-	slackHandler = slack.NewHandler(secretHelper, config, slackapiClient, cockroachdbClient, *config.APIServer, estafetteService, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+	slackHandler = slack.NewHandler(secretHelper, config, slackapiClient, cockroachdbClient, estafetteService, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
 	cloudsourceHandler = cloudsource.NewHandler(pubsubapiClient, cloudsourceService)
 
 	return
