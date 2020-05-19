@@ -23,6 +23,7 @@ type Service interface {
 	CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	IsWhitelistedOwner(repository bitbucketapi.Repository) (isWhiteListed bool)
+	RefreshConfig(config *config.APIConfig)
 }
 
 // NewService returns a new bitbucket.Service
@@ -149,4 +150,8 @@ func (s *service) IsWhitelistedOwner(repository bitbucketapi.Repository) (isWhit
 	}
 
 	return false
+}
+
+func (s *service) RefreshConfig(config *config.APIConfig) {
+	s.config = *config.Integrations.Bitbucket
 }

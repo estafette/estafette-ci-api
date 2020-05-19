@@ -19,6 +19,7 @@ type Client interface {
 	UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) (err error)
 	InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) (err error)
 	InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) (err error)
+	RefreshConfig(config *config.APIConfig)
 }
 
 // NewClient returns new bigquery.Client
@@ -211,4 +212,8 @@ func (c *client) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEv
 	}
 
 	return nil
+}
+
+func (c *client) RefreshConfig(config *config.APIConfig) {
+	c.config = config.Integrations.BigQuery
 }

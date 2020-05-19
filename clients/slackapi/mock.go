@@ -2,6 +2,8 @@ package slackapi
 
 import (
 	"context"
+
+	"github.com/estafette/estafette-ci-api/config"
 )
 
 type MockClient struct {
@@ -13,4 +15,7 @@ func (c MockClient) GetUserProfile(ctx context.Context, userID string) (profile 
 		return
 	}
 	return c.GetUserProfileFunc(ctx, userID)
+}
+
+func (c MockClient) RefreshConfig(config *config.APIConfig) {
 }

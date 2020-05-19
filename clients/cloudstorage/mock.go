@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
 )
 
@@ -48,4 +49,7 @@ func (c MockClient) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, f
 		return
 	}
 	return c.RenameFunc(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+func (c MockClient) RefreshConfig(config *config.APIConfig) {
 }

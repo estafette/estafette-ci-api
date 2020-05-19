@@ -4,7 +4,7 @@ builder:
 labels:
   type: service
   app-group: estafette-ci
-  team: estafette-team
+  team: estafette
   language: golang
 
 version:

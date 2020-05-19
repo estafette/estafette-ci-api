@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
@@ -586,4 +587,7 @@ func (c MockClient) RenameComputedReleases(ctx context.Context, fromRepoSource, 
 		return
 	}
 	return c.RenameComputedReleasesFunc(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+func (c MockClient) RefreshConfig(config *config.APIConfig) {
 }

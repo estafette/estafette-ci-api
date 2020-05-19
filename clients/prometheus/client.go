@@ -21,6 +21,7 @@ type Client interface {
 	AwaitScrapeInterval(ctx context.Context)
 	GetMaxMemoryByPodName(ctx context.Context, podName string) (max float64, err error)
 	GetMaxCPUByPodName(ctx context.Context, podName string) (max float64, err error)
+	RefreshConfig(config *config.APIConfig)
 }
 
 // NewClient creates an prometheus.Client to communicate with Prometheus
@@ -105,4 +106,8 @@ func (c *client) getQueryResult(query string) (float64, error) {
 	}
 
 	return f, nil
+}
+
+func (c *client) RefreshConfig(config *config.APIConfig) {
+	c.config = *config.Integrations.Prometheus
 }

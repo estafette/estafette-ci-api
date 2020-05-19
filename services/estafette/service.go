@@ -43,6 +43,7 @@ type Service interface {
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 	UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
+	RefreshConfig(config *config.APIConfig)
 }
 
 // NewService returns a new estafette.Service
@@ -1245,4 +1246,9 @@ func (s *service) supportsBuildStatus(repoSource string) bool {
 	}
 
 	return false
+}
+
+func (s *service) RefreshConfig(config *config.APIConfig) {
+	s.jobsConfig = *config.Jobs
+	s.apiServerConfig = *config.APIServer
 }

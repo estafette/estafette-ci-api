@@ -2,6 +2,8 @@ package dockerhubapi
 
 import (
 	"context"
+
+	"github.com/estafette/estafette-ci-api/config"
 )
 
 type MockClient struct {
@@ -29,4 +31,7 @@ func (c MockClient) GetDigestCached(ctx context.Context, repository string, tag 
 		return
 	}
 	return c.GetDigestCachedFunc(ctx, repository, tag)
+}
+
+func (c MockClient) RefreshConfig(config *config.APIConfig) {
 }

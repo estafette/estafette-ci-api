@@ -28,6 +28,7 @@ type Service interface {
 	HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (validSignature bool, err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool)
+	RefreshConfig(config *config.APIConfig)
 }
 
 // NewService returns a github.Service to handle incoming webhook events
@@ -180,4 +181,8 @@ func (s *service) IsWhitelistedInstallation(ctx context.Context, installation gi
 	}
 
 	return false
+}
+
+func (s *service) RefreshConfig(config *config.APIConfig) {
+	s.config = *config.Integrations.Github
 }

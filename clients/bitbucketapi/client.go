@@ -24,6 +24,7 @@ type Client interface {
 	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error)
 	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error)
+	RefreshConfig(config *config.APIConfig)
 }
 
 // NewClient returns a new bitbucket.Client
@@ -171,4 +172,8 @@ func (c *client) JobVarsFunc(ctx context.Context) func(ctx context.Context, repo
 
 		return accessToken.AccessToken, url, nil
 	}
+}
+
+func (c *client) RefreshConfig(config *config.APIConfig) {
+	c.config = *config.Integrations.Bitbucket
 }

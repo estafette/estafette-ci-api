@@ -3,6 +3,7 @@ package pubsubapi
 import (
 	"context"
 
+	"github.com/estafette/estafette-ci-api/config"
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
 
@@ -31,4 +32,7 @@ func (c MockClient) SubscribeToPubsubTriggers(ctx context.Context, manifestStrin
 		return
 	}
 	return c.SubscribeToPubsubTriggersFunc(ctx, manifestString)
+}
+
+func (c MockClient) RefreshConfig(config *config.APIConfig) {
 }

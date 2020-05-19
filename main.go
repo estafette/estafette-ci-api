@@ -25,6 +25,10 @@ import (
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	jprom "github.com/uber/jaeger-lib/metrics/prometheus"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/sourcerepo/v1"
+	stdsourcerepo "google.golang.org/api/sourcerepo/v1"
 
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/config"
@@ -111,7 +115,11 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 
 	ctx := context.Background()
 
-	config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler, cloudsourceHandler := getInstances(ctx)
+	config, encryptedConfig, manifestPreferences, secretHelper := getConfig(ctx)
+	bqClient, pubsubClient, gcsClient, sourcerepoTokenSource, sourcerepoService := getGoogleCloudClients(ctx, config)
+	bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient := getClients(ctx, config, encryptedConfig, manifestPreferences, secretHelper, bqClient, pubsubClient, gcsClient, sourcerepoTokenSource, sourcerepoService)
+	estafetteService, githubService, bitbucketService, cloudsourceService := getServices(ctx, config, encryptedConfig, manifestPreferences, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient)
+	bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler, cloudsourceHandler := getHandlers(ctx, config, encryptedConfig, manifestPreferences, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient, estafetteService, githubService, bitbucketService, cloudsourceService)
 
 	srv := configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler, cloudsourceHandler)
 
@@ -119,22 +127,23 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	foundation.WatchForFileChanges(*configFilePath, func(event fsnotify.Event) {
 		log.Info().Msgf("Configmap at %v was updated, refreshing instances...", *configFilePath)
 
-		// refresh instances
-		config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler, cloudsourceHandler = getInstances(ctx)
+		// refresh config
+		config, encryptedConfig, manifestPreferences, secretHelper := getConfig(ctx)
+		refreshConfig(ctx, config, encryptedConfig, manifestPreferences, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient, estafetteService, githubService, bitbucketService, cloudsourceService, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler, cloudsourceHandler)
 	})
 
 	// watch for service account key file changes
 	foundation.WatchForFileChanges(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), func(event fsnotify.Event) {
 		log.Info().Msg("Service account key file was updated, refreshing instances...")
 
-		// refresh instances
-		config, bitbucketHandler, githubHandler, estafetteHandler, pubsubHandler, slackHandler, cloudsourceHandler = getInstances(ctx)
+		// refresh google cloud clients
+		bqClient, pubsubClient, gcsClient, sourcerepoTokenSource, sourcerepoService = getGoogleCloudClients(ctx, config)
 	})
 
 	return srv
 }
 
-func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *github.Handler, *estafette.Handler, *pubsub.Handler, *slack.Handler, *cloudsource.Handler) {
+func getConfig(ctx context.Context) (*config.APIConfig, *config.APIConfig, *manifest.EstafetteManifestPreferences, crypt.SecretHelper) {
 
 	// read decryption key from secretDecryptionKeyPath
 	if !foundation.FileExists(*secretDecryptionKeyPath) {
@@ -149,7 +158,6 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 	log.Debug().Msg("Creating helpers...")
 
 	secretHelper := crypt.NewSecretHelper(string(secretDecryptionKeyBytes), false)
-	warningHelper := helpers.NewWarningHelper(secretHelper)
 
 	log.Debug().Msg("Creating config reader...")
 
@@ -170,14 +178,45 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		manifestPreferences = config.ManifestPreferences
 	}
 
+	return config, encryptedConfig, manifestPreferences, secretHelper
+}
+
+func getGoogleCloudClients(ctx context.Context, config *config.APIConfig) (*stdbigquery.Client, *stdpubsub.Client, *stdstorage.Client, oauth2.TokenSource, *stdsourcerepo.Service) {
+
+	log.Debug().Msg("Creating Google Cloud clients...")
+
+	bqClient, err := stdbigquery.NewClient(ctx, config.Integrations.BigQuery.ProjectID)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating new BigQueryClient has failed")
+	}
+
+	pubsubClient, err := stdpubsub.NewClient(ctx, config.Integrations.Pubsub.DefaultProject)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating google pubsub client has failed")
+	}
+
+	gcsClient, err := stdstorage.NewClient(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating google cloud storage client has failed")
+	}
+
+	tokenSource, err := google.DefaultTokenSource(ctx, sourcerepo.CloudPlatformScope)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating google cloud token source has failed")
+	}
+	sourcerepoService, err := stdsourcerepo.New(oauth2.NewClient(ctx, tokenSource))
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating google cloud source repo service has failed")
+	}
+
+	return bqClient, pubsubClient, gcsClient, tokenSource, sourcerepoService
+}
+
+func getClients(ctx context.Context, config *config.APIConfig, encryptedConfig *config.APIConfig, manifestPreferences *manifest.EstafetteManifestPreferences, secretHelper crypt.SecretHelper, bqClient *stdbigquery.Client, pubsubClient *stdpubsub.Client, gcsClient *stdstorage.Client, sourcerepoTokenSource oauth2.TokenSource, sourcerepoService *stdsourcerepo.Service) (bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client) {
+
 	log.Debug().Msg("Creating clients...")
 
-	var bigqueryClient bigquery.Client
 	{
-		bqClient, err := stdbigquery.NewClient(ctx, config.Integrations.BigQuery.ProjectID)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Creating new BigQueryClient has failed")
-		}
 		bigqueryClient = bigquery.NewClient(config.Integrations.BigQuery, bqClient)
 		bigqueryClient = bigquery.NewTracingClient(bigqueryClient)
 		bigqueryClient = bigquery.NewLoggingClient(bigqueryClient)
@@ -186,12 +225,11 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 			helpers.NewRequestHistogram("bigquery_client"),
 		)
 	}
-	err = bigqueryClient.Init(ctx)
+	err := bigqueryClient.Init(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Initializing BigQuery tables has failed")
 	}
 
-	var bitbucketapiClient bitbucketapi.Client
 	{
 		bitbucketapiClient = bitbucketapi.NewClient(*config.Integrations.Bitbucket)
 		bitbucketapiClient = bitbucketapi.NewTracingClient(bitbucketapiClient)
@@ -202,7 +240,6 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		)
 	}
 
-	var githubapiClient githubapi.Client
 	{
 		githubapiClient = githubapi.NewClient(*config.Integrations.Github)
 		githubapiClient = githubapi.NewTracingClient(githubapiClient)
@@ -213,7 +250,6 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		)
 	}
 
-	var slackapiClient slackapi.Client
 	{
 		slackapiClient = slackapi.NewClient(*config.Integrations.Slack)
 		slackapiClient = slackapi.NewTracingClient(slackapiClient)
@@ -224,12 +260,7 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		)
 	}
 
-	var pubsubapiClient pubsubapi.Client
 	{
-		pubsubClient, err := stdpubsub.NewClient(ctx, config.Integrations.Pubsub.DefaultProject)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Creating google pubsub client has failed")
-		}
 		pubsubapiClient = pubsubapi.NewClient(*config.Integrations.Pubsub, *manifestPreferences, pubsubClient)
 		pubsubapiClient = pubsubapi.NewTracingClient(pubsubapiClient)
 		pubsubapiClient = pubsubapi.NewLoggingClient(pubsubapiClient)
@@ -239,7 +270,6 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		)
 	}
 
-	var cockroachdbClient cockroachdb.Client
 	{
 		cockroachdbClient = cockroachdb.NewClient(*config.Database, *manifestPreferences)
 		cockroachdbClient = cockroachdb.NewTracingClient(cockroachdbClient)
@@ -254,7 +284,6 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		log.Fatal().Err(err).Msg("Failed connecting to CockroachDB")
 	}
 
-	var dockerhubapiClient dockerhubapi.Client
 	{
 		dockerhubapiClient = dockerhubapi.NewClient()
 		dockerhubapiClient = dockerhubapi.NewTracingClient(dockerhubapiClient)
@@ -265,7 +294,6 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		)
 	}
 
-	var builderapiClient builderapi.Client
 	{
 		kubeClient, err := k8s.NewInClusterClient()
 		if err != nil {
@@ -280,12 +308,7 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		)
 	}
 
-	var cloudstorageClient cloudstorage.Client
 	{
-		gcsClient, err := stdstorage.NewClient(ctx)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Creating google cloud storage client has failed")
-		}
 		cloudstorageClient = cloudstorage.NewClient(config.Integrations.CloudStorage, gcsClient)
 		cloudstorageClient = cloudstorage.NewTracingClient(cloudstorageClient)
 		cloudstorageClient = cloudstorage.NewLoggingClient(cloudstorageClient)
@@ -295,7 +318,6 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		)
 	}
 
-	var prometheusClient prometheus.Client
 	{
 		prometheusClient = prometheus.NewClient(*config.Integrations.Prometheus)
 		prometheusClient = prometheus.NewTracingClient(prometheusClient)
@@ -306,10 +328,8 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		)
 	}
 
-	var cloudsourceClient cloudsourceapi.Client
 	{
-
-		cloudsourceClient, err = cloudsourceapi.NewClient(*config.Integrations.CloudSource)
+		cloudsourceClient, err = cloudsourceapi.NewClient(*config.Integrations.CloudSource, sourcerepoTokenSource, sourcerepoService)
 		if err != nil {
 			log.Error().Err(err).Msg("Creating new client for Cloud Source has failed")
 		}
@@ -319,12 +339,15 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 			helpers.NewRequestCounter("cloudsource_client"),
 			helpers.NewRequestHistogram("cloudsource_client"),
 		)
-
 	}
+
+	return
+}
+
+func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig *config.APIConfig, manifestPreferences *manifest.EstafetteManifestPreferences, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client) (estafetteService estafette.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service) {
 
 	log.Debug().Msg("Creating services...")
 
-	var estafetteService estafette.Service
 	{
 		estafetteService = estafette.NewService(*config.Jobs, *config.APIServer, *manifestPreferences, cockroachdbClient, prometheusClient, cloudstorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
 		estafetteService = estafette.NewTracingService(estafetteService)
@@ -335,7 +358,6 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		)
 	}
 
-	var githubService github.Service
 	{
 		githubService = github.NewService(*config.Integrations.Github, githubapiClient, pubsubapiClient, estafetteService)
 		githubService = github.NewTracingService(githubService)
@@ -346,7 +368,6 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		)
 	}
 
-	var bitbucketService bitbucket.Service
 	{
 		bitbucketService = bitbucket.NewService(*config.Integrations.Bitbucket, bitbucketapiClient, pubsubapiClient, estafetteService)
 		bitbucketService = bitbucket.NewTracingService(bitbucketService)
@@ -357,7 +378,6 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		)
 	}
 
-	var cloudsourceService cloudsource.Service
 	{
 		cloudsourceService = cloudsource.NewService(*config.Integrations.CloudSource, cloudsourceClient, pubsubapiClient, estafetteService)
 		cloudsourceService = cloudsource.NewTracingService(cloudsourceService)
@@ -368,18 +388,54 @@ func getInstances(ctx context.Context) (*config.APIConfig, *bitbucket.Handler, *
 		)
 	}
 
-	// transport
-	bitbucketHandler := bitbucket.NewHandler(bitbucketService)
-	githubHandler := github.NewHandler(githubService)
-	estafetteHandler := estafette.NewHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, config.Catalog, *manifestPreferences, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
-	pubsubHandler := pubsub.NewHandler(pubsubapiClient, estafetteService)
-	slackHandler := slack.NewHandler(secretHelper, *config.Integrations.Slack, slackapiClient, cockroachdbClient, *config.APIServer, estafetteService, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
-	cloudsourceHandler := cloudsource.NewHandler(pubsubapiClient, cloudsourceService)
-
-	return config, &bitbucketHandler, &githubHandler, &estafetteHandler, &pubsubHandler, &slackHandler, &cloudsourceHandler
+	return
 }
 
-func configureGinGonic(config *config.APIConfig, bitbucketHandler *bitbucket.Handler, githubHandler *github.Handler, estafetteHandler *estafette.Handler, pubsubHandler *pubsub.Handler, slackHandler *slack.Handler, cloudsourceHandler *cloudsource.Handler) *http.Server {
+func getHandlers(ctx context.Context, config *config.APIConfig, encryptedConfig *config.APIConfig, manifestPreferences *manifest.EstafetteManifestPreferences, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client, estafetteService estafette.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service) (bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler) {
+
+	log.Debug().Msg("Creating http handlers...")
+
+	warningHelper := helpers.NewWarningHelper(secretHelper)
+
+	// transport
+	bitbucketHandler = bitbucket.NewHandler(bitbucketService)
+	githubHandler = github.NewHandler(githubService)
+	estafetteHandler = estafette.NewHandler(*configFilePath, *config.APIServer, *config.Auth, *encryptedConfig, config.Catalog, *manifestPreferences, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
+	pubsubHandler = pubsub.NewHandler(pubsubapiClient, estafetteService)
+	slackHandler = slack.NewHandler(secretHelper, *config.Integrations.Slack, slackapiClient, cockroachdbClient, *config.APIServer, estafetteService, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+	cloudsourceHandler = cloudsource.NewHandler(pubsubapiClient, cloudsourceService)
+
+	return
+}
+
+func refreshConfig(ctx context.Context, config *config.APIConfig, encryptedConfig *config.APIConfig, manifestPreferences *manifest.EstafetteManifestPreferences, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client, estafetteService estafette.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service, bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler) {
+
+	bigqueryClient.RefreshConfig(config)
+	bitbucketapiClient.RefreshConfig(config)
+	githubapiClient.RefreshConfig(config)
+	slackapiClient.RefreshConfig(config)
+	pubsubapiClient.RefreshConfig(config)
+	cockroachdbClient.RefreshConfig(config)
+	// dockerhubapiClient.RefreshConfig(config)
+	builderapiClient.RefreshConfig(config)
+	cloudstorageClient.RefreshConfig(config)
+	prometheusClient.RefreshConfig(config)
+	cloudsourceClient.RefreshConfig(config)
+
+	estafetteService.RefreshConfig(config)
+	githubService.RefreshConfig(config)
+	bitbucketService.RefreshConfig(config)
+	cloudsourceService.RefreshConfig(config)
+
+	// bitbucketHandler.RefreshConfig(config)
+	// githubHandler.RefreshConfig(config)
+	estafetteHandler.RefreshConfig(config, encryptedConfig, *manifestPreferences)
+	// pubsubHandler.RefreshConfig(config)
+	// slackHandler.RefreshConfig(config)
+	// cloudsourceHandler.RefreshConfig(config)
+}
+
+func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler) *http.Server {
 
 	// run gin in release mode and other defaults
 	gin.SetMode(gin.ReleaseMode)

@@ -17,6 +17,7 @@ import (
 // Client is the interface for communicating with the Slack api
 type Client interface {
 	GetUserProfile(ctx context.Context, userID string) (profile *UserProfile, err error)
+	RefreshConfig(config *config.APIConfig)
 }
 
 // NewClient returns a slack.Client to communicate with the Slack API
@@ -83,4 +84,8 @@ func (c *client) GetUserProfile(ctx context.Context, userID string) (profile *Us
 	}
 
 	return profileResponse.Profile, nil
+}
+
+func (c *client) RefreshConfig(config *config.APIConfig) {
+	c.config = *config.Integrations.Slack
 }

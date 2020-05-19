@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
+	"github.com/estafette/estafette-ci-api/config"
 )
 
 type MockService struct {
@@ -31,4 +32,7 @@ func (s MockService) IsWhitelistedOwner(repository bitbucketapi.Repository) (isW
 		return
 	}
 	return s.IsWhitelistedOwnerFunc(repository)
+}
+
+func (s MockService) RefreshConfig(config *config.APIConfig) {
 }

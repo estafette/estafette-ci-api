@@ -28,6 +28,7 @@ type Client interface {
 	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (valid bool, manifest string, err error)
 	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error)
+	RefreshConfig(config *config.APIConfig)
 }
 
 // NewClient creates an githubapi.Client to communicate with the Github api
@@ -273,4 +274,8 @@ func (c *client) callGithubAPI(ctx context.Context, method, url string, params i
 	}
 
 	return
+}
+
+func (c *client) RefreshConfig(config *config.APIConfig) {
+	c.config = *config.Integrations.Github
 }

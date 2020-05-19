@@ -3,12 +3,17 @@ package cloudsourceapi
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	sourcerepo "google.golang.org/api/sourcerepo/v1"
+	stdsourcerepo "google.golang.org/api/sourcerepo/v1"
 )
 
 func TestGetToken(t *testing.T) {
@@ -20,7 +25,8 @@ func TestGetToken(t *testing.T) {
 				"estafette",
 			},
 		}
-		client, err := NewClient(cloudSourceConfig)
+		tokenSource, service := getTokenSourceAndService()
+		client, err := NewClient(cloudSourceConfig, tokenSource, service)
 		assert.Nil(t, err)
 
 		// act
@@ -40,7 +46,8 @@ func TestGetAuthenticatedRepositoryURL(t *testing.T) {
 				"estafette",
 			},
 		}
-		client, err := NewClient(cloudSourceConfig)
+		tokenSource, service := getTokenSourceAndService()
+		client, err := NewClient(cloudSourceConfig, tokenSource, service)
 		assert.Nil(t, err)
 
 		// act
@@ -83,7 +90,8 @@ func TestGetEstafetteManifest(t *testing.T) {
 				"estafette",
 			},
 		}
-		client, err := NewClient(cloudSourceConfig)
+		tokenSource, service := getTokenSourceAndService()
+		client, err := NewClient(cloudSourceConfig, tokenSource, service)
 		assert.Nil(t, err)
 
 		ctx := context.Background()
@@ -111,7 +119,8 @@ func TestGetEstafetteManifest(t *testing.T) {
 				"estafette",
 			},
 		}
-		client, err := NewClient(cloudSourceConfig)
+		tokenSource, service := getTokenSourceAndService()
+		client, err := NewClient(cloudSourceConfig, tokenSource, service)
 		assert.Nil(t, err)
 
 		ctx := context.Background()
@@ -140,4 +149,18 @@ func TestGetEstafetteManifest(t *testing.T) {
 		assert.NotEmpty(t, manifest)
 		assert.Nil(t, err)
 	})
+}
+
+func getTokenSourceAndService() (oauth2.TokenSource, *sourcerepo.Service) {
+	ctx := context.Background()
+	tokenSource, err := google.DefaultTokenSource(ctx, sourcerepo.CloudPlatformScope)
+	if err != nil {
+		log.Fatal("Creating google cloud token source has failed")
+	}
+	sourcerepoService, err := stdsourcerepo.New(oauth2.NewClient(ctx, tokenSource))
+	if err != nil {
+		log.Fatal("Creating google cloud source repo service has failed")
+	}
+
+	return tokenSource, sourcerepoService
 }

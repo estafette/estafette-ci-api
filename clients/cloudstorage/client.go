@@ -31,6 +31,7 @@ type Client interface {
 	GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error)
 	GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
+	RefreshConfig(config *config.APIConfig)
 }
 
 // NewClient returns new cloudstorage.Client
@@ -265,4 +266,8 @@ func (c *client) renameFile(ctx context.Context, bucket *storage.BucketHandle, f
 	}
 
 	return nil
+}
+
+func (c *client) RefreshConfig(config *config.APIConfig) {
+	c.config = *&config.Integrations.CloudStorage
 }

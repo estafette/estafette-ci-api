@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
+	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
@@ -105,4 +106,7 @@ func (s MockService) UpdateJobResources(ctx context.Context, event builderapi.Ci
 		return
 	}
 	return s.UpdateJobResourcesFunc(ctx, event)
+}
+
+func (s MockService) RefreshConfig(config *config.APIConfig) {
 }

@@ -1,6 +1,10 @@
 package bigquery
 
-import "context"
+import (
+	"context"
+
+	"github.com/estafette/estafette-ci-api/config"
+)
 
 type MockClient struct {
 	InitFunc                 func(ctx context.Context) (err error)
@@ -59,4 +63,7 @@ func (c MockClient) InsertReleaseEvent(ctx context.Context, event PipelineReleas
 		return
 	}
 	return c.InsertReleaseEventFunc(ctx, event)
+}
+
+func (c MockClient) RefreshConfig(config *config.APIConfig) {
 }

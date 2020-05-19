@@ -36,6 +36,7 @@ type Client interface {
 	TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error)
 	GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) (jobname string)
 	GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) (config contracts.BuilderConfig, err error)
+	RefreshConfig(config *config.APIConfig)
 }
 
 // NewClient returns a new estafette.Client
@@ -56,6 +57,10 @@ type client struct {
 	config          config.APIConfig
 	encryptedConfig config.APIConfig
 	secretHelper    crypt.SecretHelper
+}
+
+func (c *client) RefreshConfig(config *config.APIConfig) {
+	c.config = *config
 }
 
 // CreateCiBuilderJob creates an estafette-ci-builder job in Kubernetes to run the estafette build

@@ -31,6 +31,10 @@ func NewAuthMiddleware(config *config.AuthConfig) (authMiddleware Middleware) {
 	return
 }
 
+func (m *authMiddlewareImpl) RefreshConfig(config *config.APIConfig) {
+	m.config = config.Auth
+}
+
 func (m *authMiddlewareImpl) APIKeyMiddlewareFunc() gin.HandlerFunc {
 	return func(c *gin.Context) {
 

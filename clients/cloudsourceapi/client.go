@@ -10,7 +10,6 @@ import (
 
 	"github.com/estafette/estafette-ci-api/config"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 	sourcerepo "google.golang.org/api/sourcerepo/v1"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -22,21 +21,11 @@ type Client interface {
 	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, notification PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error)
 	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error)
+	RefreshConfig(config *config.APIConfig)
 }
 
 // NewClient creates an cloudsource.Client to communicate with the Google Cloud Source Repository api
-func NewClient(config config.CloudSourceConfig) (Client, error) {
-
-	ctx := context.Background()
-	tokenSource, err := google.DefaultTokenSource(ctx, sourcerepo.CloudPlatformScope)
-	if err != nil {
-		return nil, err
-	}
-
-	sourcerepoService, err := sourcerepo.New(oauth2.NewClient(ctx, tokenSource))
-	if err != nil {
-		return nil, err
-	}
+func NewClient(config config.CloudSourceConfig, tokenSource oauth2.TokenSource, sourcerepoService *sourcerepo.Service) (Client, error) {
 
 	return &client{
 		service:     sourcerepoService,
@@ -154,4 +143,8 @@ func (c *client) gitClone(dir, gitUrl, repoRefName string) error {
 	})
 
 	return err
+}
+
+func (c *client) RefreshConfig(config *config.APIConfig) {
+	c.config = *config.Integrations.CloudSource
 }

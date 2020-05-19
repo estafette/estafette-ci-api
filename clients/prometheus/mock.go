@@ -2,6 +2,8 @@ package prometheus
 
 import (
 	"context"
+
+	"github.com/estafette/estafette-ci-api/config"
 )
 
 type MockClient struct {
@@ -29,4 +31,7 @@ func (c MockClient) GetMaxCPUByPodName(ctx context.Context, podName string) (max
 		return
 	}
 	return c.GetMaxCPUByPodNameFunc(ctx, podName)
+}
+
+func (c MockClient) RefreshConfig(config *config.APIConfig) {
 }

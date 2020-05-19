@@ -2138,3 +2138,11 @@ func (h *Handler) Commands(c *gin.Context) {
 
 	c.String(http.StatusOK, "Aye aye!")
 }
+
+func (h *Handler) RefreshConfig(config *config.APIConfig, encryptedConfig *config.APIConfig, manifestPreferences manifest.EstafetteManifestPreferences) {
+	h.config = *config.APIServer
+	h.authConfig = *config.Auth
+	h.encryptedConfig = *encryptedConfig
+	h.catalogConfig = config.Catalog
+	h.manifestPreferences = manifestPreferences
+}

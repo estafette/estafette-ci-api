@@ -22,6 +22,7 @@ var (
 type Service interface {
 	CreateJobForCloudSourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error)
 	IsWhitelistedProject(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool)
+	RefreshConfig(config *config.APIConfig)
 }
 
 // NewService returns a new bitbucket.Service
@@ -147,4 +148,8 @@ func (s *service) IsWhitelistedProject(notification cloudsourceapi.PubSubNotific
 	}
 
 	return false
+}
+
+func (s *service) RefreshConfig(config *config.APIConfig) {
+	s.config = *config.Integrations.CloudSource
 }

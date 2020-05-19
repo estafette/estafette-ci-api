@@ -4,6 +4,7 @@ import (
 	"context"
 
 	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
+	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
 )
 
@@ -72,4 +73,7 @@ func (c MockClient) GetBuilderConfig(ctx context.Context, params CiBuilderParams
 		return contracts.BuilderConfig{}, nil
 	}
 	return c.GetBuilderConfigFunc(ctx, params, jobName)
+}
+
+func (c MockClient) RefreshConfig(config *config.APIConfig) {
 }
