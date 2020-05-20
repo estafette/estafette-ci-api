@@ -40,6 +40,7 @@ type Client interface {
 	UpsertComputedRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error)
 	UpdateComputedReleaseFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error)
 	ArchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
+	UnarchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 
 	GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error)
 	GetPipelinesByRepoName(ctx context.Context, repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error)
@@ -1109,6 +1110,7 @@ func (c *client) ArchiveComputedPipeline(ctx context.Context, repoSource, repoOw
 		Where(sq.Eq{"repo_source": repoSource}).
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
+		Where(sq.Eq{"archived": false}).
 		Limit(uint64(1))
 
 	_, err = query.RunWith(c.databaseConnection).Exec()
@@ -1119,6 +1121,26 @@ func (c *client) ArchiveComputedPipeline(ctx context.Context, repoSource, repoOw
 	return nil
 }
 
+func (c *client) UnarchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("computed_pipelines").
+		Set("archived", false).
+		Where(sq.Eq{"repo_source": repoSource}).
+		Where(sq.Eq{"repo_owner": repoOwner}).
+		Where(sq.Eq{"repo_name": repoName}).
+		Where(sq.Eq{"archived": true}).
+		Limit(uint64(1))
+
+	_, err = query.RunWith(c.databaseConnection).Exec()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 func (c *client) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 
 	// generate query

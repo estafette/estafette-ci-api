@@ -143,6 +143,14 @@ func (c *metricsClient) ArchiveComputedPipeline(ctx context.Context, repoSource,
 	return c.Client.ArchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
 }
 
+func (c *metricsClient) UnarchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "UnarchiveComputedPipeline", begin)
+	}(time.Now())
+
+	return c.Client.UnarchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
+}
+
 func (c *metricsClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 	defer func(begin time.Time) { helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelines", begin) }(time.Now())
 

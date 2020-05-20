@@ -124,13 +124,41 @@ func (h *Handler) Handle(c *gin.Context) {
 			return
 		}
 
-		if repositoryEvent.IsValidRenameEvent() {
-			log.Info().Msgf("Renaming repository from %v/%v/%v to %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetOldRepoOwner(), repositoryEvent.GetOldRepoName(), repositoryEvent.GetRepoSource(), repositoryEvent.GetNewRepoOwner(), repositoryEvent.GetNewRepoName())
-			err = h.service.Rename(c.Request.Context(), repositoryEvent.GetRepoSource(), repositoryEvent.GetOldRepoOwner(), repositoryEvent.GetOldRepoName(), repositoryEvent.GetRepoSource(), repositoryEvent.GetNewRepoOwner(), repositoryEvent.GetNewRepoName())
+		switch repositoryEvent.Action {
+		case "renamed":
+			if repositoryEvent.IsValidRenameEvent() {
+				log.Info().Msgf("Renaming repository from %v/%v/%v to %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetOldRepoOwner(), repositoryEvent.GetOldRepoName(), repositoryEvent.GetRepoSource(), repositoryEvent.GetNewRepoOwner(), repositoryEvent.GetNewRepoName())
+				err = h.service.Rename(c.Request.Context(), repositoryEvent.GetRepoSource(), repositoryEvent.GetOldRepoOwner(), repositoryEvent.GetOldRepoName(), repositoryEvent.GetRepoSource(), repositoryEvent.GetNewRepoOwner(), repositoryEvent.GetNewRepoName())
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed renaming repository from %v/%v/%v to %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetOldRepoOwner(), repositoryEvent.GetOldRepoName(), repositoryEvent.GetRepoSource(), repositoryEvent.GetNewRepoOwner(), repositoryEvent.GetNewRepoName())
+					return
+				}
+			}
+
+		case "deleted",
+			"archived":
+			log.Info().Msgf("Archiving repository from %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
+			err = h.service.Archive(c.Request.Context(), repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
 			if err != nil {
-				log.Error().Err(err).Msgf("Failed renaming repository from %v/%v/%v to %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetOldRepoOwner(), repositoryEvent.GetOldRepoName(), repositoryEvent.GetRepoSource(), repositoryEvent.GetNewRepoOwner(), repositoryEvent.GetNewRepoName())
+				log.Error().Err(err).Msgf("Failed archiving repository %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
 				return
 			}
+
+		case "unarchived":
+			log.Info().Msgf("Unarchiving repository from %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
+			err = h.service.Unarchive(c.Request.Context(), repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed unarchiving repository %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
+				return
+			}
+
+		case
+			"created",
+			"edited",
+			"transferred",
+			"publicized",
+			"privatized":
+
 		}
 
 	default:

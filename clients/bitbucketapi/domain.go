@@ -258,3 +258,24 @@ func (pe *RepoUpdatedEvent) GetNewRepoName() string {
 func IsRepoSourceBitbucket(repoSourceToCompare string) bool {
 	return repoSourceToCompare == repoSource
 }
+
+// RepoDeletedEvent represents a Bitbucket repo:deleted event
+type RepoDeletedEvent struct {
+	Actor      Owner      `json:"actor"`
+	Repository Repository `json:"repository"`
+}
+
+// GetRepoSource returns the repository source
+func (pe *RepoDeletedEvent) GetRepoSource() string {
+	return repoSource
+}
+
+// GetRepoOwner returns the repository owner
+func (pe *RepoDeletedEvent) GetRepoOwner() string {
+	return strings.Split(pe.Repository.FullName, "/")[0]
+}
+
+// GetRepoName returns the repository name
+func (pe *RepoDeletedEvent) GetRepoName() string {
+	return strings.Split(pe.Repository.FullName, "/")[1]
+}

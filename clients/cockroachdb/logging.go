@@ -115,6 +115,12 @@ func (c *loggingClient) ArchiveComputedPipeline(ctx context.Context, repoSource,
 	return c.Client.ArchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
 }
 
+func (c *loggingClient) UnarchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "UnarchiveComputedPipeline", err) }()
+
+	return c.Client.UnarchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
+}
+
 func (c *loggingClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelines", err) }()
 

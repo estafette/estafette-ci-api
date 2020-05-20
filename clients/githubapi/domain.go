@@ -141,24 +141,34 @@ func (pe *RepositoryEvent) GetRepoSource() string {
 	return repoSource
 }
 
-// GetOldRepoOwner returns the repository owner
+// GetRepoOwner returns the current repository owner
+func (pe *RepositoryEvent) GetRepoOwner() string {
+	return strings.Split(pe.Repository.FullName, "/")[0]
+}
+
+// GetOldRepoOwner returns the former repository owner
 func (pe *RepositoryEvent) GetOldRepoOwner() string {
-	return strings.Split(pe.Repository.FullName, "/")[0]
+	return pe.GetRepoOwner()
 }
 
-// GetNewRepoOwner returns the repository owner
+// GetNewRepoOwner returns the new repository owner
 func (pe *RepositoryEvent) GetNewRepoOwner() string {
-	return strings.Split(pe.Repository.FullName, "/")[0]
+	return pe.GetRepoOwner()
 }
 
-// GetOldRepoName returns the repository name
+// GetRepoName returns the current repository name
+func (pe *RepositoryEvent) GetRepoName() string {
+	return strings.Split(pe.Repository.FullName, "/")[1]
+}
+
+// GetOldRepoName returns the former repository name
 func (pe *RepositoryEvent) GetOldRepoName() string {
 	return pe.Changes.Repository.Name.From
 }
 
-// GetNewRepoName returns the repository name
+// GetNewRepoName returns the new repository name
 func (pe *RepositoryEvent) GetNewRepoName() string {
-	return strings.Split(pe.Repository.FullName, "/")[1]
+	return pe.GetRepoName()
 }
 
 // IsRepoSourceGithub returns true if the repo source is from github

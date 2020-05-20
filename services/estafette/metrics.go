@@ -92,6 +92,18 @@ func (s *metricsService) Rename(ctx context.Context, fromRepoSource, fromRepoOwn
 	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
+func (s *metricsService) Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	defer func(begin time.Time) { helpers.UpdateMetrics(s.requestCount, s.requestLatency, "Archive", begin) }(time.Now())
+
+	return s.Service.Archive(ctx, repoSource, repoOwner, repoName)
+}
+
+func (s *metricsService) Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	defer func(begin time.Time) { helpers.UpdateMetrics(s.requestCount, s.requestLatency, "Unarchive", begin) }(time.Now())
+
+	return s.Service.Unarchive(ctx, repoSource, repoOwner, repoName)
+}
+
 func (s *metricsService) UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "UpdateBuildStatus", begin)

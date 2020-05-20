@@ -90,6 +90,20 @@ func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwn
 	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
+func (s *tracingService) Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "Rename"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.Archive(ctx, repoSource, repoOwner, repoName)
+}
+
+func (s *tracingService) Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "Rename"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.Unarchive(ctx, repoSource, repoOwner, repoName)
+}
+
 func (s *tracingService) UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "UpdateBuildStatus"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()

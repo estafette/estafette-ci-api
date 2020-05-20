@@ -455,6 +455,60 @@ func TestIngrationArchiveComputedPipeline(t *testing.T) {
 	})
 }
 
+func TestIngrationUnarchiveComputedPipeline(t *testing.T) {
+	t.Run("ReturnsNoErrorIfUnarchivalSucceeds", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		build.RepoName = "unarchival-test"
+		build.Labels = []contracts.Label{{Key: "test", Value: "unarchival"}}
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+		err = cockroachdbClient.ArchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+
+		// act
+		err = cockroachdbClient.UnarchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+
+		assert.Nil(t, err)
+	})
+
+	t.Run("ReturnsNoPipelineAfterArchivalSucceeds", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		build.RepoName = "unarchival-test-2"
+		build.Labels = []contracts.Label{{Key: "test", Value: "unarchival"}}
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+		err = cockroachdbClient.ArchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UnarchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+
+		// act
+		pipelines, err := cockroachdbClient.GetPipelinesByRepoName(ctx, build.RepoName, false)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(pipelines))
+	})
+}
 func TestIntegrationGetLabelValues(t *testing.T) {
 
 	t.Run("ReturnsLabelValuesForMatchingLabelKey", func(t *testing.T) {

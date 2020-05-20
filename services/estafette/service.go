@@ -41,6 +41,8 @@ type Service interface {
 	FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) (err error)
 	FireCronTriggers(ctx context.Context) (err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
+	Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
+	Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 	UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 }
@@ -904,6 +906,14 @@ func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fro
 	}
 
 	return nil
+}
+
+func (s *service) Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	return s.cockroachdbClient.ArchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
+}
+
+func (s *service) Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	return s.cockroachdbClient.UnarchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
 }
 
 func (s *service) UpdateBuildStatus(ctx context.Context, ciBuilderEvent builderapi.CiBuilderEvent) (err error) {

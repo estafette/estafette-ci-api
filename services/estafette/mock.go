@@ -19,6 +19,8 @@ type MockService struct {
 	FirePubSubTriggersFunc   func(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) (err error)
 	FireCronTriggersFunc     func(ctx context.Context) (err error)
 	RenameFunc               func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
+	ArchiveFunc              func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
+	UnarchiveFunc            func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpdateBuildStatusFunc    func(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 	UpdateJobResourcesFunc   func(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 }
@@ -91,6 +93,20 @@ func (s MockService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, 
 		return
 	}
 	return s.RenameFunc(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+func (s MockService) Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	if s.ArchiveFunc == nil {
+		return
+	}
+	return s.ArchiveFunc(ctx, repoSource, repoOwner, repoName)
+}
+
+func (s MockService) Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	if s.UnarchiveFunc == nil {
+		return
+	}
+	return s.UnarchiveFunc(ctx, repoSource, repoOwner, repoName)
 }
 
 func (s MockService) UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error) {

@@ -22,6 +22,8 @@ var (
 type Service interface {
 	CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
+	Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
+	Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	IsWhitelistedOwner(repository bitbucketapi.Repository) (isWhiteListed bool)
 }
 
@@ -134,6 +136,14 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 
 func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
 	return s.estafetteService.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+func (s *service) Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	return s.estafetteService.Archive(ctx, repoSource, repoOwner, repoName)
+}
+
+func (s *service) Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	return s.estafetteService.Unarchive(ctx, repoSource, repoOwner, repoName)
 }
 
 func (s *service) IsWhitelistedOwner(repository bitbucketapi.Repository) (isWhiteListed bool) {
