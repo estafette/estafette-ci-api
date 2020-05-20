@@ -24,6 +24,7 @@ type MockClient struct {
 	UpdateComputedPipelineFirstInsertedAtFunc      func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpsertComputedReleaseFunc                      func(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error)
 	UpdateComputedReleaseFirstInsertedAtFunc       func(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error)
+	ArchiveComputedPipelineFunc                    func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	GetPipelinesFunc                               func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error)
 	GetPipelinesByRepoNameFunc                     func(ctx context.Context, repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error)
 	GetPipelinesCountFunc                          func(ctx context.Context, filters map[string][]string) (count int, err error)
@@ -186,6 +187,13 @@ func (c MockClient) UpdateComputedReleaseFirstInsertedAt(ctx context.Context, re
 		return
 	}
 	return c.UpdateComputedReleaseFirstInsertedAtFunc(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
+}
+
+func (c MockClient) ArchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	if c.ArchiveComputedPipelineFunc == nil {
+		return
+	}
+	return c.ArchiveComputedPipelineFunc(ctx, repoSource, repoOwner, repoName)
 }
 
 func (c MockClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error) {

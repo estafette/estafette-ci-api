@@ -125,6 +125,13 @@ func (c *tracingClient) UpdateComputedReleaseFirstInsertedAt(ctx context.Context
 	return c.Client.UpdateComputedReleaseFirstInsertedAt(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 }
 
+func (c *tracingClient) ArchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "ArchiveComputedPipeline"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.ArchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
+}
+
 func (c *tracingClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetPipelines"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()

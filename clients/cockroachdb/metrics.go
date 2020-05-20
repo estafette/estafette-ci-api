@@ -135,6 +135,14 @@ func (c *metricsClient) UpdateComputedReleaseFirstInsertedAt(ctx context.Context
 	return c.Client.UpdateComputedReleaseFirstInsertedAt(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 }
 
+func (c *metricsClient) ArchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "ArchiveComputedPipeline", begin)
+	}(time.Now())
+
+	return c.Client.ArchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
+}
+
 func (c *metricsClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 	defer func(begin time.Time) { helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelines", begin) }(time.Now())
 

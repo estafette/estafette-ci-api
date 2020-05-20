@@ -109,6 +109,12 @@ func (c *loggingClient) UpdateComputedReleaseFirstInsertedAt(ctx context.Context
 	return c.Client.UpdateComputedReleaseFirstInsertedAt(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 }
 
+func (c *loggingClient) ArchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "ArchiveComputedPipeline", err) }()
+
+	return c.Client.ArchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
+}
+
 func (c *loggingClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelines", err) }()
 
