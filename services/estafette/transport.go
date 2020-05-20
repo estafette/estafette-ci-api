@@ -1567,7 +1567,7 @@ func (h *Handler) UpdateComputedTables(c *gin.Context) {
 
 			h.cockroachDBClient.UpsertComputedPipeline(c.Request.Context(), p.RepoSource, p.RepoOwner, p.RepoName)
 			h.cockroachDBClient.UpdateComputedPipelineFirstInsertedAt(c.Request.Context(), p.RepoSource, p.RepoOwner, p.RepoName)
-			manifest, err := manifest.ReadManifest(h.config.ManifestPreferences, p.Manifest)
+			manifest, err := manifest.ReadManifest(h.config.ManifestPreferences, p.Manifest, false)
 			if err == nil {
 				for _, r := range manifest.Releases {
 					if len(r.Actions) > 0 {
@@ -1784,7 +1784,7 @@ func (h *Handler) ValidateManifest(c *gin.Context) {
 		return
 	}
 
-	_, err = manifest.ReadManifest(h.config.ManifestPreferences, aux.Template)
+	_, err = manifest.ReadManifest(h.config.ManifestPreferences, aux.Template, true)
 	status := "succeeded"
 	errorString := ""
 	if err != nil {

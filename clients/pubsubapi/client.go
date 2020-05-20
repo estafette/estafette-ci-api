@@ -116,7 +116,7 @@ func (c *client) getSubscriptionName(topicName string) string {
 
 func (c *client) SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error {
 
-	mft, err := manifest.ReadManifest(c.config.ManifestPreferences, manifestString)
+	mft, err := manifest.ReadManifest(c.config.ManifestPreferences, manifestString, false)
 	if err != nil {
 		return err
 	}

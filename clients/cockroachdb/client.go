@@ -3778,7 +3778,7 @@ func (c *client) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, la
 
 	if !optimized {
 		// unmarshal then marshal manifest to include defaults
-		manifest, err := manifest.ReadManifest(c.config.ManifestPreferences, pipeline.Manifest)
+		manifest, err := manifest.ReadManifest(c.config.ManifestPreferences, pipeline.Manifest, false)
 		if err == nil {
 			pipeline.ManifestObject = &manifest
 			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
@@ -3830,7 +3830,7 @@ func (c *client) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData,
 
 	if !optimized {
 		// unmarshal then marshal manifest to include defaults
-		manifest, err := manifest.ReadManifest(c.config.ManifestPreferences, build.Manifest)
+		manifest, err := manifest.ReadManifest(c.config.ManifestPreferences, build.Manifest, false)
 		if err == nil {
 			build.ManifestObject = &manifest
 			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
@@ -3890,7 +3890,7 @@ func getActionNamesFromReleaseTarget(releaseTarget contracts.ReleaseTarget) (act
 func (c *client) mapBuildToPipeline(build *contracts.Build) (pipeline *contracts.Pipeline) {
 
 	// get archived value from manifest
-	mft, err := manifest.ReadManifest(c.config.ManifestPreferences, build.Manifest)
+	mft, err := manifest.ReadManifest(c.config.ManifestPreferences, build.Manifest, false)
 	archived := false
 	if err == nil {
 		archived = mft.Archived

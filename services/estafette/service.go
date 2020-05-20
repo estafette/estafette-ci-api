@@ -74,7 +74,7 @@ type service struct {
 func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (createdBuild *contracts.Build, err error) {
 
 	// validate manifest
-	mft, manifestError := manifest.ReadManifest(s.config.ManifestPreferences, build.Manifest)
+	mft, manifestError := manifest.ReadManifest(s.config.ManifestPreferences, build.Manifest, true)
 	hasValidManifest := manifestError == nil
 
 	// if manifest is invalid get the pipeline in order to use same labels, release targets and triggers as before
@@ -1084,7 +1084,7 @@ func (s *service) getBuildAutoIncrement(ctx context.Context, build contracts.Bui
 			})
 		} else if pipeline != nil {
 			log.Debug().Msgf("Copying previous versioning for pipeline %v/%v/%v, because current manifest is invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
-			previousManifest, err := manifest.ReadManifest(s.config.ManifestPreferences, build.Manifest)
+			previousManifest, err := manifest.ReadManifest(s.config.ManifestPreferences, build.Manifest, false)
 			if err != nil {
 				build.BuildVersion = previousManifest.Version.Version(manifest.EstafetteVersionParams{
 					AutoIncrement: autoincrement,
