@@ -15,6 +15,7 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
+	foundation "github.com/estafette/estafette-foundation"
 	_ "github.com/lib/pq" // use postgres client library to connect to cockroachdb
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
@@ -748,19 +749,29 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 
 func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 
-	// get last build
-	lastBuild, err := c.GetLastPipelineBuild(ctx, repoSource, repoOwner, repoName, false)
+	// get last x builds
+	lastBuilds, err := c.GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, 1, 25, map[string][]string{}, false)
+
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last build for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
 
 		return
 	}
-	if lastBuild == nil {
+	if lastBuilds == nil || len(lastBuilds) == 0 {
 		log.Error().Msgf("Failed getting last build for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
 		return
 	}
 
-	upsertedPipeline := c.mapBuildToPipeline(lastBuild)
+	upsertedPipeline := c.mapBuildToPipeline(lastBuilds[0])
+
+	// extract recent committers from last builds
+	for _, b := range lastBuilds {
+		for _, c := range b.Commits {
+			if c.Author.Email != "" && !foundation.StringArrayContains(upsertedPipeline.RecentCommitters, c.Author.Email) {
+				upsertedPipeline.RecentCommitters = append(upsertedPipeline.RecentCommitters, c.Author.Email)
+			}
+		}
+	}
 
 	// add releases
 	c.enrichPipeline(ctx, upsertedPipeline)
@@ -816,6 +827,18 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 
 		return
 	}
+	recentCommittersBytes, err := json.Marshal(upsertedPipeline.RecentCommitters)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
+
+		return
+	}
+	recentReleasersBytes, err := json.Marshal(upsertedPipeline.RecentReleasers)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
+
+		return
+	}
 
 	// upsert computed pipeline
 	_, err = c.databaseConnection.Exec(
@@ -842,7 +865,9 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 			updated_at,
 			duration,
 			last_updated_at,
-			triggered_by_event
+			triggered_by_event,
+			recent_committers,
+			recent_releasers
 		)
 		VALUES
 		(
@@ -865,7 +890,9 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 			$17,
 			AGE($17,$16),
 			$18,
-			$19
+			$19,
+			$20,
+			$21
 		)
 		ON CONFLICT
 		(
@@ -889,7 +916,9 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 			updated_at = excluded.updated_at,
 			duration = AGE(excluded.updated_at,excluded.inserted_at),
 			last_updated_at = excluded.last_updated_at,
-			triggered_by_event = excluded.triggered_by_event
+			triggered_by_event = excluded.triggered_by_event,
+			recent_committers = excluded.recent_committers,
+			recent_releasers = excluded.recent_releasers
 		`,
 		upsertedPipeline.ID,
 		upsertedPipeline.RepoSource,
@@ -910,6 +939,8 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 		upsertedPipeline.UpdatedAt,
 		upsertedPipeline.LastUpdatedAt,
 		eventsBytes,
+		recentCommittersBytes,
+		recentReleasersBytes,
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
@@ -2954,6 +2985,10 @@ func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias, sinceColum
 	if err != nil {
 		return query, err
 	}
+	query, err = whereClauseGeneratorForUserFilter(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
 
 	return query, nil
 }
@@ -3051,6 +3086,22 @@ func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, alias string, f
 	return query, nil
 }
 
+func whereClauseGeneratorForUserFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if user, ok := filters["user"]; ok && len(user) > 0 {
+
+		userParam := []string{user[0]}
+
+		bytes, err := json.Marshal(userParam)
+		if err != nil {
+			return query, err
+		}
+
+		query = query.Where(fmt.Sprintf("%v.recent_committers @> ?", alias), string(bytes))
+	}
+
+	return query, nil
+}
 func limitClauseGeneratorForLastFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	if last, ok := filters["last"]; ok && len(last) == 1 {

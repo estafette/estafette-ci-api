@@ -1985,6 +1985,15 @@ func (h *Handler) getLabelsFilter(c *gin.Context) []string {
 	return []string{}
 }
 
+func (h *Handler) getUserFilter(c *gin.Context) []string {
+	filterUserValues, filterUserExist := c.GetQueryArray("filter[user]")
+	if filterUserExist {
+		return filterUserValues
+	}
+
+	return []string{}
+}
+
 func (h *Handler) getSearchFilter(c *gin.Context) []string {
 	filterSearchValues, filterSearchExist := c.GetQueryArray("filter[search]")
 	if filterSearchExist {
@@ -2030,6 +2039,7 @@ func (h *Handler) getFilters(c *gin.Context) map[string][]string {
 	filters["since"] = h.getSinceFilter(c)
 	filters["labels"] = h.getLabelsFilter(c)
 	filters["search"] = h.getSearchFilter(c)
+	filters["user"] = h.getUserFilter(c)
 
 	return filters
 }

@@ -360,6 +360,160 @@ func TestIntegrationInsertReleaseLog(t *testing.T) {
 	})
 }
 
+func TestIngrationGetPipelines(t *testing.T) {
+	t.Run("ReturnsNoError", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+
+		// act
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, map[string][]string{}, false)
+
+		assert.Nil(t, err)
+		assert.True(t, len(pipelines) > 0)
+	})
+
+	t.Run("ReturnsPipelinesForSinceFilter", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+
+		filters := map[string][]string{
+			"since": {"1h"},
+		}
+
+		// act
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, false)
+
+		assert.Nil(t, err)
+		assert.True(t, len(pipelines) > 0)
+	})
+
+	t.Run("ReturnsPipelinesForStatusFilter", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+
+		filters := map[string][]string{
+			"status": {"succeeded"},
+		}
+
+		// act
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, false)
+
+		assert.Nil(t, err)
+		assert.True(t, len(pipelines) > 0)
+	})
+
+	t.Run("ReturnsPipelinesForLabelsFilter", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+
+		filters := map[string][]string{
+			"labels": {"app-group=estafette-ci"},
+		}
+
+		// act
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, false)
+
+		assert.Nil(t, err)
+		assert.True(t, len(pipelines) > 0)
+	})
+
+	t.Run("ReturnsPipelinesForSearchFilter", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+
+		filters := map[string][]string{
+			"search": {"ci-api"},
+		}
+
+		// act
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, false)
+
+		assert.Nil(t, err)
+		assert.True(t, len(pipelines) > 0)
+	})
+
+	t.Run("ReturnsPipelinesForUserFilter", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+
+		filters := map[string][]string{
+			"user": {"me@estafette.io"},
+		}
+
+		// act
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, false)
+
+		assert.Nil(t, err)
+		assert.True(t, len(pipelines) > 0)
+	})
+}
+
 func TestIngrationUpsertComputedPipeline(t *testing.T) {
 	t.Run("ReturnsNoError", func(t *testing.T) {
 
@@ -687,9 +841,16 @@ func getBuild() contracts.Build {
 		Labels:         []contracts.Label{{Key: "app-group", Value: "estafette-ci"}, {Key: "language", Value: "golang"}},
 		ReleaseTargets: []contracts.ReleaseTarget{},
 		Manifest:       "stages:\n  test:\n    image: golang:1.14.2-alpine3.11\n    commands:\n    - go test -short ./...",
-		Commits:        []contracts.GitCommit{},
-		Triggers:       []manifest.EstafetteTrigger{},
-		Events:         []manifest.EstafetteEvent{},
+		Commits: []contracts.GitCommit{
+			{
+				Message: "test commit",
+				Author: contracts.GitAuthor{
+					Email: "me@estafette.io",
+				},
+			},
+		},
+		Triggers: []manifest.EstafetteTrigger{},
+		Events:   []manifest.EstafetteEvent{},
 	}
 }
 
