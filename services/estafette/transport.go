@@ -1774,7 +1774,7 @@ func (h *Handler) GenerateManifest(c *gin.Context) {
 func (h *Handler) ValidateManifest(c *gin.Context) {
 
 	var aux struct {
-		Template string `json:"template"`
+		Manifest string `json:"manifest"`
 	}
 
 	err := c.BindJSON(&aux)
@@ -1784,7 +1784,7 @@ func (h *Handler) ValidateManifest(c *gin.Context) {
 		return
 	}
 
-	_, err = manifest.ReadManifest(h.config.ManifestPreferences, aux.Template, true)
+	_, err = manifest.ReadManifest(h.config.ManifestPreferences, aux.Manifest, true)
 	status := "succeeded"
 	errorString := ""
 	if err != nil {
