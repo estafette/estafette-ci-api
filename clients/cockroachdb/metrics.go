@@ -151,10 +151,10 @@ func (c *metricsClient) UnarchiveComputedPipeline(ctx context.Context, repoSourc
 	return c.Client.UnarchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
 }
 
-func (c *metricsClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
+func (c *metricsClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 	defer func(begin time.Time) { helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelines", begin) }(time.Now())
 
-	return c.Client.GetPipelines(ctx, pageNumber, pageSize, filters, optimized)
+	return c.Client.GetPipelines(ctx, pageNumber, pageSize, filters, sortings, optimized)
 }
 
 func (c *metricsClient) GetPipelinesByRepoName(ctx context.Context, repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
@@ -187,12 +187,12 @@ func (c *metricsClient) GetPipelineRecentBuilds(ctx context.Context, repoSource,
 	return c.Client.GetPipelineRecentBuilds(ctx, repoSource, repoOwner, repoName, optimized)
 }
 
-func (c *metricsClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, optimized bool) (builds []*contracts.Build, err error) {
+func (c *metricsClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (builds []*contracts.Build, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineBuilds", begin)
 	}(time.Now())
 
-	return c.Client.GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, optimized)
+	return c.Client.GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings, optimized)
 }
 
 func (c *metricsClient) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (count int, err error) {
@@ -291,12 +291,12 @@ func (c *metricsClient) GetPipelineBuildMaxResourceUtilization(ctx context.Conte
 	return c.Client.GetPipelineBuildMaxResourceUtilization(ctx, repoSource, repoOwner, repoName, lastNRecords)
 }
 
-func (c *metricsClient) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string) (releases []*contracts.Release, err error) {
+func (c *metricsClient) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField) (releases []*contracts.Release, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineReleases", begin)
 	}(time.Now())
 
-	return c.Client.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters)
+	return c.Client.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings)
 }
 
 func (c *metricsClient) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (count int, err error) {

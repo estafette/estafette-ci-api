@@ -69,7 +69,7 @@ type Handler struct {
 
 func (h *Handler) GetPipelines(c *gin.Context) {
 
-	pageNumber, pageSize, filters := h.getQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := h.getQueryParameters(c)
 
 	type PipelinesResult struct {
 		pipelines []*contracts.Pipeline
@@ -86,7 +86,7 @@ func (h *Handler) GetPipelines(c *gin.Context) {
 
 	go func() {
 		defer close(pipelinesChannel)
-		pipelines, err := h.cockroachDBClient.GetPipelines(c.Request.Context(), pageNumber, pageSize, filters, true)
+		pipelines, err := h.cockroachDBClient.GetPipelines(c.Request.Context(), pageNumber, pageSize, filters, sortings, true)
 
 		pipelinesChannel <- PipelinesResult{pipelines, err}
 	}()
@@ -172,7 +172,7 @@ func (h *Handler) GetPipelineBuilds(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	pageNumber, pageSize, filters := h.getQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := h.getQueryParameters(c)
 
 	type BuildsResult struct {
 		builds []*contracts.Build
@@ -189,7 +189,7 @@ func (h *Handler) GetPipelineBuilds(c *gin.Context) {
 
 	go func() {
 		defer close(buildsChannel)
-		builds, err := h.cockroachDBClient.GetPipelineBuilds(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters, true)
+		builds, err := h.cockroachDBClient.GetPipelineBuilds(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters, sortings, true)
 
 		buildsChannel <- BuildsResult{builds, err}
 	}()
@@ -647,7 +647,7 @@ func (h *Handler) GetPipelineReleases(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	pageNumber, pageSize, filters := h.getQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := h.getQueryParameters(c)
 
 	type ReleasesResult struct {
 		releases []*contracts.Release
@@ -664,7 +664,7 @@ func (h *Handler) GetPipelineReleases(c *gin.Context) {
 
 	go func() {
 		defer close(releasesChannel)
-		releases, err := h.cockroachDBClient.GetPipelineReleases(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters)
+		releases, err := h.cockroachDBClient.GetPipelineReleases(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters, sortings)
 
 		releasesChannel <- ReleasesResult{releases, err}
 	}()
@@ -1066,7 +1066,7 @@ func (h *Handler) PostPipelineReleaseLogs(c *gin.Context) {
 
 func (h *Handler) GetFrequentLabels(c *gin.Context) {
 
-	pageNumber, pageSize, filters := h.getQueryParameters(c)
+	pageNumber, pageSize, filters, _ := h.getQueryParameters(c)
 
 	type LabelsResult struct {
 		labels []map[string]interface{}
@@ -1417,7 +1417,7 @@ func (h *Handler) GetStatsBuildsCount(c *gin.Context) {
 
 func (h *Handler) GetStatsMostBuilds(c *gin.Context) {
 
-	pageNumber, pageSize, filters := h.getQueryParameters(c)
+	pageNumber, pageSize, filters, _ := h.getQueryParameters(c)
 
 	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostBuilds(c.Request.Context(), pageNumber, pageSize, filters)
 	if err != nil {
@@ -1453,7 +1453,7 @@ func (h *Handler) GetStatsMostBuilds(c *gin.Context) {
 
 func (h *Handler) GetStatsMostReleases(c *gin.Context) {
 
-	pageNumber, pageSize, filters := h.getQueryParameters(c)
+	pageNumber, pageSize, filters, _ := h.getQueryParameters(c)
 
 	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostReleases(c.Request.Context(), pageNumber, pageSize, filters)
 	if err != nil {
@@ -1558,7 +1558,7 @@ func (h *Handler) UpdateComputedTables(c *gin.Context) {
 	pageSize := 20
 	totalPages := int(math.Ceil(float64(pipelinesCount) / float64(pageSize)))
 	for pageNumber := 1; pageNumber <= totalPages; pageNumber++ {
-		pipelines, err := h.cockroachDBClient.GetPipelines(c.Request.Context(), pageNumber, pageSize, filters, false)
+		pipelines, err := h.cockroachDBClient.GetPipelines(c.Request.Context(), pageNumber, pageSize, filters, []cockroachdb.OrderField{}, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msg("Failed retrieving pipelines from db")
@@ -1865,7 +1865,7 @@ func (h *Handler) CopyLogsToCloudStorage(c *gin.Context) {
 		return
 	}
 
-	pageNumber, pageSize, filters := h.getQueryParameters(c)
+	pageNumber, pageSize, filters, _ := h.getQueryParameters(c)
 
 	searchValue := "builds"
 	if search, ok := filters["search"]; ok && len(search) > 0 && search[0] != "" {
@@ -1985,8 +1985,17 @@ func (h *Handler) getLabelsFilter(c *gin.Context) []string {
 	return []string{}
 }
 
-func (h *Handler) getUserFilter(c *gin.Context) []string {
-	filterUserValues, filterUserExist := c.GetQueryArray("filter[user]")
+func (h *Handler) getRecentCommitterFilter(c *gin.Context) []string {
+	filterUserValues, filterUserExist := c.GetQueryArray("filter[recent-committer]")
+	if filterUserExist {
+		return filterUserValues
+	}
+
+	return []string{}
+}
+
+func (h *Handler) getRecentReleaserFilter(c *gin.Context) []string {
+	filterUserValues, filterUserExist := c.GetQueryArray("filter[recent-releaser]")
 	if filterUserExist {
 		return filterUserValues
 	}
@@ -2003,8 +2012,9 @@ func (h *Handler) getSearchFilter(c *gin.Context) []string {
 	return []string{}
 }
 
-func (h *Handler) getQueryParameters(c *gin.Context) (int, int, map[string][]string) {
-	return h.getPageNumber(c), h.getPageSize(c), h.getFilters(c)
+// getQueryParameters extracts query parameters specified according to https://jsonapi.org/format/
+func (h *Handler) getQueryParameters(c *gin.Context) (int, int, map[string][]string, []cockroachdb.OrderField) {
+	return h.getPageNumber(c), h.getPageSize(c), h.getFilters(c), h.getSorting(c)
 }
 
 func (h *Handler) getPageNumber(c *gin.Context) int {
@@ -2032,6 +2042,28 @@ func (h *Handler) getPageSize(c *gin.Context) int {
 	return pageSize
 }
 
+func (h *Handler) getSorting(c *gin.Context) (sorting []cockroachdb.OrderField) {
+	// ?sort=-created,title
+	sortValue := c.DefaultQuery("sort", "")
+	if sortValue == "" {
+		return
+	}
+
+	splittedSortValues := strings.Split(sortValue, ",")
+	for _, sv := range splittedSortValues {
+		direction := "ASC"
+		if strings.HasPrefix(sv, "-") {
+			direction = "DESC"
+		}
+		sorting = append(sorting, cockroachdb.OrderField{
+			FieldName: strings.TrimPrefix(sv, "-"),
+			Direction: direction,
+		})
+	}
+
+	return
+}
+
 func (h *Handler) getFilters(c *gin.Context) map[string][]string {
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w&filter[labels]=team%3Destafette-team)
 	filters := map[string][]string{}
@@ -2039,7 +2071,8 @@ func (h *Handler) getFilters(c *gin.Context) map[string][]string {
 	filters["since"] = h.getSinceFilter(c)
 	filters["labels"] = h.getLabelsFilter(c)
 	filters["search"] = h.getSearchFilter(c)
-	filters["user"] = h.getUserFilter(c)
+	filters["recent-committer"] = h.getRecentCommitterFilter(c)
+	filters["recent-releaser"] = h.getRecentReleaserFilter(c)
 
 	return filters
 }

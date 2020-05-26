@@ -139,11 +139,11 @@ func (c *tracingClient) UnarchiveComputedPipeline(ctx context.Context, repoSourc
 	return c.Client.UnarchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
 }
 
-func (c *tracingClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
+func (c *tracingClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetPipelines"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetPipelines(ctx, pageNumber, pageSize, filters, optimized)
+	return c.Client.GetPipelines(ctx, pageNumber, pageSize, filters, sortings, optimized)
 }
 
 func (c *tracingClient) GetPipelinesByRepoName(ctx context.Context, repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
@@ -174,11 +174,11 @@ func (c *tracingClient) GetPipelineRecentBuilds(ctx context.Context, repoSource,
 	return c.Client.GetPipelineRecentBuilds(ctx, repoSource, repoOwner, repoName, optimized)
 }
 
-func (c *tracingClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, optimized bool) (builds []*contracts.Build, err error) {
+func (c *tracingClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (builds []*contracts.Build, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetPipelineBuilds"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, optimized)
+	return c.Client.GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings, optimized)
 }
 
 func (c *tracingClient) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (count int, err error) {
@@ -265,11 +265,11 @@ func (c *tracingClient) GetPipelineBuildMaxResourceUtilization(ctx context.Conte
 	return c.Client.GetPipelineBuildMaxResourceUtilization(ctx, repoSource, repoOwner, repoName, lastNRecords)
 }
 
-func (c *tracingClient) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string) (releases []*contracts.Release, err error) {
+func (c *tracingClient) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField) (releases []*contracts.Release, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetPipelineReleases"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters)
+	return c.Client.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings)
 }
 
 func (c *tracingClient) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (count int, err error) {

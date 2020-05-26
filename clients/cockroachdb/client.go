@@ -43,12 +43,12 @@ type Client interface {
 	ArchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UnarchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 
-	GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error)
+	GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error)
 	GetPipelinesByRepoName(ctx context.Context, repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error)
 	GetPipelinesCount(ctx context.Context, filters map[string][]string) (count int, err error)
 	GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error)
 	GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (builds []*contracts.Build, err error)
-	GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, optimized bool) (builds []*contracts.Build, err error)
+	GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (count int, err error)
 	GetPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName, repoRevision string, optimized bool) (build *contracts.Build, err error)
 	GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, id int, optimized bool) (build *contracts.Build, err error)
@@ -61,7 +61,7 @@ type Client interface {
 	GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error)
 	GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
 	GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobresources JobResources, count int, err error)
-	GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string) (releases []*contracts.Release, err error)
+	GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField) (releases []*contracts.Release, err error)
 	GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (count int, err error)
 	GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, id int) (release *contracts.Release, err error)
 	GetPipelineLastReleasesByName(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error)
@@ -750,11 +750,9 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 
 	// get last x builds
-	lastBuilds, err := c.GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, 1, 25, map[string][]string{}, false)
-
+	lastBuilds, err := c.GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, 1, 25, map[string][]string{}, []OrderField{}, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last build for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
-
 		return
 	}
 	if lastBuilds == nil || len(lastBuilds) == 0 {
@@ -775,6 +773,24 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 
 	// add releases
 	c.enrichPipeline(ctx, upsertedPipeline)
+
+	// get last x releases
+	lastReleases, err := c.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, 1, 25, map[string][]string{}, []OrderField{})
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed getting last releases for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
+		return
+	}
+
+	if lastReleases != nil {
+		// extract recent releasers from last releases
+		for _, r := range lastReleases {
+			for _, e := range r.Events {
+				if e.Manual != nil && e.Manual.UserID != "" && !foundation.StringArrayContains(upsertedPipeline.RecentReleasers, e.Manual.UserID) {
+					upsertedPipeline.RecentReleasers = append(upsertedPipeline.RecentReleasers, e.Manual.UserID)
+				}
+			}
+		}
+	}
 
 	// set LastUpdatedAt from both builds and releases
 	upsertedPipeline.LastUpdatedAt = upsertedPipeline.InsertedAt
@@ -1172,14 +1188,20 @@ func (c *client) UnarchiveComputedPipeline(ctx context.Context, repoSource, repo
 
 	return nil
 }
-func (c *client) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, optimized bool) (pipelines []*contracts.Pipeline, err error) {
+func (c *client) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 
 	// generate query
 	query := c.selectPipelinesQuery().
-		OrderBy("a.repo_source,a.repo_owner,a.repo_name").
 		Where(sq.Eq{"a.archived": false}).
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
+
+	// dynamically set order by clause
+	query, err = orderByClauseGeneratorForSortings(query, "a", "a.repo_source,a.repo_owner,a.repo_name", sortings)
+	if err != nil {
+
+		return
+	}
 
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "last_updated_at", filters)
@@ -1309,16 +1331,22 @@ func (c *client) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOw
 	return
 }
 
-func (c *client) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, optimized bool) (builds []*contracts.Build, err error) {
+func (c *client) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (builds []*contracts.Build, err error) {
 
 	// generate query
 	query := c.selectBuildsQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
-		OrderBy("a.inserted_at DESC").
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
+
+	// dynamically set order by clause
+	query, err = orderByClauseGeneratorForSortings(query, "a", "a.inserted_at DESC", sortings)
+	if err != nil {
+
+		return
+	}
 
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
@@ -1708,16 +1736,22 @@ func (c *client) GetPipelineBuildMaxResourceUtilization(ctx context.Context, rep
 	return
 }
 
-func (c *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string) (releases []*contracts.Release, err error) {
+func (c *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField) (releases []*contracts.Release, err error) {
 
 	// generate query
 	query := c.selectReleasesQuery().
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
-		OrderBy("a.inserted_at DESC").
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
+
+		// dynamically set order by clause
+	query, err = orderByClauseGeneratorForSortings(query, "a", "a.inserted_at DESC", sortings)
+	if err != nil {
+
+		return
+	}
 
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
@@ -2967,6 +3001,19 @@ func (c *client) GetPipelinesWithMostReleasesCount(ctx context.Context, filters 
 	return
 }
 
+func orderByClauseGeneratorForSortings(query sq.SelectBuilder, alias, defaultOrderBy string, sortings []OrderField) (sq.SelectBuilder, error) {
+
+	if len(sortings) == 0 {
+		return query.OrderBy(defaultOrderBy), nil
+	}
+
+	for _, s := range sortings {
+		query = query.OrderBy(fmt.Sprintf("%v.%v %v", alias, s.FieldName, s.Direction))
+	}
+
+	return query, nil
+}
+
 func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias, sinceColumn string, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	query, err := whereClauseGeneratorForSinceFilter(query, alias, sinceColumn, filters)
@@ -2985,7 +3032,11 @@ func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias, sinceColum
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForUserFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForRecentCommitterFilter(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForRecentReleaserFilter(query, alias, filters)
 	if err != nil {
 		return query, err
 	}
@@ -3086,9 +3137,9 @@ func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, alias string, f
 	return query, nil
 }
 
-func whereClauseGeneratorForUserFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForRecentCommitterFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
 
-	if user, ok := filters["user"]; ok && len(user) > 0 {
+	if user, ok := filters["recent-committer"]; ok && len(user) > 0 {
 
 		userParam := []string{user[0]}
 
@@ -3102,6 +3153,24 @@ func whereClauseGeneratorForUserFilter(query sq.SelectBuilder, alias string, fil
 
 	return query, nil
 }
+
+func whereClauseGeneratorForRecentReleaserFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if user, ok := filters["recent-releaser"]; ok && len(user) > 0 {
+
+		userParam := []string{user[0]}
+
+		bytes, err := json.Marshal(userParam)
+		if err != nil {
+			return query, err
+		}
+
+		query = query.Where(fmt.Sprintf("%v.recent_releasers @> ?", alias), string(bytes))
+	}
+
+	return query, nil
+}
+
 func limitClauseGeneratorForLastFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	if last, ok := filters["last"]; ok && len(last) == 1 {

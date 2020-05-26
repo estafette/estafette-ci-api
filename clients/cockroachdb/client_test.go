@@ -377,12 +377,40 @@ func TestIngrationGetPipelines(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, map[string][]string{}, false)
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, map[string][]string{}, []OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
 	})
 
+	t.Run("ReturnsPipelinesForSortings", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+
+		sortings := []OrderField{
+			OrderField{
+				FieldName: "inserted_at",
+				Direction: "DESC",
+			},
+		}
+
+		// act
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, map[string][]string{}, sortings, false)
+
+		assert.Nil(t, err)
+		assert.True(t, len(pipelines) > 0)
+	})
 	t.Run("ReturnsPipelinesForSinceFilter", func(t *testing.T) {
 
 		if testing.Short() {
@@ -403,7 +431,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, false)
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -429,7 +457,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, false)
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -455,7 +483,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, false)
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -481,13 +509,13 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, false)
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
 	})
 
-	t.Run("ReturnsPipelinesForUserFilter", func(t *testing.T) {
+	t.Run("ReturnsPipelinesForRecentCommitterFilter", func(t *testing.T) {
 
 		if testing.Short() {
 			t.Skip("skipping test in short mode.")
@@ -503,11 +531,48 @@ func TestIngrationGetPipelines(t *testing.T) {
 		assert.Nil(t, err)
 
 		filters := map[string][]string{
-			"user": {"me@estafette.io"},
+			"recent-committer": {"me@estafette.io"},
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, false)
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []OrderField{}, false)
+
+		assert.Nil(t, err)
+		assert.True(t, len(pipelines) > 0)
+	})
+
+	t.Run("ReturnsPipelinesForRecentReleaserFilter", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+
+		release := getRelease()
+		release.Events = []manifest.EstafetteEvent{
+			{
+				Manual: &manifest.EstafetteManualEvent{
+					UserID: "me@estafette.io",
+				},
+			},
+		}
+		_, err = cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		assert.Nil(t, err)
+
+		filters := map[string][]string{
+			"recent-releaser": {"me@estafette.io"},
+		}
+
+		// act
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
