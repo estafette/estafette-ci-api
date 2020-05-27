@@ -3899,6 +3899,8 @@ func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contra
 		return nil, err
 	}
 
+	log.Debug().Str("emailFilterBytes", string(emailFilterBytes)).Msgf("cockroachdb.Client:GetUserByEmail(%v) before", email)
+
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -3911,11 +3913,11 @@ func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contra
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	user, err = c.scanUser(row)
 	if err != nil {
-		log.Warn().Err(err).Interface("user", user).Str("user_data_param", string(emailFilterBytes)).Msgf("cockroachdb.Client:GetUserByEmail(%v) after err", email)
+		log.Warn().Err(err).Str("emailFilterBytes", string(emailFilterBytes)).Msgf("cockroachdb.Client:GetUserByEmail(%v) after err", email)
 		return nil, err
 	}
 
-	log.Debug().Err(err).Interface("user", user).Str("user_data_param", string(emailFilterBytes)).Msgf("cockroachdb.Client:GetUserByEmail(%v) after no err", email)
+	log.Debug().Str("emailFilterBytes", string(emailFilterBytes)).Msgf("cockroachdb.Client:GetUserByEmail(%v) after no err", email)
 	return user, nil
 }
 

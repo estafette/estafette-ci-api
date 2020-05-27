@@ -2,12 +2,14 @@ package estafette
 
 import (
 	"context"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudstorage"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
@@ -18,6 +20,69 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestMarshal(t *testing.T) {
+	t.Run("ReturnsUpdatedConfigAfterReload", func(t *testing.T) {
+
+		emailFilter := struct {
+			Identities []struct {
+				Email string `json:"email"`
+			} `json:"identities"`
+		}{
+			[]struct {
+				Email string `json:"email"`
+			}{
+				{
+					Email: "someone@server.com",
+				},
+			},
+		}
+
+		// act
+		bytes, err := json.Marshal(emailFilter)
+
+		assert.Nil(t, err)
+		assert.Equal(t, "{\"identities\":[{\"email\":\"someone@server.com\"}]}", string(bytes))
+	})
+}
+
+func TestSql(t *testing.T) {
+	t.Run("ReturnsUpdatedConfigAfterReload", func(t *testing.T) {
+
+		emailFilter := struct {
+			Identities []struct {
+				Email string `json:"email"`
+			} `json:"identities"`
+		}{
+			[]struct {
+				Email string `json:"email"`
+			}{
+				{
+					Email: "someone@server.com",
+				},
+			},
+		}
+
+		emailFilterBytes, err := json.Marshal(emailFilter)
+		assert.Nil(t, err)
+
+		psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+		query := psql.
+			Select("a.id, a.user_data, a.inserted_at").
+			From("users a").
+			Where("a.user_data @> ?", string(emailFilterBytes)).
+			Limit(uint64(1))
+
+		// act
+		sql, params, err := query.ToSql()
+
+		assert.Nil(t, err)
+		assert.Equal(t, "{\"identities\":[{\"email\":\"someone@server.com\"}]}", string(emailFilterBytes))
+		assert.Equal(t, "SELECT a.id, a.user_data, a.inserted_at FROM users a WHERE a.user_data @> $1 LIMIT 1", sql)
+		assert.Equal(t, []interface{}([]interface{}{"{\"identities\":[{\"email\":\"someone@server.com\"}]}"}), params)
+	})
+}
 
 func TestGetCatalogFilters(t *testing.T) {
 
