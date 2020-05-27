@@ -104,6 +104,10 @@ type Client interface {
 	RenameReleaseLogs(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	RenameComputedPipelines(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	RenameComputedReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
+
+	InsertUser(ctx context.Context, user contracts.User) (u *contracts.User, err error)
+	UpdateUser(ctx context.Context, user contracts.User) (err error)
+	GetUserByEmail(ctx context.Context, email string) (user *contracts.User, err error)
 }
 
 // NewClient returns a new cockroach.Client
@@ -3807,6 +3811,123 @@ func (c *client) RenameComputedReleases(ctx context.Context, fromRepoSource, fro
 	}
 
 	return nil
+}
+
+func (c *client) InsertUser(ctx context.Context, user contracts.User) (u *contracts.User, err error) {
+
+	userBytes, err := json.Marshal(user)
+	if err != nil {
+		return nil, err
+	}
+
+	// upsert user
+	row := c.databaseConnection.QueryRow(
+		`
+		INSERT INTO
+			users
+		(
+			user_data
+		)
+		VALUES
+		(
+			$1
+		)
+		RETURNING
+			id
+		`,
+		userBytes,
+	)
+
+	u = &user
+
+	if err = row.Scan(&u.ID); err != nil {
+		return nil, err
+	}
+
+	return
+}
+
+func (c *client) UpdateUser(ctx context.Context, user contracts.User) (err error) {
+
+	userBytes, err := json.Marshal(user)
+	if err != nil {
+		return
+	}
+
+	userID, err := strconv.Atoi(user.ID)
+	if err != nil {
+		return
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("users").
+		Set("user_data", userBytes).
+		Set("updated_at", sq.Expr("now()")).
+		Where(sq.Eq{"id": userID}).
+		Limit(uint64(1))
+
+	_, err = query.RunWith(c.databaseConnection).Exec()
+
+	return
+}
+
+func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contracts.User, err error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	emailFilter := contracts.User{
+		Identities: []contracts.UserIdentity{
+			{
+				Email: email,
+			},
+		},
+	}
+
+	emailFilterBytes, err := json.Marshal(emailFilter)
+	if err != nil {
+		return nil, err
+	}
+
+	query := psql.
+		Select("a.id, a.user_data").
+		From("users a").
+		Where("a.user_data @> ?", string(emailFilterBytes)).
+		Limit(uint64(1))
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if user, err = c.scanUser(row); err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *client) scanUser(row sq.RowScanner) (user *contracts.User, err error) {
+
+	user = &contracts.User{}
+	var id string
+	var userData []uint8
+
+	if err = row.Scan(
+		&id,
+		&userData); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return
+	}
+
+	if len(userData) > 0 {
+		if err = json.Unmarshal(userData, &user); err != nil {
+			return nil, err
+		}
+	}
+
+	user.ID = id
+
+	return
 }
 
 func (c *client) selectBuildsQuery() sq.SelectBuilder {

@@ -2,7 +2,6 @@ package cockroachdb
 
 import (
 	"context"
-	"regexp"
 	"strconv"
 	"testing"
 	"time"
@@ -856,19 +855,91 @@ func TestIntegrationGetFrequentLabelsCount(t *testing.T) {
 	})
 }
 
-func TestAutoincrement(t *testing.T) {
+func TestIntegrationInsertUser(t *testing.T) {
+	t.Run("ReturnsInsertedUserWithID", func(t *testing.T) {
 
-	t.Run("TestAutoincrementRegex", func(t *testing.T) {
-
-		buildVersion := "0.0.126-MeD-1234123"
-		re := regexp.MustCompile(`^[0-9]+\.[0-9]+\.([0-9]+)(-[0-9a-zA-Z-/]+)?$`)
-		match := re.FindStringSubmatch(buildVersion)
-		autoincrement := 0
-		if len(match) > 1 {
-			autoincrement, _ = strconv.Atoi(match[1])
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
 		}
 
-		assert.Equal(t, 126, autoincrement)
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		user := getUser()
+
+		// act
+		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, insertedUser)
+		assert.True(t, insertedUser.ID != "")
+	})
+}
+
+func TestIntegrationUpdateUser(t *testing.T) {
+	t.Run("UpdatesUser", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		user := getUser()
+		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+		assert.Nil(t, err)
+
+		// act
+		err = cockroachdbClient.UpdateUser(ctx, *insertedUser)
+
+		assert.Nil(t, err)
+	})
+
+	t.Run("UpdatesUserForNonExistingUser", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		user := getUser()
+		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+		assert.Nil(t, err)
+		insertedUser.ID = "15"
+
+		// act
+		err = cockroachdbClient.UpdateUser(ctx, *insertedUser)
+
+		assert.Nil(t, err)
+	})
+}
+
+func TestIntegrationGetUserByEmail(t *testing.T) {
+	t.Run("ReturnsInsertedUserWithID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		user := getUser()
+		user.Identities = []contracts.UserIdentity{
+			{
+				Source:   "gsuite",
+				Username: "wilson",
+				Email:    "wilson-test@homeimprovement.com",
+			},
+		}
+		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+		assert.Nil(t, err)
+
+		// act
+		retrievedUser, err := cockroachdbClient.GetUserByEmail(ctx, "wilson-test@homeimprovement.com")
+
+		assert.Nil(t, err)
+		assert.NotNil(t, retrievedUser)
+		assert.Equal(t, retrievedUser.ID, insertedUser.ID)
 	})
 }
 
@@ -994,6 +1065,25 @@ func getReleaseLog() contracts.ReleaseLog {
 						Text:       "ok",
 					},
 				},
+			},
+		},
+	}
+}
+
+func getUser() contracts.User {
+	return contracts.User{
+		Name: "Wilson Wilson",
+		Identities: []contracts.UserIdentity{
+			{
+				Source:   "gsuite",
+				Username: "wilson",
+				Email:    "wilson@homeimprovement.com",
+			},
+		},
+		Groups: []contracts.UserGroup{
+			{
+				Source: "gsuite",
+				Name:   "Neighbourhood",
 			},
 		},
 	}

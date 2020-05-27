@@ -462,3 +462,21 @@ func (c *loggingClient) RenameComputedReleases(ctx context.Context, fromRepoSour
 
 	return c.Client.RenameComputedReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
+
+func (c *loggingClient) InsertUser(ctx context.Context, user contracts.User) (u *contracts.User, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "InsertUser", err) }()
+
+	return c.Client.InsertUser(ctx, user)
+}
+
+func (c *loggingClient) UpdateUser(ctx context.Context, user contracts.User) (err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "UpdateUser", err) }()
+
+	return c.Client.UpdateUser(ctx, user)
+}
+
+func (c *loggingClient) GetUserByEmail(ctx context.Context, email string) (user *contracts.User, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetUserByEmail", err) }()
+
+	return c.Client.GetUserByEmail(ctx, email)
+}

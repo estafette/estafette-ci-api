@@ -83,6 +83,9 @@ type MockClient struct {
 	RenameReleaseLogsFunc                          func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	RenameComputedPipelinesFunc                    func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	RenameComputedReleasesFunc                     func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
+	InsertUserFunc                                 func(ctx context.Context, user contracts.User) (u *contracts.User, err error)
+	UpdateUserFunc                                 func(ctx context.Context, user contracts.User) (err error)
+	GetUserByEmailFunc                             func(ctx context.Context, email string) (user *contracts.User, err error)
 }
 
 func (c MockClient) Connect(ctx context.Context) (err error) {
@@ -602,4 +605,25 @@ func (c MockClient) RenameComputedReleases(ctx context.Context, fromRepoSource, 
 		return
 	}
 	return c.RenameComputedReleasesFunc(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+func (c MockClient) InsertUser(ctx context.Context, user contracts.User) (u *contracts.User, err error) {
+	if c.InsertUserFunc == nil {
+		return
+	}
+	return c.InsertUserFunc(ctx, user)
+}
+
+func (c MockClient) UpdateUser(ctx context.Context, user contracts.User) (err error) {
+	if c.UpdateUserFunc == nil {
+		return
+	}
+	return c.UpdateUserFunc(ctx, user)
+}
+
+func (c MockClient) GetUserByEmail(ctx context.Context, email string) (user *contracts.User, err error) {
+	if c.GetUserByEmailFunc == nil {
+		return
+	}
+	return c.GetUserByEmailFunc(ctx, email)
 }

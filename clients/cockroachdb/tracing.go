@@ -537,3 +537,24 @@ func (c *tracingClient) RenameComputedReleases(ctx context.Context, fromRepoSour
 
 	return c.Client.RenameComputedReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
+
+func (c *tracingClient) InsertUser(ctx context.Context, user contracts.User) (u *contracts.User, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "InsertUser"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.InsertUser(ctx, user)
+}
+
+func (c *tracingClient) UpdateUser(ctx context.Context, user contracts.User) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "UpdateUser"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.UpdateUser(ctx, user)
+}
+
+func (c *tracingClient) GetUserByEmail(ctx context.Context, email string) (user *contracts.User, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetUserByEmail"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetUserByEmail(ctx, email)
+}
