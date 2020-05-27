@@ -3882,7 +3882,7 @@ func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contra
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	emailFilter := contracts.User{
-		Identities: []contracts.UserIdentity{
+		Identities: []*contracts.UserIdentity{
 			{
 				Email: email,
 			},

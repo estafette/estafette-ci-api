@@ -1046,7 +1046,7 @@ func (s *service) CreateUser(ctx context.Context, authUser auth.User) (user *con
 
 	user = &contracts.User{
 		Active: true,
-		Identities: []contracts.UserIdentity{
+		Identities: []*contracts.UserIdentity{
 			{
 				Source:   authUser.Provider,
 				Provider: authUser.Provider,

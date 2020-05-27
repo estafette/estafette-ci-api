@@ -924,7 +924,7 @@ func TestIntegrationGetUserByEmail(t *testing.T) {
 		ctx := context.Background()
 		cockroachdbClient := getCockroachdbClient(ctx, t)
 		user := getUser()
-		user.Identities = []contracts.UserIdentity{
+		user.Identities = []*contracts.UserIdentity{
 			{
 				Source:   "gsuite",
 				Username: "wilson",
@@ -1073,18 +1073,24 @@ func getReleaseLog() contracts.ReleaseLog {
 func getUser() contracts.User {
 	return contracts.User{
 		Name: "Wilson Wilson",
-		Identities: []contracts.UserIdentity{
+		Identities: []*contracts.UserIdentity{
 			{
 				Source:   "gsuite",
 				Username: "wilson",
 				Email:    "wilson@homeimprovement.com",
 			},
 		},
-		Groups: []contracts.UserGroup{
+		Groups: []*contracts.UserGroup{
 			{
 				Source: "gsuite",
 				Name:   "Neighbourhood",
 			},
+		},
+		Preferences: map[string]interface{}{
+			"pipelines-page-size": 25,
+			"builds-page-size":    20,
+			"releases-page-size":  50,
+			"user-filter":         "recent-committer",
 		},
 	}
 }
