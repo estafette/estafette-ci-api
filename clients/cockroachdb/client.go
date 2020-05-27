@@ -3913,11 +3913,9 @@ func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contra
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	user, err = c.scanUser(row)
 	if err != nil {
-		log.Warn().Err(err).Str("emailFilterBytes", string(emailFilterBytes)).Msgf("cockroachdb.Client:GetUserByEmail(%v) after err", email)
 		return nil, err
 	}
 
-	log.Debug().Str("emailFilterBytes", string(emailFilterBytes)).Msgf("cockroachdb.Client:GetUserByEmail(%v) after no err", email)
 	return user, nil
 }
 
@@ -3928,22 +3926,16 @@ func (c *client) scanUser(row sq.RowScanner) (user *contracts.User, err error) {
 	var userData []uint8
 	var insertedAt time.Time
 
-	log.Debug().Msg("Starting scanUser")
-
 	if err = row.Scan(
 		&id,
 		&userData,
 		&insertedAt); err != nil {
 		if err == sql.ErrNoRows {
-			log.Warn().Err(err).Msg("Failing scanUser with ErrUserNotFound")
 			return nil, ErrUserNotFound
 		}
 
-		log.Warn().Err(err).Msg("Failing scanUser with other error")
 		return
 	}
-
-	log.Debug().Str("id", id).Str("userData", string(userData)).Msg("Scanned row in scanUser")
 
 	if len(userData) > 0 {
 		if err = json.Unmarshal(userData, &user); err != nil {
@@ -3953,8 +3945,6 @@ func (c *client) scanUser(row sq.RowScanner) (user *contracts.User, err error) {
 
 	user.ID = id
 	user.FirstVisit = insertedAt
-
-	log.Debug().Interface("user", user).Msg("Umarshalled json in scanUser")
 
 	return
 }
