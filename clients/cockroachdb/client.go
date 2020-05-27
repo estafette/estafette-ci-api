@@ -3900,6 +3900,10 @@ func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contra
 		Where("a.user_data @> ?", string(emailFilterBytes)).
 		Limit(uint64(1))
 
+	sql, params, sqlErr := query.ToSql()
+
+	log.Debug().Str("sql", sql).Interface("params", params).Err(sqlErr).Msgf("Query for GetUserByEmail %v", email)
+
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if user, err = c.scanUser(row); err != nil {
