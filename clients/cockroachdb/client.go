@@ -3881,7 +3881,7 @@ func (c *client) UpdateUser(ctx context.Context, user contracts.User) (err error
 func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contracts.User, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
-	log.Debug().Msgf("cockroachdb.Client:GetUserByEmail(%v)", email)
+	log.Debug().Msgf("cockroachdb.Client:GetUserByEmail(%v) before", email)
 
 	emailFilter := contracts.User{
 		Identities: []*contracts.UserIdentity{
@@ -3907,6 +3907,9 @@ func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contra
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
+
+	log.Debug().Interface("row", row).Msgf("cockroachdb.Client:GetUserByEmail(%v) after", email)
+
 	if user, err = c.scanUser(row); err != nil {
 		return
 	}
