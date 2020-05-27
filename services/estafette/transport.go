@@ -1552,6 +1552,14 @@ func (h *Handler) GetLoggedInUser(c *gin.Context) {
 	if user.User != nil {
 		user.User.LastVisit = time.Now().UTC()
 		user.User.Active = true
+
+		// copy identities' source to provider, so source can be retired
+		for _, i := range user.User.Identities {
+			if i.Provider == "" {
+				i.Provider = i.Source
+			}
+		}
+
 		go func(user auth.User) {
 			_ = h.buildService.UpdateUser(c.Request.Context(), user)
 		}(user)
