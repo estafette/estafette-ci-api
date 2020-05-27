@@ -3883,8 +3883,14 @@ func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contra
 
 	log.Debug().Msgf("cockroachdb.Client:GetUserByEmail(%v) before", email)
 
-	emailFilter := contracts.User{
-		Identities: []*contracts.UserIdentity{
+	emailFilter := struct {
+		Identities []struct {
+			Email string `json:"email"`
+		} `json:"identities"`
+	}{
+		[]struct {
+			Email string `json:"email"`
+		}{
 			{
 				Email: email,
 			},
