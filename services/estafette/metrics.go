@@ -136,3 +136,11 @@ func (s *metricsService) CreateUser(ctx context.Context, authUser auth.User) (us
 
 	return s.Service.CreateUser(ctx, authUser)
 }
+
+func (s *metricsService) UpdateUser(ctx context.Context, authUser auth.User) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "UpdateUser", begin)
+	}(time.Now())
+
+	return s.Service.UpdateUser(ctx, authUser)
+}

@@ -49,6 +49,7 @@ type Service interface {
 	UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 	GetUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error)
 	CreateUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error)
+	UpdateUser(ctx context.Context, authUser auth.User) (err error)
 }
 
 // NewService returns a new estafette.Service
@@ -1042,13 +1043,17 @@ func (s *service) CreateUser(ctx context.Context, authUser auth.User) (user *con
 		log.Info().Msgf("Creating user record for user %v from provider %v", authUser.Email, authUser.Provider)
 
 		user = &contracts.User{
+			Active: true,
 			Identities: []contracts.UserIdentity{
 				{
 					Source:   authUser.Provider,
+					Provider: authUser.Provider,
 					Username: authUser.Email,
 					Email:    authUser.Email,
 				},
 			},
+			FirstVisit: time.Now().UTC(),
+			LastVisit:  time.Now().UTC(),
 		}
 
 		user, err = s.cockroachdbClient.InsertUser(ctx, *user)
@@ -1060,6 +1065,17 @@ func (s *service) CreateUser(ctx context.Context, authUser auth.User) (user *con
 	}
 
 	return nil, fmt.Errorf("User %v is not authenticated, won't create user record in database", authUser.Email)
+}
+
+func (s *service) UpdateUser(ctx context.Context, authUser auth.User) (err error) {
+	if authUser.Authenticated && authUser.User != nil {
+		err = s.cockroachdbClient.UpdateUser(ctx, *authUser.User)
+		if err != nil {
+			return
+		}
+	}
+
+	return fmt.Errorf("User %v is not authenticated, won't update user record in database", authUser.Email)
 }
 
 func (s *service) getBuildLabels(build contracts.Build, hasValidManifest bool, mft manifest.EstafetteManifest, pipeline *contracts.Pipeline) []contracts.Label {

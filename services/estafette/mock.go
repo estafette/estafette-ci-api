@@ -26,6 +26,7 @@ type MockService struct {
 	UpdateJobResourcesFunc   func(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 	GetUserFunc              func(ctx context.Context, authUser auth.User) (user *contracts.User, err error)
 	CreateUserFunc           func(ctx context.Context, authUser auth.User) (user *contracts.User, err error)
+	UpdateUserFunc           func(ctx context.Context, authUser auth.User) (err error)
 }
 
 func (s MockService) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error) {
@@ -138,4 +139,11 @@ func (s MockService) CreateUser(ctx context.Context, authUser auth.User) (user *
 		return
 	}
 	return s.CreateUserFunc(ctx, authUser)
+}
+
+func (s MockService) UpdateUser(ctx context.Context, authUser auth.User) (err error) {
+	if s.UpdateUserFunc == nil {
+		return
+	}
+	return s.UpdateUserFunc(ctx, authUser)
 }

@@ -132,3 +132,10 @@ func (s *tracingService) CreateUser(ctx context.Context, authUser auth.User) (us
 
 	return s.Service.CreateUser(ctx, authUser)
 }
+
+func (s *tracingService) UpdateUser(ctx context.Context, authUser auth.User) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "UpdateUser"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.UpdateUser(ctx, authUser)
+}

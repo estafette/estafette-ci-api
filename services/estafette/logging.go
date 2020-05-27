@@ -115,3 +115,9 @@ func (s *loggingService) CreateUser(ctx context.Context, authUser auth.User) (us
 
 	return s.Service.CreateUser(ctx, authUser)
 }
+
+func (s *loggingService) UpdateUser(ctx context.Context, authUser auth.User) (err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "UpdateUser", err) }()
+
+	return s.Service.UpdateUser(ctx, authUser)
+}

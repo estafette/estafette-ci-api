@@ -3895,7 +3895,7 @@ func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contra
 	}
 
 	query := psql.
-		Select("a.id, a.user_data").
+		Select("a.id, a.user_data, a.inserted_at").
 		From("users a").
 		Where("a.user_data @> ?", string(emailFilterBytes)).
 		Limit(uint64(1))
@@ -3914,10 +3914,12 @@ func (c *client) scanUser(row sq.RowScanner) (user *contracts.User, err error) {
 	user = &contracts.User{}
 	var id string
 	var userData []uint8
+	var insertedAt time.Time
 
 	if err = row.Scan(
 		&id,
-		&userData); err != nil {
+		&userData,
+		&insertedAt); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrUserNotFound
 		}
@@ -3931,6 +3933,7 @@ func (c *client) scanUser(row sq.RowScanner) (user *contracts.User, err error) {
 	}
 
 	user.ID = id
+	user.FirstVisit = insertedAt
 
 	return
 }
