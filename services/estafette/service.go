@@ -1021,61 +1021,62 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent builder
 }
 
 func (s *service) GetUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error) {
-	if authUser.Authenticated {
-		user, err = s.cockroachdbClient.GetUserByEmail(ctx, authUser.Email)
-		if err != nil {
-			if errors.Is(err, cockroachdb.ErrUserNotFound) {
-				return nil, ErrUserNotFound
-			}
-
-			return nil, err
-		}
-
-		return user, nil
+	if !authUser.Authenticated {
+		return nil, fmt.Errorf("User %v is not authenticated, won't fetch user record from database", authUser.Email)
 	}
 
-	return nil, fmt.Errorf("User %v is not authenticated, won't fetch user record from database", authUser.Email)
+	user, err = s.cockroachdbClient.GetUserByEmail(ctx, authUser.Email)
+	if err != nil {
+		if errors.Is(err, cockroachdb.ErrUserNotFound) {
+			return nil, ErrUserNotFound
+		}
+
+		return nil, err
+	}
+
+	return user, nil
 }
 
 func (s *service) CreateUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error) {
-	if authUser.Authenticated {
-
-		log.Info().Msgf("Creating user record for user %v from provider %v", authUser.Email, authUser.Provider)
-
-		user = &contracts.User{
-			Active: true,
-			Identities: []contracts.UserIdentity{
-				{
-					Source:   authUser.Provider,
-					Provider: authUser.Provider,
-					Username: authUser.Email,
-					Email:    authUser.Email,
-				},
-			},
-			FirstVisit: time.Now().UTC(),
-			LastVisit:  time.Now().UTC(),
-		}
-
-		user, err = s.cockroachdbClient.InsertUser(ctx, *user)
-		if err != nil {
-			return nil, err
-		}
-
-		return user, nil
+	if !authUser.Authenticated {
+		return nil, fmt.Errorf("User %v is not authenticated, won't create user record in database", authUser.Email)
 	}
 
-	return nil, fmt.Errorf("User %v is not authenticated, won't create user record in database", authUser.Email)
+	log.Info().Msgf("Creating user record for user %v from provider %v", authUser.Email, authUser.Provider)
+
+	user = &contracts.User{
+		Active: true,
+		Identities: []contracts.UserIdentity{
+			{
+				Source:   authUser.Provider,
+				Provider: authUser.Provider,
+				Username: authUser.Email,
+				Email:    authUser.Email,
+			},
+		},
+		FirstVisit: time.Now().UTC(),
+		LastVisit:  time.Now().UTC(),
+	}
+
+	user, err = s.cockroachdbClient.InsertUser(ctx, *user)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
 func (s *service) UpdateUser(ctx context.Context, authUser auth.User) (err error) {
-	if authUser.Authenticated && authUser.User != nil {
-		err = s.cockroachdbClient.UpdateUser(ctx, *authUser.User)
-		if err != nil {
-			return
-		}
+	if !authUser.Authenticated || authUser.User == nil {
+		return fmt.Errorf("User %v is not authenticated, won't update user record in database", authUser.Email)
 	}
 
-	return fmt.Errorf("User %v is not authenticated, won't update user record in database", authUser.Email)
+	err = s.cockroachdbClient.UpdateUser(ctx, *authUser.User)
+	if err != nil {
+		return
+	}
+
+	return nil
 }
 
 func (s *service) getBuildLabels(build contracts.Build, hasValidManifest bool, mft manifest.EstafetteManifest, pipeline *contracts.Pipeline) []contracts.Label {
