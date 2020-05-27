@@ -1025,7 +1025,12 @@ func (s *service) GetUser(ctx context.Context, authUser auth.User) (user *contra
 		return nil, fmt.Errorf("User %v is not authenticated, won't fetch user record from database", authUser.Email)
 	}
 
+	log.Debug().Msgf("estafette.Service:GetUser(%v)", authUser.Email)
+
 	user, err = s.cockroachdbClient.GetUserByEmail(ctx, authUser.Email)
+
+	log.Debug().Interface("user", user).Err(err).Msgf("estafette.Service:GetUser(%v)", authUser.Email)
+
 	if err != nil {
 		if errors.Is(err, cockroachdb.ErrUserNotFound) {
 			return nil, ErrUserNotFound
