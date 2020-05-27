@@ -3908,13 +3908,13 @@ func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contra
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 
-	log.Debug().Interface("row", row).Msgf("cockroachdb.Client:GetUserByEmail(%v) after", email)
-
 	if user, err = c.scanUser(row); err != nil {
+		log.Warn().Err(err).Interface("user", user).Msgf("cockroachdb.Client:GetUserByEmail(%v) after err", email)
 		return
 	}
 
-	return
+	log.Debug().Err(err).Interface("user", user).Msgf("cockroachdb.Client:GetUserByEmail(%v) after no err", email)
+	return user, nil
 }
 
 func (c *client) scanUser(row sq.RowScanner) (user *contracts.User, err error) {
