@@ -1,5 +1,7 @@
 package auth
 
+import contracts "github.com/estafette/estafette-ci-contracts"
+
 // {
 // 	"keys" : [
 // 	   {
@@ -56,6 +58,8 @@ type GoogleJWKResponse struct {
 
 // User has the basic properties used for authentication
 type User struct {
-	Authenticated bool   `json:"authenticated"`
-	Email         string `json:"email"`
+	Authenticated bool            `json:"authenticated"`
+	Email         string          `json:"email"`
+	Provider      string          `json:"provider"`
+	User          *contracts.User `json:"user,omitempty"`
 }

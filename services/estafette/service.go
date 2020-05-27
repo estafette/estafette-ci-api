@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
@@ -27,6 +28,7 @@ import (
 var (
 	ErrNoBuildCreated   = errors.New("No build is created")
 	ErrNoReleaseCreated = errors.New("No release is created")
+	ErrUserNotFound     = errors.New("The user can't be found")
 )
 
 // Service encapsulates build and release creation and re-triggering
@@ -45,6 +47,8 @@ type Service interface {
 	Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 	UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
+	GetUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error)
+	CreateUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error)
 }
 
 // NewService returns a new estafette.Service
@@ -1013,6 +1017,49 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent builder
 	}
 
 	return nil
+}
+
+func (s *service) GetUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error) {
+	if authUser.Authenticated {
+		user, err = s.cockroachdbClient.GetUserByEmail(ctx, authUser.Email)
+		if err != nil {
+			if errors.Is(err, cockroachdb.ErrUserNotFound) {
+				return nil, ErrUserNotFound
+			}
+
+			return nil, err
+		}
+
+		return user, nil
+	}
+
+	return nil, fmt.Errorf("User %v is not authenticated, won't fetch user record from database", authUser.Email)
+}
+
+func (s *service) CreateUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error) {
+	if authUser.Authenticated {
+
+		log.Info().Msgf("Creating user record for user %v from provider %v", authUser.Email, authUser.Provider)
+
+		user = &contracts.User{
+			Identities: []contracts.UserIdentity{
+				{
+					Source:   authUser.Provider,
+					Username: authUser.Email,
+					Email:    authUser.Email,
+				},
+			},
+		}
+
+		user, err = s.cockroachdbClient.InsertUser(ctx, *user)
+		if err != nil {
+			return nil, err
+		}
+
+		return user, nil
+	}
+
+	return nil, fmt.Errorf("User %v is not authenticated, won't create user record in database", authUser.Email)
 }
 
 func (s *service) getBuildLabels(build contracts.Build, hasValidManifest bool, mft manifest.EstafetteManifest, pipeline *contracts.Pipeline) []contracts.Label {

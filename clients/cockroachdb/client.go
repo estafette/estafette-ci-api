@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -19,6 +20,10 @@ import (
 	_ "github.com/lib/pq" // use postgres client library to connect to cockroachdb
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
+)
+
+var (
+	ErrUserNotFound = errors.New("The user can't be found")
 )
 
 // Client is the interface for communicating with CockroachDB
@@ -3914,7 +3919,7 @@ func (c *client) scanUser(row sq.RowScanner) (user *contracts.User, err error) {
 		&id,
 		&userData); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, ErrUserNotFound
 		}
 		return
 	}

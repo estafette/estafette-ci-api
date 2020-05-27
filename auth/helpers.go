@@ -161,6 +161,7 @@ func GetUserFromIAPJWT(tokenString string, iapAudience string) (user User, err e
 	user = User{
 		Authenticated: true,
 		Email:         email,
+		Provider:      "google",
 	}
 
 	return

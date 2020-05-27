@@ -3,6 +3,7 @@ package estafette
 import (
 	"context"
 
+	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
@@ -23,6 +24,8 @@ type MockService struct {
 	UnarchiveFunc            func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpdateBuildStatusFunc    func(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 	UpdateJobResourcesFunc   func(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
+	GetUserFunc              func(ctx context.Context, authUser auth.User) (user *contracts.User, err error)
+	CreateUserFunc           func(ctx context.Context, authUser auth.User) (user *contracts.User, err error)
 }
 
 func (s MockService) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error) {
@@ -121,4 +124,18 @@ func (s MockService) UpdateJobResources(ctx context.Context, event builderapi.Ci
 		return
 	}
 	return s.UpdateJobResourcesFunc(ctx, event)
+}
+
+func (s MockService) GetUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error) {
+	if s.GetUserFunc == nil {
+		return
+	}
+	return s.GetUserFunc(ctx, authUser)
+}
+
+func (s MockService) CreateUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error) {
+	if s.CreateUserFunc == nil {
+		return
+	}
+	return s.CreateUserFunc(ctx, authUser)
 }

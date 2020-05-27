@@ -1539,6 +1539,16 @@ func (h *Handler) GetLoggedInUser(c *gin.Context) {
 
 	user := c.MustGet(gin.AuthUserKey).(auth.User)
 
+	dbUser, err := h.buildService.GetUser(c.Request.Context(), user)
+	if err == nil {
+		user.User = dbUser
+	} else if errors.Is(err, ErrUserNotFound) {
+		dbUser, err = h.buildService.CreateUser(c.Request.Context(), user)
+		if err == nil {
+			user.User = dbUser
+		}
+	}
+
 	c.JSON(http.StatusOK, user)
 }
 
