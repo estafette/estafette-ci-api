@@ -105,7 +105,7 @@ func (s *loggingService) UpdateJobResources(ctx context.Context, event builderap
 }
 
 func (s *loggingService) GetUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error) {
-	defer func() { helpers.HandleLogError(s.prefix, "GetUser", err) }()
+	defer func() { helpers.HandleLogError(s.prefix, "GetUser", err, ErrUserNotFound) }()
 
 	return s.Service.GetUser(ctx, authUser)
 }
