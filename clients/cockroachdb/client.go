@@ -3881,6 +3881,8 @@ func (c *client) UpdateUser(ctx context.Context, user contracts.User) (err error
 func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contracts.User, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
+	log.Debug().Msgf("cockroachdb.Client:GetUserByEmail(%v)", email)
+
 	emailFilter := contracts.User{
 		Identities: []*contracts.UserIdentity{
 			{
@@ -3900,9 +3902,8 @@ func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contra
 		Where("a.user_data @> ?", string(emailFilterBytes)).
 		Limit(uint64(1))
 
-	sql, params, sqlErr := query.ToSql()
-
-	log.Debug().Str("sql", sql).Interface("params", params).Err(sqlErr).Msgf("Query for GetUserByEmail %v", email)
+	// sql, params, sqlErr := query.ToSql()
+	// log.Debug().Str("sql", sql).Interface("params", params).Err(sqlErr).Msgf("Query for GetUserByEmail %v", email)
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
