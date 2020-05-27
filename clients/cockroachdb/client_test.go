@@ -933,6 +933,8 @@ func TestIntegrationGetUserByEmail(t *testing.T) {
 		}
 		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
+		insertedUser, err = cockroachdbClient.InsertUser(ctx, user)
+		assert.Nil(t, err)
 
 		// act
 		retrievedUser, err := cockroachdbClient.GetUserByEmail(ctx, "wilson-test@homeimprovement.com")
