@@ -3902,19 +3902,19 @@ func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contra
 		Where("a.user_data @> ?", string(emailFilterBytes)).
 		Limit(uint64(1))
 
-	sql, _, sqlErr := query.ToSql()
-	log.Debug().Str("sql", sql).Str("user_data_param", string(emailFilterBytes)).Err(sqlErr).Msgf("cockroachdb.Client:GetUserByEmail(%v) query", email)
+	// sql, _, sqlErr := query.ToSql()
+	// log.Debug().Str("sql", sql).Str("user_data_param", string(emailFilterBytes)).Err(sqlErr).Msgf("cockroachdb.Client:GetUserByEmail(%v) query", email)
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 
 	user, err = c.scanUser(row)
 	if err != nil {
-		log.Warn().Err(err).Interface("user", user).Msgf("cockroachdb.Client:GetUserByEmail(%v) after err", email)
+		log.Warn().Err(err).Interface("user", user).Str("user_data_param", string(emailFilterBytes)).Msgf("cockroachdb.Client:GetUserByEmail(%v) after err", email)
 		return nil, err
 	}
 
-	log.Debug().Err(err).Interface("user", user).Msgf("cockroachdb.Client:GetUserByEmail(%v) after no err", email)
+	log.Debug().Err(err).Interface("user", user).Str("user_data_param", string(emailFilterBytes)).Msgf("cockroachdb.Client:GetUserByEmail(%v) after no err", email)
 	return user, nil
 }
 
