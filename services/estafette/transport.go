@@ -1543,10 +1543,10 @@ func (h *Handler) GetLoggedInUser(c *gin.Context) {
 	if err == nil {
 		user.User = dbUser
 	} else if errors.Is(err, ErrUserNotFound) {
-		dbUser, err = h.buildService.CreateUser(c.Request.Context(), user)
-		if err == nil {
-			user.User = dbUser
-		}
+		// dbUser, err = h.buildService.CreateUser(c.Request.Context(), user)
+		// if err == nil {
+		// 	user.User = dbUser
+		// }
 	}
 
 	if user.User != nil {
