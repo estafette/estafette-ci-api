@@ -476,7 +476,7 @@ func (c *loggingClient) UpdateUser(ctx context.Context, user contracts.User) (er
 }
 
 func (c *loggingClient) GetUserByEmail(ctx context.Context, email string) (user *contracts.User, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "GetUserByEmail", err) }()
+	defer func() { helpers.HandleLogError(c.prefix, "GetUserByEmail", err, ErrUserNotFound) }()
 
 	return c.Client.GetUserByEmail(ctx, email)
 }
