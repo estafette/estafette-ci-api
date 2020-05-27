@@ -3903,7 +3903,7 @@ func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contra
 		Limit(uint64(1))
 
 	sql, _, sqlErr := query.ToSql()
-	log.Debug().Str("sql", sql).Err(sqlErr).Msgf("cockroachdb.Client:GetUserByEmail(%v) query", email)
+	log.Debug().Str("sql", sql).Str("user_data_param", string(emailFilterBytes)).Err(sqlErr).Msgf("cockroachdb.Client:GetUserByEmail(%v) query", email)
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
