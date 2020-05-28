@@ -914,6 +914,50 @@ func TestIntegrationUpdateUser(t *testing.T) {
 	})
 }
 
+func TestIntegrationGetPipelineBuildsDurations(t *testing.T) {
+	t.Run("ReturnsDurations", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+
+		assert.Nil(t, err)
+
+		// act
+		durations, err := cockroachdbClient.GetPipelineBuildsDurations(ctx, build.RepoSource, build.RepoOwner, build.RepoName, map[string][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, len(durations) > 0)
+	})
+}
+
+func TestIntegrationGetPipelineReleasesDurations(t *testing.T) {
+	t.Run("ReturnsDurations", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		release := getRelease()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+
+		assert.Nil(t, err)
+
+		// act
+		durations, err := cockroachdbClient.GetPipelineReleasesDurations(ctx, release.RepoSource, release.RepoOwner, release.RepoName, map[string][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, len(durations) > 0)
+	})
+}
+
 func TestIntegrationGetUserByEmail(t *testing.T) {
 	t.Run("ReturnsInsertedUserWithID", func(t *testing.T) {
 

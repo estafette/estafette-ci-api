@@ -2181,7 +2181,7 @@ func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, rep
 	// generate query
 	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("a.inserted_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT").
+			Select("a.inserted_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT AS pending_duration, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT as duration").
 			From("builds a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -2247,7 +2247,7 @@ func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, r
 	// generate query
 	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("a.inserted_at, a.release, a.release_action, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT").
+			Select("a.inserted_at, a.release, a.release_action, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT as pending_duration, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT as duration").
 			From("releases a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
