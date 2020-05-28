@@ -361,7 +361,11 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
 		Where(sq.Eq{"build_status": allowedBuildStatusesToTransitionFrom}).
-		Suffix("RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, updated_at, duration::INT, triggered_by_event")
+		Suffix("RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, started_at, updated_at, age(updated_at, inserted_at)::INT, triggered_by_event")
+
+	if buildStatus == "running" {
+		query = query.Set("started_at", sq.Expr("now()"))
+	}
 
 	if buildStatus == "running" {
 		query = query.Set("time_to_running", sq.Expr("age(now(), inserted_at)"))
@@ -523,7 +527,11 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
 		Where(sq.Eq{"release_status": allowedReleaseStatusesToTransitionFrom}).
-		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, updated_at, duration::INT, triggered_by_event")
+		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, started_at, started_at, updated_at, age(updated_at, inserted_at)::INT, triggered_by_event")
+
+	if releaseStatus == "running" {
+		query = query.Set("started_at", sq.Expr("now()"))
+	}
 
 	if releaseStatus == "running" {
 		query = query.Set("time_to_running", sq.Expr("age(now(), inserted_at)"))
@@ -1317,7 +1325,7 @@ func (c *client) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOw
 		Limit(uint64(50))
 
 	query := psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT, a.triggered_by_event").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.started_at, a.updated_at, age(a.updated_at, a.inserted_at)::INT, a.triggered_by_event").
 		Prefix("WITH ranked_builds AS (?)", innerquery).
 		From("ranked_builds a").
 		Where("a.rn = 1").
@@ -2173,7 +2181,7 @@ func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, rep
 	// generate query
 	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("a.inserted_at, a.duration::INT").
+			Select("a.inserted_at, age(a.updated_at, a.inserted_at)::INT").
 			From("builds a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -2235,7 +2243,7 @@ func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, r
 	// generate query
 	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("a.inserted_at, a.release, a.release_action, a.duration::INT").
+			Select("a.inserted_at, a.release, a.release_action, age(a.updated_at, a.inserted_at)::INT").
 			From("releases a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -3216,6 +3224,7 @@ func (c *client) scanBuild(ctx context.Context, row sq.RowScanner, optimized, en
 		&commitsData,
 		&triggersData,
 		&build.InsertedAt,
+		&build.StartedAt,
 		&build.UpdatedAt,
 		&seconds,
 		&triggeredByEventsData); err != nil {
@@ -3268,6 +3277,7 @@ func (c *client) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contracts
 			&commitsData,
 			&triggersData,
 			&build.InsertedAt,
+			&build.StartedAt,
 			&build.UpdatedAt,
 			&seconds,
 			&triggeredByEventsData); err != nil {
@@ -3312,6 +3322,7 @@ func (c *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *cont
 		&triggersData,
 		&pipeline.Archived,
 		&pipeline.InsertedAt,
+		&pipeline.StartedAt,
 		&pipeline.UpdatedAt,
 		&seconds,
 		&pipeline.LastUpdatedAt,
@@ -3362,6 +3373,7 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 			&triggersData,
 			&pipeline.Archived,
 			&pipeline.InsertedAt,
+			&pipeline.StartedAt,
 			&pipeline.UpdatedAt,
 			&seconds,
 			&pipeline.LastUpdatedAt,
@@ -3402,6 +3414,7 @@ func (c *client) scanRelease(row sq.RowScanner) (release *contracts.Release, err
 		&release.ReleaseVersion,
 		&release.ReleaseStatus,
 		&release.InsertedAt,
+		&release.StartedAt,
 		&release.UpdatedAt,
 		&seconds,
 		&triggeredByEventsData); err != nil {
@@ -3446,6 +3459,7 @@ func (c *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, er
 			&release.ReleaseVersion,
 			&release.ReleaseStatus,
 			&release.InsertedAt,
+			&release.StartedAt,
 			&release.UpdatedAt,
 			&seconds,
 			&triggeredByEventsData); err != nil {
@@ -3953,7 +3967,7 @@ func (c *client) selectBuildsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.updated_at, a.duration::INT, a.triggered_by_event").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.started_at, a.updated_at, age(a.updated_at, a.inserted_at)::INT, a.triggered_by_event").
 		From("builds a")
 }
 
@@ -3961,7 +3975,7 @@ func (c *client) selectPipelinesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.archived, a.inserted_at, a.updated_at, a.duration::INT, a.last_updated_at, a.triggered_by_event").
+		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.archived, a.inserted_at, a.started_at, a.updated_at, age(a.updated_at, a.inserted_at)::INT, a.last_updated_at, a.triggered_by_event").
 		From("computed_pipelines a")
 }
 
@@ -3969,7 +3983,7 @@ func (c *client) selectReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.updated_at, a.duration::INT, a.triggered_by_event").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, age(a.updated_at, a.inserted_at)::INT, a.triggered_by_event").
 		From("releases a")
 }
 
@@ -3977,7 +3991,7 @@ func (c *client) selectComputedReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.updated_at, a.duration::INT, a.triggered_by_event").
+		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, age(a.updated_at, a.inserted_at)::INT, a.triggered_by_event").
 		From("computed_releases a")
 }
 
@@ -4013,7 +4027,7 @@ func (c *client) selectPipelineTriggersQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.trigger_event, a.trigger_filter, a.trigger_run, a.inserted_at, a.updated_at").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.trigger_event, a.trigger_filter, a.trigger_run, a.inserted_at, a.started_at, a.updated_at").
 		From("pipeline_triggers a")
 }
 
