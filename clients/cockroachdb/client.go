@@ -527,7 +527,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
 		Where(sq.Eq{"release_status": allowedReleaseStatusesToTransitionFrom}).
-		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, started_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event")
+		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event")
 
 	if releaseStatus == "running" {
 		query = query.Set("started_at", sq.Expr("now()"))
