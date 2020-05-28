@@ -147,7 +147,7 @@ type DockerHubToken struct {
 }
 
 func (t *DockerHubToken) ExpiresAt() time.Time {
-	return t.IssuedAt.Add(time.Duration(t.ExpiresIn) * time.Second)
+	return t.IssuedAt.Add(time.Duration(t.ExpiresIn) * time.Second).Add(time.Duration(30) * time.Second)
 }
 
 func (t *DockerHubToken) IsExpired() bool {
