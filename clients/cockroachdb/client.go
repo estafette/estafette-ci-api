@@ -781,6 +781,9 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 
 	// extract recent committers from last builds
 	for _, b := range lastBuilds {
+		if len(lastBuilds) > 1 && b.InsertedAt.Before(time.Now().UTC().Add(time.Duration(-7*24)*time.Hour)) {
+			continue
+		}
 		for _, c := range b.Commits {
 			if c.Author.Email != "" && !foundation.StringArrayContains(upsertedPipeline.RecentCommitters, c.Author.Email) {
 				upsertedPipeline.RecentCommitters = append(upsertedPipeline.RecentCommitters, c.Author.Email)
@@ -792,7 +795,7 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 	c.enrichPipeline(ctx, upsertedPipeline)
 
 	// get last x releases
-	lastReleases, err := c.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, 1, 10, map[string][]string{}, []OrderField{})
+	lastReleases, err := c.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, 1, 10, map[string][]string{"since": {"1w"}}, []OrderField{})
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last releases for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
 		return
