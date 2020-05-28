@@ -552,8 +552,6 @@ func TestIngrationGetPipelines(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
-		assert.Nil(t, err)
 
 		release := getRelease()
 		release.Events = []manifest.EstafetteEvent{
@@ -564,6 +562,10 @@ func TestIngrationGetPipelines(t *testing.T) {
 			},
 		}
 		_, err = cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedRelease(ctx, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, release.Action)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		filters := map[string][]string{
@@ -925,7 +927,8 @@ func TestIntegrationGetPipelineBuildsDurations(t *testing.T) {
 		build := getBuild()
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
-
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		// act
@@ -947,7 +950,6 @@ func TestIntegrationGetPipelineReleasesDurations(t *testing.T) {
 		release := getRelease()
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
-
 		assert.Nil(t, err)
 
 		// act

@@ -355,7 +355,6 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 		Update("builds").
 		Set("build_status", buildStatus).
 		Set("updated_at", sq.Expr("now()")).
-		Set("duration", sq.Expr("age(now(), inserted_at)")).
 		Where(sq.Eq{"id": buildID}).
 		Where(sq.Eq{"repo_source": repoSource}).
 		Where(sq.Eq{"repo_owner": repoOwner}).
@@ -365,10 +364,6 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 
 	if buildStatus == "running" {
 		query = query.Set("started_at", sq.Expr("now()"))
-	}
-
-	if buildStatus == "running" {
-		query = query.Set("time_to_running", sq.Expr("age(now(), inserted_at)"))
 	}
 
 	// update build status
@@ -521,7 +516,6 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 		Update("releases").
 		Set("release_status", releaseStatus).
 		Set("updated_at", sq.Expr("now()")).
-		Set("duration", sq.Expr("age(now(), inserted_at)")).
 		Where(sq.Eq{"id": id}).
 		Where(sq.Eq{"repo_source": repoSource}).
 		Where(sq.Eq{"repo_owner": repoOwner}).
@@ -531,10 +525,6 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 
 	if releaseStatus == "running" {
 		query = query.Set("started_at", sq.Expr("now()"))
-	}
-
-	if releaseStatus == "running" {
-		query = query.Set("time_to_running", sq.Expr("age(now(), inserted_at)"))
 	}
 
 	// update release status
