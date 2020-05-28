@@ -767,7 +767,7 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 
 	// get last x builds
-	lastBuilds, err := c.GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, 1, 25, map[string][]string{}, []OrderField{}, false)
+	lastBuilds, err := c.GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, 1, 10, map[string][]string{}, []OrderField{}, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last build for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
 		return
@@ -792,7 +792,7 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 	c.enrichPipeline(ctx, upsertedPipeline)
 
 	// get last x releases
-	lastReleases, err := c.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, 1, 25, map[string][]string{}, []OrderField{})
+	lastReleases, err := c.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, 1, 10, map[string][]string{}, []OrderField{})
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last releases for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
 		return
