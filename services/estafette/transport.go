@@ -1550,7 +1550,8 @@ func (h *Handler) GetLoggedInUser(c *gin.Context) {
 	}
 
 	if user.User != nil {
-		user.User.LastVisit = time.Now().UTC()
+		lastVisit := time.Now().UTC()
+		user.User.LastVisit = &lastVisit
 		user.User.Active = true
 
 		// copy identities' source to provider, so source can be retired

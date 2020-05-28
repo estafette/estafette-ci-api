@@ -3924,7 +3924,7 @@ func (c *client) scanUser(row sq.RowScanner) (user *contracts.User, err error) {
 	user = &contracts.User{}
 	var id string
 	var userData []uint8
-	var insertedAt time.Time
+	var insertedAt *time.Time
 
 	if err = row.Scan(
 		&id,

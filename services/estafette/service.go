@@ -1045,6 +1045,8 @@ func (s *service) CreateUser(ctx context.Context, authUser auth.User) (user *con
 
 	log.Info().Msgf("Creating user record for user %v from provider %v", authUser.Email, authUser.Provider)
 
+	firstVisit := time.Now().UTC()
+
 	user = &contracts.User{
 		Active: true,
 		Identities: []*contracts.UserIdentity{
@@ -1055,8 +1057,8 @@ func (s *service) CreateUser(ctx context.Context, authUser auth.User) (user *con
 				Email:    authUser.Email,
 			},
 		},
-		FirstVisit: time.Now().UTC(),
-		LastVisit:  time.Now().UTC(),
+		FirstVisit: &firstVisit,
+		LastVisit:  &firstVisit,
 	}
 
 	user, err = s.cockroachdbClient.InsertUser(ctx, *user)
