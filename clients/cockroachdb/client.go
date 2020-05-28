@@ -361,7 +361,7 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
 		Where(sq.Eq{"build_status": allowedBuildStatusesToTransitionFrom}).
-		Suffix("RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, started_at, updated_at, age(updated_at, inserted_at)::INT, triggered_by_event")
+		Suffix("RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event")
 
 	if buildStatus == "running" {
 		query = query.Set("started_at", sq.Expr("now()"))
@@ -527,7 +527,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
 		Where(sq.Eq{"release_status": allowedReleaseStatusesToTransitionFrom}).
-		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, started_at, started_at, updated_at, age(updated_at, inserted_at)::INT, triggered_by_event")
+		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, started_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event")
 
 	if releaseStatus == "running" {
 		query = query.Set("started_at", sq.Expr("now()"))
@@ -1325,7 +1325,7 @@ func (c *client) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOw
 		Limit(uint64(50))
 
 	query := psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.started_at, a.updated_at, age(a.updated_at, a.inserted_at)::INT, a.triggered_by_event").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event").
 		Prefix("WITH ranked_builds AS (?)", innerquery).
 		From("ranked_builds a").
 		Where("a.rn = 1").
@@ -2181,7 +2181,7 @@ func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, rep
 	// generate query
 	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("a.inserted_at, age(a.updated_at, a.inserted_at)::INT").
+			Select("a.inserted_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT").
 			From("builds a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -2219,19 +2219,23 @@ func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, rep
 	for rows.Next() {
 
 		var insertedAt time.Time
-		var seconds int
+		var durationPendingSeconds, durationRunningSeconds int
 
 		if err = rows.Scan(
-			&insertedAt, &seconds); err != nil {
+			&insertedAt,
+			&durationPendingSeconds,
+			&durationRunningSeconds); err != nil {
 
 			return
 		}
 
-		duration := time.Duration(seconds) * time.Second
+		pendingDuration := time.Duration(durationPendingSeconds) * time.Second
+		runningDuration := time.Duration(durationRunningSeconds) * time.Second
 
 		durations = append(durations, map[string]interface{}{
-			"insertedAt": insertedAt,
-			"duration":   duration,
+			"insertedAt":      insertedAt,
+			"pendingDuration": pendingDuration,
+			"duration":        runningDuration,
 		})
 	}
 
@@ -2243,7 +2247,7 @@ func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, r
 	// generate query
 	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("a.inserted_at, a.release, a.release_action, age(a.updated_at, a.inserted_at)::INT").
+			Select("a.inserted_at, a.release, a.release_action, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT").
 			From("releases a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -2282,21 +2286,27 @@ func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, r
 
 		var insertedAt time.Time
 		var releaseName, releaseAction string
-		var seconds int
+		var durationPendingSeconds, durationRunningSeconds int
 
 		if err = rows.Scan(
-			&insertedAt, &releaseName, &releaseAction, &seconds); err != nil {
+			&insertedAt,
+			&releaseName,
+			&releaseAction,
+			&durationPendingSeconds,
+			&durationRunningSeconds); err != nil {
 
 			return
 		}
 
-		duration := time.Duration(seconds) * time.Second
+		pendingDuration := time.Duration(durationPendingSeconds) * time.Second
+		runningDuration := time.Duration(durationRunningSeconds) * time.Second
 
 		durations = append(durations, map[string]interface{}{
-			"insertedAt": insertedAt,
-			"name":       releaseName,
-			"action":     releaseAction,
-			"duration":   duration,
+			"insertedAt":      insertedAt,
+			"name":            releaseName,
+			"action":          releaseAction,
+			"pendingDuration": pendingDuration,
+			"duration":        runningDuration,
 		})
 	}
 
@@ -3207,7 +3217,7 @@ func (c *client) scanBuild(ctx context.Context, row sq.RowScanner, optimized, en
 
 	build = &contracts.Build{}
 	var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8
-	var seconds int
+	var durationPendingSeconds, durationRunningSeconds int
 
 	if err = row.Scan(
 		&build.ID,
@@ -3226,7 +3236,8 @@ func (c *client) scanBuild(ctx context.Context, row sq.RowScanner, optimized, en
 		&build.InsertedAt,
 		&build.StartedAt,
 		&build.UpdatedAt,
-		&seconds,
+		&durationPendingSeconds,
+		&durationRunningSeconds,
 		&triggeredByEventsData); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -3234,7 +3245,11 @@ func (c *client) scanBuild(ctx context.Context, row sq.RowScanner, optimized, en
 		return
 	}
 
-	build.Duration = time.Duration(seconds) * time.Second
+	pendingDuration := time.Duration(durationPendingSeconds) * time.Second
+	runningDuration := time.Duration(durationRunningSeconds) * time.Second
+
+	build.PendingDuration = &pendingDuration
+	build.Duration = runningDuration
 
 	c.setBuildPropertiesFromJSONB(build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
 
@@ -3260,7 +3275,7 @@ func (c *client) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contracts
 
 		build := contracts.Build{}
 		var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8
-		var seconds int
+		var durationPendingSeconds, durationRunningSeconds int
 
 		if err = rows.Scan(
 			&build.ID,
@@ -3279,12 +3294,17 @@ func (c *client) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contracts
 			&build.InsertedAt,
 			&build.StartedAt,
 			&build.UpdatedAt,
-			&seconds,
+			&durationPendingSeconds,
+			&durationRunningSeconds,
 			&triggeredByEventsData); err != nil {
 			return
 		}
 
-		build.Duration = time.Duration(seconds) * time.Second
+		pendingDuration := time.Duration(durationPendingSeconds) * time.Second
+		runningDuration := time.Duration(durationRunningSeconds) * time.Second
+
+		build.PendingDuration = &pendingDuration
+		build.Duration = runningDuration
 
 		c.setBuildPropertiesFromJSONB(&build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
 
@@ -3304,7 +3324,7 @@ func (c *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *cont
 
 	pipeline = &contracts.Pipeline{}
 	var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8
-	var seconds int
+	var durationPendingSeconds, durationRunningSeconds int
 
 	if err = row.Scan(
 		&pipeline.ID,
@@ -3324,7 +3344,8 @@ func (c *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *cont
 		&pipeline.InsertedAt,
 		&pipeline.StartedAt,
 		&pipeline.UpdatedAt,
-		&seconds,
+		&durationPendingSeconds,
+		&durationRunningSeconds,
 		&pipeline.LastUpdatedAt,
 		&triggeredByEventsData); err != nil {
 		if err == sql.ErrNoRows {
@@ -3333,7 +3354,11 @@ func (c *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *cont
 		return
 	}
 
-	pipeline.Duration = time.Duration(seconds) * time.Second
+	pendingDuration := time.Duration(durationPendingSeconds) * time.Second
+	runningDuration := time.Duration(durationRunningSeconds) * time.Second
+
+	pipeline.PendingDuration = &pendingDuration
+	pipeline.Duration = runningDuration
 
 	c.setPipelinePropertiesFromJSONB(pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
 
@@ -3355,7 +3380,7 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 
 		pipeline := contracts.Pipeline{}
 		var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8
-		var seconds int
+		var durationPendingSeconds, durationRunningSeconds int
 
 		if err = rows.Scan(
 			&pipeline.ID,
@@ -3375,13 +3400,18 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 			&pipeline.InsertedAt,
 			&pipeline.StartedAt,
 			&pipeline.UpdatedAt,
-			&seconds,
+			&durationPendingSeconds,
+			&durationRunningSeconds,
 			&pipeline.LastUpdatedAt,
 			&triggeredByEventsData); err != nil {
 			return
 		}
 
-		pipeline.Duration = time.Duration(seconds) * time.Second
+		pendingDuration := time.Duration(durationPendingSeconds) * time.Second
+		runningDuration := time.Duration(durationRunningSeconds) * time.Second
+
+		pipeline.PendingDuration = &pendingDuration
+		pipeline.Duration = runningDuration
 
 		c.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
 
@@ -3400,7 +3430,7 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 func (c *client) scanRelease(row sq.RowScanner) (release *contracts.Release, err error) {
 
 	release = &contracts.Release{}
-	var seconds int
+	var durationPendingSeconds, durationRunningSeconds int
 	var id int
 	var triggeredByEventsData []uint8
 
@@ -3416,7 +3446,8 @@ func (c *client) scanRelease(row sq.RowScanner) (release *contracts.Release, err
 		&release.InsertedAt,
 		&release.StartedAt,
 		&release.UpdatedAt,
-		&seconds,
+		&durationPendingSeconds,
+		&durationRunningSeconds,
 		&triggeredByEventsData); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -3424,8 +3455,11 @@ func (c *client) scanRelease(row sq.RowScanner) (release *contracts.Release, err
 		return
 	}
 
-	duration := time.Duration(seconds) * time.Second
-	release.Duration = &duration
+	pendingDuration := time.Duration(durationPendingSeconds) * time.Second
+	runningDuration := time.Duration(durationRunningSeconds) * time.Second
+
+	release.PendingDuration = &pendingDuration
+	release.Duration = &runningDuration
 	release.ID = strconv.Itoa(id)
 
 	if len(triggeredByEventsData) > 0 {
@@ -3445,7 +3479,7 @@ func (c *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, er
 	for rows.Next() {
 
 		release := contracts.Release{}
-		var seconds int
+		var durationPendingSeconds, durationRunningSeconds int
 		var id int
 		var triggeredByEventsData []uint8
 
@@ -3461,13 +3495,17 @@ func (c *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, er
 			&release.InsertedAt,
 			&release.StartedAt,
 			&release.UpdatedAt,
-			&seconds,
+			&durationPendingSeconds,
+			&durationRunningSeconds,
 			&triggeredByEventsData); err != nil {
 			return
 		}
 
-		duration := time.Duration(seconds) * time.Second
-		release.Duration = &duration
+		pendingDuration := time.Duration(durationPendingSeconds) * time.Second
+		runningDuration := time.Duration(durationRunningSeconds) * time.Second
+
+		release.PendingDuration = &pendingDuration
+		release.Duration = &runningDuration
 		release.ID = strconv.Itoa(id)
 
 		if len(triggeredByEventsData) > 0 {
@@ -3967,7 +4005,7 @@ func (c *client) selectBuildsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.started_at, a.updated_at, age(a.updated_at, a.inserted_at)::INT, a.triggered_by_event").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.started_at, a.updated_at, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event").
 		From("builds a")
 }
 
@@ -3975,7 +4013,7 @@ func (c *client) selectPipelinesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.archived, a.inserted_at, a.started_at, a.updated_at, age(a.updated_at, a.inserted_at)::INT, a.last_updated_at, a.triggered_by_event").
+		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.archived, a.inserted_at, a.started_at, a.updated_at, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.last_updated_at, a.triggered_by_event").
 		From("computed_pipelines a")
 }
 
@@ -3983,7 +4021,7 @@ func (c *client) selectReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, age(a.updated_at, a.inserted_at)::INT, a.triggered_by_event").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event").
 		From("releases a")
 }
 
@@ -3991,7 +4029,7 @@ func (c *client) selectComputedReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, age(a.updated_at, a.inserted_at)::INT, a.triggered_by_event").
+		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event").
 		From("computed_releases a")
 }
 
@@ -4209,6 +4247,7 @@ func (c *client) mapBuildToPipeline(build *contracts.Build) (pipeline *contracts
 		Triggers:             build.Triggers,
 		Archived:             archived,
 		InsertedAt:           build.InsertedAt,
+		StartedAt:            build.StartedAt,
 		UpdatedAt:            build.UpdatedAt,
 		Duration:             build.Duration,
 		Events:               build.Events,
