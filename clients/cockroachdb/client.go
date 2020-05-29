@@ -1055,7 +1055,6 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 			inserted_at,
 			first_inserted_at,
 			updated_at,
-			duration,
 			release_action,
 			triggered_by_event
 		)
@@ -1071,7 +1070,6 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 			$8,
 			$8,
 			$9,
-			AGE($9,$8),
 			$10,
 			$11
 		)
@@ -1089,7 +1087,6 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 			release_status = excluded.release_status,
 			inserted_at = excluded.inserted_at,
 			updated_at = excluded.updated_at,
-			duration = AGE(excluded.updated_at,excluded.inserted_at),
 			triggered_by_event = excluded.triggered_by_event
 		`,
 		lastRelease.ID,
