@@ -99,6 +99,7 @@ func getEmailFromIAPJWT(tokenString string, iapAudience string) (email string, e
 	// useful if you use multiple keys for your application.  The standard is to use 'kid' in the
 	// head of the token to identify which key to use, but the parsed token (head and claims) is provided
 	// to the callback, providing flexibility.
+	// todo: upgrade when https://github.com/dgrijalva/jwt-go supports configurable clock skew, see https://github.com/dgrijalva/jwt-go/issues/246
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 
 		// check algorithm is correct

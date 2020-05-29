@@ -55,7 +55,7 @@ func TestGetDigestCached(t *testing.T) {
 
 func TestExpiresAt(t *testing.T) {
 
-	t.Run("ReturnsIssuedAtPlusExpiredAtSecondsPlus30SecondsAllowedSkew", func(t *testing.T) {
+	t.Run("ReturnsIssuedAtPlusExpiredAtSeconds", func(t *testing.T) {
 
 		token := DockerHubToken{
 			ExpiresIn: 300,
@@ -65,17 +65,17 @@ func TestExpiresAt(t *testing.T) {
 		// act
 		expiresAt := token.ExpiresAt()
 
-		assert.Equal(t, time.Date(2017, 11, 18, 21, 8, 30, 0, time.UTC), expiresAt)
+		assert.Equal(t, time.Date(2017, 11, 18, 21, 8, 0, 0, time.UTC), expiresAt)
 	})
 }
 
 func TestIsExpired(t *testing.T) {
 
-	t.Run("ReturnsTrueIfIssuedLongerThanExpiresInSecondsAgoIncludingAllowed30SecondsSkew", func(t *testing.T) {
+	t.Run("ReturnsTrueIfIssuedLongerThanExpiresInSecondsAgo", func(t *testing.T) {
 
 		token := DockerHubToken{
 			ExpiresIn: 300,
-			IssuedAt:  time.Now().UTC().Add(time.Duration(-331) * time.Second),
+			IssuedAt:  time.Now().UTC().Add(time.Duration(-301) * time.Second),
 		}
 
 		// act
