@@ -60,7 +60,7 @@ func (h *Handler) LoginProvider(c *gin.Context) {
 
 	for _, p := range providers {
 		if p.Name == provider {
-			redirectURI := fmt.Sprintf("%vapi/auth/%v", h.config.APIServer.BaseURL, p.Name)
+			redirectURI := fmt.Sprintf("%vapi/auth/handle/%v", h.config.APIServer.BaseURL, p.Name)
 			c.Redirect(http.StatusTemporaryRedirect, p.AuthCodeURL(redirectURI))
 		}
 	}
