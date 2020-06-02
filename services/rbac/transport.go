@@ -142,7 +142,8 @@ func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
 			}
 
 			user := auth.User{
-				Email: userInfoPlus.Email,
+				Authenticated: true,
+				Email:         userInfoPlus.Email,
 				User: &contracts.User{
 					Name: userInfoPlus.Name,
 				},
