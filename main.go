@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -24,6 +25,8 @@ import (
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	jprom "github.com/uber/jaeger-lib/metrics/prometheus"
+	ginoauth2 "github.com/zalando/gin-oauth2"
+	"github.com/zalando/gin-oauth2/zalando"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/sourcerepo/v1"
@@ -404,6 +407,20 @@ func getHandlers(ctx context.Context, config *config.APIConfig, encryptedConfig 
 	return
 }
 
+var USERS []zalando.AccessTuple = []zalando.AccessTuple{
+	{"/employees", "sszuecs", "Sandor Szücs"},
+	{"/employees", "njuettner", "Nick Jüttner"},
+}
+
+var TEAMS []zalando.AccessTuple = []zalando.AccessTuple{
+	{"teams", "opensourceguild", "OpenSource"},
+	{"teams", "tm", "Platform Engineering / System"},
+	{"teams", "teapot", "Platform / Cloud API"},
+}
+var SERVICES []zalando.AccessTuple = []zalando.AccessTuple{
+	{"services", "foo", "Fooservice"},
+}
+
 func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler) *http.Server {
 
 	// run gin in release mode and other defaults
@@ -512,6 +529,43 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 		iapAuthorizedRoutes.GET("/api/config/trustedimages", estafetteHandler.GetConfigTrustedImages)
 		iapAuthorizedRoutes.GET("/api/update-computed-tables", estafetteHandler.UpdateComputedTables)
 	}
+
+	oauthUserRoutes := routes.Group("/api/oauth/user")
+	oauthUserRoutes.Use(ginoauth2.Auth(zalando.GroupCheck(TEAMS), zalando.OAuth2Endpoint))
+	oauthUserRoutes.GET("/", func(c *gin.Context) {
+		if v, ok := c.Get("cn"); ok {
+			c.JSON(200, gin.H{"message": fmt.Sprintf("Hello from private for users to %s", v)})
+		} else {
+			c.JSON(200, gin.H{"message": "Hello from private for users without cn"})
+		}
+	})
+
+	oauthTeamRoutes := routes.Group("/api/oauth/team")
+	oauthTeamRoutes.Use(ginoauth2.Auth(zalando.GroupCheck(TEAMS), zalando.OAuth2Endpoint))
+	oauthTeamRoutes.GET("/", func(c *gin.Context) {
+		uid, okUid := c.Get("uid")
+		if team, ok := c.Get("team"); ok && okUid {
+			c.JSON(200, gin.H{"message": fmt.Sprintf("Hello from private for groups to %s member of %s", uid, team)})
+		} else {
+			c.JSON(200, gin.H{"message": "Hello from private for groups without uid and team"})
+		}
+	})
+
+	oauthServiceRoutes := routes.Group("/api/oauth/service")
+	oauthServiceRoutes.Use(ginoauth2.Auth(zalando.ScopeAndCheck("uidcheck", "uid", "bar"), zalando.OAuth2Endpoint))
+	oauthServiceRoutes.GET("/", func(c *gin.Context) {
+		if v, ok := c.Get("cn"); ok {
+			c.JSON(200, gin.H{"message": fmt.Sprintf("Hello from private for services to %s", v)})
+		} else {
+			c.JSON(200, gin.H{"message": "Hello from private for services without cn"})
+		}
+	})
+
+	oauthAnyRoutes := routes.Group("/api/oauth/any")
+	oauthAnyRoutes.Use(ginoauth2.AuthChain(zalando.OAuth2Endpoint, zalando.UidCheck(USERS), zalando.GroupCheck(TEAMS), zalando.UidCheck(SERVICES)))
+	oauthAnyRoutes.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{"message": "Hello from private for groups and users"})
+	})
 
 	// default routes
 	routes.GET("/liveness", func(c *gin.Context) {
