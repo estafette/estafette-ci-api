@@ -39,6 +39,7 @@ func (h *Handler) GetProviders(c *gin.Context) {
 		responseItems = append(responseItems, map[string]interface{}{
 			"id":   p.Name,
 			"name": strings.Title(p.Name),
+			"path": fmt.Sprintf("/api/auth/login/%v", p.Name),
 		})
 	}
 
