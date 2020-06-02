@@ -8,6 +8,9 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/oauth2"
+	oauth2v1 "google.golang.org/api/oauth2/v1"
+	"google.golang.org/api/option"
 )
 
 // NewHandler returns a new estafette.Handler
@@ -60,8 +63,7 @@ func (h *Handler) LoginProvider(c *gin.Context) {
 
 	for _, p := range providers {
 		if p.Name == provider {
-			redirectURI := fmt.Sprintf("%vapi/auth/handle/%v", h.config.APIServer.BaseURL, p.Name)
-			c.Redirect(http.StatusTemporaryRedirect, p.AuthCodeURL(redirectURI))
+			c.Redirect(http.StatusTemporaryRedirect, p.AuthCodeURL(h.config.APIServer.BaseURL, "state"))
 		}
 	}
 
@@ -83,7 +85,19 @@ func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
 
 	for _, p := range providers {
 		if p.Name == provider {
-			c.JSON(http.StatusOK, gin.H{"code": code, "provider": p.Name})
+
+			cfg := p.GetConfig(h.config.APIServer.BaseURL)
+			token, err := cfg.Exchange(oauth2.NoContext, code)
+			if err != nil {
+				log.Error().Err(err).Msg("Exchanging code for token failed")
+				c.String(http.StatusInternalServerError, "Exchanging code for token failed")
+				return
+			}
+
+			oauth2Service, err := oauth2v1.NewService(c.Request.Context(), option.WithTokenSource(cfg.TokenSource(c.Request.Context(), token)))
+			userInfoPlus, err := oauth2Service.Userinfo.Get().Do()
+
+			c.JSON(http.StatusOK, gin.H{"userInfo": userInfoPlus, "provider": p.Name})
 			return
 		}
 	}
