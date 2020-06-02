@@ -27,7 +27,7 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible
-	github.com/zalando/gin-oauth2 v1.5.2 // indirect
+	github.com/zalando/gin-oauth2 v1.5.2
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	google.golang.org/api v0.20.0
 	gopkg.in/src-d/go-git.v4 v4.13.1

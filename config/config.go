@@ -58,8 +58,17 @@ func (c *APIServerConfig) ReadLogFromCloudStorage() bool {
 
 // AuthConfig determines whether to use IAP for authentication and authorization
 type AuthConfig struct {
-	IAP    *IAPAuthConfig `yaml:"iap"`
-	APIKey string         `yaml:"apiKey"`
+	IAP            *IAPAuthConfig   `yaml:"iap"`
+	APIKey         string           `yaml:"apiKey"`
+	OAuthProviders []*OAuthProvider `yaml:"oauthProviders"`
+}
+
+// OAuthProvider is used to configure one or more oauth providers like google, github, microsoft
+type OAuthProvider struct {
+	Name                   string `yaml:"name"`
+	ClientID               string `yaml:"clientID"`
+	ClientSecret           string `yaml:"clientSecret"`
+	AllowedIdentitiesRegex string `yaml:"allowedIdentitiesRegex"`
 }
 
 // JobsConfig configures the lower and upper bounds for automatically setting resources for build/release jobs
