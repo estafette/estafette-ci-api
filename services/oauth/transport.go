@@ -84,6 +84,7 @@ func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
 	for _, p := range providers {
 		if p.Name == provider {
 			c.JSON(http.StatusOK, gin.H{"code": code, "provider": p.Name})
+			return
 		}
 	}
 
