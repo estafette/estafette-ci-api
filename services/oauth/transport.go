@@ -34,7 +34,7 @@ func (h *Handler) GetProviders(c *gin.Context) {
 		return
 	}
 
-	responseItems := make([]interface{}, len(providers))
+	responseItems := make([]interface{}, 0)
 	for _, p := range providers {
 		responseItems = append(responseItems, map[string]interface{}{
 			"id":   p.Name,
