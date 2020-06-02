@@ -3,7 +3,6 @@ package estafette
 import (
 	"context"
 
-	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -102,22 +101,4 @@ func (s *loggingService) UpdateJobResources(ctx context.Context, event builderap
 	defer func() { helpers.HandleLogError(s.prefix, "UpdateJobResources", err) }()
 
 	return s.Service.UpdateJobResources(ctx, event)
-}
-
-func (s *loggingService) GetUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error) {
-	defer func() { helpers.HandleLogError(s.prefix, "GetUser", err, ErrUserNotFound) }()
-
-	return s.Service.GetUser(ctx, authUser)
-}
-
-func (s *loggingService) CreateUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error) {
-	defer func() { helpers.HandleLogError(s.prefix, "CreateUser", err) }()
-
-	return s.Service.CreateUser(ctx, authUser)
-}
-
-func (s *loggingService) UpdateUser(ctx context.Context, authUser auth.User) (err error) {
-	defer func() { helpers.HandleLogError(s.prefix, "UpdateUser", err) }()
-
-	return s.Service.UpdateUser(ctx, authUser)
 }

@@ -1535,40 +1535,6 @@ func (h *Handler) GetStatsReleasesAdoption(c *gin.Context) {
 	})
 }
 
-func (h *Handler) GetLoggedInUser(c *gin.Context) {
-
-	user := c.MustGet(gin.AuthUserKey).(auth.User)
-
-	dbUser, err := h.buildService.GetUser(c.Request.Context(), user)
-	if err == nil {
-		user.User = dbUser
-	} else if errors.Is(err, ErrUserNotFound) {
-		dbUser, err = h.buildService.CreateUser(c.Request.Context(), user)
-		if err == nil {
-			user.User = dbUser
-		}
-	}
-
-	if user.User != nil {
-		lastVisit := time.Now().UTC()
-		user.User.LastVisit = &lastVisit
-		user.User.Active = true
-
-		// copy identities' source to provider, so source can be retired
-		for _, i := range user.User.Identities {
-			if i.Provider == "" {
-				i.Provider = i.Source
-			}
-		}
-
-		go func(user auth.User) {
-			_ = h.buildService.UpdateUser(c.Request.Context(), user)
-		}(user)
-	}
-
-	c.JSON(http.StatusOK, user)
-}
-
 func (h *Handler) UpdateComputedTables(c *gin.Context) {
 
 	user := c.MustGet(gin.AuthUserKey).(auth.User)

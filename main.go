@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -25,8 +24,6 @@ import (
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	jprom "github.com/uber/jaeger-lib/metrics/prometheus"
-	ginoauth2 "github.com/zalando/gin-oauth2"
-	"github.com/zalando/gin-oauth2/zalando"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/sourcerepo/v1"
@@ -53,8 +50,8 @@ import (
 	"github.com/estafette/estafette-ci-api/services/cloudsource"
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	"github.com/estafette/estafette-ci-api/services/github"
-	"github.com/estafette/estafette-ci-api/services/oauth"
 	"github.com/estafette/estafette-ci-api/services/pubsub"
+	"github.com/estafette/estafette-ci-api/services/rbac"
 	"github.com/estafette/estafette-ci-api/services/slack"
 )
 
@@ -121,10 +118,10 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	config, encryptedConfig, secretHelper := getConfig(ctx)
 	bqClient, pubsubClient, gcsClient, sourcerepoTokenSource, sourcerepoService := getGoogleCloudClients(ctx, config)
 	bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient := getClients(ctx, config, encryptedConfig, secretHelper, bqClient, pubsubClient, gcsClient, sourcerepoTokenSource, sourcerepoService)
-	estafetteService, oauthService, githubService, bitbucketService, cloudsourceService := getServices(ctx, config, encryptedConfig, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient)
-	bitbucketHandler, githubHandler, estafetteHandler, oauthHandler, pubsubHandler, slackHandler, cloudsourceHandler := getHandlers(ctx, config, encryptedConfig, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient, estafetteService, oauthService, githubService, bitbucketService, cloudsourceService)
+	estafetteService, rbacService, githubService, bitbucketService, cloudsourceService := getServices(ctx, config, encryptedConfig, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient)
+	bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler := getHandlers(ctx, config, encryptedConfig, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient, estafetteService, rbacService, githubService, bitbucketService, cloudsourceService)
 
-	srv := configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, oauthHandler, pubsubHandler, slackHandler, cloudsourceHandler)
+	srv := configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler)
 
 	// watch for configmap changes
 	foundation.WatchForFileChanges(*configFilePath, func(event fsnotify.Event) {
@@ -348,7 +345,7 @@ func getClients(ctx context.Context, config *config.APIConfig, encryptedConfig *
 	return
 }
 
-func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig *config.APIConfig, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client) (estafetteService estafette.Service, oauthService oauth.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service) {
+func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig *config.APIConfig, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client) (estafetteService estafette.Service, rbacService rbac.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service) {
 
 	log.Debug().Msg("Creating services...")
 
@@ -361,13 +358,13 @@ func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig 
 		helpers.NewRequestHistogram("estafette_service"),
 	)
 
-	// estafette service
-	oauthService = oauth.NewService(config)
-	oauthService = oauth.NewTracingService(oauthService)
-	oauthService = oauth.NewLoggingService(oauthService)
-	oauthService = oauth.NewMetricsService(oauthService,
-		helpers.NewRequestCounter("oauth_service"),
-		helpers.NewRequestHistogram("oauth_service"),
+	// rbac service
+	rbacService = rbac.NewService(config, cockroachdbClient)
+	rbacService = rbac.NewTracingService(rbacService)
+	rbacService = rbac.NewLoggingService(rbacService)
+	rbacService = rbac.NewMetricsService(rbacService,
+		helpers.NewRequestCounter("rbac_service"),
+		helpers.NewRequestHistogram("rbac_service"),
 	)
 
 	// github service
@@ -400,7 +397,7 @@ func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig 
 	return
 }
 
-func getHandlers(ctx context.Context, config *config.APIConfig, encryptedConfig *config.APIConfig, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client, estafetteService estafette.Service, oauthService oauth.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service) (bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, oauthHandler oauth.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler) {
+func getHandlers(ctx context.Context, config *config.APIConfig, encryptedConfig *config.APIConfig, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client, estafetteService estafette.Service, rbacService rbac.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service) (bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, rbacHandler rbac.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler) {
 
 	log.Debug().Msg("Creating http handlers...")
 
@@ -410,7 +407,7 @@ func getHandlers(ctx context.Context, config *config.APIConfig, encryptedConfig 
 	bitbucketHandler = bitbucket.NewHandler(bitbucketService)
 	githubHandler = github.NewHandler(githubService)
 	estafetteHandler = estafette.NewHandler(*configFilePath, config, encryptedConfig, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
-	oauthHandler = oauth.NewHandler(config, oauthService)
+	rbacHandler = rbac.NewHandler(config, rbacService)
 	pubsubHandler = pubsub.NewHandler(pubsubapiClient, estafetteService)
 	slackHandler = slack.NewHandler(secretHelper, config, slackapiClient, cockroachdbClient, estafetteService, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
 	cloudsourceHandler = cloudsource.NewHandler(pubsubapiClient, cloudsourceService)
@@ -418,21 +415,7 @@ func getHandlers(ctx context.Context, config *config.APIConfig, encryptedConfig 
 	return
 }
 
-var USERS []zalando.AccessTuple = []zalando.AccessTuple{
-	{"/employees", "sszuecs", "Sandor Szücs"},
-	{"/employees", "njuettner", "Nick Jüttner"},
-}
-
-var TEAMS []zalando.AccessTuple = []zalando.AccessTuple{
-	{"teams", "opensourceguild", "OpenSource"},
-	{"teams", "tm", "Platform Engineering / System"},
-	{"teams", "teapot", "Platform / Cloud API"},
-}
-var SERVICES []zalando.AccessTuple = []zalando.AccessTuple{
-	{"services", "foo", "Fooservice"},
-}
-
-func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, oauthHandler oauth.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler) *http.Server {
+func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, rbacHandler rbac.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler) *http.Server {
 
 	// run gin in release mode and other defaults
 	gin.SetMode(gin.ReleaseMode)
@@ -534,53 +517,16 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 		iapAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/releases", estafetteHandler.CreatePipelineRelease)
 		iapAuthorizedRoutes.DELETE("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteHandler.CancelPipelineBuild)
 		iapAuthorizedRoutes.DELETE("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.CancelPipelineRelease)
-		iapAuthorizedRoutes.GET("/api/users/me", estafetteHandler.GetLoggedInUser)
+		iapAuthorizedRoutes.GET("/api/users/me", rbacHandler.GetLoggedInUser)
 		iapAuthorizedRoutes.GET("/api/config", estafetteHandler.GetConfig)
 		iapAuthorizedRoutes.GET("/api/config/credentials", estafetteHandler.GetConfigCredentials)
 		iapAuthorizedRoutes.GET("/api/config/trustedimages", estafetteHandler.GetConfigTrustedImages)
 		iapAuthorizedRoutes.GET("/api/update-computed-tables", estafetteHandler.UpdateComputedTables)
 	}
 
-	oauthUserRoutes := routes.Group("/api/oauth/user")
-	oauthUserRoutes.Use(ginoauth2.Auth(zalando.GroupCheck(TEAMS), zalando.OAuth2Endpoint))
-	oauthUserRoutes.GET("/", func(c *gin.Context) {
-		if v, ok := c.Get("cn"); ok {
-			c.JSON(200, gin.H{"message": fmt.Sprintf("Hello from private for users to %s", v)})
-		} else {
-			c.JSON(200, gin.H{"message": "Hello from private for users without cn"})
-		}
-	})
-
-	oauthTeamRoutes := routes.Group("/api/oauth/team")
-	oauthTeamRoutes.Use(ginoauth2.Auth(zalando.GroupCheck(TEAMS), zalando.OAuth2Endpoint))
-	oauthTeamRoutes.GET("/", func(c *gin.Context) {
-		uid, okUid := c.Get("uid")
-		if team, ok := c.Get("team"); ok && okUid {
-			c.JSON(200, gin.H{"message": fmt.Sprintf("Hello from private for groups to %s member of %s", uid, team)})
-		} else {
-			c.JSON(200, gin.H{"message": "Hello from private for groups without uid and team"})
-		}
-	})
-
-	oauthServiceRoutes := routes.Group("/api/oauth/service")
-	oauthServiceRoutes.Use(ginoauth2.Auth(zalando.ScopeAndCheck("uidcheck", "uid", "bar"), zalando.OAuth2Endpoint))
-	oauthServiceRoutes.GET("/", func(c *gin.Context) {
-		if v, ok := c.Get("cn"); ok {
-			c.JSON(200, gin.H{"message": fmt.Sprintf("Hello from private for services to %s", v)})
-		} else {
-			c.JSON(200, gin.H{"message": "Hello from private for services without cn"})
-		}
-	})
-
-	oauthAnyRoutes := routes.Group("/api/oauth/any")
-	oauthAnyRoutes.Use(ginoauth2.AuthChain(zalando.OAuth2Endpoint, zalando.UidCheck(USERS), zalando.GroupCheck(TEAMS), zalando.UidCheck(SERVICES)))
-	oauthAnyRoutes.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{"message": "Hello from private for groups and users"})
-	})
-
-	routes.GET("/api/auth/providers", oauthHandler.GetProviders)
-	routes.GET("/api/auth/login/:provider", oauthHandler.LoginProvider)
-	routes.GET("/api/auth/handle/:provider", oauthHandler.HandleLoginProviderResponse)
+	routes.GET("/api/auth/providers", rbacHandler.GetProviders)
+	routes.GET("/api/auth/login/:provider", rbacHandler.LoginProvider)
+	routes.GET("/api/auth/handle/:provider", rbacHandler.HandleLoginProviderResponse)
 
 	// default routes
 	routes.GET("/liveness", func(c *gin.Context) {

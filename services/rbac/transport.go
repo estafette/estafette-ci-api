@@ -1,10 +1,13 @@
-package oauth
+package rbac
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -13,7 +16,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-// NewHandler returns a new estafette.Handler
+// NewHandler returns a new rbac.Handler
 func NewHandler(config *config.APIConfig, service Service) Handler {
 
 	return Handler{
@@ -25,6 +28,40 @@ func NewHandler(config *config.APIConfig, service Service) Handler {
 type Handler struct {
 	config  *config.APIConfig
 	service Service
+}
+
+func (h *Handler) GetLoggedInUser(c *gin.Context) {
+
+	user := c.MustGet(gin.AuthUserKey).(auth.User)
+
+	dbUser, err := h.service.GetUser(c.Request.Context(), user)
+	if err == nil {
+		user.User = dbUser
+	} else if errors.Is(err, ErrUserNotFound) {
+		dbUser, err = h.service.CreateUser(c.Request.Context(), user)
+		if err == nil {
+			user.User = dbUser
+		}
+	}
+
+	if user.User != nil {
+		lastVisit := time.Now().UTC()
+		user.User.LastVisit = &lastVisit
+		user.User.Active = true
+
+		// copy identities' source to provider, so source can be retired
+		for _, i := range user.User.Identities {
+			if i.Provider == "" {
+				i.Provider = i.Source
+			}
+		}
+
+		go func(user auth.User) {
+			_ = h.service.UpdateUser(c.Request.Context(), user)
+		}(user)
+	}
+
+	c.JSON(http.StatusOK, user)
 }
 
 func (h *Handler) GetProviders(c *gin.Context) {
@@ -95,9 +132,20 @@ func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
 			}
 
 			oauth2Service, err := oauth2v1.NewService(c.Request.Context(), option.WithTokenSource(cfg.TokenSource(c.Request.Context(), token)))
+			if err != nil {
+				log.Error().Err(err).Msg("Creating oauth2 service failed")
+				c.String(http.StatusInternalServerError, "Creating oauth2 service failed")
+				return
+			}
 			userInfoPlus, err := oauth2Service.Userinfo.Get().Do()
+			if err != nil {
+				log.Error().Err(err).Msg("Retrieving user info failed")
+				c.String(http.StatusInternalServerError, "Retrieving user info failed")
+				return
+			}
 
 			c.JSON(http.StatusOK, gin.H{"userInfo": userInfoPlus, "provider": p.Name})
+
 			return
 		}
 	}
