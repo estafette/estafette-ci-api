@@ -10,7 +10,7 @@ require (
 	github.com/alecthomas/kingpin v2.2.6+incompatible
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/ericchiang/k8s v1.2.0
-	github.com/estafette/estafette-ci-contracts v0.0.195
+	github.com/estafette/estafette-ci-contracts v0.0.196
 	github.com/estafette/estafette-ci-crypt v0.0.36
 	github.com/estafette/estafette-ci-manifest v0.1.153
 	github.com/estafette/estafette-foundation v0.0.54
@@ -27,7 +27,6 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible
-	github.com/zalando/gin-oauth2 v1.5.2
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	google.golang.org/api v0.20.0
 	gopkg.in/src-d/go-git.v4 v4.13.1

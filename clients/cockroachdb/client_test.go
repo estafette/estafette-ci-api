@@ -972,8 +972,8 @@ func TestIntegrationGetUserByEmail(t *testing.T) {
 		user := getUser()
 		user.Identities = []*contracts.UserIdentity{
 			{
-				Source:   "gsuite",
-				Username: "wilson",
+				Provider: "google",
+				ID:       "wilson",
 				Email:    "wilson-test@homeimprovement.com",
 			},
 		}
@@ -1121,15 +1121,15 @@ func getUser() contracts.User {
 		Name: "Wilson Wilson",
 		Identities: []*contracts.UserIdentity{
 			{
-				Source:   "gsuite",
-				Username: "wilson",
+				Provider: "google",
+				ID:       "wilson",
 				Email:    "wilson@homeimprovement.com",
 			},
 		},
 		Groups: []*contracts.UserGroup{
 			{
-				Source: "gsuite",
-				Name:   "Neighbourhood",
+				Provider: "gsuite",
+				Name:     "Neighbourhood",
 			},
 		},
 		Preferences: map[string]interface{}{

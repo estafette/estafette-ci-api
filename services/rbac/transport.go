@@ -9,6 +9,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/config"
+	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
@@ -48,13 +49,6 @@ func (h *Handler) GetLoggedInUser(c *gin.Context) {
 		lastVisit := time.Now().UTC()
 		user.User.LastVisit = &lastVisit
 		user.User.Active = true
-
-		// copy identities' source to provider, so source can be retired
-		for _, i := range user.User.Identities {
-			if i.Provider == "" {
-				i.Provider = i.Source
-			}
-		}
 
 		go func(user auth.User) {
 			_ = h.service.UpdateUser(c.Request.Context(), user)
@@ -144,7 +138,57 @@ func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
 				return
 			}
 
-			c.JSON(http.StatusOK, gin.H{"userInfo": userInfoPlus, "provider": p.Name})
+			user := auth.User{
+				Email: userInfoPlus.Email,
+				User: &contracts.User{
+					Name: userInfoPlus.Name,
+				},
+			}
+
+			dbUser, err := h.service.GetUser(c.Request.Context(), user)
+			if err == nil {
+				user.User = dbUser
+			} else if errors.Is(err, ErrUserNotFound) {
+				dbUser, err = h.service.CreateUser(c.Request.Context(), user)
+				if err == nil {
+					user.User = dbUser
+				}
+			}
+
+			if user.User != nil {
+				lastVisit := time.Now().UTC()
+				user.User.LastVisit = &lastVisit
+				user.User.Active = true
+
+				// update identity
+				hasIdentityForProvider := false
+				for _, i := range user.User.Identities {
+					if i.Provider == p.Name {
+						hasIdentityForProvider = true
+						i.Avatar = userInfoPlus.Picture
+						i.Name = userInfoPlus.Name
+						i.ID = userInfoPlus.Id
+						break
+					}
+				}
+				if !hasIdentityForProvider {
+					// add identity
+					user.User.Identities = append(user.User.Identities, &contracts.UserIdentity{
+						Email:  userInfoPlus.Email,
+						Name:   userInfoPlus.Name,
+						ID:     userInfoPlus.Id,
+						Avatar: userInfoPlus.Picture,
+					})
+				}
+
+				go func(user auth.User) {
+					_ = h.service.UpdateUser(c.Request.Context(), user)
+				}(user)
+			}
+
+			c.Redirect(http.StatusTemporaryRedirect, "/preferences")
+
+			// c.JSON(http.StatusOK, gin.H{"userInfo": userInfoPlus, "provider": p.Name})
 
 			return
 		}

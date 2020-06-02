@@ -69,13 +69,18 @@ func (s *service) CreateUser(ctx context.Context, authUser auth.User) (user *con
 
 	firstVisit := time.Now().UTC()
 
+	username := ""
+	if authUser.User != nil {
+		username = authUser.User.Name
+	}
+
 	user = &contracts.User{
 		Active: true,
+		Name:   username,
 		Identities: []*contracts.UserIdentity{
 			{
-				Source:   authUser.Provider,
 				Provider: authUser.Provider,
-				Username: authUser.Email,
+				Name:     username,
 				Email:    authUser.Email,
 			},
 		},
