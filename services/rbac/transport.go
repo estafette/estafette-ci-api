@@ -51,7 +51,10 @@ func (h *Handler) GetLoggedInUser(c *gin.Context) {
 		user.User.Active = true
 
 		go func(user auth.User) {
-			_ = h.service.UpdateUser(c.Request.Context(), user)
+			err = h.service.UpdateUser(c.Request.Context(), user)
+			if err != nil {
+				log.Warn().Err(err).Msg("Failed updating user in db")
+			}
 		}(user)
 	}
 
@@ -179,10 +182,15 @@ func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
 						ID:     userInfoPlus.Id,
 						Avatar: userInfoPlus.Picture,
 					})
+				} else {
+					log.Debug().Interface("user", user.User).Msg("Updated existing user identity")
 				}
 
 				go func(user auth.User) {
-					_ = h.service.UpdateUser(c.Request.Context(), user)
+					err = h.service.UpdateUser(c.Request.Context(), user)
+					if err != nil {
+						log.Warn().Err(err).Msg("Failed updating user in db")
+					}
 				}(user)
 			}
 
