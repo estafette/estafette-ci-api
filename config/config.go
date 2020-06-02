@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/estafette/estafette-ci-api/helpers"
@@ -8,6 +9,8 @@ import (
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/endpoints"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -69,6 +72,41 @@ type OAuthProvider struct {
 	ClientID               string `yaml:"clientID"`
 	ClientSecret           string `yaml:"clientSecret"`
 	AllowedIdentitiesRegex string `yaml:"allowedIdentitiesRegex"`
+}
+
+// OAuthProviderInfo provides non configurable information for oauth providers
+type OAuthProviderInfo struct {
+	AuthURL  string
+	TokenURL string
+}
+
+// GetEndpoint returns the endpoint with authURL and tokenURL for the named provider
+func (p OAuthProvider) GetEndpoint() *oauth2.Endpoint {
+	switch p.Name {
+	case "google":
+		return &endpoints.Google
+	}
+
+	return nil
+}
+
+// AuthCodeURL returns the url to redirect to for login
+func (p OAuthProvider) AuthCodeURL(redirectURI string) string {
+	endpoint := p.GetEndpoint()
+
+	switch p.Name {
+	case "google":
+
+		scope := "https://www.googleapis.com/auth/userinfo.email"
+		accessType := "online"
+		includeGrantedScopes := true
+		responseType := "code"
+		clientID := p.ClientID
+
+		return fmt.Sprintf("%v?scope=%v&access_type=%v&include_granted_scopes=%v&response_type=%v&redirect_uri=%v&client_id=%v", endpoint.AuthURL, scope, accessType, includeGrantedScopes, responseType, redirectURI, clientID)
+	}
+
+	return ""
 }
 
 // JobsConfig configures the lower and upper bounds for automatically setting resources for build/release jobs
