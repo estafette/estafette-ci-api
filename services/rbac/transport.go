@@ -80,7 +80,6 @@ func (h *Handler) LoginProvider(c *gin.Context) {
 }
 
 func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (interface{}, error) {
-
 	return func(c *gin.Context) (interface{}, error) {
 		ctx := c.Request.Context()
 

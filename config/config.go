@@ -148,10 +148,11 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 
 		// map userinfo to user identity
 		identity = &contracts.UserIdentity{
-			Email:  userInfo.Email,
-			Name:   userInfo.Name,
-			ID:     userInfo.Id,
-			Avatar: userInfo.Picture,
+			Provider: p.Name,
+			Email:    userInfo.Email,
+			Name:     userInfo.Name,
+			ID:       userInfo.Id,
+			Avatar:   userInfo.Picture,
 		}
 
 		return identity, nil
@@ -186,10 +187,11 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 
 		// map userinfo to user identity
 		identity = &contracts.UserIdentity{
-			Email:  userInfo.Email,
-			Name:   userInfo.Name,
-			ID:     userInfo.ID,
-			Avatar: userInfo.Picture,
+			Provider: p.Name,
+			Email:    userInfo.Email,
+			Name:     userInfo.Name,
+			ID:       userInfo.ID,
+			Avatar:   userInfo.Picture,
 		}
 
 		return identity, nil
