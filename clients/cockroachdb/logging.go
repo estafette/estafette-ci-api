@@ -480,3 +480,9 @@ func (c *loggingClient) GetUserByIdentity(ctx context.Context, identity contract
 
 	return c.Client.GetUserByIdentity(ctx, identity)
 }
+
+func (c *loggingClient) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetUserByID", err, ErrUserNotFound) }()
+
+	return c.Client.GetUserByID(ctx, id)
+}

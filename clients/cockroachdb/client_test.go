@@ -961,7 +961,7 @@ func TestIntegrationGetPipelineReleasesDurations(t *testing.T) {
 	})
 }
 
-func TestIntegrationGetUserByEmail(t *testing.T) {
+func TestIntegrationGetUserByIdentity(t *testing.T) {
 	t.Run("ReturnsInsertedUserWithID", func(t *testing.T) {
 
 		if testing.Short() {
@@ -988,6 +988,59 @@ func TestIntegrationGetUserByEmail(t *testing.T) {
 
 		// act
 		retrievedUser, err := cockroachdbClient.GetUserByIdentity(ctx, identity)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, retrievedUser)
+		assert.Equal(t, retrievedUser.ID, insertedUser.ID)
+	})
+
+	t.Run("DoesNotReturnUserIfProviderDoesNotMatch", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		user := getUser()
+		user.Identities = []*contracts.UserIdentity{
+			{
+				Provider: "google",
+				ID:       "wilson",
+				Email:    "wilson-test@homeimprovement.com",
+			},
+		}
+		_, err := cockroachdbClient.InsertUser(ctx, user)
+		assert.Nil(t, err)
+
+		identity := contracts.UserIdentity{
+			Provider: "microsoft",
+			Email:    "wilson-test@homeimprovement.com",
+		}
+
+		// act
+		retrievedUser, err := cockroachdbClient.GetUserByIdentity(ctx, identity)
+
+		assert.Nil(t, err)
+		assert.Nil(t, retrievedUser)
+	})
+}
+
+func TestIntegrationGetUserByID(t *testing.T) {
+	t.Run("ReturnsInsertedUserWithID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		user := getUser()
+		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+		assert.Nil(t, err)
+
+		// act
+		retrievedUser, err := cockroachdbClient.GetUserByID(ctx, insertedUser.ID)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedUser)

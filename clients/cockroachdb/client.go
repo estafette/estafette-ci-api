@@ -113,6 +113,7 @@ type Client interface {
 	InsertUser(ctx context.Context, user contracts.User) (u *contracts.User, err error)
 	UpdateUser(ctx context.Context, user contracts.User) (err error)
 	GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
+	GetUserByID(ctx context.Context, id string) (user *contracts.User, err error)
 }
 
 // NewClient returns a new cockroach.Client
@@ -3924,6 +3925,26 @@ func (c *client) UpdateUser(ctx context.Context, user contracts.User) (err error
 	_, err = query.RunWith(c.databaseConnection).Exec()
 
 	return
+}
+
+func (c *client) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Select("a.id, a.user_data, a.inserted_at").
+		From("users a").
+		Where(sq.Eq{"a.id": id}).
+		Limit(uint64(1))
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	user, err = c.scanUser(row)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
 func (c *client) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {

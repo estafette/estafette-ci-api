@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	jwt "github.com/appleboy/gin-jwt"
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -77,6 +77,96 @@ func (h *Handler) LoginProvider(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusBadRequest, gin.H{"message": "Provider is not configured"})
+}
+
+func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (interface{}, error) {
+
+	return func(c *gin.Context) (interface{}, error) {
+		ctx := c.Request.Context()
+
+		provider := c.Param("provider")
+		code := c.Query("code")
+
+		// retrieve configured providers
+		providers, err := h.service.GetProviders(c.Request.Context())
+		if err != nil {
+			return nil, err
+		}
+
+		// get provider by path parameter
+		var providerByName *config.OAuthProvider
+		for _, p := range providers {
+			if p.Name == provider {
+				providerByName = p
+			}
+		}
+
+		if providerByName == nil {
+			return nil, fmt.Errorf("Provider %v not configured", provider)
+		}
+
+		// retrieve oauth config
+		cfg := providerByName.GetConfig(h.config.APIServer.BaseURL)
+		token, err := cfg.Exchange(ctx, code)
+		if err != nil {
+			return nil, err
+		}
+
+		// fetch identity from oauth provider api
+		identity, err := providerByName.GetUserIdentity(ctx, cfg, token)
+		if err != nil {
+			return nil, err
+		}
+
+		if identity == nil {
+			return nil, fmt.Errorf("Empty identity retrieved from oauth provider api")
+		}
+
+		// upsert user
+		user, err := h.service.GetUser(c.Request.Context(), *identity)
+		if err != nil && errors.Is(err, ErrUserNotFound) {
+			user, err = h.service.CreateUser(c.Request.Context(), *identity)
+			if err != nil {
+				return nil, err
+			}
+		} else if err != nil {
+			return nil, err
+		}
+
+		if user == nil {
+			return nil, err
+		}
+
+		// update user last visit and identity
+		lastVisit := time.Now().UTC()
+		user.LastVisit = &lastVisit
+		user.Active = true
+
+		// update identity
+		hasIdentityForProvider := false
+		for _, i := range user.Identities {
+			if i.Provider == provider {
+				hasIdentityForProvider = true
+
+				// update to the fetched identity
+				*i = *identity
+				break
+			}
+		}
+		if !hasIdentityForProvider {
+			// add identity
+			user.Identities = append(user.Identities, identity)
+		}
+
+		go func(user contracts.User) {
+			err = h.service.UpdateUser(c.Request.Context(), user)
+			if err != nil {
+				log.Warn().Err(err).Msg("Failed updating user in db")
+			}
+		}(*user)
+
+		return user, nil
+	}
 }
 
 func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
@@ -161,8 +251,6 @@ func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
 			}(*user)
 
 			c.Redirect(http.StatusTemporaryRedirect, "/preferences")
-
-			return
 		}
 	}
 
@@ -171,10 +259,9 @@ func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
 
 func (h *Handler) GetLoggedInUserProfile(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
-	user, _ := c.Get(auth.JWTIdentityKey)
+	user, _ := c.Get(jwt.IdentityKey)
 	c.JSON(200, gin.H{
-		"userID":   claims[auth.JWTIdentityKey],
-		"userName": user.(*contracts.User).Name,
-		"text":     "Hello World.",
+		"userID": claims[jwt.IdentityKey],
+		"user":   user.(*contracts.User),
 	})
 }

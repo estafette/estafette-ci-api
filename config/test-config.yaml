@@ -54,7 +54,7 @@ auth:
     audience: /projects/***/global/backendServices/***
   apiKey: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
   jwt:
-    realm: ci.estafette.io
+    domain: ci.estafette.io
     key: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
   oauthProviders:
   - name: google

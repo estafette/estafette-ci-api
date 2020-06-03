@@ -200,7 +200,7 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 
 // JWTConfig is used to configure JWT middleware
 type JWTConfig struct {
-	Realm string `yaml:"realm"`
+	Domain string `yaml:"domain"`
 	// Key to sign JWT; use 256-bit key (or 32 bytes) minimum length
 	Key string `yaml:"key"`
 }

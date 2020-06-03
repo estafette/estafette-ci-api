@@ -558,3 +558,10 @@ func (c *tracingClient) GetUserByIdentity(ctx context.Context, identity contract
 
 	return c.Client.GetUserByIdentity(ctx, identity)
 }
+
+func (c *tracingClient) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetUserByID"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetUserByID(ctx, id)
+}

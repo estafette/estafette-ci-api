@@ -444,7 +444,7 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 	log.Debug().Msg("Adding auth middleware...")
 	authMiddleware := auth.NewAuthMiddleware(config)
 
-	jwtMiddleware, err := authMiddleware.GinJWTMiddleware()
+	jwtMiddleware, err := authMiddleware.GinJWTMiddleware(rbacHandler.HandleLoginProviderAuthenticator())
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed creating JWT middleware")
 	}
@@ -537,7 +537,7 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 
 	routes.GET("/api/auth/providers", rbacHandler.GetProviders)
 	routes.GET("/api/auth/login/:provider", rbacHandler.LoginProvider)
-	routes.GET("/api/auth/handle/:provider", rbacHandler.HandleLoginProviderResponse)
+	routes.GET("/api/auth/handle/:provider", jwtMiddleware.LoginHandler)
 
 	// default routes
 	routes.GET("/liveness", func(c *gin.Context) {
