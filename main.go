@@ -444,6 +444,11 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 	log.Debug().Msg("Adding auth middleware...")
 	authMiddleware := auth.NewAuthMiddleware(config)
 
+	jwtMiddleware, err := authMiddleware.GinJWTMiddleware()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed creating JWT middleware")
+	}
+
 	log.Debug().Msg("Setting up routes...")
 	routes.POST("/api/integrations/github/events", githubHandler.Handle)
 	routes.GET("/api/integrations/github/status", func(c *gin.Context) { c.String(200, "Github, I'm cool!") })
@@ -522,6 +527,12 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 		iapAuthorizedRoutes.GET("/api/config/credentials", estafetteHandler.GetConfigCredentials)
 		iapAuthorizedRoutes.GET("/api/config/trustedimages", estafetteHandler.GetConfigTrustedImages)
 		iapAuthorizedRoutes.GET("/api/update-computed-tables", estafetteHandler.UpdateComputedTables)
+	}
+
+	routes.GET("/api/auth/refresh_token", jwtMiddleware.RefreshHandler)
+	jwtMiddlewareRoutes := routes.Group("/", jwtMiddleware.MiddlewareFunc())
+	{
+		jwtMiddlewareRoutes.GET("/api/auth/profile", rbacHandler.GetLoggedInUserProfile)
 	}
 
 	routes.GET("/api/auth/providers", rbacHandler.GetProviders)

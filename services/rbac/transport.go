@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	jwt "github.com/appleboy/gin-jwt"
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -166,4 +167,14 @@ func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusBadRequest, gin.H{"message": "Provider is not configured"})
+}
+
+func (h *Handler) GetLoggedInUserProfile(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	user, _ := c.Get(auth.JWTIdentityKey)
+	c.JSON(200, gin.H{
+		"userID":   claims[auth.JWTIdentityKey],
+		"userName": user.(*contracts.User).Name,
+		"text":     "Hello World.",
+	})
 }

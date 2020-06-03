@@ -70,6 +70,7 @@ type AuthConfig struct {
 	IAP            *IAPAuthConfig   `yaml:"iap"`
 	APIKey         string           `yaml:"apiKey"`
 	OAuthProviders []*OAuthProvider `yaml:"oauthProviders"`
+	JWT            *JWTConfig       `yaml:"jwt"`
 }
 
 // OAuthProvider is used to configure one or more oauth providers like google, github, microsoft
@@ -195,6 +196,13 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 	}
 
 	return nil, fmt.Errorf("The GetUser function has not been implemented for provider '%v'", p.Name)
+}
+
+// JWTConfig is used to configure JWT middleware
+type JWTConfig struct {
+	Realm string `yaml:"realm"`
+	// Key to sign JWT; use 256-bit key (or 32 bytes) minimum length
+	Key string `yaml:"key"`
 }
 
 // JobsConfig configures the lower and upper bounds for automatically setting resources for build/release jobs
