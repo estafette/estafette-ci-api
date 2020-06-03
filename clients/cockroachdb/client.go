@@ -112,7 +112,7 @@ type Client interface {
 
 	InsertUser(ctx context.Context, user contracts.User) (u *contracts.User, err error)
 	UpdateUser(ctx context.Context, user contracts.User) (err error)
-	GetUserByEmail(ctx context.Context, email string) (user *contracts.User, err error)
+	GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 }
 
 // NewClient returns a new cockroach.Client
@@ -3917,18 +3917,21 @@ func (c *client) UpdateUser(ctx context.Context, user contracts.User) (err error
 	return
 }
 
-func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contracts.User, err error) {
+func (c *client) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 
 	emailFilter := struct {
 		Identities []struct {
-			Email string `json:"email"`
+			Provider string `json:"provider"`
+			Email    string `json:"email"`
 		} `json:"identities"`
 	}{
 		[]struct {
-			Email string `json:"email"`
+			Provider string `json:"provider"`
+			Email    string `json:"email"`
 		}{
 			{
-				Email: email,
+				Provider: identity.Provider,
+				Email:    identity.Email,
 			},
 		},
 	}
@@ -3937,8 +3940,6 @@ func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contra
 	if err != nil {
 		return nil, err
 	}
-
-	log.Debug().Str("emailFilterBytes", string(emailFilterBytes)).Msgf("cockroachdb.Client:GetUserByEmail(%v) before", email)
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 

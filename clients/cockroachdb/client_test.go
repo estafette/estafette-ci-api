@@ -980,8 +980,13 @@ func TestIntegrationGetUserByEmail(t *testing.T) {
 		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
 
+		identity := contracts.UserIdentity{
+			Provider: "google",
+			Email:    "wilson-test@homeimprovement.com",
+		}
+
 		// act
-		retrievedUser, err := cockroachdbClient.GetUserByEmail(ctx, "wilson-test@homeimprovement.com")
+		retrievedUser, err := cockroachdbClient.GetUserByIdentity(ctx, identity)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedUser)

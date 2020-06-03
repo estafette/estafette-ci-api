@@ -475,8 +475,8 @@ func (c *loggingClient) UpdateUser(ctx context.Context, user contracts.User) (er
 	return c.Client.UpdateUser(ctx, user)
 }
 
-func (c *loggingClient) GetUserByEmail(ctx context.Context, email string) (user *contracts.User, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "GetUserByEmail", err, ErrUserNotFound) }()
+func (c *loggingClient) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetUserByIdentity", err, ErrUserNotFound) }()
 
-	return c.Client.GetUserByEmail(ctx, email)
+	return c.Client.GetUserByIdentity(ctx, identity)
 }

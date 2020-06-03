@@ -12,9 +12,6 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/oauth2"
-	oauth2v1 "google.golang.org/api/oauth2/v1"
-	"google.golang.org/api/option"
 )
 
 // NewHandler returns a new rbac.Handler
@@ -34,29 +31,6 @@ type Handler struct {
 func (h *Handler) GetLoggedInUser(c *gin.Context) {
 
 	user := c.MustGet(gin.AuthUserKey).(auth.User)
-
-	dbUser, err := h.service.GetUser(c.Request.Context(), user)
-	if err == nil {
-		user.User = dbUser
-	} else if errors.Is(err, ErrUserNotFound) {
-		dbUser, err = h.service.CreateUser(c.Request.Context(), user)
-		if err == nil {
-			user.User = dbUser
-		}
-	}
-
-	if user.User != nil {
-		lastVisit := time.Now().UTC()
-		user.User.LastVisit = &lastVisit
-		user.User.Active = true
-
-		go func(user auth.User) {
-			err = h.service.UpdateUser(c.Request.Context(), user)
-			if err != nil {
-				log.Warn().Err(err).Msg("Failed updating user in db")
-			}
-		}(user)
-	}
 
 	c.JSON(http.StatusOK, user)
 }
@@ -106,6 +80,8 @@ func (h *Handler) LoginProvider(c *gin.Context) {
 
 func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
 
+	ctx := c.Request.Context()
+
 	provider := c.Param("provider")
 	code := c.Query("code")
 
@@ -121,83 +97,69 @@ func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
 		if p.Name == provider {
 
 			cfg := p.GetConfig(h.config.APIServer.BaseURL)
-			token, err := cfg.Exchange(oauth2.NoContext, code)
+			token, err := cfg.Exchange(ctx, code)
 			if err != nil {
 				log.Error().Err(err).Msg("Exchanging code for token failed")
 				c.String(http.StatusInternalServerError, "Exchanging code for token failed")
 				return
 			}
 
-			oauth2Service, err := oauth2v1.NewService(c.Request.Context(), option.WithTokenSource(cfg.TokenSource(c.Request.Context(), token)))
-			if err != nil {
-				log.Error().Err(err).Msg("Creating oauth2 service failed")
-				c.String(http.StatusInternalServerError, "Creating oauth2 service failed")
-				return
-			}
-			userInfoPlus, err := oauth2Service.Userinfo.Get().Do()
-			if err != nil {
-				log.Error().Err(err).Msg("Retrieving user info failed")
-				c.String(http.StatusInternalServerError, "Retrieving user info failed")
+			identity, err := p.GetUserIdentity(ctx, cfg, token)
+			if err != nil || identity == nil {
+				log.Error().Err(err).Msg("Retrieving user identity failed")
+				c.String(http.StatusInternalServerError, "Retrieving user identity failed")
 				return
 			}
 
-			user := auth.User{
-				Authenticated: true,
-				Email:         userInfoPlus.Email,
-				User: &contracts.User{
-					Name: userInfoPlus.Name,
-				},
+			user, err := h.service.GetUser(c.Request.Context(), *identity)
+			if err != nil && errors.Is(err, ErrUserNotFound) {
+				user, err = h.service.CreateUser(c.Request.Context(), *identity)
+				if err != nil {
+					log.Error().Err(err).Msg("Creating user in db failed")
+					c.String(http.StatusInternalServerError, "Creating user in db failed")
+					return
+				}
+			} else if err != nil {
+				log.Error().Err(err).Msg("Retrieving user from db failed")
+				c.String(http.StatusInternalServerError, "Retrieving user from db failed")
+				return
 			}
 
-			dbUser, err := h.service.GetUser(c.Request.Context(), user)
-			if err == nil {
-				user.User = dbUser
-			} else if errors.Is(err, ErrUserNotFound) {
-				dbUser, err = h.service.CreateUser(c.Request.Context(), user)
-				if err == nil {
-					user.User = dbUser
-				}
+			if user == nil {
+				log.Error().Err(err).Msg("User from db is nil")
+				c.String(http.StatusInternalServerError, "User from db is nil")
+				return
 			}
 
-			if user.User != nil {
-				lastVisit := time.Now().UTC()
-				user.User.LastVisit = &lastVisit
-				user.User.Active = true
+			// update user last visit and identity
+			lastVisit := time.Now().UTC()
+			user.LastVisit = &lastVisit
+			user.Active = true
 
-				// update identity
-				hasIdentityForProvider := false
-				for _, i := range user.User.Identities {
-					if i.Provider == p.Name {
-						hasIdentityForProvider = true
-						i.Avatar = userInfoPlus.Picture
-						i.Name = userInfoPlus.Name
-						i.ID = userInfoPlus.Id
-						break
-					}
-				}
-				if !hasIdentityForProvider {
-					// add identity
-					user.User.Identities = append(user.User.Identities, &contracts.UserIdentity{
-						Email:  userInfoPlus.Email,
-						Name:   userInfoPlus.Name,
-						ID:     userInfoPlus.Id,
-						Avatar: userInfoPlus.Picture,
-					})
-				} else {
-					log.Debug().Interface("user", user.User).Msg("Updated existing user identity")
-				}
+			// update identity
+			hasIdentityForProvider := false
+			for _, i := range user.Identities {
+				if i.Provider == p.Name {
+					hasIdentityForProvider = true
 
-				go func(user auth.User) {
-					err = h.service.UpdateUser(c.Request.Context(), user)
-					if err != nil {
-						log.Warn().Err(err).Msg("Failed updating user in db")
-					}
-				}(user)
+					// update to the fetched identity
+					*i = *identity
+					break
+				}
 			}
+			if !hasIdentityForProvider {
+				// add identity
+				user.Identities = append(user.Identities, identity)
+			}
+
+			go func(user contracts.User) {
+				err = h.service.UpdateUser(c.Request.Context(), user)
+				if err != nil {
+					log.Warn().Err(err).Msg("Failed updating user in db")
+				}
+			}(*user)
 
 			c.Redirect(http.StatusTemporaryRedirect, "/preferences")
-
-			// c.JSON(http.StatusOK, gin.H{"userInfo": userInfoPlus, "provider": p.Name})
 
 			return
 		}

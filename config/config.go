@@ -1,8 +1,12 @@
 package config
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"strings"
 
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -11,7 +15,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
-	oauth2v2 "google.golang.org/api/oauth2/v2"
+	googleoauth2v2 "google.golang.org/api/oauth2/v2"
+	"google.golang.org/api/option"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -82,29 +87,114 @@ type OAuthProviderInfo struct {
 }
 
 // GetConfig returns the oauth config for the provider
-func (p OAuthProvider) GetConfig(baseURL string) *oauth2.Config {
+func (p *OAuthProvider) GetConfig(baseURL string) *oauth2.Config {
 
-	redirectURI := fmt.Sprintf("%vapi/auth/handle/%v", baseURL, p.Name)
+	redirectPath := "/api/auth/handle/"
+	redirectURI := strings.TrimSuffix(baseURL, "/") + redirectPath + p.Name
+
+	oauthConfig := oauth2.Config{
+		ClientID:     p.ClientID,
+		ClientSecret: p.ClientSecret,
+		RedirectURL:  redirectURI,
+	}
 
 	switch p.Name {
 	case "google":
-		return &oauth2.Config{
-			ClientID:     p.ClientID,
-			ClientSecret: p.ClientSecret,
-			RedirectURL:  redirectURI,
-			Scopes: []string{
-				oauth2v2.UserinfoEmailScope,
-			},
-			Endpoint: endpoints.Google,
+		oauthConfig.Endpoint = endpoints.Google
+		oauthConfig.Scopes = []string{
+			"https://www.googleapis.com/auth/userinfo.email",
 		}
+	case "microsoft":
+		oauthConfig.Endpoint = endpoints.Microsoft
+		oauthConfig.Scopes = []string{
+			"user.read+openid+profile+email",
+		}
+	case "facebook":
+		oauthConfig.Endpoint = endpoints.Facebook
+	case "github":
+		oauthConfig.Endpoint = endpoints.Facebook
+	case "bitbucket":
+		oauthConfig.Endpoint = endpoints.Facebook
+	case "gitlab":
+		oauthConfig.Endpoint = endpoints.Facebook
+
+	default:
+		return nil
 	}
 
-	return nil
+	return &oauthConfig
 }
 
 // AuthCodeURL returns the url to redirect to for login
-func (p OAuthProvider) AuthCodeURL(baseURL, state string) string {
+func (p *OAuthProvider) AuthCodeURL(baseURL, state string) string {
 	return p.GetConfig(baseURL).AuthCodeURL(state, oauth2.AccessTypeOnline)
+}
+
+// GetUser returns the user info after a token has been retrieved
+func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Config, token *oauth2.Token) (identity *contracts.UserIdentity, err error) {
+	switch p.Name {
+	case "google":
+		oauth2Service, err := googleoauth2v2.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+		if err != nil {
+			return nil, err
+		}
+
+		// retrieve userinfo
+		userInfo, err := oauth2Service.Userinfo.Get().Do()
+		if err != nil {
+			return nil, err
+		}
+
+		// map userinfo to user identity
+		identity = &contracts.UserIdentity{
+			Email:  userInfo.Email,
+			Name:   userInfo.Name,
+			ID:     userInfo.Id,
+			Avatar: userInfo.Picture,
+		}
+
+		return identity, nil
+
+	case "microsoft":
+
+		client := config.Client(ctx, token)
+
+		// retrieve userinfo
+		resp, err := client.Get("https://graph.microsoft.com/v1.0/me")
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("Calling microsoft graph returned unexpected status code %v", resp.StatusCode)
+		}
+
+		body, err := ioutil.ReadAll(resp.Body)
+
+		var userInfo struct {
+			ID      string `json:"id,omitempty"`
+			Email   string `json:"mail,omitempty"`
+			Name    string `json:"displayName,omitempty"`
+			Picture string `json:"picture,omitempty"`
+		}
+
+		if err = json.Unmarshal(body, &userInfo); err != nil {
+			return nil, fmt.Errorf("Unmarshalling userinfo from microsoft graph body failed: %v", body)
+		}
+
+		// map userinfo to user identity
+		identity = &contracts.UserIdentity{
+			Email:  userInfo.Email,
+			Name:   userInfo.Name,
+			ID:     userInfo.ID,
+			Avatar: userInfo.Picture,
+		}
+
+		return identity, nil
+	}
+
+	return nil, fmt.Errorf("The GetUser function has not been implemented for provider '%v'", p.Name)
 }
 
 // JobsConfig configures the lower and upper bounds for automatically setting resources for build/release jobs

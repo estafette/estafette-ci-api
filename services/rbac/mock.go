@@ -10,7 +10,7 @@ import (
 
 type MockService struct {
 	GetProvidersFunc func(ctx context.Context) (providers []*config.OAuthProvider, err error)
-	GetUserFunc      func(ctx context.Context, authUser auth.User) (user *contracts.User, err error)
+	GetUserFunc      func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	CreateUserFunc   func(ctx context.Context, authUser auth.User) (user *contracts.User, err error)
 	UpdateUserFunc   func(ctx context.Context, authUser auth.User) (err error)
 }
@@ -22,11 +22,11 @@ func (s MockService) GetProviders(ctx context.Context) (providers []*config.OAut
 	return s.GetProvidersFunc(ctx)
 }
 
-func (s MockService) GetUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error) {
+func (s MockService) GetUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 	if s.GetUserFunc == nil {
 		return
 	}
-	return s.GetUserFunc(ctx, authUser)
+	return s.GetUserFunc(ctx, identity)
 }
 
 func (s MockService) CreateUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error) {

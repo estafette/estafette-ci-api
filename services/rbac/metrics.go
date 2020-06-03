@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -28,26 +27,26 @@ func (s *metricsService) GetProviders(ctx context.Context) (providers []*config.
 	return s.Service.GetProviders(ctx)
 }
 
-func (s *metricsService) GetUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error) {
+func (s *metricsService) GetUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GetUser", begin)
 	}(time.Now())
 
-	return s.Service.GetUser(ctx, authUser)
+	return s.Service.GetUser(ctx, identity)
 }
 
-func (s *metricsService) CreateUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error) {
+func (s *metricsService) CreateUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "CreateUser", begin)
 	}(time.Now())
 
-	return s.Service.CreateUser(ctx, authUser)
+	return s.Service.CreateUser(ctx, identity)
 }
 
-func (s *metricsService) UpdateUser(ctx context.Context, authUser auth.User) (err error) {
+func (s *metricsService) UpdateUser(ctx context.Context, user contracts.User) (err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "UpdateUser", begin)
 	}(time.Now())
 
-	return s.Service.UpdateUser(ctx, authUser)
+	return s.Service.UpdateUser(ctx, user)
 }

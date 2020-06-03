@@ -85,7 +85,7 @@ type MockClient struct {
 	RenameComputedReleasesFunc                     func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	InsertUserFunc                                 func(ctx context.Context, user contracts.User) (u *contracts.User, err error)
 	UpdateUserFunc                                 func(ctx context.Context, user contracts.User) (err error)
-	GetUserByEmailFunc                             func(ctx context.Context, email string) (user *contracts.User, err error)
+	GetUserByIdentityFunc                          func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 }
 
 func (c MockClient) Connect(ctx context.Context) (err error) {
@@ -621,9 +621,9 @@ func (c MockClient) UpdateUser(ctx context.Context, user contracts.User) (err er
 	return c.UpdateUserFunc(ctx, user)
 }
 
-func (c MockClient) GetUserByEmail(ctx context.Context, email string) (user *contracts.User, err error) {
-	if c.GetUserByEmailFunc == nil {
+func (c MockClient) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
+	if c.GetUserByIdentityFunc == nil {
 		return
 	}
-	return c.GetUserByEmailFunc(ctx, email)
+	return c.GetUserByIdentityFunc(ctx, identity)
 }
