@@ -538,14 +538,14 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 	}
 
 	// update computed tables
-	go func() {
+	go func(insertedRelease *contracts.Release) {
 		if insertedRelease != nil {
 			c.UpsertComputedRelease(ctx, repoSource, repoOwner, repoName, insertedRelease.Name, insertedRelease.Action)
 		} else {
 			log.Warn().Msgf("Cannot update computed tables after updating release status for %v/%v/%v id %v from %v to %v", repoSource, repoOwner, repoName, id, allowedReleaseStatusesToTransitionFrom, releaseStatus)
 		}
 		c.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
-	}()
+	}(insertedRelease)
 
 	return
 }
@@ -1520,12 +1520,11 @@ func (c *client) GetLastPipelineRelease(ctx context.Context, repoSource, repoOwn
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
-	if release, err = c.scanRelease(row); err != nil {
-
-		return
+	if release, err = c.scanRelease(row); err != nil && err != sql.ErrNoRows {
+		return nil, err
 	}
 
-	return
+	return release, nil
 }
 
 func (c *client) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {
@@ -1542,12 +1541,11 @@ func (c *client) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOw
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
-	if release, err = c.scanRelease(row); err != nil {
-
-		return
+	if release, err = c.scanRelease(row); err != nil && err != sql.ErrNoRows {
+		return nil, err
 	}
 
-	return
+	return release, nil
 }
 
 func (c *client) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
@@ -1821,12 +1819,11 @@ func (c *client) GetPipelineRelease(ctx context.Context, repoSource, repoOwner, 
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
-	if release, err = c.scanRelease(row); err != nil {
-
-		return
+	if release, err = c.scanRelease(row); err != nil && err != sql.ErrNoRows {
+		return nil, err
 	}
 
-	return
+	return release, nil
 }
 
 func (c *client) GetPipelineLastReleasesByName(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error) {
@@ -3436,10 +3433,7 @@ func (c *client) scanRelease(row sq.RowScanner) (release *contracts.Release, err
 		&durationPendingSeconds,
 		&durationRunningSeconds,
 		&triggeredByEventsData); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return
+		return nil, err
 	}
 
 	pendingDuration := time.Duration(durationPendingSeconds) * time.Second
