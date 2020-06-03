@@ -8,6 +8,7 @@ import (
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/estafette/estafette-ci-api/config"
+	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
@@ -118,5 +119,17 @@ func (m *authMiddlewareImpl) GinJWTMiddleware(authenticator func(c *gin.Context)
 			c.Redirect(http.StatusTemporaryRedirect, "/preferences")
 		},
 		TimeFunc: time.Now().UTC,
+		PayloadFunc: func(data interface{}) jwt.MapClaims {
+			// add user properties as claims
+			if user, ok := data.(*contracts.User); ok {
+				return jwt.MapClaims{
+					jwt.IdentityKey: user.ID,
+					"name":          user.GetName(),
+					"email":         user.GetEmail(),
+					"provider":      user.GetProvider(),
+				}
+			}
+			return jwt.MapClaims{}
+		},
 	})
 }
