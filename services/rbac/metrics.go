@@ -27,12 +27,20 @@ func (s *metricsService) GetProviders(ctx context.Context) (providers []*config.
 	return s.Service.GetProviders(ctx)
 }
 
-func (s *metricsService) GetUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
+func (s *metricsService) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 	defer func(begin time.Time) {
-		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GetUser", begin)
+		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GetUserByIdentity", begin)
 	}(time.Now())
 
-	return s.Service.GetUser(ctx, identity)
+	return s.Service.GetUserByIdentity(ctx, identity)
+}
+
+func (s *metricsService) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GetUserByID", begin)
+	}(time.Now())
+
+	return s.Service.GetUserByID(ctx, id)
 }
 
 func (s *metricsService) CreateUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {

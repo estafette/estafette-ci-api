@@ -26,11 +26,18 @@ func (s *tracingService) GetProviders(ctx context.Context) (providers []*config.
 	return s.Service.GetProviders(ctx)
 }
 
-func (s *tracingService) GetUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "GetUser"))
+func (s *tracingService) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "GetUserByIdentity"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
-	return s.Service.GetUser(ctx, identity)
+	return s.Service.GetUserByIdentity(ctx, identity)
+}
+
+func (s *tracingService) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "GetUserByID"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.GetUserByID(ctx, id)
 }
 
 func (s *tracingService) CreateUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {

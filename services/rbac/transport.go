@@ -122,7 +122,7 @@ func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (inter
 		}
 
 		// upsert user
-		user, err := h.service.GetUser(c.Request.Context(), *identity)
+		user, err := h.service.GetUserByIdentity(c.Request.Context(), *identity)
 		if err != nil && errors.Is(err, ErrUserNotFound) {
 			user, err = h.service.CreateUser(c.Request.Context(), *identity)
 			if err != nil {
@@ -201,7 +201,7 @@ func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
 				return
 			}
 
-			user, err := h.service.GetUser(c.Request.Context(), *identity)
+			user, err := h.service.GetUserByIdentity(c.Request.Context(), *identity)
 			if err != nil && errors.Is(err, ErrUserNotFound) {
 				user, err = h.service.CreateUser(c.Request.Context(), *identity)
 				if err != nil {
@@ -258,5 +258,14 @@ func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
 
 func (h *Handler) GetLoggedInUserProfile(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
-	c.JSON(200, gin.H{"claims": claims})
+	id := claims[jwt.IdentityKey].(string)
+
+	user, err := h.service.GetUserByID(c.Request.Context(), id)
+	if err != nil {
+		log.Error().Err(err).Msgf("Retrieving user from db failed with id %v", id)
+		c.String(http.StatusInternalServerError, "Retrieving user from db failed")
+		return
+	}
+
+	c.JSON(200, user)
 }

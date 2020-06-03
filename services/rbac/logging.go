@@ -24,10 +24,16 @@ func (s *loggingService) GetProviders(ctx context.Context) (providers []*config.
 	return s.Service.GetProviders(ctx)
 }
 
-func (s *loggingService) GetUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
-	defer func() { helpers.HandleLogError(s.prefix, "GetUser", err, ErrUserNotFound) }()
+func (s *loggingService) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "GetUserByIdentity", err, ErrUserNotFound) }()
 
-	return s.Service.GetUser(ctx, identity)
+	return s.Service.GetUserByIdentity(ctx, identity)
+}
+
+func (s *loggingService) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "GetUserByID", err, ErrUserNotFound) }()
+
+	return s.Service.GetUserByID(ctx, id)
 }
 
 func (s *loggingService) CreateUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {

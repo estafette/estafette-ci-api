@@ -18,7 +18,8 @@ var (
 // Service handles http requests for role-based-access-control
 type Service interface {
 	GetProviders(ctx context.Context) (providers []*config.OAuthProvider, err error)
-	GetUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
+	GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
+	GetUserByID(ctx context.Context, id string) (user *contracts.User, err error)
 	CreateUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	UpdateUser(ctx context.Context, user contracts.User) (err error)
 }
@@ -40,9 +41,23 @@ func (s *service) GetProviders(ctx context.Context) (providers []*config.OAuthPr
 	return s.config.Auth.OAuthProviders, nil
 }
 
-func (s *service) GetUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
+func (s *service) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 
 	user, err = s.cockroachdbClient.GetUserByIdentity(ctx, identity)
+
+	if err != nil {
+		if errors.Is(err, cockroachdb.ErrUserNotFound) {
+			return nil, ErrUserNotFound
+		}
+
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (s *service) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
+	user, err = s.cockroachdbClient.GetUserByID(ctx, id)
 
 	if err != nil {
 		if errors.Is(err, cockroachdb.ErrUserNotFound) {

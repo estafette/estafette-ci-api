@@ -529,7 +529,6 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 		iapAuthorizedRoutes.GET("/api/update-computed-tables", estafetteHandler.UpdateComputedTables)
 	}
 
-	routes.GET("/api/auth/refresh_token", jwtMiddleware.RefreshHandler)
 	jwtMiddlewareRoutes := routes.Group("/", jwtMiddleware.MiddlewareFunc())
 	{
 		jwtMiddlewareRoutes.GET("/api/auth/profile", rbacHandler.GetLoggedInUserProfile)
