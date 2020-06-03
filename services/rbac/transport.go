@@ -259,9 +259,5 @@ func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
 
 func (h *Handler) GetLoggedInUserProfile(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
-	user, _ := c.Get(jwt.IdentityKey)
-	c.JSON(200, gin.H{
-		"userID": claims[jwt.IdentityKey],
-		"user":   user.(*contracts.User),
-	})
+	c.JSON(200, gin.H{"claims": claims})
 }

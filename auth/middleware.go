@@ -107,7 +107,7 @@ func (m *authMiddlewareImpl) GinJWTMiddleware(authenticator func(c *gin.Context)
 	return jwt.New(&jwt.GinJWTMiddleware{
 		Realm:          m.config.Auth.JWT.Domain,
 		Key:            []byte(m.config.Auth.JWT.Key),
-		TokenLookup:    "header: Authorization, cookie: jwt",
+		TokenLookup:    "header:Authorization, cookie:jwt",
 		Authenticator:  authenticator,
 		SendCookie:     true,
 		SecureCookie:   true,
@@ -117,5 +117,6 @@ func (m *authMiddlewareImpl) GinJWTMiddleware(authenticator func(c *gin.Context)
 			// cookie is used, so token does not need to be returned via response
 			c.Redirect(http.StatusTemporaryRedirect, "/preferences")
 		},
+		TimeFunc: time.Now().UTC,
 	})
 }
