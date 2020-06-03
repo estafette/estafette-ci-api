@@ -206,7 +206,7 @@ func TestIntegrationUpdateReleaseStatus(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpdateReleaseStatus(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, releaseID, "succeeded")
+		err = cockroachdbClient.UpdateReleaseStatus(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, releaseID, "running")
 
 		assert.Nil(t, err)
 	})
@@ -223,7 +223,7 @@ func TestIntegrationUpdateReleaseStatus(t *testing.T) {
 		releaseID := 15
 
 		// act
-		err := cockroachdbClient.UpdateReleaseStatus(ctx, release.RepoSource, release.RepoOwner, release.RepoName, releaseID, "succeeded")
+		err := cockroachdbClient.UpdateReleaseStatus(ctx, release.RepoSource, release.RepoOwner, release.RepoName, releaseID, "running")
 
 		assert.Nil(t, err)
 	})

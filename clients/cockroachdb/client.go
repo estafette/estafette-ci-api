@@ -530,11 +530,13 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 	// update release status
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	insertedRelease, err := c.scanRelease(row)
-	if err != nil && err != sql.ErrNoRows {
-		return
-	} else if err != nil {
-		log.Warn().Err(err).Msgf("Updating release status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, id, allowedReleaseStatusesToTransitionFrom, releaseStatus)
-		return
+	if err != nil {
+		if err != sql.ErrNoRows {
+			log.Warn().Err(err).Msgf("Updating release status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, id, allowedReleaseStatusesToTransitionFrom, releaseStatus)
+			return nil
+		}
+
+		return err
 	}
 
 	// update computed tables
@@ -1520,7 +1522,11 @@ func (c *client) GetLastPipelineRelease(ctx context.Context, repoSource, repoOwn
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
-	if release, err = c.scanRelease(row); err != nil && err != sql.ErrNoRows {
+	if release, err = c.scanRelease(row); err != nil {
+		if err != sql.ErrNoRows {
+			return nil, nil
+		}
+
 		return nil, err
 	}
 
@@ -1541,11 +1547,16 @@ func (c *client) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOw
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
-	if release, err = c.scanRelease(row); err != nil && err != sql.ErrNoRows {
+	if release, err = c.scanRelease(row); err != nil {
+		if err != sql.ErrNoRows {
+			return nil, nil
+		}
+
 		return nil, err
 	}
 
 	return release, nil
+
 }
 
 func (c *client) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
@@ -1819,7 +1830,11 @@ func (c *client) GetPipelineRelease(ctx context.Context, repoSource, repoOwner, 
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
-	if release, err = c.scanRelease(row); err != nil && err != sql.ErrNoRows {
+	if release, err = c.scanRelease(row); err != nil {
+		if err != sql.ErrNoRows {
+			return nil, nil
+		}
+
 		return nil, err
 	}
 
