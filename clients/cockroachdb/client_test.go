@@ -1021,7 +1021,7 @@ func TestIntegrationGetUserByIdentity(t *testing.T) {
 		// act
 		retrievedUser, err := cockroachdbClient.GetUserByIdentity(ctx, identity)
 
-		assert.Nil(t, err)
+		assert.NotNil(t, err)
 		assert.Nil(t, retrievedUser)
 	})
 }
