@@ -199,6 +199,7 @@ func TestIntegrationUpdateReleaseStatus(t *testing.T) {
 		ctx := context.Background()
 		cockroachdbClient := getCockroachdbClient(ctx, t)
 		release := getRelease()
+		release.ReleaseStatus = "pending"
 		jobResources := getJobResources()
 		insertedRelease, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
 		assert.Nil(t, err)

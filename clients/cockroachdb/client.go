@@ -531,7 +531,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	insertedRelease, err := c.scanRelease(row)
 	if err != nil {
-		if err != sql.ErrNoRows {
+		if err == sql.ErrNoRows {
 			log.Warn().Err(err).Msgf("Updating release status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, id, allowedReleaseStatusesToTransitionFrom, releaseStatus)
 			return nil
 		}
@@ -1523,7 +1523,7 @@ func (c *client) GetLastPipelineRelease(ctx context.Context, repoSource, repoOwn
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if release, err = c.scanRelease(row); err != nil {
-		if err != sql.ErrNoRows {
+		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 
@@ -1548,7 +1548,7 @@ func (c *client) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOw
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if release, err = c.scanRelease(row); err != nil {
-		if err != sql.ErrNoRows {
+		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 
@@ -1831,7 +1831,7 @@ func (c *client) GetPipelineRelease(ctx context.Context, repoSource, repoOwner, 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if release, err = c.scanRelease(row); err != nil {
-		if err != sql.ErrNoRows {
+		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 
