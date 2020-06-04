@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	jwt "github.com/appleboy/gin-jwt/v2"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -71,8 +71,15 @@ func (h *Handler) LoginProvider(c *gin.Context) {
 		return
 	}
 
+	// add return url as claim if it's set as query param
+	optionalClaims := jwt.MapClaims{}
+	returnURL := c.Query("returnURL")
+	if returnURL != "" {
+		optionalClaims["returnURL"] = returnURL
+	}
+
 	// generate jwt to use as state
-	state, err := h.service.GenerateJWT(ctx, nil)
+	state, err := h.service.GenerateJWT(ctx, optionalClaims)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed generating JWT to use as state")
 		c.String(http.StatusInternalServerError, "Failed generating JWT to use as state")
@@ -90,7 +97,7 @@ func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (inter
 		state := c.Query("state")
 
 		// validate jwt in state
-		_, err := h.service.ValidateJWT(ctx, state)
+		_, err := h.service.GetClaimsFromJWT(ctx, state)
 		if err != nil {
 			return nil, err
 		}
