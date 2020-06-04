@@ -73,6 +73,10 @@ func (h *Handler) LoginProvider(c *gin.Context) {
 
 	// generate jwt to use as state
 	state, err := h.service.GenerateJWT(ctx, nil)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed generating JWT to use as state")
+		c.String(http.StatusInternalServerError, "Failed generating JWT to use as state")
+	}
 
 	c.Redirect(http.StatusTemporaryRedirect, provider.AuthCodeURL(h.config.APIServer.BaseURL, state))
 }
