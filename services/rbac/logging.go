@@ -3,6 +3,7 @@ package rbac
 import (
 	"context"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -22,6 +23,12 @@ func (s *loggingService) GetProviders(ctx context.Context) (providers []*config.
 	defer func() { helpers.HandleLogError(s.prefix, "GetProviders", err) }()
 
 	return s.Service.GetProviders(ctx)
+}
+
+func (s *loggingService) GetProviderByName(ctx context.Context, name string) (provider *config.OAuthProvider, err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "GetProviderByName", err) }()
+
+	return s.Service.GetProviderByName(ctx, name)
 }
 
 func (s *loggingService) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
@@ -46,4 +53,22 @@ func (s *loggingService) UpdateUser(ctx context.Context, user contracts.User) (e
 	defer func() { helpers.HandleLogError(s.prefix, "UpdateUser", err) }()
 
 	return s.Service.UpdateUser(ctx, user)
+}
+
+func (s *loggingService) GenerateJWT(ctx context.Context, optionalClaims jwt.MapClaims) (tokenString string, err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "GenerateJWT", err) }()
+
+	return s.Service.GenerateJWT(ctx, optionalClaims)
+}
+
+func (s *loggingService) ValidateJWT(ctx context.Context, tokenString string) (token *jwt.Token, err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "ValidateJWT", err) }()
+
+	return s.Service.ValidateJWT(ctx, tokenString)
+}
+
+func (s *loggingService) GetClaimsFromJWT(ctx context.Context, tokenString string) (claims jwt.MapClaims, err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "GetClaimsFromJWT", err) }()
+
+	return s.Service.GetClaimsFromJWT(ctx, tokenString)
 }

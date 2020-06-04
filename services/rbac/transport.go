@@ -60,59 +60,52 @@ func (h *Handler) GetProviders(c *gin.Context) {
 
 func (h *Handler) LoginProvider(c *gin.Context) {
 
-	provider := c.Param("provider")
+	ctx := c.Request.Context()
 
-	providers, err := h.service.GetProviders(c.Request.Context())
+	name := c.Param("provider")
 
+	provider, err := h.service.GetProviderByName(ctx, name)
 	if err != nil {
-		log.Error().Err(err).Msg("Retrieving oauth providers failed")
-		c.String(http.StatusInternalServerError, "Retrieving oauth providers failed")
+		log.Error().Err(err).Msg("Retrieving provider by name failed")
+		c.String(http.StatusBadRequest, "Retrieving provider by name failed")
 		return
 	}
 
-	for _, p := range providers {
-		if p.Name == provider {
-			c.Redirect(http.StatusTemporaryRedirect, p.AuthCodeURL(h.config.APIServer.BaseURL, "state"))
-		}
-	}
+	// generate jwt to use as state
+	state, err := h.service.GenerateJWT(ctx, nil)
 
-	c.JSON(http.StatusBadRequest, gin.H{"message": "Provider is not configured"})
+	c.Redirect(http.StatusTemporaryRedirect, provider.AuthCodeURL(h.config.APIServer.BaseURL, state))
 }
 
 func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (interface{}, error) {
 	return func(c *gin.Context) (interface{}, error) {
 		ctx := c.Request.Context()
 
-		provider := c.Param("provider")
+		name := c.Param("provider")
 		code := c.Query("code")
+		state := c.Query("state")
 
-		// retrieve configured providers
-		providers, err := h.service.GetProviders(c.Request.Context())
+		// validate jwt in state
+		_, err := h.service.ValidateJWT(ctx, state)
 		if err != nil {
 			return nil, err
 		}
 
-		// get provider by path parameter
-		var providerByName *config.OAuthProvider
-		for _, p := range providers {
-			if p.Name == provider {
-				providerByName = p
-			}
-		}
-
-		if providerByName == nil {
-			return nil, fmt.Errorf("Provider %v not configured", provider)
+		// retrieve configured providers
+		provider, err := h.service.GetProviderByName(c.Request.Context(), name)
+		if err != nil {
+			return nil, err
 		}
 
 		// retrieve oauth config
-		cfg := providerByName.GetConfig(h.config.APIServer.BaseURL)
+		cfg := provider.GetConfig(h.config.APIServer.BaseURL)
 		token, err := cfg.Exchange(ctx, code)
 		if err != nil {
 			return nil, err
 		}
 
 		// fetch identity from oauth provider api
-		identity, err := providerByName.GetUserIdentity(ctx, cfg, token)
+		identity, err := provider.GetUserIdentity(ctx, cfg, token)
 		if err != nil {
 			return nil, err
 		}
@@ -144,7 +137,7 @@ func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (inter
 		// update identity
 		hasIdentityForProvider := false
 		for _, i := range user.Identities {
-			if i.Provider == provider {
+			if i.Provider == name {
 				hasIdentityForProvider = true
 
 				// update to the fetched identity

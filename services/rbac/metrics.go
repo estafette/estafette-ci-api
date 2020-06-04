@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -25,6 +26,14 @@ func (s *metricsService) GetProviders(ctx context.Context) (providers []*config.
 	defer func(begin time.Time) { helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GetProviders", begin) }(time.Now())
 
 	return s.Service.GetProviders(ctx)
+}
+
+func (s *metricsService) GetProviderByName(ctx context.Context, name string) (provider *config.OAuthProvider, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GetProviderByName", begin)
+	}(time.Now())
+
+	return s.Service.GetProviderByName(ctx, name)
 }
 
 func (s *metricsService) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
@@ -57,4 +66,28 @@ func (s *metricsService) UpdateUser(ctx context.Context, user contracts.User) (e
 	}(time.Now())
 
 	return s.Service.UpdateUser(ctx, user)
+}
+
+func (s *metricsService) GenerateJWT(ctx context.Context, optionalClaims jwt.MapClaims) (tokenString string, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GenerateJWT", begin)
+	}(time.Now())
+
+	return s.Service.GenerateJWT(ctx, optionalClaims)
+}
+
+func (s *metricsService) ValidateJWT(ctx context.Context, tokenString string) (token *jwt.Token, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "ValidateJWT", begin)
+	}(time.Now())
+
+	return s.Service.ValidateJWT(ctx, tokenString)
+}
+
+func (s *metricsService) GetClaimsFromJWT(ctx context.Context, tokenString string) (claims jwt.MapClaims, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GetClaimsFromJWT", begin)
+	}(time.Now())
+
+	return s.Service.GetClaimsFromJWT(ctx, tokenString)
 }
