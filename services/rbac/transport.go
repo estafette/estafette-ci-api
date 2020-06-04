@@ -146,12 +146,6 @@ func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (inter
 			return nil, err
 		}
 
-		// update user last visit and identity
-		lastVisit := time.Now().UTC()
-		user.LastVisit = &lastVisit
-		user.Active = true
-		user.CurrentProvider = name
-
 		// update identity
 		hasIdentityForProvider := false
 		for _, i := range user.Identities {
@@ -168,6 +162,14 @@ func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (inter
 			user.Identities = append(user.Identities, identity)
 		}
 
+		// update user last visit and identity
+		lastVisit := time.Now().UTC()
+		user.LastVisit = &lastVisit
+		user.Active = true
+		user.CurrentProvider = name
+		user.Name = user.GetName()
+		user.Email = user.GetEmail()
+
 		go func(user contracts.User) {
 			err = h.service.UpdateUser(c.Request.Context(), user)
 			if err != nil {
@@ -177,96 +179,6 @@ func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (inter
 
 		return user, nil
 	}
-}
-
-func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
-
-	ctx := c.Request.Context()
-
-	provider := c.Param("provider")
-	code := c.Query("code")
-
-	providers, err := h.service.GetProviders(c.Request.Context())
-
-	if err != nil {
-		log.Error().Err(err).Msg("Retrieving oauth providers failed")
-		c.String(http.StatusInternalServerError, "Retrieving oauth providers failed")
-		return
-	}
-
-	for _, p := range providers {
-		if p.Name == provider {
-
-			cfg := p.GetConfig(h.config.APIServer.BaseURL)
-			token, err := cfg.Exchange(ctx, code)
-			if err != nil {
-				log.Error().Err(err).Msg("Exchanging code for token failed")
-				c.String(http.StatusInternalServerError, "Exchanging code for token failed")
-				return
-			}
-
-			identity, err := p.GetUserIdentity(ctx, cfg, token)
-			if err != nil || identity == nil {
-				log.Error().Err(err).Msg("Retrieving user identity failed")
-				c.String(http.StatusInternalServerError, "Retrieving user identity failed")
-				return
-			}
-
-			user, err := h.service.GetUserByIdentity(c.Request.Context(), *identity)
-			if err != nil && errors.Is(err, ErrUserNotFound) {
-				user, err = h.service.CreateUser(c.Request.Context(), *identity)
-				if err != nil {
-					log.Error().Err(err).Msg("Creating user in db failed")
-					c.String(http.StatusInternalServerError, "Creating user in db failed")
-					return
-				}
-			} else if err != nil {
-				log.Error().Err(err).Msg("Retrieving user from db failed")
-				c.String(http.StatusInternalServerError, "Retrieving user from db failed")
-				return
-			}
-
-			if user == nil {
-				log.Error().Err(err).Msg("User from db is nil")
-				c.String(http.StatusInternalServerError, "User from db is nil")
-				return
-			}
-
-			// update identity
-			hasIdentityForProvider := false
-			for _, i := range user.Identities {
-				if i.Provider == p.Name {
-					hasIdentityForProvider = true
-
-					// update to the fetched identity
-					*i = *identity
-					break
-				}
-			}
-			if !hasIdentityForProvider {
-				// add identity
-				user.Identities = append(user.Identities, identity)
-			}
-
-			// update user last visit and identity
-			lastVisit := time.Now().UTC()
-			user.LastVisit = &lastVisit
-			user.Active = true
-			user.Name = user.GetName()
-			user.Email = user.GetEmail()
-
-			go func(user contracts.User) {
-				err = h.service.UpdateUser(c.Request.Context(), user)
-				if err != nil {
-					log.Warn().Err(err).Msg("Failed updating user in db")
-				}
-			}(*user)
-
-			c.Redirect(http.StatusTemporaryRedirect, "/preferences")
-		}
-	}
-
-	c.JSON(http.StatusBadRequest, gin.H{"message": "Provider is not configured"})
 }
 
 func (h *Handler) GetLoggedInUserProfile(c *gin.Context) {
