@@ -150,6 +150,7 @@ func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (inter
 		lastVisit := time.Now().UTC()
 		user.LastVisit = &lastVisit
 		user.Active = true
+		user.CurrentProvider = name
 
 		// update identity
 		hasIdentityForProvider := false

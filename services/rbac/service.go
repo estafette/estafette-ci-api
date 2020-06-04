@@ -107,8 +107,9 @@ func (s *service) CreateUser(ctx context.Context, identity contracts.UserIdentit
 		Identities: []*contracts.UserIdentity{
 			&identity,
 		},
-		FirstVisit: &firstVisit,
-		LastVisit:  &firstVisit,
+		FirstVisit:      &firstVisit,
+		LastVisit:       &firstVisit,
+		CurrentProvider: identity.Provider,
 	}
 
 	user, err = s.cockroachdbClient.InsertUser(ctx, *user)
