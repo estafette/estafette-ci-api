@@ -147,7 +147,7 @@ func (s *service) GenerateJWT(ctx context.Context, optionalClaims jwt.MapClaims)
 	}
 
 	// sign the token
-	return token.SignedString(s.config.Auth.JWT.Key)
+	return token.SignedString([]byte(s.config.Auth.JWT.Key))
 }
 
 func (s *service) ValidateJWT(ctx context.Context, tokenString string) (token *jwt.Token, err error) {
@@ -155,7 +155,7 @@ func (s *service) ValidateJWT(ctx context.Context, tokenString string) (token *j
 		if jwt.GetSigningMethod("HS256") != t.Method {
 			return nil, ErrInvalidSigningAlgorithm
 		}
-		return s.config.Auth.JWT.Key, nil
+		return []byte(s.config.Auth.JWT.Key), nil
 	})
 }
 
