@@ -111,19 +111,19 @@ func (m *authMiddlewareImpl) GinJWTMiddleware(authenticator func(c *gin.Context)
 		Authenticator:  authenticator,
 		SendCookie:     true,
 		SecureCookie:   true,
-		CookieHTTPOnly: false,
+		CookieHTTPOnly: true,
 		CookieDomain:   m.config.Auth.JWT.Domain,
 		LoginResponse: func(c *gin.Context, code int, token string, expire time.Time) {
 
 			// see if gin context has a return url
 			returnURL, exists := c.Get("returnURL")
 			if exists {
-				c.Redirect(http.StatusTemporaryRedirect, returnURL.(string))
+				c.Redirect(http.StatusFound, returnURL.(string))
 				return
 			}
 
 			// cookie is used, so token does not need to be returned via response
-			c.Redirect(http.StatusTemporaryRedirect, "/")
+			c.Redirect(http.StatusFound, "/")
 		},
 		TimeFunc: time.Now().UTC,
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
