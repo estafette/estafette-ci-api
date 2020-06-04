@@ -104,6 +104,7 @@ func (s *service) CreateUser(ctx context.Context, identity contracts.UserIdentit
 	user = &contracts.User{
 		Active: true,
 		Name:   identity.Name,
+		Email:  identity.Email,
 		Identities: []*contracts.UserIdentity{
 			&identity,
 		},

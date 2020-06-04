@@ -232,11 +232,6 @@ func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
 				return
 			}
 
-			// update user last visit and identity
-			lastVisit := time.Now().UTC()
-			user.LastVisit = &lastVisit
-			user.Active = true
-
 			// update identity
 			hasIdentityForProvider := false
 			for _, i := range user.Identities {
@@ -252,6 +247,13 @@ func (h *Handler) HandleLoginProviderResponse(c *gin.Context) {
 				// add identity
 				user.Identities = append(user.Identities, identity)
 			}
+
+			// update user last visit and identity
+			lastVisit := time.Now().UTC()
+			user.LastVisit = &lastVisit
+			user.Active = true
+			user.Name = user.GetName()
+			user.Email = user.GetEmail()
 
 			go func(user contracts.User) {
 				err = h.service.UpdateUser(c.Request.Context(), user)
