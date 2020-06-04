@@ -7,7 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/appleboy/gin-jwt/v2"
+	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -72,7 +73,7 @@ func (h *Handler) LoginProvider(c *gin.Context) {
 	}
 
 	// add return url as claim if it's set as query param
-	optionalClaims := jwt.MapClaims{}
+	optionalClaims := jwtgo.MapClaims{}
 	returnURL := c.Query("returnURL")
 	if returnURL != "" {
 		optionalClaims["returnURL"] = returnURL
@@ -97,9 +98,14 @@ func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (inter
 		state := c.Query("state")
 
 		// validate jwt in state
-		_, err := h.service.GetClaimsFromJWT(ctx, state)
+		claims, err := h.service.GetClaimsFromJWT(ctx, state)
 		if err != nil {
 			return nil, err
+		}
+
+		// get optional return url from claim and store in gin context to use in LoginResponse handler for jwt middleware
+		if returnURL, ok := claims["returnURL"]; ok {
+			c.Set("returnURL", returnURL)
 		}
 
 		// retrieve configured providers

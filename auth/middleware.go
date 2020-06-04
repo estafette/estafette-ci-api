@@ -23,7 +23,6 @@ type Middleware interface {
 
 // NewAuthMiddleware returns a new auth.AuthMiddleware
 func NewAuthMiddleware(config *config.APIConfig) (authMiddleware Middleware) {
-
 	authMiddleware = &authMiddlewareImpl{
 		config: config,
 	}
@@ -115,8 +114,16 @@ func (m *authMiddlewareImpl) GinJWTMiddleware(authenticator func(c *gin.Context)
 		CookieHTTPOnly: false,
 		CookieDomain:   m.config.Auth.JWT.Domain,
 		LoginResponse: func(c *gin.Context, code int, token string, expire time.Time) {
+
+			// see if gin context has a return url
+			returnURL, exists := c.Get("returnURL")
+			if exists {
+				c.Redirect(http.StatusTemporaryRedirect, returnURL.(string))
+				return
+			}
+
 			// cookie is used, so token does not need to be returned via response
-			c.Redirect(http.StatusTemporaryRedirect, "/preferences")
+			c.Redirect(http.StatusTemporaryRedirect, "/")
 		},
 		TimeFunc: time.Now().UTC,
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
