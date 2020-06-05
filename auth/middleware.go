@@ -125,7 +125,7 @@ func (m *authMiddlewareImpl) GinJWTMiddleware(authenticator func(c *gin.Context)
 			// cookie is used, so token does not need to be returned via response
 			c.Redirect(http.StatusFound, "/")
 		},
-		TimeFunc: time.Now().UTC,
+		TimeFunc: time.Now,
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
 			// add user properties as claims
 			if user, ok := data.(*contracts.User); ok {

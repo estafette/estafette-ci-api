@@ -137,7 +137,7 @@ func (s *service) GenerateJWT(ctx context.Context, optionalClaims jwt.MapClaims)
 	claims := token.Claims.(jwt.MapClaims)
 
 	// set required claims
-	now := time.Now().UTC()
+	now := time.Now()
 	expire := now.Add(time.Hour)
 	claims["exp"] = expire.Unix()
 	claims["orig_iat"] = now.Unix()
