@@ -19,7 +19,7 @@ import (
 	"text/template"
 	"time"
 
-	jwt "github.com/appleboy/gin-jwt"
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudstorage"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
@@ -294,12 +294,7 @@ func (h *Handler) GetPipelineBuild(c *gin.Context) {
 
 func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
-	// ensure this is behind jwt middleware
 	claims := jwt.ExtractClaims(c)
-	err := claims.Valid()
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid JWT"})
-	}
 	email := claims["email"].(string)
 
 	var buildCommand contracts.Build
@@ -387,12 +382,7 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
 func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 
-	// ensure this is behind jwt middleware
 	claims := jwt.ExtractClaims(c)
-	err := claims.Valid()
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid JWT"})
-	}
 	email := claims["email"].(string)
 
 	source := c.Param("source")
@@ -723,12 +713,7 @@ func (h *Handler) GetPipelineReleases(c *gin.Context) {
 
 func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 
-	// ensure this is behind jwt middleware
 	claims := jwt.ExtractClaims(c)
-	err := claims.Valid()
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid JWT"})
-	}
 	email := claims["email"].(string)
 
 	var releaseCommand contracts.Release
@@ -862,12 +847,7 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 
 func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 
-	// ensure this is behind jwt middleware
 	claims := jwt.ExtractClaims(c)
-	err := claims.Valid()
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid JWT"})
-	}
 	email := claims["email"].(string)
 
 	source := c.Param("source")
@@ -1561,12 +1541,7 @@ func (h *Handler) GetStatsReleasesAdoption(c *gin.Context) {
 
 func (h *Handler) UpdateComputedTables(c *gin.Context) {
 
-	// ensure this is behind jwt middleware
 	claims := jwt.ExtractClaims(c)
-	err := claims.Valid()
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid JWT"})
-	}
 	email := claims["email"].(string)
 
 	filters := map[string][]string{}
@@ -1612,12 +1587,6 @@ func (h *Handler) UpdateComputedTables(c *gin.Context) {
 
 func (h *Handler) GetConfig(c *gin.Context) {
 
-	// ensure this is behind jwt middleware
-	err := jwt.ExtractClaims(c).Valid()
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid JWT"})
-	}
-
 	configBytes, err := yaml.Marshal(h.encryptedConfig)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed marshalling encrypted config")
@@ -1642,12 +1611,6 @@ func (h *Handler) GetConfig(c *gin.Context) {
 
 func (h *Handler) GetConfigCredentials(c *gin.Context) {
 
-	// ensure this is behind jwt middleware
-	err := jwt.ExtractClaims(c).Valid()
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid JWT"})
-	}
-
 	configBytes, err := yaml.Marshal(h.encryptedConfig.Credentials)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed marshalling encrypted config")
@@ -1671,11 +1634,6 @@ func (h *Handler) GetConfigCredentials(c *gin.Context) {
 }
 
 func (h *Handler) GetConfigTrustedImages(c *gin.Context) {
-
-	err := jwt.ExtractClaims(c).Valid()
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid JWT"})
-	}
 
 	configBytes, err := yaml.Marshal(h.encryptedConfig.TrustedImages)
 	if err != nil {

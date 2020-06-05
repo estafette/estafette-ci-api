@@ -30,13 +30,10 @@ type Handler struct {
 }
 
 func (h *Handler) GetLoggedInUser(c *gin.Context) {
-	// ensure this is behind jwt middleware
-	id, exists := c.Get(jwt.IdentityKey)
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid JWT"})
-	}
+	claims := jwt.ExtractClaims(c)
+	id := claims[jwt.IdentityKey].(string)
 
-	user, err := h.service.GetUserByID(c.Request.Context(), id.(string))
+	user, err := h.service.GetUserByID(c.Request.Context(), id)
 	if err != nil {
 		log.Error().Err(err).Msgf("Retrieving user from db failed with id %v", id)
 		c.String(http.StatusInternalServerError, "Retrieving user from db failed")
