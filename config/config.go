@@ -67,7 +67,6 @@ func (c *APIServerConfig) ReadLogFromCloudStorage() bool {
 
 // AuthConfig determines whether to use IAP for authentication and authorization
 type AuthConfig struct {
-	IAP            *IAPAuthConfig   `yaml:"iap"`
 	APIKey         string           `yaml:"apiKey"`
 	OAuthProviders []*OAuthProvider `yaml:"oauthProviders"`
 	JWT            *JWTConfig       `yaml:"jwt"`
@@ -216,12 +215,6 @@ type JobsConfig struct {
 	MinMemoryBytes     float64 `yaml:"minMemoryBytes"`
 	MaxMemoryBytes     float64 `yaml:"maxMemoryBytes"`
 	MemoryRequestRatio float64 `yaml:"memoryRequestRatio"`
-}
-
-// IAPAuthConfig sets iap config in case it's used for authentication and authorization
-type IAPAuthConfig struct {
-	Enable   bool   `yaml:"enable"`
-	Audience string `yaml:"audience"`
 }
 
 // DatabaseConfig contains config for the dabase connection

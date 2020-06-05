@@ -1,42 +1,13 @@
 package auth
 
 import (
-	"crypto/elliptic"
 	"io/ioutil"
-	"math/big"
 	"regexp"
 	"testing"
 
 	"github.com/sethgrid/pester"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestIntegrationRetrievingIAPJSONWebKeys(t *testing.T) {
-	t.Run("ReturnsKeyByKeyID", func(t *testing.T) {
-
-		if testing.Short() {
-			t.Skip("skipping test in short mode.")
-		}
-
-		// act (if fails get new kid from https://www.gstatic.com/iap/verify/public_key-jwk and update expectancies until it works)
-		publicKey, err := GetCachedIAPJWK("LYyP2g")
-
-		if assert.Nil(t, err) {
-			assert.Equal(t, elliptic.P256(), publicKey.Curve)
-
-			expectedX := new(big.Int)
-			expectedX, _ = expectedX.SetString("33622693039816647627662497742992616430395956828188005959233551911267107487829", 10)
-
-			if assert.Equal(t, expectedX, publicKey.X) {
-
-				expectedY := new(big.Int)
-				expectedY, _ = expectedY.SetString("11174607338434686360109566342404574763247435879447398666092705732399524052002", 10)
-
-				assert.Equal(t, expectedY, publicKey.Y)
-			}
-		}
-	})
-}
 
 func TestRetrievingGoogleJSONWebKeys(t *testing.T) {
 	t.Run("ReturnsKeyByKeyID", func(t *testing.T) {

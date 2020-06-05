@@ -16,7 +16,6 @@ import (
 // Middleware handles authentication for routes requiring authentication
 type Middleware interface {
 	APIKeyMiddlewareFunc() gin.HandlerFunc
-	IAPJWTMiddlewareFunc() gin.HandlerFunc
 	GoogleJWTMiddlewareFunc() gin.HandlerFunc
 	GinJWTMiddleware(authenticator func(c *gin.Context) (interface{}, error)) (middleware *jwt.GinJWTMiddleware, err error)
 }
@@ -48,31 +47,6 @@ func (m *authMiddlewareImpl) APIKeyMiddlewareFunc() gin.HandlerFunc {
 
 		// set 'user' to enforce a handler method to require api key auth with `user := c.MustGet(gin.AuthUserKey).(string)` and ensuring the user equals 'apiKey'
 		c.Set(gin.AuthUserKey, "apiKey")
-	}
-}
-
-func (m *authMiddlewareImpl) IAPJWTMiddlewareFunc() gin.HandlerFunc {
-	return func(c *gin.Context) {
-
-		// if no form of authentication is enabled return 401
-		if !m.config.Auth.IAP.Enable {
-			c.Status(http.StatusUnauthorized)
-			return
-		}
-
-		if m.config.Auth.IAP.Enable {
-
-			tokenString := c.Request.Header.Get("x-goog-iap-jwt-assertion")
-			email, err := GetEmailFromIAPJWT(tokenString, m.config.Auth.IAP.Audience)
-			if err != nil {
-				log.Warn().Str("jwt", tokenString).Err(err).Msg("Checking iap jwt failed")
-				c.Status(http.StatusUnauthorized)
-				return
-			}
-
-			// set user email to access from request handlers; retrieve with `email := c.MustGet(gin.AuthUserKey).(string)`
-			c.Set(gin.AuthUserKey, email)
-		}
 	}
 }
 

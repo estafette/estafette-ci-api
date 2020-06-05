@@ -149,8 +149,6 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		authConfig := config.Auth
 
-		assert.True(t, authConfig.IAP.Enable)
-		assert.Equal(t, "/projects/***/global/backendServices/***", authConfig.IAP.Audience)
 		assert.Equal(t, "this is my secret", authConfig.APIKey)
 		assert.Equal(t, 3, len(authConfig.OAuthProviders))
 		assert.Equal(t, "google", authConfig.OAuthProviders[0].Name)

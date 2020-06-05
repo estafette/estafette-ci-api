@@ -49,9 +49,6 @@ apiServer:
   logReader: database
 
 auth:
-  iap:
-    enable: true
-    audience: /projects/***/global/backendServices/***
   apiKey: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
   jwt:
     domain: ci.estafette.io
