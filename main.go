@@ -444,11 +444,6 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 	log.Debug().Msg("Adding auth middleware...")
 	authMiddleware := auth.NewAuthMiddleware(config)
 
-	jwtMiddleware, err := authMiddleware.GinJWTMiddleware(rbacHandler.HandleLoginProviderAuthenticator())
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed creating JWT middleware")
-	}
-
 	log.Debug().Msg("Setting up routes...")
 	routes.POST("/api/integrations/github/events", githubHandler.Handle)
 	routes.GET("/api/integrations/github/status", func(c *gin.Context) { c.String(200, "Github, I'm cool!") })
@@ -468,51 +463,9 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 	routes.GET("/api/integrations/pubsub/status", func(c *gin.Context) { c.String(200, "Pub/Sub, I'm cool!") })
 	routes.GET("/api/integrations/cloudsource/status", func(c *gin.Context) { c.String(200, "Cloud Source, I'm cool!") })
 
-	routes.GET("/api/pipelines", estafetteHandler.GetPipelines)
-	routes.GET("/api/pipelines/:source/:owner/:repo", estafetteHandler.GetPipeline)
-	routes.GET("/api/pipelines/:source/:owner/:repo/recentbuilds", estafetteHandler.GetPipelineRecentBuilds)
-	routes.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteHandler.GetPipelineBuilds)
-	routes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteHandler.GetPipelineBuild)
-	routes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/warnings", estafetteHandler.GetPipelineBuildWarnings)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteHandler.GetPipelineBuildLogs)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs/tail", estafetteHandler.TailPipelineBuildLogs)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs.stream", estafetteHandler.TailPipelineBuildLogs)
-	routes.GET("/api/pipelines/:source/:owner/:repo/releases", estafetteHandler.GetPipelineReleases)
-	routes.GET("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.GetPipelineRelease)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteHandler.GetPipelineReleaseLogs)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs/tail", estafetteHandler.TailPipelineReleaseLogs)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs.stream", estafetteHandler.TailPipelineReleaseLogs)
-	routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildsdurations", estafetteHandler.GetPipelineStatsBuildsDurations)
-	routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesdurations", estafetteHandler.GetPipelineStatsReleasesDurations)
-	routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildscpu", estafetteHandler.GetPipelineStatsBuildsCPUUsageMeasurements)
-	routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasescpu", estafetteHandler.GetPipelineStatsReleasesCPUUsageMeasurements)
-	routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildsmemory", estafetteHandler.GetPipelineStatsBuildsMemoryUsageMeasurements)
-	routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesmemory", estafetteHandler.GetPipelineStatsReleasesMemoryUsageMeasurements)
-	routes.GET("/api/pipelines/:source/:owner/:repo/warnings", estafetteHandler.GetPipelineWarnings)
-	routes.GET("/api/catalog/filters", estafetteHandler.GetCatalogFilters)
-	routes.GET("/api/catalog/filtervalues", estafetteHandler.GetCatalogFilterValues)
-	routes.GET("/api/stats/pipelinescount", estafetteHandler.GetStatsPipelinesCount)
-	routes.GET("/api/stats/buildscount", estafetteHandler.GetStatsBuildsCount)
-	routes.GET("/api/stats/releasescount", estafetteHandler.GetStatsReleasesCount)
-	routes.GET("/api/stats/buildsduration", estafetteHandler.GetStatsBuildsDuration)
-	routes.GET("/api/stats/buildsadoption", estafetteHandler.GetStatsBuildsAdoption)
-	routes.GET("/api/stats/releasesadoption", estafetteHandler.GetStatsReleasesAdoption)
-	routes.GET("/api/stats/mostbuilds", estafetteHandler.GetStatsMostBuilds)
-	routes.GET("/api/stats/mostreleases", estafetteHandler.GetStatsMostReleases)
-	routes.GET("/api/manifest/templates", estafetteHandler.GetManifestTemplates)
-	routes.POST("/api/manifest/generate", estafetteHandler.GenerateManifest)
-	routes.POST("/api/manifest/validate", estafetteHandler.ValidateManifest)
-	routes.POST("/api/manifest/encrypt", estafetteHandler.EncryptSecret)
-	routes.GET("/api/labels/frequent", estafetteHandler.GetFrequentLabels)
-
-	// api key protected endpoints
-	apiKeyAuthorizedRoutes := routes.Group("/", authMiddleware.APIKeyMiddlewareFunc())
-	{
-		apiKeyAuthorizedRoutes.POST("/api/commands", estafetteHandler.Commands)
-		apiKeyAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteHandler.PostPipelineBuildLogs)
-		apiKeyAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteHandler.PostPipelineReleaseLogs)
-		apiKeyAuthorizedRoutes.POST("/api/integrations/cron/events", estafetteHandler.PostCronEvent)
-		apiKeyAuthorizedRoutes.GET("/api/copylogstocloudstorage/:source/:owner/:repo", estafetteHandler.CopyLogsToCloudStorage)
+	jwtMiddleware, err := authMiddleware.GinJWTMiddleware(rbacHandler.HandleLoginProviderAuthenticator())
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed creating JWT middleware")
 	}
 
 	// public routes for logging in
@@ -533,6 +486,57 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/releases", estafetteHandler.CreatePipelineRelease)
 		jwtMiddlewareRoutes.DELETE("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteHandler.CancelPipelineBuild)
 		jwtMiddlewareRoutes.DELETE("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.CancelPipelineRelease)
+
+		routes.GET("/api/pipelines", estafetteHandler.GetPipelines)
+		routes.GET("/api/pipelines/:source/:owner/:repo", estafetteHandler.GetPipeline)
+		routes.GET("/api/pipelines/:source/:owner/:repo/recentbuilds", estafetteHandler.GetPipelineRecentBuilds)
+		routes.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteHandler.GetPipelineBuilds)
+		routes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteHandler.GetPipelineBuild)
+		routes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/warnings", estafetteHandler.GetPipelineBuildWarnings)
+		routes.GET("/api/pipelines/:source/:owner/:repo/releases", estafetteHandler.GetPipelineReleases)
+		routes.GET("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.GetPipelineRelease)
+		routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildsdurations", estafetteHandler.GetPipelineStatsBuildsDurations)
+		routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesdurations", estafetteHandler.GetPipelineStatsReleasesDurations)
+		routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildscpu", estafetteHandler.GetPipelineStatsBuildsCPUUsageMeasurements)
+		routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasescpu", estafetteHandler.GetPipelineStatsReleasesCPUUsageMeasurements)
+		routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildsmemory", estafetteHandler.GetPipelineStatsBuildsMemoryUsageMeasurements)
+		routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesmemory", estafetteHandler.GetPipelineStatsReleasesMemoryUsageMeasurements)
+		routes.GET("/api/pipelines/:source/:owner/:repo/warnings", estafetteHandler.GetPipelineWarnings)
+		routes.GET("/api/catalog/filters", estafetteHandler.GetCatalogFilters)
+		routes.GET("/api/catalog/filtervalues", estafetteHandler.GetCatalogFilterValues)
+		routes.GET("/api/stats/pipelinescount", estafetteHandler.GetStatsPipelinesCount)
+		routes.GET("/api/stats/buildscount", estafetteHandler.GetStatsBuildsCount)
+		routes.GET("/api/stats/releasescount", estafetteHandler.GetStatsReleasesCount)
+		routes.GET("/api/stats/buildsduration", estafetteHandler.GetStatsBuildsDuration)
+		routes.GET("/api/stats/buildsadoption", estafetteHandler.GetStatsBuildsAdoption)
+		routes.GET("/api/stats/releasesadoption", estafetteHandler.GetStatsReleasesAdoption)
+		routes.GET("/api/stats/mostbuilds", estafetteHandler.GetStatsMostBuilds)
+		routes.GET("/api/stats/mostreleases", estafetteHandler.GetStatsMostReleases)
+		routes.GET("/api/manifest/templates", estafetteHandler.GetManifestTemplates)
+		routes.POST("/api/manifest/generate", estafetteHandler.GenerateManifest)
+		routes.POST("/api/manifest/validate", estafetteHandler.ValidateManifest)
+		routes.POST("/api/manifest/encrypt", estafetteHandler.EncryptSecret)
+		routes.GET("/api/labels/frequent", estafetteHandler.GetFrequentLabels)
+	}
+
+	// TODO move behind jwt middleware
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteHandler.GetPipelineBuildLogs)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs/tail", estafetteHandler.TailPipelineBuildLogs)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs.stream", estafetteHandler.TailPipelineBuildLogs)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteHandler.GetPipelineReleaseLogs)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs/tail", estafetteHandler.TailPipelineReleaseLogs)
+	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs.stream", estafetteHandler.TailPipelineReleaseLogs)
+
+	// TODO move behind jwt middleware by letting build/release jobs and cron event sender use valid jwt's
+
+	// api key protected endpoints
+	apiKeyAuthorizedRoutes := routes.Group("/", authMiddleware.APIKeyMiddlewareFunc())
+	{
+		apiKeyAuthorizedRoutes.POST("/api/commands", estafetteHandler.Commands)
+		apiKeyAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteHandler.PostPipelineBuildLogs)
+		apiKeyAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteHandler.PostPipelineReleaseLogs)
+		apiKeyAuthorizedRoutes.POST("/api/integrations/cron/events", estafetteHandler.PostCronEvent)
+		apiKeyAuthorizedRoutes.GET("/api/copylogstocloudstorage/:source/:owner/:repo", estafetteHandler.CopyLogsToCloudStorage)
 	}
 
 	// default routes
