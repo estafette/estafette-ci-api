@@ -8,7 +8,6 @@ require (
 	cloud.google.com/go/storage v1.6.0
 	github.com/Masterminds/squirrel v1.2.0
 	github.com/alecthomas/kingpin v2.2.6+incompatible
-	github.com/appleboy/gin-jwt v2.5.0+incompatible
 	github.com/appleboy/gin-jwt/v2 v2.6.3
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/ericchiang/k8s v1.2.0
@@ -31,7 +30,6 @@ require (
 	github.com/uber/jaeger-lib v2.2.0+incompatible
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	google.golang.org/api v0.20.0
-	gopkg.in/dgrijalva/jwt-go.v3 v3.2.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v2 v2.2.8
 )
