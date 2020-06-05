@@ -68,12 +68,12 @@ func (s *metricsService) UpdateUser(ctx context.Context, user contracts.User) (e
 	return s.Service.UpdateUser(ctx, user)
 }
 
-func (s *metricsService) GenerateJWT(ctx context.Context, optionalClaims jwt.MapClaims) (tokenString string, err error) {
+func (s *metricsService) GenerateJWT(ctx context.Context, validDuration time.Duration, optionalClaims jwt.MapClaims) (tokenString string, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GenerateJWT", begin)
 	}(time.Now())
 
-	return s.Service.GenerateJWT(ctx, optionalClaims)
+	return s.Service.GenerateJWT(ctx, validDuration, optionalClaims)
 }
 
 func (s *metricsService) ValidateJWT(ctx context.Context, tokenString string) (token *jwt.Token, err error) {

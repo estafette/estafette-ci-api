@@ -2,6 +2,7 @@ package rbac
 
 import (
 	"context"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/config"
@@ -62,11 +63,11 @@ func (s *tracingService) UpdateUser(ctx context.Context, user contracts.User) (e
 	return s.Service.UpdateUser(ctx, user)
 }
 
-func (s *tracingService) GenerateJWT(ctx context.Context, optionalClaims jwt.MapClaims) (tokenString string, err error) {
+func (s *tracingService) GenerateJWT(ctx context.Context, validDuration time.Duration, optionalClaims jwt.MapClaims) (tokenString string, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "GenerateJWT"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
-	return s.Service.GenerateJWT(ctx, optionalClaims)
+	return s.Service.GenerateJWT(ctx, validDuration, optionalClaims)
 }
 func (s *tracingService) ValidateJWT(ctx context.Context, tokenString string) (token *jwt.Token, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "ValidateJWT"))

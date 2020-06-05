@@ -2,6 +2,7 @@ package rbac
 
 import (
 	"context"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/config"
@@ -15,7 +16,7 @@ type MockService struct {
 	GetUserByIDFunc       func(ctx context.Context, id string) (user *contracts.User, err error)
 	CreateUserFunc        func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	UpdateUserFunc        func(ctx context.Context, user contracts.User) (err error)
-	GenerateJWTFunc       func(ctx context.Context, optionalClaims jwt.MapClaims) (tokenString string, err error)
+	GenerateJWTFunc       func(ctx context.Context, validDuration time.Duration, optionalClaims jwt.MapClaims) (tokenString string, err error)
 	ValidateJWTFunc       func(ctx context.Context, tokenString string) (token *jwt.Token, err error)
 	GetClaimsFromJWTFunc  func(ctx context.Context, tokenString string) (claims jwt.MapClaims, err error)
 }
@@ -62,11 +63,11 @@ func (s MockService) UpdateUser(ctx context.Context, user contracts.User) (err e
 	return s.UpdateUserFunc(ctx, user)
 }
 
-func (s MockService) GenerateJWT(ctx context.Context, optionalClaims jwt.MapClaims) (tokenString string, err error) {
+func (s MockService) GenerateJWT(ctx context.Context, validDuration time.Duration, optionalClaims jwt.MapClaims) (tokenString string, err error) {
 	if s.GenerateJWTFunc == nil {
 		return
 	}
-	return s.GenerateJWTFunc(ctx, optionalClaims)
+	return s.GenerateJWTFunc(ctx, validDuration, optionalClaims)
 }
 
 func (s MockService) ValidateJWT(ctx context.Context, tokenString string) (token *jwt.Token, err error) {

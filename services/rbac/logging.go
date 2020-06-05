@@ -2,6 +2,7 @@ package rbac
 
 import (
 	"context"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/config"
@@ -55,10 +56,10 @@ func (s *loggingService) UpdateUser(ctx context.Context, user contracts.User) (e
 	return s.Service.UpdateUser(ctx, user)
 }
 
-func (s *loggingService) GenerateJWT(ctx context.Context, optionalClaims jwt.MapClaims) (tokenString string, err error) {
+func (s *loggingService) GenerateJWT(ctx context.Context, validDuration time.Duration, optionalClaims jwt.MapClaims) (tokenString string, err error) {
 	defer func() { helpers.HandleLogError(s.prefix, "GenerateJWT", err) }()
 
-	return s.Service.GenerateJWT(ctx, optionalClaims)
+	return s.Service.GenerateJWT(ctx, validDuration, optionalClaims)
 }
 
 func (s *loggingService) ValidateJWT(ctx context.Context, tokenString string) (token *jwt.Token, err error) {

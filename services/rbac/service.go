@@ -29,7 +29,7 @@ type Service interface {
 	GetUserByID(ctx context.Context, id string) (user *contracts.User, err error)
 	CreateUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	UpdateUser(ctx context.Context, user contracts.User) (err error)
-	GenerateJWT(ctx context.Context, optionalClaims jwt.MapClaims) (tokenString string, err error)
+	GenerateJWT(ctx context.Context, validDuration time.Duration, optionalClaims jwt.MapClaims) (tokenString string, err error)
 	ValidateJWT(ctx context.Context, tokenString string) (token *jwt.Token, err error)
 	GetClaimsFromJWT(ctx context.Context, tokenString string) (claims jwt.MapClaims, err error)
 }
@@ -130,7 +130,7 @@ func (s *service) UpdateUser(ctx context.Context, user contracts.User) (err erro
 	return nil
 }
 
-func (s *service) GenerateJWT(ctx context.Context, optionalClaims jwt.MapClaims) (tokenString string, err error) {
+func (s *service) GenerateJWT(ctx context.Context, validDuration time.Duration, optionalClaims jwt.MapClaims) (tokenString string, err error) {
 
 	// Create the token
 	token := jwt.New(jwt.GetSigningMethod("HS256"))
