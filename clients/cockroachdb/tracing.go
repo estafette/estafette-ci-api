@@ -552,9 +552,16 @@ func (c *tracingClient) UpdateUser(ctx context.Context, user contracts.User) (er
 	return c.Client.UpdateUser(ctx, user)
 }
 
-func (c *tracingClient) GetUserByEmail(ctx context.Context, email string) (user *contracts.User, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetUserByEmail"))
+func (c *tracingClient) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetUserByIdentity"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetUserByEmail(ctx, email)
+	return c.Client.GetUserByIdentity(ctx, identity)
+}
+
+func (c *tracingClient) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetUserByID"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetUserByID(ctx, id)
 }

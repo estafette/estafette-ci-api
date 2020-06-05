@@ -152,6 +152,13 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.True(t, authConfig.IAP.Enable)
 		assert.Equal(t, "/projects/***/global/backendServices/***", authConfig.IAP.Audience)
 		assert.Equal(t, "this is my secret", authConfig.APIKey)
+		assert.Equal(t, 3, len(authConfig.OAuthProviders))
+		assert.Equal(t, "google", authConfig.OAuthProviders[0].Name)
+		assert.Equal(t, "abcdasa", authConfig.OAuthProviders[0].ClientID)
+		assert.Equal(t, "asdsddsfdfs", authConfig.OAuthProviders[0].ClientSecret)
+		assert.Equal(t, ".+@estafette\\.io", authConfig.OAuthProviders[0].AllowedIdentitiesRegex)
+		assert.Equal(t, "ci.estafette.io", authConfig.JWT.Domain)
+		assert.Equal(t, "this is my secret", authConfig.JWT.Key)
 	})
 
 	t.Run("ReturnsJobsConfig", func(t *testing.T) {

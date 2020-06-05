@@ -199,6 +199,7 @@ func TestIntegrationUpdateReleaseStatus(t *testing.T) {
 		ctx := context.Background()
 		cockroachdbClient := getCockroachdbClient(ctx, t)
 		release := getRelease()
+		release.ReleaseStatus = "pending"
 		jobResources := getJobResources()
 		insertedRelease, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
 		assert.Nil(t, err)
@@ -206,7 +207,7 @@ func TestIntegrationUpdateReleaseStatus(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpdateReleaseStatus(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, releaseID, "succeeded")
+		err = cockroachdbClient.UpdateReleaseStatus(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, releaseID, "running")
 
 		assert.Nil(t, err)
 	})
@@ -223,7 +224,7 @@ func TestIntegrationUpdateReleaseStatus(t *testing.T) {
 		releaseID := 15
 
 		// act
-		err := cockroachdbClient.UpdateReleaseStatus(ctx, release.RepoSource, release.RepoOwner, release.RepoName, releaseID, "succeeded")
+		err := cockroachdbClient.UpdateReleaseStatus(ctx, release.RepoSource, release.RepoOwner, release.RepoName, releaseID, "running")
 
 		assert.Nil(t, err)
 	})
@@ -960,7 +961,7 @@ func TestIntegrationGetPipelineReleasesDurations(t *testing.T) {
 	})
 }
 
-func TestIntegrationGetUserByEmail(t *testing.T) {
+func TestIntegrationGetUserByIdentity(t *testing.T) {
 	t.Run("ReturnsInsertedUserWithID", func(t *testing.T) {
 
 		if testing.Short() {
@@ -972,16 +973,74 @@ func TestIntegrationGetUserByEmail(t *testing.T) {
 		user := getUser()
 		user.Identities = []*contracts.UserIdentity{
 			{
-				Source:   "gsuite",
-				Username: "wilson",
+				Provider: "google",
+				ID:       "wilson",
 				Email:    "wilson-test@homeimprovement.com",
 			},
 		}
 		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
 
+		identity := contracts.UserIdentity{
+			Provider: "google",
+			Email:    "wilson-test@homeimprovement.com",
+		}
+
 		// act
-		retrievedUser, err := cockroachdbClient.GetUserByEmail(ctx, "wilson-test@homeimprovement.com")
+		retrievedUser, err := cockroachdbClient.GetUserByIdentity(ctx, identity)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, retrievedUser)
+		assert.Equal(t, retrievedUser.ID, insertedUser.ID)
+	})
+
+	t.Run("DoesNotReturnUserIfProviderDoesNotMatch", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		user := getUser()
+		user.Identities = []*contracts.UserIdentity{
+			{
+				Provider: "google",
+				ID:       "wilson",
+				Email:    "wilson-test@homeimprovement.com",
+			},
+		}
+		_, err := cockroachdbClient.InsertUser(ctx, user)
+		assert.Nil(t, err)
+
+		identity := contracts.UserIdentity{
+			Provider: "microsoft",
+			Email:    "wilson-test@homeimprovement.com",
+		}
+
+		// act
+		retrievedUser, err := cockroachdbClient.GetUserByIdentity(ctx, identity)
+
+		assert.NotNil(t, err)
+		assert.Nil(t, retrievedUser)
+	})
+}
+
+func TestIntegrationGetUserByID(t *testing.T) {
+	t.Run("ReturnsInsertedUserWithID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		user := getUser()
+		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+		assert.Nil(t, err)
+
+		// act
+		retrievedUser, err := cockroachdbClient.GetUserByID(ctx, insertedUser.ID)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedUser)
@@ -1121,15 +1180,15 @@ func getUser() contracts.User {
 		Name: "Wilson Wilson",
 		Identities: []*contracts.UserIdentity{
 			{
-				Source:   "gsuite",
-				Username: "wilson",
+				Provider: "google",
+				ID:       "wilson",
 				Email:    "wilson@homeimprovement.com",
 			},
 		},
 		Groups: []*contracts.UserGroup{
 			{
-				Source: "gsuite",
-				Name:   "Neighbourhood",
+				Provider: "gsuite",
+				Name:     "Neighbourhood",
 			},
 		},
 		Preferences: map[string]interface{}{

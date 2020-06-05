@@ -19,7 +19,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/auth"
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudstorage"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
@@ -294,26 +294,27 @@ func (h *Handler) GetPipelineBuild(c *gin.Context) {
 
 func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
-	user := c.MustGet(gin.AuthUserKey).(auth.User)
+	claims := jwt.ExtractClaims(c)
+	email := claims["email"].(string)
 
 	var buildCommand contracts.Build
 	c.BindJSON(&buildCommand)
 
 	// match source, owner, repo with values in binded release
 	if buildCommand.RepoSource != c.Param("source") {
-		errorMessage := fmt.Sprintf("RepoSource in path and post data do not match for pipeline %v/%v/%v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, user)
+		errorMessage := fmt.Sprintf("RepoSource in path and post data do not match for pipeline %v/%v/%v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, email)
 		log.Error().Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
 	}
 	if buildCommand.RepoOwner != c.Param("owner") {
-		errorMessage := fmt.Sprintf("RepoOwner in path and post data do not match for pipeline %v/%v/%v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, user)
+		errorMessage := fmt.Sprintf("RepoOwner in path and post data do not match for pipeline %v/%v/%v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, email)
 		log.Error().Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
 	}
 	if buildCommand.RepoName != c.Param("repo") {
-		errorMessage := fmt.Sprintf("RepoName in path and post data do not match for pipeline %v/%v/%v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, user)
+		errorMessage := fmt.Sprintf("RepoName in path and post data do not match for pipeline %v/%v/%v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, email)
 		log.Error().Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -322,7 +323,7 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 	// check if version exists and is valid to re-run
 	failedBuilds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(c.Request.Context(), buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, []string{"failed", "canceled"}, 1, false)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
+		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, email)
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		return
@@ -330,7 +331,7 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
 	nonFailedBuilds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(c.Request.Context(), buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, []string{"succeeded", "running", "pending", "canceling"}, 1, false)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
+		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, email)
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		return
@@ -346,7 +347,7 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 	hasNonFailedBuilds := len(nonFailedBuilds) > 0
 
 	if failedBuild == nil {
-		errorMessage := fmt.Sprintf("No failed build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
+		errorMessage := fmt.Sprintf("No failed build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, email)
 		log.Error().Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -362,7 +363,7 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 	failedBuild.Events = []manifest.EstafetteEvent{
 		manifest.EstafetteEvent{
 			Manual: &manifest.EstafetteManualEvent{
-				UserID: user.Email,
+				UserID: email,
 			},
 		},
 	}
@@ -370,7 +371,7 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 	// hand off to build service
 	createdBuild, err := h.buildService.CreateBuild(c.Request.Context(), *failedBuild, false)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed creating build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, user)
+		errorMessage := fmt.Sprintf("Failed creating build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, email)
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		return
@@ -381,7 +382,8 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
 func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 
-	user := c.MustGet(gin.AuthUserKey).(auth.User)
+	claims := jwt.ExtractClaims(c)
+	email := claims["email"].(string)
 
 	source := c.Param("source")
 	owner := c.Param("owner")
@@ -412,7 +414,7 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "build", build.RepoOwner, build.RepoName, build.ID)
 		h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 		h.cockroachDBClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, id, "canceled")
-		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", user.Email)})
+		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", email)})
 		return
 	}
 
@@ -447,7 +449,7 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", user.Email)})
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", email)})
 }
 
 func (h *Handler) GetPipelineBuildLogs(c *gin.Context) {
@@ -711,7 +713,8 @@ func (h *Handler) GetPipelineReleases(c *gin.Context) {
 
 func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 
-	user := c.MustGet(gin.AuthUserKey).(auth.User)
+	claims := jwt.ExtractClaims(c)
+	email := claims["email"].(string)
 
 	var releaseCommand contracts.Release
 	c.BindJSON(&releaseCommand)
@@ -826,14 +829,14 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 		Events: []manifest.EstafetteEvent{
 			manifest.EstafetteEvent{
 				Manual: &manifest.EstafetteManualEvent{
-					UserID: user.Email,
+					UserID: email,
 				},
 			},
 		},
 	}, *build.ManifestObject, build.RepoBranch, build.RepoRevision, true)
 
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed creating release %v for pipeline %v/%v/%v version %v for release command issued by %v", releaseCommand.Name, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion, user.Email)
+		errorMessage := fmt.Sprintf("Failed creating release %v for pipeline %v/%v/%v version %v for release command issued by %v", releaseCommand.Name, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion, email)
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		return
@@ -844,7 +847,8 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 
 func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 
-	user := c.MustGet(gin.AuthUserKey).(auth.User)
+	claims := jwt.ExtractClaims(c)
+	email := claims["email"].(string)
 
 	source := c.Param("source")
 	owner := c.Param("owner")
@@ -872,7 +876,7 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "release", release.RepoOwner, release.RepoName, release.ID)
 		h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 		h.cockroachDBClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, id, "canceled")
-		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", user.Email)})
+		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", email)})
 		return
 	}
 	if release.ReleaseStatus != "pending" && release.ReleaseStatus != "running" {
@@ -906,7 +910,7 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", user.Email)})
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", email)})
 }
 
 func (h *Handler) GetPipelineRelease(c *gin.Context) {
@@ -1535,43 +1539,10 @@ func (h *Handler) GetStatsReleasesAdoption(c *gin.Context) {
 	})
 }
 
-func (h *Handler) GetLoggedInUser(c *gin.Context) {
-
-	user := c.MustGet(gin.AuthUserKey).(auth.User)
-
-	dbUser, err := h.buildService.GetUser(c.Request.Context(), user)
-	if err == nil {
-		user.User = dbUser
-	} else if errors.Is(err, ErrUserNotFound) {
-		dbUser, err = h.buildService.CreateUser(c.Request.Context(), user)
-		if err == nil {
-			user.User = dbUser
-		}
-	}
-
-	if user.User != nil {
-		lastVisit := time.Now().UTC()
-		user.User.LastVisit = &lastVisit
-		user.User.Active = true
-
-		// copy identities' source to provider, so source can be retired
-		for _, i := range user.User.Identities {
-			if i.Provider == "" {
-				i.Provider = i.Source
-			}
-		}
-
-		go func(user auth.User) {
-			_ = h.buildService.UpdateUser(c.Request.Context(), user)
-		}(user)
-	}
-
-	c.JSON(http.StatusOK, user)
-}
-
 func (h *Handler) UpdateComputedTables(c *gin.Context) {
 
-	user := c.MustGet(gin.AuthUserKey).(auth.User)
+	claims := jwt.ExtractClaims(c)
+	email := claims["email"].(string)
 
 	filters := map[string][]string{}
 	filters["status"] = h.getStatusFilter(c)
@@ -1611,12 +1582,10 @@ func (h *Handler) UpdateComputedTables(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, email)
 }
 
 func (h *Handler) GetConfig(c *gin.Context) {
-
-	_ = c.MustGet(gin.AuthUserKey).(auth.User)
 
 	configBytes, err := yaml.Marshal(h.encryptedConfig)
 	if err != nil {
@@ -1642,8 +1611,6 @@ func (h *Handler) GetConfig(c *gin.Context) {
 
 func (h *Handler) GetConfigCredentials(c *gin.Context) {
 
-	_ = c.MustGet(gin.AuthUserKey).(auth.User)
-
 	configBytes, err := yaml.Marshal(h.encryptedConfig.Credentials)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed marshalling encrypted config")
@@ -1667,8 +1634,6 @@ func (h *Handler) GetConfigCredentials(c *gin.Context) {
 }
 
 func (h *Handler) GetConfigTrustedImages(c *gin.Context) {
-
-	_ = c.MustGet(gin.AuthUserKey).(auth.User)
 
 	configBytes, err := yaml.Marshal(h.encryptedConfig.TrustedImages)
 	if err != nil {

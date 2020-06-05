@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -119,28 +118,4 @@ func (s *metricsService) UpdateJobResources(ctx context.Context, event builderap
 	}(time.Now())
 
 	return s.Service.UpdateJobResources(ctx, event)
-}
-
-func (s *metricsService) GetUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error) {
-	defer func(begin time.Time) {
-		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GetUser", begin)
-	}(time.Now())
-
-	return s.Service.GetUser(ctx, authUser)
-}
-
-func (s *metricsService) CreateUser(ctx context.Context, authUser auth.User) (user *contracts.User, err error) {
-	defer func(begin time.Time) {
-		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "CreateUser", begin)
-	}(time.Now())
-
-	return s.Service.CreateUser(ctx, authUser)
-}
-
-func (s *metricsService) UpdateUser(ctx context.Context, authUser auth.User) (err error) {
-	defer func(begin time.Time) {
-		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "UpdateUser", begin)
-	}(time.Now())
-
-	return s.Service.UpdateUser(ctx, authUser)
 }

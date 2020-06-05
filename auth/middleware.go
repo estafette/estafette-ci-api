@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/estafette/estafette-ci-api/config"
+	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
@@ -15,11 +18,11 @@ type Middleware interface {
 	APIKeyMiddlewareFunc() gin.HandlerFunc
 	IAPJWTMiddlewareFunc() gin.HandlerFunc
 	GoogleJWTMiddlewareFunc() gin.HandlerFunc
+	GinJWTMiddleware(authenticator func(c *gin.Context) (interface{}, error)) (middleware *jwt.GinJWTMiddleware, err error)
 }
 
 // NewAuthMiddleware returns a new auth.AuthMiddleware
 func NewAuthMiddleware(config *config.APIConfig) (authMiddleware Middleware) {
-
 	authMiddleware = &authMiddlewareImpl{
 		config: config,
 	}
@@ -60,15 +63,15 @@ func (m *authMiddlewareImpl) IAPJWTMiddlewareFunc() gin.HandlerFunc {
 		if m.config.Auth.IAP.Enable {
 
 			tokenString := c.Request.Header.Get("x-goog-iap-jwt-assertion")
-			user, err := GetUserFromIAPJWT(tokenString, m.config.Auth.IAP.Audience)
+			email, err := GetEmailFromIAPJWT(tokenString, m.config.Auth.IAP.Audience)
 			if err != nil {
 				log.Warn().Str("jwt", tokenString).Err(err).Msg("Checking iap jwt failed")
 				c.Status(http.StatusUnauthorized)
 				return
 			}
 
-			// set user to access from request handlers; retrieve with `user := c.MustGet(gin.AuthUserKey).(auth.User)`
-			c.Set(gin.AuthUserKey, user)
+			// set user email to access from request handlers; retrieve with `email := c.MustGet(gin.AuthUserKey).(string)`
+			c.Set(gin.AuthUserKey, email)
 		}
 	}
 }
@@ -98,4 +101,43 @@ func (m *authMiddlewareImpl) GoogleJWTMiddlewareFunc() gin.HandlerFunc {
 		// set 'user' to enforce a handler method to require api key auth with `user := c.MustGet(gin.AuthUserKey).(string)` and ensuring the user equals 'apiKey'
 		c.Set(gin.AuthUserKey, "google-jwt")
 	}
+}
+
+func (m *authMiddlewareImpl) GinJWTMiddleware(authenticator func(c *gin.Context) (interface{}, error)) (middleware *jwt.GinJWTMiddleware, err error) {
+	return jwt.New(&jwt.GinJWTMiddleware{
+		Realm:          m.config.Auth.JWT.Domain,
+		Key:            []byte(m.config.Auth.JWT.Key),
+		TokenLookup:    "header:Authorization, cookie:jwt",
+		Authenticator:  authenticator,
+		SendCookie:     true,
+		SecureCookie:   true,
+		CookieHTTPOnly: true,
+		CookieDomain:   m.config.Auth.JWT.Domain,
+		LoginResponse: func(c *gin.Context, code int, token string, expire time.Time) {
+
+			// see if gin context has a return url
+			returnURL, exists := c.Get("returnURL")
+			if exists {
+				c.Redirect(http.StatusFound, returnURL.(string))
+				return
+			}
+
+			// cookie is used, so token does not need to be returned via response
+			c.Redirect(http.StatusFound, "/")
+		},
+		LogoutResponse: func(c *gin.Context, code int) {
+			c.Redirect(http.StatusFound, "/login")
+		},
+		TimeFunc: time.Now,
+		PayloadFunc: func(data interface{}) jwt.MapClaims {
+			// add user properties as claims
+			if user, ok := data.(*contracts.User); ok {
+				return jwt.MapClaims{
+					jwt.IdentityKey: user.ID,
+					"email":         user.GetEmail(),
+				}
+			}
+			return jwt.MapClaims{}
+		},
+	})
 }

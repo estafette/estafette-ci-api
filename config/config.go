@@ -1,13 +1,22 @@
 package config
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"net/http"
+	"strings"
 
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/endpoints"
+	googleoauth2v2 "google.golang.org/api/oauth2/v2"
+	"google.golang.org/api/option"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -58,8 +67,144 @@ func (c *APIServerConfig) ReadLogFromCloudStorage() bool {
 
 // AuthConfig determines whether to use IAP for authentication and authorization
 type AuthConfig struct {
-	IAP    *IAPAuthConfig `yaml:"iap"`
-	APIKey string         `yaml:"apiKey"`
+	IAP            *IAPAuthConfig   `yaml:"iap"`
+	APIKey         string           `yaml:"apiKey"`
+	OAuthProviders []*OAuthProvider `yaml:"oauthProviders"`
+	JWT            *JWTConfig       `yaml:"jwt"`
+}
+
+// OAuthProvider is used to configure one or more oauth providers like google, github, microsoft
+type OAuthProvider struct {
+	Name                   string `yaml:"name"`
+	ClientID               string `yaml:"clientID"`
+	ClientSecret           string `yaml:"clientSecret"`
+	AllowedIdentitiesRegex string `yaml:"allowedIdentitiesRegex"`
+}
+
+// OAuthProviderInfo provides non configurable information for oauth providers
+type OAuthProviderInfo struct {
+	AuthURL  string
+	TokenURL string
+}
+
+// GetConfig returns the oauth config for the provider
+func (p *OAuthProvider) GetConfig(baseURL string) *oauth2.Config {
+
+	redirectPath := "/api/auth/handle/"
+	redirectURI := strings.TrimSuffix(baseURL, "/") + redirectPath + p.Name
+
+	oauthConfig := oauth2.Config{
+		ClientID:     p.ClientID,
+		ClientSecret: p.ClientSecret,
+		RedirectURL:  redirectURI,
+	}
+
+	switch p.Name {
+	case "google":
+		oauthConfig.Endpoint = endpoints.Google
+		oauthConfig.Scopes = []string{
+			"https://www.googleapis.com/auth/userinfo.email",
+		}
+	case "microsoft":
+		oauthConfig.Endpoint = endpoints.Microsoft
+		oauthConfig.Scopes = []string{
+			"user.read+openid+profile+email",
+		}
+	case "facebook":
+		oauthConfig.Endpoint = endpoints.Facebook
+	case "github":
+		oauthConfig.Endpoint = endpoints.Facebook
+	case "bitbucket":
+		oauthConfig.Endpoint = endpoints.Facebook
+	case "gitlab":
+		oauthConfig.Endpoint = endpoints.Facebook
+
+	default:
+		return nil
+	}
+
+	return &oauthConfig
+}
+
+// AuthCodeURL returns the url to redirect to for login
+func (p *OAuthProvider) AuthCodeURL(baseURL, state string) string {
+	return p.GetConfig(baseURL).AuthCodeURL(state, oauth2.AccessTypeOnline)
+}
+
+// GetUser returns the user info after a token has been retrieved
+func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Config, token *oauth2.Token) (identity *contracts.UserIdentity, err error) {
+	switch p.Name {
+	case "google":
+		oauth2Service, err := googleoauth2v2.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+		if err != nil {
+			return nil, err
+		}
+
+		// retrieve userinfo
+		userInfo, err := oauth2Service.Userinfo.Get().Do()
+		if err != nil {
+			return nil, err
+		}
+
+		// map userinfo to user identity
+		identity = &contracts.UserIdentity{
+			Provider: p.Name,
+			Email:    userInfo.Email,
+			Name:     userInfo.Name,
+			ID:       userInfo.Id,
+			Avatar:   userInfo.Picture,
+		}
+
+		return identity, nil
+
+	case "microsoft":
+
+		client := config.Client(ctx, token)
+
+		// retrieve userinfo
+		resp, err := client.Get("https://graph.microsoft.com/v1.0/me")
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("Calling microsoft graph returned unexpected status code %v", resp.StatusCode)
+		}
+
+		body, err := ioutil.ReadAll(resp.Body)
+
+		var userInfo struct {
+			ID      string `json:"id,omitempty"`
+			Email   string `json:"mail,omitempty"`
+			Name    string `json:"displayName,omitempty"`
+			Picture string `json:"picture,omitempty"`
+		}
+
+		if err = json.Unmarshal(body, &userInfo); err != nil {
+			return nil, fmt.Errorf("Unmarshalling userinfo from microsoft graph body failed: %v", body)
+		}
+
+		// map userinfo to user identity
+		identity = &contracts.UserIdentity{
+			Provider: p.Name,
+			Email:    userInfo.Email,
+			Name:     userInfo.Name,
+			ID:       userInfo.ID,
+			Avatar:   userInfo.Picture,
+		}
+
+		return identity, nil
+	}
+
+	return nil, fmt.Errorf("The GetUser function has not been implemented for provider '%v'", p.Name)
+}
+
+// JWTConfig is used to configure JWT middleware
+type JWTConfig struct {
+	Domain string `yaml:"domain"`
+	// Key to sign JWT; use 256-bit key (or 32 bytes) minimum length
+	Key string `yaml:"key"`
 }
 
 // JobsConfig configures the lower and upper bounds for automatically setting resources for build/release jobs

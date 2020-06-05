@@ -112,7 +112,8 @@ type Client interface {
 
 	InsertUser(ctx context.Context, user contracts.User) (u *contracts.User, err error)
 	UpdateUser(ctx context.Context, user contracts.User) (err error)
-	GetUserByEmail(ctx context.Context, email string) (user *contracts.User, err error)
+	GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
+	GetUserByID(ctx context.Context, id string) (user *contracts.User, err error)
 }
 
 // NewClient returns a new cockroach.Client
@@ -530,22 +531,24 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 	// update release status
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	insertedRelease, err := c.scanRelease(row)
-	if err != nil && err != sql.ErrNoRows {
-		return
-	} else if err != nil {
-		log.Warn().Err(err).Msgf("Updating release status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, id, allowedReleaseStatusesToTransitionFrom, releaseStatus)
-		return
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Warn().Err(err).Msgf("Updating release status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, id, allowedReleaseStatusesToTransitionFrom, releaseStatus)
+			return nil
+		}
+
+		return err
 	}
 
 	// update computed tables
-	go func() {
+	go func(insertedRelease *contracts.Release) {
 		if insertedRelease != nil {
 			c.UpsertComputedRelease(ctx, repoSource, repoOwner, repoName, insertedRelease.Name, insertedRelease.Action)
 		} else {
 			log.Warn().Msgf("Cannot update computed tables after updating release status for %v/%v/%v id %v from %v to %v", repoSource, repoOwner, repoName, id, allowedReleaseStatusesToTransitionFrom, releaseStatus)
 		}
 		c.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
-	}()
+	}(insertedRelease)
 
 	return
 }
@@ -1521,11 +1524,14 @@ func (c *client) GetLastPipelineRelease(ctx context.Context, repoSource, repoOwn
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if release, err = c.scanRelease(row); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 
-		return
+		return nil, err
 	}
 
-	return
+	return release, nil
 }
 
 func (c *client) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {
@@ -1543,11 +1549,15 @@ func (c *client) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOw
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if release, err = c.scanRelease(row); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 
-		return
+		return nil, err
 	}
 
-	return
+	return release, nil
+
 }
 
 func (c *client) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
@@ -1822,11 +1832,14 @@ func (c *client) GetPipelineRelease(ctx context.Context, repoSource, repoOwner, 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if release, err = c.scanRelease(row); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 
-		return
+		return nil, err
 	}
 
-	return
+	return release, nil
 }
 
 func (c *client) GetPipelineLastReleasesByName(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error) {
@@ -3436,10 +3449,7 @@ func (c *client) scanRelease(row sq.RowScanner) (release *contracts.Release, err
 		&durationPendingSeconds,
 		&durationRunningSeconds,
 		&triggeredByEventsData); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return
+		return nil, err
 	}
 
 	pendingDuration := time.Duration(durationPendingSeconds) * time.Second
@@ -3917,18 +3927,41 @@ func (c *client) UpdateUser(ctx context.Context, user contracts.User) (err error
 	return
 }
 
-func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contracts.User, err error) {
+func (c *client) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Select("a.id, a.user_data, a.inserted_at").
+		From("users a").
+		Where(sq.Eq{"a.id": id}).
+		Limit(uint64(1))
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	user, err = c.scanUser(row)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (c *client) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 
 	emailFilter := struct {
 		Identities []struct {
-			Email string `json:"email"`
+			Provider string `json:"provider"`
+			Email    string `json:"email"`
 		} `json:"identities"`
 	}{
 		[]struct {
-			Email string `json:"email"`
+			Provider string `json:"provider"`
+			Email    string `json:"email"`
 		}{
 			{
-				Email: email,
+				Provider: identity.Provider,
+				Email:    identity.Email,
 			},
 		},
 	}
@@ -3937,8 +3970,6 @@ func (c *client) GetUserByEmail(ctx context.Context, email string) (user *contra
 	if err != nil {
 		return nil, err
 	}
-
-	log.Debug().Str("emailFilterBytes", string(emailFilterBytes)).Msgf("cockroachdb.Client:GetUserByEmail(%v) before", email)
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 

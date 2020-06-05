@@ -613,10 +613,18 @@ func (c *metricsClient) UpdateUser(ctx context.Context, user contracts.User) (er
 	return c.Client.UpdateUser(ctx, user)
 }
 
-func (c *metricsClient) GetUserByEmail(ctx context.Context, email string) (user *contracts.User, err error) {
+func (c *metricsClient) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 	defer func(begin time.Time) {
-		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetUserByEmail", begin)
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetUserByIdentity", begin)
 	}(time.Now())
 
-	return c.Client.GetUserByEmail(ctx, email)
+	return c.Client.GetUserByIdentity(ctx, identity)
+}
+
+func (c *metricsClient) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetUserByID", begin)
+	}(time.Now())
+
+	return c.Client.GetUserByID(ctx, id)
 }
