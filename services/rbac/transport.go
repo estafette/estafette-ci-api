@@ -9,7 +9,6 @@ import (
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	jwtgo "github.com/dgrijalva/jwt-go"
-	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
@@ -31,8 +30,18 @@ type Handler struct {
 }
 
 func (h *Handler) GetLoggedInUser(c *gin.Context) {
+	// ensure this is behind jwt middleware
+	id, exists := c.Get(jwt.IdentityKey)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid JWT"})
+	}
 
-	user := c.MustGet(gin.AuthUserKey).(auth.User)
+	user, err := h.service.GetUserByID(c.Request.Context(), id.(string))
+	if err != nil {
+		log.Error().Err(err).Msgf("Retrieving user from db failed with id %v", id)
+		c.String(http.StatusInternalServerError, "Retrieving user from db failed")
+		return
+	}
 
 	c.JSON(http.StatusOK, user)
 }
@@ -179,18 +188,4 @@ func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (inter
 
 		return user, nil
 	}
-}
-
-func (h *Handler) GetLoggedInUserProfile(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	id := claims[jwt.IdentityKey].(string)
-
-	user, err := h.service.GetUserByID(c.Request.Context(), id)
-	if err != nil {
-		log.Error().Err(err).Msgf("Retrieving user from db failed with id %v", id)
-		c.String(http.StatusInternalServerError, "Retrieving user from db failed")
-		return
-	}
-
-	c.JSON(200, user)
 }

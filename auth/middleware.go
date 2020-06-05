@@ -63,15 +63,15 @@ func (m *authMiddlewareImpl) IAPJWTMiddlewareFunc() gin.HandlerFunc {
 		if m.config.Auth.IAP.Enable {
 
 			tokenString := c.Request.Header.Get("x-goog-iap-jwt-assertion")
-			user, err := GetUserFromIAPJWT(tokenString, m.config.Auth.IAP.Audience)
+			email, err := GetEmailFromIAPJWT(tokenString, m.config.Auth.IAP.Audience)
 			if err != nil {
 				log.Warn().Str("jwt", tokenString).Err(err).Msg("Checking iap jwt failed")
 				c.Status(http.StatusUnauthorized)
 				return
 			}
 
-			// set user to access from request handlers; retrieve with `user := c.MustGet(gin.AuthUserKey).(auth.User)`
-			c.Set(gin.AuthUserKey, user)
+			// set user email to access from request handlers; retrieve with `email := c.MustGet(gin.AuthUserKey).(string)`
+			c.Set(gin.AuthUserKey, email)
 		}
 	}
 }
@@ -131,9 +131,7 @@ func (m *authMiddlewareImpl) GinJWTMiddleware(authenticator func(c *gin.Context)
 			if user, ok := data.(*contracts.User); ok {
 				return jwt.MapClaims{
 					jwt.IdentityKey: user.ID,
-					"name":          user.GetName(),
 					"email":         user.GetEmail(),
-					"provider":      user.GetProvider(),
 				}
 			}
 			return jwt.MapClaims{}

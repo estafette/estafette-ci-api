@@ -90,7 +90,8 @@ func GetCachedIAPJWK(kid string) (jwk *ecdsa.PublicKey, err error) {
 	return nil, fmt.Errorf("Key with kid %v does not exist at https://www.gstatic.com/iap/verify/public_key-jwk", kid)
 }
 
-func getEmailFromIAPJWT(tokenString string, iapAudience string) (email string, err error) {
+// GetEmailFromIAPJWT validates jwt and returns email address
+func GetEmailFromIAPJWT(tokenString string, iapAudience string) (email string, err error) {
 
 	// ensure this uses UTC even though google's servers all run in UTC
 	jwt.TimeFunc = time.Now().UTC
@@ -145,27 +146,6 @@ func getEmailFromIAPJWT(tokenString string, iapAudience string) (email string, e
 	}
 
 	return "", fmt.Errorf("Token is not valid")
-}
-
-// GetUserFromIAPJWT validates IAP JWT and returns auth.User
-func GetUserFromIAPJWT(tokenString string, iapAudience string) (user User, err error) {
-
-	if tokenString == "" {
-		return user, fmt.Errorf("IAP jwt is empty")
-	}
-
-	email, err := getEmailFromIAPJWT(tokenString, iapAudience)
-	if err != nil {
-		return user, err
-	}
-
-	user = User{
-		Authenticated: true,
-		Email:         email,
-		Provider:      "google",
-	}
-
-	return
 }
 
 // getGoogleJWKs returns the list of JWKs used by google's apis from https://www.googleapis.com/oauth2/v3/certs

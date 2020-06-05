@@ -515,28 +515,24 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 		apiKeyAuthorizedRoutes.GET("/api/copylogstocloudstorage/:source/:owner/:repo", estafetteHandler.CopyLogsToCloudStorage)
 	}
 
-	// iap protected endpoints
-	iapAuthorizedRoutes := routes.Group("/", authMiddleware.IAPJWTMiddlewareFunc())
-	{
-		iapAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/builds", estafetteHandler.CreatePipelineBuild)
-		iapAuthorizedRoutes.POST("/api/pipelines/:source/:owner/:repo/releases", estafetteHandler.CreatePipelineRelease)
-		iapAuthorizedRoutes.DELETE("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteHandler.CancelPipelineBuild)
-		iapAuthorizedRoutes.DELETE("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.CancelPipelineRelease)
-		iapAuthorizedRoutes.GET("/api/users/me", rbacHandler.GetLoggedInUser)
-		iapAuthorizedRoutes.GET("/api/config", estafetteHandler.GetConfig)
-		iapAuthorizedRoutes.GET("/api/config/credentials", estafetteHandler.GetConfigCredentials)
-		iapAuthorizedRoutes.GET("/api/config/trustedimages", estafetteHandler.GetConfigTrustedImages)
-		iapAuthorizedRoutes.GET("/api/update-computed-tables", estafetteHandler.UpdateComputedTables)
-	}
-
-	jwtMiddlewareRoutes := routes.Group("/", jwtMiddleware.MiddlewareFunc())
-	{
-		jwtMiddlewareRoutes.GET("/api/auth/profile", rbacHandler.GetLoggedInUserProfile)
-	}
-
+	// public routes for logging in
 	routes.GET("/api/auth/providers", rbacHandler.GetProviders)
 	routes.GET("/api/auth/login/:provider", rbacHandler.LoginProvider)
 	routes.GET("/api/auth/handle/:provider", jwtMiddleware.LoginHandler)
+
+	// routes that require to be logged in and have a valid jwt
+	jwtMiddlewareRoutes := routes.Group("/", jwtMiddleware.MiddlewareFunc())
+	{
+		jwtMiddlewareRoutes.GET("/api/users/me", rbacHandler.GetLoggedInUser)
+		jwtMiddlewareRoutes.GET("/api/config", estafetteHandler.GetConfig)
+		jwtMiddlewareRoutes.GET("/api/config/credentials", estafetteHandler.GetConfigCredentials)
+		jwtMiddlewareRoutes.GET("/api/config/trustedimages", estafetteHandler.GetConfigTrustedImages)
+		jwtMiddlewareRoutes.GET("/api/update-computed-tables", estafetteHandler.UpdateComputedTables)
+		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/builds", estafetteHandler.CreatePipelineBuild)
+		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/releases", estafetteHandler.CreatePipelineRelease)
+		jwtMiddlewareRoutes.DELETE("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteHandler.CancelPipelineBuild)
+		jwtMiddlewareRoutes.DELETE("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.CancelPipelineRelease)
+	}
 
 	// default routes
 	routes.GET("/liveness", func(c *gin.Context) {
