@@ -9,6 +9,7 @@ import (
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	jwtgo "github.com/dgrijalva/jwt-go"
+	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
@@ -86,7 +87,7 @@ func (h *Handler) LoginProvider(c *gin.Context) {
 	}
 
 	// generate jwt to use as state
-	state, err := h.service.GenerateJWT(ctx, time.Duration(10)*time.Minute, optionalClaims)
+	state, err := auth.GenerateJWT(h.config, time.Duration(10)*time.Minute, optionalClaims)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed generating JWT to use as state")
 		c.String(http.StatusInternalServerError, "Failed generating JWT to use as state")
@@ -104,7 +105,7 @@ func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (inter
 		state := c.Query("state")
 
 		// validate jwt in state
-		claims, err := h.service.GetClaimsFromJWT(ctx, state)
+		claims, err := auth.GetClaimsFromJWT(h.config, state)
 		if err != nil {
 			return nil, err
 		}

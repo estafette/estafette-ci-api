@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -11,8 +12,59 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/estafette/estafette-ci-api/config"
 	"github.com/sethgrid/pester"
 )
+
+var (
+	// ErrInvalidSigningAlgorithm indicates signing algorithm is invalid, needs to be HS256, HS384, HS512, RS256, RS384 or RS512
+	ErrInvalidSigningAlgorithm = errors.New("invalid signing algorithm")
+)
+
+func GenerateJWT(config *config.APIConfig, validDuration time.Duration, optionalClaims jwt.MapClaims) (tokenString string, err error) {
+
+	// Create the token
+	token := jwt.New(jwt.GetSigningMethod("HS256"))
+	claims := token.Claims.(jwt.MapClaims)
+
+	// set required claims
+	now := time.Now()
+	expire := now.Add(time.Hour)
+	claims["exp"] = expire.Unix()
+	claims["orig_iat"] = now.Unix()
+
+	if optionalClaims != nil {
+		for key, value := range optionalClaims {
+			claims[key] = value
+		}
+	}
+
+	// sign the token
+	return token.SignedString([]byte(config.Auth.JWT.Key))
+}
+
+func ValidateJWT(config *config.APIConfig, tokenString string) (token *jwt.Token, err error) {
+	return jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+		if jwt.GetSigningMethod("HS256") != t.Method {
+			return nil, ErrInvalidSigningAlgorithm
+		}
+		return []byte(config.Auth.JWT.Key), nil
+	})
+}
+
+func GetClaimsFromJWT(config *config.APIConfig, tokenString string) (claims jwt.MapClaims, err error) {
+	token, err := ValidateJWT(config, tokenString)
+	if err != nil {
+		return nil, err
+	}
+
+	claims = jwt.MapClaims{}
+	for key, value := range token.Claims.(jwt.MapClaims) {
+		claims[key] = value
+	}
+
+	return claims, nil
+}
 
 // getGoogleJWKs returns the list of JWKs used by google's apis from https://www.googleapis.com/oauth2/v3/certs
 func getGoogleJWKs() (keysResponse *GoogleJWKResponse, err error) {

@@ -13,11 +13,13 @@ import (
 	"strings"
 	"time"
 
+	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/ericchiang/k8s"
 	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
 	corev1 "github.com/ericchiang/k8s/apis/core/v1"
 	metav1 "github.com/ericchiang/k8s/apis/meta/v1"
 	"github.com/ericchiang/k8s/apis/resource"
+	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/clients/dockerhubapi"
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -900,12 +902,20 @@ func (c *client) GetBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 
 	localBuilderConfig.Manifest = &ciBuilderParams.Manifest
 
+	jwt, err := auth.GenerateJWT(c.config, time.Duration(6)*time.Hour, jwtgo.MapClaims{
+		"job": jobName,
+	})
+	if err != nil {
+		return contracts.BuilderConfig{}, err
+	}
+
 	localBuilderConfig.JobName = &jobName
 	localBuilderConfig.CIServer = &contracts.CIServerConfig{
 		BaseURL:          c.config.APIServer.BaseURL,
 		BuilderEventsURL: strings.TrimRight(c.config.APIServer.ServiceURL, "/") + "/api/commands",
 		PostLogsURL:      strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.BuildID),
 		APIKey:           c.config.Auth.APIKey,
+		JWT:              jwt,
 	}
 
 	if ciBuilderParams.ReleaseID > 0 {
