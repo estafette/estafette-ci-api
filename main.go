@@ -434,15 +434,18 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 	log.Debug().Msg("Adding opentracing middleware...")
 	router.Use(middlewares.OpenTracingMiddleware())
 
-	// Gzip and logging middleware
-	log.Debug().Msg("Adding gzip middleware...")
-
-	alreadyZippedRoutes := router.Group("/")
-	routes := router.Group("/", gzip.Gzip(gzip.BestSpeed))
-
 	// middleware to handle auth for different endpoints
 	log.Debug().Msg("Adding auth middleware...")
 	authMiddleware := auth.NewAuthMiddleware(config)
+	jwtMiddleware, err := authMiddleware.GinJWTMiddleware(rbacHandler.HandleLoginProviderAuthenticator())
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed creating JWT middleware")
+	}
+	preZippedJWTMiddlewareRoutes := router.Group("/", jwtMiddleware.MiddlewareFunc())
+
+	// Gzip and logging middleware
+	log.Debug().Msg("Adding gzip middleware...")
+	routes := router.Group("/", gzip.Gzip(gzip.BestSpeed))
 
 	log.Debug().Msg("Setting up routes...")
 	routes.POST("/api/integrations/github/events", githubHandler.Handle)
@@ -463,11 +466,6 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 	routes.GET("/api/integrations/pubsub/status", func(c *gin.Context) { c.String(200, "Pub/Sub, I'm cool!") })
 	routes.GET("/api/integrations/cloudsource/status", func(c *gin.Context) { c.String(200, "Cloud Source, I'm cool!") })
 
-	jwtMiddleware, err := authMiddleware.GinJWTMiddleware(rbacHandler.HandleLoginProviderAuthenticator())
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed creating JWT middleware")
-	}
-
 	// public routes for logging in
 	routes.GET("/api/auth/providers", rbacHandler.GetProviders)
 	routes.GET("/api/auth/login/:provider", rbacHandler.LoginProvider)
@@ -477,58 +475,59 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 	// routes that require to be logged in and have a valid jwt
 	jwtMiddlewareRoutes := routes.Group("/", jwtMiddleware.MiddlewareFunc())
 	{
+		// require claims
 		jwtMiddlewareRoutes.GET("/api/users/me", rbacHandler.GetLoggedInUser)
-		jwtMiddlewareRoutes.GET("/api/config", estafetteHandler.GetConfig)
-		jwtMiddlewareRoutes.GET("/api/config/credentials", estafetteHandler.GetConfigCredentials)
-		jwtMiddlewareRoutes.GET("/api/config/trustedimages", estafetteHandler.GetConfigTrustedImages)
 		jwtMiddlewareRoutes.GET("/api/update-computed-tables", estafetteHandler.UpdateComputedTables)
 		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/builds", estafetteHandler.CreatePipelineBuild)
 		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/releases", estafetteHandler.CreatePipelineRelease)
 		jwtMiddlewareRoutes.DELETE("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteHandler.CancelPipelineBuild)
 		jwtMiddlewareRoutes.DELETE("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.CancelPipelineRelease)
 
-		routes.GET("/api/pipelines", estafetteHandler.GetPipelines)
-		routes.GET("/api/pipelines/:source/:owner/:repo", estafetteHandler.GetPipeline)
-		routes.GET("/api/pipelines/:source/:owner/:repo/recentbuilds", estafetteHandler.GetPipelineRecentBuilds)
-		routes.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteHandler.GetPipelineBuilds)
-		routes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteHandler.GetPipelineBuild)
-		routes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/warnings", estafetteHandler.GetPipelineBuildWarnings)
-		routes.GET("/api/pipelines/:source/:owner/:repo/releases", estafetteHandler.GetPipelineReleases)
-		routes.GET("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.GetPipelineRelease)
-		routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildsdurations", estafetteHandler.GetPipelineStatsBuildsDurations)
-		routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesdurations", estafetteHandler.GetPipelineStatsReleasesDurations)
-		routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildscpu", estafetteHandler.GetPipelineStatsBuildsCPUUsageMeasurements)
-		routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasescpu", estafetteHandler.GetPipelineStatsReleasesCPUUsageMeasurements)
-		routes.GET("/api/pipelines/:source/:owner/:repo/stats/buildsmemory", estafetteHandler.GetPipelineStatsBuildsMemoryUsageMeasurements)
-		routes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesmemory", estafetteHandler.GetPipelineStatsReleasesMemoryUsageMeasurements)
-		routes.GET("/api/pipelines/:source/:owner/:repo/warnings", estafetteHandler.GetPipelineWarnings)
-		routes.GET("/api/catalog/filters", estafetteHandler.GetCatalogFilters)
-		routes.GET("/api/catalog/filtervalues", estafetteHandler.GetCatalogFilterValues)
-		routes.GET("/api/stats/pipelinescount", estafetteHandler.GetStatsPipelinesCount)
-		routes.GET("/api/stats/buildscount", estafetteHandler.GetStatsBuildsCount)
-		routes.GET("/api/stats/releasescount", estafetteHandler.GetStatsReleasesCount)
-		routes.GET("/api/stats/buildsduration", estafetteHandler.GetStatsBuildsDuration)
-		routes.GET("/api/stats/buildsadoption", estafetteHandler.GetStatsBuildsAdoption)
-		routes.GET("/api/stats/releasesadoption", estafetteHandler.GetStatsReleasesAdoption)
-		routes.GET("/api/stats/mostbuilds", estafetteHandler.GetStatsMostBuilds)
-		routes.GET("/api/stats/mostreleases", estafetteHandler.GetStatsMostReleases)
-		routes.GET("/api/manifest/templates", estafetteHandler.GetManifestTemplates)
-		routes.POST("/api/manifest/generate", estafetteHandler.GenerateManifest)
-		routes.POST("/api/manifest/validate", estafetteHandler.ValidateManifest)
-		routes.POST("/api/manifest/encrypt", estafetteHandler.EncryptSecret)
-		routes.GET("/api/labels/frequent", estafetteHandler.GetFrequentLabels)
+		// do not require claims
+		jwtMiddlewareRoutes.GET("/api/config", estafetteHandler.GetConfig)
+		jwtMiddlewareRoutes.GET("/api/config/credentials", estafetteHandler.GetConfigCredentials)
+		jwtMiddlewareRoutes.GET("/api/config/trustedimages", estafetteHandler.GetConfigTrustedImages)
+		jwtMiddlewareRoutes.GET("/api/pipelines", estafetteHandler.GetPipelines)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo", estafetteHandler.GetPipeline)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/recentbuilds", estafetteHandler.GetPipelineRecentBuilds)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteHandler.GetPipelineBuilds)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteHandler.GetPipelineBuild)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/warnings", estafetteHandler.GetPipelineBuildWarnings)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/releases", estafetteHandler.GetPipelineReleases)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.GetPipelineRelease)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/stats/buildsdurations", estafetteHandler.GetPipelineStatsBuildsDurations)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesdurations", estafetteHandler.GetPipelineStatsReleasesDurations)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/stats/buildscpu", estafetteHandler.GetPipelineStatsBuildsCPUUsageMeasurements)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/stats/releasescpu", estafetteHandler.GetPipelineStatsReleasesCPUUsageMeasurements)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/stats/buildsmemory", estafetteHandler.GetPipelineStatsBuildsMemoryUsageMeasurements)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesmemory", estafetteHandler.GetPipelineStatsReleasesMemoryUsageMeasurements)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/warnings", estafetteHandler.GetPipelineWarnings)
+		jwtMiddlewareRoutes.GET("/api/catalog/filters", estafetteHandler.GetCatalogFilters)
+		jwtMiddlewareRoutes.GET("/api/catalog/filtervalues", estafetteHandler.GetCatalogFilterValues)
+		jwtMiddlewareRoutes.GET("/api/stats/pipelinescount", estafetteHandler.GetStatsPipelinesCount)
+		jwtMiddlewareRoutes.GET("/api/stats/buildscount", estafetteHandler.GetStatsBuildsCount)
+		jwtMiddlewareRoutes.GET("/api/stats/releasescount", estafetteHandler.GetStatsReleasesCount)
+		jwtMiddlewareRoutes.GET("/api/stats/buildsduration", estafetteHandler.GetStatsBuildsDuration)
+		jwtMiddlewareRoutes.GET("/api/stats/buildsadoption", estafetteHandler.GetStatsBuildsAdoption)
+		jwtMiddlewareRoutes.GET("/api/stats/releasesadoption", estafetteHandler.GetStatsReleasesAdoption)
+		jwtMiddlewareRoutes.GET("/api/stats/mostbuilds", estafetteHandler.GetStatsMostBuilds)
+		jwtMiddlewareRoutes.GET("/api/stats/mostreleases", estafetteHandler.GetStatsMostReleases)
+		jwtMiddlewareRoutes.GET("/api/manifest/templates", estafetteHandler.GetManifestTemplates)
+		jwtMiddlewareRoutes.POST("/api/manifest/generate", estafetteHandler.GenerateManifest)
+		jwtMiddlewareRoutes.POST("/api/manifest/validate", estafetteHandler.ValidateManifest)
+		jwtMiddlewareRoutes.POST("/api/manifest/encrypt", estafetteHandler.EncryptSecret)
+		jwtMiddlewareRoutes.GET("/api/labels/frequent", estafetteHandler.GetFrequentLabels)
+
+		// do not require claims and avoid re-zipping
+		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteHandler.GetPipelineBuildLogs)
+		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs/tail", estafetteHandler.TailPipelineBuildLogs)
+		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs.stream", estafetteHandler.TailPipelineBuildLogs)
+		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteHandler.GetPipelineReleaseLogs)
+		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs/tail", estafetteHandler.TailPipelineReleaseLogs)
+		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs.stream", estafetteHandler.TailPipelineReleaseLogs)
 	}
 
-	// TODO move behind jwt middleware
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteHandler.GetPipelineBuildLogs)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs/tail", estafetteHandler.TailPipelineBuildLogs)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs.stream", estafetteHandler.TailPipelineBuildLogs)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteHandler.GetPipelineReleaseLogs)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs/tail", estafetteHandler.TailPipelineReleaseLogs)
-	alreadyZippedRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs.stream", estafetteHandler.TailPipelineReleaseLogs)
-
 	// TODO move behind jwt middleware by letting build/release jobs and cron event sender use valid jwt's
-
 	// api key protected endpoints
 	apiKeyAuthorizedRoutes := routes.Group("/", authMiddleware.APIKeyMiddlewareFunc())
 	{
