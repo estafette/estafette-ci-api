@@ -518,6 +518,7 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 	// public routes for logging in
 	routes.GET("/api/auth/providers", rbacHandler.GetProviders)
 	routes.GET("/api/auth/login/:provider", rbacHandler.LoginProvider)
+	routes.GET("/api/auth/logout", jwtMiddleware.LogoutHandler)
 	routes.GET("/api/auth/handle/:provider", jwtMiddleware.LoginHandler)
 
 	// routes that require to be logged in and have a valid jwt

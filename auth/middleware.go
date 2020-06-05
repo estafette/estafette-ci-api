@@ -125,6 +125,9 @@ func (m *authMiddlewareImpl) GinJWTMiddleware(authenticator func(c *gin.Context)
 			// cookie is used, so token does not need to be returned via response
 			c.Redirect(http.StatusFound, "/")
 		},
+		LogoutResponse: func(c *gin.Context, code int) {
+			c.Redirect(http.StatusFound, "/login")
+		},
 		TimeFunc: time.Now,
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
 			// add user properties as claims
