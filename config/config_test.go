@@ -157,6 +157,9 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, ".+@estafette\\.io", authConfig.OAuthProviders[0].AllowedIdentitiesRegex)
 		assert.Equal(t, "ci.estafette.io", authConfig.JWT.Domain)
 		assert.Equal(t, "this is my secret", authConfig.JWT.Key)
+		assert.Equal(t, 2, len(authConfig.Administrators))
+		assert.Equal(t, "admin1@server.com", authConfig.Administrators[0])
+		assert.Equal(t, "admin2@server.com", authConfig.Administrators[1])
 	})
 
 	t.Run("ReturnsJobsConfig", func(t *testing.T) {

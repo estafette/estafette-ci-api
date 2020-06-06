@@ -177,6 +177,23 @@ func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (inter
 		user.Name = user.GetName()
 		user.Email = user.GetEmail()
 
+		// check if email matches configured administrators and add/remove administrator role correspondingly
+		isAdministrator := false
+		for _, a := range h.config.Auth.Administrators {
+			if identity.Email == a {
+				isAdministrator = true
+				break
+			}
+		}
+
+		if isAdministrator {
+			// ensure user has administrator role
+			user.AddRole("administrator")
+		} else {
+			// ensure user does not have administrator role
+			user.RemoveRole("administrator")
+		}
+
 		go func(user contracts.User) {
 			err = h.service.UpdateUser(c.Request.Context(), user)
 			if err != nil {

@@ -70,6 +70,7 @@ type AuthConfig struct {
 	APIKey         string           `yaml:"apiKey"`
 	OAuthProviders []*OAuthProvider `yaml:"oauthProviders"`
 	JWT            *JWTConfig       `yaml:"jwt"`
+	Administrators []string         `yaml:"administrators"`
 }
 
 // OAuthProvider is used to configure one or more oauth providers like google, github, microsoft

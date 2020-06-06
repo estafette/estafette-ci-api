@@ -111,9 +111,23 @@ func (m *authMiddlewareImpl) GinJWTMiddleware(authenticator func(c *gin.Context)
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
 			// add user properties as claims
 			if user, ok := data.(*contracts.User); ok {
+
+				organizations := []string{}
+				for _, o := range user.Organizations {
+					organizations = append(organizations, o.Name)
+				}
+
+				groups := []string{}
+				for _, g := range user.Groups {
+					groups = append(groups, g.Name)
+				}
+
 				return jwt.MapClaims{
 					jwt.IdentityKey: user.ID,
 					"email":         user.GetEmail(),
+					"roles":         user.Roles,
+					"groups":        groups,
+					"organizations": organizations,
 				}
 			}
 			return jwt.MapClaims{}

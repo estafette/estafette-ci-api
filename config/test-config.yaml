@@ -66,6 +66,9 @@ auth:
     clientID: abcdasa
     clientSecret: asdsddsfdfs
     allowedIdentitiesRegex: .+@estafette\.io
+  administrators:
+  - admin1@server.com
+  - admin2@server.com
 
 jobs:
   namespace: estafette-ci-jobs
