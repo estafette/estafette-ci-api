@@ -296,6 +296,10 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
 	claims := jwt.ExtractClaims(c)
 	email := claims["email"].(string)
+	if email == "" {
+		c.Status(http.StatusUnauthorized)
+		return
+	}
 
 	var buildCommand contracts.Build
 	c.BindJSON(&buildCommand)
@@ -384,6 +388,10 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 
 	claims := jwt.ExtractClaims(c)
 	email := claims["email"].(string)
+	if email == "" {
+		c.Status(http.StatusUnauthorized)
+		return
+	}
 
 	source := c.Param("source")
 	owner := c.Param("owner")
@@ -556,7 +564,10 @@ func (h *Handler) TailPipelineBuildLogs(c *gin.Context) {
 
 func (h *Handler) PostPipelineBuildLogs(c *gin.Context) {
 
-	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
+	// ensure the request has the correct claims
+	claims := jwt.ExtractClaims(c)
+	job := claims["job"].(string)
+	if job == "" {
 		c.Status(http.StatusUnauthorized)
 		return
 	}
@@ -715,6 +726,10 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 
 	claims := jwt.ExtractClaims(c)
 	email := claims["email"].(string)
+	if email == "" {
+		c.Status(http.StatusUnauthorized)
+		return
+	}
 
 	var releaseCommand contracts.Release
 	c.BindJSON(&releaseCommand)
@@ -849,6 +864,10 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 
 	claims := jwt.ExtractClaims(c)
 	email := claims["email"].(string)
+	if email == "" {
+		c.Status(http.StatusUnauthorized)
+		return
+	}
 
 	source := c.Param("source")
 	owner := c.Param("owner")
@@ -1022,7 +1041,10 @@ func (h *Handler) TailPipelineReleaseLogs(c *gin.Context) {
 
 func (h *Handler) PostPipelineReleaseLogs(c *gin.Context) {
 
-	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
+	// ensure the request has the correct claims
+	claims := jwt.ExtractClaims(c)
+	job := claims["job"].(string)
+	if job == "" {
 		c.Status(http.StatusUnauthorized)
 		return
 	}
@@ -1543,6 +1565,10 @@ func (h *Handler) UpdateComputedTables(c *gin.Context) {
 
 	claims := jwt.ExtractClaims(c)
 	email := claims["email"].(string)
+	if email == "" {
+		c.Status(http.StatusUnauthorized)
+		return
+	}
 
 	filters := map[string][]string{}
 	filters["status"] = h.getStatusFilter(c)
@@ -2082,8 +2108,10 @@ func (h *Handler) obfuscateSecrets(input string) (string, error) {
 
 func (h *Handler) Commands(c *gin.Context) {
 
-	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
-		log.Error().Msgf("Authentication for /api/commands failed")
+	// ensure the request has the correct claims
+	claims := jwt.ExtractClaims(c)
+	job := claims["job"].(string)
+	if job == "" {
 		c.Status(http.StatusUnauthorized)
 		return
 	}

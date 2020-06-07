@@ -113,11 +113,11 @@ func (p *OAuthProvider) GetConfig(baseURL string) *oauth2.Config {
 	case "facebook":
 		oauthConfig.Endpoint = endpoints.Facebook
 	case "github":
-		oauthConfig.Endpoint = endpoints.Facebook
+		oauthConfig.Endpoint = endpoints.GitHub
 	case "bitbucket":
-		oauthConfig.Endpoint = endpoints.Facebook
+		oauthConfig.Endpoint = endpoints.Bitbucket
 	case "gitlab":
-		oauthConfig.Endpoint = endpoints.Facebook
+		oauthConfig.Endpoint = endpoints.GitLab
 
 	default:
 		return nil
