@@ -4028,6 +4028,10 @@ func (c *client) GetUsers(ctx context.Context, pageNumber, pageSize int, filters
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+
 	return c.scanUsers(rows)
 }
 
