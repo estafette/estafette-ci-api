@@ -12,13 +12,13 @@ import (
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
+	foundation "github.com/estafette/estafette-foundation"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
 
 // NewHandler returns a new rbac.Handler
 func NewHandler(config *config.APIConfig, service Service) Handler {
-
 	return Handler{
 		config:  config,
 		service: service,
@@ -203,4 +203,29 @@ func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (inter
 
 		return user, nil
 	}
+}
+
+func (h *Handler) GetUsers(c *gin.Context) {
+
+	// ensure the user has administrator role
+	claims := jwt.ExtractClaims(c)
+	email := claims["email"].(string)
+	if email == "" {
+		c.Status(http.StatusUnauthorized)
+		return
+	}
+	roles := claims["roles"].([]string)
+	if !foundation.StringArrayContains(roles, "administrator") {
+		c.Status(http.StatusUnauthorized)
+		return
+	}
+
+	users, err := h.service.GetUsers(c.Request.Context())
+	if err != nil {
+		log.Error().Err(err).Msg("Failed fetching users from database")
+		c.String(http.StatusInternalServerError, "Failed fetching users from database")
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
 }

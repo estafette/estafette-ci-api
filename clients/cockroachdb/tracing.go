@@ -565,3 +565,10 @@ func (c *tracingClient) GetUserByID(ctx context.Context, id string) (user *contr
 
 	return c.Client.GetUserByID(ctx, id)
 }
+
+func (c *tracingClient) GetUsers(ctx context.Context) (users []*contracts.User, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetUsers"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetUsers(ctx)
+}

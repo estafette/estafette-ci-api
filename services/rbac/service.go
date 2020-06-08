@@ -23,6 +23,7 @@ type Service interface {
 	GetProviderByName(ctx context.Context, name string) (provider *config.OAuthProvider, err error)
 	GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	GetUserByID(ctx context.Context, id string) (user *contracts.User, err error)
+	GetUsers(ctx context.Context) (users []*contracts.User, err error)
 	CreateUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	UpdateUser(ctx context.Context, user contracts.User) (err error)
 }
@@ -106,19 +107,13 @@ func (s *service) CreateUser(ctx context.Context, identity contracts.UserIdentit
 		CurrentProvider: identity.Provider,
 	}
 
-	user, err = s.cockroachdbClient.InsertUser(ctx, *user)
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
+	return s.cockroachdbClient.InsertUser(ctx, *user)
 }
 
 func (s *service) UpdateUser(ctx context.Context, user contracts.User) (err error) {
-	err = s.cockroachdbClient.UpdateUser(ctx, user)
-	if err != nil {
-		return
-	}
+	return s.cockroachdbClient.UpdateUser(ctx, user)
+}
 
-	return nil
+func (s *service) GetUsers(ctx context.Context) (users []*contracts.User, err error) {
+	return s.cockroachdbClient.GetUsers(ctx)
 }

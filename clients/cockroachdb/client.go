@@ -114,6 +114,7 @@ type Client interface {
 	UpdateUser(ctx context.Context, user contracts.User) (err error)
 	GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	GetUserByID(ctx context.Context, id string) (user *contracts.User, err error)
+	GetUsers(ctx context.Context) (users []*contracts.User, err error)
 }
 
 // NewClient returns a new cockroach.Client
@@ -3987,6 +3988,55 @@ func (c *client) GetUserByIdentity(ctx context.Context, identity contracts.UserI
 	}
 
 	return user, nil
+}
+
+func (c *client) GetUsers(ctx context.Context) (users []*contracts.User, err error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Select("a.id, a.user_data, a.inserted_at").
+		From("users a")
+
+	// execute query
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	return c.scanUsers(rows)
+}
+
+func (c *client) scanUsers(rows *sql.Rows) (users []*contracts.User, err error) {
+	users = make([]*contracts.User, 0)
+
+	defer rows.Close()
+	for rows.Next() {
+
+		user := &contracts.User{}
+		var id string
+		var userData []uint8
+		var insertedAt *time.Time
+
+		if err = rows.Scan(
+			&id,
+			&userData,
+			&insertedAt); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, ErrUserNotFound
+			}
+
+			return
+		}
+
+		if len(userData) > 0 {
+			if err = json.Unmarshal(userData, &user); err != nil {
+				return nil, err
+			}
+		}
+
+		user.ID = id
+		user.FirstVisit = insertedAt
+
+		users = append(users, user)
+	}
+
+	return
 }
 
 func (c *client) scanUser(row sq.RowScanner) (user *contracts.User, err error) {

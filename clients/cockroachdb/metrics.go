@@ -628,3 +628,11 @@ func (c *metricsClient) GetUserByID(ctx context.Context, id string) (user *contr
 
 	return c.Client.GetUserByID(ctx, id)
 }
+
+func (c *metricsClient) GetUsers(ctx context.Context) (users []*contracts.User, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetUsers", begin)
+	}(time.Now())
+
+	return c.Client.GetUsers(ctx)
+}

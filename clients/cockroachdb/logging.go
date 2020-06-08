@@ -486,3 +486,9 @@ func (c *loggingClient) GetUserByID(ctx context.Context, id string) (user *contr
 
 	return c.Client.GetUserByID(ctx, id)
 }
+
+func (c *loggingClient) GetUsers(ctx context.Context) (users []*contracts.User, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetUsers", err, ErrUserNotFound) }()
+
+	return c.Client.GetUsers(ctx)
+}

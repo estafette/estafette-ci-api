@@ -87,6 +87,7 @@ type MockClient struct {
 	UpdateUserFunc                                 func(ctx context.Context, user contracts.User) (err error)
 	GetUserByIdentityFunc                          func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	GetUserByIDFunc                                func(ctx context.Context, id string) (user *contracts.User, err error)
+	GetUsersFunc                                   func(ctx context.Context) (users []*contracts.User, err error)
 }
 
 func (c MockClient) Connect(ctx context.Context) (err error) {
@@ -634,4 +635,11 @@ func (c MockClient) GetUserByID(ctx context.Context, id string) (user *contracts
 		return
 	}
 	return c.GetUserByIDFunc(ctx, id)
+}
+
+func (c MockClient) GetUsers(ctx context.Context) (users []*contracts.User, err error) {
+	if c.GetUsersFunc == nil {
+		return
+	}
+	return c.GetUsersFunc(ctx)
 }

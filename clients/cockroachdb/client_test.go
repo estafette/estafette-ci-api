@@ -1048,6 +1048,28 @@ func TestIntegrationGetUserByID(t *testing.T) {
 	})
 }
 
+func TestIntegrationGetUsers(t *testing.T) {
+	t.Run("ReturnsInsertedUsers", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		user := getUser()
+		_, err := cockroachdbClient.InsertUser(ctx, user)
+		assert.Nil(t, err)
+
+		// act
+		users, err := cockroachdbClient.GetUsers(ctx)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, users)
+		assert.True(t, len(users) > 0)
+	})
+}
+
 func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 
 	apiConfig := &config.APIConfig{
