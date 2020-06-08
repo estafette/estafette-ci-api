@@ -235,9 +235,10 @@ func UserHasRole(c *gin.Context, role string) bool {
 		log.Warn().Interface("claims", claims).Msg("Claim 'roles' does not exist")
 		return false
 	}
+
 	roles, ok := val.(string)
 	if !ok {
-		log.Warn().Interface("claims", claims).Msg("Claim 'roles' is not of type string")
+		log.Warn().Interface("claims", claims).Msgf("Claim 'roles' is not of type string but type '%T'", val)
 		return false
 	}
 
