@@ -204,8 +204,17 @@ func isValidGoogleJWT(tokenString string) (valid bool, err error) {
 }
 
 func UserHasValidToken(c *gin.Context) bool {
+
+	// ensure email claim is set
 	claims := jwt.ExtractClaims(c)
-	email := claims["email"].(string)
+	val, ok := claims["email"]
+	if !ok {
+		return false
+	}
+	email, ok := val.(string)
+	if !ok {
+		return false
+	}
 	if email == "" {
 		return false
 	}
@@ -219,9 +228,16 @@ func UserHasRole(c *gin.Context, role string) bool {
 		return false
 	}
 
-	// ensure the user has administrator role
+	// ensure role is present
 	claims := jwt.ExtractClaims(c)
-	roles := claims["roles"].([]string)
+	val, ok := claims["roles"]
+	if !ok {
+		return false
+	}
+	roles, ok := val.([]string)
+	if !ok {
+		return false
+	}
 	if !foundation.StringArrayContains(roles, "administrator") {
 		return false
 	}
