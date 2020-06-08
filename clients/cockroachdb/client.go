@@ -3996,13 +3996,32 @@ func (c *client) GetUsers(ctx context.Context, pageNumber, pageSize int, filters
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Select("COUNT(a.id)").
+		Select("a.id, a.user_data, a.inserted_at").
 		From("users a").
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
+	// fix sortings for fields inside the user_data jsonb object
+	fixedSortings := []helpers.OrderField{}
+	for _, s := range sortings {
+		fieldName := s.FieldName
+		direction := s.Direction
+
+		switch s.FieldName {
+		case "name":
+			fieldName = "user_data-->'name'"
+		case "email":
+			fieldName = "user_data-->'email'"
+		}
+
+		fixedSortings = append(fixedSortings, helpers.OrderField{
+			FieldName: fieldName,
+			Direction: direction,
+		})
+	}
+
 	// dynamically set order by clause
-	query, err = orderByClauseGeneratorForSortings(query, "a", "a.user_data-->'name'", sortings)
+	query, err = orderByClauseGeneratorForSortings(query, "a", "a.user_data-->'name'", fixedSortings)
 	if err != nil {
 		return
 	}
@@ -4017,7 +4036,7 @@ func (c *client) GetUsersCount(ctx context.Context, filters map[string][]string)
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Select("a.id, a.user_data, a.inserted_at").
+		Select("COUNT(a.id)").
 		From("users a")
 
 	// execute query
