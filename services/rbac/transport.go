@@ -208,7 +208,7 @@ func (h *Handler) GetUsers(c *gin.Context) {
 
 	// ensure the user has administrator role
 	if !auth.UserHasRole(c, "administrator") {
-		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid or user does not have administrator role"})
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
 		return
 	}
 

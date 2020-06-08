@@ -236,17 +236,17 @@ func UserHasRole(c *gin.Context, role string) bool {
 		return false
 	}
 
-	roles, ok := val.(string)
+	roles, ok := val.([]interface{})
 	if !ok {
-		log.Warn().Interface("claims", claims).Msgf("Claim 'roles' is not of type string but type '%T'", val)
+		log.Warn().Interface("claims", claims).Msgf("Claim 'roles' is not of type []interface{} but type '%T'", val)
 		return false
 	}
 
-	// for _, r := range roles {
-	// 	if r != nil && *r == role {
-	// 		return true
-	// 	}
-	// }
+	for _, r := range roles {
+		if rval, ok := r.(string); ok && rval == role {
+			return true
+		}
+	}
 
 	log.Warn().Interface("claims", claims).Msgf("Claim 'roles' with value '%v' does not contain role '%v", roles, role)
 	return false
