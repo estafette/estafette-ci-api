@@ -4017,10 +4017,6 @@ func (c *client) scanUsers(rows *sql.Rows) (users []*contracts.User, err error) 
 			&id,
 			&userData,
 			&insertedAt); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, ErrUserNotFound
-			}
-
 			return
 		}
 

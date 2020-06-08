@@ -11,8 +11,11 @@ import (
 	"net/http"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/appleboy/gin-jwt/v2"
+	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/config"
+	foundation "github.com/estafette/estafette-foundation"
+	"github.com/gin-gonic/gin"
 	"github.com/sethgrid/pester"
 )
 
@@ -21,11 +24,11 @@ var (
 	ErrInvalidSigningAlgorithm = errors.New("invalid signing algorithm")
 )
 
-func GenerateJWT(config *config.APIConfig, validDuration time.Duration, optionalClaims jwt.MapClaims) (tokenString string, err error) {
+func GenerateJWT(config *config.APIConfig, validDuration time.Duration, optionalClaims jwtgo.MapClaims) (tokenString string, err error) {
 
 	// Create the token
-	token := jwt.New(jwt.GetSigningMethod("HS256"))
-	claims := token.Claims.(jwt.MapClaims)
+	token := jwtgo.New(jwtgo.GetSigningMethod("HS256"))
+	claims := token.Claims.(jwtgo.MapClaims)
 
 	// set required claims
 	now := time.Now()
@@ -43,23 +46,23 @@ func GenerateJWT(config *config.APIConfig, validDuration time.Duration, optional
 	return token.SignedString([]byte(config.Auth.JWT.Key))
 }
 
-func ValidateJWT(config *config.APIConfig, tokenString string) (token *jwt.Token, err error) {
-	return jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-		if jwt.GetSigningMethod("HS256") != t.Method {
+func ValidateJWT(config *config.APIConfig, tokenString string) (token *jwtgo.Token, err error) {
+	return jwtgo.Parse(tokenString, func(t *jwtgo.Token) (interface{}, error) {
+		if jwtgo.GetSigningMethod("HS256") != t.Method {
 			return nil, ErrInvalidSigningAlgorithm
 		}
 		return []byte(config.Auth.JWT.Key), nil
 	})
 }
 
-func GetClaimsFromJWT(config *config.APIConfig, tokenString string) (claims jwt.MapClaims, err error) {
+func GetClaimsFromJWT(config *config.APIConfig, tokenString string) (claims jwtgo.MapClaims, err error) {
 	token, err := ValidateJWT(config, tokenString)
 	if err != nil {
 		return nil, err
 	}
 
-	claims = jwt.MapClaims{}
-	for key, value := range token.Claims.(jwt.MapClaims) {
+	claims = jwtgo.MapClaims{}
+	for key, value := range token.Claims.(jwtgo.MapClaims) {
 		claims[key] = value
 	}
 
@@ -145,16 +148,16 @@ func GetCachedGoogleJWK(kid string) (jwk *rsa.PublicKey, err error) {
 func isValidGoogleJWT(tokenString string) (valid bool, err error) {
 
 	// ensure this uses UTC even though google's servers all run in UTC
-	jwt.TimeFunc = time.Now().UTC
+	jwtgo.TimeFunc = time.Now().UTC
 
 	// Parse takes the token string and a function for looking up the key. The latter is especially
 	// useful if you use multiple keys for your application.  The standard is to use 'kid' in the
 	// head of the token to identify which key to use, but the parsed token (head and claims) is provided
 	// to the callback, providing flexibility.
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwtgo.Parse(tokenString, func(token *jwtgo.Token) (interface{}, error) {
 
 		// check algorithm is correct
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+		if _, ok := token.Method.(*jwtgo.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
 
@@ -171,7 +174,7 @@ func isValidGoogleJWT(tokenString string) (valid bool, err error) {
 		return
 	}
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(jwtgo.MapClaims); ok && token.Valid {
 
 		// "aud": "https://ci.estafette/io/api/integrations/pubsub/events",
 		// "azp": "118094230988819892802",
@@ -198,4 +201,30 @@ func isValidGoogleJWT(tokenString string) (valid bool, err error) {
 	}
 
 	return false, fmt.Errorf("Token is not valid")
+}
+
+func UserHasValidToken(c *gin.Context) bool {
+	claims := jwt.ExtractClaims(c)
+	email := claims["email"].(string)
+	if email == "" {
+		return false
+	}
+
+	return true
+}
+
+func UserHasRole(c *gin.Context, role string) bool {
+
+	if !UserHasValidToken(c) {
+		return false
+	}
+
+	// ensure the user has administrator role
+	claims := jwt.ExtractClaims(c)
+	roles := claims["roles"].([]string)
+	if !foundation.StringArrayContains(roles, "administrator") {
+		return false
+	}
+
+	return true
 }

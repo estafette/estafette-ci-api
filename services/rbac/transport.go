@@ -12,7 +12,6 @@ import (
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
-	foundation "github.com/estafette/estafette-foundation"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
@@ -208,14 +207,7 @@ func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (inter
 func (h *Handler) GetUsers(c *gin.Context) {
 
 	// ensure the user has administrator role
-	claims := jwt.ExtractClaims(c)
-	email := claims["email"].(string)
-	if email == "" {
-		c.Status(http.StatusUnauthorized)
-		return
-	}
-	roles := claims["roles"].([]string)
-	if !foundation.StringArrayContains(roles, "administrator") {
+	if !auth.UserHasRole(c, "administrator") {
 		c.Status(http.StatusUnauthorized)
 		return
 	}

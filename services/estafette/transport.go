@@ -20,6 +20,7 @@ import (
 	"time"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
+	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudstorage"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
@@ -294,12 +295,13 @@ func (h *Handler) GetPipelineBuild(c *gin.Context) {
 
 func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
-	claims := jwt.ExtractClaims(c)
-	email := claims["email"].(string)
-	if email == "" {
+	if !auth.UserHasValidToken(c) {
 		c.Status(http.StatusUnauthorized)
 		return
 	}
+
+	claims := jwt.ExtractClaims(c)
+	email := claims["email"].(string)
 
 	var buildCommand contracts.Build
 	c.BindJSON(&buildCommand)
@@ -386,12 +388,13 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
 func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 
-	claims := jwt.ExtractClaims(c)
-	email := claims["email"].(string)
-	if email == "" {
+	if !auth.UserHasValidToken(c) {
 		c.Status(http.StatusUnauthorized)
 		return
 	}
+
+	claims := jwt.ExtractClaims(c)
+	email := claims["email"].(string)
 
 	source := c.Param("source")
 	owner := c.Param("owner")
@@ -724,12 +727,13 @@ func (h *Handler) GetPipelineReleases(c *gin.Context) {
 
 func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 
-	claims := jwt.ExtractClaims(c)
-	email := claims["email"].(string)
-	if email == "" {
+	if !auth.UserHasValidToken(c) {
 		c.Status(http.StatusUnauthorized)
 		return
 	}
+
+	claims := jwt.ExtractClaims(c)
+	email := claims["email"].(string)
 
 	var releaseCommand contracts.Release
 	c.BindJSON(&releaseCommand)
@@ -862,12 +866,13 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 
 func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 
-	claims := jwt.ExtractClaims(c)
-	email := claims["email"].(string)
-	if email == "" {
+	if !auth.UserHasValidToken(c) {
 		c.Status(http.StatusUnauthorized)
 		return
 	}
+
+	claims := jwt.ExtractClaims(c)
+	email := claims["email"].(string)
 
 	source := c.Param("source")
 	owner := c.Param("owner")
@@ -1563,12 +1568,13 @@ func (h *Handler) GetStatsReleasesAdoption(c *gin.Context) {
 
 func (h *Handler) UpdateComputedTables(c *gin.Context) {
 
-	claims := jwt.ExtractClaims(c)
-	email := claims["email"].(string)
-	if email == "" {
+	if !auth.UserHasValidToken(c) {
 		c.Status(http.StatusUnauthorized)
 		return
 	}
+
+	claims := jwt.ExtractClaims(c)
+	email := claims["email"].(string)
 
 	filters := map[string][]string{}
 	filters["status"] = h.getStatusFilter(c)
