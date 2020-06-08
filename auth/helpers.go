@@ -235,17 +235,18 @@ func UserHasRole(c *gin.Context, role string) bool {
 		log.Warn().Interface("claims", claims).Msg("Claim 'roles' does not exist")
 		return false
 	}
-	roles, ok := val.([]*string)
+	roles, ok := val.(string)
 	if !ok {
-		log.Warn().Interface("claims", claims).Msg("Claim 'roles' is not of type []*string")
+		log.Warn().Interface("claims", claims).Msg("Claim 'roles' is not of type string")
 		return false
 	}
-	for _, r := range roles {
-		if r != nil && *r == role {
-			return true
-		}
-	}
 
-	log.Warn().Interface("claims", claims).Msgf("Claim 'roles' does not container role '%v", role)
+	// for _, r := range roles {
+	// 	if r != nil && *r == role {
+	// 		return true
+	// 	}
+	// }
+
+	log.Warn().Interface("claims", claims).Msgf("Claim 'roles' with value '%v' does not contain role '%v", roles, role)
 	return false
 }
