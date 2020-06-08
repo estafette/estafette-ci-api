@@ -10,23 +10,27 @@ import (
 	jwt "github.com/appleboy/gin-jwt/v2"
 	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/auth"
+	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
 	"github.com/estafette/estafette-ci-api/config"
+	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
 
 // NewHandler returns a new rbac.Handler
-func NewHandler(config *config.APIConfig, service Service) Handler {
+func NewHandler(config *config.APIConfig, service Service, cockroachdbClient cockroachdb.Client) Handler {
 	return Handler{
-		config:  config,
-		service: service,
+		config:            config,
+		service:           service,
+		cockroachdbClient: cockroachdbClient,
 	}
 }
 
 type Handler struct {
-	config  *config.APIConfig
-	service Service
+	config            *config.APIConfig
+	service           Service
+	cockroachdbClient cockroachdb.Client
 }
 
 func (h *Handler) GetLoggedInUser(c *gin.Context) {
@@ -206,18 +210,40 @@ func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (inter
 
 func (h *Handler) GetUsers(c *gin.Context) {
 
+	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+
 	// ensure the user has administrator role
 	if !auth.UserHasRole(c, "administrator") {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
 		return
 	}
 
-	users, err := h.service.GetUsers(c.Request.Context())
+	response, err := helpers.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			users, err := h.cockroachdbClient.GetUsers(c.Request.Context(), pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(users))
+			for i := range users {
+				items[i] = users[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachdbClient.GetUsersCount(c.Request.Context(), filters)
+		},
+		pageNumber,
+		pageSize)
+
 	if err != nil {
-		log.Error().Err(err).Msg("Failed fetching users from database")
-		c.String(http.StatusInternalServerError, "Failed fetching users from database")
+		log.Error().Err(err).Msg("Failed retrieving users from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
 
-	c.JSON(http.StatusOK, users)
+	c.JSON(http.StatusOK, response)
 }

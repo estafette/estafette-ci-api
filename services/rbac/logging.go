@@ -53,9 +53,3 @@ func (s *loggingService) UpdateUser(ctx context.Context, user contracts.User) (e
 
 	return s.Service.UpdateUser(ctx, user)
 }
-
-func (s *loggingService) GetUsers(ctx context.Context) (users []*contracts.User, err error) {
-	defer func() { helpers.HandleLogError(s.prefix, "GetUsers", err) }()
-
-	return s.Service.GetUsers(ctx)
-}

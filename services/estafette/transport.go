@@ -70,63 +70,33 @@ type Handler struct {
 
 func (h *Handler) GetPipelines(c *gin.Context) {
 
-	pageNumber, pageSize, filters, sortings := h.getQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
 
-	type PipelinesResult struct {
-		pipelines []*contracts.Pipeline
-		err       error
-	}
-	type PipelinesCountResult struct {
-		pipelinesCount int
-		err            error
-	}
+	response, err := helpers.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			pipelines, err := h.cockroachDBClient.GetPipelines(c.Request.Context(), pageNumber, pageSize, filters, sortings, true)
+			if err != nil {
+				return nil, err
+			}
 
-	// run 2 database queries in parallel and return their result via channels
-	pipelinesChannel := make(chan PipelinesResult)
-	pipelinesCountChannel := make(chan PipelinesCountResult)
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(pipelines))
+			for i := range pipelines {
+				items[i] = pipelines[i]
+			}
 
-	go func() {
-		defer close(pipelinesChannel)
-		pipelines, err := h.cockroachDBClient.GetPipelines(c.Request.Context(), pageNumber, pageSize, filters, sortings, true)
-
-		pipelinesChannel <- PipelinesResult{pipelines, err}
-	}()
-
-	go func() {
-		defer close(pipelinesCountChannel)
-		pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(c.Request.Context(), filters)
-
-		pipelinesCountChannel <- PipelinesCountResult{pipelinesCount, err}
-	}()
-
-	// wait for GetPipelines to finish and check for errors
-	pipelinesResult := <-pipelinesChannel
-	if pipelinesResult.err != nil {
-		log.Error().Err(pipelinesResult.err).Msg("Failed retrieving pipelines from db")
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-		return
-	}
-
-	// wait for GetPipelinesCount to finish and check for errors
-	pipelinesCountResult := <-pipelinesCountChannel
-	if pipelinesCountResult.err != nil {
-		log.Error().Err(pipelinesCountResult.err).Msg("Failed retrieving pipelines count from db")
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-		return
-	}
-
-	response := contracts.ListResponse{
-		Pagination: contracts.Pagination{
-			Page:       pageNumber,
-			Size:       pageSize,
-			TotalItems: pipelinesCountResult.pipelinesCount,
-			TotalPages: int(math.Ceil(float64(pipelinesCountResult.pipelinesCount) / float64(pageSize))),
+			return items, nil
 		},
-	}
+		func() (int, error) {
+			return h.cockroachDBClient.GetPipelinesCount(c.Request.Context(), filters)
+		},
+		pageNumber,
+		pageSize)
 
-	response.Items = make([]interface{}, len(pipelinesResult.pipelines))
-	for i := range pipelinesResult.pipelines {
-		response.Items[i] = pipelinesResult.pipelines[i]
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving pipelines or count from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -173,63 +143,33 @@ func (h *Handler) GetPipelineBuilds(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	pageNumber, pageSize, filters, sortings := h.getQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
 
-	type BuildsResult struct {
-		builds []*contracts.Build
-		err    error
-	}
-	type BuildsCountResult struct {
-		buildsCount int
-		err         error
-	}
+	response, err := helpers.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			builds, err := h.cockroachDBClient.GetPipelineBuilds(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters, sortings, true)
+			if err != nil {
+				return nil, err
+			}
 
-	// run 2 database queries in parallel and return their result via channels
-	buildsChannel := make(chan BuildsResult)
-	buildsCountChannel := make(chan BuildsCountResult)
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(builds))
+			for i := range builds {
+				items[i] = builds[i]
+			}
 
-	go func() {
-		defer close(buildsChannel)
-		builds, err := h.cockroachDBClient.GetPipelineBuilds(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters, sortings, true)
-
-		buildsChannel <- BuildsResult{builds, err}
-	}()
-
-	go func() {
-		defer close(buildsCountChannel)
-		buildsCount, err := h.cockroachDBClient.GetPipelineBuildsCount(c.Request.Context(), source, owner, repo, filters)
-
-		buildsCountChannel <- BuildsCountResult{buildsCount, err}
-	}()
-
-	// wait for GetPipelineBuilds to finish and check for errors
-	buildsResult := <-buildsChannel
-	if buildsResult.err != nil {
-		log.Error().Err(buildsResult.err).Msgf("Failed retrieving builds for %v/%v/%v from db", source, owner, repo)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-		return
-	}
-
-	// wait for GetPipelineBuildsCount to finish and check for errors
-	buildsCountResult := <-buildsCountChannel
-	if buildsCountResult.err != nil {
-		log.Error().Err(buildsCountResult.err).Msgf("Failed retrieving builds count for %v/%v/%v from db", source, owner, repo)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-		return
-	}
-
-	response := contracts.ListResponse{
-		Pagination: contracts.Pagination{
-			Page:       pageNumber,
-			Size:       pageSize,
-			TotalItems: buildsCountResult.buildsCount,
-			TotalPages: int(math.Ceil(float64(buildsCountResult.buildsCount) / float64(pageSize))),
+			return items, nil
 		},
-	}
+		func() (int, error) {
+			return h.cockroachDBClient.GetPipelineBuildsCount(c.Request.Context(), source, owner, repo, filters)
+		},
+		pageNumber,
+		pageSize)
 
-	response.Items = make([]interface{}, len(buildsResult.builds))
-	for i := range buildsResult.builds {
-		response.Items[i] = buildsResult.builds[i]
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed retrieving builds for %v/%v/%v from db", source, owner, repo)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -663,63 +603,33 @@ func (h *Handler) GetPipelineReleases(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	pageNumber, pageSize, filters, sortings := h.getQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
 
-	type ReleasesResult struct {
-		releases []*contracts.Release
-		err      error
-	}
-	type ReleasesCountResult struct {
-		releasesCount int
-		err           error
-	}
+	response, err := helpers.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			releases, err := h.cockroachDBClient.GetPipelineReleases(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
 
-	// run 2 database queries in parallel and return their result via channels
-	releasesChannel := make(chan ReleasesResult)
-	releasesCountChannel := make(chan ReleasesCountResult)
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(releases))
+			for i := range releases {
+				items[i] = releases[i]
+			}
 
-	go func() {
-		defer close(releasesChannel)
-		releases, err := h.cockroachDBClient.GetPipelineReleases(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters, sortings)
-
-		releasesChannel <- ReleasesResult{releases, err}
-	}()
-
-	go func() {
-		defer close(releasesCountChannel)
-		releasesCount, err := h.cockroachDBClient.GetPipelineReleasesCount(c.Request.Context(), source, owner, repo, filters)
-
-		releasesCountChannel <- ReleasesCountResult{releasesCount, err}
-	}()
-
-	// wait for GetPipelineReleases to finish and check for errors
-	releasesResult := <-releasesChannel
-	if releasesResult.err != nil {
-		log.Error().Err(releasesResult.err).Msgf("Failed retrieving releases for %v/%v/%v from db", source, owner, repo)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-		return
-	}
-
-	// wait for GetPipelineReleasesCount to finish and check for errors
-	releasesCountResult := <-releasesCountChannel
-	if releasesCountResult.err != nil {
-		log.Error().Err(releasesCountResult.err).Msgf("Failed retrieving releases count for %v/%v/%v from db", source, owner, repo)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-		return
-	}
-
-	response := contracts.ListResponse{
-		Pagination: contracts.Pagination{
-			Page:       pageNumber,
-			Size:       pageSize,
-			TotalItems: releasesCountResult.releasesCount,
-			TotalPages: int(math.Ceil(float64(releasesCountResult.releasesCount) / float64(pageSize))),
+			return items, nil
 		},
-	}
+		func() (int, error) {
+			return h.cockroachDBClient.GetPipelineReleasesCount(c.Request.Context(), source, owner, repo, filters)
+		},
+		pageNumber,
+		pageSize)
 
-	response.Items = make([]interface{}, len(releasesResult.releases))
-	for i := range releasesResult.releases {
-		response.Items[i] = releasesResult.releases[i]
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed retrieving releases for %v/%v/%v from db", source, owner, repo)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -1097,63 +1007,33 @@ func (h *Handler) PostPipelineReleaseLogs(c *gin.Context) {
 
 func (h *Handler) GetFrequentLabels(c *gin.Context) {
 
-	pageNumber, pageSize, filters, _ := h.getQueryParameters(c)
+	pageNumber, pageSize, filters, _ := helpers.GetQueryParameters(c)
 
-	type LabelsResult struct {
-		labels []map[string]interface{}
-		err    error
-	}
-	type LabelsCountResult struct {
-		labelsCount int
-		err         error
-	}
+	response, err := helpers.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			labels, err := h.cockroachDBClient.GetFrequentLabels(c.Request.Context(), pageNumber, pageSize, filters)
+			if err != nil {
+				return nil, err
+			}
 
-	// run 2 database queries in parallel and return their result via channels
-	labelsChannel := make(chan LabelsResult)
-	labelsCountChannel := make(chan LabelsCountResult)
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(labels))
+			for i := range labels {
+				items[i] = labels[i]
+			}
 
-	go func() {
-		defer close(labelsChannel)
-		labels, err := h.cockroachDBClient.GetFrequentLabels(c.Request.Context(), pageNumber, pageSize, filters)
-
-		labelsChannel <- LabelsResult{labels, err}
-	}()
-
-	go func() {
-		defer close(labelsCountChannel)
-		labelsCount, err := h.cockroachDBClient.GetFrequentLabelsCount(c.Request.Context(), filters)
-
-		labelsCountChannel <- LabelsCountResult{labelsCount, err}
-	}()
-
-	// wait for GetPipelines to finish and check for errors
-	labelsResult := <-labelsChannel
-	if labelsResult.err != nil {
-		log.Error().Err(labelsResult.err).Msg("Failed retrieving frequent labels from db")
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-		return
-	}
-
-	// wait for GetPipelinesCount to finish and check for errors
-	labelsCountResult := <-labelsCountChannel
-	if labelsCountResult.err != nil {
-		log.Error().Err(labelsCountResult.err).Msg("Failed retrieving frequent labels count from db")
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-		return
-	}
-
-	response := contracts.ListResponse{
-		Items: make([]interface{}, len(labelsResult.labels)),
-		Pagination: contracts.Pagination{
-			Page:       pageNumber,
-			Size:       pageSize,
-			TotalItems: labelsCountResult.labelsCount,
-			TotalPages: int(math.Ceil(float64(labelsCountResult.labelsCount) / float64(pageSize))),
+			return items, nil
 		},
-	}
+		func() (int, error) {
+			return h.cockroachDBClient.GetFrequentLabelsCount(c.Request.Context(), filters)
+		},
+		pageNumber,
+		pageSize)
 
-	for i := range labelsResult.labels {
-		response.Items[i] = labelsResult.labels[i]
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving frequent labels from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -1167,8 +1047,8 @@ func (h *Handler) GetPipelineStatsBuildsDurations(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
-	filters["last"] = h.getLastFilter(c, 100)
+	filters["status"] = helpers.GetStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["last"] = helpers.GetLastFilter(c, 100)
 
 	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1191,8 +1071,8 @@ func (h *Handler) GetPipelineStatsReleasesDurations(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
-	filters["last"] = h.getLastFilter(c, 100)
+	filters["status"] = helpers.GetStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["last"] = helpers.GetLastFilter(c, 100)
 
 	durations, err := h.cockroachDBClient.GetPipelineReleasesDurations(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1215,8 +1095,8 @@ func (h *Handler) GetPipelineStatsBuildsCPUUsageMeasurements(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
-	filters["last"] = h.getLastFilter(c, 100)
+	filters["status"] = helpers.GetStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["last"] = helpers.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineBuildsCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1239,8 +1119,8 @@ func (h *Handler) GetPipelineStatsReleasesCPUUsageMeasurements(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
-	filters["last"] = h.getLastFilter(c, 100)
+	filters["status"] = helpers.GetStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["last"] = helpers.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineReleasesCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1263,8 +1143,8 @@ func (h *Handler) GetPipelineStatsBuildsMemoryUsageMeasurements(c *gin.Context) 
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
-	filters["last"] = h.getLastFilter(c, 100)
+	filters["status"] = helpers.GetStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["last"] = helpers.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineBuildsMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1287,8 +1167,8 @@ func (h *Handler) GetPipelineStatsReleasesMemoryUsageMeasurements(c *gin.Context
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
-	filters["last"] = h.getLastFilter(c, 100)
+	filters["status"] = helpers.GetStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["last"] = helpers.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineReleasesMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1311,8 +1191,8 @@ func (h *Handler) GetPipelineWarnings(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["status"] = h.getStatusFilterWithDefault(c, []string{"succeeded"})
-	filters["last"] = h.getLastFilter(c, 25)
+	filters["status"] = helpers.GetStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["last"] = helpers.GetLastFilter(c, 25)
 
 	pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), source, owner, repo, false)
 	if err != nil {
@@ -1396,8 +1276,8 @@ func (h *Handler) GetStatsPipelinesCount(c *gin.Context) {
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
 	filters := map[string][]string{}
-	filters["status"] = h.getStatusFilter(c)
-	filters["since"] = h.getSinceFilter(c)
+	filters["status"] = helpers.GetStatusFilter(c)
+	filters["since"] = helpers.GetSinceFilter(c)
 
 	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(c.Request.Context(), filters)
 	if err != nil {
@@ -1414,8 +1294,8 @@ func (h *Handler) GetStatsReleasesCount(c *gin.Context) {
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
 	filters := map[string][]string{}
-	filters["status"] = h.getStatusFilter(c)
-	filters["since"] = h.getSinceFilter(c)
+	filters["status"] = helpers.GetStatusFilter(c)
+	filters["since"] = helpers.GetSinceFilter(c)
 
 	releasesCount, err := h.cockroachDBClient.GetReleasesCount(c.Request.Context(), filters)
 	if err != nil {
@@ -1432,8 +1312,8 @@ func (h *Handler) GetStatsBuildsCount(c *gin.Context) {
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
 	filters := map[string][]string{}
-	filters["status"] = h.getStatusFilter(c)
-	filters["since"] = h.getSinceFilter(c)
+	filters["status"] = helpers.GetStatusFilter(c)
+	filters["since"] = helpers.GetSinceFilter(c)
 
 	buildsCount, err := h.cockroachDBClient.GetBuildsCount(c.Request.Context(), filters)
 	if err != nil {
@@ -1448,7 +1328,7 @@ func (h *Handler) GetStatsBuildsCount(c *gin.Context) {
 
 func (h *Handler) GetStatsMostBuilds(c *gin.Context) {
 
-	pageNumber, pageSize, filters, _ := h.getQueryParameters(c)
+	pageNumber, pageSize, filters, _ := helpers.GetQueryParameters(c)
 
 	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostBuilds(c.Request.Context(), pageNumber, pageSize, filters)
 	if err != nil {
@@ -1484,7 +1364,7 @@ func (h *Handler) GetStatsMostBuilds(c *gin.Context) {
 
 func (h *Handler) GetStatsMostReleases(c *gin.Context) {
 
-	pageNumber, pageSize, filters, _ := h.getQueryParameters(c)
+	pageNumber, pageSize, filters, _ := helpers.GetQueryParameters(c)
 
 	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostReleases(c.Request.Context(), pageNumber, pageSize, filters)
 	if err != nil {
@@ -1522,8 +1402,8 @@ func (h *Handler) GetStatsBuildsDuration(c *gin.Context) {
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
 	filters := map[string][]string{}
-	filters["status"] = h.getStatusFilter(c)
-	filters["since"] = h.getSinceFilter(c)
+	filters["status"] = helpers.GetStatusFilter(c)
+	filters["since"] = helpers.GetSinceFilter(c)
 
 	buildsDuration, err := h.cockroachDBClient.GetBuildsDuration(c.Request.Context(), filters)
 	if err != nil {
@@ -1577,9 +1457,9 @@ func (h *Handler) UpdateComputedTables(c *gin.Context) {
 	email := claims["email"].(string)
 
 	filters := map[string][]string{}
-	filters["status"] = h.getStatusFilter(c)
-	filters["since"] = h.getSinceFilter(c)
-	filters["labels"] = h.getLabelsFilter(c)
+	filters["status"] = helpers.GetStatusFilter(c)
+	filters["since"] = helpers.GetSinceFilter(c)
+	filters["labels"] = helpers.GetLabelsFilter(c)
 	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(c.Request.Context(), filters)
 	if err != nil {
 		log.Error().Err(err).
@@ -1588,7 +1468,7 @@ func (h *Handler) UpdateComputedTables(c *gin.Context) {
 	pageSize := 20
 	totalPages := int(math.Ceil(float64(pipelinesCount) / float64(pageSize)))
 	for pageNumber := 1; pageNumber <= totalPages; pageNumber++ {
-		pipelines, err := h.cockroachDBClient.GetPipelines(c.Request.Context(), pageNumber, pageSize, filters, []cockroachdb.OrderField{}, false)
+		pipelines, err := h.cockroachDBClient.GetPipelines(c.Request.Context(), pageNumber, pageSize, filters, []helpers.OrderField{}, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msg("Failed retrieving pipelines from db")
@@ -1687,20 +1567,6 @@ func (h *Handler) GetConfigTrustedImages(c *gin.Context) {
 	configString = addWhitespaceRegex.ReplaceAllString(configString, "\n\n$1")
 
 	c.JSON(http.StatusOK, gin.H{"config": configString})
-}
-
-func (h *Handler) getStatusFilter(c *gin.Context) []string {
-	return h.getStatusFilterWithDefault(c, []string{})
-}
-
-func (h *Handler) getStatusFilterWithDefault(c *gin.Context, defaultStatuses []string) []string {
-
-	filterStatusValues, filterStatusExist := c.GetQueryArray("filter[status]")
-	if filterStatusExist && len(filterStatusValues) > 0 && filterStatusValues[0] != "" {
-		return filterStatusValues
-	}
-
-	return defaultStatuses
 }
 
 func (h *Handler) GetManifestTemplates(c *gin.Context) {
@@ -1889,7 +1755,7 @@ func (h *Handler) CopyLogsToCloudStorage(c *gin.Context) {
 		return
 	}
 
-	pageNumber, pageSize, filters, _ := h.getQueryParameters(c)
+	pageNumber, pageSize, filters, _ := helpers.GetQueryParameters(c)
 
 	searchValue := "builds"
 	if search, ok := filters["search"]; ok && len(search) > 0 && search[0] != "" {
@@ -1978,127 +1844,6 @@ func (h *Handler) CopyLogsToCloudStorage(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
-}
-
-func (h *Handler) getSinceFilter(c *gin.Context) []string {
-
-	filterSinceValues, filterSinceExist := c.GetQueryArray("filter[since]")
-	if filterSinceExist {
-		return filterSinceValues
-	}
-
-	return []string{"eternity"}
-}
-
-func (h *Handler) getLastFilter(c *gin.Context, defaultValue int) []string {
-
-	filterLastValues, filterLastExist := c.GetQueryArray("filter[last]")
-	if filterLastExist {
-		return filterLastValues
-	}
-
-	return []string{strconv.Itoa(defaultValue)}
-}
-
-func (h *Handler) getLabelsFilter(c *gin.Context) []string {
-	filterLabelsValues, filterLabelsExist := c.GetQueryArray("filter[labels]")
-	if filterLabelsExist {
-		return filterLabelsValues
-	}
-
-	return []string{}
-}
-
-func (h *Handler) getRecentCommitterFilter(c *gin.Context) []string {
-	filterUserValues, filterUserExist := c.GetQueryArray("filter[recent-committer]")
-	if filterUserExist {
-		return filterUserValues
-	}
-
-	return []string{}
-}
-
-func (h *Handler) getRecentReleaserFilter(c *gin.Context) []string {
-	filterUserValues, filterUserExist := c.GetQueryArray("filter[recent-releaser]")
-	if filterUserExist {
-		return filterUserValues
-	}
-
-	return []string{}
-}
-
-func (h *Handler) getSearchFilter(c *gin.Context) []string {
-	filterSearchValues, filterSearchExist := c.GetQueryArray("filter[search]")
-	if filterSearchExist {
-		return filterSearchValues
-	}
-
-	return []string{}
-}
-
-// getQueryParameters extracts query parameters specified according to https://jsonapi.org/format/
-func (h *Handler) getQueryParameters(c *gin.Context) (int, int, map[string][]string, []cockroachdb.OrderField) {
-	return h.getPageNumber(c), h.getPageSize(c), h.getFilters(c), h.getSorting(c)
-}
-
-func (h *Handler) getPageNumber(c *gin.Context) int {
-	// get page number query string value or default to 1
-	pageNumberValue := c.DefaultQuery("page[number]", "1")
-	pageNumber, err := strconv.Atoi(pageNumberValue)
-	if err != nil {
-		pageNumber = 1
-	}
-
-	return pageNumber
-}
-
-func (h *Handler) getPageSize(c *gin.Context) int {
-	// get page number query string value or default to 20 (maximize at 100)
-	pageSizeValue := c.DefaultQuery("page[size]", "20")
-	pageSize, err := strconv.Atoi(pageSizeValue)
-	if err != nil {
-		pageSize = 20
-	}
-	if pageSize > 100 {
-		pageSize = 100
-	}
-
-	return pageSize
-}
-
-func (h *Handler) getSorting(c *gin.Context) (sorting []cockroachdb.OrderField) {
-	// ?sort=-created,title
-	sortValue := c.DefaultQuery("sort", "")
-	if sortValue == "" {
-		return
-	}
-
-	splittedSortValues := strings.Split(sortValue, ",")
-	for _, sv := range splittedSortValues {
-		direction := "ASC"
-		if strings.HasPrefix(sv, "-") {
-			direction = "DESC"
-		}
-		sorting = append(sorting, cockroachdb.OrderField{
-			FieldName: strings.TrimPrefix(sv, "-"),
-			Direction: direction,
-		})
-	}
-
-	return
-}
-
-func (h *Handler) getFilters(c *gin.Context) map[string][]string {
-	// get filters (?filter[status]=running,succeeded&filter[since]=1w&filter[labels]=team%3Destafette-team)
-	filters := map[string][]string{}
-	filters["status"] = h.getStatusFilter(c)
-	filters["since"] = h.getSinceFilter(c)
-	filters["labels"] = h.getLabelsFilter(c)
-	filters["search"] = h.getSearchFilter(c)
-	filters["recent-committer"] = h.getRecentCommitterFilter(c)
-	filters["recent-releaser"] = h.getRecentReleaserFilter(c)
-
-	return filters
 }
 
 func (h *Handler) obfuscateSecrets(input string) (string, error) {

@@ -66,11 +66,3 @@ func (s *metricsService) UpdateUser(ctx context.Context, user contracts.User) (e
 
 	return s.Service.UpdateUser(ctx, user)
 }
-
-func (s *metricsService) GetUsers(ctx context.Context) (users []*contracts.User, err error) {
-	defer func(begin time.Time) {
-		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GetUsers", begin)
-	}(time.Now())
-
-	return s.Service.GetUsers(ctx)
-}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
@@ -26,12 +27,12 @@ type MockClient struct {
 	UpdateComputedReleaseFirstInsertedAtFunc       func(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error)
 	ArchiveComputedPipelineFunc                    func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UnarchiveComputedPipelineFunc                  func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
-	GetPipelinesFunc                               func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error)
+	GetPipelinesFunc                               func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error)
 	GetPipelinesByRepoNameFunc                     func(ctx context.Context, repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error)
 	GetPipelinesCountFunc                          func(ctx context.Context, filters map[string][]string) (count int, err error)
 	GetPipelineFunc                                func(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error)
 	GetPipelineRecentBuildsFunc                    func(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (builds []*contracts.Build, err error)
-	GetPipelineBuildsFunc                          func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (builds []*contracts.Build, err error)
+	GetPipelineBuildsFunc                          func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuildsCountFunc                     func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (count int, err error)
 	GetPipelineBuildFunc                           func(ctx context.Context, repoSource, repoOwner, repoName, repoRevision string, optimized bool) (build *contracts.Build, err error)
 	GetPipelineBuildByIDFunc                       func(ctx context.Context, repoSource, repoOwner, repoName string, id int, optimized bool) (build *contracts.Build, err error)
@@ -44,7 +45,7 @@ type MockClient struct {
 	GetPipelineBuildLogsFunc                       func(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error)
 	GetPipelineBuildLogsPerPageFunc                func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
 	GetPipelineBuildMaxResourceUtilizationFunc     func(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobresources JobResources, count int, err error)
-	GetPipelineReleasesFunc                        func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField) (releases []*contracts.Release, err error)
+	GetPipelineReleasesFunc                        func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (releases []*contracts.Release, err error)
 	GetPipelineReleasesCountFunc                   func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (count int, err error)
 	GetPipelineReleaseFunc                         func(ctx context.Context, repoSource, repoOwner, repoName string, id int) (release *contracts.Release, err error)
 	GetPipelineLastReleasesByNameFunc              func(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error)
@@ -87,7 +88,8 @@ type MockClient struct {
 	UpdateUserFunc                                 func(ctx context.Context, user contracts.User) (err error)
 	GetUserByIdentityFunc                          func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	GetUserByIDFunc                                func(ctx context.Context, id string) (user *contracts.User, err error)
-	GetUsersFunc                                   func(ctx context.Context) (users []*contracts.User, err error)
+	GetUsersFunc                                   func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (users []*contracts.User, err error)
+	GetUsersCountFunc                              func(ctx context.Context, filters map[string][]string) (count int, err error)
 }
 
 func (c MockClient) Connect(ctx context.Context) (err error) {
@@ -209,7 +211,7 @@ func (c MockClient) UnarchiveComputedPipeline(ctx context.Context, repoSource, r
 	return c.UnarchiveComputedPipelineFunc(ctx, repoSource, repoOwner, repoName)
 }
 
-func (c MockClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
+func (c MockClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 	if c.GetPipelinesFunc == nil {
 		return
 	}
@@ -245,7 +247,7 @@ func (c MockClient) GetPipelineRecentBuilds(ctx context.Context, repoSource, rep
 	return c.GetPipelineRecentBuildsFunc(ctx, repoSource, repoOwner, repoName, optimized)
 }
 
-func (c MockClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (builds []*contracts.Build, err error) {
+func (c MockClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField, optimized bool) (builds []*contracts.Build, err error) {
 	if c.GetPipelineBuildsFunc == nil {
 		return
 	}
@@ -336,7 +338,7 @@ func (c MockClient) GetPipelineBuildMaxResourceUtilization(ctx context.Context, 
 	return c.GetPipelineBuildMaxResourceUtilizationFunc(ctx, repoSource, repoOwner, repoName, lastNRecords)
 }
 
-func (c MockClient) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField) (releases []*contracts.Release, err error) {
+func (c MockClient) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (releases []*contracts.Release, err error) {
 	if c.GetPipelineReleasesFunc == nil {
 		return
 	}
@@ -637,9 +639,17 @@ func (c MockClient) GetUserByID(ctx context.Context, id string) (user *contracts
 	return c.GetUserByIDFunc(ctx, id)
 }
 
-func (c MockClient) GetUsers(ctx context.Context) (users []*contracts.User, err error) {
+func (c MockClient) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (users []*contracts.User, err error) {
 	if c.GetUsersFunc == nil {
 		return
 	}
-	return c.GetUsersFunc(ctx)
+	return c.GetUsersFunc(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c MockClient) GetUsersCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	if c.GetUsersCountFunc == nil {
+		return
+	}
+	return c.GetUsersCountFunc(ctx, filters)
+
 }

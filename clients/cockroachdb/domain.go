@@ -23,9 +23,3 @@ type BuildVersionDetail struct {
 	Manifest     string
 	InsertedAt   time.Time
 }
-
-// OrderField determines sorting direction
-type OrderField struct {
-	FieldName string
-	Direction string
-}

@@ -14,6 +14,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/estafette/estafette-ci-api/config"
+	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	foundation "github.com/estafette/estafette-foundation"
@@ -48,12 +49,12 @@ type Client interface {
 	ArchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UnarchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 
-	GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error)
+	GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error)
 	GetPipelinesByRepoName(ctx context.Context, repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error)
 	GetPipelinesCount(ctx context.Context, filters map[string][]string) (count int, err error)
 	GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error)
 	GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (builds []*contracts.Build, err error)
-	GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (builds []*contracts.Build, err error)
+	GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (count int, err error)
 	GetPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName, repoRevision string, optimized bool) (build *contracts.Build, err error)
 	GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, id int, optimized bool) (build *contracts.Build, err error)
@@ -66,7 +67,7 @@ type Client interface {
 	GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error)
 	GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
 	GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobresources JobResources, count int, err error)
-	GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField) (releases []*contracts.Release, err error)
+	GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (releases []*contracts.Release, err error)
 	GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (count int, err error)
 	GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, id int) (release *contracts.Release, err error)
 	GetPipelineLastReleasesByName(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error)
@@ -114,7 +115,8 @@ type Client interface {
 	UpdateUser(ctx context.Context, user contracts.User) (err error)
 	GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	GetUserByID(ctx context.Context, id string) (user *contracts.User, err error)
-	GetUsers(ctx context.Context) (users []*contracts.User, err error)
+	GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (users []*contracts.User, err error)
+	GetUsersCount(ctx context.Context, filters map[string][]string) (count int, err error)
 }
 
 // NewClient returns a new cockroach.Client
@@ -761,7 +763,7 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 
 	// get last x builds
-	lastBuilds, err := c.GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, 1, 10, map[string][]string{}, []OrderField{}, false)
+	lastBuilds, err := c.GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, 1, 10, map[string][]string{}, []helpers.OrderField{}, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last build for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
 		return
@@ -789,7 +791,7 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 	c.enrichPipeline(ctx, upsertedPipeline)
 
 	// get last x releases
-	lastReleases, err := c.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, 1, 10, map[string][]string{"since": {"1w"}}, []OrderField{})
+	lastReleases, err := c.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, 1, 10, map[string][]string{"since": {"1w"}}, []helpers.OrderField{})
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last releases for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
 		return
@@ -1196,7 +1198,7 @@ func (c *client) UnarchiveComputedPipeline(ctx context.Context, repoSource, repo
 
 	return nil
 }
-func (c *client) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
+func (c *client) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 
 	// generate query
 	query := c.selectPipelinesQuery().
@@ -1339,7 +1341,7 @@ func (c *client) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOw
 	return
 }
 
-func (c *client) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (builds []*contracts.Build, err error) {
+func (c *client) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField, optimized bool) (builds []*contracts.Build, err error) {
 
 	// generate query
 	query := c.selectBuildsQuery().
@@ -1751,7 +1753,7 @@ func (c *client) GetPipelineBuildMaxResourceUtilization(ctx context.Context, rep
 	return
 }
 
-func (c *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField) (releases []*contracts.Release, err error) {
+func (c *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (releases []*contracts.Release, err error) {
 
 	// generate query
 	query := c.selectReleasesQuery().
@@ -3029,7 +3031,7 @@ func (c *client) GetPipelinesWithMostReleasesCount(ctx context.Context, filters 
 	return
 }
 
-func orderByClauseGeneratorForSortings(query sq.SelectBuilder, alias, defaultOrderBy string, sortings []OrderField) (sq.SelectBuilder, error) {
+func orderByClauseGeneratorForSortings(query sq.SelectBuilder, alias, defaultOrderBy string, sortings []helpers.OrderField) (sq.SelectBuilder, error) {
 
 	if len(sortings) == 0 {
 		return query.OrderBy(defaultOrderBy), nil
@@ -3990,7 +3992,28 @@ func (c *client) GetUserByIdentity(ctx context.Context, identity contracts.UserI
 	return user, nil
 }
 
-func (c *client) GetUsers(ctx context.Context) (users []*contracts.User, err error) {
+func (c *client) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (users []*contracts.User, err error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Select("COUNT(a.id)").
+		From("users a").
+		Limit(uint64(pageSize)).
+		Offset(uint64((pageNumber - 1) * pageSize))
+
+	// dynamically set order by clause
+	query, err = orderByClauseGeneratorForSortings(query, "a", "a.user_data-->'name'", sortings)
+	if err != nil {
+		return
+	}
+
+	// execute query
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	return c.scanUsers(rows)
+}
+
+func (c *client) GetUsersCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -3998,8 +4021,12 @@ func (c *client) GetUsers(ctx context.Context) (users []*contracts.User, err err
 		From("users a")
 
 	// execute query
-	rows, err := query.RunWith(c.databaseConnection).Query()
-	return c.scanUsers(rows)
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&count); err != nil {
+		return
+	}
+
+	return
 }
 
 func (c *client) scanUsers(rows *sql.Rows) (users []*contracts.User, err error) {

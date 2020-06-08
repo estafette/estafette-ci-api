@@ -147,7 +147,7 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 		}
 
 		username := userInfo.Name
-		if username == "" && (userInfo.FamilyName != "" || userInfo.GivenName != "") {
+		if username == "" && (userInfo.GivenName != "" || userInfo.FamilyName != "") {
 			username = strings.Trim(fmt.Sprintf("%v %v", userInfo.GivenName, userInfo.FamilyName), " ")
 		}
 

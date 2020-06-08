@@ -60,10 +60,3 @@ func (s *tracingService) UpdateUser(ctx context.Context, user contracts.User) (e
 
 	return s.Service.UpdateUser(ctx, user)
 }
-
-func (s *tracingService) GetUsers(ctx context.Context) (users []*contracts.User, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "GetUsers"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
-
-	return s.Service.GetUsers(ctx)
-}

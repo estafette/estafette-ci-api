@@ -121,7 +121,7 @@ func (c *loggingClient) UnarchiveComputedPipeline(ctx context.Context, repoSourc
 	return c.Client.UnarchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
 }
 
-func (c *loggingClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
+func (c *loggingClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelines", err) }()
 
 	return c.Client.GetPipelines(ctx, pageNumber, pageSize, filters, sortings, optimized)
@@ -151,7 +151,7 @@ func (c *loggingClient) GetPipelineRecentBuilds(ctx context.Context, repoSource,
 	return c.Client.GetPipelineRecentBuilds(ctx, repoSource, repoOwner, repoName, optimized)
 }
 
-func (c *loggingClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField, optimized bool) (builds []*contracts.Build, err error) {
+func (c *loggingClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField, optimized bool) (builds []*contracts.Build, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelineBuilds", err) }()
 
 	return c.Client.GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings, optimized)
@@ -229,7 +229,7 @@ func (c *loggingClient) GetPipelineBuildMaxResourceUtilization(ctx context.Conte
 	return c.Client.GetPipelineBuildMaxResourceUtilization(ctx, repoSource, repoOwner, repoName, lastNRecords)
 }
 
-func (c *loggingClient) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []OrderField) (releases []*contracts.Release, err error) {
+func (c *loggingClient) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (releases []*contracts.Release, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelineReleases", err) }()
 
 	return c.Client.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings)
@@ -487,8 +487,14 @@ func (c *loggingClient) GetUserByID(ctx context.Context, id string) (user *contr
 	return c.Client.GetUserByID(ctx, id)
 }
 
-func (c *loggingClient) GetUsers(ctx context.Context) (users []*contracts.User, err error) {
+func (c *loggingClient) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (users []*contracts.User, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetUsers", err, ErrUserNotFound) }()
 
-	return c.Client.GetUsers(ctx)
+	return c.Client.GetUsers(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *loggingClient) GetUsersCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetUsersCount", err, ErrUserNotFound) }()
+
+	return c.Client.GetUsersCount(ctx, filters)
 }
