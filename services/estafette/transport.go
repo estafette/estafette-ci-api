@@ -296,7 +296,7 @@ func (h *Handler) GetPipelineBuild(c *gin.Context) {
 func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
 	if !auth.UserHasValidToken(c) {
-		c.Status(http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
 	}
 
@@ -389,7 +389,7 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 
 	if !auth.UserHasValidToken(c) {
-		c.Status(http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
 	}
 
@@ -571,7 +571,7 @@ func (h *Handler) PostPipelineBuildLogs(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	job := claims["job"].(string)
 	if job == "" {
-		c.Status(http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid or has invalid claim"})
 		return
 	}
 
@@ -728,7 +728,7 @@ func (h *Handler) GetPipelineReleases(c *gin.Context) {
 func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 
 	if !auth.UserHasValidToken(c) {
-		c.Status(http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
 	}
 
@@ -867,7 +867,7 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 
 	if !auth.UserHasValidToken(c) {
-		c.Status(http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
 	}
 
@@ -1050,7 +1050,7 @@ func (h *Handler) PostPipelineReleaseLogs(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	job := claims["job"].(string)
 	if job == "" {
-		c.Status(http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid or has invalid claim"})
 		return
 	}
 
@@ -1569,7 +1569,7 @@ func (h *Handler) GetStatsReleasesAdoption(c *gin.Context) {
 func (h *Handler) UpdateComputedTables(c *gin.Context) {
 
 	if !auth.UserHasValidToken(c) {
-		c.Status(http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
 	}
 
@@ -2118,7 +2118,7 @@ func (h *Handler) Commands(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	job := claims["job"].(string)
 	if job == "" {
-		c.Status(http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid or has invalid claim"})
 		return
 	}
 

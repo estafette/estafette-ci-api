@@ -16,6 +16,7 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	foundation "github.com/estafette/estafette-foundation"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
 )
 
@@ -232,13 +233,16 @@ func UserHasRole(c *gin.Context, role string) bool {
 	claims := jwt.ExtractClaims(c)
 	val, ok := claims["roles"]
 	if !ok {
+		log.Warn().Msg("Claim 'roles' does not exist")
 		return false
 	}
 	roles, ok := val.([]string)
 	if !ok {
+		log.Warn().Msg("Claim 'roles' is not of type []string")
 		return false
 	}
 	if !foundation.StringArrayContains(roles, "administrator") {
+		log.Warn().Msgf("Claim 'roles' does not container '%v'", role)
 		return false
 	}
 
