@@ -14,7 +14,6 @@ import (
 	jwt "github.com/appleboy/gin-jwt/v2"
 	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/config"
-	foundation "github.com/estafette/estafette-foundation"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
@@ -233,18 +232,20 @@ func UserHasRole(c *gin.Context, role string) bool {
 	claims := jwt.ExtractClaims(c)
 	val, ok := claims["roles"]
 	if !ok {
-		log.Warn().Msg("Claim 'roles' does not exist")
+		log.Warn().Interface("claims", claims).Msg("Claim 'roles' does not exist")
 		return false
 	}
-	roles, ok := val.([]string)
+	roles, ok := val.([]*string)
 	if !ok {
-		log.Warn().Msg("Claim 'roles' is not of type []string")
+		log.Warn().Interface("claims", claims).Msg("Claim 'roles' is not of type []*string")
 		return false
 	}
-	if !foundation.StringArrayContains(roles, "administrator") {
-		log.Warn().Msgf("Claim 'roles' does not container '%v'", role)
-		return false
+	for _, r := range roles {
+		if r != nil && *r == role {
+			return true
+		}
 	}
 
-	return true
+	log.Warn().Interface("claims", claims).Msgf("Claim 'roles' does not container role '%v", role)
+	return false
 }
