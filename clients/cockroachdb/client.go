@@ -4001,30 +4001,32 @@ func (c *client) GetUsers(ctx context.Context, pageNumber, pageSize int, filters
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
-	// fix sortings for fields inside the user_data jsonb object
-	fixedSortings := []helpers.OrderField{}
-	for _, s := range sortings {
-		fieldName := s.FieldName
-		direction := s.Direction
+	// wait for https://github.com/cockroachdb/cockroach/issues/35706 to be implemented for sorting jsonb fields
 
-		switch s.FieldName {
-		case "name":
-			fieldName = "user_data-->'name'"
-		case "email":
-			fieldName = "user_data-->'email'"
-		}
+	// // fix sortings for fields inside the user_data jsonb object
+	// fixedSortings := []helpers.OrderField{}
+	// for _, s := range sortings {
+	// 	fieldName := s.FieldName
+	// 	direction := s.Direction
 
-		fixedSortings = append(fixedSortings, helpers.OrderField{
-			FieldName: fieldName,
-			Direction: direction,
-		})
-	}
+	// 	switch s.FieldName {
+	// 	case "name":
+	// 		fieldName = "user_data-->'name'"
+	// 	case "email":
+	// 		fieldName = "user_data-->'email'"
+	// 	}
 
-	// dynamically set order by clause
-	query, err = orderByClauseGeneratorForSortings(query, "a", "a.user_data-->'name'", fixedSortings)
-	if err != nil {
-		return
-	}
+	// 	fixedSortings = append(fixedSortings, helpers.OrderField{
+	// 		FieldName: fieldName,
+	// 		Direction: direction,
+	// 	})
+	// }
+
+	// // dynamically set order by clause
+	// query, err = orderByClauseGeneratorForSortings(query, "a", "a.user_data-->'name'", fixedSortings)
+	// if err != nil {
+	// 	return
+	// }
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
