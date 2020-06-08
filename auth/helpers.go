@@ -15,7 +15,6 @@ import (
 	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
 )
 
@@ -232,13 +231,13 @@ func UserHasRole(c *gin.Context, role string) bool {
 	claims := jwt.ExtractClaims(c)
 	val, ok := claims["roles"]
 	if !ok {
-		log.Warn().Interface("claims", claims).Msg("Claim 'roles' does not exist")
+		// log.Warn().Interface("claims", claims).Msg("Claim 'roles' does not exist")
 		return false
 	}
 
 	roles, ok := val.([]interface{})
 	if !ok {
-		log.Warn().Interface("claims", claims).Msgf("Claim 'roles' is not of type []interface{} but type '%T'", val)
+		// log.Warn().Interface("claims", claims).Msgf("Claim 'roles' is not of type []interface{} but type '%T'", val)
 		return false
 	}
 
@@ -248,6 +247,6 @@ func UserHasRole(c *gin.Context, role string) bool {
 		}
 	}
 
-	log.Warn().Interface("claims", claims).Msgf("Claim 'roles' with value '%v' does not contain role '%v", roles, role)
+	// log.Warn().Interface("claims", claims).Msgf("Claim 'roles' with value '%v' does not contain role '%v", roles, role)
 	return false
 }
