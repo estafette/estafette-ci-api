@@ -263,7 +263,7 @@ func (h *Handler) HandleClientLoginProviderAuthenticator() func(c *gin.Context) 
 		}
 
 		// check if client is active
-		if !client.Active {
+		if !clientFromDB.Active {
 			log.Error().Msgf("Client with id %v is not active", client.ClientID)
 			return nil, fmt.Errorf("Client is not active")
 		}
