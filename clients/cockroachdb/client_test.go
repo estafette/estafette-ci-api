@@ -1152,8 +1152,8 @@ func TestIntegrationGetGroupByIdentity(t *testing.T) {
 		group.Identities = []*contracts.GroupIdentity{
 			{
 				Provider: "google",
-				ID:       "team-y",
-				Name:     "Team Y",
+				ID:       "team-z",
+				Name:     "Team Z",
 			},
 		}
 		_, err := cockroachdbClient.InsertGroup(ctx, group)
@@ -1161,7 +1161,7 @@ func TestIntegrationGetGroupByIdentity(t *testing.T) {
 
 		identity := contracts.GroupIdentity{
 			Provider: "google",
-			Name:     "Team Z",
+			Name:     "Team Y",
 		}
 
 		// act
@@ -1309,8 +1309,8 @@ func TestIntegrationGetOrganizationByIdentity(t *testing.T) {
 		organization.Identities = []*contracts.OrganizationIdentity{
 			{
 				Provider: "google",
-				ID:       "team-z",
-				Name:     "Team Z",
+				ID:       "org-z",
+				Name:     "Org Z",
 			},
 		}
 		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
@@ -1318,7 +1318,7 @@ func TestIntegrationGetOrganizationByIdentity(t *testing.T) {
 
 		identity := contracts.OrganizationIdentity{
 			Provider: "google",
-			Name:     "Team Z",
+			Name:     "Org Z",
 		}
 
 		// act
@@ -1341,8 +1341,8 @@ func TestIntegrationGetOrganizationByIdentity(t *testing.T) {
 		organization.Identities = []*contracts.OrganizationIdentity{
 			{
 				Provider: "google",
-				ID:       "team-y",
-				Name:     "Team Y",
+				ID:       "org-z",
+				Name:     "Org Z",
 			},
 		}
 		_, err := cockroachdbClient.InsertOrganization(ctx, organization)
@@ -1350,7 +1350,7 @@ func TestIntegrationGetOrganizationByIdentity(t *testing.T) {
 
 		identity := contracts.OrganizationIdentity{
 			Provider: "google",
-			Name:     "Team Z",
+			Name:     "Org y",
 		}
 
 		// act
