@@ -85,54 +85,11 @@ func (m *authMiddlewareImpl) GoogleJWTMiddlewareFunc() gin.HandlerFunc {
 
 func (m *authMiddlewareImpl) coreGinJWTMiddleware(authenticator func(c *gin.Context) (interface{}, error)) (middleware *jwt.GinJWTMiddleware, err error) {
 	return jwt.New(&jwt.GinJWTMiddleware{
-		Realm:          m.config.Auth.JWT.Domain,
-		Key:            []byte(m.config.Auth.JWT.Key),
-		TokenLookup:    "header:Authorization, cookie:jwt",
-		Authenticator:  authenticator,
-		SendCookie:     true,
-		SecureCookie:   true,
-		CookieHTTPOnly: true,
-		CookieDomain:   m.config.Auth.JWT.Domain,
-		LoginResponse: func(c *gin.Context, code int, token string, expire time.Time) {
-
-			// see if gin context has a return url
-			returnURL, exists := c.Get("returnURL")
-			if exists {
-				c.Redirect(http.StatusFound, returnURL.(string))
-				return
-			}
-
-			// cookie is used, so token does not need to be returned via response
-			c.Redirect(http.StatusFound, "/")
-		},
-		LogoutResponse: func(c *gin.Context, code int) {
-			c.Redirect(http.StatusFound, "/login")
-		},
-		TimeFunc: time.Now,
-		PayloadFunc: func(data interface{}) jwt.MapClaims {
-			// add user properties as claims
-			if user, ok := data.(*contracts.User); ok {
-
-				organizations := []string{}
-				for _, o := range user.Organizations {
-					organizations = append(organizations, o.Name)
-				}
-
-				groups := []string{}
-				for _, g := range user.Groups {
-					groups = append(groups, g.Name)
-				}
-
-				return jwt.MapClaims{
-					jwt.IdentityKey: user.ID,
-					"email":         user.GetEmail(),
-					"roles":         user.Roles,
-					"groups":        groups,
-					"organizations": organizations,
-				}
-			}
-			return jwt.MapClaims{}
-		},
+		Realm:         m.config.Auth.JWT.Domain,
+		Key:           []byte(m.config.Auth.JWT.Key),
+		TokenLookup:   "header:Authorization, cookie:jwt",
+		Authenticator: authenticator,
+		TimeFunc:      time.Now,
 	})
 }
 
@@ -150,7 +107,6 @@ func (m *authMiddlewareImpl) GinJWTMiddleware(authenticator func(c *gin.Context)
 
 	// redirect after login
 	middleware.LoginResponse = func(c *gin.Context, code int, token string, expire time.Time) {
-
 		// see if gin context has a return url
 		returnURL, exists := c.Get("returnURL")
 		if exists {
