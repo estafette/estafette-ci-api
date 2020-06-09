@@ -237,6 +237,7 @@ func (h *Handler) HandleClientLoginProviderAuthenticator() func(c *gin.Context) 
 		var client contracts.Client
 		err := c.BindJSON(&client)
 		if err != nil {
+			log.Error().Err(err).Msg("Failed binding json for client login")
 			return nil, err
 		}
 
@@ -245,19 +246,23 @@ func (h *Handler) HandleClientLoginProviderAuthenticator() func(c *gin.Context) 
 		// get client from db by clientID
 		clientFromDB, err := h.cockroachdbClient.GetClientByClientID(ctx, client.ClientID)
 		if err != nil {
+			log.Error().Err(err).Msgf("Failed retrieving client by client id %v", client.ClientID)
 			return nil, err
 		}
 		if clientFromDB == nil {
+			log.Error().Err(err).Msgf("Client for client id %v is nil", client.ClientID)
 			return nil, fmt.Errorf("Client from db is nil")
 		}
 
 		// see if secret from binded data and database match
 		if client.ClientSecret != clientFromDB.ClientSecret {
+			log.Error().Err(err).Msgf("Client secret for client id %v does not match", client.ClientID)
 			return nil, fmt.Errorf("Client secret does not match")
 		}
 
 		// check if client is active
 		if !client.Active {
+			log.Error().Err(err).Msgf("Client with id %v is not active", client.ClientID)
 			return nil, fmt.Errorf("Client is not active")
 		}
 
