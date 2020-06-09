@@ -8,7 +8,7 @@ import (
 
 type MockService struct {
 	CreateJobForCloudSourcePushFunc func(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error)
-	IsWhitelistedOwnerFunc          func(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool)
+	IsWhitelistedProjectFunc        func(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool)
 }
 
 func (s MockService) CreateJobForCloudSourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error) {
@@ -18,9 +18,9 @@ func (s MockService) CreateJobForCloudSourcePush(ctx context.Context, notificati
 	return s.CreateJobForCloudSourcePushFunc(ctx, notification)
 }
 
-func (s MockService) IsWhitelistedOwner(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool) {
-	if s.IsWhitelistedOwnerFunc == nil {
+func (s MockService) IsWhitelistedProject(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool) {
+	if s.IsWhitelistedProjectFunc == nil {
 		return
 	}
-	return s.IsWhitelistedOwnerFunc(notification)
+	return s.IsWhitelistedProjectFunc(notification)
 }
