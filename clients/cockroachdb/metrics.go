@@ -740,3 +740,51 @@ func (c *metricsClient) GetOrganizationsCount(ctx context.Context, filters map[s
 
 	return c.Client.GetOrganizationsCount(ctx, filters)
 }
+
+func (c *metricsClient) InsertClient(ctx context.Context, client contracts.Client) (cl *contracts.Client, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "InsertClient", begin)
+	}(time.Now())
+
+	return c.Client.InsertClient(ctx, client)
+}
+
+func (c *metricsClient) UpdateClient(ctx context.Context, client contracts.Client) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "UpdateClient", begin)
+	}(time.Now())
+
+	return c.Client.UpdateClient(ctx, client)
+}
+
+func (c *metricsClient) GetClientByClientID(ctx context.Context, clientID string) (client *contracts.Client, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetClientByClientID", begin)
+	}(time.Now())
+
+	return c.Client.GetClientByClientID(ctx, clientID)
+}
+
+func (c *metricsClient) GetClientByID(ctx context.Context, id string) (client *contracts.Client, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetClientByID", begin)
+	}(time.Now())
+
+	return c.Client.GetClientByID(ctx, id)
+}
+
+func (c *metricsClient) GetClients(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetClients", begin)
+	}(time.Now())
+
+	return c.Client.GetClients(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *metricsClient) GetClientsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetClientsCount", begin)
+	}(time.Now())
+
+	return c.Client.GetClientsCount(ctx, filters)
+}

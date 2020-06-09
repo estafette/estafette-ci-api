@@ -202,28 +202,28 @@ func isValidGoogleJWT(tokenString string) (valid bool, err error) {
 	return false, fmt.Errorf("Token is not valid")
 }
 
-func UserHasValidToken(c *gin.Context) bool {
+func RequestTokenIsValid(c *gin.Context) bool {
 
 	// ensure email claim is set
 	claims := jwt.ExtractClaims(c)
-	val, ok := claims["email"]
+	val, ok := claims[jwt.IdentityKey]
 	if !ok {
 		return false
 	}
-	email, ok := val.(string)
+	identity, ok := val.(string)
 	if !ok {
 		return false
 	}
-	if email == "" {
+	if identity == "" {
 		return false
 	}
 
 	return true
 }
 
-func UserHasRole(c *gin.Context, role string) bool {
+func RequestTokenHasRole(c *gin.Context, role string) bool {
 
-	if !UserHasValidToken(c) {
+	if !RequestTokenIsValid(c) {
 		return false
 	}
 

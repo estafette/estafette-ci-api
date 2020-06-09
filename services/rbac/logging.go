@@ -30,18 +30,6 @@ func (s *loggingService) GetProviderByName(ctx context.Context, name string) (pr
 	return s.Service.GetProviderByName(ctx, name)
 }
 
-func (s *loggingService) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
-	defer func() { helpers.HandleLogError(s.prefix, "GetUserByIdentity", err, ErrUserNotFound) }()
-
-	return s.Service.GetUserByIdentity(ctx, identity)
-}
-
-func (s *loggingService) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
-	defer func() { helpers.HandleLogError(s.prefix, "GetUserByID", err, ErrUserNotFound) }()
-
-	return s.Service.GetUserByID(ctx, id)
-}
-
 func (s *loggingService) CreateUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 	defer func() { helpers.HandleLogError(s.prefix, "CreateUser", err) }()
 
@@ -52,4 +40,40 @@ func (s *loggingService) UpdateUser(ctx context.Context, user contracts.User) (e
 	defer func() { helpers.HandleLogError(s.prefix, "UpdateUser", err) }()
 
 	return s.Service.UpdateUser(ctx, user)
+}
+
+func (s *loggingService) CreateGroup(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "CreateGroup", err) }()
+
+	return s.Service.CreateGroup(ctx, group)
+}
+
+func (s *loggingService) UpdateGroup(ctx context.Context, group contracts.Group) (err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "UpdateGroup", err) }()
+
+	return s.Service.UpdateGroup(ctx, group)
+}
+
+func (s *loggingService) CreateOrganization(ctx context.Context, organization contracts.Organization) (insertedOrganization *contracts.Organization, err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "CreateOrganization", err) }()
+
+	return s.Service.CreateOrganization(ctx, organization)
+}
+
+func (s *loggingService) UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "UpdateOrganization", err) }()
+
+	return s.Service.UpdateOrganization(ctx, organization)
+}
+
+func (s *loggingService) CreateClient(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "CreateClient", err) }()
+
+	return s.Service.CreateClient(ctx, client)
+}
+
+func (s *loggingService) UpdateClient(ctx context.Context, client contracts.Client) (err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "UpdateClient", err) }()
+
+	return s.Service.UpdateClient(ctx, client)
 }

@@ -488,85 +488,121 @@ func (c *loggingClient) GetUserByID(ctx context.Context, id string) (user *contr
 }
 
 func (c *loggingClient) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (users []*contracts.User, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "GetUsers", err, ErrUserNotFound) }()
+	defer func() { helpers.HandleLogError(c.prefix, "GetUsers", err) }()
 
 	return c.Client.GetUsers(ctx, pageNumber, pageSize, filters, sortings)
 }
 
 func (c *loggingClient) GetUsersCount(ctx context.Context, filters map[string][]string) (count int, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "GetUsersCount", err, ErrUserNotFound) }()
+	defer func() { helpers.HandleLogError(c.prefix, "GetUsersCount", err) }()
 
 	return c.Client.GetUsersCount(ctx, filters)
 }
 
 func (c *loggingClient) InsertGroup(ctx context.Context, group contracts.Group) (g *contracts.Group, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "InsertGroup", err, ErrUserNotFound) }()
+	defer func() { helpers.HandleLogError(c.prefix, "InsertGroup", err) }()
 
 	return c.Client.InsertGroup(ctx, group)
 }
 
 func (c *loggingClient) UpdateGroup(ctx context.Context, group contracts.Group) (err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "UpdateGroup", err, ErrUserNotFound) }()
+	defer func() { helpers.HandleLogError(c.prefix, "UpdateGroup", err) }()
 
 	return c.Client.UpdateGroup(ctx, group)
 }
 
 func (c *loggingClient) GetGroupByIdentity(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "GetGroupByIdentity", err, ErrUserNotFound) }()
+	defer func() { helpers.HandleLogError(c.prefix, "GetGroupByIdentity", err, ErrGroupNotFound) }()
 
 	return c.Client.GetGroupByIdentity(ctx, identity)
 }
 
 func (c *loggingClient) GetGroupByID(ctx context.Context, id string) (group *contracts.Group, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "GetGroupByID", err, ErrUserNotFound) }()
+	defer func() { helpers.HandleLogError(c.prefix, "GetGroupByID", err, ErrGroupNotFound) }()
 
 	return c.Client.GetGroupByID(ctx, id)
 }
 
 func (c *loggingClient) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "GetGroups", err, ErrUserNotFound) }()
+	defer func() { helpers.HandleLogError(c.prefix, "GetGroups", err) }()
 
 	return c.Client.GetGroups(ctx, pageNumber, pageSize, filters, sortings)
 }
 
 func (c *loggingClient) GetGroupsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "GetGroupsCount", err, ErrUserNotFound) }()
+	defer func() { helpers.HandleLogError(c.prefix, "GetGroupsCount", err) }()
 
 	return c.Client.GetGroupsCount(ctx, filters)
 }
 
 func (c *loggingClient) InsertOrganization(ctx context.Context, organization contracts.Organization) (o *contracts.Organization, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "InsertOrganization", err, ErrUserNotFound) }()
+	defer func() { helpers.HandleLogError(c.prefix, "InsertOrganization", err) }()
 
 	return c.Client.InsertOrganization(ctx, organization)
 }
 
 func (c *loggingClient) UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "UpdateOrganization", err, ErrUserNotFound) }()
+	defer func() { helpers.HandleLogError(c.prefix, "UpdateOrganization", err) }()
 
 	return c.Client.UpdateOrganization(ctx, organization)
 }
 
 func (c *loggingClient) GetOrganizationByIdentity(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "GetOrganizationByIdentity", err, ErrUserNotFound) }()
+	defer func() { helpers.HandleLogError(c.prefix, "GetOrganizationByIdentity", err, ErrOrganizationNotFound) }()
 
 	return c.Client.GetOrganizationByIdentity(ctx, identity)
 }
 
 func (c *loggingClient) GetOrganizationByID(ctx context.Context, id string) (organization *contracts.Organization, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "GetOrganizationByID", err, ErrUserNotFound) }()
+	defer func() { helpers.HandleLogError(c.prefix, "GetOrganizationByID", err, ErrOrganizationNotFound) }()
 
 	return c.Client.GetOrganizationByID(ctx, id)
 }
 
 func (c *loggingClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "GetGroups", err, ErrUserNotFound) }()
+	defer func() { helpers.HandleLogError(c.prefix, "GetGroups", err) }()
 
 	return c.Client.GetOrganizations(ctx, pageNumber, pageSize, filters, sortings)
 }
 
 func (c *loggingClient) GetOrganizationsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "GetGroupsCount", err, ErrUserNotFound) }()
+	defer func() { helpers.HandleLogError(c.prefix, "GetGroupsCount", err) }()
 
 	return c.Client.GetOrganizationsCount(ctx, filters)
+}
+
+func (c *loggingClient) InsertClient(ctx context.Context, client contracts.Client) (cl *contracts.Client, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "InsertClient", err) }()
+
+	return c.Client.InsertClient(ctx, client)
+}
+
+func (c *loggingClient) UpdateClient(ctx context.Context, client contracts.Client) (err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "UpdateClient", err) }()
+
+	return c.Client.UpdateClient(ctx, client)
+}
+
+func (c *loggingClient) GetClientByClientID(ctx context.Context, clientID string) (client *contracts.Client, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetClientByClientID", err, ErrClientNotFound) }()
+
+	return c.Client.GetClientByClientID(ctx, clientID)
+}
+
+func (c *loggingClient) GetClientByID(ctx context.Context, id string) (client *contracts.Client, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetClientByID", err, ErrClientNotFound) }()
+
+	return c.Client.GetClientByID(ctx, id)
+}
+
+func (c *loggingClient) GetClients(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetClients", err) }()
+
+	return c.Client.GetClients(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *loggingClient) GetClientsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetClientsCount", err) }()
+
+	return c.Client.GetClientsCount(ctx, filters)
 }

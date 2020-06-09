@@ -37,7 +37,7 @@ func (h *Handler) GetLoggedInUser(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	id := claims[jwt.IdentityKey].(string)
 
-	user, err := h.service.GetUserByID(c.Request.Context(), id)
+	user, err := h.cockroachdbClient.GetUserByID(c.Request.Context(), id)
 	if err != nil {
 		log.Error().Err(err).Msgf("Retrieving user from db failed with id %v", id)
 		c.String(http.StatusInternalServerError, "Retrieving user from db failed")
@@ -99,7 +99,7 @@ func (h *Handler) LoginProvider(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, provider.AuthCodeURL(h.config.APIServer.BaseURL, state))
 }
 
-func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (interface{}, error) {
+func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (interface{}, error) {
 	return func(c *gin.Context) (interface{}, error) {
 		ctx := c.Request.Context()
 
@@ -142,8 +142,8 @@ func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (inter
 		}
 
 		// upsert user
-		user, err := h.service.GetUserByIdentity(c.Request.Context(), *identity)
-		if err != nil && errors.Is(err, ErrUserNotFound) {
+		user, err := h.cockroachdbClient.GetUserByIdentity(c.Request.Context(), *identity)
+		if err != nil && errors.Is(err, cockroachdb.ErrUserNotFound) {
 			user, err = h.service.CreateUser(c.Request.Context(), *identity)
 			if err != nil {
 				return nil, err
@@ -208,12 +208,44 @@ func (h *Handler) HandleLoginProviderAuthenticator() func(c *gin.Context) (inter
 	}
 }
 
+func (h *Handler) HandleClientLoginProviderAuthenticator() func(c *gin.Context) (interface{}, error) {
+	return func(c *gin.Context) (interface{}, error) {
+		ctx := c.Request.Context()
+
+		var client contracts.Client
+		err := c.BindJSON(&client)
+		if err != nil {
+			return nil, err
+		}
+
+		// get client from db by clientID
+		clientFromDB, err := h.cockroachdbClient.GetClientByClientID(ctx, client.ClientID)
+		if err != nil {
+			return nil, err
+		}
+		if clientFromDB == nil {
+			return nil, fmt.Errorf("Client from db is nil")
+		}
+
+		// see if secret from binded data and database match
+		if client.ClientSecret != clientFromDB.ClientSecret {
+			return nil, fmt.Errorf("Client secret does not match")
+		}
+
+		// check if client is active
+		if !client.Active {
+			return nil, fmt.Errorf("Client is not active")
+		}
+
+		return client, nil
+	}
+}
 func (h *Handler) GetUsers(c *gin.Context) {
 
 	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
 
 	// ensure the user has administrator role
-	if !auth.UserHasRole(c, "administrator") {
+	if !auth.RequestTokenHasRole(c, "administrator") {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
 		return
 	}
@@ -253,7 +285,7 @@ func (h *Handler) GetGroups(c *gin.Context) {
 	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
 
 	// ensure the user has administrator role
-	if !auth.UserHasRole(c, "administrator") {
+	if !auth.RequestTokenHasRole(c, "administrator") {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
 		return
 	}
@@ -293,7 +325,7 @@ func (h *Handler) GetOrganizations(c *gin.Context) {
 	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
 
 	// ensure the user has administrator role
-	if !auth.UserHasRole(c, "administrator") {
+	if !auth.RequestTokenHasRole(c, "administrator") {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
 		return
 	}
@@ -326,4 +358,233 @@ func (h *Handler) GetOrganizations(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) GetClients(c *gin.Context) {
+
+	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+
+	// ensure the user has administrator role
+	if !auth.RequestTokenHasRole(c, "administrator") {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
+		return
+	}
+
+	response, err := helpers.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			clients, err := h.cockroachdbClient.GetClients(c.Request.Context(), pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(clients))
+			for i := range clients {
+				items[i] = clients[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachdbClient.GetClientsCount(c.Request.Context(), filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving clients from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) CreateGroup(c *gin.Context) {
+
+	ctx := c.Request.Context()
+
+	// ensure the user has administrator role
+	if !auth.RequestTokenHasRole(c, "administrator") {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
+		return
+	}
+
+	var group contracts.Group
+	err := c.BindJSON(&group)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed binding group form data")
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	insertedGroup, err := h.service.CreateGroup(ctx, group)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed inserting group")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusCreated, insertedGroup)
+}
+
+func (h *Handler) UpdateGroup(c *gin.Context) {
+
+	ctx := c.Request.Context()
+
+	// ensure the user has administrator role
+	if !auth.RequestTokenHasRole(c, "administrator") {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
+		return
+	}
+
+	var group contracts.Group
+	err := c.BindJSON(&group)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed binding group form data")
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	id := c.Param("id")
+	if group.ID != id {
+		log.Error().Err(err).Msg("Group id is incorrect")
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	err = h.service.UpdateGroup(ctx, group)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed updating group")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
+func (h *Handler) CreateOrganization(c *gin.Context) {
+
+	ctx := c.Request.Context()
+
+	// ensure the user has administrator role
+	if !auth.RequestTokenHasRole(c, "administrator") {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
+		return
+	}
+
+	var organization contracts.Organization
+	err := c.BindJSON(&organization)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed binding organization form data")
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	insertedOrganization, err := h.service.CreateOrganization(ctx, organization)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed inserting organization")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusCreated, insertedOrganization)
+}
+
+func (h *Handler) UpdateOrganization(c *gin.Context) {
+
+	ctx := c.Request.Context()
+
+	// ensure the user has administrator role
+	if !auth.RequestTokenHasRole(c, "administrator") {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
+		return
+	}
+
+	var organization contracts.Organization
+	err := c.BindJSON(&organization)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed binding organization form data")
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	id := c.Param("id")
+	if organization.ID != id {
+		log.Error().Err(err).Msg("Organization id is incorrect")
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	err = h.service.UpdateOrganization(ctx, organization)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed updating organization")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
+func (h *Handler) CreateClient(c *gin.Context) {
+
+	ctx := c.Request.Context()
+
+	// ensure the user has administrator role
+	if !auth.RequestTokenHasRole(c, "administrator") {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
+		return
+	}
+
+	var client contracts.Client
+	err := c.BindJSON(&client)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed binding client form data")
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	insertedClient, err := h.service.CreateClient(ctx, client)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed inserting client")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusCreated, insertedClient)
+}
+
+func (h *Handler) UpdateClient(c *gin.Context) {
+
+	ctx := c.Request.Context()
+
+	// ensure the user has administrator role
+	if !auth.RequestTokenHasRole(c, "administrator") {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
+		return
+	}
+
+	var client contracts.Client
+	err := c.BindJSON(&client)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed binding client form data")
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	id := c.Param("id")
+	if client.ID != id {
+		log.Error().Err(err).Msg("Client id is incorrect")
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	err = h.service.UpdateClient(ctx, client)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed updating client")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
 }

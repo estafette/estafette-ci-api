@@ -105,6 +105,13 @@ type MockClient struct {
 	GetOrganizationByIDFunc       func(ctx context.Context, id string) (organization *contracts.Organization, err error)
 	GetOrganizationsFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error)
 	GetOrganizationsCountFunc     func(ctx context.Context, filters map[string][]string) (count int, err error)
+
+	InsertClientFunc        func(ctx context.Context, client contracts.Client) (cl *contracts.Client, err error)
+	UpdateClientFunc        func(ctx context.Context, client contracts.Client) (err error)
+	GetClientByClientIDFunc func(ctx context.Context, clientID string) (client *contracts.Client, err error)
+	GetClientByIDFunc       func(ctx context.Context, id string) (client *contracts.Client, err error)
+	GetClientsFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error)
+	GetClientsCountFunc     func(ctx context.Context, filters map[string][]string) (count int, err error)
 }
 
 func (c MockClient) Connect(ctx context.Context) (err error) {
@@ -750,4 +757,46 @@ func (c MockClient) GetOrganizationsCount(ctx context.Context, filters map[strin
 		return
 	}
 	return c.GetOrganizationsCountFunc(ctx, filters)
+}
+
+func (c MockClient) InsertClient(ctx context.Context, client contracts.Client) (cl *contracts.Client, err error) {
+	if c.InsertClientFunc == nil {
+		return
+	}
+	return c.InsertClientFunc(ctx, client)
+}
+
+func (c MockClient) UpdateClient(ctx context.Context, client contracts.Client) (err error) {
+	if c.UpdateClientFunc == nil {
+		return
+	}
+	return c.UpdateClientFunc(ctx, client)
+}
+
+func (c MockClient) GetClientByClientID(ctx context.Context, clientID string) (client *contracts.Client, err error) {
+	if c.GetClientByClientIDFunc == nil {
+		return
+	}
+	return c.GetClientByClientIDFunc(ctx, clientID)
+}
+
+func (c MockClient) GetClientByID(ctx context.Context, id string) (client *contracts.Client, err error) {
+	if c.GetClientByIDFunc == nil {
+		return
+	}
+	return c.GetClientByIDFunc(ctx, id)
+}
+
+func (c MockClient) GetClients(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error) {
+	if c.GetClientsFunc == nil {
+		return
+	}
+	return c.GetClientsFunc(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c MockClient) GetClientsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	if c.GetClientsCountFunc == nil {
+		return
+	}
+	return c.GetClientsCountFunc(ctx, filters)
 }

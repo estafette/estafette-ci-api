@@ -24,7 +24,17 @@ import (
 )
 
 var (
+	// ErrUserNotFound is returned if a query for a user returns no results
 	ErrUserNotFound = errors.New("The user can't be found")
+
+	// ErrGroupNotFound is returned if a query for a group returns no results
+	ErrGroupNotFound = errors.New("The group can't be found")
+
+	// ErrOrganizationNotFound is returned if a query for a organization returns no results
+	ErrOrganizationNotFound = errors.New("The organization can't be found")
+
+	// ErrClientNotFound is returned if a query for a client returns no results
+	ErrClientNotFound = errors.New("The client can't be found")
 )
 
 // Client is the interface for communicating with CockroachDB
@@ -131,6 +141,13 @@ type Client interface {
 	GetOrganizationByID(ctx context.Context, id string) (organization *contracts.Organization, err error)
 	GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error)
 	GetOrganizationsCount(ctx context.Context, filters map[string][]string) (count int, err error)
+
+	InsertClient(ctx context.Context, client contracts.Client) (cl *contracts.Client, err error)
+	UpdateClient(ctx context.Context, client contracts.Client) (err error)
+	GetClientByClientID(ctx context.Context, clientID string) (client *contracts.Client, err error)
+	GetClientByID(ctx context.Context, id string) (client *contracts.Client, err error)
+	GetClients(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error)
+	GetClientsCount(ctx context.Context, filters map[string][]string) (count int, err error)
 }
 
 // NewClient returns a new cockroach.Client
@@ -4279,6 +4296,7 @@ func (c *client) UpdateOrganization(ctx context.Context, organization contracts.
 
 	return
 }
+
 func (c *client) GetOrganizationByIdentity(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error) {
 	filter := struct {
 		Identities []struct {
@@ -4319,6 +4337,7 @@ func (c *client) GetOrganizationByIdentity(ctx context.Context, identity contrac
 
 	return organization, nil
 }
+
 func (c *client) GetOrganizationByID(ctx context.Context, id string) (organization *contracts.Organization, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -4337,6 +4356,7 @@ func (c *client) GetOrganizationByID(ctx context.Context, id string) (organizati
 
 	return organization, nil
 }
+
 func (c *client) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -4361,6 +4381,137 @@ func (c *client) GetOrganizationsCount(ctx context.Context, filters map[string][
 	query := psql.
 		Select("COUNT(a.id)").
 		From("organizations a")
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&count); err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *client) InsertClient(ctx context.Context, client contracts.Client) (cl *contracts.Client, err error) {
+
+	clientBytes, err := json.Marshal(client)
+	if err != nil {
+		return nil, err
+	}
+
+	// upsert user
+	row := c.databaseConnection.QueryRow(
+		`
+		INSERT INTO
+		clients
+		(
+			client_data
+		)
+		VALUES
+		(
+			$1
+		)
+		RETURNING
+			id
+		`,
+		clientBytes,
+	)
+
+	cl = &client
+
+	if err = row.Scan(&cl.ID); err != nil {
+		return nil, err
+	}
+
+	return
+}
+
+func (c *client) UpdateClient(ctx context.Context, client contracts.Client) (err error) {
+	clientBytes, err := json.Marshal(client)
+	if err != nil {
+		return
+	}
+
+	clientID, err := strconv.Atoi(client.ID)
+	if err != nil {
+		return
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("clients").
+		Set("client_data", clientBytes).
+		Set("updated_at", sq.Expr("now()")).
+		Where(sq.Eq{"id": clientID}).
+		Limit(uint64(1))
+
+	_, err = query.RunWith(c.databaseConnection).Exec()
+
+	return
+}
+
+func (c *client) GetClientByClientID(ctx context.Context, clientID string) (client *contracts.Client, err error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Select("a.id, a.client_data, a.inserted_at").
+		From("clients a").
+		Where(sq.Eq{"a.client_data->>'clientID'": clientID}).
+		Limit(uint64(1))
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	client, err = c.scanClient(row)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
+func (c *client) GetClientByID(ctx context.Context, id string) (client *contracts.Client, err error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Select("a.id, a.client_data, a.inserted_at").
+		From("clients a").
+		Where(sq.Eq{"a.id": id}).
+		Limit(uint64(1))
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	client, err = c.scanClient(row)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
+func (c *client) GetClients(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Select("a.id, a.client_data, a.inserted_at").
+		From("clients a").
+		Limit(uint64(pageSize)).
+		Offset(uint64((pageNumber - 1) * pageSize))
+
+	// execute query
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+
+	return c.scanClients(rows)
+}
+
+func (c *client) GetClientsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Select("COUNT(a.id)").
+		From("clients a")
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
@@ -4415,10 +4566,6 @@ func (c *client) scanUser(row sq.RowScanner) (user *contracts.User, err error) {
 		&id,
 		&userData,
 		&insertedAt); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrUserNotFound
-		}
-
 		return
 	}
 
@@ -4450,7 +4597,7 @@ func (c *client) scanGroups(rows *sql.Rows) (groups []*contracts.Group, err erro
 			&groupData,
 			&insertedAt); err != nil {
 			if err == sql.ErrNoRows {
-				return nil, ErrUserNotFound
+				return nil, ErrGroupNotFound
 			}
 
 			return
@@ -4482,7 +4629,7 @@ func (c *client) scanGroup(row sq.RowScanner) (group *contracts.Group, err error
 		&groupData,
 		&insertedAt); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrUserNotFound
+			return nil, ErrGroupNotFound
 		}
 
 		return
@@ -4514,10 +4661,6 @@ func (c *client) scanOrganizations(rows *sql.Rows) (organizations []*contracts.O
 			&id,
 			&organizationData,
 			&insertedAt); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, ErrUserNotFound
-			}
-
 			return
 		}
 
@@ -4547,7 +4690,7 @@ func (c *client) scanOrganization(row sq.RowScanner) (organization *contracts.Or
 		&organizationData,
 		&insertedAt); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrUserNotFound
+			return nil, ErrOrganizationNotFound
 		}
 
 		return
@@ -4560,6 +4703,67 @@ func (c *client) scanOrganization(row sq.RowScanner) (organization *contracts.Or
 	}
 
 	organization.ID = id
+
+	return
+}
+
+func (c *client) scanClients(rows *sql.Rows) (clients []*contracts.Client, err error) {
+	clients = make([]*contracts.Client, 0)
+
+	defer rows.Close()
+	for rows.Next() {
+
+		client := &contracts.Client{}
+		var id string
+		var clientData []uint8
+		var insertedAt *time.Time
+
+		if err = rows.Scan(
+			&id,
+			&clientData,
+			&insertedAt); err != nil {
+			return
+		}
+
+		if len(clientData) > 0 {
+			if err = json.Unmarshal(clientData, &client); err != nil {
+				return nil, err
+			}
+		}
+
+		client.ID = id
+
+		clients = append(clients, client)
+	}
+
+	return
+}
+
+func (c *client) scanClient(row sq.RowScanner) (client *contracts.Client, err error) {
+
+	client = &contracts.Client{}
+	var id string
+	var clientData []uint8
+	var insertedAt *time.Time
+
+	if err = row.Scan(
+		&id,
+		&clientData,
+		&insertedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrClientNotFound
+		}
+
+		return
+	}
+
+	if len(clientData) > 0 {
+		if err = json.Unmarshal(clientData, &client); err != nil {
+			return nil, err
+		}
+	}
+
+	client.ID = id
 
 	return
 }

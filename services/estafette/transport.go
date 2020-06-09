@@ -235,7 +235,7 @@ func (h *Handler) GetPipelineBuild(c *gin.Context) {
 
 func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
-	if !auth.UserHasValidToken(c) {
+	if !auth.RequestTokenIsValid(c) {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
 	}
@@ -328,7 +328,7 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
 func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 
-	if !auth.UserHasValidToken(c) {
+	if !auth.RequestTokenIsValid(c) {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
 	}
@@ -637,7 +637,7 @@ func (h *Handler) GetPipelineReleases(c *gin.Context) {
 
 func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 
-	if !auth.UserHasValidToken(c) {
+	if !auth.RequestTokenIsValid(c) {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
 	}
@@ -776,7 +776,7 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 
 func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 
-	if !auth.UserHasValidToken(c) {
+	if !auth.RequestTokenIsValid(c) {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
 	}
@@ -1448,7 +1448,7 @@ func (h *Handler) GetStatsReleasesAdoption(c *gin.Context) {
 
 func (h *Handler) UpdateComputedTables(c *gin.Context) {
 
-	if !auth.UserHasValidToken(c) {
+	if !auth.RequestTokenIsValid(c) {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
 	}

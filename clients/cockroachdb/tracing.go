@@ -663,3 +663,45 @@ func (c *tracingClient) GetOrganizationsCount(ctx context.Context, filters map[s
 
 	return c.Client.GetOrganizationsCount(ctx, filters)
 }
+
+func (c *tracingClient) InsertClient(ctx context.Context, client contracts.Client) (cl *contracts.Client, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "InsertClient"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.InsertClient(ctx, client)
+}
+
+func (c *tracingClient) UpdateClient(ctx context.Context, client contracts.Client) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "UpdateClient"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.UpdateClient(ctx, client)
+}
+
+func (c *tracingClient) GetClientByClientID(ctx context.Context, clientID string) (client *contracts.Client, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetClientByClientID"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetClientByClientID(ctx, clientID)
+}
+
+func (c *tracingClient) GetClientByID(ctx context.Context, id string) (client *contracts.Client, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetClientByID"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetClientByID(ctx, id)
+}
+
+func (c *tracingClient) GetClients(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetClients"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetClients(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *tracingClient) GetClientsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetClientsCount"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetClientsCount(ctx, filters)
+}

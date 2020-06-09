@@ -33,20 +33,6 @@ func (s *tracingService) GetProviderByName(ctx context.Context, name string) (pr
 	return s.Service.GetProviderByName(ctx, name)
 }
 
-func (s *tracingService) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "GetUserByIdentity"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
-
-	return s.Service.GetUserByIdentity(ctx, identity)
-}
-
-func (s *tracingService) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "GetUserByID"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
-
-	return s.Service.GetUserByID(ctx, id)
-}
-
 func (s *tracingService) CreateUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "CreateUser"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
@@ -59,4 +45,46 @@ func (s *tracingService) UpdateUser(ctx context.Context, user contracts.User) (e
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return s.Service.UpdateUser(ctx, user)
+}
+
+func (s *tracingService) CreateGroup(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "CreateGroup"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.CreateGroup(ctx, group)
+}
+
+func (s *tracingService) UpdateGroup(ctx context.Context, group contracts.Group) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "UpdateGroup"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.UpdateGroup(ctx, group)
+}
+
+func (s *tracingService) CreateOrganization(ctx context.Context, organization contracts.Organization) (insertedOrganization *contracts.Organization, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "CreateOrganization"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.CreateOrganization(ctx, organization)
+}
+
+func (s *tracingService) UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "UpdateOrganization"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.UpdateOrganization(ctx, organization)
+}
+
+func (s *tracingService) CreateClient(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "CreateClient"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.CreateClient(ctx, client)
+}
+
+func (s *tracingService) UpdateClient(ctx context.Context, client contracts.Client) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "UpdateClient"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.UpdateClient(ctx, client)
 }

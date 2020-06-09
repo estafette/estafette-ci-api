@@ -437,10 +437,15 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 	// middleware to handle auth for different endpoints
 	log.Debug().Msg("Adding auth middleware...")
 	authMiddleware := auth.NewAuthMiddleware(config)
-	jwtMiddleware, err := authMiddleware.GinJWTMiddleware(rbacHandler.HandleLoginProviderAuthenticator())
+	jwtMiddleware, err := authMiddleware.GinJWTMiddleware(rbacHandler.HandleOAuthLoginProviderAuthenticator())
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed creating JWT middleware")
 	}
+	clientLoginJWTMiddleware, err := authMiddleware.GinJWTMiddlewareForClientLogin(rbacHandler.HandleClientLoginProviderAuthenticator())
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed creating JWT middleware for client login")
+	}
+
 	preZippedJWTMiddlewareRoutes := router.Group("/", jwtMiddleware.MiddlewareFunc())
 
 	// Gzip and logging middleware
@@ -471,6 +476,8 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 	routes.GET("/api/auth/login/:provider", rbacHandler.LoginProvider)
 	routes.GET("/api/auth/logout", jwtMiddleware.LogoutHandler)
 	routes.GET("/api/auth/handle/:provider", jwtMiddleware.LoginHandler)
+	routes.GET("/api/auth/client/login", clientLoginJWTMiddleware.LoginHandler)
+	routes.GET("/api/auth/client/logout", clientLoginJWTMiddleware.LogoutHandler)
 
 	// routes that require to be logged in and have a valid jwt
 	jwtMiddlewareRoutes := routes.Group("/", jwtMiddleware.MiddlewareFunc())
@@ -484,8 +491,18 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 		jwtMiddlewareRoutes.DELETE("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.CancelPipelineRelease)
 
 		jwtMiddlewareRoutes.GET("/api/users", rbacHandler.GetUsers)
+
 		jwtMiddlewareRoutes.GET("/api/groups", rbacHandler.GetGroups)
+		jwtMiddlewareRoutes.POST("/api/groups", rbacHandler.CreateGroup)
+		jwtMiddlewareRoutes.PUT("/api/groups/:id", rbacHandler.UpdateGroup)
+
 		jwtMiddlewareRoutes.GET("/api/organizations", rbacHandler.GetOrganizations)
+		jwtMiddlewareRoutes.POST("/api/organizations", rbacHandler.CreateOrganization)
+		jwtMiddlewareRoutes.PUT("/api/organizations/:id", rbacHandler.UpdateOrganization)
+
+		jwtMiddlewareRoutes.GET("/api/clients", rbacHandler.GetClients)
+		jwtMiddlewareRoutes.POST("/api/clients", rbacHandler.CreateClient)
+		jwtMiddlewareRoutes.PUT("/api/clients/:id", rbacHandler.UpdateClient)
 
 		// do not require claims
 		jwtMiddlewareRoutes.GET("/api/config", estafetteHandler.GetConfig)
