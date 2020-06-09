@@ -1732,8 +1732,9 @@ func (h *Handler) EncryptSecret(c *gin.Context) {
 
 func (h *Handler) PostCronEvent(c *gin.Context) {
 
-	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
-		c.Status(http.StatusUnauthorized)
+	// ensure the user has administrator role
+	if !auth.RequestTokenHasRole(c, auth.CronTrigger) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have cron-trigger role"})
 		return
 	}
 
@@ -1750,8 +1751,9 @@ func (h *Handler) PostCronEvent(c *gin.Context) {
 
 func (h *Handler) CopyLogsToCloudStorage(c *gin.Context) {
 
-	if c.MustGet(gin.AuthUserKey).(string) != "apiKey" {
-		c.Status(http.StatusUnauthorized)
+	// ensure the user has administrator role
+	if !auth.RequestTokenHasRole(c, auth.LogMigrator) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have log-migrator role"})
 		return
 	}
 

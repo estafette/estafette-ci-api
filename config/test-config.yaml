@@ -49,7 +49,6 @@ apiServer:
   logReader: database
 
 auth:
-  apiKey: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
   jwt:
     domain: ci.estafette.io
     key: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)

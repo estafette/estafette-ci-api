@@ -14,7 +14,6 @@ import (
 
 // Middleware handles authentication for routes requiring authentication
 type Middleware interface {
-	APIKeyMiddlewareFunc() gin.HandlerFunc
 	GoogleJWTMiddlewareFunc() gin.HandlerFunc
 	GinJWTMiddleware(authenticator func(c *gin.Context) (interface{}, error)) (middleware *jwt.GinJWTMiddleware, err error)
 	GinJWTMiddlewareForClientLogin(authenticator func(c *gin.Context) (interface{}, error)) (middleware *jwt.GinJWTMiddleware, err error)
@@ -31,29 +30,6 @@ func NewAuthMiddleware(config *config.APIConfig) (authMiddleware Middleware) {
 
 type authMiddlewareImpl struct {
 	config *config.APIConfig
-}
-
-func (m *authMiddlewareImpl) APIKeyMiddlewareFunc() gin.HandlerFunc {
-	return func(c *gin.Context) {
-
-		authorizationHeader := c.GetHeader("Authorization")
-		bearerToken := strings.TrimPrefix(authorizationHeader, "Bearer ")
-
-		// check if bearer token equals api key, otherwise check if it's a valid jwt
-		if bearerToken != m.config.Auth.APIKey {
-			_, err := ValidateJWT(m.config, bearerToken)
-			if err != nil {
-				log.Error().
-					Str("authorizationHeader", authorizationHeader).
-					Msg("Authorization header bearer token is incorrect")
-				c.Status(http.StatusUnauthorized)
-				return
-			}
-		}
-
-		// set 'user' to enforce a handler method to require api key auth with `user := c.MustGet(gin.AuthUserKey).(string)` and ensuring the user equals 'apiKey'
-		c.Set(gin.AuthUserKey, "apiKey")
-	}
 }
 
 func (m *authMiddlewareImpl) GoogleJWTMiddlewareFunc() gin.HandlerFunc {
@@ -78,7 +54,7 @@ func (m *authMiddlewareImpl) GoogleJWTMiddlewareFunc() gin.HandlerFunc {
 			return
 		}
 
-		// set 'user' to enforce a handler method to require api key auth with `user := c.MustGet(gin.AuthUserKey).(string)` and ensuring the user equals 'apiKey'
+		// set 'user' to enforce a handler method to require api key auth with `user := c.MustGet(gin.AuthUserKey).(string)` and ensuring the user equals 'google-jwt'
 		c.Set(gin.AuthUserKey, "google-jwt")
 	}
 }

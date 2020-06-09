@@ -551,6 +551,9 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteHandler.PostPipelineBuildLogs)
 		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteHandler.PostPipelineReleaseLogs)
 
+		// communication from cron-event-sender to api
+		jwtMiddlewareRoutes.POST("/api/integrations/cron/events", estafetteHandler.PostCronEvent)
+
 		// do not require claims and avoid re-zipping
 		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteHandler.GetPipelineBuildLogs)
 		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs/tail", estafetteHandler.TailPipelineBuildLogs)
@@ -558,14 +561,6 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs", estafetteHandler.GetPipelineReleaseLogs)
 		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs/tail", estafetteHandler.TailPipelineReleaseLogs)
 		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:id/logs.stream", estafetteHandler.TailPipelineReleaseLogs)
-	}
-
-	// TODO move behind jwt middleware by letting build/release jobs and cron event sender use valid jwt's
-	// api key protected endpoints
-	apiKeyAuthorizedRoutes := routes.Group("/", authMiddleware.APIKeyMiddlewareFunc())
-	{
-		apiKeyAuthorizedRoutes.POST("/api/integrations/cron/events", estafetteHandler.PostCronEvent)
-		apiKeyAuthorizedRoutes.GET("/api/copylogstocloudstorage/:source/:owner/:repo", estafetteHandler.CopyLogsToCloudStorage)
 	}
 
 	// default routes

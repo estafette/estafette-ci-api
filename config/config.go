@@ -67,7 +67,6 @@ func (c *APIServerConfig) ReadLogFromCloudStorage() bool {
 
 // AuthConfig determines whether to use IAP for authentication and authorization
 type AuthConfig struct {
-	APIKey         string           `yaml:"apiKey"`
 	OAuthProviders []*OAuthProvider `yaml:"oauthProviders"`
 	JWT            *JWTConfig       `yaml:"jwt"`
 	Administrators []string         `yaml:"administrators"`

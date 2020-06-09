@@ -62,9 +62,11 @@ const (
 	Administrator Role = iota
 	// CronTrigger can send a cron event
 	CronTrigger
+	// LogMigrator is needed to migrate logs from db to cloud storage and vice versa
+	LogMigrator
 )
 
-var roles = []string{"administrator", "cron-trigger"}
+var roles = []string{"administrator", "cron-trigger", "log-migrator"}
 
 func (r Role) String() string {
 	return roles[r]

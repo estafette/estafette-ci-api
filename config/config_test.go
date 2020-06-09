@@ -149,7 +149,6 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		authConfig := config.Auth
 
-		assert.Equal(t, "this is my secret", authConfig.APIKey)
 		assert.Equal(t, 3, len(authConfig.OAuthProviders))
 		assert.Equal(t, "google", authConfig.OAuthProviders[0].Name)
 		assert.Equal(t, "abcdasa", authConfig.OAuthProviders[0].ClientID)

@@ -914,7 +914,6 @@ func (c *client) GetBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 		BaseURL:          c.config.APIServer.BaseURL,
 		BuilderEventsURL: strings.TrimRight(c.config.APIServer.ServiceURL, "/") + "/api/commands",
 		PostLogsURL:      strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.BuildID),
-		APIKey:           c.config.Auth.APIKey,
 		JWT:              jwt,
 	}
 
