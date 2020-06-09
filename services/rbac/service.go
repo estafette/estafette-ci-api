@@ -169,6 +169,7 @@ func (s *service) CreateClient(ctx context.Context, client contracts.Client) (in
 	// set updateable fields
 	insertedClient.Name = client.Name
 	insertedClient.Roles = client.Roles
+	insertedClient.Active = true
 
 	// generate random client id and client secret
 	clientSecret, err := password.Generate(64, 10, 10, false, false)
@@ -197,6 +198,7 @@ func (s *service) UpdateClient(ctx context.Context, client contracts.Client) (er
 	// copy updateable fields
 	currentClient.Name = client.Name
 	currentClient.Roles = client.Roles
+	currentClient.Active = true
 
 	return s.cockroachdbClient.UpdateClient(ctx, *currentClient)
 }
