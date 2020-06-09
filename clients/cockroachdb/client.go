@@ -4566,6 +4566,10 @@ func (c *client) scanUser(row sq.RowScanner) (user *contracts.User, err error) {
 		&id,
 		&userData,
 		&insertedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrUserNotFound
+		}
+
 		return
 	}
 
@@ -4596,10 +4600,6 @@ func (c *client) scanGroups(rows *sql.Rows) (groups []*contracts.Group, err erro
 			&id,
 			&groupData,
 			&insertedAt); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, ErrGroupNotFound
-			}
-
 			return
 		}
 

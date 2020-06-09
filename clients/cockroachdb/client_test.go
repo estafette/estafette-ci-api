@@ -2,6 +2,7 @@ package cockroachdb
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"testing"
 	"time"
@@ -979,6 +980,7 @@ func TestIntegrationGetUserByIdentity(t *testing.T) {
 		retrievedUser, err := cockroachdbClient.GetUserByIdentity(ctx, identity)
 
 		assert.NotNil(t, err)
+		assert.True(t, errors.Is(err, ErrUserNotFound))
 		assert.Nil(t, retrievedUser)
 	})
 }
@@ -1168,6 +1170,7 @@ func TestIntegrationGetGroupByIdentity(t *testing.T) {
 		retrievedGroup, err := cockroachdbClient.GetGroupByIdentity(ctx, identity)
 
 		assert.NotNil(t, err)
+		assert.True(t, errors.Is(err, ErrGroupNotFound))
 		assert.Nil(t, retrievedGroup)
 	})
 }
@@ -1357,6 +1360,7 @@ func TestIntegrationGetOrganizationByIdentity(t *testing.T) {
 		retrievedOrganization, err := cockroachdbClient.GetOrganizationByIdentity(ctx, identity)
 
 		assert.NotNil(t, err)
+		assert.True(t, errors.Is(err, ErrOrganizationNotFound))
 		assert.Nil(t, retrievedOrganization)
 	})
 }
@@ -1509,7 +1513,7 @@ func TestIntegrationGetClientByClientID(t *testing.T) {
 		assert.Equal(t, retrievedClient.ID, insertedClient.ID)
 	})
 
-	t.Run("DoesNotReturnClientIfProviderDoesNotMatch", func(t *testing.T) {
+	t.Run("DoesNotReturnClientIfClientIDDoesNotMatch", func(t *testing.T) {
 
 		if testing.Short() {
 			t.Skip("skipping test in short mode.")
@@ -1528,6 +1532,7 @@ func TestIntegrationGetClientByClientID(t *testing.T) {
 		retrievedClient, err := cockroachdbClient.GetClientByClientID(ctx, clientID)
 
 		assert.NotNil(t, err)
+		assert.True(t, errors.Is(err, ErrClientNotFound))
 		assert.Nil(t, retrievedClient)
 	})
 }
