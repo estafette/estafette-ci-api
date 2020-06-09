@@ -21,6 +21,12 @@ type metricsService struct {
 	requestLatency metrics.Histogram
 }
 
+func (s *metricsService) GetRoles(ctx context.Context) (roles []string, err error) {
+	defer func(begin time.Time) { helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GetRoles", begin) }(time.Now())
+
+	return s.Service.GetRoles(ctx)
+}
+
 func (s *metricsService) GetProviders(ctx context.Context) (providers []*config.OAuthProvider, err error) {
 	defer func(begin time.Time) { helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GetProviders", begin) }(time.Now())
 

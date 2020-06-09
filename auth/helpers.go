@@ -221,7 +221,7 @@ func RequestTokenIsValid(c *gin.Context) bool {
 	return true
 }
 
-func RequestTokenHasRole(c *gin.Context, role string) bool {
+func RequestTokenHasRole(c *gin.Context, role Role) bool {
 
 	if !RequestTokenIsValid(c) {
 		return false
@@ -242,7 +242,7 @@ func RequestTokenHasRole(c *gin.Context, role string) bool {
 	}
 
 	for _, r := range roles {
-		if rval, ok := r.(string); ok && rval == role {
+		if rval, ok := r.(string); ok && rval == role.String() {
 			return true
 		}
 	}

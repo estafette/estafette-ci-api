@@ -483,12 +483,15 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 	jwtMiddlewareRoutes := routes.Group("/", jwtMiddleware.MiddlewareFunc())
 	{
 		// require claims
+		jwtMiddlewareRoutes.GET("/api/me", rbacHandler.GetLoggedInUser)
 		jwtMiddlewareRoutes.GET("/api/users/me", rbacHandler.GetLoggedInUser)
 		jwtMiddlewareRoutes.GET("/api/update-computed-tables", estafetteHandler.UpdateComputedTables)
 		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/builds", estafetteHandler.CreatePipelineBuild)
 		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/releases", estafetteHandler.CreatePipelineRelease)
 		jwtMiddlewareRoutes.DELETE("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteHandler.CancelPipelineBuild)
 		jwtMiddlewareRoutes.DELETE("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.CancelPipelineRelease)
+
+		jwtMiddlewareRoutes.GET("/api/roles", rbacHandler.GetRoles)
 
 		jwtMiddlewareRoutes.GET("/api/users", rbacHandler.GetUsers)
 		// jwtMiddlewareRoutes.GET("/api/users/:id", rbacHandler.GetUser)

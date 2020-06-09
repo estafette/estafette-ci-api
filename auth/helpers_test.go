@@ -45,6 +45,9 @@ func TestRetrievingGoogleJSONWebKeys(t *testing.T) {
 			expectedY := 65537
 			assert.Equal(t, expectedY, publicKey.E)
 			//}
+
+			roleString := Administrator.String()
+			assert.Equal(t, "administrator", roleString)
 		}
 	})
 }

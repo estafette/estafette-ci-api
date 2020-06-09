@@ -18,6 +18,12 @@ type loggingService struct {
 	prefix string
 }
 
+func (s *loggingService) GetRoles(ctx context.Context) (roles []string, err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "GetRoles", err) }()
+
+	return s.Service.GetRoles(ctx)
+}
+
 func (s *loggingService) GetProviders(ctx context.Context) (providers []*config.OAuthProvider, err error) {
 	defer func() { helpers.HandleLogError(s.prefix, "GetProviders", err) }()
 

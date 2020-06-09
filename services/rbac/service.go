@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
 	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -21,6 +22,8 @@ var (
 
 // Service handles http requests for role-based-access-control
 type Service interface {
+	GetRoles(ctx context.Context) (roles []string, err error)
+
 	GetProviders(ctx context.Context) (providers []*config.OAuthProvider, err error)
 	GetProviderByName(ctx context.Context, name string) (provider *config.OAuthProvider, err error)
 
@@ -48,6 +51,10 @@ func NewService(config *config.APIConfig, cockroachdbClient cockroachdb.Client) 
 type service struct {
 	config            *config.APIConfig
 	cockroachdbClient cockroachdb.Client
+}
+
+func (s *service) GetRoles(ctx context.Context) (roles []string, err error) {
+	return auth.Roles(), nil
 }
 
 func (s *service) GetProviders(ctx context.Context) (providers []*config.OAuthProvider, err error) {

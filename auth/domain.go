@@ -53,3 +53,24 @@ type GoogleJSONWebKey struct {
 type GoogleJWKResponse struct {
 	Keys []GoogleJSONWebKey `json:"keys"`
 }
+
+// Role is used to hand out permissions to users and clients
+type Role int
+
+const (
+	// Administrator can configure role-based-access-control
+	Administrator Role = iota
+	// CronTrigger can send a cron event
+	CronTrigger
+)
+
+var roles = []string{"administrator", "cron-trigger"}
+
+func (r Role) String() string {
+	return roles[r]
+}
+
+// Roles returns all allowed values for Role
+func Roles() []string {
+	return roles
+}

@@ -19,6 +19,13 @@ type tracingService struct {
 	prefix string
 }
 
+func (s *tracingService) GetRoles(ctx context.Context) (roles []string, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "GetRoles"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.GetRoles(ctx)
+}
+
 func (s *tracingService) GetProviders(ctx context.Context) (providers []*config.OAuthProvider, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "GetProviders"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
