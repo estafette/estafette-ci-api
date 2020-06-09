@@ -4191,8 +4191,8 @@ func (c *client) GetGroups(ctx context.Context, pageNumber, pageSize int, filter
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Select("a.id, a.user_data, a.inserted_at").
-		From("users a").
+		Select("a.id, a.group_data, a.inserted_at").
+		From("groups a").
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
