@@ -247,3 +247,83 @@ func (h *Handler) GetUsers(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
+
+func (h *Handler) GetGroups(c *gin.Context) {
+
+	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+
+	// ensure the user has administrator role
+	if !auth.UserHasRole(c, "administrator") {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
+		return
+	}
+
+	response, err := helpers.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			groups, err := h.cockroachdbClient.GetGroups(c.Request.Context(), pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(groups))
+			for i := range groups {
+				items[i] = groups[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachdbClient.GetGroupsCount(c.Request.Context(), filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving groups from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) GetOrganizations(c *gin.Context) {
+
+	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+
+	// ensure the user has administrator role
+	if !auth.UserHasRole(c, "administrator") {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
+		return
+	}
+
+	response, err := helpers.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			organizations, err := h.cockroachdbClient.GetOrganizations(c.Request.Context(), pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(organizations))
+			for i := range organizations {
+				items[i] = organizations[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachdbClient.GetOrganizationsCount(c.Request.Context(), filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving organizations from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}

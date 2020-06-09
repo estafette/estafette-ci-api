@@ -644,3 +644,99 @@ func (c *metricsClient) GetUsersCount(ctx context.Context, filters map[string][]
 
 	return c.Client.GetUsersCount(ctx, filters)
 }
+
+func (c *metricsClient) InsertGroup(ctx context.Context, group contracts.Group) (g *contracts.Group, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "InsertGroup", begin)
+	}(time.Now())
+
+	return c.Client.InsertGroup(ctx, group)
+}
+
+func (c *metricsClient) UpdateGroup(ctx context.Context, group contracts.Group) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "UpdateGroup", begin)
+	}(time.Now())
+
+	return c.Client.UpdateGroup(ctx, group)
+}
+
+func (c *metricsClient) GetGroupByIdentity(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetGroupByIdentity", begin)
+	}(time.Now())
+
+	return c.Client.GetGroupByIdentity(ctx, identity)
+}
+
+func (c *metricsClient) GetGroupByID(ctx context.Context, id string) (group *contracts.Group, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetGroupByID", begin)
+	}(time.Now())
+
+	return c.Client.GetGroupByID(ctx, id)
+}
+
+func (c *metricsClient) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetGroups", begin)
+	}(time.Now())
+
+	return c.Client.GetGroups(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *metricsClient) GetGroupsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetGroupsCount", begin)
+	}(time.Now())
+
+	return c.Client.GetGroupsCount(ctx, filters)
+}
+
+func (c *metricsClient) InsertOrganization(ctx context.Context, organization contracts.Organization) (o *contracts.Organization, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "InsertOrganization", begin)
+	}(time.Now())
+
+	return c.Client.InsertOrganization(ctx, organization)
+}
+
+func (c *metricsClient) UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "UpdateOrganization", begin)
+	}(time.Now())
+
+	return c.Client.UpdateOrganization(ctx, organization)
+}
+
+func (c *metricsClient) GetOrganizationByIdentity(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetOrganizationByIdentity", begin)
+	}(time.Now())
+
+	return c.Client.GetOrganizationByIdentity(ctx, identity)
+}
+
+func (c *metricsClient) GetOrganizationByID(ctx context.Context, id string) (organization *contracts.Organization, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetOrganizationByID", begin)
+	}(time.Now())
+
+	return c.Client.GetOrganizationByID(ctx, id)
+}
+
+func (c *metricsClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetOrganizations", begin)
+	}(time.Now())
+
+	return c.Client.GetOrganizations(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *metricsClient) GetOrganizationsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetOrganizationsCount", begin)
+	}(time.Now())
+
+	return c.Client.GetOrganizationsCount(ctx, filters)
+}

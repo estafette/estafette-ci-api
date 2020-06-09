@@ -918,50 +918,6 @@ func TestIntegrationUpdateUser(t *testing.T) {
 	})
 }
 
-func TestIntegrationGetPipelineBuildsDurations(t *testing.T) {
-	t.Run("ReturnsDurations", func(t *testing.T) {
-		if testing.Short() {
-			t.Skip("skipping test in short mode.")
-		}
-
-		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
-		build := getBuild()
-		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
-		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
-		assert.Nil(t, err)
-
-		// act
-		durations, err := cockroachdbClient.GetPipelineBuildsDurations(ctx, build.RepoSource, build.RepoOwner, build.RepoName, map[string][]string{})
-
-		assert.Nil(t, err)
-		assert.True(t, len(durations) > 0)
-	})
-}
-
-func TestIntegrationGetPipelineReleasesDurations(t *testing.T) {
-	t.Run("ReturnsDurations", func(t *testing.T) {
-		if testing.Short() {
-			t.Skip("skipping test in short mode.")
-		}
-
-		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
-		release := getRelease()
-		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
-		assert.Nil(t, err)
-
-		// act
-		durations, err := cockroachdbClient.GetPipelineReleasesDurations(ctx, release.RepoSource, release.RepoOwner, release.RepoName, map[string][]string{})
-
-		assert.Nil(t, err)
-		assert.True(t, len(durations) > 0)
-	})
-}
-
 func TestIntegrationGetUserByIdentity(t *testing.T) {
 	t.Run("ReturnsInsertedUserWithID", func(t *testing.T) {
 
@@ -1089,6 +1045,428 @@ func TestIntegrationGetUsersCount(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
+	})
+}
+
+func TestIntegrationInsertGroup(t *testing.T) {
+	t.Run("ReturnsInsertedGroupWithID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		group := getGroup()
+
+		// act
+		insertedGroup, err := cockroachdbClient.InsertGroup(ctx, group)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, insertedGroup)
+		assert.True(t, insertedGroup.ID != "")
+	})
+}
+
+func TestIntegrationUpdateGroup(t *testing.T) {
+	t.Run("UpdatesGroup", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		group := getGroup()
+		insertedGroup, err := cockroachdbClient.InsertGroup(ctx, group)
+		assert.Nil(t, err)
+
+		// act
+		err = cockroachdbClient.UpdateGroup(ctx, *insertedGroup)
+
+		assert.Nil(t, err)
+	})
+
+	t.Run("UpdatesGroupForNonExistingGroup", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		group := getGroup()
+		insertedGroup, err := cockroachdbClient.InsertGroup(ctx, group)
+		assert.Nil(t, err)
+		insertedGroup.ID = "15"
+
+		// act
+		err = cockroachdbClient.UpdateGroup(ctx, *insertedGroup)
+
+		assert.Nil(t, err)
+	})
+}
+
+func TestIntegrationGetGroupByIdentity(t *testing.T) {
+	t.Run("ReturnsInsertedGroupWithID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		group := getGroup()
+		group.Identities = []*contracts.GroupIdentity{
+			{
+				Provider: "google",
+				ID:       "team-z",
+				Name:     "Team Z",
+			},
+		}
+		insertedGroup, err := cockroachdbClient.InsertGroup(ctx, group)
+		assert.Nil(t, err)
+
+		identity := contracts.GroupIdentity{
+			Provider: "google",
+			Name:     "Team Z",
+		}
+
+		// act
+		retrievedGroup, err := cockroachdbClient.GetGroupByIdentity(ctx, identity)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, retrievedGroup)
+		assert.Equal(t, retrievedGroup.ID, insertedGroup.ID)
+	})
+
+	t.Run("DoesNotReturnGroupIfProviderDoesNotMatch", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		group := getGroup()
+		group.Identities = []*contracts.GroupIdentity{
+			{
+				Provider: "google",
+				ID:       "team-y",
+				Name:     "Team Y",
+			},
+		}
+		_, err := cockroachdbClient.InsertGroup(ctx, group)
+		assert.Nil(t, err)
+
+		identity := contracts.GroupIdentity{
+			Provider: "google",
+			Name:     "Team Z",
+		}
+
+		// act
+		retrievedGroup, err := cockroachdbClient.GetGroupByIdentity(ctx, identity)
+
+		assert.NotNil(t, err)
+		assert.Nil(t, retrievedGroup)
+	})
+}
+
+func TestIntegrationGetGroupByID(t *testing.T) {
+	t.Run("ReturnsInsertedGroupWithID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		group := getGroup()
+		insertedGroup, err := cockroachdbClient.InsertGroup(ctx, group)
+		assert.Nil(t, err)
+
+		// act
+		retrievedGroup, err := cockroachdbClient.GetGroupByID(ctx, insertedGroup.ID)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, retrievedGroup)
+		assert.Equal(t, retrievedGroup.ID, insertedGroup.ID)
+	})
+}
+
+func TestIntegrationGetGroups(t *testing.T) {
+	t.Run("ReturnsInsertedGroups", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		group := getGroup()
+		_, err := cockroachdbClient.InsertGroup(ctx, group)
+		assert.Nil(t, err)
+
+		// act
+		groups, err := cockroachdbClient.GetGroups(ctx, 1, 100, map[string][]string{}, []helpers.OrderField{})
+
+		assert.Nil(t, err)
+		assert.NotNil(t, groups)
+		assert.True(t, len(groups) > 0)
+	})
+}
+
+func TestIntegrationGetGroupsCount(t *testing.T) {
+	t.Run("ReturnsInsertedGroupsCount", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		group := getGroup()
+		_, err := cockroachdbClient.InsertGroup(ctx, group)
+		assert.Nil(t, err)
+
+		// act
+		count, err := cockroachdbClient.GetGroupsCount(ctx, map[string][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, count > 0)
+	})
+}
+
+func TestIntegrationInsertOrganization(t *testing.T) {
+	t.Run("ReturnsInsertedOrganizationWithID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		organization := getOrganization()
+
+		// act
+		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, insertedOrganization)
+		assert.True(t, insertedOrganization.ID != "")
+	})
+}
+
+func TestIntegrationUpdateOrganization(t *testing.T) {
+	t.Run("UpdatesOrganization", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		organization := getOrganization()
+		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		assert.Nil(t, err)
+
+		// act
+		err = cockroachdbClient.UpdateOrganization(ctx, *insertedOrganization)
+
+		assert.Nil(t, err)
+	})
+
+	t.Run("UpdatesOrganizationForNonExistingOrganization", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		organization := getOrganization()
+		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		assert.Nil(t, err)
+		insertedOrganization.ID = "15"
+
+		// act
+		err = cockroachdbClient.UpdateOrganization(ctx, *insertedOrganization)
+
+		assert.Nil(t, err)
+	})
+}
+
+func TestIntegrationGetOrganizationByIdentity(t *testing.T) {
+	t.Run("ReturnsInsertedOrganizationWithID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		organization := getOrganization()
+		organization.Identities = []*contracts.OrganizationIdentity{
+			{
+				Provider: "google",
+				ID:       "team-z",
+				Name:     "Team Z",
+			},
+		}
+		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		assert.Nil(t, err)
+
+		identity := contracts.OrganizationIdentity{
+			Provider: "google",
+			Name:     "Team Z",
+		}
+
+		// act
+		retrievedOrganization, err := cockroachdbClient.GetOrganizationByIdentity(ctx, identity)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, retrievedOrganization)
+		assert.Equal(t, retrievedOrganization.ID, insertedOrganization.ID)
+	})
+
+	t.Run("DoesNotReturnOrganizationIfProviderDoesNotMatch", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		organization := getOrganization()
+		organization.Identities = []*contracts.OrganizationIdentity{
+			{
+				Provider: "google",
+				ID:       "team-y",
+				Name:     "Team Y",
+			},
+		}
+		_, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		assert.Nil(t, err)
+
+		identity := contracts.OrganizationIdentity{
+			Provider: "google",
+			Name:     "Team Z",
+		}
+
+		// act
+		retrievedOrganization, err := cockroachdbClient.GetOrganizationByIdentity(ctx, identity)
+
+		assert.NotNil(t, err)
+		assert.Nil(t, retrievedOrganization)
+	})
+}
+
+func TestIntegrationGetOrganizationByID(t *testing.T) {
+	t.Run("ReturnsInsertedOrganizationWithID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		organization := getOrganization()
+		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		assert.Nil(t, err)
+
+		// act
+		retrievedOrganization, err := cockroachdbClient.GetOrganizationByID(ctx, insertedOrganization.ID)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, retrievedOrganization)
+		assert.Equal(t, retrievedOrganization.ID, insertedOrganization.ID)
+	})
+}
+
+func TestIntegrationGetOrganizations(t *testing.T) {
+	t.Run("ReturnsInsertedOrganizations", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		organization := getOrganization()
+		_, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		assert.Nil(t, err)
+
+		// act
+		organizations, err := cockroachdbClient.GetOrganizations(ctx, 1, 100, map[string][]string{}, []helpers.OrderField{})
+
+		assert.Nil(t, err)
+		assert.NotNil(t, organizations)
+		assert.True(t, len(organizations) > 0)
+	})
+}
+
+func TestIntegrationGetOrganizationsCount(t *testing.T) {
+	t.Run("ReturnsInsertedOrganizationsCount", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		organization := getOrganization()
+		_, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		assert.Nil(t, err)
+
+		// act
+		count, err := cockroachdbClient.GetOrganizationsCount(ctx, map[string][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, count > 0)
+	})
+}
+
+func TestIntegrationGetPipelineBuildsDurations(t *testing.T) {
+	t.Run("ReturnsDurations", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+
+		// act
+		durations, err := cockroachdbClient.GetPipelineBuildsDurations(ctx, build.RepoSource, build.RepoOwner, build.RepoName, map[string][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, len(durations) > 0)
+	})
+}
+
+func TestIntegrationGetPipelineReleasesDurations(t *testing.T) {
+	t.Run("ReturnsDurations", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		release := getRelease()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		assert.Nil(t, err)
+
+		// act
+		durations, err := cockroachdbClient.GetPipelineReleasesDurations(ctx, release.RepoSource, release.RepoOwner, release.RepoName, map[string][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, len(durations) > 0)
 	})
 }
 
@@ -1229,10 +1607,16 @@ func getUser() contracts.User {
 				Email:    "wilson@homeimprovement.com",
 			},
 		},
-		Groups: []*contracts.UserGroup{
+		Groups: []*contracts.Group{
 			{
-				Provider: "gsuite",
-				Name:     "Neighbourhood",
+				Name: "Team A",
+				Identities: []*contracts.GroupIdentity{
+					{
+						Provider: "google",
+						Name:     "Team A",
+						ID:       "team-a",
+					},
+				},
 			},
 		},
 		Preferences: map[string]interface{}{
@@ -1240,6 +1624,32 @@ func getUser() contracts.User {
 			"builds-page-size":    20,
 			"releases-page-size":  50,
 			"user-filter":         "recent-committer",
+		},
+	}
+}
+
+func getGroup() contracts.Group {
+	return contracts.Group{
+		Name: "Team A",
+		Identities: []*contracts.GroupIdentity{
+			{
+				Provider: "google",
+				Name:     "Team A",
+				ID:       "team-a",
+			},
+		},
+	}
+}
+
+func getOrganization() contracts.Organization {
+	return contracts.Organization{
+		Name: "Org A",
+		Identities: []*contracts.OrganizationIdentity{
+			{
+				Provider: "google",
+				Name:     "Org A",
+				ID:       "org-a",
+			},
 		},
 	}
 }

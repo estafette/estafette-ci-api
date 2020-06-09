@@ -484,6 +484,8 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 		jwtMiddlewareRoutes.DELETE("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.CancelPipelineRelease)
 
 		jwtMiddlewareRoutes.GET("/api/users", rbacHandler.GetUsers)
+		jwtMiddlewareRoutes.GET("/api/groups", rbacHandler.GetGroups)
+		jwtMiddlewareRoutes.GET("/api/organizations", rbacHandler.GetOrganizations)
 
 		// do not require claims
 		jwtMiddlewareRoutes.GET("/api/config", estafetteHandler.GetConfig)

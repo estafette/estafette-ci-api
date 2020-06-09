@@ -11,7 +11,7 @@ require (
 	github.com/appleboy/gin-jwt/v2 v2.6.3
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/ericchiang/k8s v1.2.0
-	github.com/estafette/estafette-ci-contracts v0.0.203
+	github.com/estafette/estafette-ci-contracts v0.0.204
 	github.com/estafette/estafette-ci-crypt v0.0.36
 	github.com/estafette/estafette-ci-manifest v0.1.153
 	github.com/estafette/estafette-foundation v0.0.54

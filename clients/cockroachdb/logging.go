@@ -498,3 +498,75 @@ func (c *loggingClient) GetUsersCount(ctx context.Context, filters map[string][]
 
 	return c.Client.GetUsersCount(ctx, filters)
 }
+
+func (c *loggingClient) InsertGroup(ctx context.Context, group contracts.Group) (g *contracts.Group, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "InsertGroup", err, ErrUserNotFound) }()
+
+	return c.Client.InsertGroup(ctx, group)
+}
+
+func (c *loggingClient) UpdateGroup(ctx context.Context, group contracts.Group) (err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "UpdateGroup", err, ErrUserNotFound) }()
+
+	return c.Client.UpdateGroup(ctx, group)
+}
+
+func (c *loggingClient) GetGroupByIdentity(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetGroupByIdentity", err, ErrUserNotFound) }()
+
+	return c.Client.GetGroupByIdentity(ctx, identity)
+}
+
+func (c *loggingClient) GetGroupByID(ctx context.Context, id string) (group *contracts.Group, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetGroupByID", err, ErrUserNotFound) }()
+
+	return c.Client.GetGroupByID(ctx, id)
+}
+
+func (c *loggingClient) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetGroups", err, ErrUserNotFound) }()
+
+	return c.Client.GetGroups(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *loggingClient) GetGroupsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetGroupsCount", err, ErrUserNotFound) }()
+
+	return c.Client.GetGroupsCount(ctx, filters)
+}
+
+func (c *loggingClient) InsertOrganization(ctx context.Context, organization contracts.Organization) (o *contracts.Organization, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "InsertOrganization", err, ErrUserNotFound) }()
+
+	return c.Client.InsertOrganization(ctx, organization)
+}
+
+func (c *loggingClient) UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "UpdateOrganization", err, ErrUserNotFound) }()
+
+	return c.Client.UpdateOrganization(ctx, organization)
+}
+
+func (c *loggingClient) GetOrganizationByIdentity(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetOrganizationByIdentity", err, ErrUserNotFound) }()
+
+	return c.Client.GetOrganizationByIdentity(ctx, identity)
+}
+
+func (c *loggingClient) GetOrganizationByID(ctx context.Context, id string) (organization *contracts.Organization, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetOrganizationByID", err, ErrUserNotFound) }()
+
+	return c.Client.GetOrganizationByID(ctx, id)
+}
+
+func (c *loggingClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetGroups", err, ErrUserNotFound) }()
+
+	return c.Client.GetOrganizations(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *loggingClient) GetOrganizationsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetGroupsCount", err, ErrUserNotFound) }()
+
+	return c.Client.GetOrganizationsCount(ctx, filters)
+}

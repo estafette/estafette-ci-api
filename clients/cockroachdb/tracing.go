@@ -579,3 +579,87 @@ func (c *tracingClient) GetUsersCount(ctx context.Context, filters map[string][]
 
 	return c.Client.GetUsersCount(ctx, filters)
 }
+
+func (c *tracingClient) InsertGroup(ctx context.Context, group contracts.Group) (g *contracts.Group, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "InsertGroup"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.InsertGroup(ctx, group)
+}
+
+func (c *tracingClient) UpdateGroup(ctx context.Context, group contracts.Group) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "UpdateGroup"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.UpdateGroup(ctx, group)
+}
+
+func (c *tracingClient) GetGroupByIdentity(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetGroupByIdentity"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetGroupByIdentity(ctx, identity)
+}
+
+func (c *tracingClient) GetGroupByID(ctx context.Context, id string) (group *contracts.Group, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetGroupByID"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetGroupByID(ctx, id)
+}
+
+func (c *tracingClient) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetGroups"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetGroups(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *tracingClient) GetGroupsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetGroupsCount"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetGroupsCount(ctx, filters)
+}
+
+func (c *tracingClient) InsertOrganization(ctx context.Context, organization contracts.Organization) (o *contracts.Organization, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "InsertOrganization"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.InsertOrganization(ctx, organization)
+}
+
+func (c *tracingClient) UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "UpdateOrganization"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.UpdateOrganization(ctx, organization)
+}
+
+func (c *tracingClient) GetOrganizationByIdentity(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetOrganizationByIdentity"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetOrganizationByIdentity(ctx, identity)
+}
+
+func (c *tracingClient) GetOrganizationByID(ctx context.Context, id string) (organization *contracts.Organization, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetOrganizationByID"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetOrganizationByID(ctx, id)
+}
+
+func (c *tracingClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetOrganizations"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetOrganizations(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *tracingClient) GetOrganizationsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetOrganizationsCount"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetOrganizationsCount(ctx, filters)
+}

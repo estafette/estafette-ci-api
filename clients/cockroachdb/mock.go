@@ -84,12 +84,27 @@ type MockClient struct {
 	RenameReleaseLogsFunc                          func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	RenameComputedPipelinesFunc                    func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	RenameComputedReleasesFunc                     func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
-	InsertUserFunc                                 func(ctx context.Context, user contracts.User) (u *contracts.User, err error)
-	UpdateUserFunc                                 func(ctx context.Context, user contracts.User) (err error)
-	GetUserByIdentityFunc                          func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
-	GetUserByIDFunc                                func(ctx context.Context, id string) (user *contracts.User, err error)
-	GetUsersFunc                                   func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (users []*contracts.User, err error)
-	GetUsersCountFunc                              func(ctx context.Context, filters map[string][]string) (count int, err error)
+
+	InsertUserFunc        func(ctx context.Context, user contracts.User) (u *contracts.User, err error)
+	UpdateUserFunc        func(ctx context.Context, user contracts.User) (err error)
+	GetUserByIdentityFunc func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
+	GetUserByIDFunc       func(ctx context.Context, id string) (user *contracts.User, err error)
+	GetUsersFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (users []*contracts.User, err error)
+	GetUsersCountFunc     func(ctx context.Context, filters map[string][]string) (count int, err error)
+
+	InsertGroupFunc        func(ctx context.Context, group contracts.Group) (g *contracts.Group, err error)
+	UpdateGroupFunc        func(ctx context.Context, group contracts.Group) (err error)
+	GetGroupByIdentityFunc func(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error)
+	GetGroupByIDFunc       func(ctx context.Context, id string) (group *contracts.Group, err error)
+	GetGroupsFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error)
+	GetGroupsCountFunc     func(ctx context.Context, filters map[string][]string) (count int, err error)
+
+	InsertOrganizationFunc        func(ctx context.Context, organization contracts.Organization) (o *contracts.Organization, err error)
+	UpdateOrganizationFunc        func(ctx context.Context, organization contracts.Organization) (err error)
+	GetOrganizationByIdentityFunc func(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error)
+	GetOrganizationByIDFunc       func(ctx context.Context, id string) (organization *contracts.Organization, err error)
+	GetOrganizationsFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error)
+	GetOrganizationsCountFunc     func(ctx context.Context, filters map[string][]string) (count int, err error)
 }
 
 func (c MockClient) Connect(ctx context.Context) (err error) {
@@ -651,5 +666,88 @@ func (c MockClient) GetUsersCount(ctx context.Context, filters map[string][]stri
 		return
 	}
 	return c.GetUsersCountFunc(ctx, filters)
+}
 
+func (c MockClient) InsertGroup(ctx context.Context, group contracts.Group) (g *contracts.Group, err error) {
+	if c.InsertGroupFunc == nil {
+		return
+	}
+	return c.InsertGroupFunc(ctx, group)
+}
+
+func (c MockClient) UpdateGroup(ctx context.Context, group contracts.Group) (err error) {
+	if c.UpdateGroupFunc == nil {
+		return
+	}
+	return c.UpdateGroupFunc(ctx, group)
+}
+
+func (c MockClient) GetGroupByIdentity(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error) {
+	if c.GetGroupByIdentityFunc == nil {
+		return
+	}
+	return c.GetGroupByIdentityFunc(ctx, identity)
+}
+
+func (c MockClient) GetGroupByID(ctx context.Context, id string) (group *contracts.Group, err error) {
+	if c.GetGroupByIDFunc == nil {
+		return
+	}
+	return c.GetGroupByIDFunc(ctx, id)
+}
+
+func (c MockClient) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error) {
+	if c.GetGroupsFunc == nil {
+		return
+	}
+	return c.GetGroupsFunc(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c MockClient) GetGroupsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	if c.GetGroupsCountFunc == nil {
+		return
+	}
+	return c.GetGroupsCountFunc(ctx, filters)
+}
+
+func (c MockClient) InsertOrganization(ctx context.Context, organization contracts.Organization) (o *contracts.Organization, err error) {
+	if c.InsertOrganizationFunc == nil {
+		return
+	}
+	return c.InsertOrganizationFunc(ctx, organization)
+}
+
+func (c MockClient) UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error) {
+	if c.UpdateOrganizationFunc == nil {
+		return
+	}
+	return c.UpdateOrganizationFunc(ctx, organization)
+}
+
+func (c MockClient) GetOrganizationByIdentity(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error) {
+	if c.GetOrganizationByIdentityFunc == nil {
+		return
+	}
+	return c.GetOrganizationByIdentityFunc(ctx, identity)
+}
+
+func (c MockClient) GetOrganizationByID(ctx context.Context, id string) (organization *contracts.Organization, err error) {
+	if c.GetOrganizationByIDFunc == nil {
+		return
+	}
+	return c.GetOrganizationByIDFunc(ctx, id)
+}
+
+func (c MockClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error) {
+	if c.GetOrganizationsFunc == nil {
+		return
+	}
+	return c.GetOrganizationsFunc(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c MockClient) GetOrganizationsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	if c.GetOrganizationsCountFunc == nil {
+		return
+	}
+	return c.GetOrganizationsCountFunc(ctx, filters)
 }
