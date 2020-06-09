@@ -106,7 +106,22 @@ func (s *service) CreateGroup(ctx context.Context, group contracts.Group) (inser
 }
 
 func (s *service) UpdateGroup(ctx context.Context, group contracts.Group) (err error) {
-	return s.cockroachdbClient.UpdateGroup(ctx, group)
+
+	// get group from db
+	currentGroup, err := s.cockroachdbClient.GetGroupByID(ctx, group.ID)
+	if err != nil {
+		return
+	}
+	if currentGroup == nil {
+		return fmt.Errorf("Group is nil")
+	}
+
+	// copy updateable fields
+	currentGroup.Name = group.Name
+	currentGroup.Identities = group.Identities
+	currentGroup.Organizations = group.Organizations
+
+	return s.cockroachdbClient.UpdateGroup(ctx, *currentGroup)
 }
 
 func (s *service) CreateOrganization(ctx context.Context, organization contracts.Organization) (insertedOrganization *contracts.Organization, err error) {
@@ -121,7 +136,21 @@ func (s *service) CreateOrganization(ctx context.Context, organization contracts
 }
 
 func (s *service) UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error) {
-	return s.cockroachdbClient.UpdateOrganization(ctx, organization)
+
+	// get group from db
+	currentOrganization, err := s.cockroachdbClient.GetOrganizationByID(ctx, organization.ID)
+	if err != nil {
+		return
+	}
+	if currentOrganization == nil {
+		return fmt.Errorf("Organization is nil")
+	}
+
+	// copy updateable fields
+	currentOrganization.Name = organization.Name
+	currentOrganization.Identities = organization.Identities
+
+	return s.cockroachdbClient.UpdateOrganization(ctx, *currentOrganization)
 }
 
 func (s *service) CreateClient(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error) {
@@ -145,5 +174,19 @@ func (s *service) CreateClient(ctx context.Context, client contracts.Client) (in
 }
 
 func (s *service) UpdateClient(ctx context.Context, client contracts.Client) (err error) {
-	return s.cockroachdbClient.UpdateClient(ctx, client)
+
+	// get group from db
+	currentClient, err := s.cockroachdbClient.GetClientByID(ctx, client.ID)
+	if err != nil {
+		return
+	}
+	if currentClient == nil {
+		return fmt.Errorf("Client is nil")
+	}
+
+	// copy updateable fields
+	currentClient.Name = client.Name
+	currentClient.Roles = client.Roles
+
+	return s.cockroachdbClient.UpdateClient(ctx, *currentClient)
 }
