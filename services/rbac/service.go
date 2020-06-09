@@ -164,10 +164,11 @@ func (s *service) CreateClient(ctx context.Context, client contracts.Client) (in
 
 	log.Info().Msgf("Creating record for client %v", client.Name)
 
-	insertedClient = &contracts.Client{
-		Name:     client.Name,
-		ClientID: uuid.New().String(),
-	}
+	insertedClient = &contracts.Client{}
+
+	// set updateable fields
+	insertedClient.Name = client.Name
+	insertedClient.Roles = client.Roles
 
 	// generate random client id and client secret
 	clientSecret, err := password.Generate(64, 10, 10, false, false)
@@ -175,7 +176,9 @@ func (s *service) CreateClient(ctx context.Context, client contracts.Client) (in
 		return nil, err
 	}
 
-	insertedClient.ClientSecret = clientSecret
+	// set immutable fields
+	client.ClientSecret = clientSecret
+	client.ClientID = uuid.New().String()
 
 	return s.cockroachdbClient.InsertClient(ctx, *insertedClient)
 }
