@@ -37,7 +37,9 @@ func (h *Handler) GetLoggedInUser(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	id := claims[jwt.IdentityKey].(string)
 
-	user, err := h.cockroachdbClient.GetUserByID(c.Request.Context(), id)
+	ctx := c.Request.Context()
+
+	user, err := h.cockroachdbClient.GetUserByID(ctx, id)
 	if err != nil {
 		log.Error().Err(err).Msgf("Retrieving user from db failed with id %v", id)
 		c.String(http.StatusInternalServerError, "Retrieving user from db failed")
@@ -49,7 +51,8 @@ func (h *Handler) GetLoggedInUser(c *gin.Context) {
 
 func (h *Handler) GetProviders(c *gin.Context) {
 
-	providers, err := h.service.GetProviders(c.Request.Context())
+	ctx := c.Request.Context()
+	providers, err := h.service.GetProviders(ctx)
 
 	if err != nil {
 		log.Error().Err(err).Msg("Retrieving oauth providers failed")
@@ -101,7 +104,6 @@ func (h *Handler) LoginProvider(c *gin.Context) {
 
 func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (interface{}, error) {
 	return func(c *gin.Context) (interface{}, error) {
-		ctx := c.Request.Context()
 
 		name := c.Param("provider")
 		code := c.Query("code")
@@ -118,8 +120,10 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 			c.Set("returnURL", returnURL)
 		}
 
+		ctx := c.Request.Context()
+
 		// retrieve configured providers
-		provider, err := h.service.GetProviderByName(c.Request.Context(), name)
+		provider, err := h.service.GetProviderByName(ctx, name)
 		if err != nil {
 			return nil, err
 		}
@@ -142,9 +146,9 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 		}
 
 		// upsert user
-		user, err := h.cockroachdbClient.GetUserByIdentity(c.Request.Context(), *identity)
+		user, err := h.cockroachdbClient.GetUserByIdentity(ctx, *identity)
 		if err != nil && errors.Is(err, cockroachdb.ErrUserNotFound) {
-			user, err = h.service.CreateUser(c.Request.Context(), *identity)
+			user, err = h.service.CreateUser(ctx, *identity)
 			if err != nil {
 				return nil, err
 			}
@@ -198,7 +202,7 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 		}
 
 		go func(user contracts.User) {
-			err = h.service.UpdateUser(c.Request.Context(), user)
+			err = h.service.UpdateUser(ctx, user)
 			if err != nil {
 				log.Warn().Err(err).Msg("Failed updating user in db")
 			}
@@ -210,13 +214,14 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 
 func (h *Handler) HandleClientLoginProviderAuthenticator() func(c *gin.Context) (interface{}, error) {
 	return func(c *gin.Context) (interface{}, error) {
-		ctx := c.Request.Context()
 
 		var client contracts.Client
 		err := c.BindJSON(&client)
 		if err != nil {
 			return nil, err
 		}
+
+		ctx := c.Request.Context()
 
 		// get client from db by clientID
 		clientFromDB, err := h.cockroachdbClient.GetClientByClientID(ctx, client.ClientID)
@@ -250,9 +255,11 @@ func (h *Handler) GetUsers(c *gin.Context) {
 		return
 	}
 
+	ctx := c.Request.Context()
+
 	response, err := helpers.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			users, err := h.cockroachdbClient.GetUsers(c.Request.Context(), pageNumber, pageSize, filters, sortings)
+			users, err := h.cockroachdbClient.GetUsers(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -266,7 +273,7 @@ func (h *Handler) GetUsers(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetUsersCount(c.Request.Context(), filters)
+			return h.cockroachdbClient.GetUsersCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -290,9 +297,11 @@ func (h *Handler) GetGroups(c *gin.Context) {
 		return
 	}
 
+	ctx := c.Request.Context()
+
 	response, err := helpers.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			groups, err := h.cockroachdbClient.GetGroups(c.Request.Context(), pageNumber, pageSize, filters, sortings)
+			groups, err := h.cockroachdbClient.GetGroups(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -306,7 +315,7 @@ func (h *Handler) GetGroups(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetGroupsCount(c.Request.Context(), filters)
+			return h.cockroachdbClient.GetGroupsCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -330,9 +339,11 @@ func (h *Handler) GetOrganizations(c *gin.Context) {
 		return
 	}
 
+	ctx := c.Request.Context()
+
 	response, err := helpers.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			organizations, err := h.cockroachdbClient.GetOrganizations(c.Request.Context(), pageNumber, pageSize, filters, sortings)
+			organizations, err := h.cockroachdbClient.GetOrganizations(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -346,7 +357,7 @@ func (h *Handler) GetOrganizations(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetOrganizationsCount(c.Request.Context(), filters)
+			return h.cockroachdbClient.GetOrganizationsCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -370,9 +381,11 @@ func (h *Handler) GetClients(c *gin.Context) {
 		return
 	}
 
+	ctx := c.Request.Context()
+
 	response, err := helpers.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			clients, err := h.cockroachdbClient.GetClients(c.Request.Context(), pageNumber, pageSize, filters, sortings)
+			clients, err := h.cockroachdbClient.GetClients(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -386,7 +399,7 @@ func (h *Handler) GetClients(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetClientsCount(c.Request.Context(), filters)
+			return h.cockroachdbClient.GetClientsCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -400,9 +413,91 @@ func (h *Handler) GetClients(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *Handler) CreateGroup(c *gin.Context) {
+func (h *Handler) GetUser(c *gin.Context) {
+
+	// ensure the user has administrator role
+	if !auth.RequestTokenHasRole(c, "administrator") {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
+		return
+	}
 
 	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	user, err := h.cockroachdbClient.GetUserByID(ctx, id)
+	if err != nil || user == nil {
+		log.Error().Err(err).Msgf("Failed retrieving user with id %v from db", id)
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+func (h *Handler) GetGroup(c *gin.Context) {
+
+	// ensure the user has administrator role
+	if !auth.RequestTokenHasRole(c, "administrator") {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	group, err := h.cockroachdbClient.GetGroupByID(ctx, id)
+	if err != nil || group == nil {
+		log.Error().Err(err).Msgf("Failed retrieving group with id %v from db", id)
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
+		return
+	}
+
+	c.JSON(http.StatusOK, group)
+}
+
+func (h *Handler) GetOrganization(c *gin.Context) {
+
+	// ensure the user has administrator role
+	if !auth.RequestTokenHasRole(c, "administrator") {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	organization, err := h.cockroachdbClient.GetOrganizationByID(ctx, id)
+	if err != nil || organization == nil {
+		log.Error().Err(err).Msgf("Failed retrieving organization with id %v from db", id)
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
+		return
+	}
+
+	c.JSON(http.StatusOK, organization)
+}
+
+func (h *Handler) GetClient(c *gin.Context) {
+
+	// ensure the user has administrator role
+	if !auth.RequestTokenHasRole(c, "administrator") {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	client, err := h.cockroachdbClient.GetClientByID(ctx, id)
+	if err != nil || client == nil {
+		log.Error().Err(err).Msgf("Failed retrieving client with id %v from db", id)
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
+		return
+	}
+
+	c.JSON(http.StatusOK, client)
+}
+
+func (h *Handler) CreateGroup(c *gin.Context) {
 
 	// ensure the user has administrator role
 	if !auth.RequestTokenHasRole(c, "administrator") {
@@ -417,6 +512,8 @@ func (h *Handler) CreateGroup(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
 		return
 	}
+
+	ctx := c.Request.Context()
 
 	insertedGroup, err := h.service.CreateGroup(ctx, group)
 	if err != nil {
@@ -430,8 +527,6 @@ func (h *Handler) CreateGroup(c *gin.Context) {
 
 func (h *Handler) UpdateGroup(c *gin.Context) {
 
-	ctx := c.Request.Context()
-
 	// ensure the user has administrator role
 	if !auth.RequestTokenHasRole(c, "administrator") {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
@@ -445,6 +540,8 @@ func (h *Handler) UpdateGroup(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
 		return
 	}
+
+	ctx := c.Request.Context()
 
 	id := c.Param("id")
 	if group.ID != id {
@@ -465,8 +562,6 @@ func (h *Handler) UpdateGroup(c *gin.Context) {
 
 func (h *Handler) CreateOrganization(c *gin.Context) {
 
-	ctx := c.Request.Context()
-
 	// ensure the user has administrator role
 	if !auth.RequestTokenHasRole(c, "administrator") {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have administrator role"})
@@ -481,6 +576,8 @@ func (h *Handler) CreateOrganization(c *gin.Context) {
 		return
 	}
 
+	ctx := c.Request.Context()
+
 	insertedOrganization, err := h.service.CreateOrganization(ctx, organization)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed inserting organization")
@@ -492,8 +589,6 @@ func (h *Handler) CreateOrganization(c *gin.Context) {
 }
 
 func (h *Handler) UpdateOrganization(c *gin.Context) {
-
-	ctx := c.Request.Context()
 
 	// ensure the user has administrator role
 	if !auth.RequestTokenHasRole(c, "administrator") {
@@ -516,6 +611,8 @@ func (h *Handler) UpdateOrganization(c *gin.Context) {
 		return
 	}
 
+	ctx := c.Request.Context()
+
 	err = h.service.UpdateOrganization(ctx, organization)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed updating organization")
@@ -527,8 +624,6 @@ func (h *Handler) UpdateOrganization(c *gin.Context) {
 }
 
 func (h *Handler) CreateClient(c *gin.Context) {
-
-	ctx := c.Request.Context()
 
 	// ensure the user has administrator role
 	if !auth.RequestTokenHasRole(c, "administrator") {
@@ -544,6 +639,8 @@ func (h *Handler) CreateClient(c *gin.Context) {
 		return
 	}
 
+	ctx := c.Request.Context()
+
 	insertedClient, err := h.service.CreateClient(ctx, client)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed inserting client")
@@ -555,8 +652,6 @@ func (h *Handler) CreateClient(c *gin.Context) {
 }
 
 func (h *Handler) UpdateClient(c *gin.Context) {
-
-	ctx := c.Request.Context()
 
 	// ensure the user has administrator role
 	if !auth.RequestTokenHasRole(c, "administrator") {
@@ -578,6 +673,8 @@ func (h *Handler) UpdateClient(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
 		return
 	}
+
+	ctx := c.Request.Context()
 
 	err = h.service.UpdateClient(ctx, client)
 	if err != nil {

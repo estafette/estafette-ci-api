@@ -491,16 +491,20 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 		jwtMiddlewareRoutes.DELETE("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.CancelPipelineRelease)
 
 		jwtMiddlewareRoutes.GET("/api/users", rbacHandler.GetUsers)
+		jwtMiddlewareRoutes.GET("/api/users/:id", rbacHandler.GetUser)
 
 		jwtMiddlewareRoutes.GET("/api/groups", rbacHandler.GetGroups)
+		jwtMiddlewareRoutes.GET("/api/groups/:id", rbacHandler.GetGroup)
 		jwtMiddlewareRoutes.POST("/api/groups", rbacHandler.CreateGroup)
 		jwtMiddlewareRoutes.PUT("/api/groups/:id", rbacHandler.UpdateGroup)
 
 		jwtMiddlewareRoutes.GET("/api/organizations", rbacHandler.GetOrganizations)
+		jwtMiddlewareRoutes.GET("/api/organizations/:id", rbacHandler.GetOrganization)
 		jwtMiddlewareRoutes.POST("/api/organizations", rbacHandler.CreateOrganization)
 		jwtMiddlewareRoutes.PUT("/api/organizations/:id", rbacHandler.UpdateOrganization)
 
 		jwtMiddlewareRoutes.GET("/api/clients", rbacHandler.GetClients)
+		jwtMiddlewareRoutes.GET("/api/clients/:id", rbacHandler.GetClient)
 		jwtMiddlewareRoutes.POST("/api/clients", rbacHandler.CreateClient)
 		jwtMiddlewareRoutes.PUT("/api/clients/:id", rbacHandler.UpdateClient)
 
