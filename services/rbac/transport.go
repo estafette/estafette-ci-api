@@ -234,6 +234,8 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 func (h *Handler) HandleClientLoginProviderAuthenticator() func(c *gin.Context) (interface{}, error) {
 	return func(c *gin.Context) (interface{}, error) {
 
+		log.Info().Msg("HandleClientLoginProviderAuthenticator")
+
 		var client contracts.Client
 		err := c.BindJSON(&client)
 		if err != nil {
@@ -262,13 +264,14 @@ func (h *Handler) HandleClientLoginProviderAuthenticator() func(c *gin.Context) 
 
 		// check if client is active
 		if !client.Active {
-			log.Error().Err(err).Msgf("Client with id %v is not active", client.ClientID)
+			log.Error().Msgf("Client with id %v is not active", client.ClientID)
 			return nil, fmt.Errorf("Client is not active")
 		}
 
-		return client, nil
+		return clientFromDB, nil
 	}
 }
+
 func (h *Handler) GetUsers(c *gin.Context) {
 
 	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)

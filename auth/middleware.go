@@ -172,5 +172,4 @@ func (m *authMiddlewareImpl) GinJWTMiddlewareForClientLogin(authenticator func(c
 	}
 
 	return middleware, nil
-
 }
