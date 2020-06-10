@@ -198,7 +198,6 @@ func (s *service) UpdateClient(ctx context.Context, client contracts.Client) (er
 	// copy updateable fields
 	currentClient.Name = client.Name
 	currentClient.Roles = client.Roles
-	currentClient.Active = true
 
 	return s.cockroachdbClient.UpdateClient(ctx, *currentClient)
 }
