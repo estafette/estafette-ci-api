@@ -289,6 +289,7 @@ func GetRolesFromRequest(c *gin.Context) (roles []Role) {
 			}
 		}
 	}
+
 	return
 }
 

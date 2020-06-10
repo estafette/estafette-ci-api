@@ -544,8 +544,9 @@ func (h *Handler) CreateGroup(c *gin.Context) {
 	var group contracts.Group
 	err := c.BindJSON(&group)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed binding group form data")
-		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		errorMessage := fmt.Sprint("Binding CreateGroup body failed")
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
 	}
 
@@ -572,8 +573,9 @@ func (h *Handler) UpdateGroup(c *gin.Context) {
 	var group contracts.Group
 	err := c.BindJSON(&group)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed binding group form data")
-		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		errorMessage := fmt.Sprint("Binding UpdateGroup body failed")
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
 	}
 
@@ -607,8 +609,9 @@ func (h *Handler) CreateOrganization(c *gin.Context) {
 	var organization contracts.Organization
 	err := c.BindJSON(&organization)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed binding organization form data")
-		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		errorMessage := fmt.Sprint("Binding CreateOrganization body failed")
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
 	}
 
@@ -635,8 +638,9 @@ func (h *Handler) UpdateOrganization(c *gin.Context) {
 	var organization contracts.Organization
 	err := c.BindJSON(&organization)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed binding organization form data")
-		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		errorMessage := fmt.Sprint("Binding UpdateOrganization body failed")
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
 	}
 
@@ -670,8 +674,9 @@ func (h *Handler) CreateClient(c *gin.Context) {
 	var client contracts.Client
 	err := c.BindJSON(&client)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed binding client form data")
-		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		errorMessage := fmt.Sprint("Binding CreateClient body failed")
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
 	}
 
@@ -698,8 +703,9 @@ func (h *Handler) UpdateClient(c *gin.Context) {
 	var client contracts.Client
 	err := c.BindJSON(&client)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed binding client form data")
-		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		errorMessage := fmt.Sprint("Binding UpdateClient body failed")
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
 	}
 

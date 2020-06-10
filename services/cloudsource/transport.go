@@ -3,6 +3,7 @@ package cloudsource
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
@@ -33,8 +34,9 @@ func (h *Handler) PostPubsubEvent(c *gin.Context) {
 	var message pubsubapi.PubSubPushMessage
 	err := c.BindJSON(&message)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed binding pubsub push event")
-		c.String(http.StatusInternalServerError, "Oop, something's wrong!")
+		errorMessage := fmt.Sprint("Binding PostPubsubEvent body failed")
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
 	}
 
