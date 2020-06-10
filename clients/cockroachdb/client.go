@@ -925,6 +925,7 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 			archived,
 			inserted_at,
 			first_inserted_at,
+			started_at,
 			updated_at,
 			last_updated_at,
 			triggered_by_event,
@@ -953,7 +954,8 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 			$18,
 			$19,
 			$20,
-			$21
+			$21,
+			$22
 		)
 		ON CONFLICT
 		(
@@ -974,6 +976,7 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 			triggers = excluded.triggers,
 			archived = excluded.archived,
 			inserted_at = excluded.inserted_at,
+			started_at = excluded.started_at,
 			updated_at = excluded.updated_at,
 			last_updated_at = excluded.last_updated_at,
 			triggered_by_event = excluded.triggered_by_event,
@@ -996,6 +999,7 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 		upsertedPipeline.Archived,
 		upsertedPipeline.InsertedAt,
 		upsertedPipeline.InsertedAt,
+		upsertedPipeline.StartedAt,
 		upsertedPipeline.UpdatedAt,
 		upsertedPipeline.LastUpdatedAt,
 		eventsBytes,
@@ -1088,6 +1092,7 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 			release_status,
 			inserted_at,
 			first_inserted_at,
+			started_at,
 			updated_at,
 			release_action,
 			triggered_by_event
@@ -1105,7 +1110,8 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 			$8,
 			$9,
 			$10,
-			$11
+			$11,
+			$12
 		)
 		ON CONFLICT
 		(
@@ -1120,6 +1126,7 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 			release_version = excluded.release_version,
 			release_status = excluded.release_status,
 			inserted_at = excluded.inserted_at,
+			started_at = excluded.started_at,
 			updated_at = excluded.updated_at,
 			triggered_by_event = excluded.triggered_by_event
 		`,
@@ -1131,6 +1138,7 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 		lastRelease.ReleaseVersion,
 		lastRelease.ReleaseStatus,
 		lastRelease.InsertedAt,
+		lastRelease.StartedAt,
 		lastRelease.UpdatedAt,
 		lastRelease.Action,
 		eventsBytes,
