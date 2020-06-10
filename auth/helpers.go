@@ -250,3 +250,19 @@ func RequestTokenHasRole(c *gin.Context, role Role) bool {
 	// log.Warn().Interface("claims", claims).Msgf("Claim 'roles' with value '%v' does not contain role '%v", roles, role)
 	return false
 }
+
+// RequestTokenHasSomeRole checks whether the request has at least one of a list of roles
+func RequestTokenHasSomeRole(c *gin.Context, roles ...Role) bool {
+
+	if len(roles) == 0 {
+		return false
+	}
+
+	for _, role := range roles {
+		if RequestTokenHasRole(c, role) {
+			return true
+		}
+	}
+
+	return false
+}

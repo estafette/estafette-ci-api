@@ -64,9 +64,40 @@ const (
 	CronTrigger
 	// LogMigrator is needed to migrate logs from db to cloud storage and vice versa
 	LogMigrator
+	// RoleViewer allows to view available roles
+	RoleViewer
+	// UserViewer allows to view users
+	UserViewer
+	// UserAdmin allows to view, create and update users
+	UserAdmin
+	// GroupViewer allows to view groups
+	GroupViewer
+	// GroupAdmin allows to view, create and update groups
+	GroupAdmin
+	// OrganizationViewer allows to view organizations
+	OrganizationViewer
+	// OrganizationAdmin allows to view, create and update organizations
+	OrganizationAdmin
+	// ClientViewer allows to view clients
+	ClientViewer
+	// ClientAdmin allows to view, create and update clients
+	ClientAdmin
 )
 
-var roles = []string{"administrator", "cron-trigger", "log-migrator"}
+var roles = []string{
+	"administrator",
+	"cron.trigger",
+	"log.migrator",
+	"role.viewer",
+	"user.viewer",
+	"user.admin",
+	"group.viewer",
+	"group.admin",
+	"organization.viewer",
+	"organization.admin",
+	"client.viewer",
+	"client.admin",
+}
 
 func (r Role) String() string {
 	return roles[r]
