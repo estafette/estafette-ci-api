@@ -231,13 +231,11 @@ func RequestTokenHasRole(c *gin.Context, role Role) bool {
 	claims := jwt.ExtractClaims(c)
 	val, ok := claims["roles"]
 	if !ok {
-		// log.Warn().Interface("claims", claims).Msg("Claim 'roles' does not exist")
 		return false
 	}
 
 	roles, ok := val.([]interface{})
 	if !ok {
-		// log.Warn().Interface("claims", claims).Msgf("Claim 'roles' is not of type []interface{} but type '%T'", val)
 		return false
 	}
 
@@ -247,7 +245,6 @@ func RequestTokenHasRole(c *gin.Context, role Role) bool {
 		}
 	}
 
-	// log.Warn().Interface("claims", claims).Msgf("Claim 'roles' with value '%v' does not contain role '%v", roles, role)
 	return false
 }
 
@@ -260,6 +257,58 @@ func RequestTokenHasSomeRole(c *gin.Context, roles ...Role) bool {
 
 	for _, role := range roles {
 		if RequestTokenHasRole(c, role) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func GetRolesFromRequest(c *gin.Context) (roles []Role) {
+
+	if !RequestTokenIsValid(c) {
+		return
+	}
+
+	claims := jwt.ExtractClaims(c)
+	val, ok := claims["roles"]
+	if !ok {
+		return
+	}
+
+	rolesFromClaim, ok := val.([]interface{})
+	if !ok {
+		return
+	}
+
+	for _, r := range rolesFromClaim {
+		if rval, ok := r.(string); ok {
+			role := ToRole(rval)
+			if role != nil {
+				roles = append(roles, *role)
+			}
+		}
+	}
+	return
+}
+
+func GetPermissionsFromRequest(c *gin.Context) (permissions []Permission) {
+
+	roles := GetRolesFromRequest(c)
+
+	for _, r := range roles {
+		permissions = append(permissions, rolesToPermissionMap[r]...)
+	}
+
+	return
+}
+
+func RequestTokenHasPermission(c *gin.Context, permission Permission) bool {
+
+	permissions := GetPermissionsFromRequest(c)
+
+	for _, p := range permissions {
+		if p == permission {
 			return true
 		}
 	}

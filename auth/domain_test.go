@@ -114,6 +114,17 @@ func TestRolesToString(t *testing.T) {
 			assert.Equal(t, roles[i], roleAsString)
 		}
 	})
+
+	t.Run("AllRolesCanBeConvertedToRole", func(t *testing.T) {
+
+		roles := Roles()
+
+		for _, r := range roles {
+			role := ToRole(r)
+			assert.NotNil(t, role)
+			assert.Equal(t, r, role.String())
+		}
+	})
 }
 
 func TestPermissionsToString(t *testing.T) {
@@ -126,6 +137,17 @@ func TestPermissionsToString(t *testing.T) {
 			permissionAsString := p.String()
 
 			assert.Equal(t, permissions[i], permissionAsString)
+		}
+	})
+
+	t.Run("AllPermissionsCanBeConvertedToPermission", func(t *testing.T) {
+
+		permissions := Permissions()
+
+		for _, p := range permissions {
+			permission := ToPermission(p)
+			assert.NotNil(t, permission)
+			assert.Equal(t, p, permission.String())
 		}
 	})
 }

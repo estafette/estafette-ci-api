@@ -58,30 +58,30 @@ type GoogleJWKResponse struct {
 type Role int
 
 const (
-	// Administrator can configure role-based-access-control
-	Administrator Role = iota
-	// CronTrigger can send a cron event
-	CronTrigger
-	// LogMigrator is needed to migrate logs from db to cloud storage and vice versa
-	LogMigrator
-	// RoleViewer allows to view available roles
-	RoleViewer
-	// UserViewer allows to view users
-	UserViewer
-	// UserAdmin allows to view, create and update users
-	UserAdmin
-	// GroupViewer allows to view groups
-	GroupViewer
-	// GroupAdmin allows to view, create and update groups
-	GroupAdmin
-	// OrganizationViewer allows to view organizations
-	OrganizationViewer
-	// OrganizationAdmin allows to view, create and update organizations
-	OrganizationAdmin
-	// ClientViewer allows to view clients
-	ClientViewer
-	// ClientAdmin allows to view, create and update clients
-	ClientAdmin
+	// RoleAdministrator can configure role-based-access-control
+	RoleAdministrator Role = iota
+	// RoleCronTrigger can send a cron event
+	RoleCronTrigger
+	// RoleLogMigrator is needed to migrate logs from db to cloud storage and vice versa
+	RoleLogMigrator
+	// RoleRoleViewer allows to view available roles
+	RoleRoleViewer
+	// RoleUserViewer allows to view users
+	RoleUserViewer
+	// RoleUserAdmin allows to view, create and update users
+	RoleUserAdmin
+	// RoleGroupViewer allows to view groups
+	RoleGroupViewer
+	// RoleGroupAdmin allows to view, create and update groups
+	RoleGroupAdmin
+	// RoleOrganizationViewer allows to view organizations
+	RoleOrganizationViewer
+	// RoleOrganizationAdmin allows to view, create and update organizations
+	RoleOrganizationAdmin
+	// RoleClientViewer allows to view clients
+	RoleClientViewer
+	// RoleClientAdmin allows to view, create and update clients
+	RoleClientAdmin
 )
 
 var roles = []string{
@@ -103,6 +103,17 @@ func (r Role) String() string {
 	return roles[r]
 }
 
+func ToRole(r string) *Role {
+	for i, n := range roles {
+		if r == n {
+			role := Role(i)
+			return &role
+		}
+	}
+
+	return nil
+}
+
 // Roles returns all allowed values for Role
 func Roles() []string {
 	return roles
@@ -112,45 +123,45 @@ func Roles() []string {
 type Permission int
 
 const (
-	RolesList Permission = iota
+	PermissionRolesList Permission = iota
 
-	UsersList
-	UsersGet
-	UsersCreate
-	UsersUpdate
-	UsersDelete
+	PermissionUsersList
+	PermissionUsersGet
+	PermissionUsersCreate
+	PermissionUsersUpdate
+	PermissionUsersDelete
 
-	GroupsList
-	GroupsGet
-	GroupsCreate
-	GroupsUpdate
-	GroupsDelete
+	PermissionGroupsList
+	PermissionGroupsGet
+	PermissionGroupsCreate
+	PermissionGroupsUpdate
+	PermissionGroupsDelete
 
-	OrganizationsList
-	OrganizationsGet
-	OrganizationsCreate
-	OrganizationsUpdate
-	OrganizationsDelete
+	PermissionOrganizationsList
+	PermissionOrganizationsGet
+	PermissionOrganizationsCreate
+	PermissionOrganizationsUpdate
+	PermissionOrganizationsDelete
 
-	ClientsList
-	ClientsGet
-	ClientsViewSecret
-	ClientsCreate
-	ClientsUpdate
-	ClientsDelete
+	PermissionClientsList
+	PermissionClientsGet
+	PermissionClientsViewSecret
+	PermissionClientsCreate
+	PermissionClientsUpdate
+	PermissionClientsDelete
 
-	PipelinesList
-	PipelinesGet
+	PermissionPipelinesList
+	PermissionPipelinesGet
 
-	BuildsList
-	BuildsGet
-	BuildsCancel
-	BuildsRebuild
+	PermissionBuildsList
+	PermissionBuildsGet
+	PermissionBuildsCancel
+	PermissionBuildsRebuild
 
-	ReleasesList
-	ReleasesGet
-	ReleasesCreate
-	ReleasesCancel
+	PermissionReleasesList
+	PermissionReleasesGet
+	PermissionReleasesCreate
+	PermissionReleasesCancel
 )
 
 var permissions = []string{
@@ -198,7 +209,93 @@ func (p Permission) String() string {
 	return permissions[p]
 }
 
+func ToPermission(p string) *Permission {
+	for i, n := range permissions {
+		if p == n {
+			permission := Permission(i)
+			return &permission
+		}
+	}
+
+	return nil
+}
+
 // Permissions returns all allowed values for Permission
 func Permissions() []string {
 	return permissions
+}
+
+var rolesToPermissionMap = map[Role][]Permission{
+	RoleAdministrator: {
+		PermissionRolesList,
+		PermissionUsersList,
+		PermissionUsersGet,
+		PermissionUsersCreate,
+		PermissionUsersUpdate,
+		PermissionUsersDelete,
+		PermissionGroupsList,
+		PermissionGroupsGet,
+		PermissionGroupsCreate,
+		PermissionGroupsUpdate,
+		PermissionGroupsDelete,
+		PermissionOrganizationsList,
+		PermissionOrganizationsGet,
+		PermissionOrganizationsCreate,
+		PermissionOrganizationsUpdate,
+		PermissionOrganizationsDelete,
+		PermissionClientsList,
+		PermissionClientsGet,
+		PermissionClientsViewSecret,
+		PermissionClientsCreate,
+		PermissionClientsUpdate,
+		PermissionClientsDelete,
+	},
+	RoleRoleViewer: {
+		PermissionRolesList,
+	},
+	RoleUserViewer: {
+		PermissionUsersList,
+		PermissionUsersGet,
+	},
+	RoleUserAdmin: {
+		PermissionUsersList,
+		PermissionUsersGet,
+		PermissionUsersCreate,
+		PermissionUsersUpdate,
+		PermissionUsersDelete,
+	},
+	RoleGroupViewer: {
+		PermissionGroupsList,
+		PermissionGroupsGet,
+	},
+	RoleGroupAdmin: {
+		PermissionGroupsList,
+		PermissionGroupsGet,
+		PermissionGroupsCreate,
+		PermissionGroupsUpdate,
+		PermissionGroupsDelete,
+	},
+	RoleOrganizationViewer: {
+		PermissionOrganizationsList,
+		PermissionOrganizationsGet,
+	},
+	RoleOrganizationAdmin: {
+		PermissionOrganizationsList,
+		PermissionOrganizationsGet,
+		PermissionOrganizationsCreate,
+		PermissionOrganizationsUpdate,
+		PermissionOrganizationsDelete,
+	},
+	RoleClientViewer: {
+		PermissionClientsList,
+		PermissionClientsGet,
+	},
+	RoleClientAdmin: {
+		PermissionClientsList,
+		PermissionClientsGet,
+		PermissionClientsViewSecret,
+		PermissionClientsCreate,
+		PermissionClientsUpdate,
+		PermissionClientsDelete,
+	},
 }

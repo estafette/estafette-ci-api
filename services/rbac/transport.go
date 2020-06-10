@@ -51,7 +51,7 @@ func (h *Handler) GetLoggedInUser(c *gin.Context) {
 func (h *Handler) GetRoles(c *gin.Context) {
 
 	// ensure the user has administrator role
-	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.RoleViewer) {
+	if !auth.RequestTokenHasPermission(c, auth.PermissionRolesList) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct role"})
 		return
 	}
@@ -214,10 +214,10 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 
 		if isAdministrator {
 			// ensure user has administrator role
-			user.AddRole(auth.Administrator.String())
+			user.AddRole(auth.RoleAdministrator.String())
 		} else {
 			// ensure user does not have administrator role
-			user.RemoveRole(auth.Administrator.String())
+			user.RemoveRole(auth.RoleAdministrator.String())
 		}
 
 		go func(user contracts.User) {
@@ -277,7 +277,7 @@ func (h *Handler) GetUsers(c *gin.Context) {
 	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
 
 	// ensure the user has administrator role
-	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.UserViewer, auth.UserAdmin) {
+	if !auth.RequestTokenHasPermission(c, auth.PermissionUsersList) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct role"})
 		return
 	}
@@ -319,7 +319,7 @@ func (h *Handler) GetGroups(c *gin.Context) {
 	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
 
 	// ensure the user has administrator role
-	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.GroupViewer, auth.GroupAdmin) {
+	if !auth.RequestTokenHasPermission(c, auth.PermissionGroupsList) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct role"})
 		return
 	}
@@ -361,7 +361,7 @@ func (h *Handler) GetOrganizations(c *gin.Context) {
 	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
 
 	// ensure the user has administrator role
-	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.OrganizationViewer, auth.OrganizationAdmin) {
+	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsList) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct role"})
 		return
 	}
@@ -403,7 +403,7 @@ func (h *Handler) GetClients(c *gin.Context) {
 	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
 
 	// ensure the user has administrator role
-	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.ClientViewer, auth.ClientAdmin) {
+	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsList) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct role"})
 		return
 	}
@@ -420,7 +420,7 @@ func (h *Handler) GetClients(c *gin.Context) {
 			// convert typed array to interface array O(n)
 			items := make([]interface{}, len(clients))
 			for i := range clients {
-				if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.ClientAdmin) {
+				if !auth.RequestTokenHasPermission(c, auth.PermissionClientsViewSecret) {
 					// obfuscate client secret
 					clients[i].ClientSecret = "***"
 				}
@@ -447,7 +447,7 @@ func (h *Handler) GetClients(c *gin.Context) {
 func (h *Handler) GetUser(c *gin.Context) {
 
 	// ensure the user has administrator role
-	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.UserViewer, auth.UserAdmin) {
+	if !auth.RequestTokenHasPermission(c, auth.PermissionUsersGet) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct role"})
 		return
 	}
@@ -468,7 +468,7 @@ func (h *Handler) GetUser(c *gin.Context) {
 func (h *Handler) GetGroup(c *gin.Context) {
 
 	// ensure the user has administrator role
-	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.GroupViewer, auth.GroupAdmin) {
+	if !auth.RequestTokenHasPermission(c, auth.PermissionGroupsGet) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct role"})
 		return
 	}
@@ -489,7 +489,7 @@ func (h *Handler) GetGroup(c *gin.Context) {
 func (h *Handler) GetOrganization(c *gin.Context) {
 
 	// ensure the user has administrator role
-	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.OrganizationViewer, auth.OrganizationAdmin) {
+	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsGet) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct role"})
 		return
 	}
@@ -510,7 +510,7 @@ func (h *Handler) GetOrganization(c *gin.Context) {
 func (h *Handler) GetClient(c *gin.Context) {
 
 	// ensure the user has administrator role
-	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.ClientViewer, auth.ClientAdmin) {
+	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsGet) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct role"})
 		return
 	}
@@ -525,7 +525,7 @@ func (h *Handler) GetClient(c *gin.Context) {
 		return
 	}
 
-	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.ClientAdmin) {
+	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsViewSecret) {
 		// obfuscate client secret
 		client.ClientSecret = "***"
 	}
@@ -536,7 +536,7 @@ func (h *Handler) GetClient(c *gin.Context) {
 func (h *Handler) CreateGroup(c *gin.Context) {
 
 	// ensure the user has administrator role
-	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.GroupAdmin) {
+	if !auth.RequestTokenHasPermission(c, auth.PermissionGroupsCreate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct role"})
 		return
 	}
@@ -564,7 +564,7 @@ func (h *Handler) CreateGroup(c *gin.Context) {
 func (h *Handler) UpdateGroup(c *gin.Context) {
 
 	// ensure the user has administrator role
-	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.GroupAdmin) {
+	if !auth.RequestTokenHasPermission(c, auth.PermissionGroupsUpdate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct role"})
 		return
 	}
@@ -599,7 +599,7 @@ func (h *Handler) UpdateGroup(c *gin.Context) {
 func (h *Handler) CreateOrganization(c *gin.Context) {
 
 	// ensure the user has administrator role
-	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.OrganizationAdmin) {
+	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsCreate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct role"})
 		return
 	}
@@ -626,8 +626,8 @@ func (h *Handler) CreateOrganization(c *gin.Context) {
 
 func (h *Handler) UpdateOrganization(c *gin.Context) {
 
-	// ensure the user has administrator role
-	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.OrganizationAdmin) {
+	// ensure the user has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsUpdate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct role"})
 		return
 	}
@@ -662,7 +662,7 @@ func (h *Handler) UpdateOrganization(c *gin.Context) {
 func (h *Handler) CreateClient(c *gin.Context) {
 
 	// ensure the user has administrator role
-	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.ClientAdmin) {
+	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsCreate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct role"})
 		return
 	}
@@ -690,7 +690,7 @@ func (h *Handler) CreateClient(c *gin.Context) {
 func (h *Handler) UpdateClient(c *gin.Context) {
 
 	// ensure the user has administrator role
-	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.ClientAdmin) {
+	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsUpdate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct role"})
 		return
 	}
