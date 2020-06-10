@@ -107,3 +107,98 @@ func (r Role) String() string {
 func Roles() []string {
 	return roles
 }
+
+// Permissions are used to secure endpoints; each role maps to one or more permissions
+type Permission int
+
+const (
+	RolesList Permission = iota
+
+	UsersList
+	UsersGet
+	UsersCreate
+	UsersUpdate
+	UsersDelete
+
+	GroupsList
+	GroupsGet
+	GroupsCreate
+	GroupsUpdate
+	GroupsDelete
+
+	OrganizationsList
+	OrganizationsGet
+	OrganizationsCreate
+	OrganizationsUpdate
+	OrganizationsDelete
+
+	ClientsList
+	ClientsGet
+	ClientsViewSecret
+	ClientsCreate
+	ClientsUpdate
+	ClientsDelete
+
+	PipelinesList
+	PipelinesGet
+
+	BuildsList
+	BuildsGet
+	BuildsCancel
+	BuildsRebuild
+
+	ReleasesList
+	ReleasesGet
+	ReleasesCreate
+	ReleasesCancel
+)
+
+var permissions = []string{
+	"rbac.roles.list",
+
+	"rbac.users.list",
+	"rbac.users.get",
+	"rbac.users.create",
+	"rbac.users.update",
+	"rbac.users.delete",
+
+	"rbac.groups.list",
+	"rbac.groups.get",
+	"rbac.groups.create",
+	"rbac.groups.update",
+	"rbac.groups.delete",
+
+	"rbac.organizations.list",
+	"rbac.organizations.get",
+	"rbac.organizations.create",
+	"rbac.organizations.update",
+	"rbac.organizations.delete",
+
+	"rbac.clients.list",
+	"rbac.clients.get",
+	"rbac.clients.create",
+	"rbac.clients.update",
+	"rbac.clients.delete",
+
+	"ci.pipelines.list",
+	"ci.pipelines.get",
+
+	"ci.builds.list",
+	"ci.builds.get",
+	"ci.builds.cancel",
+	"ci.builds.rebuild",
+
+	"ci.releases.list",
+	"ci.releases.get",
+	"ci.releases.create",
+	"ci.releases.cancel",
+}
+
+func (p Permission) String() string {
+	return permissions[p]
+}
+
+// Permissions returns all allowed values for Permission
+func Permissions() []string {
+	return permissions
+}

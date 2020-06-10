@@ -101,3 +101,31 @@ func TestUnmarshalGoogleJWK(t *testing.T) {
 		assert.Equal(t, epected, e)
 	})
 }
+
+func TestRolesToString(t *testing.T) {
+	t.Run("AllRolesCanBeConvertedToString", func(t *testing.T) {
+
+		roles := Roles()
+
+		for i := 0; i < len(roles); i++ {
+			r := Role(i)
+			roleAsString := r.String()
+
+			assert.Equal(t, roles[i], roleAsString)
+		}
+	})
+}
+
+func TestPermissionsToString(t *testing.T) {
+	t.Run("AllPermissionsCanBeConvertedToString", func(t *testing.T) {
+
+		permissions := Permissions()
+
+		for i := 0; i < len(permissions); i++ {
+			p := Permission(i)
+			permissionAsString := p.String()
+
+			assert.Equal(t, permissions[i], permissionAsString)
+		}
+	})
+}
