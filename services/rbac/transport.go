@@ -420,6 +420,10 @@ func (h *Handler) GetClients(c *gin.Context) {
 			// convert typed array to interface array O(n)
 			items := make([]interface{}, len(clients))
 			for i := range clients {
+				if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.ClientAdmin) {
+					// obfuscate client secret
+					clients[i].ClientSecret = "***"
+				}
 				items[i] = clients[i]
 			}
 
@@ -519,6 +523,11 @@ func (h *Handler) GetClient(c *gin.Context) {
 		log.Error().Err(err).Msgf("Failed retrieving client with id %v from db", id)
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
 		return
+	}
+
+	if !auth.RequestTokenHasSomeRole(c, auth.Administrator, auth.ClientAdmin) {
+		// obfuscate client secret
+		client.ClientSecret = "***"
 	}
 
 	c.JSON(http.StatusOK, client)
