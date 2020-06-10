@@ -172,7 +172,7 @@ func (s *service) CreateClient(ctx context.Context, client contracts.Client) (in
 	insertedClient.Active = true
 
 	// generate random client id and client secret
-	clientSecret, err := password.Generate(64, 10, 0, false, false)
+	clientSecret, err := password.Generate(64, 10, 0, false, true)
 	if err != nil {
 		return nil, err
 	}
