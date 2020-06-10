@@ -178,8 +178,8 @@ func (s *service) CreateClient(ctx context.Context, client contracts.Client) (in
 	}
 
 	// set immutable fields
-	client.ClientSecret = clientSecret
-	client.ClientID = uuid.New().String()
+	insertedClient.ClientSecret = clientSecret
+	insertedClient.ClientID = uuid.New().String()
 
 	return s.cockroachdbClient.InsertClient(ctx, *insertedClient)
 }
