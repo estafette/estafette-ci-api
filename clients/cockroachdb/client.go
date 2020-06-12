@@ -3240,6 +3240,83 @@ func whereClauseGeneratorForRecentReleaserFilter(query sq.SelectBuilder, alias s
 	return query, nil
 }
 
+func whereClauseGeneratorForUserFilters(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	query, err := whereClauseGeneratorForUserGroupFilters(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
+
+	query, err = whereClauseGeneratorForUserOrganizationFilters(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForUserGroupFilters(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+	if groupIDs, ok := filters["group-id"]; ok && len(groupIDs) > 0 {
+
+		groupID := groupIDs[0]
+
+		filter := struct {
+			Groups []struct {
+				ID string `json:"id"`
+			} `json:"groups"`
+		}{
+			[]struct {
+				ID string `json:"id"`
+			}{
+				{
+					ID: groupID,
+				},
+			},
+		}
+
+		filterBytes, err := json.Marshal(filter)
+		if err != nil {
+			return query, err
+		}
+
+		query = query.
+			Where(fmt.Sprintf("%v.user_data @> ?", alias), string(filterBytes))
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForUserOrganizationFilters(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+	if organizationIDs, ok := filters["organization-id"]; ok && len(organizationIDs) > 0 {
+
+		organizationID := organizationIDs[0]
+
+		filter := struct {
+			Organizations []struct {
+				ID string `json:"id"`
+			} `json:"organizations"`
+		}{
+			[]struct {
+				ID string `json:"id"`
+			}{
+				{
+					ID: organizationID,
+				},
+			},
+		}
+
+		filterBytes, err := json.Marshal(filter)
+		if err != nil {
+			return query, err
+		}
+
+		query = query.
+			Where(fmt.Sprintf("%v.user_data @> ?", alias), string(filterBytes))
+	}
+
+	return query, nil
+}
+
 func limitClauseGeneratorForLastFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	if last, ok := filters["last"]; ok && len(last) == 1 {
@@ -4066,6 +4143,8 @@ func (c *client) GetUsers(ctx context.Context, pageNumber, pageSize int, filters
 	// if err != nil {
 	// 	return
 	// }
+
+	query, err = whereClauseGeneratorForUserFilters(query, "a", filters)
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()

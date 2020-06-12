@@ -1027,6 +1027,66 @@ func TestIntegrationGetUsers(t *testing.T) {
 		assert.NotNil(t, users)
 		assert.True(t, len(users) > 0)
 	})
+
+	t.Run("ReturnsInsertedUsersFilteredByGroupID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		user := getUser()
+		user.Groups = []*contracts.Group{
+			{
+				ID:   "36",
+				Name: "Team A",
+			},
+		}
+		_, err := cockroachdbClient.InsertUser(ctx, user)
+		assert.Nil(t, err)
+
+		filters := map[string][]string{
+			"group-id": {"36"},
+		}
+
+		// act
+		users, err := cockroachdbClient.GetUsers(ctx, 1, 100, filters, []helpers.OrderField{})
+
+		assert.Nil(t, err)
+		assert.NotNil(t, users)
+		assert.True(t, len(users) > 0)
+	})
+
+	t.Run("ReturnsInsertedUsersFilteredByOrganizationID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		user := getUser()
+		user.Organizations = []*contracts.Organization{
+			{
+				ID:   "638",
+				Name: "Estafette",
+			},
+		}
+		_, err := cockroachdbClient.InsertUser(ctx, user)
+		assert.Nil(t, err)
+
+		filters := map[string][]string{
+			"organization-id": {"638"},
+		}
+
+		// act
+		users, err := cockroachdbClient.GetUsers(ctx, 1, 100, filters, []helpers.OrderField{})
+
+		assert.Nil(t, err)
+		assert.NotNil(t, users)
+		assert.True(t, len(users) > 0)
+	})
 }
 
 func TestIntegrationGetUsersCount(t *testing.T) {
@@ -1785,14 +1845,14 @@ func getUser() contracts.User {
 		},
 		Groups: []*contracts.Group{
 			{
+				ID:   "33",
 				Name: "Team A",
-				Identities: []*contracts.GroupIdentity{
-					{
-						Provider: "google",
-						Name:     "Team A",
-						ID:       "team-a",
-					},
-				},
+			},
+		},
+		Organizations: []*contracts.Organization{
+			{
+				ID:   "512",
+				Name: "Estafette",
 			},
 		},
 		Preferences: map[string]interface{}{
