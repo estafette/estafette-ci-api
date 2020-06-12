@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -81,87 +82,44 @@ func GetFilters(c *gin.Context) map[string][]string {
 	filters["status"] = GetStatusFilter(c)
 	filters["since"] = GetSinceFilter(c)
 	filters["labels"] = GetLabelsFilter(c)
-	filters["search"] = GetSearchFilter(c)
-	filters["recent-committer"] = GetRecentCommitterFilter(c)
-	filters["recent-releaser"] = GetRecentReleaserFilter(c)
+	filters["search"] = GetGenericFilter(c, "search")
+	filters["recent-committer"] = GetGenericFilter(c, "recent-committer")
+	filters["recent-releaser"] = GetGenericFilter(c, "recent-releaser")
+	filters["group-id"] = GetGenericFilter(c, "group-id")
+	filters["organization-id"] = GetGenericFilter(c, "organization-id")
 
 	return filters
 }
 
 // GetStatusFilter extracts a filter on status
-func GetStatusFilter(c *gin.Context) []string {
-	return GetStatusFilterWithDefault(c, []string{})
-}
-
-// GetStatusFilterWithDefault extracts a filter on status with a default value
-func GetStatusFilterWithDefault(c *gin.Context, defaultStatuses []string) []string {
-	filterStatusValues, filterStatusExist := c.GetQueryArray("filter[status]")
-	if filterStatusExist && len(filterStatusValues) > 0 && filterStatusValues[0] != "" {
-		return filterStatusValues
-	}
-
-	return defaultStatuses
-}
-
-// GetSinceFilter extracts a filter on build/release date
-func GetSinceFilter(c *gin.Context) []string {
-
-	filterSinceValues, filterSinceExist := c.GetQueryArray("filter[since]")
-	if filterSinceExist {
-		return filterSinceValues
-	}
-
-	return []string{"eternity"}
+func GetStatusFilter(c *gin.Context, defaultValues ...string) []string {
+	return GetGenericFilter(c, "status", defaultValues...)
 }
 
 // GetLastFilter extracts a filter to select last n items
 func GetLastFilter(c *gin.Context, defaultValue int) []string {
-	filterLastValues, filterLastExist := c.GetQueryArray("filter[last]")
-	if filterLastExist {
-		return filterLastValues
-	}
+	return GetGenericFilter(c, "last", strconv.Itoa(defaultValue))
+}
 
-	return []string{strconv.Itoa(defaultValue)}
+// GetSinceFilter extracts a filter on build/release date
+func GetSinceFilter(c *gin.Context) []string {
+	return GetGenericFilter(c, "since", "eternity")
 }
 
 // GetLabelsFilter extracts a filter to select specific labels
 func GetLabelsFilter(c *gin.Context) []string {
-	filterLabelsValues, filterLabelsExist := c.GetQueryArray("filter[labels]")
-	if filterLabelsExist {
-		return filterLabelsValues
-	}
-
-	return []string{}
+	return GetGenericFilter(c, "since", "labels")
 }
 
-// GetRecentCommitterFilter extracts a filter to select recent committers
-func GetRecentCommitterFilter(c *gin.Context) []string {
-	filterUserValues, filterUserExist := c.GetQueryArray("filter[recent-committer]")
-	if filterUserExist {
-		return filterUserValues
+// GetGenericFilter extracts a filter
+func GetGenericFilter(c *gin.Context, filterKey string, defaultValues ...string) []string {
+
+	filterValues, filterExist := c.GetQueryArray(fmt.Sprintf("filter[%v]", filterKey))
+	if filterExist && len(filterValues) > 0 && filterValues[0] != "" {
+		return filterValues
 	}
 
-	return []string{}
-}
-
-// GetRecentReleaserFilter extracts a filter to select recent releasers
-func GetRecentReleaserFilter(c *gin.Context) []string {
-	filterUserValues, filterUserExist := c.GetQueryArray("filter[recent-releaser]")
-	if filterUserExist {
-		return filterUserValues
-	}
-
-	return []string{}
-}
-
-// GetSearchFilter extracts a filter to search by name
-func GetSearchFilter(c *gin.Context) []string {
-	filterSearchValues, filterSearchExist := c.GetQueryArray("filter[search]")
-	if filterSearchExist {
-		return filterSearchValues
-	}
-
-	return []string{}
+	return defaultValues
 }
 
 // GetPagedListResponse runs a paged item query and a count query in parallel and returns them as a ListResponse

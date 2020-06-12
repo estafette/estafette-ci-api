@@ -1059,7 +1059,7 @@ func (h *Handler) GetPipelineStatsBuildsDurations(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["status"] = helpers.GetStatusFilter(c, "succeeded")
 	filters["last"] = helpers.GetLastFilter(c, 100)
 
 	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(c.Request.Context(), source, owner, repo, filters)
@@ -1083,7 +1083,7 @@ func (h *Handler) GetPipelineStatsReleasesDurations(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["status"] = helpers.GetStatusFilter(c, "succeeded")
 	filters["last"] = helpers.GetLastFilter(c, 100)
 
 	durations, err := h.cockroachDBClient.GetPipelineReleasesDurations(c.Request.Context(), source, owner, repo, filters)
@@ -1107,7 +1107,7 @@ func (h *Handler) GetPipelineStatsBuildsCPUUsageMeasurements(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["status"] = helpers.GetStatusFilter(c, "succeeded")
 	filters["last"] = helpers.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineBuildsCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
@@ -1131,7 +1131,7 @@ func (h *Handler) GetPipelineStatsReleasesCPUUsageMeasurements(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["status"] = helpers.GetStatusFilter(c, "succeeded")
 	filters["last"] = helpers.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineReleasesCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
@@ -1155,7 +1155,7 @@ func (h *Handler) GetPipelineStatsBuildsMemoryUsageMeasurements(c *gin.Context) 
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["status"] = helpers.GetStatusFilter(c, "succeeded")
 	filters["last"] = helpers.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineBuildsMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
@@ -1179,7 +1179,7 @@ func (h *Handler) GetPipelineStatsReleasesMemoryUsageMeasurements(c *gin.Context
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["status"] = helpers.GetStatusFilter(c, "succeeded")
 	filters["last"] = helpers.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineReleasesMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
@@ -1203,7 +1203,7 @@ func (h *Handler) GetPipelineWarnings(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilterWithDefault(c, []string{"succeeded"})
+	filters["status"] = helpers.GetStatusFilter(c, "succeeded")
 	filters["last"] = helpers.GetLastFilter(c, 25)
 
 	pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), source, owner, repo, false)
