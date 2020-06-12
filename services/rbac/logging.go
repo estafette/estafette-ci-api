@@ -36,10 +36,16 @@ func (s *loggingService) GetProviderByName(ctx context.Context, name string) (pr
 	return s.Service.GetProviderByName(ctx, name)
 }
 
-func (s *loggingService) CreateUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
+func (s *loggingService) CreateUserFromIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "CreateUserFromIdentity", err) }()
+
+	return s.Service.CreateUserFromIdentity(ctx, identity)
+}
+
+func (s *loggingService) CreateUser(ctx context.Context, user contracts.User) (insertedUser *contracts.User, err error) {
 	defer func() { helpers.HandleLogError(s.prefix, "CreateUser", err) }()
 
-	return s.Service.CreateUser(ctx, identity)
+	return s.Service.CreateUser(ctx, user)
 }
 
 func (s *loggingService) UpdateUser(ctx context.Context, user contracts.User) (err error) {

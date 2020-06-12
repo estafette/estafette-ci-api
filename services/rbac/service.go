@@ -27,7 +27,8 @@ type Service interface {
 	GetProviders(ctx context.Context) (providers []*config.OAuthProvider, err error)
 	GetProviderByName(ctx context.Context, name string) (provider *config.OAuthProvider, err error)
 
-	CreateUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
+	CreateUserFromIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
+	CreateUser(ctx context.Context, user contracts.User) (insertedUser *contracts.User, err error)
 	UpdateUser(ctx context.Context, user contracts.User) (err error)
 
 	CreateGroup(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error)
@@ -76,7 +77,7 @@ func (s *service) GetProviderByName(ctx context.Context, name string) (provider 
 	return nil, fmt.Errorf("Provider %v is not configured", name)
 }
 
-func (s *service) CreateUser(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
+func (s *service) CreateUserFromIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 
 	log.Info().Msgf("Creating record for user %v from provider %v", identity.Email, identity.Provider)
 
@@ -97,8 +98,51 @@ func (s *service) CreateUser(ctx context.Context, identity contracts.UserIdentit
 	return s.cockroachdbClient.InsertUser(ctx, *user)
 }
 
+func (s *service) CreateUser(ctx context.Context, user contracts.User) (insertedUser *contracts.User, err error) {
+
+	log.Info().Msgf("Creating record for user %v", user.Email)
+
+	firstVisit := time.Now().UTC()
+
+	insertedUser = &contracts.User{
+		Active:        true,
+		Name:          user.Name,
+		Email:         user.Email,
+		Identities:    user.Identities,
+		Groups:        user.Groups,
+		Organizations: user.Organizations,
+		Roles:         user.Roles,
+		Preferences:   user.Preferences,
+		FirstVisit:    &firstVisit,
+	}
+
+	return s.cockroachdbClient.InsertUser(ctx, *insertedUser)
+}
+
 func (s *service) UpdateUser(ctx context.Context, user contracts.User) (err error) {
-	return s.cockroachdbClient.UpdateUser(ctx, user)
+
+	// get user from db
+	currentUser, err := s.cockroachdbClient.GetUserByID(ctx, user.ID)
+	if err != nil {
+		return
+	}
+	if currentUser == nil {
+		return fmt.Errorf("User is nil")
+	}
+
+	// copy updateable fields
+	currentUser.Name = user.Name
+	currentUser.Email = user.Email
+	currentUser.Active = user.Active
+	currentUser.Identities = user.Identities
+	currentUser.Groups = user.Groups
+	currentUser.Organizations = user.Organizations
+	currentUser.Roles = user.Roles
+	currentUser.Preferences = user.Preferences
+	currentUser.LastVisit = user.LastVisit
+	currentUser.CurrentProvider = user.CurrentProvider
+
+	return s.cockroachdbClient.UpdateUser(ctx, *currentUser)
 }
 
 func (s *service) CreateGroup(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error) {
