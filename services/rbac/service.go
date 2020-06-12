@@ -106,7 +106,9 @@ func (s *service) CreateGroup(ctx context.Context, group contracts.Group) (inser
 	log.Info().Msgf("Creating record for group %v", group.Name)
 
 	insertedGroup = &contracts.Group{
-		Name: group.Name,
+		Name:          group.Name,
+		Identities:    group.Identities,
+		Organizations: group.Organizations,
 	}
 
 	return s.cockroachdbClient.InsertGroup(ctx, *insertedGroup)
@@ -136,7 +138,8 @@ func (s *service) CreateOrganization(ctx context.Context, organization contracts
 	log.Info().Msgf("Creating record for organization %v", organization.Name)
 
 	insertedOrganization = &contracts.Organization{
-		Name: organization.Name,
+		Name:       organization.Name,
+		Identities: organization.Identities,
 	}
 
 	return s.cockroachdbClient.InsertOrganization(ctx, *insertedOrganization)
