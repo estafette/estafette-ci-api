@@ -87,7 +87,6 @@ func GetFilters(c *gin.Context) map[string][]string {
 	filters["recent-releaser"] = GetGenericFilter(c, "recent-releaser")
 	filters["group-id"] = GetGenericFilter(c, "group-id")
 	filters["organization-id"] = GetGenericFilter(c, "organization-id")
-
 	return filters
 }
 
@@ -108,7 +107,7 @@ func GetSinceFilter(c *gin.Context) []string {
 
 // GetLabelsFilter extracts a filter to select specific labels
 func GetLabelsFilter(c *gin.Context) []string {
-	return GetGenericFilter(c, "since", "labels")
+	return GetGenericFilter(c, "labels")
 }
 
 // GetGenericFilter extracts a filter
