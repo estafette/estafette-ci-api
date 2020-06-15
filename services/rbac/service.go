@@ -153,6 +153,7 @@ func (s *service) CreateGroup(ctx context.Context, group contracts.Group) (inser
 		Name:          group.Name,
 		Identities:    group.Identities,
 		Organizations: group.Organizations,
+		Roles:         group.Roles,
 	}
 
 	return s.cockroachdbClient.InsertGroup(ctx, *insertedGroup)
@@ -173,6 +174,7 @@ func (s *service) UpdateGroup(ctx context.Context, group contracts.Group) (err e
 	currentGroup.Name = group.Name
 	currentGroup.Identities = group.Identities
 	currentGroup.Organizations = group.Organizations
+	currentGroup.Roles = group.Roles
 
 	return s.cockroachdbClient.UpdateGroup(ctx, *currentGroup)
 }
@@ -184,6 +186,7 @@ func (s *service) CreateOrganization(ctx context.Context, organization contracts
 	insertedOrganization = &contracts.Organization{
 		Name:       organization.Name,
 		Identities: organization.Identities,
+		Roles:      organization.Roles,
 	}
 
 	return s.cockroachdbClient.InsertOrganization(ctx, *insertedOrganization)
@@ -203,6 +206,7 @@ func (s *service) UpdateOrganization(ctx context.Context, organization contracts
 	// copy updateable fields
 	currentOrganization.Name = organization.Name
 	currentOrganization.Identities = organization.Identities
+	currentOrganization.Roles = organization.Roles
 
 	return s.cockroachdbClient.UpdateOrganization(ctx, *currentOrganization)
 }
