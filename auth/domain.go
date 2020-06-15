@@ -82,6 +82,14 @@ const (
 	RoleClientViewer
 	// RoleClientAdmin allows to view, create and update clients
 	RoleClientAdmin
+	// RoleOrganizationPipelinesViewer allows to view all pipelines linked to an organization
+	RoleOrganizationPipelinesViewer
+	// RoleOrganizationPipelinesOperator allows to operate all pipelines linked to an organization
+	RoleOrganizationPipelinesOperator
+	// RoleGroupPipelinesViewer allows to view all pipelines linked to a group
+	RoleGroupPipelinesViewer
+	// RoleGroupPipelinesOperator allows to operate all pipelines linked to a group
+	RoleGroupPipelinesOperator
 )
 
 var roles = []string{
@@ -97,6 +105,10 @@ var roles = []string{
 	"organization.admin",
 	"client.viewer",
 	"client.admin",
+	"organization.pipelines.viewer",
+	"organization.pipelines.operator",
+	"group.pipelines.viewer",
+	"group.pipelines.operator",
 }
 
 func (r Role) String() string {
@@ -249,6 +261,16 @@ var rolesToPermissionMap = map[Role][]Permission{
 		PermissionClientsCreate,
 		PermissionClientsUpdate,
 		PermissionClientsDelete,
+		PermissionPipelinesList,
+		PermissionPipelinesGet,
+		PermissionBuildsList,
+		PermissionBuildsGet,
+		PermissionBuildsCancel,
+		PermissionBuildsRebuild,
+		PermissionReleasesList,
+		PermissionReleasesGet,
+		PermissionReleasesCreate,
+		PermissionReleasesCancel,
 	},
 	RoleRoleViewer: {
 		PermissionRolesList,
@@ -297,5 +319,45 @@ var rolesToPermissionMap = map[Role][]Permission{
 		PermissionClientsCreate,
 		PermissionClientsUpdate,
 		PermissionClientsDelete,
+	},
+	RoleOrganizationPipelinesViewer: {
+		PermissionPipelinesList,
+		PermissionPipelinesGet,
+		PermissionBuildsList,
+		PermissionBuildsGet,
+		PermissionReleasesList,
+		PermissionReleasesGet,
+	},
+	RoleOrganizationPipelinesOperator: {
+		PermissionPipelinesList,
+		PermissionPipelinesGet,
+		PermissionBuildsList,
+		PermissionBuildsGet,
+		PermissionBuildsCancel,
+		PermissionBuildsRebuild,
+		PermissionReleasesList,
+		PermissionReleasesGet,
+		PermissionReleasesCreate,
+		PermissionReleasesCancel,
+	},
+	RoleGroupPipelinesViewer: {
+		PermissionPipelinesList,
+		PermissionPipelinesGet,
+		PermissionBuildsList,
+		PermissionBuildsGet,
+		PermissionReleasesList,
+		PermissionReleasesGet,
+	},
+	RoleGroupPipelinesOperator: {
+		PermissionPipelinesList,
+		PermissionPipelinesGet,
+		PermissionBuildsList,
+		PermissionBuildsGet,
+		PermissionBuildsCancel,
+		PermissionBuildsRebuild,
+		PermissionReleasesList,
+		PermissionReleasesGet,
+		PermissionReleasesCreate,
+		PermissionReleasesCancel,
 	},
 }
