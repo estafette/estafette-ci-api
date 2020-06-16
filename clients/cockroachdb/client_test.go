@@ -782,19 +782,20 @@ func TestIntegrationGetFrequentLabels(t *testing.T) {
 		cockroachdbClient := getCockroachdbClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
-		build.Labels = []contracts.Label{{Key: "test", Value: "GetFrequentLabels"}}
+		build.RepoName = "frequent-label-test-1"
+		build.Labels = []contracts.Label{{Key: "label-test", Value: "GetFrequentLabels"}}
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting first build record")
 
 		otherBuild := getBuild()
-		otherBuild.RepoName = "estafette-ci-db-migrator"
-		otherBuild.Labels = []contracts.Label{{Key: "test", Value: "GetFrequentLabels"}}
+		otherBuild.RepoName = "frequent-label-test-2"
+		otherBuild.Labels = []contracts.Label{{Key: "label-test", Value: "GetFrequentLabels"}}
 		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
 		filters := map[string][]string{
 			"labels": {
-				"test=GetFrequentLabels",
+				"label-test=GetFrequentLabels",
 			},
 			"since": {
 				"1d",
@@ -828,19 +829,20 @@ func TestIntegrationGetFrequentLabelsCount(t *testing.T) {
 		cockroachdbClient := getCockroachdbClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
-		build.Labels = []contracts.Label{{Key: "test", Value: "GetFrequentLabelsCount"}}
+		build.RepoName = "frequent-label-count-test-1"
+		build.Labels = []contracts.Label{{Key: "label-count-test", Value: "GetFrequentLabelsCount"}}
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting build record")
 
 		otherBuild := getBuild()
-		otherBuild.Labels = []contracts.Label{{Key: "test", Value: "GetFrequentLabelsCount"}}
-		otherBuild.RepoName = "estafette-ci-db-migrator"
+		otherBuild.RepoName = "frequent-label-count-test-2"
+		otherBuild.Labels = []contracts.Label{{Key: "label-count-test", Value: "GetFrequentLabelsCount"}}
 		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
 		filters := map[string][]string{
 			"labels": {
-				"test=GetFrequentLabelsCount",
+				"label-count-test=GetFrequentLabelsCount",
 			},
 			"since": {
 				"1d",
