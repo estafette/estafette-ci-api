@@ -73,6 +73,21 @@ type AuthConfig struct {
 	Administrators []string         `yaml:"administrators"`
 }
 
+// IsConfiguredAsAdministrator returns for a user whether they're configured as administrator
+func (config *AuthConfig) IsConfiguredAsAdministrator(email string) bool {
+	if email == "" {
+		return false
+	}
+
+	for _, a := range config.Administrators {
+		if email == a {
+			return true
+		}
+	}
+
+	return false
+}
+
 // OAuthProvider is used to configure one or more oauth providers like google, github, microsoft
 type OAuthProvider struct {
 	Name                   string `yaml:"name"`

@@ -11,6 +11,7 @@ type MockService struct {
 	GetRolesFunc                 func(ctx context.Context) (roles []string, err error)
 	GetProvidersFunc             func(ctx context.Context) (providers []*config.OAuthProvider, err error)
 	GetProviderByNameFunc        func(ctx context.Context, name string) (provider *config.OAuthProvider, err error)
+	GetUserByIdentityFunc        func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	CreateUserFromIdentityFunc   func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	CreateUserFunc               func(ctx context.Context, user contracts.User) (insertedUser *contracts.User, err error)
 	UpdateUserFunc               func(ctx context.Context, user contracts.User) (err error)
@@ -42,6 +43,13 @@ func (s MockService) GetProviderByName(ctx context.Context, name string) (provid
 		return
 	}
 	return s.GetProviderByNameFunc(ctx, name)
+}
+
+func (s MockService) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
+	if s.GetUserByIdentityFunc == nil {
+		return
+	}
+	return s.GetUserByIdentityFunc(ctx, identity)
 }
 
 func (s MockService) CreateUserFromIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {

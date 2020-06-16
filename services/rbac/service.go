@@ -27,6 +27,7 @@ type Service interface {
 	GetProviders(ctx context.Context) (providers []*config.OAuthProvider, err error)
 	GetProviderByName(ctx context.Context, name string) (provider *config.OAuthProvider, err error)
 
+	GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	CreateUserFromIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	CreateUser(ctx context.Context, user contracts.User) (insertedUser *contracts.User, err error)
 	UpdateUser(ctx context.Context, user contracts.User) (err error)
@@ -79,6 +80,18 @@ func (s *service) GetProviderByName(ctx context.Context, name string) (provider 
 	return nil, fmt.Errorf("Provider %v is not configured", name)
 }
 
+func (s *service) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
+
+	user, err = s.cockroachdbClient.GetUserByIdentity(ctx, identity)
+	if err != nil {
+		return nil, err
+	}
+
+	s.setAdminRoleForUserIfConfigured(user)
+
+	return user, nil
+}
+
 func (s *service) CreateUserFromIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 
 	log.Info().Msgf("Creating record for user %v from provider %v", identity.Email, identity.Provider)
@@ -96,6 +109,8 @@ func (s *service) CreateUserFromIdentity(ctx context.Context, identity contracts
 		LastVisit:       &firstVisit,
 		CurrentProvider: identity.Provider,
 	}
+
+	s.setAdminRoleForUserIfConfigured(user)
 
 	return s.cockroachdbClient.InsertUser(ctx, *user)
 }
@@ -117,6 +132,8 @@ func (s *service) CreateUser(ctx context.Context, user contracts.User) (inserted
 		Preferences:   user.Preferences,
 		FirstVisit:    &firstVisit,
 	}
+
+	s.setAdminRoleForUserIfConfigured(insertedUser)
 
 	return s.cockroachdbClient.InsertUser(ctx, *insertedUser)
 }
@@ -143,6 +160,8 @@ func (s *service) UpdateUser(ctx context.Context, user contracts.User) (err erro
 	currentUser.Preferences = user.Preferences
 	currentUser.LastVisit = user.LastVisit
 	currentUser.CurrentProvider = user.CurrentProvider
+
+	s.setAdminRoleForUserIfConfigured(currentUser)
 
 	return s.cockroachdbClient.UpdateUser(ctx, *currentUser)
 }
@@ -302,4 +321,15 @@ func (s *service) GetInheritedRolesForUser(ctx context.Context, user contracts.U
 	}
 
 	return roles, nil
+}
+
+func (s *service) setAdminRoleForUserIfConfigured(user *contracts.User) {
+	// check if email matches configured administrators and add/remove administrator role correspondingly
+	if s.config.Auth.IsConfiguredAsAdministrator(user.Email) {
+		// ensure user has administrator role
+		user.AddRole(auth.RoleAdministrator.String())
+	} else {
+		// ensure user does not have administrator role
+		user.RemoveRole(auth.RoleAdministrator.String())
+	}
 }

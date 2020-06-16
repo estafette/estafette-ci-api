@@ -174,7 +174,7 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 		}
 
 		// upsert user
-		user, err := h.cockroachdbClient.GetUserByIdentity(ctx, *identity)
+		user, err := h.service.GetUserByIdentity(ctx, *identity)
 		if err != nil && errors.Is(err, cockroachdb.ErrUserNotFound) {
 			user, err = h.service.CreateUserFromIdentity(ctx, *identity)
 			if err != nil {
@@ -211,23 +211,6 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 		user.CurrentProvider = name
 		user.Name = user.GetName()
 		user.Email = user.GetEmail()
-
-		// check if email matches configured administrators and add/remove administrator role correspondingly
-		isConfiguredAsAdministrator := false
-		for _, a := range h.config.Auth.Administrators {
-			if identity.Email == a {
-				isConfiguredAsAdministrator = true
-				break
-			}
-		}
-
-		if isConfiguredAsAdministrator {
-			// ensure user has administrator role
-			user.AddRole(auth.RoleAdministrator.String())
-		} else {
-			// ensure user does not have administrator role
-			user.RemoveRole(auth.RoleAdministrator.String())
-		}
 
 		go func(user contracts.User) {
 			err = h.service.UpdateUser(ctx, user)
