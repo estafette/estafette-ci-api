@@ -224,6 +224,36 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 		user.Name = user.GetName()
 		user.Email = user.GetEmail()
 
+		// check if user is part of the organization used to log in, if not add it
+		if organization != "" {
+			isLinkedToOrganization := false
+			for _, o := range user.Organizations {
+				if o.Name == organization {
+					isLinkedToOrganization = true
+				}
+			}
+			if !isLinkedToOrganization {
+				// try and get organization by name
+				org, err := h.cockroachdbClient.GetOrganizationByName(ctx, organization)
+				if err != nil && errors.Is(err, cockroachdb.ErrOrganizationNotFound) {
+					// organization doesn't exist yet, create it
+					org, err = h.service.CreateOrganization(ctx, contracts.Organization{
+						Name: organization,
+					})
+					if err != nil {
+						return nil, err
+					}
+				} else if err != nil {
+					return nil, err
+				}
+				// add the organization to the user
+				user.Organizations = append(user.Organizations, &contracts.Organization{
+					ID:   org.ID,
+					Name: org.Name,
+				})
+			}
+		}
+
 		go func(user contracts.User) {
 			err = h.service.UpdateUser(ctx, user)
 			if err != nil {
