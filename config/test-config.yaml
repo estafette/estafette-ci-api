@@ -68,6 +68,25 @@ auth:
   administrators:
   - admin1@server.com
   - admin2@server.com
+  organizations:
+  - name: Org A
+    oauthProviders:
+    - name: google
+      clientID: abcdasa
+      clientSecret: asdsddsfdfs
+      allowedIdentitiesRegex: .+@estafette\.io
+  - name: Org B
+    oauthProviders:
+    - name: microsoft
+      clientID: abcdasa
+      clientSecret: asdsddsfdfs
+      allowedIdentitiesRegex: .+@estafette\.io
+  - name: Org C
+    oauthProviders:
+    - name: github
+    clientID: abcdasa
+    clientSecret: asdsddsfdfs
+    allowedIdentitiesRegex: .+@estafette\.io
 
 jobs:
   namespace: estafette-ci-jobs
