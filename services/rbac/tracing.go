@@ -102,3 +102,10 @@ func (s *tracingService) UpdateClient(ctx context.Context, client contracts.Clie
 
 	return s.Service.UpdateClient(ctx, client)
 }
+
+func (s *tracingService) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "GetInheritedRolesForUser"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.GetInheritedRolesForUser(ctx, user)
+}

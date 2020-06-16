@@ -8,18 +8,19 @@ import (
 )
 
 type MockService struct {
-	GetRolesFunc               func(ctx context.Context) (roles []string, err error)
-	GetProvidersFunc           func(ctx context.Context) (providers []*config.OAuthProvider, err error)
-	GetProviderByNameFunc      func(ctx context.Context, name string) (provider *config.OAuthProvider, err error)
-	CreateUserFromIdentityFunc func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
-	CreateUserFunc             func(ctx context.Context, user contracts.User) (insertedUser *contracts.User, err error)
-	UpdateUserFunc             func(ctx context.Context, user contracts.User) (err error)
-	CreateGroupFunc            func(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error)
-	UpdateGroupFunc            func(ctx context.Context, group contracts.Group) (err error)
-	CreateOrganizationFunc     func(ctx context.Context, organization contracts.Organization) (insertedOrganization *contracts.Organization, err error)
-	UpdateOrganizationFunc     func(ctx context.Context, organization contracts.Organization) (err error)
-	CreateClientFunc           func(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error)
-	UpdateClientFunc           func(ctx context.Context, client contracts.Client) (err error)
+	GetRolesFunc                 func(ctx context.Context) (roles []string, err error)
+	GetProvidersFunc             func(ctx context.Context) (providers []*config.OAuthProvider, err error)
+	GetProviderByNameFunc        func(ctx context.Context, name string) (provider *config.OAuthProvider, err error)
+	CreateUserFromIdentityFunc   func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
+	CreateUserFunc               func(ctx context.Context, user contracts.User) (insertedUser *contracts.User, err error)
+	UpdateUserFunc               func(ctx context.Context, user contracts.User) (err error)
+	CreateGroupFunc              func(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error)
+	UpdateGroupFunc              func(ctx context.Context, group contracts.Group) (err error)
+	CreateOrganizationFunc       func(ctx context.Context, organization contracts.Organization) (insertedOrganization *contracts.Organization, err error)
+	UpdateOrganizationFunc       func(ctx context.Context, organization contracts.Organization) (err error)
+	CreateClientFunc             func(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error)
+	UpdateClientFunc             func(ctx context.Context, client contracts.Client) (err error)
+	GetInheritedRolesForUserFunc func(ctx context.Context, user contracts.User) (roles []*string, err error)
 }
 
 func (s MockService) GetRoles(ctx context.Context) (roles []string, err error) {
@@ -104,4 +105,11 @@ func (s MockService) UpdateClient(ctx context.Context, client contracts.Client) 
 		return
 	}
 	return s.UpdateClientFunc(ctx, client)
+}
+
+func (s MockService) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {
+	if s.GetInheritedRolesForUserFunc == nil {
+		return
+	}
+	return s.GetInheritedRolesForUserFunc(ctx, user)
 }

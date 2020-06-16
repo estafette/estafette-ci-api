@@ -39,6 +39,8 @@ type Service interface {
 
 	CreateClient(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error)
 	UpdateClient(ctx context.Context, client contracts.Client) (err error)
+
+	GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error)
 }
 
 // NewService returns a github.Service to handle incoming webhook events
@@ -251,4 +253,53 @@ func (s *service) UpdateClient(ctx context.Context, client contracts.Client) (er
 	currentClient.Roles = client.Roles
 
 	return s.cockroachdbClient.UpdateClient(ctx, *currentClient)
+}
+
+func (s *service) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {
+
+	retrievedRoles := make([]*string, 0)
+
+	// get roles from groups linked to user
+	for _, g := range user.Groups {
+		group, err := s.cockroachdbClient.GetGroupByID(ctx, g.ID)
+		if err != nil {
+			return nil, err
+		}
+		retrievedRoles = append(retrievedRoles, group.Roles...)
+
+		// get roles from organizations linked to groups
+		for _, o := range group.Organizations {
+			organization, err := s.cockroachdbClient.GetOrganizationByID(ctx, o.ID)
+			if err != nil {
+				return nil, err
+			}
+			retrievedRoles = append(retrievedRoles, organization.Roles...)
+		}
+	}
+
+	// get roles from organizations linked to user
+	for _, o := range user.Organizations {
+		organization, err := s.cockroachdbClient.GetOrganizationByID(ctx, o.ID)
+		if err != nil {
+			return nil, err
+		}
+		retrievedRoles = append(retrievedRoles, organization.Roles...)
+	}
+
+	// dedupe roles
+	roles = make([]*string, 0)
+	for _, r := range retrievedRoles {
+		isInRoles := false
+		for _, rr := range roles {
+			if r == rr {
+				isInRoles = true
+				break
+			}
+		}
+		if !isInRoles {
+			roles = append(roles, r)
+		}
+	}
+
+	return roles, nil
 }

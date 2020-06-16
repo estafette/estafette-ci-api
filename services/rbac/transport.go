@@ -204,15 +204,15 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 		user.Email = user.GetEmail()
 
 		// check if email matches configured administrators and add/remove administrator role correspondingly
-		isAdministrator := false
+		isConfiguredAsAdministrator := false
 		for _, a := range h.config.Auth.Administrators {
 			if identity.Email == a {
-				isAdministrator = true
+				isConfiguredAsAdministrator = true
 				break
 			}
 		}
 
-		if isAdministrator {
+		if isConfiguredAsAdministrator {
 			// ensure user has administrator role
 			user.AddRole(auth.RoleAdministrator.String())
 		} else {
@@ -226,6 +226,13 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 				log.Warn().Err(err).Msg("Failed updating user in db")
 			}
 		}(*user)
+
+		// get all roles the user inherites from groups and organizations
+		inheritedRoles, err := h.service.GetInheritedRolesForUser(ctx, *user)
+		if err != nil {
+			return nil, err
+		}
+		user.Roles = append(user.Roles, inheritedRoles...)
 
 		return user, nil
 	}

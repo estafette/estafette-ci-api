@@ -89,3 +89,9 @@ func (s *loggingService) UpdateClient(ctx context.Context, client contracts.Clie
 
 	return s.Service.UpdateClient(ctx, client)
 }
+
+func (s *loggingService) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "GetInheritedRolesForUser", err) }()
+
+	return s.Service.GetInheritedRolesForUser(ctx, user)
+}
