@@ -52,19 +52,6 @@ auth:
   jwt:
     domain: ci.estafette.io
     key: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
-  oauthProviders:
-  - name: google
-    clientID: abcdasa
-    clientSecret: asdsddsfdfs
-    allowedIdentitiesRegex: .+@estafette\.io
-  - name: microsoft
-    clientID: abcdasa
-    clientSecret: asdsddsfdfs
-    allowedIdentitiesRegex: .+@estafette\.io
-  - name: github
-    clientID: abcdasa
-    clientSecret: asdsddsfdfs
-    allowedIdentitiesRegex: .+@estafette\.io
   administrators:
   - admin1@server.com
   - admin2@server.com

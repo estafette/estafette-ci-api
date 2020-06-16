@@ -68,9 +68,15 @@ func (c *APIServerConfig) ReadLogFromCloudStorage() bool {
 
 // AuthConfig determines whether to use IAP for authentication and authorization
 type AuthConfig struct {
+	JWT            *JWTConfig                `yaml:"jwt"`
+	Administrators []string                  `yaml:"administrators"`
+	Organizations  []*AuthOrganizationConfig `yaml:"organizations"`
+}
+
+// AuthOrganizationConfig configures things relevant to each organization using the system
+type AuthOrganizationConfig struct {
+	Name           string           `yaml:"name"`
 	OAuthProviders []*OAuthProvider `yaml:"oauthProviders"`
-	JWT            *JWTConfig       `yaml:"jwt"`
-	Administrators []string         `yaml:"administrators"`
 }
 
 // IsConfiguredAsAdministrator returns for a user whether they're configured as administrator

@@ -149,13 +149,23 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		authConfig := config.Auth
 
-		assert.Equal(t, 3, len(authConfig.OAuthProviders))
-		assert.Equal(t, "google", authConfig.OAuthProviders[0].Name)
-		assert.Equal(t, "abcdasa", authConfig.OAuthProviders[0].ClientID)
-		assert.Equal(t, "asdsddsfdfs", authConfig.OAuthProviders[0].ClientSecret)
-		assert.Equal(t, ".+@estafette\\.io", authConfig.OAuthProviders[0].AllowedIdentitiesRegex)
 		assert.Equal(t, "ci.estafette.io", authConfig.JWT.Domain)
 		assert.Equal(t, "this is my secret", authConfig.JWT.Key)
+
+		assert.Equal(t, 3, len(authConfig.Organizations))
+		assert.Equal(t, "Org A", authConfig.Organizations[0].Name)
+		assert.Equal(t, 1, len(authConfig.Organizations[0].OAuthProviders))
+		assert.Equal(t, "google", authConfig.Organizations[0].OAuthProviders[0].Name)
+		assert.Equal(t, "abcdasa", authConfig.Organizations[0].OAuthProviders[0].ClientID)
+		assert.Equal(t, "asdsddsfdfs", authConfig.Organizations[0].OAuthProviders[0].ClientSecret)
+		assert.Equal(t, ".+@estafette\\.io", authConfig.Organizations[0].OAuthProviders[0].AllowedIdentitiesRegex)
+
+		assert.Equal(t, "Org B", authConfig.Organizations[1].Name)
+		assert.Equal(t, 1, len(authConfig.Organizations[1].OAuthProviders))
+
+		assert.Equal(t, "Org C", authConfig.Organizations[2].Name)
+		assert.Equal(t, 1, len(authConfig.Organizations[2].OAuthProviders))
+
 		assert.Equal(t, 2, len(authConfig.Administrators))
 		assert.Equal(t, "admin1@server.com", authConfig.Administrators[0])
 		assert.Equal(t, "admin2@server.com", authConfig.Administrators[1])

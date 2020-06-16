@@ -62,7 +62,13 @@ func (s *service) GetRoles(ctx context.Context) (roles []string, err error) {
 }
 
 func (s *service) GetProviders(ctx context.Context) (providers []*config.OAuthProvider, err error) {
-	return s.config.Auth.OAuthProviders, nil
+
+	providers = make([]*config.OAuthProvider, 0)
+
+	for _, c := range s.config.Auth.Organizations {
+		providers = append(providers, c.OAuthProviders...)
+	}
+	return providers, nil
 }
 
 func (s *service) GetProviderByName(ctx context.Context, name string) (provider *config.OAuthProvider, err error) {
