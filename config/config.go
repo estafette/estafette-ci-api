@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/estafette/estafette-ci-api/helpers"
@@ -130,7 +131,7 @@ func (p *OAuthProvider) AuthCodeURL(baseURL, state string) string {
 	return p.GetConfig(baseURL).AuthCodeURL(state, oauth2.AccessTypeOnline)
 }
 
-// GetUser returns the user info after a token has been retrieved
+// GetUserIdentity returns the user info after a token has been retrieved
 func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Config, token *oauth2.Token) (identity *contracts.UserIdentity, err error) {
 	switch p.Name {
 	case "google":
@@ -202,6 +203,25 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 	}
 
 	return nil, fmt.Errorf("The GetUser function has not been implemented for provider '%v'", p.Name)
+}
+
+// UserIsAllowed checks if user email address matches allowedIdentitiesRegex
+func (p *OAuthProvider) UserIsAllowed(ctx context.Context, email string) (isAllowed bool, err error) {
+
+	if p.AllowedIdentitiesRegex == "" {
+		return true, nil
+	}
+	if email == "" {
+		return false, fmt.Errorf("Email address is empty, can't check if user is allowed")
+	}
+
+	pattern := fmt.Sprintf("^%v$", strings.TrimSpace(p.AllowedIdentitiesRegex))
+	match, err := regexp.MatchString(pattern, email)
+	if err != nil {
+		return false, err
+	}
+
+	return match, nil
 }
 
 // JWTConfig is used to configure JWT middleware

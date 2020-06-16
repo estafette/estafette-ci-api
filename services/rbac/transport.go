@@ -164,6 +164,15 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 			return nil, fmt.Errorf("Empty identity retrieved from oauth provider api")
 		}
 
+		// check if user is allowed for this provider
+		isAllowed, err := provider.UserIsAllowed(ctx, identity.Email)
+		if err != nil {
+			return nil, err
+		}
+		if !isAllowed {
+			return nil, fmt.Errorf("User with email %v is not allowed for provider %v", identity.Email, provider.Name)
+		}
+
 		// upsert user
 		user, err := h.cockroachdbClient.GetUserByIdentity(ctx, *identity)
 		if err != nil && errors.Is(err, cockroachdb.ErrUserNotFound) {
