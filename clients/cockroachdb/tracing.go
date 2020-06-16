@@ -650,6 +650,13 @@ func (c *tracingClient) GetOrganizationByID(ctx context.Context, id string) (org
 	return c.Client.GetOrganizationByID(ctx, id)
 }
 
+func (c *tracingClient) GetOrganizationByName(ctx context.Context, name string) (organization *contracts.Organization, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetOrganizationByName"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetOrganizationByName(ctx, name)
+}
+
 func (c *tracingClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetOrganizations"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()

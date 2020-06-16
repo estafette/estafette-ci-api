@@ -103,6 +103,7 @@ type MockClient struct {
 	UpdateOrganizationFunc        func(ctx context.Context, organization contracts.Organization) (err error)
 	GetOrganizationByIdentityFunc func(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error)
 	GetOrganizationByIDFunc       func(ctx context.Context, id string) (organization *contracts.Organization, err error)
+	GetOrganizationByNameFunc     func(ctx context.Context, name string) (organization *contracts.Organization, err error)
 	GetOrganizationsFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error)
 	GetOrganizationsCountFunc     func(ctx context.Context, filters map[string][]string) (count int, err error)
 
@@ -743,6 +744,13 @@ func (c MockClient) GetOrganizationByID(ctx context.Context, id string) (organiz
 		return
 	}
 	return c.GetOrganizationByIDFunc(ctx, id)
+}
+
+func (c MockClient) GetOrganizationByName(ctx context.Context, name string) (organization *contracts.Organization, err error) {
+	if c.GetOrganizationByNameFunc == nil {
+		return
+	}
+	return c.GetOrganizationByNameFunc(ctx, name)
 }
 
 func (c MockClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error) {

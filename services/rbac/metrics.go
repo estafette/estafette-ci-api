@@ -27,18 +27,18 @@ func (s *metricsService) GetRoles(ctx context.Context) (roles []string, err erro
 	return s.Service.GetRoles(ctx)
 }
 
-func (s *metricsService) GetProviders(ctx context.Context) (providers []*config.OAuthProvider, err error) {
+func (s *metricsService) GetProviders(ctx context.Context) (providers map[string][]*config.OAuthProvider, err error) {
 	defer func(begin time.Time) { helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GetProviders", begin) }(time.Now())
 
 	return s.Service.GetProviders(ctx)
 }
 
-func (s *metricsService) GetProviderByName(ctx context.Context, name string) (provider *config.OAuthProvider, err error) {
+func (s *metricsService) GetProviderByName(ctx context.Context, organization, name string) (provider *config.OAuthProvider, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GetProviderByName", begin)
 	}(time.Now())
 
-	return s.Service.GetProviderByName(ctx, name)
+	return s.Service.GetProviderByName(ctx, organization, name)
 }
 
 func (s *metricsService) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {

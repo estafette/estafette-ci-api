@@ -1450,6 +1450,29 @@ func TestIntegrationGetOrganizationByID(t *testing.T) {
 	})
 }
 
+func TestIntegrationGetOrganizationByName(t *testing.T) {
+	t.Run("ReturnsInsertedOrganizationWithName", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		organization := getOrganization()
+		organization.Name = "organization-name-test"
+		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		assert.Nil(t, err)
+
+		// act
+		retrievedOrganization, err := cockroachdbClient.GetOrganizationByName(ctx, "organization-name-test")
+
+		assert.Nil(t, err)
+		assert.NotNil(t, retrievedOrganization)
+		assert.Equal(t, retrievedOrganization.ID, insertedOrganization.ID)
+		assert.Equal(t, retrievedOrganization.Name, insertedOrganization.Name)
+	})
+}
 func TestIntegrationGetOrganizations(t *testing.T) {
 	t.Run("ReturnsInsertedOrganizations", func(t *testing.T) {
 

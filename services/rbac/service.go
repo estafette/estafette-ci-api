@@ -24,8 +24,8 @@ var (
 type Service interface {
 	GetRoles(ctx context.Context) (roles []string, err error)
 
-	GetProviders(ctx context.Context) (providers []*config.OAuthProvider, err error)
-	GetProviderByName(ctx context.Context, name string) (provider *config.OAuthProvider, err error)
+	GetProviders(ctx context.Context) (providers map[string][]*config.OAuthProvider, err error)
+	GetProviderByName(ctx context.Context, organization, name string) (provider *config.OAuthProvider, err error)
 
 	GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	CreateUserFromIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
@@ -61,25 +61,38 @@ func (s *service) GetRoles(ctx context.Context) (roles []string, err error) {
 	return auth.Roles(), nil
 }
 
-func (s *service) GetProviders(ctx context.Context) (providers []*config.OAuthProvider, err error) {
+func (s *service) GetProviders(ctx context.Context) (providers map[string][]*config.OAuthProvider, err error) {
 
-	providers = make([]*config.OAuthProvider, 0)
+	providers = map[string][]*config.OAuthProvider{}
 
 	for _, c := range s.config.Auth.Organizations {
-		providers = append(providers, c.OAuthProviders...)
+		providers[c.Name] = c.OAuthProviders
 	}
 	return providers, nil
 }
 
-func (s *service) GetProviderByName(ctx context.Context, name string) (provider *config.OAuthProvider, err error) {
+func (s *service) GetProviderByName(ctx context.Context, organization, name string) (provider *config.OAuthProvider, err error) {
 	providers, err := s.GetProviders(ctx)
 	if err != nil {
 		return
 	}
 
-	for _, p := range providers {
-		if p.Name == name {
-			return p, nil
+	if organization == "" {
+		// go through all organizations and pick the first match
+		for _, orgProviders := range providers {
+			for _, p := range orgProviders {
+				if p.Name == name {
+					return p, nil
+				}
+			}
+		}
+	} else {
+		if orgProviders, ok := providers[organization]; ok {
+			for _, p := range orgProviders {
+				if p.Name == name {
+					return p, nil
+				}
+			}
 		}
 	}
 

@@ -80,12 +80,15 @@ func (h *Handler) GetProviders(c *gin.Context) {
 	}
 
 	responseItems := make([]interface{}, 0)
-	for _, p := range providers {
-		responseItems = append(responseItems, map[string]interface{}{
-			"id":   p.Name,
-			"name": strings.Title(p.Name),
-			"path": fmt.Sprintf("/api/auth/login/%v", p.Name),
-		})
+	for organization, orgProviders := range providers {
+		for _, p := range orgProviders {
+			responseItems = append(responseItems, map[string]interface{}{
+				"id":           p.Name,
+				"organization": organization,
+				"name":         strings.Title(p.Name),
+				"path":         fmt.Sprintf("/api/auth/login/%v", p.Name),
+			})
+		}
 	}
 
 	c.JSON(http.StatusOK, responseItems)
@@ -96,8 +99,9 @@ func (h *Handler) LoginProvider(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	name := c.Param("provider")
+	organization := c.Query("organization")
 
-	provider, err := h.service.GetProviderByName(ctx, name)
+	provider, err := h.service.GetProviderByName(ctx, organization, name)
 	if err != nil {
 		log.Error().Err(err).Msg("Retrieving provider by name failed")
 		c.String(http.StatusBadRequest, "Retrieving provider by name failed")
@@ -109,6 +113,9 @@ func (h *Handler) LoginProvider(c *gin.Context) {
 	returnURL := c.Query("returnURL")
 	if returnURL != "" {
 		optionalClaims["returnURL"] = returnURL
+	}
+	if organization != "" {
+		optionalClaims["organization"] = organization
 	}
 
 	// generate jwt to use as state
@@ -139,10 +146,15 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 			c.Set("returnURL", returnURL)
 		}
 
+		organization := ""
+		if organizationClaim, ok := claims["organization"]; ok {
+			organization = organizationClaim.(string)
+		}
+
 		ctx := c.Request.Context()
 
 		// retrieve configured providers
-		provider, err := h.service.GetProviderByName(ctx, name)
+		provider, err := h.service.GetProviderByName(ctx, organization, name)
 		if err != nil {
 			return nil, err
 		}

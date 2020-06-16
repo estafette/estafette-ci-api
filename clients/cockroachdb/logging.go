@@ -559,6 +559,12 @@ func (c *loggingClient) GetOrganizationByID(ctx context.Context, id string) (org
 	return c.Client.GetOrganizationByID(ctx, id)
 }
 
+func (c *loggingClient) GetOrganizationByName(ctx context.Context, name string) (organization *contracts.Organization, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetOrganizationByName", err, ErrOrganizationNotFound) }()
+
+	return c.Client.GetOrganizationByName(ctx, name)
+}
+
 func (c *loggingClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetGroups", err) }()
 

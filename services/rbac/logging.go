@@ -24,16 +24,16 @@ func (s *loggingService) GetRoles(ctx context.Context) (roles []string, err erro
 	return s.Service.GetRoles(ctx)
 }
 
-func (s *loggingService) GetProviders(ctx context.Context) (providers []*config.OAuthProvider, err error) {
+func (s *loggingService) GetProviders(ctx context.Context) (providers map[string][]*config.OAuthProvider, err error) {
 	defer func() { helpers.HandleLogError(s.prefix, "GetProviders", err) }()
 
 	return s.Service.GetProviders(ctx)
 }
 
-func (s *loggingService) GetProviderByName(ctx context.Context, name string) (provider *config.OAuthProvider, err error) {
+func (s *loggingService) GetProviderByName(ctx context.Context, organization, name string) (provider *config.OAuthProvider, err error) {
 	defer func() { helpers.HandleLogError(s.prefix, "GetProviderByName", err) }()
 
-	return s.Service.GetProviderByName(ctx, name)
+	return s.Service.GetProviderByName(ctx, organization, name)
 }
 
 func (s *loggingService) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {

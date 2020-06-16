@@ -725,6 +725,14 @@ func (c *metricsClient) GetOrganizationByID(ctx context.Context, id string) (org
 	return c.Client.GetOrganizationByID(ctx, id)
 }
 
+func (c *metricsClient) GetOrganizationByName(ctx context.Context, name string) (organization *contracts.Organization, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetOrganizationByName", begin)
+	}(time.Now())
+
+	return c.Client.GetOrganizationByName(ctx, name)
+}
+
 func (c *metricsClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetOrganizations", begin)

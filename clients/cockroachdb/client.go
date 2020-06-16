@@ -139,6 +139,7 @@ type Client interface {
 	UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error)
 	GetOrganizationByIdentity(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error)
 	GetOrganizationByID(ctx context.Context, id string) (organization *contracts.Organization, err error)
+	GetOrganizationByName(ctx context.Context, name string) (organization *contracts.Organization, err error)
 	GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error)
 	GetOrganizationsCount(ctx context.Context, filters map[string][]string) (count int, err error)
 
@@ -4432,6 +4433,25 @@ func (c *client) GetOrganizationByID(ctx context.Context, id string) (organizati
 		Select("a.id, a.organization_data, a.inserted_at").
 		From("organizations a").
 		Where(sq.Eq{"a.id": id}).
+		Limit(uint64(1))
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	organization, err = c.scanOrganization(row)
+	if err != nil {
+		return nil, err
+	}
+
+	return organization, nil
+}
+
+func (c *client) GetOrganizationByName(ctx context.Context, name string) (organization *contracts.Organization, err error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Select("a.id, a.organization_data, a.inserted_at").
+		From("organizations a").
+		Where(sq.Eq{"a.organization_data->>'name'": name}).
 		Limit(uint64(1))
 
 	// execute query

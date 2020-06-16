@@ -9,8 +9,8 @@ import (
 
 type MockService struct {
 	GetRolesFunc                 func(ctx context.Context) (roles []string, err error)
-	GetProvidersFunc             func(ctx context.Context) (providers []*config.OAuthProvider, err error)
-	GetProviderByNameFunc        func(ctx context.Context, name string) (provider *config.OAuthProvider, err error)
+	GetProvidersFunc             func(ctx context.Context) (providers map[string][]*config.OAuthProvider, err error)
+	GetProviderByNameFunc        func(ctx context.Context, organization, name string) (provider *config.OAuthProvider, err error)
 	GetUserByIdentityFunc        func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	CreateUserFromIdentityFunc   func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	CreateUserFunc               func(ctx context.Context, user contracts.User) (insertedUser *contracts.User, err error)
@@ -31,18 +31,18 @@ func (s MockService) GetRoles(ctx context.Context) (roles []string, err error) {
 	return s.GetRolesFunc(ctx)
 }
 
-func (s MockService) GetProviders(ctx context.Context) (providers []*config.OAuthProvider, err error) {
+func (s MockService) GetProviders(ctx context.Context) (providers map[string][]*config.OAuthProvider, err error) {
 	if s.GetProvidersFunc == nil {
 		return
 	}
 	return s.GetProvidersFunc(ctx)
 }
 
-func (s MockService) GetProviderByName(ctx context.Context, name string) (provider *config.OAuthProvider, err error) {
+func (s MockService) GetProviderByName(ctx context.Context, organization, name string) (provider *config.OAuthProvider, err error) {
 	if s.GetProviderByNameFunc == nil {
 		return
 	}
-	return s.GetProviderByNameFunc(ctx, name)
+	return s.GetProviderByNameFunc(ctx, organization, name)
 }
 
 func (s MockService) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
