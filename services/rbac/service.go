@@ -179,6 +179,7 @@ func (s *service) UpdateUser(ctx context.Context, user contracts.User) (err erro
 	currentUser.Preferences = user.Preferences
 	currentUser.LastVisit = user.LastVisit
 	currentUser.CurrentProvider = user.CurrentProvider
+	currentUser.CurrentOrganization = user.CurrentOrganization
 
 	s.setAdminRoleForUserIfConfigured(currentUser)
 
