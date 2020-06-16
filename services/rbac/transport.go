@@ -226,6 +226,7 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 
 		// check if user is part of the organization used to log in, if not add it
 		if organization != "" {
+			user.CurrentOrganization = organization
 			isLinkedToOrganization := false
 			for _, o := range user.Organizations {
 				if o.Name == organization {
