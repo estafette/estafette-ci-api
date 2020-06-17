@@ -525,7 +525,7 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 
 		jwtMiddlewareRoutes.GET("/api/catalog/entities", catalogHandler.GetCatalogEntities)
 		jwtMiddlewareRoutes.GET("/api/catalog/entities/:id", catalogHandler.GetCatalogEntity)
-		jwtMiddlewareRoutes.POST("/api/catalog/entities/:id", catalogHandler.CreateCatalogEntity)
+		jwtMiddlewareRoutes.POST("/api/catalog/entities", catalogHandler.CreateCatalogEntity)
 		jwtMiddlewareRoutes.PUT("/api/catalog/entities/:id", catalogHandler.UpdateCatalogEntity)
 		jwtMiddlewareRoutes.DELETE("/api/catalog/entities/:id", catalogHandler.DeleteCatalogEntity)
 
