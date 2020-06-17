@@ -15,6 +15,7 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/estafette/estafette-ci-api/services/bitbucket"
+	"github.com/estafette/estafette-ci-api/services/catalog"
 	"github.com/estafette/estafette-ci-api/services/cloudsource"
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	"github.com/estafette/estafette-ci-api/services/github"
@@ -58,8 +59,9 @@ func TestConfigureGinGonic(t *testing.T) {
 		pubsubHandler := pubsub.NewHandler(pubsubapiclient, estafetteService)
 		slackHandler := slack.NewHandler(secretHelper, config, slackapiClient, cockroachdbClient, estafetteService, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
 		cloudsourceHandler := cloudsource.NewHandler(pubsubapiclient, cloudsource.MockService{})
+		catalogHandler := catalog.NewHandler(config, catalog.MockService{}, cockroachdbClient)
 
 		// act
-		_ = configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler)
+		_ = configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler, catalogHandler)
 	})
 }

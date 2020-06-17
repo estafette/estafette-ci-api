@@ -796,3 +796,51 @@ func (c *metricsClient) GetClientsCount(ctx context.Context, filters map[string]
 
 	return c.Client.GetClientsCount(ctx, filters)
 }
+
+func (c *metricsClient) InsertCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (insertedCatalogEntity *contracts.CatalogEntity, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "InsertCatalogEntity", begin)
+	}(time.Now())
+
+	return c.Client.InsertCatalogEntity(ctx, catalogEntity)
+}
+
+func (c *metricsClient) UpdateCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "UpdateCatalogEntity", begin)
+	}(time.Now())
+
+	return c.Client.UpdateCatalogEntity(ctx, catalogEntity)
+}
+
+func (c *metricsClient) DeleteCatalogEntity(ctx context.Context, id string) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "DeleteCatalogEntity", begin)
+	}(time.Now())
+
+	return c.Client.DeleteCatalogEntity(ctx, id)
+}
+
+func (c *metricsClient) GetCatalogEntityByID(ctx context.Context, id string) (catalogEntity *contracts.CatalogEntity, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityByID", begin)
+	}(time.Now())
+
+	return c.Client.GetCatalogEntityByID(ctx, id)
+}
+
+func (c *metricsClient) GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntities", begin)
+	}(time.Now())
+
+	return c.Client.GetCatalogEntities(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *metricsClient) GetCatalogEntitiesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntitiesCount", begin)
+	}(time.Now())
+
+	return c.Client.GetCatalogEntitiesCount(ctx, filters)
+}

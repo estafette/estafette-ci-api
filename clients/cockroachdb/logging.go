@@ -612,3 +612,39 @@ func (c *loggingClient) GetClientsCount(ctx context.Context, filters map[string]
 
 	return c.Client.GetClientsCount(ctx, filters)
 }
+
+func (c *loggingClient) InsertCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (insertedCatalogEntity *contracts.CatalogEntity, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "InsertCatalogEntity", err) }()
+
+	return c.Client.InsertCatalogEntity(ctx, catalogEntity)
+}
+
+func (c *loggingClient) UpdateCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "UpdateCatalogEntity", err) }()
+
+	return c.Client.UpdateCatalogEntity(ctx, catalogEntity)
+}
+
+func (c *loggingClient) DeleteCatalogEntity(ctx context.Context, id string) (err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "DeleteCatalogEntity", err) }()
+
+	return c.Client.DeleteCatalogEntity(ctx, id)
+}
+
+func (c *loggingClient) GetCatalogEntityByID(ctx context.Context, id string) (catalogEntity *contracts.CatalogEntity, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityByID", err) }()
+
+	return c.Client.GetCatalogEntityByID(ctx, id)
+}
+
+func (c *loggingClient) GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntities", err) }()
+
+	return c.Client.GetCatalogEntities(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *loggingClient) GetCatalogEntitiesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntitiesCount", err) }()
+
+	return c.Client.GetCatalogEntitiesCount(ctx, filters)
+}

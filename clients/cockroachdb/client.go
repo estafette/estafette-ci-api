@@ -35,6 +35,9 @@ var (
 
 	// ErrClientNotFound is returned if a query for a client returns no results
 	ErrClientNotFound = errors.New("The client can't be found")
+
+	// ErrCatalogEntityNotFound is returned if a query for a catalog entity returns no results
+	ErrCatalogEntityNotFound = errors.New("The catalog entity can't be found")
 )
 
 // Client is the interface for communicating with CockroachDB
@@ -149,6 +152,13 @@ type Client interface {
 	GetClientByID(ctx context.Context, id string) (client *contracts.Client, err error)
 	GetClients(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error)
 	GetClientsCount(ctx context.Context, filters map[string][]string) (count int, err error)
+
+	InsertCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (insertedCatalogEntity *contracts.CatalogEntity, err error)
+	UpdateCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (err error)
+	DeleteCatalogEntity(ctx context.Context, id string) (err error)
+	GetCatalogEntityByID(ctx context.Context, id string) (catalogEntity *contracts.CatalogEntity, err error)
+	GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error)
+	GetCatalogEntitiesCount(ctx context.Context, filters map[string][]string) (count int, err error)
 }
 
 // NewClient returns a new cockroach.Client
@@ -3318,6 +3328,70 @@ func whereClauseGeneratorForUserOrganizationFilters(query sq.SelectBuilder, alia
 	return query, nil
 }
 
+func whereClauseGeneratorForCatalogEntityFilters(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	query, err := whereClauseGeneratorForParentFilter(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
+
+	query, err = whereClauseGeneratorForEntityFilter(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
+
+	query, err = whereClauseGeneratorForLinkedPipelineFilter(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
+
+	query, err = whereClauseGeneratorForLabelsFilter(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForParentFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if parents, ok := filters["parent"]; ok && len(parents) == 1 {
+		keyValuePair := strings.Split(parents[0], "=")
+		if len(keyValuePair) > 0 {
+			query = query.Where(sq.Eq{fmt.Sprintf("%v.parent_key", alias): keyValuePair[0]})
+		}
+		if len(keyValuePair) > 1 {
+			query = query.Where(sq.Eq{fmt.Sprintf("%v.parent_value", alias): keyValuePair[1]})
+		}
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForEntityFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if entities, ok := filters["entity"]; ok && len(entities) == 1 {
+		keyValuePair := strings.Split(entities[0], "=")
+		if len(keyValuePair) > 0 {
+			query = query.Where(sq.Eq{fmt.Sprintf("%v.entity_key", alias): keyValuePair[0]})
+		}
+		if len(keyValuePair) > 1 {
+			query = query.Where(sq.Eq{fmt.Sprintf("%v.entity_value", alias): keyValuePair[1]})
+		}
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForLinkedPipelineFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if pipelines, ok := filters["pipeline"]; ok && len(pipelines) == 1 {
+		query = query.Where(sq.Eq{fmt.Sprintf("%v.linked_pipeline", alias): pipelines[0]})
+	}
+
+	return query, nil
+}
+
 func limitClauseGeneratorForLastFilter(query sq.SelectBuilder, filters map[string][]string) (sq.SelectBuilder, error) {
 
 	if last, ok := filters["last"]; ok && len(last) == 1 {
@@ -4629,6 +4703,162 @@ func (c *client) GetClientsCount(ctx context.Context, filters map[string][]strin
 	return
 }
 
+func (c *client) InsertCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (insertedCatalogEntity *contracts.CatalogEntity, err error) {
+
+	labelBytes, err := json.Marshal(catalogEntity.Labels)
+	if err != nil {
+		return nil, err
+	}
+
+	metadataBytes, err := json.Marshal(catalogEntity.Metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	// upsert user
+	row := c.databaseConnection.QueryRow(
+		`
+		INSERT INTO
+		catalog_entities
+		(
+			parent_key,
+			parent_value,
+			entity_key,
+			entity_value,
+			linked_pipeline,
+			labels,
+			entity_metadata
+		)
+		VALUES
+		(
+			$1,
+			$2,
+			$3,
+			$4,
+			$5,
+			$6,
+			$7
+		)
+		RETURNING
+			id
+		`,
+		catalogEntity.ParentKey,
+		catalogEntity.ParentValue,
+		catalogEntity.Key,
+		catalogEntity.Value,
+		catalogEntity.LinkedPipeline,
+		labelBytes,
+		metadataBytes,
+	)
+
+	insertedCatalogEntity = &catalogEntity
+
+	if err = row.Scan(&insertedCatalogEntity.ID); err != nil {
+		return nil, err
+	}
+
+	return
+}
+
+func (c *client) UpdateCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (err error) {
+	labelBytes, err := json.Marshal(catalogEntity.Labels)
+	if err != nil {
+		return
+	}
+
+	metadataBytes, err := json.Marshal(catalogEntity.Metadata)
+	if err != nil {
+		return
+	}
+
+	entityID, err := strconv.Atoi(catalogEntity.ID)
+	if err != nil {
+		return
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("catalog_entities").
+		Set("linked_pipeline", catalogEntity.LinkedPipeline).
+		Set("labels", labelBytes).
+		Set("entity_metadata", metadataBytes).
+		Where(sq.Eq{"id": entityID}).
+		Limit(uint64(1))
+
+	_, err = query.RunWith(c.databaseConnection).Exec()
+
+	return
+}
+
+func (c *client) DeleteCatalogEntity(ctx context.Context, id string) (err error) {
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Delete("catalog_entities").
+		Where(sq.Eq{"a.id": id}).
+		Limit(uint64(1))
+
+	_, err = query.RunWith(c.databaseConnection).Exec()
+	if err != nil {
+		return
+	}
+
+	return nil
+}
+
+func (c *client) GetCatalogEntityByID(ctx context.Context, id string) (catalogEntity *contracts.CatalogEntity, err error) {
+
+	query := c.selectCatalogEntityQuery().
+		Where(sq.Eq{"a.id": id}).
+		Limit(uint64(1))
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	catalogEntity, err = c.scanCatalogEntity(row)
+	if err != nil {
+		return nil, err
+	}
+
+	return catalogEntity, nil
+}
+
+func (c *client) GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error) {
+
+	query := c.selectCatalogEntityQuery().
+		Limit(uint64(pageSize)).
+		Offset(uint64((pageNumber - 1) * pageSize))
+
+	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
+
+	// execute query
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+
+	return c.scanCatalogEntities(rows)
+}
+
+func (c *client) GetCatalogEntitiesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Select("COUNT(a.id)").
+		From("catalog_entities a")
+
+	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&count); err != nil {
+		return
+	}
+
+	return
+}
+
 func (c *client) scanUsers(rows *sql.Rows) (users []*contracts.User, err error) {
 	users = make([]*contracts.User, 0)
 
@@ -4875,6 +5105,82 @@ func (c *client) scanClient(row sq.RowScanner) (client *contracts.Client, err er
 	return
 }
 
+func (c *client) scanCatalogEntities(rows *sql.Rows) (catalogEntities []*contracts.CatalogEntity, err error) {
+	catalogEntities = make([]*contracts.CatalogEntity, 0)
+
+	defer rows.Close()
+	for rows.Next() {
+
+		catalogEntity := &contracts.CatalogEntity{}
+		var labelData, metadataData []uint8
+
+		if err = rows.Scan(
+			&catalogEntity.ID,
+			&catalogEntity.ParentKey,
+			&catalogEntity.ParentValue,
+			&catalogEntity.Key,
+			&catalogEntity.Value,
+			&catalogEntity.LinkedPipeline,
+			&labelData,
+			&metadataData,
+			&catalogEntity.InsertedAt,
+			&catalogEntity.UpdatedAt); err != nil {
+			return
+		}
+
+		if len(labelData) > 0 {
+			if err = json.Unmarshal(labelData, &catalogEntity.Labels); err != nil {
+				return nil, err
+			}
+		}
+
+		if len(metadataData) > 0 {
+			if err = json.Unmarshal(metadataData, &catalogEntity.Metadata); err != nil {
+				return nil, err
+			}
+		}
+
+		catalogEntities = append(catalogEntities, catalogEntity)
+	}
+
+	return
+}
+
+func (c *client) scanCatalogEntity(row sq.RowScanner) (catalogEntity *contracts.CatalogEntity, err error) {
+
+	catalogEntity = &contracts.CatalogEntity{}
+
+	var labelData, metadataData []uint8
+
+	if err = row.Scan(
+		&catalogEntity.ID,
+		&catalogEntity.ParentKey,
+		&catalogEntity.ParentValue,
+		&catalogEntity.Key,
+		&catalogEntity.Value,
+		&catalogEntity.LinkedPipeline,
+		&labelData,
+		&metadataData,
+		&catalogEntity.InsertedAt,
+		&catalogEntity.UpdatedAt); err != nil {
+		return
+	}
+
+	if len(labelData) > 0 {
+		if err = json.Unmarshal(labelData, &catalogEntity.Labels); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(metadataData) > 0 {
+		if err = json.Unmarshal(metadataData, &catalogEntity.Metadata); err != nil {
+			return nil, err
+		}
+	}
+
+	return
+}
+
 func (c *client) selectBuildsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -4941,6 +5247,14 @@ func (c *client) selectPipelineTriggersQuery() sq.SelectBuilder {
 	return psql.
 		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.trigger_event, a.trigger_filter, a.trigger_run, a.inserted_at, a.started_at, a.updated_at").
 		From("pipeline_triggers a")
+}
+
+func (c *client) selectCatalogEntityQuery() sq.SelectBuilder {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	return psql.
+		Select("a.id, a.parent_key, a.parent_value, a.entity_key, a.entity_value, a.linked_pipeline, a.labels, a.entity_metadata").
+		From("catalog_entities a")
 }
 
 func (c *client) enrichPipeline(ctx context.Context, pipeline *contracts.Pipeline) {

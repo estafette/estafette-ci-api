@@ -90,6 +90,10 @@ const (
 	RoleGroupPipelinesViewer
 	// RoleGroupPipelinesOperator allows to operate all pipelines linked to a group
 	RoleGroupPipelinesOperator
+	// RoleCatalogEntitiesViewer allows to view all catalog entities
+	RoleCatalogEntitiesViewer
+	// RoleCatalogEntitiesAdmin allows to view, create, update and delete catalog entities
+	RoleCatalogEntitiesAdmin
 )
 
 var roles = []string{
@@ -109,6 +113,8 @@ var roles = []string{
 	"organization.pipelines.operator",
 	"group.pipelines.viewer",
 	"group.pipelines.operator",
+	"catalog.entities.viewer",
+	"catalog.entities.admin",
 }
 
 func (r Role) String() string {
@@ -174,6 +180,12 @@ const (
 	PermissionReleasesGet
 	PermissionReleasesCreate
 	PermissionReleasesCancel
+
+	PermissionCatalogEntitiesList
+	PermissionCatalogEntitiesGet
+	PermissionCatalogEntitiesCreate
+	PermissionCatalogEntitiesUpdate
+	PermissionCatalogEntitiesDelete
 )
 
 var permissions = []string{
@@ -215,6 +227,12 @@ var permissions = []string{
 	"ci.releases.get",
 	"ci.releases.create",
 	"ci.releases.cancel",
+
+	"catalog.entities.list",
+	"catalog.entities.get",
+	"catalog.entities.create",
+	"catalog.entities.update",
+	"catalog.entities.delete",
 }
 
 func (p Permission) String() string {
@@ -271,6 +289,11 @@ var rolesToPermissionMap = map[Role][]Permission{
 		PermissionReleasesGet,
 		PermissionReleasesCreate,
 		PermissionReleasesCancel,
+		PermissionCatalogEntitiesList,
+		PermissionCatalogEntitiesGet,
+		PermissionCatalogEntitiesCreate,
+		PermissionCatalogEntitiesUpdate,
+		PermissionCatalogEntitiesDelete,
 	},
 	RoleRoleViewer: {
 		PermissionRolesList,
@@ -359,5 +382,16 @@ var rolesToPermissionMap = map[Role][]Permission{
 		PermissionReleasesGet,
 		PermissionReleasesCreate,
 		PermissionReleasesCancel,
+	},
+	RoleCatalogEntitiesViewer: {
+		PermissionCatalogEntitiesList,
+		PermissionCatalogEntitiesGet,
+	},
+	RoleCatalogEntitiesAdmin: {
+		PermissionCatalogEntitiesList,
+		PermissionCatalogEntitiesGet,
+		PermissionCatalogEntitiesCreate,
+		PermissionCatalogEntitiesUpdate,
+		PermissionCatalogEntitiesDelete,
 	},
 }

@@ -1688,6 +1688,345 @@ func TestIntegrationGetClientsCount(t *testing.T) {
 	})
 }
 
+func TestIntegrationInsertCatalogEntity(t *testing.T) {
+	t.Run("ReturnsInsertedCatalogEntityWithID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+
+		// act
+		insertedCatalogEntity, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, insertedCatalogEntity)
+		assert.True(t, insertedCatalogEntity.ID != "")
+	})
+}
+
+func TestIntegrationUpdateCatalogEntity(t *testing.T) {
+	t.Run("UpdatesCatalogEntity", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		insertedCatalogEntity, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+
+		// act
+		err = cockroachdbClient.UpdateCatalogEntity(ctx, *insertedCatalogEntity)
+
+		assert.Nil(t, err)
+	})
+
+	t.Run("UpdatesCatalogEntityForNonExistingCatalogEntity", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		insertedCatalogEntity, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+		insertedCatalogEntity.ID = "15"
+
+		// act
+		err = cockroachdbClient.UpdateCatalogEntity(ctx, *insertedCatalogEntity)
+
+		assert.Nil(t, err)
+	})
+}
+
+func TestIntegrationDeleteCatalogEntity(t *testing.T) {
+	t.Run("ReturnsInsertedCatalogEntityWithID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		insertedCatalogEntity, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+
+		// act
+		err = cockroachdbClient.DeleteCatalogEntity(ctx, insertedCatalogEntity.ID)
+
+		assert.Nil(t, err)
+
+		retrievedCatalogEntity, err := cockroachdbClient.GetCatalogEntityByID(ctx, insertedCatalogEntity.ID)
+
+		assert.NotNil(t, err)
+		assert.True(t, errors.Is(err, ErrCatalogEntityNotFound))
+		assert.Nil(t, retrievedCatalogEntity)
+	})
+}
+
+func TestIntegrationGetCatalogEntityByID(t *testing.T) {
+	t.Run("ReturnsInsertedCatalogEntityWithID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		insertedCatalogEntity, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+
+		// act
+		retrievedCatalogEntity, err := cockroachdbClient.GetCatalogEntityByID(ctx, insertedCatalogEntity.ID)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, retrievedCatalogEntity)
+		assert.Equal(t, retrievedCatalogEntity.ID, insertedCatalogEntity.ID)
+	})
+
+	t.Run("ReturnsCatalogEntityNotFoundErrorWhenItDoesNotExist", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+
+		// act
+		retrievedCatalogEntity, err := cockroachdbClient.GetCatalogEntityByID(ctx, "14")
+
+		assert.NotNil(t, err)
+		assert.True(t, errors.Is(err, ErrCatalogEntityNotFound))
+		assert.Nil(t, retrievedCatalogEntity)
+	})
+}
+
+func TestIntegrationGetCatalogEntities(t *testing.T) {
+	t.Run("ReturnsInsertedCatalogEntities", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+
+		// act
+		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, map[string][]string{}, []helpers.OrderField{})
+
+		assert.Nil(t, err)
+		assert.NotNil(t, catalogEntitys)
+		assert.True(t, len(catalogEntitys) > 0)
+	})
+
+	t.Run("ReturnsInsertedCatalogEntitiesByParentKey", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		catalogEntity.ParentKey = "parent-key-retrieval-test"
+		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+
+		filters := map[string][]string{
+			"parent": {
+				"parent-key-retrieval-test",
+			},
+		}
+
+		// act
+		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []helpers.OrderField{})
+
+		assert.Nil(t, err)
+		assert.NotNil(t, catalogEntitys)
+		assert.True(t, len(catalogEntitys) > 0)
+	})
+
+	t.Run("ReturnsInsertedCatalogEntitiesByParentKeyAndValue", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		catalogEntity.ParentKey = "parent-key-value-retrieval-test"
+		catalogEntity.ParentValue = "some-value"
+		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+
+		filters := map[string][]string{
+			"parent": {
+				"parent-key-retrieval-test=some-value",
+			},
+		}
+
+		// act
+		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []helpers.OrderField{})
+
+		assert.Nil(t, err)
+		assert.NotNil(t, catalogEntitys)
+		assert.True(t, len(catalogEntitys) > 0)
+	})
+
+	t.Run("ReturnsInsertedCatalogEntitiesByEntityKey", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		catalogEntity.Key = "entity-key-retrieval-test"
+		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+
+		filters := map[string][]string{
+			"entity": {
+				"entity-key-retrieval-test",
+			},
+		}
+
+		// act
+		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []helpers.OrderField{})
+
+		assert.Nil(t, err)
+		assert.NotNil(t, catalogEntitys)
+		assert.True(t, len(catalogEntitys) > 0)
+	})
+
+	t.Run("ReturnsInsertedCatalogEntitiesByEntityKeyAndValue", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		catalogEntity.Key = "entity-key-value-retrieval-test"
+		catalogEntity.Value = "some-value"
+		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+
+		filters := map[string][]string{
+			"entity": {
+				"entity-key-retrieval-test=some-value",
+			},
+		}
+
+		// act
+		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []helpers.OrderField{})
+
+		assert.Nil(t, err)
+		assert.NotNil(t, catalogEntitys)
+		assert.True(t, len(catalogEntitys) > 0)
+	})
+
+	t.Run("ReturnsInsertedCatalogEntitiesByLinkedPipeline", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		catalogEntity.LinkedPipeline = "github.com/estafette/estafette-ci-api"
+		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+
+		filters := map[string][]string{
+			"pipeline": {
+				"github.com/estafette/estafette-ci-api",
+			},
+		}
+
+		// act
+		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []helpers.OrderField{})
+
+		assert.Nil(t, err)
+		assert.NotNil(t, catalogEntitys)
+		assert.True(t, len(catalogEntitys) > 0)
+	})
+
+	t.Run("ReturnsInsertedCatalogEntitiesByLabels", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		catalogEntity.Labels = []contracts.Label{
+			{
+				Key:   "environment",
+				Value: "production",
+			},
+		}
+		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+
+		filters := map[string][]string{
+			"labels": {
+				"environment=production",
+			},
+		}
+
+		// act
+		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []helpers.OrderField{})
+
+		assert.Nil(t, err)
+		assert.NotNil(t, catalogEntitys)
+		assert.True(t, len(catalogEntitys) > 0)
+	})
+}
+
+func TestIntegrationGetCatalogEntitiesCount(t *testing.T) {
+	t.Run("ReturnsInsertedCatalogEntitiesCount", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+
+		// act
+		count, err := cockroachdbClient.GetCatalogEntitiesCount(ctx, map[string][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, count > 0)
+	})
+}
+
 func TestIntegrationGetPipelineBuildsDurations(t *testing.T) {
 	t.Run("ReturnsDurations", func(t *testing.T) {
 		if testing.Short() {
@@ -1925,5 +2264,27 @@ func getClient() contracts.Client {
 		Roles:        []*string{},
 		CreatedAt:    &now,
 		Active:       true,
+	}
+}
+
+func getCatalogEntity() contracts.CatalogEntity {
+	now := time.Now().UTC()
+	return contracts.CatalogEntity{
+		ParentKey:      "organization",
+		ParentValue:    "Estafette",
+		Key:            "cloud",
+		Value:          "Google Cloud",
+		LinkedPipeline: "",
+		Labels: []contracts.Label{
+			{
+				Key:   "organization",
+				Value: "Estafette",
+			},
+		},
+		Metadata: map[string]interface{}{
+			"href": "/organizations/estafette/",
+		},
+		InsertedAt: &now,
+		UpdatedAt:  &now,
 	}
 }

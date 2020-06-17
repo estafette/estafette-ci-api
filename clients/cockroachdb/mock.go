@@ -113,6 +113,13 @@ type MockClient struct {
 	GetClientByIDFunc       func(ctx context.Context, id string) (client *contracts.Client, err error)
 	GetClientsFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error)
 	GetClientsCountFunc     func(ctx context.Context, filters map[string][]string) (count int, err error)
+
+	InsertCatalogEntityFunc     func(ctx context.Context, catalogEntity contracts.CatalogEntity) (insertedCatalogEntity *contracts.CatalogEntity, err error)
+	UpdateCatalogEntityFunc     func(ctx context.Context, catalogEntity contracts.CatalogEntity) (err error)
+	DeleteCatalogEntityFunc     func(ctx context.Context, id string) (err error)
+	GetCatalogEntityByIDFunc    func(ctx context.Context, id string) (catalogEntity *contracts.CatalogEntity, err error)
+	GetCatalogEntitiesFunc      func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error)
+	GetCatalogEntitiesCountFunc func(ctx context.Context, filters map[string][]string) (count int, err error)
 }
 
 func (c MockClient) Connect(ctx context.Context) (err error) {
@@ -807,4 +814,46 @@ func (c MockClient) GetClientsCount(ctx context.Context, filters map[string][]st
 		return
 	}
 	return c.GetClientsCountFunc(ctx, filters)
+}
+
+func (c MockClient) InsertCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (insertedCatalogEntity *contracts.CatalogEntity, err error) {
+	if c.InsertCatalogEntityFunc == nil {
+		return
+	}
+	return c.InsertCatalogEntityFunc(ctx, catalogEntity)
+}
+
+func (c MockClient) UpdateCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (err error) {
+	if c.UpdateCatalogEntityFunc == nil {
+		return
+	}
+	return c.UpdateCatalogEntityFunc(ctx, catalogEntity)
+}
+
+func (c MockClient) DeleteCatalogEntity(ctx context.Context, id string) (err error) {
+	if c.DeleteCatalogEntityFunc == nil {
+		return
+	}
+	return c.DeleteCatalogEntityFunc(ctx, id)
+}
+
+func (c MockClient) GetCatalogEntityByID(ctx context.Context, id string) (catalogEntity *contracts.CatalogEntity, err error) {
+	if c.GetCatalogEntityByIDFunc == nil {
+		return
+	}
+	return c.GetCatalogEntityByIDFunc(ctx, id)
+}
+
+func (c MockClient) GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error) {
+	if c.GetCatalogEntitiesFunc == nil {
+		return
+	}
+	return c.GetCatalogEntitiesFunc(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c MockClient) GetCatalogEntitiesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	if c.GetCatalogEntitiesCountFunc == nil {
+		return
+	}
+	return c.GetCatalogEntitiesCountFunc(ctx, filters)
 }

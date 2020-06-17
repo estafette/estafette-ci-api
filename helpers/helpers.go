@@ -87,6 +87,9 @@ func GetFilters(c *gin.Context) map[string][]string {
 	filters["recent-releaser"] = GetGenericFilter(c, "recent-releaser")
 	filters["group-id"] = GetGenericFilter(c, "group-id")
 	filters["organization-id"] = GetGenericFilter(c, "organization-id")
+	filters["pipeline"] = GetGenericFilter(c, "pipeline")
+	filters["parent"] = GetGenericFilter(c, "parent")
+	filters["entity"] = GetGenericFilter(c, "entity")
 	return filters
 }
 
