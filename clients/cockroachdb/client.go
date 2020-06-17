@@ -4783,6 +4783,7 @@ func (c *client) UpdateCatalogEntity(ctx context.Context, catalogEntity contract
 		Set("linked_pipeline", catalogEntity.LinkedPipeline).
 		Set("labels", labelBytes).
 		Set("entity_metadata", metadataBytes).
+		Set("updated_at", sq.Expr("now()")).
 		Where(sq.Eq{"id": entityID}).
 		Limit(uint64(1))
 
