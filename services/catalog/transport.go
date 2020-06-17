@@ -38,12 +38,6 @@ func (h *Handler) GetCatalogEntities(c *gin.Context) {
 
 	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
 
-	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsList) {
-		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
-		return
-	}
-
 	ctx := c.Request.Context()
 
 	response, err := helpers.GetPagedListResponse(
