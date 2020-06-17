@@ -5163,6 +5163,10 @@ func (c *client) scanCatalogEntity(row sq.RowScanner) (catalogEntity *contracts.
 		&metadataData,
 		&catalogEntity.InsertedAt,
 		&catalogEntity.UpdatedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrCatalogEntityNotFound
+		}
+
 		return
 	}
 
