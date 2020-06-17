@@ -1748,7 +1748,7 @@ func TestIntegrationUpdateCatalogEntity(t *testing.T) {
 }
 
 func TestIntegrationDeleteCatalogEntity(t *testing.T) {
-	t.Run("ReturnsInsertedCatalogEntityWithID", func(t *testing.T) {
+	t.Run("DeletesInsertedCatalogEntityWithID", func(t *testing.T) {
 
 		if testing.Short() {
 			t.Skip("skipping test in short mode.")
@@ -1774,7 +1774,7 @@ func TestIntegrationDeleteCatalogEntity(t *testing.T) {
 }
 
 func TestIntegrationGetCatalogEntityByID(t *testing.T) {
-	t.Run("ReturnsInsertedCatalogEntityWithID", func(t *testing.T) {
+	t.Run("ReturnsInsertedCatalogEntityByID", func(t *testing.T) {
 
 		if testing.Short() {
 			t.Skip("skipping test in short mode.")

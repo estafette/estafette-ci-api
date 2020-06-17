@@ -4796,7 +4796,7 @@ func (c *client) DeleteCatalogEntity(ctx context.Context, id string) (err error)
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Delete("catalog_entities").
+		Delete("catalog_entities a").
 		Where(sq.Eq{"a.id": id}).
 		Limit(uint64(1))
 
@@ -5253,7 +5253,7 @@ func (c *client) selectCatalogEntityQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.parent_key, a.parent_value, a.entity_key, a.entity_value, a.linked_pipeline, a.labels, a.entity_metadata").
+		Select("a.id, a.parent_key, a.parent_value, a.entity_key, a.entity_value, a.linked_pipeline, a.labels, a.entity_metadata, a.inserted_at, a.updated_at").
 		From("catalog_entities a")
 }
 
