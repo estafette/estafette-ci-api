@@ -1879,16 +1879,16 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 
 		filters := map[string][]string{
 			"parent": {
-				"parent-key-retrieval-test=some-value",
+				"parent-key-value-retrieval-test=some-value",
 			},
 		}
 
 		// act
-		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []helpers.OrderField{})
+		catalogEntities, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []helpers.OrderField{})
 
 		assert.Nil(t, err)
-		assert.NotNil(t, catalogEntitys)
-		assert.True(t, len(catalogEntitys) > 0)
+		assert.NotNil(t, catalogEntities)
+		assert.True(t, len(catalogEntities) > 0)
 	})
 
 	t.Run("ReturnsInsertedCatalogEntitiesByEntityKey", func(t *testing.T) {
@@ -1934,7 +1934,7 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 
 		filters := map[string][]string{
 			"entity": {
-				"entity-key-retrieval-test=some-value",
+				"entity-key-value-retrieval-test=some-value",
 			},
 		}
 
