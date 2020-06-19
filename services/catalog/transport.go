@@ -28,6 +28,48 @@ type Handler struct {
 	cockroachdbClient cockroachdb.Client
 }
 
+func (h *Handler) GetCatalogEntityKeys(c *gin.Context) {
+
+	// // ensure the request has the correct permission
+	// if !auth.RequestTokenHasPermission(c, auth.PermissionCatalogEntitiesList) {
+	// 	c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+	// 	return
+	// }
+
+	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+
+	ctx := c.Request.Context()
+
+	response, err := helpers.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			catalogEntityKeys, err := h.cockroachdbClient.GetCatalogEntityKeys(ctx, pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(catalogEntityKeys))
+			for i := range catalogEntityKeys {
+				items[i] = catalogEntityKeys[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachdbClient.GetCatalogEntityKeysCount(ctx, filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving catalog entities from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 func (h *Handler) GetCatalogEntities(c *gin.Context) {
 
 	// // ensure the request has the correct permission

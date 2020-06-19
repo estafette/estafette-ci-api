@@ -844,3 +844,19 @@ func (c *metricsClient) GetCatalogEntitiesCount(ctx context.Context, filters map
 
 	return c.Client.GetCatalogEntitiesCount(ctx, filters)
 }
+
+func (c *metricsClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityKeys", begin)
+	}(time.Now())
+
+	return c.Client.GetCatalogEntityKeys(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *metricsClient) GetCatalogEntityKeysCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityKeysCount", begin)
+	}(time.Now())
+
+	return c.Client.GetCatalogEntityKeysCount(ctx, filters)
+}

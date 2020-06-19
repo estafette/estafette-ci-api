@@ -648,3 +648,15 @@ func (c *loggingClient) GetCatalogEntitiesCount(ctx context.Context, filters map
 
 	return c.Client.GetCatalogEntitiesCount(ctx, filters)
 }
+
+func (c *loggingClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityKeys", err) }()
+
+	return c.Client.GetCatalogEntityKeys(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *loggingClient) GetCatalogEntityKeysCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityKeysCount", err) }()
+
+	return c.Client.GetCatalogEntityKeysCount(ctx, filters)
+}

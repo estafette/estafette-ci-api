@@ -120,6 +120,9 @@ type MockClient struct {
 	GetCatalogEntityByIDFunc    func(ctx context.Context, id string) (catalogEntity *contracts.CatalogEntity, err error)
 	GetCatalogEntitiesFunc      func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error)
 	GetCatalogEntitiesCountFunc func(ctx context.Context, filters map[string][]string) (count int, err error)
+
+	GetCatalogEntityKeysFunc      func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error)
+	GetCatalogEntityKeysCountFunc func(ctx context.Context, filters map[string][]string) (count int, err error)
 }
 
 func (c MockClient) Connect(ctx context.Context) (err error) {
@@ -856,4 +859,18 @@ func (c MockClient) GetCatalogEntitiesCount(ctx context.Context, filters map[str
 		return
 	}
 	return c.GetCatalogEntitiesCountFunc(ctx, filters)
+}
+
+func (c MockClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
+	if c.GetCatalogEntityKeysFunc == nil {
+		return
+	}
+	return c.GetCatalogEntityKeysFunc(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c MockClient) GetCatalogEntityKeysCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	if c.GetCatalogEntityKeysCountFunc == nil {
+		return
+	}
+	return c.GetCatalogEntityKeysCountFunc(ctx, filters)
 }

@@ -754,3 +754,17 @@ func (c *tracingClient) GetCatalogEntitiesCount(ctx context.Context, filters map
 
 	return c.Client.GetCatalogEntitiesCount(ctx, filters)
 }
+
+func (c *tracingClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetCatalogEntityKeys"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetCatalogEntityKeys(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *tracingClient) GetCatalogEntityKeysCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetCatalogEntityKeysCount"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetCatalogEntityKeysCount(ctx, filters)
+}

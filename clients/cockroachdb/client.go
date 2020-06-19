@@ -159,6 +159,9 @@ type Client interface {
 	GetCatalogEntityByID(ctx context.Context, id string) (catalogEntity *contracts.CatalogEntity, err error)
 	GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error)
 	GetCatalogEntitiesCount(ctx context.Context, filters map[string][]string) (count int, err error)
+
+	GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error)
+	GetCatalogEntityKeysCount(ctx context.Context, filters map[string][]string) (count int, err error)
 }
 
 // NewClient returns a new cockroach.Client
@@ -2671,42 +2674,12 @@ func (c *client) GetLabelValues(ctx context.Context, labelKey string) (labels []
 			OrderBy("value")
 
 	rows, err := query.RunWith(c.databaseConnection).Query()
-
 	if err != nil {
-
 		return
 	}
-
 	defer rows.Close()
 
-	cols, _ := rows.Columns()
-	for rows.Next() {
-		// Create a slice of interface{}'s to represent each column,
-		// and a second slice to contain pointers to each item in the columns slice.
-		columns := make([]interface{}, len(cols))
-		columnPointers := make([]interface{}, len(cols))
-		for i := range columns {
-			columnPointers[i] = &columns[i]
-		}
-
-		// Scan the result into the column pointers...
-		if err = rows.Scan(columnPointers...); err != nil {
-
-			return nil, err
-		}
-
-		// Create our map, and retrieve the value for each column from the pointers slice,
-		// storing it in the map with the name of the column as the key.
-		m := make(map[string]interface{})
-		for i, colName := range cols {
-			val := columnPointers[i].(*interface{})
-			m[colName] = *val
-		}
-
-		labels = append(labels, m)
-	}
-
-	return
+	return c.scanItems(ctx, rows)
 }
 
 func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {
@@ -2785,42 +2758,12 @@ func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int
 			Offset(uint64((pageNumber - 1) * pageSize))
 
 	rows, err := query.RunWith(c.databaseConnection).Query()
-
 	if err != nil {
-
 		return
 	}
-
 	defer rows.Close()
 
-	cols, _ := rows.Columns()
-	for rows.Next() {
-		// Create a slice of interface{}'s to represent each column,
-		// and a second slice to contain pointers to each item in the columns slice.
-		columns := make([]interface{}, len(cols))
-		columnPointers := make([]interface{}, len(cols))
-		for i := range columns {
-			columnPointers[i] = &columns[i]
-		}
-
-		// Scan the result into the column pointers...
-		if err = rows.Scan(columnPointers...); err != nil {
-
-			return nil, err
-		}
-
-		// Create our map, and retrieve the value for each column from the pointers slice,
-		// storing it in the map with the name of the column as the key.
-		m := make(map[string]interface{})
-		for i, colName := range cols {
-			val := columnPointers[i].(*interface{})
-			m[colName] = *val
-		}
-
-		labels = append(labels, m)
-	}
-
-	return
+	return c.scanItems(ctx, rows)
 }
 
 func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
@@ -2898,7 +2841,6 @@ func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[string]
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-
 		return
 	}
 
@@ -2935,45 +2877,13 @@ func (c *client) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pag
 		return
 	}
 
-	pipelines = make([]map[string]interface{}, 0)
-
 	rows, err := query.RunWith(c.databaseConnection).Query()
-
 	if err != nil {
-
 		return
 	}
-
 	defer rows.Close()
 
-	cols, _ := rows.Columns()
-	for rows.Next() {
-		// Create a slice of interface{}'s to represent each column,
-		// and a second slice to contain pointers to each item in the columns slice.
-		columns := make([]interface{}, len(cols))
-		columnPointers := make([]interface{}, len(cols))
-		for i := range columns {
-			columnPointers[i] = &columns[i]
-		}
-
-		// Scan the result into the column pointers...
-		if err = rows.Scan(columnPointers...); err != nil {
-
-			return nil, err
-		}
-
-		// Create our map, and retrieve the value for each column from the pointers slice,
-		// storing it in the map with the name of the column as the key.
-		m := make(map[string]interface{})
-		for i, colName := range cols {
-			val := columnPointers[i].(*interface{})
-			m[colName] = *val
-		}
-
-		pipelines = append(pipelines, m)
-	}
-
-	return
+	return c.scanItems(ctx, rows)
 }
 
 func (c *client) GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
@@ -3004,45 +2914,13 @@ func (c *client) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, p
 		return
 	}
 
-	pipelines = make([]map[string]interface{}, 0)
-
 	rows, err := query.RunWith(c.databaseConnection).Query()
-
 	if err != nil {
-
 		return
 	}
-
 	defer rows.Close()
 
-	cols, _ := rows.Columns()
-	for rows.Next() {
-		// Create a slice of interface{}'s to represent each column,
-		// and a second slice to contain pointers to each item in the columns slice.
-		columns := make([]interface{}, len(cols))
-		columnPointers := make([]interface{}, len(cols))
-		for i := range columns {
-			columnPointers[i] = &columns[i]
-		}
-
-		// Scan the result into the column pointers...
-		if err = rows.Scan(columnPointers...); err != nil {
-
-			return nil, err
-		}
-
-		// Create our map, and retrieve the value for each column from the pointers slice,
-		// storing it in the map with the name of the column as the key.
-		m := make(map[string]interface{})
-		for i, colName := range cols {
-			val := columnPointers[i].(*interface{})
-			m[colName] = *val
-		}
-
-		pipelines = append(pipelines, m)
-	}
-
-	return
+	return c.scanItems(ctx, rows)
 }
 
 func (c *client) GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[string][]string) (totalCount int, err error) {
@@ -3405,6 +3283,40 @@ func limitClauseGeneratorForLastFilter(query sq.SelectBuilder, filters map[strin
 	}
 
 	return query, nil
+}
+
+func (c *client) scanItems(ctx context.Context, rows *sql.Rows) (items []map[string]interface{}, err error) {
+
+	items = make([]map[string]interface{}, 0)
+
+	cols, _ := rows.Columns()
+	for rows.Next() {
+		// Create a slice of interface{}'s to represent each column,
+		// and a second slice to contain pointers to each item in the columns slice.
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+
+		// Scan the result into the column pointers...
+		if err = rows.Scan(columnPointers...); err != nil {
+
+			return nil, err
+		}
+
+		// Create our map, and retrieve the value for each column from the pointers slice,
+		// storing it in the map with the name of the column as the key.
+		m := make(map[string]interface{})
+		for i, colName := range cols {
+			val := columnPointers[i].(*interface{})
+			m[colName] = *val
+		}
+
+		items = append(items, m)
+	}
+
+	return items, nil
 }
 
 func (c *client) scanBuild(ctx context.Context, row sq.RowScanner, optimized, enriched bool) (build *contracts.Build, err error) {
@@ -4848,6 +4760,51 @@ func (c *client) GetCatalogEntitiesCount(ctx context.Context, filters map[string
 	query := psql.
 		Select("COUNT(a.id)").
 		From("catalog_entities a")
+
+	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&count); err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *client) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("a.entity_key AS key, COUNT(DISTINCT a.entity_value) AS count").
+			From("catalog_entities a").
+			GroupBy("a.entity_key").
+			OrderBy("a.entity_key").
+			Limit(uint64(pageSize)).
+			Offset(uint64((pageNumber - 1) * pageSize))
+
+	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
+
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	return c.scanItems(ctx, rows)
+}
+
+func (c *client) GetCatalogEntityKeysCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("COUNT(a.entity_key)").
+			From("catalog_entities a").
+			GroupBy("a.entity_key")
 
 	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
 
