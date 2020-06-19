@@ -160,6 +160,8 @@ type Client interface {
 	GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error)
 	GetCatalogEntitiesCount(ctx context.Context, filters map[string][]string) (count int, err error)
 
+	GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error)
+	GetCatalogEntityParentKeysCount(ctx context.Context, filters map[string][]string) (count int, err error)
 	GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error)
 	GetCatalogEntityKeysCount(ctx context.Context, filters map[string][]string) (count int, err error)
 	GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error)
@@ -4763,6 +4765,51 @@ func (c *client) GetCatalogEntitiesCount(ctx context.Context, filters map[string
 	query := psql.
 		Select("COUNT(a.id)").
 		From("catalog_entities a")
+
+	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&count); err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *client) GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("a.parent_key AS key, COUNT(DISTINCT a.parent_value) AS count").
+			From("catalog_entities a").
+			GroupBy("a.parent_key").
+			OrderBy("a.parent_key").
+			Limit(uint64(pageSize)).
+			Offset(uint64((pageNumber - 1) * pageSize))
+
+	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
+
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	return c.scanItems(ctx, rows)
+}
+
+func (c *client) GetCatalogEntityParentKeysCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("COUNT(a.parent_key)").
+			From("catalog_entities a").
+			GroupBy("a.parent_key")
 
 	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
 

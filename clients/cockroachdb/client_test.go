@@ -2027,6 +2027,48 @@ func TestIntegrationGetCatalogEntitiesCount(t *testing.T) {
 	})
 }
 
+func TestIntegrationGetCatalogEntityParentKeys(t *testing.T) {
+	t.Run("ReturnsGetCatalogEntityParentKeys", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+
+		// act
+		keys, err := cockroachdbClient.GetCatalogEntityParentKeys(ctx, 1, 100, map[string][]string{}, []helpers.OrderField{})
+
+		assert.Nil(t, err)
+		assert.True(t, len(keys) > 0)
+	})
+}
+
+func TestIntegrationGetCatalogEntityParentKeysCount(t *testing.T) {
+	t.Run("ReturnsGetCatalogEntityParentKeysCount", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+
+		// act
+		count, err := cockroachdbClient.GetCatalogEntityParentKeysCount(ctx, map[string][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, count > 0)
+	})
+}
+
 func TestIntegrationGetCatalogEntityKeys(t *testing.T) {
 	t.Run("ReturnsGetCatalogEntityKeys", func(t *testing.T) {
 
