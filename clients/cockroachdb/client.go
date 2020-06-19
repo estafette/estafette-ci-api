@@ -4783,7 +4783,7 @@ func (c *client) GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pag
 
 	query :=
 		psql.
-			Select("a.parent_key AS key, COUNT(DISTINCT a.parent_value) AS count").
+			Select("a.parent_key AS key, COUNT(a.parent_value) AS count").
 			From("catalog_entities a").
 			GroupBy("a.parent_key").
 			OrderBy("count DESC, key").
@@ -4828,7 +4828,7 @@ func (c *client) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize 
 
 	query :=
 		psql.
-			Select("a.entity_key AS key, COUNT(DISTINCT a.entity_value) AS count").
+			Select("a.entity_key AS key, COUNT(a.entity_value) AS count").
 			From("catalog_entities a").
 			GroupBy("a.entity_key").
 			OrderBy("count DESC, key").
