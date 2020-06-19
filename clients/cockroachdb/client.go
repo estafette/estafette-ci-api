@@ -2966,7 +2966,7 @@ func orderByClauseGeneratorForSortings(query sq.SelectBuilder, alias, defaultOrd
 	}
 
 	for _, s := range sortings {
-		query = query.OrderBy(fmt.Sprintf("%v.%v %v", alias, s.FieldName, s.Direction))
+		query = query.OrderBy(fmt.Sprintf("%v.%v %v", alias, foundation.ToLowerSnakeCase(s.FieldName), s.Direction))
 	}
 
 	return query, nil
@@ -4744,6 +4744,7 @@ func (c *client) GetCatalogEntities(ctx context.Context, pageNumber, pageSize in
 		Offset(uint64((pageNumber - 1) * pageSize))
 
 	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
+	query, err = orderByClauseGeneratorForSortings(query, "a", "a.parent_key, a.parent_value, a.entity_key, a.entity_value", sortings)
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
