@@ -660,3 +660,15 @@ func (c *loggingClient) GetCatalogEntityKeysCount(ctx context.Context, filters m
 
 	return c.Client.GetCatalogEntityKeysCount(ctx, filters)
 }
+
+func (c *loggingClient) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityLabels", err) }()
+
+	return c.Client.GetCatalogEntityLabels(ctx, pageNumber, pageSize, filters)
+}
+
+func (c *loggingClient) GetCatalogEntityLabelsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityLabelsCount", err) }()
+
+	return c.Client.GetCatalogEntityLabelsCount(ctx, filters)
+}

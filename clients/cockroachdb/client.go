@@ -162,6 +162,8 @@ type Client interface {
 
 	GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error)
 	GetCatalogEntityKeysCount(ctx context.Context, filters map[string][]string) (count int, err error)
+	GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error)
+	GetCatalogEntityLabelsCount(ctx context.Context, filters map[string][]string) (count int, err error)
 }
 
 // NewClient returns a new cockroach.Client
@@ -4808,6 +4810,89 @@ func (c *client) GetCatalogEntityKeysCount(ctx context.Context, filters map[stri
 			GroupBy("a.entity_key")
 
 	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&count); err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *client) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	arrayElementsQuery :=
+		psql.
+			Select("a.id, jsonb_array_elements(a.labels) AS l").
+			From("catalog_entities a").
+			Where("jsonb_typeof(labels) = 'array'")
+
+	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+		return
+	}
+
+	selectCountQuery :=
+		psql.
+			Select("l->>'key' AS key, l->>'value' AS value, id").
+			FromSelect(arrayElementsQuery, "b")
+
+	groupByQuery :=
+		psql.
+			Select("key, value, count(DISTINCT id) AS count").
+			FromSelect(selectCountQuery, "c").
+			GroupBy("key, value")
+
+	query :=
+		psql.
+			Select("key, value, count").
+			FromSelect(groupByQuery, "d").
+			Where(sq.Gt{"count": 1}).
+			OrderBy("count DESC, key, value").
+			Limit(uint64(pageSize)).
+			Offset(uint64((pageNumber - 1) * pageSize))
+
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	return c.scanItems(ctx, rows)
+}
+
+func (c *client) GetCatalogEntityLabelsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	arrayElementsQuery :=
+		psql.
+			Select("a.id, jsonb_array_elements(a.labels) AS l").
+			From("catalog_entities a").
+			Where("jsonb_typeof(labels) = 'array'")
+
+	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+		return
+	}
+
+	selectCountQuery :=
+		psql.
+			Select("l->>'key' AS key, l->>'value' AS value, id").
+			FromSelect(arrayElementsQuery, "b")
+
+	groupByQuery :=
+		psql.
+			Select("key, value, count(DISTINCT id) AS count").
+			FromSelect(selectCountQuery, "c").
+			GroupBy("key, value")
+
+	query :=
+		psql.
+			Select("COUNT(key)").
+			FromSelect(groupByQuery, "d").
+			Where(sq.Gt{"count": 1})
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()

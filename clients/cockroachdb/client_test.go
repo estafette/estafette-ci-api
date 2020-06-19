@@ -2069,6 +2069,58 @@ func TestIntegrationGetCatalogEntityKeysCount(t *testing.T) {
 	})
 }
 
+func TestIntegrationGetCatalogEntityLabels(t *testing.T) {
+	t.Run("ReturnsGetCatalogEntityLabels", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		catalogEntity.Value = "entity-1"
+		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+		catalogEntity2 := getCatalogEntity()
+		catalogEntity2.Value = "entity-2"
+		_, err = cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity2)
+		assert.Nil(t, err)
+
+		// act
+		keys, err := cockroachdbClient.GetCatalogEntityLabels(ctx, 1, 100, map[string][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, len(keys) > 0)
+	})
+}
+
+func TestIntegrationGetCatalogEntityLabelsCount(t *testing.T) {
+	t.Run("ReturnsGetCatalogEntityLabelsCount", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		catalogEntity := getCatalogEntity()
+		catalogEntity.Value = "entity-1"
+		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		assert.Nil(t, err)
+		catalogEntity2 := getCatalogEntity()
+		catalogEntity2.Value = "entity-2"
+		_, err = cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity2)
+		assert.Nil(t, err)
+
+		// act
+		count, err := cockroachdbClient.GetCatalogEntityLabelsCount(ctx, map[string][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, count > 0)
+	})
+}
+
 func TestIntegrationGetPipelineBuildsDurations(t *testing.T) {
 	t.Run("ReturnsDurations", func(t *testing.T) {
 		if testing.Short() {

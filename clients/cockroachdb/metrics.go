@@ -860,3 +860,19 @@ func (c *metricsClient) GetCatalogEntityKeysCount(ctx context.Context, filters m
 
 	return c.Client.GetCatalogEntityKeysCount(ctx, filters)
 }
+
+func (c *metricsClient) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityLabels", begin)
+	}(time.Now())
+
+	return c.Client.GetCatalogEntityLabels(ctx, pageNumber, pageSize, filters)
+}
+
+func (c *metricsClient) GetCatalogEntityLabelsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityLabelsCount", begin)
+	}(time.Now())
+
+	return c.Client.GetCatalogEntityLabelsCount(ctx, filters)
+}
