@@ -4786,7 +4786,7 @@ func (c *client) GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pag
 			Select("a.parent_key AS key, COUNT(DISTINCT a.parent_value) AS count").
 			From("catalog_entities a").
 			GroupBy("a.parent_key").
-			OrderBy("a.parent_key").
+			OrderBy("count DESC, key").
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
@@ -4831,7 +4831,7 @@ func (c *client) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize 
 			Select("a.entity_key AS key, COUNT(DISTINCT a.entity_value) AS count").
 			From("catalog_entities a").
 			GroupBy("a.entity_key").
-			OrderBy("a.entity_key").
+			OrderBy("count DESC, key").
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
