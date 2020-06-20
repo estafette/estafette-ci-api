@@ -661,6 +661,18 @@ func (c *loggingClient) GetCatalogEntityParentKeysCount(ctx context.Context, fil
 	return c.Client.GetCatalogEntityParentKeysCount(ctx, filters)
 }
 
+func (c *loggingClient) GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityParentValues", err) }()
+
+	return c.Client.GetCatalogEntityParentValues(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *loggingClient) GetCatalogEntityParentValuesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityParentValuesCount", err) }()
+
+	return c.Client.GetCatalogEntityParentValuesCount(ctx, filters)
+}
+
 func (c *loggingClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityKeys", err) }()
 
@@ -671,6 +683,18 @@ func (c *loggingClient) GetCatalogEntityKeysCount(ctx context.Context, filters m
 	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityKeysCount", err) }()
 
 	return c.Client.GetCatalogEntityKeysCount(ctx, filters)
+}
+
+func (c *loggingClient) GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityValues", err) }()
+
+	return c.Client.GetCatalogEntityValues(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *loggingClient) GetCatalogEntityValuesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityValuesCount", err) }()
+
+	return c.Client.GetCatalogEntityValuesCount(ctx, filters)
 }
 
 func (c *loggingClient) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {

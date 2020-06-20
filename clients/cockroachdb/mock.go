@@ -121,12 +121,16 @@ type MockClient struct {
 	GetCatalogEntitiesFunc      func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error)
 	GetCatalogEntitiesCountFunc func(ctx context.Context, filters map[string][]string) (count int, err error)
 
-	GetCatalogEntityParentKeysFunc      func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error)
-	GetCatalogEntityParentKeysCountFunc func(ctx context.Context, filters map[string][]string) (count int, err error)
-	GetCatalogEntityKeysFunc            func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error)
-	GetCatalogEntityKeysCountFunc       func(ctx context.Context, filters map[string][]string) (count int, err error)
-	GetCatalogEntityLabelsFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error)
-	GetCatalogEntityLabelsCountFunc     func(ctx context.Context, filters map[string][]string) (count int, err error)
+	GetCatalogEntityParentKeysFunc        func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error)
+	GetCatalogEntityParentKeysCountFunc   func(ctx context.Context, filters map[string][]string) (count int, err error)
+	GetCatalogEntityParentValuesFunc      func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error)
+	GetCatalogEntityParentValuesCountFunc func(ctx context.Context, filters map[string][]string) (count int, err error)
+	GetCatalogEntityKeysFunc              func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error)
+	GetCatalogEntityKeysCountFunc         func(ctx context.Context, filters map[string][]string) (count int, err error)
+	GetCatalogEntityValuesFunc            func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error)
+	GetCatalogEntityValuesCountFunc       func(ctx context.Context, filters map[string][]string) (count int, err error)
+	GetCatalogEntityLabelsFunc            func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error)
+	GetCatalogEntityLabelsCountFunc       func(ctx context.Context, filters map[string][]string) (count int, err error)
 }
 
 func (c MockClient) Connect(ctx context.Context) (err error) {
@@ -879,6 +883,20 @@ func (c MockClient) GetCatalogEntityParentKeysCount(ctx context.Context, filters
 	return c.GetCatalogEntityParentKeysCountFunc(ctx, filters)
 }
 
+func (c MockClient) GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+	if c.GetCatalogEntityParentValuesFunc == nil {
+		return
+	}
+	return c.GetCatalogEntityParentValuesFunc(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c MockClient) GetCatalogEntityParentValuesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	if c.GetCatalogEntityParentValuesCountFunc == nil {
+		return
+	}
+	return c.GetCatalogEntityParentValuesCountFunc(ctx, filters)
+}
+
 func (c MockClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
 	if c.GetCatalogEntityKeysFunc == nil {
 		return
@@ -891,6 +909,20 @@ func (c MockClient) GetCatalogEntityKeysCount(ctx context.Context, filters map[s
 		return
 	}
 	return c.GetCatalogEntityKeysCountFunc(ctx, filters)
+}
+
+func (c MockClient) GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+	if c.GetCatalogEntityValuesFunc == nil {
+		return
+	}
+	return c.GetCatalogEntityValuesFunc(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c MockClient) GetCatalogEntityValuesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	if c.GetCatalogEntityValuesCountFunc == nil {
+		return
+	}
+	return c.GetCatalogEntityValuesCountFunc(ctx, filters)
 }
 
 func (c MockClient) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {

@@ -162,8 +162,12 @@ type Client interface {
 
 	GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error)
 	GetCatalogEntityParentKeysCount(ctx context.Context, filters map[string][]string) (count int, err error)
+	GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error)
+	GetCatalogEntityParentValuesCount(ctx context.Context, filters map[string][]string) (count int, err error)
 	GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error)
 	GetCatalogEntityKeysCount(ctx context.Context, filters map[string][]string) (count int, err error)
+	GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error)
+	GetCatalogEntityValuesCount(ctx context.Context, filters map[string][]string) (count int, err error)
 	GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error)
 	GetCatalogEntityLabelsCount(ctx context.Context, filters map[string][]string) (count int, err error)
 }
@@ -4778,59 +4782,46 @@ func (c *client) GetCatalogEntitiesCount(ctx context.Context, filters map[string
 }
 
 func (c *client) GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
-
-	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-
-	query :=
-		psql.
-			Select("a.parent_key AS key, COUNT(a.parent_value) AS count").
-			From("catalog_entities a").
-			GroupBy("a.parent_key").
-			OrderBy("count DESC, key").
-			Limit(uint64(pageSize)).
-			Offset(uint64((pageNumber - 1) * pageSize))
-
-	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
-
-	rows, err := query.RunWith(c.databaseConnection).Query()
-	if err != nil {
-		return
-	}
-	defer rows.Close()
-
-	return c.scanItems(ctx, rows)
+	return c.getCatalogEntityColumn(ctx, "parent_key", "id", pageNumber, pageSize, filters, sortings)
 }
 
 func (c *client) GetCatalogEntityParentKeysCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	return c.getCatalogEntityColumnCount(ctx, "parent_key", filters)
+}
 
-	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+func (c *client) GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+	return c.getCatalogEntityColumn(ctx, "parent_value", "id", pageNumber, pageSize, filters, sortings)
+}
 
-	query :=
-		psql.
-			Select("COUNT(a.parent_key)").
-			From("catalog_entities a").
-			GroupBy("a.parent_key")
-
-	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
-
-	// execute query
-	row := query.RunWith(c.databaseConnection).QueryRow()
-	if err = row.Scan(&count); err != nil {
-		return
-	}
-
-	return
+func (c *client) GetCatalogEntityParentValuesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	return c.getCatalogEntityColumnCount(ctx, "parent_value", filters)
 }
 
 func (c *client) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
+	return c.getCatalogEntityColumn(ctx, "entity_key", "id", pageNumber, pageSize, filters, sortings)
+}
+
+func (c *client) GetCatalogEntityKeysCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	return c.getCatalogEntityColumnCount(ctx, "entity_key", filters)
+}
+
+func (c *client) GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+	return c.getCatalogEntityColumn(ctx, "entity_value", "id", pageNumber, pageSize, filters, sortings)
+}
+
+func (c *client) GetCatalogEntityValuesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	return c.getCatalogEntityColumnCount(ctx, "entity_value", filters)
+}
+
+func (c *client) getCatalogEntityColumn(ctx context.Context, groupColumn, countColumn string, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query :=
 		psql.
-			Select("a.entity_key AS key, COUNT(a.entity_value) AS count").
+			Select(fmt.Sprintf("a.%v AS key, COUNT(a.%v) AS count", groupColumn, countColumn)).
 			From("catalog_entities a").
-			GroupBy("a.entity_key").
+			GroupBy(fmt.Sprintf("a.%v", groupColumn)).
 			OrderBy("count DESC, key").
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
@@ -4846,15 +4837,15 @@ func (c *client) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize 
 	return c.scanItems(ctx, rows)
 }
 
-func (c *client) GetCatalogEntityKeysCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *client) getCatalogEntityColumnCount(ctx context.Context, groupColumn string, filters map[string][]string) (count int, err error) {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query :=
 		psql.
-			Select("COUNT(a.entity_key)").
+			Select(fmt.Sprintf("COUNT(a.%v)", groupColumn)).
 			From("catalog_entities a").
-			GroupBy("a.entity_key")
+			GroupBy(fmt.Sprintf("a.%v", groupColumn))
 
 	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
 

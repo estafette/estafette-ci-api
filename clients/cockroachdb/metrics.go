@@ -861,6 +861,22 @@ func (c *metricsClient) GetCatalogEntityParentKeysCount(ctx context.Context, fil
 	return c.Client.GetCatalogEntityParentKeysCount(ctx, filters)
 }
 
+func (c *metricsClient) GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityParentValues", begin)
+	}(time.Now())
+
+	return c.Client.GetCatalogEntityParentValues(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *metricsClient) GetCatalogEntityParentValuesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityParentValuesCount", begin)
+	}(time.Now())
+
+	return c.Client.GetCatalogEntityParentValuesCount(ctx, filters)
+}
+
 func (c *metricsClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityKeys", begin)
@@ -875,6 +891,22 @@ func (c *metricsClient) GetCatalogEntityKeysCount(ctx context.Context, filters m
 	}(time.Now())
 
 	return c.Client.GetCatalogEntityKeysCount(ctx, filters)
+}
+
+func (c *metricsClient) GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityValues", begin)
+	}(time.Now())
+
+	return c.Client.GetCatalogEntityValues(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *metricsClient) GetCatalogEntityValuesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityValuesCount", begin)
+	}(time.Now())
+
+	return c.Client.GetCatalogEntityValuesCount(ctx, filters)
 }
 
 func (c *metricsClient) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {

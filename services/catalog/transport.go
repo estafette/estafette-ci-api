@@ -112,6 +112,48 @@ func (h *Handler) GetCatalogEntityKeys(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+func (h *Handler) GetCatalogEntityValues(c *gin.Context) {
+
+	// // ensure the request has the correct permission
+	// if !auth.RequestTokenHasPermission(c, auth.PermissionCatalogEntitiesList) {
+	// 	c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+	// 	return
+	// }
+
+	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+
+	ctx := c.Request.Context()
+
+	response, err := helpers.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			catalogEntityValues, err := h.cockroachdbClient.GetCatalogEntityValues(ctx, pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(catalogEntityValues))
+			for i := range catalogEntityValues {
+				items[i] = catalogEntityValues[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachdbClient.GetCatalogEntityValuesCount(ctx, filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving catalog entity values from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 func (h *Handler) GetCatalogEntityParentKeys(c *gin.Context) {
 
 	// // ensure the request has the correct permission
@@ -153,6 +195,49 @@ func (h *Handler) GetCatalogEntityParentKeys(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
+
+func (h *Handler) GetCatalogEntityParentValues(c *gin.Context) {
+
+	// // ensure the request has the correct permission
+	// if !auth.RequestTokenHasPermission(c, auth.PermissionCatalogEntitiesList) {
+	// 	c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+	// 	return
+	// }
+
+	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+
+	ctx := c.Request.Context()
+
+	response, err := helpers.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			catalogEntityValues, err := h.cockroachdbClient.GetCatalogEntityParentValues(ctx, pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(catalogEntityValues))
+			for i := range catalogEntityValues {
+				items[i] = catalogEntityValues[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachdbClient.GetCatalogEntityParentValuesCount(ctx, filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving catalog entity parent values from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 func (h *Handler) GetCatalogEntities(c *gin.Context) {
 
 	// // ensure the request has the correct permission

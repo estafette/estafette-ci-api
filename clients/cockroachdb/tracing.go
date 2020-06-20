@@ -769,6 +769,20 @@ func (c *tracingClient) GetCatalogEntityParentKeysCount(ctx context.Context, fil
 	return c.Client.GetCatalogEntityParentKeysCount(ctx, filters)
 }
 
+func (c *tracingClient) GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetCatalogEntityParentValues"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetCatalogEntityParentValues(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *tracingClient) GetCatalogEntityParentValuesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetCatalogEntityParentValuesCount"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetCatalogEntityParentValuesCount(ctx, filters)
+}
+
 func (c *tracingClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetCatalogEntityKeys"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
@@ -781,6 +795,20 @@ func (c *tracingClient) GetCatalogEntityKeysCount(ctx context.Context, filters m
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetCatalogEntityKeysCount(ctx, filters)
+}
+
+func (c *tracingClient) GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetCatalogEntityValues"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetCatalogEntityValues(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *tracingClient) GetCatalogEntityValuesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetCatalogEntityValuesCount"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetCatalogEntityValuesCount(ctx, filters)
 }
 
 func (c *tracingClient) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {
