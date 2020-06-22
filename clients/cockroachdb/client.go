@@ -191,12 +191,12 @@ func (c *client) Connect(ctx context.Context) (err error) {
 
 	log.Debug().Msgf("Connecting to database %v on host %v...", c.config.Database.DatabaseName, c.config.Database.Host)
 
-	sslMode := ""
+	dataSourceName := ""
 	if c.config.Database.Insecure {
-		sslMode = "?sslmode=disable"
+		dataSourceName = fmt.Sprintf("postgresql://%v:%v@%v:%v/%v?sslmode=disable", c.config.Database.User, c.config.Database.Password, c.config.Database.Host, c.config.Database.Port, c.config.Database.DatabaseName)
+	} else {
+		dataSourceName = fmt.Sprintf("postgresql://%v@%v:%v/%v?sslmode=%v&sslrootcert=%v&sslcert=%v/cert&sslkey=%v/key", c.config.Database.User, c.config.Database.Host, c.config.Database.Port, c.config.Database.DatabaseName, "verify-full", "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt", "/cockroach-certs", "/cockroach-certs")
 	}
-
-	dataSourceName := fmt.Sprintf("postgresql://%v:%v@%v:%v/%v%v", c.config.Database.User, c.config.Database.Password, c.config.Database.Host, c.config.Database.Port, c.config.Database.DatabaseName, sslMode)
 
 	return c.ConnectWithDriverAndSource(ctx, c.databaseDriver, dataSourceName)
 }
