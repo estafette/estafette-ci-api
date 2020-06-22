@@ -173,17 +173,12 @@ releases:
             IntegrationsHostname: estafette.secret(TLft87lv4YqRTpEk.RTcbrb0mtJ-y3FK49JErE9kLnhi-mruC2kZPwVQdE4MJqn4UOVqr5TnuIf6G4ftZdw==.Ry0bpK4h7oi4nBSz84AtB90LgxL_jOaCyUFc3FhWXY8NesulkHtkMSQOIPQ6M5ZSbe_CcUE=)
             IntegrationsHostname2: estafette.secret(TPjFkETu4Dig2jmS.IW-QvFT96oSyqX5XZHzO2cOtwao1SxwY8WDgHBDuN6iWnXyyYez1I3mmdWiaKHxVdM_6Lw==.I3WQtUf6sJO46TJbOmHBy8O-x65uRwAC4yjxGgX9c7PR03KvYjQidC4lj_f4brZV509_Uo8=)
         volumemounts:
-        # - name: client-certs
-        #   mountpath: /cockroach-certs
-        #   volume:
-        #     secret:
-        #       secretName: estafette.client.api
-        #       items:
-        #       - key: key
-        #         path: key
-        #         mode: 0600
-        #       - key: cert
-        #         path: cert
+        - name: client-certs
+          mountpath: /cockroach-certs
+          volume:
+            secret:
+              secretName: estafette.client.api
+              defaultMode: 0400
         - name: app-secrets
           mountpath: /secrets
           volume:
