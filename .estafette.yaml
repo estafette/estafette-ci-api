@@ -177,7 +177,7 @@ releases:
           mountpath: /cockroach-certs
           volume:
             secret:
-              secretName: estafette.client.api
+              secretName: estafette-ci.client.api
               defaultMode: 0400
         - name: app-secrets
           mountpath: /secrets
