@@ -189,7 +189,7 @@ func (c *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err er
 			for {
 				select {
 				case event, ok := <-watcher.ResultChan():
-					if ok {
+					if !ok {
 						log.Warn().Msgf("Watcher for job %v is closed", jobName)
 						break
 					}
@@ -391,7 +391,7 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 				for {
 					select {
 					case event, ok := <-watcher.ResultChan():
-						if ok {
+						if !ok {
 							log.Warn().Msgf("Watcher for pod with job-name=%v is closed", jobName)
 							break
 						}
