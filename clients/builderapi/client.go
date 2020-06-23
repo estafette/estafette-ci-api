@@ -372,7 +372,7 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 
 	for _, pod := range pods.Items {
 
-		if pod.Status.Phase == "Pending" {
+		if pod.Status.Phase == v1.PodPending {
 
 			log.Debug().Msg("TailCiBuilderJobLogs - pod is pending, waiting for running state...")
 
@@ -401,7 +401,7 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 								log.Warn().Msgf("Watcher for pod with job-name=%v returns event object of incorrect type", jobName)
 								break
 							}
-							if modifiedPod.Status.Phase != "Pending" {
+							if modifiedPod.Status.Phase != v1.PodPending {
 								pod = *modifiedPod
 								break
 							}
@@ -414,8 +414,9 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 			}
 		}
 
-		if pod.Status.Phase != "Running" {
+		if pod.Status.Phase != v1.PodRunning {
 			log.Warn().Msgf("Post %v for job %v has unsupported phase %v", pod.Name, jobName, pod.Status.Phase)
+			continue
 		}
 
 		log.Debug().Msg("TailCiBuilderJobLogs - pod has running state...")
