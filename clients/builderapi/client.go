@@ -205,7 +205,7 @@ func (c *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err er
 					}
 
 				case <-time.After(60 * time.Second):
-					log.Warn().Msgf("Watcher for job %v timed out after 60 seconds", jobName)
+					log.Debug().Msgf("Watcher for job %v timed out after 60 seconds", jobName)
 				}
 			}
 		}
@@ -408,7 +408,7 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 						}
 
 					case <-time.After(60 * time.Second):
-						log.Warn().Msgf("Watcher for pod with job-name=%v timed out after 60 seconds", jobName)
+						log.Debug().Msgf("Watcher for pod with job-name=%v timed out after 60 seconds", jobName)
 					}
 				}
 			}
