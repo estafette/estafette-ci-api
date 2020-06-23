@@ -187,25 +187,20 @@ func (c *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err er
 		} else {
 			// wait for job to succeed
 			for {
-				select {
-				case event, ok := <-watcher.ResultChan():
+				event, ok := <-watcher.ResultChan()
+				if !ok {
+					log.Warn().Msgf("Watcher for job %v is closed", jobName)
+					break
+				}
+				if event.Type == watch.Modified {
+					job, ok := event.Object.(*batchv1.Job)
 					if !ok {
-						log.Warn().Msgf("Watcher for job %v is closed", jobName)
+						log.Warn().Msgf("Watcher for job %v returns event object of incorrect type", jobName)
 						break
 					}
-					if event.Type == watch.Modified {
-						job, ok := event.Object.(*batchv1.Job)
-						if !ok {
-							log.Warn().Msgf("Watcher for job %v returns event object of incorrect type", jobName)
-							break
-						}
-						if job.Status.Succeeded == 1 {
-							break
-						}
+					if job.Status.Succeeded == 1 {
+						break
 					}
-
-				case <-time.After(60 * time.Second):
-					log.Debug().Msgf("Watcher for job %v timed out after 60 seconds", jobName)
 				}
 			}
 		}
@@ -371,7 +366,6 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 	log.Debug().Msgf("TailCiBuilderJobLogs - retrieved %v pods", len(pods.Items))
 
 	for _, pod := range pods.Items {
-
 		if pod.Status.Phase == v1.PodPending {
 
 			log.Debug().Msg("TailCiBuilderJobLogs - pod is pending, waiting for running state...")
@@ -386,29 +380,21 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 				return err
 			}
 
-			// wait for pod to change Phase to succeed
 			for {
-				for {
-					select {
-					case event, ok := <-watcher.ResultChan():
-						if !ok {
-							log.Warn().Msgf("Watcher for pod with job-name=%v is closed", jobName)
-							break
-						}
-						if event.Type == watch.Modified {
-							modifiedPod, ok := event.Object.(*v1.Pod)
-							if !ok {
-								log.Warn().Msgf("Watcher for pod with job-name=%v returns event object of incorrect type", jobName)
-								break
-							}
-							if modifiedPod.Status.Phase != v1.PodPending {
-								pod = *modifiedPod
-								break
-							}
-						}
-
-					case <-time.After(60 * time.Second):
-						log.Debug().Msgf("Watcher for pod with job-name=%v timed out after 60 seconds", jobName)
+				event, ok := <-watcher.ResultChan()
+				if !ok {
+					log.Warn().Msgf("Watcher for pod with job-name=%v is closed", jobName)
+					break
+				}
+				if event.Type == watch.Modified {
+					modifiedPod, ok := event.Object.(*v1.Pod)
+					if !ok {
+						log.Warn().Msgf("Watcher for pod with job-name=%v returns event object of incorrect type", jobName)
+						break
+					}
+					if modifiedPod.Status.Phase != v1.PodPending {
+						pod = *modifiedPod
+						break
 					}
 				}
 			}
