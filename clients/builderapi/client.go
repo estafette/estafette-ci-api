@@ -415,7 +415,7 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 		}
 
 		if pod.Status.Phase != v1.PodRunning {
-			log.Warn().Msgf("Post %v for job %v has unsupported phase %v", pod.Name, jobName, pod.Status.Phase)
+			log.Warn().Msgf("Pod %v for job %v has unsupported phase %v", pod.Name, jobName, pod.Status.Phase)
 			continue
 		}
 
