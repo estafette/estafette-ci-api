@@ -67,10 +67,3 @@ func (c *tracingClient) GetJobName(ctx context.Context, jobType, repoOwner, repo
 
 	return c.Client.GetJobName(ctx, jobType, repoOwner, repoName, id)
 }
-
-func (c *tracingClient) GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) (config contracts.BuilderConfig, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetBuilderConfig"))
-	defer func() { helpers.FinishSpan(span) }()
-
-	return c.Client.GetBuilderConfig(ctx, params, jobName)
-}

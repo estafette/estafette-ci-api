@@ -74,11 +74,3 @@ func (c *metricsClient) GetJobName(ctx context.Context, jobType, repoOwner, repo
 
 	return c.Client.GetJobName(ctx, jobType, repoOwner, repoName, id)
 }
-
-func (c *metricsClient) GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) (config contracts.BuilderConfig, err error) {
-	defer func(begin time.Time) {
-		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetBuilderConfig", begin)
-	}(time.Now())
-
-	return c.Client.GetBuilderConfig(ctx, params, jobName)
-}
