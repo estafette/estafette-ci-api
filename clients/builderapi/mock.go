@@ -3,8 +3,8 @@ package builderapi
 import (
 	"context"
 
-	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
 	contracts "github.com/estafette/estafette-ci-contracts"
+	batchv1 "k8s.io/api/batch/v1"
 )
 
 type MockClient struct {

@@ -10,7 +10,6 @@ require (
 	github.com/alecthomas/kingpin v2.2.6+incompatible
 	github.com/appleboy/gin-jwt/v2 v2.6.3
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/ericchiang/k8s v1.2.0
 	github.com/estafette/estafette-ci-contracts v0.0.212
 	github.com/estafette/estafette-ci-crypt v0.0.36
 	github.com/estafette/estafette-ci-manifest v0.1.153
@@ -34,4 +33,7 @@ require (
 	google.golang.org/api v0.20.0
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v2 v2.2.8
+	k8s.io/api v0.17.0
+	k8s.io/apimachinery v0.17.0
+	k8s.io/client-go v0.17.0
 )

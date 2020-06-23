@@ -3,10 +3,10 @@ package builderapi
 import (
 	"context"
 
-	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/opentracing/opentracing-go"
+	batchv1 "k8s.io/api/batch/v1"
 )
 
 // NewTracingClient returns a new instance of a tracing Client.

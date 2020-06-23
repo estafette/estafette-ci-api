@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"regexp"
 	"strconv"
@@ -14,11 +13,15 @@ import (
 	"time"
 
 	jwtgo "github.com/dgrijalva/jwt-go"
-	"github.com/ericchiang/k8s"
-	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
-	corev1 "github.com/ericchiang/k8s/apis/core/v1"
-	metav1 "github.com/ericchiang/k8s/apis/meta/v1"
-	"github.com/ericchiang/k8s/apis/resource"
+	batchv1 "k8s.io/api/batch/v1"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/kubernetes"
+
 	"github.com/estafette/estafette-ci-api/auth"
 	"github.com/estafette/estafette-ci-api/clients/dockerhubapi"
 	"github.com/estafette/estafette-ci-api/config"
@@ -41,10 +44,10 @@ type Client interface {
 }
 
 // NewClient returns a new estafette.Client
-func NewClient(config *config.APIConfig, encryptedConfig *config.APIConfig, secretHelper crypt.SecretHelper, kubeClient *k8s.Client, dockerHubClient dockerhubapi.Client) Client {
+func NewClient(config *config.APIConfig, encryptedConfig *config.APIConfig, secretHelper crypt.SecretHelper, kubeClientset *kubernetes.Clientset, dockerHubClient dockerhubapi.Client) Client {
 
 	return &client{
-		kubeClient:      kubeClient,
+		kubeClientset:   kubeClientset,
 		dockerHubClient: dockerHubClient,
 		config:          config,
 		encryptedConfig: encryptedConfig,
@@ -53,7 +56,7 @@ func NewClient(config *config.APIConfig, encryptedConfig *config.APIConfig, secr
 }
 
 type client struct {
-	kubeClient      *k8s.Client
+	kubeClientset   *kubernetes.Clientset
 	dockerHubClient dockerhubapi.Client
 	config          *config.APIConfig
 	encryptedConfig *config.APIConfig
@@ -103,44 +106,44 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 	jaegerSamplerParamValue := "1"
 	podNameName := "POD_NAME"
 	podNameMetadataNameFieldPath := "metadata.name"
-	environmentVariables := []*corev1.EnvVar{
-		&corev1.EnvVar{
-			Name:  &builderConfigPathName,
-			Value: &builderConfigPathValue,
+	environmentVariables := []v1.EnvVar{
+		v1.EnvVar{
+			Name:  builderConfigPathName,
+			Value: builderConfigPathValue,
 		},
-		&corev1.EnvVar{
-			Name:  &estafetteLogFormatName,
-			Value: &estafetteLogFormatValue,
+		v1.EnvVar{
+			Name:  estafetteLogFormatName,
+			Value: estafetteLogFormatValue,
 		},
-		&corev1.EnvVar{
-			Name:  &jaegerServiceNameName,
-			Value: &jaegerServiceNameValue,
+		v1.EnvVar{
+			Name:  jaegerServiceNameName,
+			Value: jaegerServiceNameValue,
 		},
-		&corev1.EnvVar{
-			Name: &jaegerAgentHostName,
-			ValueFrom: &corev1.EnvVarSource{
-				FieldRef: &corev1.ObjectFieldSelector{
-					FieldPath: &jaegerAgentHostFieldPath,
+		v1.EnvVar{
+			Name: jaegerAgentHostName,
+			ValueFrom: &v1.EnvVarSource{
+				FieldRef: &v1.ObjectFieldSelector{
+					FieldPath: jaegerAgentHostFieldPath,
 				},
 			},
 		},
-		&corev1.EnvVar{
-			Name:  &jaegerSamplerTypeName,
-			Value: &jaegerSamplerTypeValue,
+		v1.EnvVar{
+			Name:  jaegerSamplerTypeName,
+			Value: jaegerSamplerTypeValue,
 		},
-		&corev1.EnvVar{
-			Name:  &jaegerSamplerTypeName,
-			Value: &jaegerSamplerTypeValue,
+		v1.EnvVar{
+			Name:  jaegerSamplerTypeName,
+			Value: jaegerSamplerTypeValue,
 		},
-		&corev1.EnvVar{
-			Name:  &jaegerSamplerParamName,
-			Value: &jaegerSamplerParamValue,
+		v1.EnvVar{
+			Name:  jaegerSamplerParamName,
+			Value: jaegerSamplerParamValue,
 		},
-		&corev1.EnvVar{
-			Name: &podNameName,
-			ValueFrom: &corev1.EnvVarSource{
-				FieldRef: &corev1.ObjectFieldSelector{
-					FieldPath: &podNameMetadataNameFieldPath,
+		v1.EnvVar{
+			Name: podNameName,
+			ValueFrom: &v1.EnvVarSource{
+				FieldRef: &v1.ObjectFieldSelector{
+					FieldPath: podNameMetadataNameFieldPath,
 				},
 			},
 		},
@@ -155,9 +158,9 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 			envvarValue := kvPair[1]
 
 			if strings.HasPrefix(envvarName, "JAEGER_") && envvarName != "JAEGER_SERVICE_NAME" && envvarName != "JAEGER_AGENT_HOST" && envvarName != "JAEGER_SAMPLER_TYPE" && envvarName != "JAEGER_SAMPLER_PARAM" && envvarValue != "" {
-				environmentVariables = append(environmentVariables, &corev1.EnvVar{
-					Name:  &envvarName,
-					Value: &envvarValue,
+				environmentVariables = append(environmentVariables, v1.EnvVar{
+					Name:  envvarName,
+					Value: envvarValue,
 				})
 			}
 		}
@@ -174,31 +177,29 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 	repository := "estafette/estafette-ci-builder"
 	tag := ciBuilderParams.Track
 	image := fmt.Sprintf("%v:%v", repository, tag)
-	imagePullPolicy := "Always"
+	imagePullPolicy := v1.PullAlways
 	digest, err := c.dockerHubClient.GetDigestCached(ctx, repository, tag)
 	if err == nil && digest.Digest != "" {
 		image = fmt.Sprintf("%v@%v", repository, digest.Digest)
-		imagePullPolicy = "IfNotPresent"
+		imagePullPolicy = v1.PullIfNotPresent
 	}
-	restartPolicy := "Never"
+	restartPolicy := v1.RestartPolicyNever
 	privileged := true
 
 	preemptibleAffinityWeight := int32(10)
 	preemptibleAffinityKey := "cloud.google.com/gke-preemptible"
-	preemptibleAffinityOperator := "In"
 
 	operatingSystemAffinityKey := "beta.kubernetes.io/os"
-	operatingSystemAffinityOperator := "In"
 	operatingSystemAffinityValue := ciBuilderParams.OperatingSystem
 
 	// create configmap for builder config
 	builderConfigConfigmapName := jobName
 	builderConfigVolumeName := "app-configs"
 	builderConfigVolumeMountPath := "/configs"
-	configmap := &corev1.ConfigMap{
-		Metadata: &metav1.ObjectMeta{
-			Name:      &builderConfigConfigmapName,
-			Namespace: &c.config.Jobs.Namespace,
+	configmap := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      builderConfigConfigmapName,
+			Namespace: c.config.Jobs.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
 				"jobType":   ciBuilderParams.JobType,
@@ -209,7 +210,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 		},
 	}
 
-	err = c.kubeClient.Create(context.Background(), configmap)
+	_, err = c.kubeClientset.CoreV1().ConfigMaps(c.config.Jobs.Namespace).Create(configmap)
 	if err != nil {
 		return
 	}
@@ -220,10 +221,10 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 	decryptionKeySecretName := jobName
 	decryptionKeySecretVolumeName := "app-secret"
 	decryptionKeySecretVolumeMountPath := "/secrets"
-	secret := &corev1.Secret{
-		Metadata: &metav1.ObjectMeta{
-			Name:      &decryptionKeySecretName,
-			Namespace: &c.config.Jobs.Namespace,
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      decryptionKeySecretName,
+			Namespace: c.config.Jobs.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
 				"jobType":   ciBuilderParams.JobType,
@@ -234,36 +235,36 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 		},
 	}
 
-	err = c.kubeClient.Create(context.Background(), secret)
+	_, err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Create(secret)
 	if err != nil {
 		return
 	}
 
 	log.Info().Msgf("Secret %v is created", decryptionKeySecretName)
 
-	affinity := &corev1.Affinity{
-		NodeAffinity: &corev1.NodeAffinity{
-			PreferredDuringSchedulingIgnoredDuringExecution: []*corev1.PreferredSchedulingTerm{
-				&corev1.PreferredSchedulingTerm{
-					Weight: &preemptibleAffinityWeight,
-					Preference: &corev1.NodeSelectorTerm{
-						MatchExpressions: []*corev1.NodeSelectorRequirement{
-							&corev1.NodeSelectorRequirement{
-								Key:      &preemptibleAffinityKey,
-								Operator: &preemptibleAffinityOperator,
+	affinity := &v1.Affinity{
+		NodeAffinity: &v1.NodeAffinity{
+			PreferredDuringSchedulingIgnoredDuringExecution: []v1.PreferredSchedulingTerm{
+				v1.PreferredSchedulingTerm{
+					Weight: preemptibleAffinityWeight,
+					Preference: v1.NodeSelectorTerm{
+						MatchExpressions: []v1.NodeSelectorRequirement{
+							v1.NodeSelectorRequirement{
+								Key:      preemptibleAffinityKey,
+								Operator: v1.NodeSelectorOpIn,
 								Values:   []string{"true"},
 							},
 						},
 					},
 				},
 			},
-			RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-				NodeSelectorTerms: []*corev1.NodeSelectorTerm{
-					&corev1.NodeSelectorTerm{
-						MatchExpressions: []*corev1.NodeSelectorRequirement{
-							&corev1.NodeSelectorRequirement{
-								Key:      &operatingSystemAffinityKey,
-								Operator: &operatingSystemAffinityOperator,
+			RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+				NodeSelectorTerms: []v1.NodeSelectorTerm{
+					v1.NodeSelectorTerm{
+						MatchExpressions: []v1.NodeSelectorRequirement{
+							v1.NodeSelectorRequirement{
+								Key:      operatingSystemAffinityKey,
+								Operator: v1.NodeSelectorOpIn,
 								Values:   []string{operatingSystemAffinityValue},
 							},
 						},
@@ -273,29 +274,27 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 		},
 	}
 
-	tolerations := []*corev1.Toleration{}
+	tolerations := []v1.Toleration{}
 
 	if ciBuilderParams.JobType == "release" {
 		// keep off of preemptibles
-		preemptibleAffinityOperator := "DoesNotExist"
-
-		affinity = &corev1.Affinity{
-			NodeAffinity: &corev1.NodeAffinity{
-				RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-					NodeSelectorTerms: []*corev1.NodeSelectorTerm{
-						&corev1.NodeSelectorTerm{
-							MatchExpressions: []*corev1.NodeSelectorRequirement{
-								&corev1.NodeSelectorRequirement{
-									Key:      &preemptibleAffinityKey,
-									Operator: &preemptibleAffinityOperator,
+		affinity = &v1.Affinity{
+			NodeAffinity: &v1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+					NodeSelectorTerms: []v1.NodeSelectorTerm{
+						v1.NodeSelectorTerm{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								v1.NodeSelectorRequirement{
+									Key:      preemptibleAffinityKey,
+									Operator: v1.NodeSelectorOpDoesNotExist,
 								},
 							},
 						},
-						&corev1.NodeSelectorTerm{
-							MatchExpressions: []*corev1.NodeSelectorRequirement{
-								&corev1.NodeSelectorRequirement{
-									Key:      &operatingSystemAffinityKey,
-									Operator: &operatingSystemAffinityOperator,
+						v1.NodeSelectorTerm{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								v1.NodeSelectorRequirement{
+									Key:      operatingSystemAffinityKey,
+									Operator: v1.NodeSelectorOpIn,
 									Values:   []string{operatingSystemAffinityValue},
 								},
 							},
@@ -306,87 +305,87 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 		}
 	}
 
-	volumes := []*corev1.Volume{
-		&corev1.Volume{
-			Name: &builderConfigVolumeName,
-			VolumeSource: &corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: &corev1.LocalObjectReference{
-						Name: &jobName,
+	volumes := []v1.Volume{
+		v1.Volume{
+			Name: builderConfigVolumeName,
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: jobName,
 					},
 				},
 			},
 		},
-		&corev1.Volume{
-			Name: &decryptionKeySecretVolumeName,
-			VolumeSource: &corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: &jobName,
+		v1.Volume{
+			Name: decryptionKeySecretVolumeName,
+			VolumeSource: v1.VolumeSource{
+				Secret: &v1.SecretVolumeSource{
+					SecretName: jobName,
 				},
 			},
 		},
 	}
-	volumeMounts := []*corev1.VolumeMount{
-		&corev1.VolumeMount{
-			Name:      &builderConfigVolumeName,
-			MountPath: &builderConfigVolumeMountPath,
+	volumeMounts := []v1.VolumeMount{
+		v1.VolumeMount{
+			Name:      builderConfigVolumeName,
+			MountPath: builderConfigVolumeMountPath,
 		},
-		&corev1.VolumeMount{
-			Name:      &decryptionKeySecretVolumeName,
-			MountPath: &decryptionKeySecretVolumeMountPath,
+		v1.VolumeMount{
+			Name:      decryptionKeySecretVolumeName,
+			MountPath: decryptionKeySecretVolumeMountPath,
 		},
 	}
 
 	if ciBuilderParams.OperatingSystem == "windows" {
 		// use emptydir volume in order to be able to have docker daemon on host mount path into internal container
 		workingDirectoryVolumeName := "working-directory"
-		volumes = append(volumes, &corev1.Volume{
-			Name: &workingDirectoryVolumeName,
-			VolumeSource: &corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
+		volumes = append(volumes, v1.Volume{
+			Name: workingDirectoryVolumeName,
+			VolumeSource: v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{},
 			},
 		})
 
 		workingDirectoryVolumeMountPath := "C:/estafette-work"
-		volumeMounts = append(volumeMounts, &corev1.VolumeMount{
-			Name:      &workingDirectoryVolumeName,
-			MountPath: &workingDirectoryVolumeMountPath,
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      workingDirectoryVolumeName,
+			MountPath: workingDirectoryVolumeMountPath,
 		})
 
 		// windows builds uses docker-outside-docker, for which the hosts docker socket needs to be mounted into the ci-builder container
 		dockerSocketVolumeName := "docker-socket"
 		dockerSocketVolumeHostPath := `\\.\pipe\docker_engine`
-		volumes = append(volumes, &corev1.Volume{
-			Name: &dockerSocketVolumeName,
-			VolumeSource: &corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: &dockerSocketVolumeHostPath,
+		volumes = append(volumes, v1.Volume{
+			Name: dockerSocketVolumeName,
+			VolumeSource: v1.VolumeSource{
+				HostPath: &v1.HostPathVolumeSource{
+					Path: dockerSocketVolumeHostPath,
 				},
 			},
 		})
 
 		dockerSocketVolumeMountPath := `\\.\pipe\docker_engine`
-		volumeMounts = append(volumeMounts, &corev1.VolumeMount{
-			Name:      &dockerSocketVolumeName,
-			MountPath: &dockerSocketVolumeMountPath,
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      dockerSocketVolumeName,
+			MountPath: dockerSocketVolumeMountPath,
 		})
 
 		// in order not to have to install the docker cli into the ci-builder container it's mounted from the host as well
 		dockerCLIVolumeName := "docker-cli"
 		dockerCLIVolumeHostPath := `C:/Program Files/Docker`
-		volumes = append(volumes, &corev1.Volume{
-			Name: &dockerCLIVolumeName,
-			VolumeSource: &corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: &dockerCLIVolumeHostPath,
+		volumes = append(volumes, v1.Volume{
+			Name: dockerCLIVolumeName,
+			VolumeSource: v1.VolumeSource{
+				HostPath: &v1.HostPathVolumeSource{
+					Path: dockerCLIVolumeHostPath,
 				},
 			},
 		})
 
 		dockerCLIVolumeMountPath := `C:/Program Files/Docker`
-		volumeMounts = append(volumeMounts, &corev1.VolumeMount{
-			Name:      &dockerCLIVolumeName,
-			MountPath: &dockerCLIVolumeMountPath,
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      dockerCLIVolumeName,
+			MountPath: dockerCLIVolumeMountPath,
 		})
 
 		// docker in kubernetes on windows is still at 18.09.7, which has api version 1.39
@@ -394,20 +393,20 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 		dockerAPIVersionName := "DOCKER_API_VERSION"
 		dockerAPIVersionValue := "1.39"
 		environmentVariables = append(environmentVariables,
-			&corev1.EnvVar{
-				Name:  &dockerAPIVersionName,
-				Value: &dockerAPIVersionValue,
+			v1.EnvVar{
+				Name:  dockerAPIVersionName,
+				Value: dockerAPIVersionValue,
 			},
 		)
 
 		podUIDName := "POD_UID"
 		podUIDFieldPath := "metadata.uid"
 		environmentVariables = append(environmentVariables,
-			&corev1.EnvVar{
-				Name: &podUIDName,
-				ValueFrom: &corev1.EnvVarSource{
-					FieldRef: &corev1.ObjectFieldSelector{
-						FieldPath: &podUIDFieldPath,
+			v1.EnvVar{
+				Name: podUIDName,
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						FieldPath: podUIDFieldPath,
 					},
 				},
 			},
@@ -417,81 +416,75 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 		estafetteWorkdirName := "ESTAFETTE_WORKDIR"
 		estafetteWorkdirValue := "c:/var/lib/kubelet/pods/$(POD_UID)/volumes/kubernetes.io~empty-dir/" + workingDirectoryVolumeName
 		environmentVariables = append(environmentVariables,
-			&corev1.EnvVar{
-				Name:  &estafetteWorkdirName,
-				Value: &estafetteWorkdirValue,
+			v1.EnvVar{
+				Name:  estafetteWorkdirName,
+				Value: estafetteWorkdirValue,
 			},
 		)
 
-		tolerationEffect := "NoSchedule"
 		tolerationKey := "node.kubernetes.io/os"
-		tolerationOperator := "Equal"
 		tolerationValue := "windows"
-		tolerations = append(tolerations, &corev1.Toleration{
-			Effect:   &tolerationEffect,
-			Key:      &tolerationKey,
-			Operator: &tolerationOperator,
-			Value:    &tolerationValue,
+		tolerations = append(tolerations, v1.Toleration{
+			Effect:   v1.TaintEffectNoSchedule,
+			Key:      tolerationKey,
+			Operator: v1.TolerationOpEqual,
+			Value:    tolerationValue,
 		})
 	}
 
 	job = &batchv1.Job{
-		Metadata: &metav1.ObjectMeta{
-			Name:      &jobName,
-			Namespace: &c.config.Jobs.Namespace,
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      jobName,
+			Namespace: c.config.Jobs.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
 				"jobType":   ciBuilderParams.JobType,
 			},
 		},
-		Spec: &batchv1.JobSpec{
-			Template: &corev1.PodTemplateSpec{
-				Metadata: &metav1.ObjectMeta{
+		Spec: batchv1.JobSpec{
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"createdBy": "estafette",
 						"jobType":   ciBuilderParams.JobType,
 					},
 				},
-				Spec: &corev1.PodSpec{
-					Containers: []*corev1.Container{
-						&corev1.Container{
-							Name:            &containerName,
-							Image:           &image,
-							ImagePullPolicy: &imagePullPolicy,
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						v1.Container{
+							Name:            containerName,
+							Image:           image,
+							ImagePullPolicy: imagePullPolicy,
 							Args: []string{
 								"--run-as-job",
 							},
 							Env: environmentVariables,
-							SecurityContext: &corev1.SecurityContext{
+							SecurityContext: &v1.SecurityContext{
 								Privileged: &privileged,
 							},
-							Resources: &corev1.ResourceRequirements{
-								Requests: map[string]*resource.Quantity{
-									"cpu":    &resource.Quantity{String_: &cpuRequest},
-									"memory": &resource.Quantity{String_: &memoryRequest},
+							Resources: v1.ResourceRequirements{
+								Requests: v1.ResourceList{
+									"cpu":    resource.MustParse(cpuRequest),
+									"memory": resource.MustParse(memoryRequest),
 								},
-								Limits: map[string]*resource.Quantity{
-									"cpu":    &resource.Quantity{String_: &cpuLimit},
-									"memory": &resource.Quantity{String_: &memoryLimit},
+								Limits: v1.ResourceList{
+									"cpu":    resource.MustParse(cpuLimit),
+									"memory": resource.MustParse(memoryLimit),
 								},
 							},
 							VolumeMounts: volumeMounts,
 						},
 					},
-					RestartPolicy: &restartPolicy,
-
-					Volumes: volumes,
-
-					Affinity: affinity,
-
-					Tolerations: tolerations,
+					RestartPolicy: restartPolicy,
+					Volumes:       volumes,
+					Affinity:      affinity,
+					Tolerations:   tolerations,
 				},
 			},
 		},
 	}
 
-	// "error":"unregistered type *v1.Job",
-	err = c.kubeClient.Create(context.Background(), job)
+	_, err = c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Create(job)
 
 	if err != nil {
 		return
@@ -508,21 +501,22 @@ func (c *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err er
 	log.Info().Msgf("Deleting job %v...", jobName)
 
 	// check if job is finished
-	var job batchv1.Job
-	err = c.kubeClient.Get(context.Background(), c.config.Jobs.Namespace, jobName, &job)
+	job, err := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Get(jobName, metav1.GetOptions{})
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).
 			Msgf("Get call for job %v failed", jobName)
 	}
 
-	if err != nil || *job.Status.Succeeded != 1 {
+	if err != nil || job.Status.Succeeded != 1 {
 		log.Debug().Str("jobName", jobName).Msgf("Job is not done yet, watching for job %v to succeed", jobName)
 
 		// watch for job updates
-		var job batchv1.Job
-		watcher, err := c.kubeClient.Watch(context.Background(), c.config.Jobs.Namespace, &job, k8s.Timeout(time.Duration(300)*time.Second))
-		defer watcher.Close()
+		timeoutSeconds := int64(300)
+		watcher, err := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Watch(metav1.ListOptions{
+			FieldSelector:  fields.OneTermEqualSelector("metadata.name", jobName).String(),
+			TimeoutSeconds: &timeoutSeconds,
+		})
 
 		if err != nil {
 			log.Error().Err(err).
@@ -531,14 +525,25 @@ func (c *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err er
 		} else {
 			// wait for job to succeed
 			for {
-				job := new(batchv1.Job)
-				event, err := watcher.Next(job)
-				if err != nil {
-					log.Error().Err(err)
-					break
-				}
+				select {
+				case event, ok := <-watcher.ResultChan():
+					if ok {
+						log.Warn().Msgf("Watcher for job %v is closed", jobName)
+						break
+					}
+					if event.Type == watch.Modified {
+						job, ok := event.Object.(*batchv1.Job)
+						if !ok {
+							log.Warn().Msgf("Watcher for job %v returns event object of incorrect type", jobName)
+							break
+						}
+						if job.Status.Succeeded == 1 {
+							break
+						}
+					}
 
-				if event == k8s.EventModified && *job.Metadata.Name == jobName && *job.Status.Succeeded == 1 {
+				case <-time.After(60 * time.Second):
+					log.Warn().Msgf("Watcher for job %v returns event object of incorrect type", jobName)
 					break
 				}
 			}
@@ -546,7 +551,7 @@ func (c *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err er
 	}
 
 	// delete job
-	err = c.kubeClient.Delete(context.Background(), &job)
+	err = c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Delete(jobName, &metav1.DeleteOptions{})
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).
@@ -565,8 +570,7 @@ func (c *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err er
 func (c *client) RemoveCiBuilderConfigMap(ctx context.Context, configmapName string) (err error) {
 
 	// check if configmap exists
-	var configmap corev1.ConfigMap
-	err = c.kubeClient.Get(context.Background(), c.config.Jobs.Namespace, configmapName, &configmap)
+	_, err = c.kubeClientset.CoreV1().ConfigMaps(c.config.Jobs.Namespace).Get(configmapName, metav1.GetOptions{})
 	if err != nil {
 		log.Error().Err(err).
 			Str("configmap", configmapName).
@@ -575,7 +579,7 @@ func (c *client) RemoveCiBuilderConfigMap(ctx context.Context, configmapName str
 	}
 
 	// delete configmap
-	err = c.kubeClient.Delete(context.Background(), &configmap)
+	err = c.kubeClientset.CoreV1().ConfigMaps(c.config.Jobs.Namespace).Delete(configmapName, &metav1.DeleteOptions{})
 	if err != nil {
 		log.Error().Err(err).
 			Str("configmap", configmapName).
@@ -591,8 +595,7 @@ func (c *client) RemoveCiBuilderConfigMap(ctx context.Context, configmapName str
 func (c *client) RemoveCiBuilderSecret(ctx context.Context, secretName string) (err error) {
 
 	// check if secret exists
-	var secret corev1.Secret
-	err = c.kubeClient.Get(context.Background(), c.config.Jobs.Namespace, secretName, &secret)
+	_, err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
 		log.Error().Err(err).
 			Str("secret", secretName).
@@ -601,7 +604,7 @@ func (c *client) RemoveCiBuilderSecret(ctx context.Context, secretName string) (
 	}
 
 	// delete secret
-	err = c.kubeClient.Delete(context.Background(), &secret)
+	err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Delete(secretName, &metav1.DeleteOptions{})
 	if err != nil {
 		log.Error().Err(err).
 			Str("secret", secretName).
@@ -619,18 +622,8 @@ func (c *client) CancelCiBuilderJob(ctx context.Context, jobName string) (err er
 
 	log.Info().Msgf("Canceling job %v...", jobName)
 
-	// check if job is finished
-	var job batchv1.Job
-	err = c.kubeClient.Get(context.Background(), c.config.Jobs.Namespace, jobName, &job)
-	if err != nil {
-		log.Error().Err(err).
-			Str("jobName", jobName).
-			Msgf("Get call for job %v failed", jobName)
-		return
-	}
-
 	// delete job
-	err = c.kubeClient.Delete(context.Background(), &job)
+	err = c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Delete(jobName, &metav1.DeleteOptions{})
 	if err != nil {
 		log.Error().Err(err).
 			Str("jobName", jobName).
@@ -652,98 +645,84 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 	// close channel so api handler can finish it's response
 	defer close(logChannel)
 
-	labels := new(k8s.LabelSelector)
-	labels.Eq("job-name", jobName)
-
 	log.Debug().Msgf("TailCiBuilderJobLogs - listing pods with job-name=%v namespace=%v", jobName, c.config.Jobs.Namespace)
 
-	var pods corev1.PodList
-	if err := c.kubeClient.List(context.Background(), c.config.Jobs.Namespace, &pods, labels.Selector()); err != nil {
-		return err
+	labelSelector := labels.Set{
+		"job-name": jobName,
 	}
+	pods, err := c.kubeClientset.CoreV1().Pods(c.config.Jobs.Namespace).List(metav1.ListOptions{
+		LabelSelector: labelSelector.String(),
+	})
 
 	log.Debug().Msgf("TailCiBuilderJobLogs - retrieved %v pods", len(pods.Items))
 
 	for _, pod := range pods.Items {
 
-		if *pod.Status.Phase == "Pending" {
+		if pod.Status.Phase == "Pending" {
 
 			log.Debug().Msg("TailCiBuilderJobLogs - pod is pending, waiting for running state...")
 
 			// watch for pod to go into Running state (or out of Pending state)
-			var pendingPod corev1.Pod
-			watcher, err := c.kubeClient.Watch(context.Background(), c.config.Jobs.Namespace, &pendingPod, k8s.Timeout(time.Duration(300)*time.Second))
-
+			timeoutSeconds := int64(300)
+			watcher, err := c.kubeClientset.CoreV1().Pods(c.config.Jobs.Namespace).Watch(metav1.ListOptions{
+				LabelSelector:  labelSelector.String(),
+				TimeoutSeconds: &timeoutSeconds,
+			})
 			if err != nil {
 				return err
 			}
 
 			// wait for pod to change Phase to succeed
-			defer watcher.Close()
 			for {
-				watchedPod := new(corev1.Pod)
-				event, err := watcher.Next(watchedPod)
-				if err != nil {
-					return err
-				}
+				for {
+					select {
+					case event, ok := <-watcher.ResultChan():
+						if ok {
+							log.Warn().Msgf("Watcher for pod with job-name=%v is closed", jobName)
+							break
+						}
+						if event.Type == watch.Modified {
+							modifiedPod, ok := event.Object.(*v1.Pod)
+							if !ok {
+								log.Warn().Msgf("Watcher for pod with job-name=%v returns event object of incorrect type", jobName)
+								break
+							}
+							if modifiedPod.Status.Phase != "Pending" {
+								pod = *modifiedPod
+								break
+							}
+						}
 
-				if event == k8s.EventModified && *watchedPod.Metadata.Name == *pod.Metadata.Name && *watchedPod.Status.Phase != "Pending" {
-					pod = watchedPod
-					break
+					case <-time.After(60 * time.Second):
+						log.Warn().Msgf("Watcher for job %v returns event object of incorrect type", jobName)
+						break
+					}
 				}
 			}
 		}
 
-		if *pod.Status.Phase != "Running" {
-			log.Warn().Msgf("Post %v for job %v has unsupported phase %v", *pod.Metadata.Name, jobName, *pod.Status.Phase)
+		if pod.Status.Phase != "Running" {
+			log.Warn().Msgf("Post %v for job %v has unsupported phase %v", pod.Name, jobName, pod.Status.Phase)
 		}
 
 		log.Debug().Msg("TailCiBuilderJobLogs - pod has running state...")
 
-		// follow logs from pod
-		url := fmt.Sprintf("%v/api/v1/namespaces/%v/pods/%v/log?follow=true", c.kubeClient.Endpoint, c.config.Jobs.Namespace, *pod.Metadata.Name)
-
-		log.Debug().Msgf("TailCiBuilderJobLogs - k8s api url: %v", url)
-
-		ct := "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
-
-		req, err := http.NewRequest("GET", url, nil)
+		req := c.kubeClientset.CoreV1().Pods(c.config.Jobs.Namespace).GetLogs(pod.Name, &v1.PodLogOptions{})
+		logsStream, err := req.Stream()
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed generating request for retrieving logs from pod %v for job %v", *pod.Metadata.Name, jobName)
+			log.Error().Err(err).Msgf("Failed opening logs stream for pod %v for job %v", pod.Name, jobName)
 			return err
 		}
-		if c.kubeClient.SetHeaders != nil {
-			if err := c.kubeClient.SetHeaders(req.Header); err != nil {
-				log.Error().Err(err).Msgf("Failed setting request headers for retrieving logs from pod %v for job %v", *pod.Metadata.Name, jobName)
-				return err
-			}
-		}
-		req = req.WithContext(context.Background())
+		defer logsStream.Close()
 
-		req.Header.Set("Accept", ct)
-
-		resp, err := c.kubeClient.Client.Do(req)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed performing request for retrieving logs from pod %v for job %v", *pod.Metadata.Name, jobName)
-			return err
-		}
-
-		if resp.StatusCode/100 != 2 {
-			errorMessage := fmt.Sprintf("Request for retrieving logs from pod %v for job %v has status code %v", *pod.Metadata.Name, jobName, resp.StatusCode)
-			log.Error().Msg(errorMessage)
-			return fmt.Errorf(errorMessage)
-		}
-
-		log.Debug().Msgf("TailCiBuilderJobLogs - streaming logs")
-
-		reader := bufio.NewReader(resp.Body)
+		reader := bufio.NewReader(logsStream)
 		for {
 			line, err := reader.ReadBytes('\n')
 			if err == io.EOF {
 				break
 			}
 			if err != nil {
-				log.Warn().Err(err).Msgf("Error while reading lines from logs from pod %v for job %v", *pod.Metadata.Name, jobName)
+				log.Warn().Err(err).Msgf("Error while reading lines from logs from pod %v for job %v", pod.Name, jobName)
 			}
 
 			// only forward if it's a json object with property 'tailLogLine'
@@ -754,7 +733,7 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 					logChannel <- *zeroLogLine.TailLogLine
 				}
 			} else {
-				log.Error().Err(err).Str("line", string(line)).Msgf("Tailed log from pod %v for job %v is not of type json", *pod.Metadata.Name, jobName)
+				log.Error().Err(err).Str("line", string(line)).Msgf("Tailed log from pod %v for job %v is not of type json", pod.Name, jobName)
 			}
 		}
 	}

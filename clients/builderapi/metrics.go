@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/go-kit/kit/metrics"
+	batchv1 "k8s.io/api/batch/v1"
 )
 
 // NewMetricsClient returns a new instance of a metrics Client.
