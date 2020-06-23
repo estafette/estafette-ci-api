@@ -646,7 +646,7 @@ func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuil
 		},
 		{
 			Name:  "JAEGER_SAMPLER_TYPE",
-			Value: "JAEGER_SAMPLER_PARAM",
+			Value: "const",
 		},
 		{
 			Name:  "JAEGER_SAMPLER_PARAM",
