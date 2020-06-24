@@ -149,7 +149,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 		defer gitEventTopic.Close()
 		subscriptionChannel := gitEventTopic.Subscribe("PublishesGitTriggersOnTopic")
 
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, e, gitEventTopic)
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, gitEventTopic)
 
 		pushEvent := githubapi.PushEvent{
 			Ref: "refs/heads/master",
