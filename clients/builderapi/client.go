@@ -364,88 +364,106 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 	})
 
 	log.Debug().Msgf("TailCiBuilderJobLogs - retrieved %v pods", len(pods.Items))
-
 	for _, pod := range pods.Items {
-		if pod.Status.Phase == v1.PodPending {
-
-			log.Debug().Msg("TailCiBuilderJobLogs - pod is pending, waiting for running state...")
-
-			// watch for pod to go into Running state (or out of Pending state)
-			timeoutSeconds := int64(300)
-			watcher, err := c.kubeClientset.CoreV1().Pods(c.config.Jobs.Namespace).Watch(metav1.ListOptions{
-				LabelSelector:  labelSelector.String(),
-				TimeoutSeconds: &timeoutSeconds,
-			})
-			if err != nil {
-				return err
-			}
-
-			for {
-				event, ok := <-watcher.ResultChan()
-				if !ok {
-					log.Warn().Msgf("Watcher for pod with job-name=%v is closed", jobName)
-					break
-				}
-				if event.Type == watch.Modified {
-					modifiedPod, ok := event.Object.(*v1.Pod)
-					if !ok {
-						log.Warn().Msgf("Watcher for pod with job-name=%v returns event object of incorrect type", jobName)
-						break
-					}
-					if modifiedPod.Status.Phase != v1.PodPending {
-						pod = *modifiedPod
-						break
-					}
-				}
-			}
+		err = c.waitIfPodIsPending(ctx, labelSelector, &pod, jobName)
+		if err != nil {
+			return
 		}
 
 		if pod.Status.Phase != v1.PodRunning {
-			log.Warn().Msgf("Pod %v for job %v has unsupported phase %v", pod.Name, jobName, pod.Status.Phase)
+			log.Warn().Msgf("TailCiBuilderJobLogs - pod %v for job %v has unsupported phase %v", pod.Name, jobName, pod.Status.Phase)
 			continue
 		}
 
-		log.Debug().Msg("TailCiBuilderJobLogs - pod has running state...")
-
-		req := c.kubeClientset.CoreV1().Pods(c.config.Jobs.Namespace).GetLogs(pod.Name, &v1.PodLogOptions{
-			Follow: true,
-		})
-		logsStream, err := req.Stream()
+		err = c.followPodLogs(ctx, &pod, jobName, logChannel)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed opening logs stream for pod %v for job %v", pod.Name, jobName)
-			return err
+			return
 		}
-		defer logsStream.Close()
-
-		reader := bufio.NewReader(logsStream)
-		for {
-			line, err := reader.ReadBytes('\n')
-			if err == io.EOF {
-				log.Debug().Msgf("EOF in logs stream for pod %v for job %v, exiting tailing", pod.Name, jobName)
-				break
-			}
-			if err != nil {
-				log.Warn().Err(err).Msgf("Error while reading lines from logs from pod %v for job %v", pod.Name, jobName)
-				continue
-			}
-
-			// only forward if it's a json object with property 'tailLogLine'
-			var zeroLogLine ZeroLogLine
-			err = json.Unmarshal(line, &zeroLogLine)
-			if err == nil {
-				if zeroLogLine.TailLogLine != nil {
-					logChannel <- *zeroLogLine.TailLogLine
-				}
-			} else {
-				log.Error().Err(err).Str("line", string(line)).Msgf("Tailed log from pod %v for job %v is not of type json", pod.Name, jobName)
-			}
-		}
-		log.Debug().Msgf("Done following logs stream for pod %v for job %v", pod.Name, jobName)
 	}
 
-	log.Debug().Msgf("Done following logs stream for all %v pods for job %v", len(pods.Items), jobName)
+	log.Debug().Msgf("TailCiBuilderJobLogs - done following logs stream for all %v pods for job %v", len(pods.Items), jobName)
 
 	return
+}
+
+func (c *client) waitIfPodIsPending(ctx context.Context, labelSelector labels.Set, pod *v1.Pod, jobName string) (err error) {
+
+	if pod.Status.Phase == v1.PodPending {
+
+		log.Debug().Msg("TailCiBuilderJobLogs - pod is pending, waiting for running state...")
+
+		// watch for pod to go into Running state (or out of Pending state)
+		timeoutSeconds := int64(300)
+		watcher, err := c.kubeClientset.CoreV1().Pods(c.config.Jobs.Namespace).Watch(metav1.ListOptions{
+			LabelSelector:  labelSelector.String(),
+			TimeoutSeconds: &timeoutSeconds,
+		})
+		if err != nil {
+			return err
+		}
+
+		for {
+			event, ok := <-watcher.ResultChan()
+			if !ok {
+				log.Warn().Msgf("Watcher for pod with job-name=%v is closed", jobName)
+				break
+			}
+			if event.Type == watch.Modified {
+				modifiedPod, ok := event.Object.(*v1.Pod)
+				if !ok {
+					log.Warn().Msgf("Watcher for pod with job-name=%v returns event object of incorrect type", jobName)
+					break
+				}
+				if modifiedPod.Status.Phase != v1.PodPending {
+					*pod = *modifiedPod
+					break
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (c *client) followPodLogs(ctx context.Context, pod *v1.Pod, jobName string, logChannel chan contracts.TailLogLine) (err error) {
+	log.Debug().Msg("TailCiBuilderJobLogs - pod has running state...")
+
+	req := c.kubeClientset.CoreV1().Pods(c.config.Jobs.Namespace).GetLogs(pod.Name, &v1.PodLogOptions{
+		Follow: true,
+	})
+	logsStream, err := req.Stream()
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed opening logs stream for pod %v for job %v", pod.Name, jobName)
+		return err
+	}
+	defer logsStream.Close()
+
+	reader := bufio.NewReader(logsStream)
+	for {
+		line, err := reader.ReadBytes('\n')
+		if err == io.EOF {
+			log.Debug().Msgf("EOF in logs stream for pod %v for job %v, exiting tailing", pod.Name, jobName)
+			break
+		}
+		if err != nil {
+			log.Warn().Err(err).Msgf("Error while reading lines from logs from pod %v for job %v", pod.Name, jobName)
+			continue
+		}
+
+		// only forward if it's a json object with property 'tailLogLine'
+		var zeroLogLine ZeroLogLine
+		err = json.Unmarshal(line, &zeroLogLine)
+		if err == nil {
+			if zeroLogLine.TailLogLine != nil {
+				logChannel <- *zeroLogLine.TailLogLine
+			}
+		} else {
+			log.Error().Err(err).Str("line", string(line)).Msgf("Tailed log from pod %v for job %v is not of type json", pod.Name, jobName)
+		}
+	}
+	log.Debug().Msgf("Done following logs stream for pod %v for job %v", pod.Name, jobName)
+
+	return nil
 }
 
 // GetJobName returns the job name for a build or release job
