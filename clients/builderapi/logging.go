@@ -3,9 +3,9 @@ package builderapi
 import (
 	"context"
 
-	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
+	batchv1 "k8s.io/api/batch/v1"
 )
 
 // NewLoggingClient returns a new instance of a logging Client.
@@ -56,10 +56,4 @@ func (c *loggingClient) TailCiBuilderJobLogs(ctx context.Context, jobName string
 
 func (c *loggingClient) GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) string {
 	return c.Client.GetJobName(ctx, jobType, repoOwner, repoName, id)
-}
-
-func (c *loggingClient) GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) (config contracts.BuilderConfig, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "GetBuilderConfig", err) }()
-
-	return c.Client.GetBuilderConfig(ctx, params, jobName)
 }

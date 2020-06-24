@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
@@ -16,6 +15,7 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/stretchr/testify/assert"
+	batchv1 "k8s.io/api/batch/v1"
 )
 
 func TestCreateBuild(t *testing.T) {

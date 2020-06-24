@@ -14,7 +14,10 @@ import (
 	stdpubsub "cloud.google.com/go/pubsub"
 	stdstorage "cloud.google.com/go/storage"
 	"github.com/alecthomas/kingpin"
-	"github.com/ericchiang/k8s"
+
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+
 	crypt "github.com/estafette/estafette-ci-crypt"
 	foundation "github.com/estafette/estafette-foundation"
 	"github.com/fsnotify/fsnotify"
@@ -301,11 +304,22 @@ func getClients(ctx context.Context, config *config.APIConfig, encryptedConfig *
 	)
 
 	// builderapi client
-	kubeClient, err := k8s.NewInClusterClient()
+	// creates the in-cluster config
+	kubeClientConfig, err := rest.InClusterConfig()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed getting in-cluster kubernetes config")
+	}
+	// creates the clientset
+	kubeClientset, err := kubernetes.NewForConfig(kubeClientConfig)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed creating kubernetes clientset")
+	}
+
+	// kubeClient, err := k8s.NewInClusterClient()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating kubernetes client failed")
 	}
-	builderapiClient = builderapi.NewClient(config, encryptedConfig, secretHelper, kubeClient, dockerhubapiClient)
+	builderapiClient = builderapi.NewClient(config, encryptedConfig, secretHelper, kubeClientset, dockerhubapiClient)
 	builderapiClient = builderapi.NewTracingClient(builderapiClient)
 	builderapiClient = builderapi.NewLoggingClient(builderapiClient)
 	builderapiClient = builderapi.NewMetricsClient(builderapiClient,

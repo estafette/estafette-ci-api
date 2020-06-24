@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/go-kit/kit/metrics"
+	batchv1 "k8s.io/api/batch/v1"
 )
 
 // NewMetricsClient returns a new instance of a metrics Client.
@@ -73,12 +73,4 @@ func (c *metricsClient) GetJobName(ctx context.Context, jobType, repoOwner, repo
 	defer func(begin time.Time) { helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetJobName", begin) }(time.Now())
 
 	return c.Client.GetJobName(ctx, jobType, repoOwner, repoName, id)
-}
-
-func (c *metricsClient) GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) (config contracts.BuilderConfig, err error) {
-	defer func(begin time.Time) {
-		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetBuilderConfig", begin)
-	}(time.Now())
-
-	return c.Client.GetBuilderConfig(ctx, params, jobName)
 }

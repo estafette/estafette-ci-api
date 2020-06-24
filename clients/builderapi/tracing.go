@@ -3,10 +3,10 @@ package builderapi
 import (
 	"context"
 
-	batchv1 "github.com/ericchiang/k8s/apis/batch/v1"
 	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/opentracing/opentracing-go"
+	batchv1 "k8s.io/api/batch/v1"
 )
 
 // NewTracingClient returns a new instance of a tracing Client.
@@ -66,11 +66,4 @@ func (c *tracingClient) GetJobName(ctx context.Context, jobType, repoOwner, repo
 	defer func() { helpers.FinishSpan(span) }()
 
 	return c.Client.GetJobName(ctx, jobType, repoOwner, repoName, id)
-}
-
-func (c *tracingClient) GetBuilderConfig(ctx context.Context, params CiBuilderParams, jobName string) (config contracts.BuilderConfig, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetBuilderConfig"))
-	defer func() { helpers.FinishSpan(span) }()
-
-	return c.Client.GetBuilderConfig(ctx, params, jobName)
 }
