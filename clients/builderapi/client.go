@@ -441,6 +441,8 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 		log.Debug().Msgf("Done following logs stream for pod %v for job %v", pod.Name, jobName)
 	}
 
+	log.Debug().Msgf("Done following logs stream for all %v pods for job %v", len(pods.Items), jobName)
+
 	return
 }
 
