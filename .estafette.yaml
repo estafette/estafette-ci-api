@@ -115,6 +115,7 @@ releases:
     - name: deploy-canary
     - name: deploy-stable
     - name: rollback-canary
+      hideBadge: true
     clone: true
     stages:
       deploy:
