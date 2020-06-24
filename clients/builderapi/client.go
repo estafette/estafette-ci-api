@@ -407,7 +407,9 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 
 		log.Debug().Msg("TailCiBuilderJobLogs - pod has running state...")
 
-		req := c.kubeClientset.CoreV1().Pods(c.config.Jobs.Namespace).GetLogs(pod.Name, &v1.PodLogOptions{})
+		req := c.kubeClientset.CoreV1().Pods(c.config.Jobs.Namespace).GetLogs(pod.Name, &v1.PodLogOptions{
+			Follow: true,
+		})
 		logsStream, err := req.Stream()
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed opening logs stream for pod %v for job %v", pod.Name, jobName)
