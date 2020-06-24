@@ -419,10 +419,12 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 		for {
 			line, err := reader.ReadBytes('\n')
 			if err == io.EOF {
+				log.Debug().Msgf("EOF in logs stream for pod %v for job %v, exiting tailing", pod.Name, jobName)
 				break
 			}
 			if err != nil {
 				log.Warn().Err(err).Msgf("Error while reading lines from logs from pod %v for job %v", pod.Name, jobName)
+				continue
 			}
 
 			// only forward if it's a json object with property 'tailLogLine'
@@ -436,6 +438,7 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 				log.Error().Err(err).Str("line", string(line)).Msgf("Tailed log from pod %v for job %v is not of type json", pod.Name, jobName)
 			}
 		}
+		log.Debug().Msgf("Done following logs stream for pod %v for job %v", pod.Name, jobName)
 	}
 
 	return
