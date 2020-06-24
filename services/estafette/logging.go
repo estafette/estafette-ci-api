@@ -5,6 +5,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/topics"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
@@ -101,4 +102,8 @@ func (s *loggingService) UpdateJobResources(ctx context.Context, event builderap
 	defer func() { helpers.HandleLogError(s.prefix, "UpdateJobResources", err) }()
 
 	return s.Service.UpdateJobResources(ctx, event)
+}
+
+func (s *loggingService) SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *topics.GitEventTopic) {
+	s.Service.SubscribeToGitEventsTopic(ctx, gitEventTopic)
 }

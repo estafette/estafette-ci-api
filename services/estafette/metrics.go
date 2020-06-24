@@ -6,6 +6,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/topics"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/go-kit/kit/metrics"
@@ -118,4 +119,12 @@ func (s *metricsService) UpdateJobResources(ctx context.Context, event builderap
 	}(time.Now())
 
 	return s.Service.UpdateJobResources(ctx, event)
+}
+
+func (s *metricsService) SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *topics.GitEventTopic) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "SubscribeToGitEventsTopic", begin)
+	}(time.Now())
+
+	s.Service.SubscribeToGitEventsTopic(ctx, gitEventTopic)
 }

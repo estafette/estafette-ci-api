@@ -8,6 +8,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/services/estafette"
+	"github.com/estafette/estafette-ci-api/topics"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
@@ -25,12 +26,13 @@ type Service interface {
 }
 
 // NewService returns a new bitbucket.Service
-func NewService(config *config.APIConfig, cloudsourceapiClient cloudsourceapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service) Service {
+func NewService(config *config.APIConfig, cloudsourceapiClient cloudsourceapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, gitEventTopic *topics.GitEventTopic) Service {
 	return &service{
 		config:               config,
 		cloudsourceapiClient: cloudsourceapiClient,
 		pubsubapiClient:      pubsubapiClient,
 		estafetteService:     estafetteService,
+		gitEventTopic:        gitEventTopic,
 	}
 }
 
@@ -39,6 +41,7 @@ type service struct {
 	cloudsourceapiClient cloudsourceapi.Client
 	pubsubapiClient      pubsubapi.Client
 	estafetteService     estafette.Service
+	gitEventTopic        *topics.GitEventTopic
 }
 
 func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error) {
@@ -72,14 +75,15 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 	}
 
 	// handle git triggers
-	go func() {
-		err := s.estafetteService.FireGitTriggers(ctx, gitEvent)
-		if err != nil {
-			log.Error().Err(err).
-				Interface("gitEvent", gitEvent).
-				Msg("Failed firing git triggers")
-		}
-	}()
+	s.gitEventTopic.Publish("cloudsource.Service", topics.GitEventTopicMessage{Ctx: ctx, Event: gitEvent})
+	// go func() {
+	// 	err := s.estafetteService.FireGitTriggers(ctx, gitEvent)
+	// 	if err != nil {
+	// 		log.Error().Err(err).
+	// 			Interface("gitEvent", gitEvent).
+	// 			Msg("Failed firing git triggers")
+	// 	}
+	// }()
 
 	// get access token
 	accessToken, err := s.cloudsourceapiClient.GetAccessToken(ctx)

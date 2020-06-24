@@ -5,6 +5,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/topics"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/opentracing/opentracing-go"
@@ -116,4 +117,11 @@ func (s *tracingService) UpdateJobResources(ctx context.Context, event builderap
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return s.Service.UpdateJobResources(ctx, event)
+}
+
+func (s *tracingService) SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *topics.GitEventTopic) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "SubscribeToGitEventsTopic"))
+	defer func() { helpers.FinishSpan(span) }()
+
+	s.Service.SubscribeToGitEventsTopic(ctx, gitEventTopic)
 }

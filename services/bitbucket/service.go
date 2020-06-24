@@ -8,6 +8,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/services/estafette"
+	"github.com/estafette/estafette-ci-api/topics"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
@@ -28,12 +29,13 @@ type Service interface {
 }
 
 // NewService returns a new bitbucket.Service
-func NewService(config *config.APIConfig, bitbucketapiClient bitbucketapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service) Service {
+func NewService(config *config.APIConfig, bitbucketapiClient bitbucketapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, gitEventTopic *topics.GitEventTopic) Service {
 	return &service{
 		config:             config,
 		bitbucketapiClient: bitbucketapiClient,
 		pubsubapiClient:    pubsubapiClient,
 		estafetteService:   estafetteService,
+		gitEventTopic:      gitEventTopic,
 	}
 }
 
@@ -42,6 +44,7 @@ type service struct {
 	bitbucketapiClient bitbucketapi.Client
 	pubsubapiClient    pubsubapi.Client
 	estafetteService   estafette.Service
+	gitEventTopic      *topics.GitEventTopic
 }
 
 func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbucketapi.RepositoryPushEvent) (err error) {
@@ -58,14 +61,15 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	}
 
 	// handle git triggers
-	go func() {
-		err := s.estafetteService.FireGitTriggers(ctx, gitEvent)
-		if err != nil {
-			log.Error().Err(err).
-				Interface("gitEvent", gitEvent).
-				Msg("Failed firing git triggers")
-		}
-	}()
+	s.gitEventTopic.Publish("bitbucket.Service", topics.GitEventTopicMessage{Ctx: ctx, Event: gitEvent})
+	// go func() {
+	// 	err := s.estafetteService.FireGitTriggers(ctx, gitEvent)
+	// 	if err != nil {
+	// 		log.Error().Err(err).
+	// 			Interface("gitEvent", gitEvent).
+	// 			Msg("Failed firing git triggers")
+	// 	}
+	// }()
 
 	// get access token
 	accessToken, err := s.bitbucketapiClient.GetAccessToken(ctx)

@@ -4,25 +4,27 @@ import (
 	"context"
 
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
+	"github.com/estafette/estafette-ci-api/topics"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
 
 type MockService struct {
-	CreateBuildFunc          func(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error)
-	FinishBuildFunc          func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error)
-	CreateReleaseFunc        func(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (r *contracts.Release, err error)
-	FinishReleaseFunc        func(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) (err error)
-	FireGitTriggersFunc      func(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error)
-	FirePipelineTriggersFunc func(ctx context.Context, build contracts.Build, event string) (err error)
-	FireReleaseTriggersFunc  func(ctx context.Context, release contracts.Release, event string) (err error)
-	FirePubSubTriggersFunc   func(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) (err error)
-	FireCronTriggersFunc     func(ctx context.Context) (err error)
-	RenameFunc               func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
-	ArchiveFunc              func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
-	UnarchiveFunc            func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
-	UpdateBuildStatusFunc    func(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
-	UpdateJobResourcesFunc   func(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
+	CreateBuildFunc               func(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error)
+	FinishBuildFunc               func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error)
+	CreateReleaseFunc             func(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (r *contracts.Release, err error)
+	FinishReleaseFunc             func(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) (err error)
+	FireGitTriggersFunc           func(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error)
+	FirePipelineTriggersFunc      func(ctx context.Context, build contracts.Build, event string) (err error)
+	FireReleaseTriggersFunc       func(ctx context.Context, release contracts.Release, event string) (err error)
+	FirePubSubTriggersFunc        func(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) (err error)
+	FireCronTriggersFunc          func(ctx context.Context) (err error)
+	RenameFunc                    func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
+	ArchiveFunc                   func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
+	UnarchiveFunc                 func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
+	UpdateBuildStatusFunc         func(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
+	UpdateJobResourcesFunc        func(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
+	SubscribeToGitEventsTopicFunc func(ctx context.Context, gitEventTopic *topics.GitEventTopic)
 }
 
 func (s MockService) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error) {
@@ -121,4 +123,10 @@ func (s MockService) UpdateJobResources(ctx context.Context, event builderapi.Ci
 		return
 	}
 	return s.UpdateJobResourcesFunc(ctx, event)
+}
+
+func (s MockService) SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *topics.GitEventTopic) {
+	if s.SubscribeToGitEventsTopicFunc != nil {
+		s.SubscribeToGitEventsTopicFunc(ctx, gitEventTopic)
+	}
 }
