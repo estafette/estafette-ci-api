@@ -851,14 +851,18 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 			buildPendingDurations = append(buildPendingDurations, *b.PendingDuration)
 		}
 	}
-	sort.Slice(buildDurations, func(i, j int) bool {
-		return buildDurations[i] < buildDurations[j]
-	})
-	medianDurationIndex := len(buildDurations)/2 - 1
-	if medianDurationIndex < 0 {
-		medianDurationIndex = 0
+	if len(buildDurations) > 0 {
+		sort.Slice(buildDurations, func(i, j int) bool {
+			return buildDurations[i] < buildDurations[j]
+		})
+		medianDurationIndex := len(buildDurations)/2 - 1
+		if medianDurationIndex < 0 {
+			medianDurationIndex = 0
+		}
+		upsertedPipeline.ExtraInfo.MedianDuration = buildDurations[medianDurationIndex]
+	} else {
+		upsertedPipeline.ExtraInfo.MedianDuration = time.Duration(0)
 	}
-	upsertedPipeline.ExtraInfo.MedianDuration = buildDurations[medianDurationIndex]
 
 	if len(buildPendingDurations) > 0 {
 		sort.Slice(buildPendingDurations, func(i, j int) bool {
