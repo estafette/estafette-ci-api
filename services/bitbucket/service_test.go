@@ -5,13 +5,14 @@ import (
 	"errors"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/services/estafette"
+	"github.com/estafette/estafette-ci-api/topics"
 	contracts "github.com/estafette/estafette-ci-contracts"
-	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +28,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{}
 
@@ -48,7 +49,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -77,7 +78,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -108,7 +109,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -149,7 +150,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			return
 		}
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -189,7 +190,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			return true, "builder:\n  track: dev\n", nil
 		}
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -237,7 +238,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			return
 		}
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -264,7 +265,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		assert.Equal(t, 1, createBuildCallCount)
 	})
 
-	t.Run("CallsFireGitTriggersOnEstafetteService", func(t *testing.T) {
+	t.Run("PublishesGitTriggersOnTopic", func(t *testing.T) {
 
 		config := &config.APIConfig{
 			Integrations: &config.APIConfigIntegrations{
@@ -275,16 +276,11 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
 
-		var wg sync.WaitGroup
-		wg.Add(1)
-		fireGitTriggersCallCount := 0
-		estafetteService.FireGitTriggersFunc = func(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error) {
-			fireGitTriggersCallCount++
-			wg.Done()
-			return
-		}
+		gitEventTopic := topics.NewGitEventTopic("test topic")
+		defer gitEventTopic.Close()
+		subscriptionChannel := gitEventTopic.Subscribe("PublishesGitTriggersOnTopic")
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, gitEventTopic)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -304,9 +300,14 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		// act
 		_ = service.CreateJobForBitbucketPush(context.Background(), pushEvent)
 
-		wg.Wait()
+		select {
+		case message, ok := <-subscriptionChannel:
+			assert.True(t, ok)
+			assert.Equal(t, "bitbucket.org/", message.Event.Repository)
 
-		assert.Equal(t, 1, fireGitTriggersCallCount)
+		case <-time.After(10 * time.Second):
+			assert.Fail(t, "subscription timed out after 10 seconds")
+		}
 	})
 
 	t.Run("CallsSubscribeToPubsubTriggersOnPubsubAPIClient", func(t *testing.T) {
@@ -333,7 +334,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			return
 		}
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -377,7 +378,7 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
 
 		repository := bitbucketapi.Repository{
 			Owner: bitbucketapi.Owner{
@@ -405,7 +406,7 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
 
 		repository := bitbucketapi.Repository{
 			Owner: bitbucketapi.Owner{
@@ -434,7 +435,7 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
 
 		repository := bitbucketapi.Repository{
 			Owner: bitbucketapi.Owner{
@@ -468,7 +469,7 @@ func TestRename(t *testing.T) {
 			return
 		}
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
 
 		// act
 		err := service.Rename(context.Background(), "bitbucket.org", "estafette", "estafette-ci-contracts", "bitbucket.org", "estafette", "estafette-ci-protos")

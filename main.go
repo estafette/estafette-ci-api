@@ -36,6 +36,7 @@ import (
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/estafette/estafette-ci-api/middlewares"
+	"github.com/estafette/estafette-ci-api/topics"
 
 	"github.com/estafette/estafette-ci-api/clients/bigquery"
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
@@ -120,10 +121,13 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	ctx := context.Background()
 
 	config, encryptedConfig, secretHelper := getConfig(ctx)
+	gitEventTopic := getTopics(ctx, stopChannel)
 	bqClient, pubsubClient, gcsClient, sourcerepoTokenSource, sourcerepoService := getGoogleCloudClients(ctx, config)
 	bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient := getClients(ctx, config, encryptedConfig, secretHelper, bqClient, pubsubClient, gcsClient, sourcerepoTokenSource, sourcerepoService)
-	estafetteService, rbacService, githubService, bitbucketService, cloudsourceService, catalogService := getServices(ctx, config, encryptedConfig, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient)
+	estafetteService, rbacService, githubService, bitbucketService, cloudsourceService, catalogService := getServices(ctx, config, encryptedConfig, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient, gitEventTopic)
 	bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler, catalogHandler := getHandlers(ctx, config, encryptedConfig, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient, estafetteService, rbacService, githubService, bitbucketService, cloudsourceService, catalogService)
+
+	subscribeToTopics(ctx, gitEventTopic, estafetteService)
 
 	srv := configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler, catalogHandler)
 
@@ -162,6 +166,22 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	})
 
 	return srv
+}
+
+func getTopics(ctx context.Context, stopChannel <-chan struct{}) (gitEventTopic *topics.GitEventTopic) {
+	gitEventTopic = topics.NewGitEventTopic("push events")
+
+	// close channels when stopChannel is signaled
+	go func(stopChannel <-chan struct{}) {
+		<-stopChannel
+		gitEventTopic.Close()
+	}(stopChannel)
+
+	return
+}
+
+func subscribeToTopics(ctx context.Context, gitEventTopic *topics.GitEventTopic, estafetteService estafette.Service) {
+	go estafetteService.SubscribeToGitEventsTopic(ctx, gitEventTopic)
 }
 
 func getConfig(ctx context.Context) (*config.APIConfig, *config.APIConfig, crypt.SecretHelper) {
@@ -360,7 +380,7 @@ func getClients(ctx context.Context, config *config.APIConfig, encryptedConfig *
 	return
 }
 
-func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig *config.APIConfig, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client) (estafetteService estafette.Service, rbacService rbac.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service, catalogService catalog.Service) {
+func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig *config.APIConfig, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client, gitEventTopic *topics.GitEventTopic) (estafetteService estafette.Service, rbacService rbac.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service, catalogService catalog.Service) {
 
 	log.Debug().Msg("Creating services...")
 
@@ -383,7 +403,7 @@ func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig 
 	)
 
 	// github service
-	githubService = github.NewService(config, githubapiClient, pubsubapiClient, estafetteService)
+	githubService = github.NewService(config, githubapiClient, pubsubapiClient, estafetteService, gitEventTopic)
 	githubService = github.NewTracingService(githubService)
 	githubService = github.NewLoggingService(githubService)
 	githubService = github.NewMetricsService(githubService,
@@ -392,7 +412,7 @@ func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig 
 	)
 
 	// bitbucket service
-	bitbucketService = bitbucket.NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService)
+	bitbucketService = bitbucket.NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, gitEventTopic)
 	bitbucketService = bitbucket.NewTracingService(bitbucketService)
 	bitbucketService = bitbucket.NewLoggingService(bitbucketService)
 	bitbucketService = bitbucket.NewMetricsService(bitbucketService,
@@ -401,7 +421,7 @@ func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig 
 	)
 
 	// cloudsource service
-	cloudsourceService = cloudsource.NewService(config, cloudsourceClient, pubsubapiClient, estafetteService)
+	cloudsourceService = cloudsource.NewService(config, cloudsourceClient, pubsubapiClient, estafetteService, gitEventTopic)
 	cloudsourceService = cloudsource.NewTracingService(cloudsourceService)
 	cloudsourceService = cloudsource.NewLoggingService(cloudsourceService)
 	cloudsourceService = cloudsource.NewMetricsService(cloudsourceService,

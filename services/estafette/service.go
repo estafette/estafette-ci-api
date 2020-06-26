@@ -19,6 +19,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/prometheus"
 	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/topics"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
@@ -45,6 +46,7 @@ type Service interface {
 	Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 	UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
+	SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *topics.GitEventTopic)
 }
 
 // NewService returns a new estafette.Service
@@ -1013,6 +1015,17 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent builder
 	}
 
 	return nil
+}
+
+func (s *service) SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *topics.GitEventTopic) {
+	eventChannel := gitEventTopic.Subscribe("estafette.Service")
+	for {
+		message, ok := <-eventChannel
+		if !ok {
+			break
+		}
+		s.FireGitTriggers(message.Ctx, message.Event)
+	}
 }
 
 func (s *service) getBuildLabels(build contracts.Build, hasValidManifest bool, mft manifest.EstafetteManifest, pipeline *contracts.Pipeline) []contracts.Label {
