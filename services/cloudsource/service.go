@@ -76,14 +76,6 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 
 	// handle git triggers
 	s.gitEventTopic.Publish("cloudsource.Service", topics.GitEventTopicMessage{Ctx: ctx, Event: gitEvent})
-	// go func() {
-	// 	err := s.estafetteService.FireGitTriggers(ctx, gitEvent)
-	// 	if err != nil {
-	// 		log.Error().Err(err).
-	// 			Interface("gitEvent", gitEvent).
-	// 			Msg("Failed firing git triggers")
-	// 	}
-	// }()
 
 	// get access token
 	accessToken, err := s.cloudsourceapiClient.GetAccessToken(ctx)

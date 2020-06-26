@@ -62,14 +62,6 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 
 	// handle git triggers
 	s.gitEventTopic.Publish("bitbucket.Service", topics.GitEventTopicMessage{Ctx: ctx, Event: gitEvent})
-	// go func() {
-	// 	err := s.estafetteService.FireGitTriggers(ctx, gitEvent)
-	// 	if err != nil {
-	// 		log.Error().Err(err).
-	// 			Interface("gitEvent", gitEvent).
-	// 			Msg("Failed firing git triggers")
-	// 	}
-	// }()
 
 	// get access token
 	accessToken, err := s.bitbucketapiClient.GetAccessToken(ctx)

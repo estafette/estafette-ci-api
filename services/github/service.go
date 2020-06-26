@@ -67,14 +67,6 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 
 	// handle git triggers
 	s.gitEventTopic.Publish("github.Service", topics.GitEventTopicMessage{Ctx: ctx, Event: gitEvent})
-	// go func() {
-	// 	err := s.estafetteService.FireGitTriggers(ctx, gitEvent)
-	// 	if err != nil {
-	// 		log.Error().Err(err).
-	// 			Interface("gitEvent", gitEvent).
-	// 			Msg("Failed firing git triggers")
-	// 	}
-	// }()
 
 	// get access token
 	accessToken, err := s.githubapiClient.GetInstallationToken(ctx, pushEvent.Installation.ID)
