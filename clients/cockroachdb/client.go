@@ -74,7 +74,7 @@ type Client interface {
 	GetLastPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error)
 	GetFirstPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error)
 	GetLastPipelineBuildForBranch(ctx context.Context, repoSource, repoOwner, repoName, branch string) (build *contracts.Build, err error)
-	GetLastPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error)
+	GetLastPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string, pageSize int) (releases []*contracts.Release, err error)
 	GetFirstPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error)
 	GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error)
@@ -840,6 +840,43 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 		}
 	}
 
+	upsertedPipeline.ExtraInfo = &contracts.PipelineExtraInfo{}
+
+	// get median (pending) build time from last builds
+	buildDurations := []time.Duration{}
+	buildPendingDurations := []time.Duration{}
+	for _, b := range lastBuilds {
+		buildDurations = append(buildDurations, b.Duration)
+		if b.PendingDuration != nil {
+			buildPendingDurations = append(buildPendingDurations, *b.PendingDuration)
+		}
+	}
+	if len(buildDurations) > 0 {
+		sort.Slice(buildDurations, func(i, j int) bool {
+			return buildDurations[i] < buildDurations[j]
+		})
+		medianDurationIndex := len(buildDurations)/2 - 1
+		if medianDurationIndex < 0 {
+			medianDurationIndex = 0
+		}
+		upsertedPipeline.ExtraInfo.MedianDuration = buildDurations[medianDurationIndex]
+	} else {
+		upsertedPipeline.ExtraInfo.MedianDuration = time.Duration(0)
+	}
+
+	if len(buildPendingDurations) > 0 {
+		sort.Slice(buildPendingDurations, func(i, j int) bool {
+			return buildPendingDurations[i] < buildPendingDurations[j]
+		})
+		medianPendingDurationIndex := len(buildPendingDurations)/2 - 1
+		if medianPendingDurationIndex < 0 {
+			medianPendingDurationIndex = 0
+		}
+		upsertedPipeline.ExtraInfo.MedianPendingDuration = buildPendingDurations[medianPendingDurationIndex]
+	} else {
+		upsertedPipeline.ExtraInfo.MedianPendingDuration = time.Duration(0)
+	}
+
 	// add releases
 	c.enrichPipeline(ctx, upsertedPipeline)
 
@@ -924,6 +961,12 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 
 		return
 	}
+	extraInfoBytes, err := json.Marshal(upsertedPipeline.ExtraInfo)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
+
+		return
+	}
 
 	// upsert computed pipeline
 	_, err = c.databaseConnection.Exec(
@@ -952,7 +995,8 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 			last_updated_at,
 			triggered_by_event,
 			recent_committers,
-			recent_releasers
+			recent_releasers,
+			extra_info
 		)
 		VALUES
 		(
@@ -977,7 +1021,8 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 			$19,
 			$20,
 			$21,
-			$22
+			$22,
+			$23
 		)
 		ON CONFLICT
 		(
@@ -1003,7 +1048,8 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 			last_updated_at = excluded.last_updated_at,
 			triggered_by_event = excluded.triggered_by_event,
 			recent_committers = excluded.recent_committers,
-			recent_releasers = excluded.recent_releasers
+			recent_releasers = excluded.recent_releasers,
+			extra_info = excluded.extra_info
 		`,
 		upsertedPipeline.ID,
 		upsertedPipeline.RepoSource,
@@ -1027,6 +1073,7 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 		eventsBytes,
 		recentCommittersBytes,
 		recentReleasersBytes,
+		extraInfoBytes,
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
@@ -1081,21 +1128,65 @@ func (c *client) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repo
 
 func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error) {
 
-	// get last release
-	lastRelease, err := c.GetLastPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
+	// get last x releases
+	lastReleases, err := c.GetLastPipelineReleases(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction, 10)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last release for upserting computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
 
 		return
 	}
-	if lastRelease == nil {
+	if lastReleases == nil || len(lastReleases) == 0 {
 		log.Error().Msgf("Failed getting last release for upserting computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
 		return
 	}
 
+	lastRelease := lastReleases[0]
+
+	lastRelease.ExtraInfo = &contracts.ReleaseExtraInfo{}
+	// get median (pending) build time from last builds
+	releaseDurations := []time.Duration{}
+	releasePendingDurations := []time.Duration{}
+	for _, r := range lastReleases {
+		if r.Duration != nil {
+			releaseDurations = append(releaseDurations, *r.Duration)
+		}
+		if r.PendingDuration != nil {
+			releasePendingDurations = append(releasePendingDurations, *r.PendingDuration)
+		}
+	}
+	if len(releaseDurations) > 0 {
+		sort.Slice(releaseDurations, func(i, j int) bool {
+			return releaseDurations[i] < releaseDurations[j]
+		})
+		medianDurationIndex := len(releaseDurations)/2 - 1
+		if medianDurationIndex < 0 {
+			medianDurationIndex = 0
+		}
+		lastRelease.ExtraInfo.MedianDuration = releaseDurations[medianDurationIndex]
+	} else {
+		lastRelease.ExtraInfo.MedianDuration = time.Duration(0)
+	}
+
+	if len(releasePendingDurations) > 0 {
+		sort.Slice(releasePendingDurations, func(i, j int) bool {
+			return releasePendingDurations[i] < releasePendingDurations[j]
+		})
+		medianPendingDurationIndex := len(releasePendingDurations)/2 - 1
+		if medianPendingDurationIndex < 0 {
+			medianPendingDurationIndex = 0
+		}
+		lastRelease.ExtraInfo.MedianPendingDuration = releasePendingDurations[medianPendingDurationIndex]
+	} else {
+		lastRelease.ExtraInfo.MedianPendingDuration = time.Duration(0)
+	}
+
 	eventsBytes, err := json.Marshal(lastRelease.Events)
 	if err != nil {
+		return
+	}
 
+	extraInfoBytes, err := json.Marshal(lastRelease.ExtraInfo)
+	if err != nil {
 		return
 	}
 
@@ -1117,7 +1208,8 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 			started_at,
 			updated_at,
 			release_action,
-			triggered_by_event
+			triggered_by_event,
+			extra_info
 		)
 		VALUES
 		(
@@ -1133,7 +1225,8 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 			$9,
 			$10,
 			$11,
-			$12
+			$12,
+			$13
 		)
 		ON CONFLICT
 		(
@@ -1150,7 +1243,8 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 			inserted_at = excluded.inserted_at,
 			started_at = excluded.started_at,
 			updated_at = excluded.updated_at,
-			triggered_by_event = excluded.triggered_by_event
+			triggered_by_event = excluded.triggered_by_event,
+			extra_info = excluded.extra_info
 		`,
 		lastRelease.ID,
 		lastRelease.RepoSource,
@@ -1164,6 +1258,7 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 		lastRelease.UpdatedAt,
 		lastRelease.Action,
 		eventsBytes,
+		extraInfoBytes,
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
@@ -1573,7 +1668,7 @@ func (c *client) GetLastPipelineBuildForBranch(ctx context.Context, repoSource, 
 	return
 }
 
-func (c *client) GetLastPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {
+func (c *client) GetLastPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string, pageSize int) (releases []*contracts.Release, err error) {
 
 	// generate query
 	query := c.selectReleasesQuery().
@@ -1583,19 +1678,15 @@ func (c *client) GetLastPipelineRelease(ctx context.Context, repoSource, repoOwn
 		Where(sq.Eq{"a.release": releaseName}).
 		Where(sq.Eq{"a.release_action": releaseAction}).
 		OrderBy("a.inserted_at DESC").
-		Limit(uint64(1))
+		Limit(uint64(pageSize))
 
 	// execute query
-	row := query.RunWith(c.databaseConnection).QueryRow()
-	if release, err = c.scanRelease(row); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if releases, err = c.scanReleases(rows); err != nil {
 		return nil, err
 	}
 
-	return release, nil
+	return releases, nil
 }
 
 func (c *client) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {
@@ -1931,7 +2022,7 @@ func (c *client) GetPipelineLastReleasesByName(ctx context.Context, repoSource, 
 
 	// read rows
 	releasesPointers := []*contracts.Release{}
-	if releasesPointers, err = c.scanReleases(rows); err != nil {
+	if releasesPointers, err = c.scanPipelineReleases(rows); err != nil {
 
 		return releases, err
 	}
@@ -3437,7 +3528,7 @@ func (c *client) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contracts
 func (c *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *contracts.Pipeline, err error) {
 
 	pipeline = &contracts.Pipeline{}
-	var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8
+	var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData []uint8
 	var durationPendingSeconds, durationRunningSeconds int
 
 	if err = row.Scan(
@@ -3461,7 +3552,8 @@ func (c *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *cont
 		&durationPendingSeconds,
 		&durationRunningSeconds,
 		&pipeline.LastUpdatedAt,
-		&triggeredByEventsData); err != nil {
+		&triggeredByEventsData,
+		&extraInfoData); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -3474,7 +3566,7 @@ func (c *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *cont
 	pipeline.PendingDuration = &pendingDuration
 	pipeline.Duration = runningDuration
 
-	c.setPipelinePropertiesFromJSONB(pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
+	c.setPipelinePropertiesFromJSONB(pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, optimized)
 
 	if optimized {
 		// clear some properties for reduced size and improved performance over the network
@@ -3493,7 +3585,7 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 	for rows.Next() {
 
 		pipeline := contracts.Pipeline{}
-		var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8
+		var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData []uint8
 		var durationPendingSeconds, durationRunningSeconds int
 
 		if err = rows.Scan(
@@ -3517,7 +3609,8 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 			&durationPendingSeconds,
 			&durationRunningSeconds,
 			&pipeline.LastUpdatedAt,
-			&triggeredByEventsData); err != nil {
+			&triggeredByEventsData,
+			&extraInfoData); err != nil {
 			return
 		}
 
@@ -3527,7 +3620,7 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 		pipeline.PendingDuration = &pendingDuration
 		pipeline.Duration = runningDuration
 
-		c.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
+		c.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, optimized)
 
 		if optimized {
 			// clear some properties for reduced size and improved performance over the network
@@ -3621,6 +3714,62 @@ func (c *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, er
 
 		if len(triggeredByEventsData) > 0 {
 			if err = json.Unmarshal(triggeredByEventsData, &release.Events); err != nil {
+				return
+			}
+		}
+
+		releases = append(releases, &release)
+	}
+
+	return
+}
+
+func (c *client) scanPipelineReleases(rows *sql.Rows) (releases []*contracts.Release, err error) {
+
+	releases = make([]*contracts.Release, 0)
+
+	defer rows.Close()
+	for rows.Next() {
+
+		release := contracts.Release{}
+		var durationPendingSeconds, durationRunningSeconds int
+		var id int
+		var triggeredByEventsData, extraInfoData []uint8
+
+		if err = rows.Scan(
+			&id,
+			&release.RepoSource,
+			&release.RepoOwner,
+			&release.RepoName,
+			&release.Name,
+			&release.Action,
+			&release.ReleaseVersion,
+			&release.ReleaseStatus,
+			&release.InsertedAt,
+			&release.StartedAt,
+			&release.UpdatedAt,
+			&durationPendingSeconds,
+			&durationRunningSeconds,
+			&triggeredByEventsData,
+			&extraInfoData); err != nil {
+			return
+		}
+
+		pendingDuration := time.Duration(durationPendingSeconds) * time.Second
+		runningDuration := time.Duration(durationRunningSeconds) * time.Second
+
+		release.PendingDuration = &pendingDuration
+		release.Duration = &runningDuration
+		release.ID = strconv.Itoa(id)
+
+		if len(triggeredByEventsData) > 0 {
+			if err = json.Unmarshal(triggeredByEventsData, &release.Events); err != nil {
+				return
+			}
+		}
+
+		if len(extraInfoData) > 0 {
+			if err = json.Unmarshal(extraInfoData, &release.ExtraInfo); err != nil {
 				return
 			}
 		}
@@ -5279,7 +5428,7 @@ func (c *client) selectPipelinesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.archived, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.last_updated_at, a.triggered_by_event").
+		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.archived, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.last_updated_at, a.triggered_by_event, a.extra_info").
 		From("computed_pipelines a")
 }
 
@@ -5295,7 +5444,7 @@ func (c *client) selectComputedReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event").
+		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event, a.extra_info").
 		From("computed_releases a")
 }
 
@@ -5351,7 +5500,7 @@ func (c *client) enrichBuild(ctx context.Context, build *contracts.Build) {
 	c.getLatestReleasesForBuild(ctx, build)
 }
 
-func (c *client) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8, optimized bool) (err error) {
+func (c *client) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData []uint8, optimized bool) (err error) {
 
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &pipeline.Labels); err != nil {
@@ -5380,6 +5529,11 @@ func (c *client) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, la
 	}
 	if len(triggeredByEventsData) > 0 {
 		if err = json.Unmarshal(triggeredByEventsData, &pipeline.Events); err != nil {
+			return
+		}
+	}
+	if len(extraInfoData) > 0 {
+		if err = json.Unmarshal(extraInfoData, &pipeline.ExtraInfo); err != nil {
 			return
 		}
 	}
