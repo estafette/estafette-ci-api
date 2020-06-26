@@ -193,10 +193,10 @@ func (c *loggingClient) GetLastPipelineBuildForBranch(ctx context.Context, repoS
 	return c.Client.GetLastPipelineBuildForBranch(ctx, repoSource, repoOwner, repoName, branch)
 }
 
-func (c *loggingClient) GetLastPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "GetLastPipelineRelease", err) }()
+func (c *loggingClient) GetLastPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string, pageSize int) (releases []*contracts.Release, err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "GetLastPipelineReleases", err) }()
 
-	return c.Client.GetLastPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
+	return c.Client.GetLastPipelineReleases(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction, pageSize)
 }
 
 func (c *loggingClient) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {

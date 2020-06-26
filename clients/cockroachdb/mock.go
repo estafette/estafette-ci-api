@@ -39,7 +39,7 @@ type MockClient struct {
 	GetLastPipelineBuildFunc                       func(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error)
 	GetFirstPipelineBuildFunc                      func(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error)
 	GetLastPipelineBuildForBranchFunc              func(ctx context.Context, repoSource, repoOwner, repoName, branch string) (build *contracts.Build, err error)
-	GetLastPipelineReleaseFunc                     func(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error)
+	GetLastPipelineReleasesFunc                    func(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string, pageSize int) (releases []*contracts.Release, err error)
 	GetFirstPipelineReleaseFunc                    func(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error)
 	GetPipelineBuildsByVersionFunc                 func(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuildLogsFunc                       func(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error)
@@ -337,11 +337,11 @@ func (c MockClient) GetLastPipelineBuildForBranch(ctx context.Context, repoSourc
 	return c.GetLastPipelineBuildForBranchFunc(ctx, repoSource, repoOwner, repoName, branch)
 }
 
-func (c MockClient) GetLastPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {
-	if c.GetLastPipelineReleaseFunc == nil {
+func (c MockClient) GetLastPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string, pageSize int) (releases []*contracts.Release, err error) {
+	if c.GetLastPipelineReleasesFunc == nil {
 		return
 	}
-	return c.GetLastPipelineReleaseFunc(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
+	return c.GetLastPipelineReleasesFunc(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction, pageSize)
 }
 
 func (c MockClient) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error) {
