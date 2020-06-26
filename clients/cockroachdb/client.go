@@ -846,6 +846,9 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 	buildDurations := []time.Duration{}
 	buildPendingDurations := []time.Duration{}
 	for _, b := range lastBuilds {
+		if b.BuildStatus != "succeeded" {
+			continue
+		}
 		buildDurations = append(buildDurations, b.Duration)
 		if b.PendingDuration != nil {
 			buildPendingDurations = append(buildPendingDurations, *b.PendingDuration)
@@ -1147,6 +1150,9 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 	releaseDurations := []time.Duration{}
 	releasePendingDurations := []time.Duration{}
 	for _, r := range lastReleases {
+		if r.ReleaseStatus != "succeeded" {
+			continue
+		}
 		if r.Duration != nil {
 			releaseDurations = append(releaseDurations, *r.Duration)
 		}
