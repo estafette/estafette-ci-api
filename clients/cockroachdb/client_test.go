@@ -604,6 +604,44 @@ func TestIngrationUpsertComputedPipeline(t *testing.T) {
 	})
 }
 
+func TestIngrationUpdateComputedPipelinePermissions(t *testing.T) {
+	t.Run("ReturnsNoError", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+
+		pipeline := contracts.Pipeline{
+			RepoSource: build.RepoSource,
+			RepoOwner:  build.RepoOwner,
+			RepoName:   build.RepoName,
+			Groups: []*contracts.Group{
+				{
+					ID:   "123123",
+					Name: "my group",
+				},
+			},
+			Organizations: []*contracts.Organization{
+				{
+					ID:   "234423435",
+					Name: "my org",
+				},
+			},
+		}
+
+		// act
+		err = cockroachdbClient.UpdateComputedPipelinePermissions(ctx, pipeline)
+
+		assert.Nil(t, err)
+	})
+}
 func TestIngrationUpsertComputedRelease(t *testing.T) {
 	t.Run("ReturnsNoError", func(t *testing.T) {
 
