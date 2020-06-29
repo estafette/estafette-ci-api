@@ -171,6 +171,9 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 		if username == "" && (userInfo.GivenName != "" || userInfo.FamilyName != "") {
 			username = strings.Trim(fmt.Sprintf("%v %v", userInfo.GivenName, userInfo.FamilyName), " ")
 		}
+		if username == "" {
+			username = userInfo.Email
+		}
 
 		// map userinfo to user identity
 		identity = &contracts.UserIdentity{
