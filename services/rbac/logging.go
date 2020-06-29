@@ -60,6 +60,12 @@ func (s *loggingService) UpdateUser(ctx context.Context, user contracts.User) (e
 	return s.Service.UpdateUser(ctx, user)
 }
 
+func (s *loggingService) DeleteUser(ctx context.Context, id string) (err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "DeleteUser", err) }()
+
+	return s.Service.DeleteUser(ctx, id)
+}
+
 func (s *loggingService) CreateGroup(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error) {
 	defer func() { helpers.HandleLogError(s.prefix, "CreateGroup", err) }()
 
@@ -70,6 +76,12 @@ func (s *loggingService) UpdateGroup(ctx context.Context, group contracts.Group)
 	defer func() { helpers.HandleLogError(s.prefix, "UpdateGroup", err) }()
 
 	return s.Service.UpdateGroup(ctx, group)
+}
+
+func (s *loggingService) DeleteGroup(ctx context.Context, id string) (err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "DeleteGroup", err) }()
+
+	return s.Service.DeleteGroup(ctx, id)
 }
 
 func (s *loggingService) CreateOrganization(ctx context.Context, organization contracts.Organization) (insertedOrganization *contracts.Organization, err error) {
@@ -84,6 +96,12 @@ func (s *loggingService) UpdateOrganization(ctx context.Context, organization co
 	return s.Service.UpdateOrganization(ctx, organization)
 }
 
+func (s *loggingService) DeleteOrganization(ctx context.Context, id string) (err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "DeleteOrganization", err) }()
+
+	return s.Service.DeleteOrganization(ctx, id)
+}
+
 func (s *loggingService) CreateClient(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error) {
 	defer func() { helpers.HandleLogError(s.prefix, "CreateClient", err) }()
 
@@ -94,6 +112,12 @@ func (s *loggingService) UpdateClient(ctx context.Context, client contracts.Clie
 	defer func() { helpers.HandleLogError(s.prefix, "UpdateClient", err) }()
 
 	return s.Service.UpdateClient(ctx, client)
+}
+
+func (s *loggingService) DeleteClient(ctx context.Context, id string) (err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "DeleteClient", err) }()
+
+	return s.Service.DeleteClient(ctx, id)
 }
 
 func (s *loggingService) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {

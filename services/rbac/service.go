@@ -31,15 +31,19 @@ type Service interface {
 	CreateUserFromIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	CreateUser(ctx context.Context, user contracts.User) (insertedUser *contracts.User, err error)
 	UpdateUser(ctx context.Context, user contracts.User) (err error)
+	DeleteUser(ctx context.Context, id string) (err error)
 
 	CreateGroup(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error)
 	UpdateGroup(ctx context.Context, group contracts.Group) (err error)
+	DeleteGroup(ctx context.Context, id string) (err error)
 
 	CreateOrganization(ctx context.Context, organization contracts.Organization) (insertedOrganization *contracts.Organization, err error)
 	UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error)
+	DeleteOrganization(ctx context.Context, id string) (err error)
 
 	CreateClient(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error)
 	UpdateClient(ctx context.Context, client contracts.Client) (err error)
+	DeleteClient(ctx context.Context, id string) (err error)
 
 	GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error)
 }
@@ -186,6 +190,19 @@ func (s *service) UpdateUser(ctx context.Context, user contracts.User) (err erro
 	return s.cockroachdbClient.UpdateUser(ctx, *currentUser)
 }
 
+func (s *service) DeleteUser(ctx context.Context, id string) (err error) {
+
+	// get user from db
+	currentUser, err := s.cockroachdbClient.GetUserByID(ctx, id)
+	if err != nil {
+		return
+	}
+	if currentUser == nil {
+		return fmt.Errorf("User is nil")
+	}
+
+	return s.cockroachdbClient.DeleteUser(ctx, *currentUser)
+}
 func (s *service) CreateGroup(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error) {
 
 	log.Info().Msgf("Creating record for group %v", group.Name)
@@ -220,6 +237,20 @@ func (s *service) UpdateGroup(ctx context.Context, group contracts.Group) (err e
 	return s.cockroachdbClient.UpdateGroup(ctx, *currentGroup)
 }
 
+func (s *service) DeleteGroup(ctx context.Context, id string) (err error) {
+
+	// get group from db
+	currentGroup, err := s.cockroachdbClient.GetGroupByID(ctx, id)
+	if err != nil {
+		return
+	}
+	if currentGroup == nil {
+		return fmt.Errorf("Group is nil")
+	}
+
+	return s.cockroachdbClient.DeleteGroup(ctx, *currentGroup)
+}
+
 func (s *service) CreateOrganization(ctx context.Context, organization contracts.Organization) (insertedOrganization *contracts.Organization, err error) {
 
 	log.Info().Msgf("Creating record for organization %v", organization.Name)
@@ -235,7 +266,7 @@ func (s *service) CreateOrganization(ctx context.Context, organization contracts
 
 func (s *service) UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error) {
 
-	// get group from db
+	// get organization from db
 	currentOrganization, err := s.cockroachdbClient.GetOrganizationByID(ctx, organization.ID)
 	if err != nil {
 		return
@@ -250,6 +281,20 @@ func (s *service) UpdateOrganization(ctx context.Context, organization contracts
 	currentOrganization.Roles = organization.Roles
 
 	return s.cockroachdbClient.UpdateOrganization(ctx, *currentOrganization)
+}
+
+func (s *service) DeleteOrganization(ctx context.Context, id string) (err error) {
+
+	// get organization from db
+	currentOrganization, err := s.cockroachdbClient.GetOrganizationByID(ctx, id)
+	if err != nil {
+		return
+	}
+	if currentOrganization == nil {
+		return fmt.Errorf("Organization is nil")
+	}
+
+	return s.cockroachdbClient.DeleteOrganization(ctx, *currentOrganization)
 }
 
 func (s *service) CreateClient(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error) {
@@ -278,7 +323,7 @@ func (s *service) CreateClient(ctx context.Context, client contracts.Client) (in
 
 func (s *service) UpdateClient(ctx context.Context, client contracts.Client) (err error) {
 
-	// get group from db
+	// get client from db
 	currentClient, err := s.cockroachdbClient.GetClientByID(ctx, client.ID)
 	if err != nil {
 		return
@@ -292,6 +337,20 @@ func (s *service) UpdateClient(ctx context.Context, client contracts.Client) (er
 	currentClient.Roles = client.Roles
 
 	return s.cockroachdbClient.UpdateClient(ctx, *currentClient)
+}
+
+func (s *service) DeleteClient(ctx context.Context, id string) (err error) {
+
+	// get client from db
+	currentClient, err := s.cockroachdbClient.GetClientByID(ctx, id)
+	if err != nil {
+		return
+	}
+	if currentClient == nil {
+		return fmt.Errorf("Client is nil")
+	}
+
+	return s.cockroachdbClient.DeleteClient(ctx, *currentClient)
 }
 
 func (s *service) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {

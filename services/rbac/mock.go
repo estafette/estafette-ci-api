@@ -15,12 +15,16 @@ type MockService struct {
 	CreateUserFromIdentityFunc   func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	CreateUserFunc               func(ctx context.Context, user contracts.User) (insertedUser *contracts.User, err error)
 	UpdateUserFunc               func(ctx context.Context, user contracts.User) (err error)
+	DeleteUserFunc               func(ctx context.Context, id string) (err error)
 	CreateGroupFunc              func(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error)
 	UpdateGroupFunc              func(ctx context.Context, group contracts.Group) (err error)
+	DeleteGroupFunc              func(ctx context.Context, id string) (err error)
 	CreateOrganizationFunc       func(ctx context.Context, organization contracts.Organization) (insertedOrganization *contracts.Organization, err error)
 	UpdateOrganizationFunc       func(ctx context.Context, organization contracts.Organization) (err error)
+	DeleteOrganizationFunc       func(ctx context.Context, id string) (err error)
 	CreateClientFunc             func(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error)
 	UpdateClientFunc             func(ctx context.Context, client contracts.Client) (err error)
+	DeleteClientFunc             func(ctx context.Context, id string) (err error)
 	GetInheritedRolesForUserFunc func(ctx context.Context, user contracts.User) (roles []*string, err error)
 }
 
@@ -73,6 +77,13 @@ func (s MockService) UpdateUser(ctx context.Context, user contracts.User) (err e
 	return s.UpdateUserFunc(ctx, user)
 }
 
+func (s MockService) DeleteUser(ctx context.Context, id string) (err error) {
+	if s.DeleteUserFunc == nil {
+		return
+	}
+	return s.DeleteUserFunc(ctx, id)
+}
+
 func (s MockService) CreateGroup(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error) {
 	if s.CreateGroupFunc == nil {
 		return
@@ -85,6 +96,13 @@ func (s MockService) UpdateGroup(ctx context.Context, group contracts.Group) (er
 		return
 	}
 	return s.UpdateGroupFunc(ctx, group)
+}
+
+func (s MockService) DeleteGroup(ctx context.Context, id string) (err error) {
+	if s.DeleteGroupFunc == nil {
+		return
+	}
+	return s.DeleteGroupFunc(ctx, id)
 }
 
 func (s MockService) CreateOrganization(ctx context.Context, organization contracts.Organization) (insertedOrganization *contracts.Organization, err error) {
@@ -101,6 +119,13 @@ func (s MockService) UpdateOrganization(ctx context.Context, organization contra
 	return s.UpdateOrganizationFunc(ctx, organization)
 }
 
+func (s MockService) DeleteOrganization(ctx context.Context, id string) (err error) {
+	if s.DeleteOrganizationFunc == nil {
+		return
+	}
+	return s.DeleteOrganizationFunc(ctx, id)
+}
+
 func (s MockService) CreateClient(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error) {
 	if s.CreateClientFunc == nil {
 		return
@@ -113,6 +138,13 @@ func (s MockService) UpdateClient(ctx context.Context, client contracts.Client) 
 		return
 	}
 	return s.UpdateClientFunc(ctx, client)
+}
+
+func (s MockService) DeleteClient(ctx context.Context, id string) (err error) {
+	if s.DeleteClientFunc == nil {
+		return
+	}
+	return s.DeleteClientFunc(ctx, id)
 }
 
 func (s MockService) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {

@@ -475,6 +475,12 @@ func (c *loggingClient) UpdateUser(ctx context.Context, user contracts.User) (er
 	return c.Client.UpdateUser(ctx, user)
 }
 
+func (c *loggingClient) DeleteUser(ctx context.Context, user contracts.User) (err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "DeleteUser", err) }()
+
+	return c.Client.DeleteUser(ctx, user)
+}
+
 func (c *loggingClient) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetUserByIdentity", err, ErrUserNotFound) }()
 
@@ -511,6 +517,12 @@ func (c *loggingClient) UpdateGroup(ctx context.Context, group contracts.Group) 
 	return c.Client.UpdateGroup(ctx, group)
 }
 
+func (c *loggingClient) DeleteGroup(ctx context.Context, group contracts.Group) (err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "DeleteGroup", err) }()
+
+	return c.Client.DeleteGroup(ctx, group)
+}
+
 func (c *loggingClient) GetGroupByIdentity(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetGroupByIdentity", err, ErrGroupNotFound) }()
 
@@ -545,6 +557,12 @@ func (c *loggingClient) UpdateOrganization(ctx context.Context, organization con
 	defer func() { helpers.HandleLogError(c.prefix, "UpdateOrganization", err) }()
 
 	return c.Client.UpdateOrganization(ctx, organization)
+}
+
+func (c *loggingClient) DeleteOrganization(ctx context.Context, organization contracts.Organization) (err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "DeleteOrganization", err) }()
+
+	return c.Client.DeleteOrganization(ctx, organization)
 }
 
 func (c *loggingClient) GetOrganizationByIdentity(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error) {
@@ -587,6 +605,12 @@ func (c *loggingClient) UpdateClient(ctx context.Context, client contracts.Clien
 	defer func() { helpers.HandleLogError(c.prefix, "UpdateClient", err) }()
 
 	return c.Client.UpdateClient(ctx, client)
+}
+
+func (c *loggingClient) DeleteClient(ctx context.Context, client contracts.Client) (err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "DeleteClient", err) }()
+
+	return c.Client.DeleteClient(ctx, client)
 }
 
 func (c *loggingClient) GetClientByClientID(ctx context.Context, clientID string) (client *contracts.Client, err error) {

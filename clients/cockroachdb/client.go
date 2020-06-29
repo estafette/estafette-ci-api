@@ -126,6 +126,7 @@ type Client interface {
 
 	InsertUser(ctx context.Context, user contracts.User) (u *contracts.User, err error)
 	UpdateUser(ctx context.Context, user contracts.User) (err error)
+	DeleteUser(ctx context.Context, user contracts.User) (err error)
 	GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	GetUserByID(ctx context.Context, id string) (user *contracts.User, err error)
 	GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (users []*contracts.User, err error)
@@ -133,6 +134,7 @@ type Client interface {
 
 	InsertGroup(ctx context.Context, group contracts.Group) (g *contracts.Group, err error)
 	UpdateGroup(ctx context.Context, group contracts.Group) (err error)
+	DeleteGroup(ctx context.Context, group contracts.Group) (err error)
 	GetGroupByIdentity(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error)
 	GetGroupByID(ctx context.Context, id string) (group *contracts.Group, err error)
 	GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error)
@@ -140,6 +142,7 @@ type Client interface {
 
 	InsertOrganization(ctx context.Context, organization contracts.Organization) (o *contracts.Organization, err error)
 	UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error)
+	DeleteOrganization(ctx context.Context, organization contracts.Organization) (err error)
 	GetOrganizationByIdentity(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error)
 	GetOrganizationByID(ctx context.Context, id string) (organization *contracts.Organization, err error)
 	GetOrganizationByName(ctx context.Context, name string) (organization *contracts.Organization, err error)
@@ -148,6 +151,7 @@ type Client interface {
 
 	InsertClient(ctx context.Context, client contracts.Client) (cl *contracts.Client, err error)
 	UpdateClient(ctx context.Context, client contracts.Client) (err error)
+	DeleteClient(ctx context.Context, client contracts.Client) (err error)
 	GetClientByClientID(ctx context.Context, clientID string) (client *contracts.Client, err error)
 	GetClientByID(ctx context.Context, id string) (client *contracts.Client, err error)
 	GetClients(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error)
@@ -4196,14 +4200,44 @@ func (c *client) UpdateUser(ctx context.Context, user contracts.User) (err error
 	return
 }
 
+func (c *client) DeleteUser(ctx context.Context, user contracts.User) (err error) {
+
+	// deactivate user
+	user.Active = false
+
+	userBytes, err := json.Marshal(user)
+	if err != nil {
+		return
+	}
+
+	userID, err := strconv.Atoi(user.ID)
+	if err != nil {
+		return
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("users").
+		Set("user_data", userBytes).
+		Set("updated_at", sq.Expr("now()")).
+		Set("active", false).
+		Where(sq.Eq{"id": userID}).
+		Limit(uint64(1))
+
+	_, err = query.RunWith(c.databaseConnection).Exec()
+
+	return
+}
 func (c *client) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Select("a.id, a.user_data, a.inserted_at").
+		Select("a.id, a.user_data, a.inserted_at, a.active").
 		From("users a").
 		Where(sq.Eq{"a.id": id}).
+		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(1))
 
 	// execute query
@@ -4243,9 +4277,10 @@ func (c *client) GetUserByIdentity(ctx context.Context, identity contracts.UserI
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Select("a.id, a.user_data, a.inserted_at").
+		Select("a.id, a.user_data, a.inserted_at, a.active").
 		From("users a").
 		Where("a.user_data @> ?", string(filterBytes)).
+		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(1))
 
 	// execute query
@@ -4262,8 +4297,9 @@ func (c *client) GetUsers(ctx context.Context, pageNumber, pageSize int, filters
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Select("a.id, a.user_data, a.inserted_at").
+		Select("a.id, a.user_data, a.inserted_at, a.active").
 		From("users a").
+		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
@@ -4311,7 +4347,8 @@ func (c *client) GetUsersCount(ctx context.Context, filters map[string][]string)
 
 	query := psql.
 		Select("COUNT(a.id)").
-		From("users a")
+		From("users a").
+		Where(sq.Eq{"a.active": true})
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
@@ -4381,6 +4418,36 @@ func (c *client) UpdateGroup(ctx context.Context, group contracts.Group) (err er
 	return
 }
 
+func (c *client) DeleteGroup(ctx context.Context, group contracts.Group) (err error) {
+
+	// deactivate group
+	group.Active = false
+
+	groupBytes, err := json.Marshal(group)
+	if err != nil {
+		return
+	}
+
+	groupID, err := strconv.Atoi(group.ID)
+	if err != nil {
+		return
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("groups").
+		Set("group_data", groupBytes).
+		Set("updated_at", sq.Expr("now()")).
+		Set("active", false).
+		Where(sq.Eq{"id": groupID}).
+		Limit(uint64(1))
+
+	_, err = query.RunWith(c.databaseConnection).Exec()
+
+	return
+}
+
 func (c *client) GetGroupByIdentity(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error) {
 	filter := struct {
 		Identities []struct {
@@ -4407,9 +4474,10 @@ func (c *client) GetGroupByIdentity(ctx context.Context, identity contracts.Grou
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Select("a.id, a.group_data, a.inserted_at").
+		Select("a.id, a.group_data, a.inserted_at, a.active").
 		From("groups a").
 		Where("a.group_data @> ?", string(filterBytes)).
+		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(1))
 
 	// execute query
@@ -4426,9 +4494,10 @@ func (c *client) GetGroupByID(ctx context.Context, id string) (group *contracts.
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Select("a.id, a.group_data, a.inserted_at").
+		Select("a.id, a.group_data, a.inserted_at, a.active").
 		From("groups a").
 		Where(sq.Eq{"a.id": id}).
+		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(1))
 
 	// execute query
@@ -4445,8 +4514,9 @@ func (c *client) GetGroups(ctx context.Context, pageNumber, pageSize int, filter
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Select("a.id, a.group_data, a.inserted_at").
+		Select("a.id, a.group_data, a.inserted_at, a.active").
 		From("groups a").
+		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
@@ -4464,7 +4534,8 @@ func (c *client) GetGroupsCount(ctx context.Context, filters map[string][]string
 
 	query := psql.
 		Select("COUNT(a.id)").
-		From("groups a")
+		From("groups a").
+		Where(sq.Eq{"a.active": true})
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
@@ -4534,6 +4605,35 @@ func (c *client) UpdateOrganization(ctx context.Context, organization contracts.
 	return
 }
 
+func (c *client) DeleteOrganization(ctx context.Context, organization contracts.Organization) (err error) {
+
+	// deactivate organization
+	organization.Active = false
+
+	organizationBytes, err := json.Marshal(organization)
+	if err != nil {
+		return
+	}
+
+	organizationID, err := strconv.Atoi(organization.ID)
+	if err != nil {
+		return
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("organizations").
+		Set("organization_data", organizationBytes).
+		Set("updated_at", sq.Expr("now()")).
+		Set("active", false).
+		Where(sq.Eq{"id": organizationID}).
+		Limit(uint64(1))
+
+	_, err = query.RunWith(c.databaseConnection).Exec()
+
+	return
+}
 func (c *client) GetOrganizationByIdentity(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error) {
 	filter := struct {
 		Identities []struct {
@@ -4560,9 +4660,10 @@ func (c *client) GetOrganizationByIdentity(ctx context.Context, identity contrac
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Select("a.id, a.organization_data, a.inserted_at").
+		Select("a.id, a.organization_data, a.inserted_at, a.active").
 		From("organizations a").
 		Where("a.organization_data @> ?", string(filterBytes)).
+		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(1))
 
 	// execute query
@@ -4579,9 +4680,10 @@ func (c *client) GetOrganizationByID(ctx context.Context, id string) (organizati
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Select("a.id, a.organization_data, a.inserted_at").
+		Select("a.id, a.organization_data, a.inserted_at, a.active").
 		From("organizations a").
 		Where(sq.Eq{"a.id": id}).
+		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(1))
 
 	// execute query
@@ -4598,9 +4700,10 @@ func (c *client) GetOrganizationByName(ctx context.Context, name string) (organi
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Select("a.id, a.organization_data, a.inserted_at").
+		Select("a.id, a.organization_data, a.inserted_at, a.active").
 		From("organizations a").
 		Where(sq.Eq{"a.organization_data->>'name'": name}).
+		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(1))
 
 	// execute query
@@ -4617,8 +4720,9 @@ func (c *client) GetOrganizations(ctx context.Context, pageNumber, pageSize int,
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Select("a.id, a.organization_data, a.inserted_at").
+		Select("a.id, a.organization_data, a.inserted_at, a.active").
 		From("organizations a").
+		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
@@ -4636,7 +4740,8 @@ func (c *client) GetOrganizationsCount(ctx context.Context, filters map[string][
 
 	query := psql.
 		Select("COUNT(a.id)").
-		From("organizations a")
+		From("organizations a").
+		Where(sq.Eq{"a.active": true})
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
@@ -4706,13 +4811,44 @@ func (c *client) UpdateClient(ctx context.Context, client contracts.Client) (err
 	return
 }
 
+func (c *client) DeleteClient(ctx context.Context, client contracts.Client) (err error) {
+
+	// deactivate client
+	client.Active = false
+
+	clientBytes, err := json.Marshal(client)
+	if err != nil {
+		return
+	}
+
+	clientID, err := strconv.Atoi(client.ID)
+	if err != nil {
+		return
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("clients").
+		Set("client_data", clientBytes).
+		Set("updated_at", sq.Expr("now()")).
+		Set("active", false).
+		Where(sq.Eq{"id": clientID}).
+		Limit(uint64(1))
+
+	_, err = query.RunWith(c.databaseConnection).Exec()
+
+	return
+}
+
 func (c *client) GetClientByClientID(ctx context.Context, clientID string) (client *contracts.Client, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Select("a.id, a.client_data, a.inserted_at").
+		Select("a.id, a.client_data, a.inserted_at, a.active").
 		From("clients a").
 		Where(sq.Eq{"a.client_data->>'clientID'": clientID}).
+		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(1))
 
 	// execute query
@@ -4729,9 +4865,10 @@ func (c *client) GetClientByID(ctx context.Context, id string) (client *contract
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Select("a.id, a.client_data, a.inserted_at").
+		Select("a.id, a.client_data, a.inserted_at, a.active").
 		From("clients a").
 		Where(sq.Eq{"a.id": id}).
+		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(1))
 
 	// execute query
@@ -4748,8 +4885,9 @@ func (c *client) GetClients(ctx context.Context, pageNumber, pageSize int, filte
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
-		Select("a.id, a.client_data, a.inserted_at").
+		Select("a.id, a.client_data, a.inserted_at, a.active").
 		From("clients a").
+		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
@@ -4767,7 +4905,8 @@ func (c *client) GetClientsCount(ctx context.Context, filters map[string][]strin
 
 	query := psql.
 		Select("COUNT(a.id)").
-		From("clients a")
+		From("clients a").
+		Where(sq.Eq{"a.active": true})
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
@@ -5110,7 +5249,8 @@ func (c *client) scanUsers(rows *sql.Rows) (users []*contracts.User, err error) 
 		if err = rows.Scan(
 			&id,
 			&userData,
-			&insertedAt); err != nil {
+			&insertedAt,
+			&user.Active); err != nil {
 			return
 		}
 
@@ -5139,7 +5279,8 @@ func (c *client) scanUser(row sq.RowScanner) (user *contracts.User, err error) {
 	if err = row.Scan(
 		&id,
 		&userData,
-		&insertedAt); err != nil {
+		&insertedAt,
+		&user.Active); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrUserNotFound
 		}
@@ -5173,7 +5314,8 @@ func (c *client) scanGroups(rows *sql.Rows) (groups []*contracts.Group, err erro
 		if err = rows.Scan(
 			&id,
 			&groupData,
-			&insertedAt); err != nil {
+			&insertedAt,
+			&group.Active); err != nil {
 			return
 		}
 
@@ -5201,7 +5343,8 @@ func (c *client) scanGroup(row sq.RowScanner) (group *contracts.Group, err error
 	if err = row.Scan(
 		&id,
 		&groupData,
-		&insertedAt); err != nil {
+		&insertedAt,
+		&group.Active); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrGroupNotFound
 		}
@@ -5234,7 +5377,8 @@ func (c *client) scanOrganizations(rows *sql.Rows) (organizations []*contracts.O
 		if err = rows.Scan(
 			&id,
 			&organizationData,
-			&insertedAt); err != nil {
+			&insertedAt,
+			&organization.Active); err != nil {
 			return
 		}
 
@@ -5262,7 +5406,8 @@ func (c *client) scanOrganization(row sq.RowScanner) (organization *contracts.Or
 	if err = row.Scan(
 		&id,
 		&organizationData,
-		&insertedAt); err != nil {
+		&insertedAt,
+		&organization.Active); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrOrganizationNotFound
 		}
@@ -5295,7 +5440,8 @@ func (c *client) scanClients(rows *sql.Rows) (clients []*contracts.Client, err e
 		if err = rows.Scan(
 			&id,
 			&clientData,
-			&insertedAt); err != nil {
+			&insertedAt,
+			&client.Active); err != nil {
 			return
 		}
 
@@ -5323,7 +5469,8 @@ func (c *client) scanClient(row sq.RowScanner) (client *contracts.Client, err er
 	if err = row.Scan(
 		&id,
 		&clientData,
-		&insertedAt); err != nil {
+		&insertedAt,
+		&client.Active); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrClientNotFound
 		}

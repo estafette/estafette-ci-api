@@ -68,6 +68,13 @@ func (s *tracingService) UpdateUser(ctx context.Context, user contracts.User) (e
 	return s.Service.UpdateUser(ctx, user)
 }
 
+func (s *tracingService) DeleteUser(ctx context.Context, id string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "DeleteUser"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.DeleteUser(ctx, id)
+}
+
 func (s *tracingService) CreateGroup(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "CreateGroup"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
@@ -80,6 +87,13 @@ func (s *tracingService) UpdateGroup(ctx context.Context, group contracts.Group)
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return s.Service.UpdateGroup(ctx, group)
+}
+
+func (s *tracingService) DeleteGroup(ctx context.Context, id string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "DeleteGroup"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.DeleteGroup(ctx, id)
 }
 
 func (s *tracingService) CreateOrganization(ctx context.Context, organization contracts.Organization) (insertedOrganization *contracts.Organization, err error) {
@@ -96,6 +110,13 @@ func (s *tracingService) UpdateOrganization(ctx context.Context, organization co
 	return s.Service.UpdateOrganization(ctx, organization)
 }
 
+func (s *tracingService) DeleteOrganization(ctx context.Context, id string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "DeleteOrganization"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.DeleteOrganization(ctx, id)
+}
+
 func (s *tracingService) CreateClient(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "CreateClient"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
@@ -108,6 +129,13 @@ func (s *tracingService) UpdateClient(ctx context.Context, client contracts.Clie
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return s.Service.UpdateClient(ctx, client)
+}
+
+func (s *tracingService) DeleteClient(ctx context.Context, id string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "DeleteClient"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.DeleteClient(ctx, id)
 }
 
 func (s *tracingService) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {
