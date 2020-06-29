@@ -22,6 +22,7 @@ type MockClient struct {
 	InsertBuildLogFunc                             func(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (log contracts.BuildLog, err error)
 	InsertReleaseLogFunc                           func(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (log contracts.ReleaseLog, err error)
 	UpsertComputedPipelineFunc                     func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
+	UpdateComputedPipelinePermissionsFunc          func(ctx context.Context, pipeline contracts.Pipeline) (err error)
 	UpdateComputedPipelineFirstInsertedAtFunc      func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpsertComputedReleaseFunc                      func(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error)
 	UpdateComputedReleaseFirstInsertedAtFunc       func(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error)
@@ -219,6 +220,13 @@ func (c MockClient) UpsertComputedPipeline(ctx context.Context, repoSource, repo
 		return
 	}
 	return c.UpsertComputedPipelineFunc(ctx, repoSource, repoOwner, repoName)
+}
+
+func (c MockClient) UpdateComputedPipelinePermissions(ctx context.Context, pipeline contracts.Pipeline) (err error) {
+	if c.UpdateComputedPipelinePermissionsFunc == nil {
+		return
+	}
+	return c.UpdateComputedPipelinePermissionsFunc(ctx, pipeline)
 }
 
 func (c MockClient) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {

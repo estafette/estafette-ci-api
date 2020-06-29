@@ -153,6 +153,22 @@ func (s *metricsService) DeleteClient(ctx context.Context, id string) (err error
 	return s.Service.DeleteClient(ctx, id)
 }
 
+func (s *metricsService) UpdatePipeline(ctx context.Context, pipeline contracts.Pipeline) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "UpdatePipeline", begin)
+	}(time.Now())
+
+	return s.Service.UpdatePipeline(ctx, pipeline)
+}
+
+func (s *metricsService) ArchivePipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "ArchivePipeline", begin)
+	}(time.Now())
+
+	return s.Service.ArchivePipeline(ctx, repoSource, repoOwner, repoName)
+}
+
 func (s *metricsService) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GetInheritedRolesForUser", begin)

@@ -25,6 +25,8 @@ type MockService struct {
 	CreateClientFunc             func(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error)
 	UpdateClientFunc             func(ctx context.Context, client contracts.Client) (err error)
 	DeleteClientFunc             func(ctx context.Context, id string) (err error)
+	UpdatePipelineFunc           func(ctx context.Context, pipeline contracts.Pipeline) (err error)
+	ArchivePipelineFunc          func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	GetInheritedRolesForUserFunc func(ctx context.Context, user contracts.User) (roles []*string, err error)
 }
 
@@ -145,6 +147,20 @@ func (s MockService) DeleteClient(ctx context.Context, id string) (err error) {
 		return
 	}
 	return s.DeleteClientFunc(ctx, id)
+}
+
+func (s MockService) UpdatePipeline(ctx context.Context, pipeline contracts.Pipeline) (err error) {
+	if s.UpdatePipelineFunc == nil {
+		return
+	}
+	return s.UpdatePipelineFunc(ctx, pipeline)
+}
+
+func (s MockService) ArchivePipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	if s.ArchivePipelineFunc == nil {
+		return
+	}
+	return s.ArchivePipelineFunc(ctx, repoSource, repoOwner, repoName)
 }
 
 func (s MockService) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {

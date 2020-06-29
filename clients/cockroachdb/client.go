@@ -56,6 +56,7 @@ type Client interface {
 	InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (log contracts.ReleaseLog, err error)
 
 	UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
+	UpdateComputedPipelinePermissions(ctx context.Context, pipeline contracts.Pipeline) (err error)
 	UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpsertComputedRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error)
 	UpdateComputedReleaseFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error)
@@ -290,30 +291,32 @@ func (c *client) InsertBuild(ctx context.Context, build contracts.Build, jobReso
 
 	labelsBytes, err := json.Marshal(build.Labels)
 	if err != nil {
-
 		return
 	}
 	releaseTargetsBytes, err := json.Marshal(build.ReleaseTargets)
 	if err != nil {
-
 		return
 	}
 	commitsBytes, err := json.Marshal(build.Commits)
 	if err != nil {
-
 		return
 	}
 	triggersBytes, err := json.Marshal(build.Triggers)
 	if err != nil {
-
 		return
 	}
 	eventsBytes, err := json.Marshal(build.Events)
 	if err != nil {
-
 		return
 	}
-
+	groupsBytes, err := json.Marshal(build.Groups)
+	if err != nil {
+		return
+	}
+	organizationsBytes, err := json.Marshal(build.Organizations)
+	if err != nil {
+		return
+	}
 	// insert logs
 	row := c.databaseConnection.QueryRow(
 		`
@@ -336,7 +339,9 @@ func (c *client) InsertBuild(ctx context.Context, build contracts.Build, jobReso
 			cpu_request,
 			cpu_limit,
 			memory_request,
-			memory_limit
+			memory_limit,
+			groups,
+			organizations
 		)
 		VALUES
 		(
@@ -356,7 +361,9 @@ func (c *client) InsertBuild(ctx context.Context, build contracts.Build, jobReso
 			$14,
 			$15,
 			$16,
-			$17
+			$17,
+			$18,
+			$19
 		)
 		RETURNING
 			id
@@ -378,6 +385,8 @@ func (c *client) InsertBuild(ctx context.Context, build contracts.Build, jobReso
 		jobResources.CPULimit,
 		jobResources.MemoryRequest,
 		jobResources.MemoryLimit,
+		groupsBytes,
+		organizationsBytes,
 	)
 
 	insertedBuild = &build
@@ -472,7 +481,14 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 
 	eventsBytes, err := json.Marshal(release.Events)
 	if err != nil {
-
+		return
+	}
+	groupsBytes, err := json.Marshal(release.Groups)
+	if err != nil {
+		return
+	}
+	organizationsBytes, err := json.Marshal(release.Organizations)
+	if err != nil {
 		return
 	}
 
@@ -493,7 +509,9 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 			cpu_request,
 			cpu_limit,
 			memory_request,
-			memory_limit
+			memory_limit,
+			groups,
+			organizations
 		)
 		VALUES
 		(
@@ -508,7 +526,9 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 			$9,
 			$10,
 			$11,
-			$12
+			$12,
+			$13,
+			$14
 		)
 		RETURNING 
 			id
@@ -525,10 +545,11 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 		jobResources.CPULimit,
 		jobResources.MemoryRequest,
 		jobResources.MemoryLimit,
+		groupsBytes,
+		organizationsBytes,
 	)
 
 	if err != nil {
-
 		return insertedRelease, err
 	}
 
@@ -541,7 +562,6 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 
 	insertedRelease = &release
 	if err = rows.Scan(&insertedRelease.ID); err != nil {
-
 		return
 	}
 
@@ -1091,6 +1111,36 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 	return
 }
 
+func (c *client) UpdateComputedPipelinePermissions(ctx context.Context, pipeline contracts.Pipeline) (err error) {
+
+	groupsBytes, err := json.Marshal(pipeline.Groups)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed updating computed pipeline permissions %v/%v/%v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
+		return
+	}
+	organizationsBytes, err := json.Marshal(pipeline.Organizations)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed updating computed pipeline permissions %v/%v/%v", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
+		return
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	query := psql.
+		Update("computed_pipelines").
+		Set("groups", groupsBytes).
+		Set("organizations", organizationsBytes).
+		Where(sq.Eq{"repo_source": pipeline.RepoSource}).
+		Where(sq.Eq{"repo_owner": pipeline.RepoOwner}).
+		Where(sq.Eq{"repo_name": pipeline.RepoName})
+
+	_, err = query.RunWith(c.databaseConnection).Exec()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *client) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 
 	// get first build
@@ -1194,8 +1244,15 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 	if err != nil {
 		return
 	}
-
 	extraInfoBytes, err := json.Marshal(lastRelease.ExtraInfo)
+	if err != nil {
+		return
+	}
+	groupsBytes, err := json.Marshal(lastRelease.Groups)
+	if err != nil {
+		return
+	}
+	organizationsBytes, err := json.Marshal(lastRelease.Organizations)
 	if err != nil {
 		return
 	}
@@ -1219,7 +1276,9 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 			updated_at,
 			release_action,
 			triggered_by_event,
-			extra_info
+			extra_info,
+			groups,
+			organizations
 		)
 		VALUES
 		(
@@ -1236,7 +1295,9 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 			$10,
 			$11,
 			$12,
-			$13
+			$13,
+			$14,
+			$15
 		)
 		ON CONFLICT
 		(
@@ -1254,7 +1315,9 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 			started_at = excluded.started_at,
 			updated_at = excluded.updated_at,
 			triggered_by_event = excluded.triggered_by_event,
-			extra_info = excluded.extra_info
+			extra_info = excluded.extra_info,
+			groups = excluded.groups,
+			organizations = excluded.organizations
 		`,
 		lastRelease.ID,
 		lastRelease.RepoSource,
@@ -1269,10 +1332,11 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 		lastRelease.Action,
 		eventsBytes,
 		extraInfoBytes,
+		groupsBytes,
+		organizationsBytes,
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
-
 		return
 	}
 
@@ -3431,7 +3495,7 @@ func (c *client) scanItems(ctx context.Context, rows *sql.Rows) (items []map[str
 func (c *client) scanBuild(ctx context.Context, row sq.RowScanner, optimized, enriched bool) (build *contracts.Build, err error) {
 
 	build = &contracts.Build{}
-	var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8
+	var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, groupsData, organizationsData []uint8
 	var durationPendingSeconds, durationRunningSeconds int
 
 	if err = row.Scan(
@@ -3453,7 +3517,9 @@ func (c *client) scanBuild(ctx context.Context, row sq.RowScanner, optimized, en
 		&build.UpdatedAt,
 		&durationPendingSeconds,
 		&durationRunningSeconds,
-		&triggeredByEventsData); err != nil {
+		&triggeredByEventsData,
+		&groupsData,
+		&organizationsData); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -3466,7 +3532,7 @@ func (c *client) scanBuild(ctx context.Context, row sq.RowScanner, optimized, en
 	build.PendingDuration = &pendingDuration
 	build.Duration = runningDuration
 
-	c.setBuildPropertiesFromJSONB(build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
+	c.setBuildPropertiesFromJSONB(build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, groupsData, organizationsData, optimized)
 
 	if enriched {
 		c.enrichBuild(ctx, build)
@@ -3489,7 +3555,7 @@ func (c *client) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contracts
 	for rows.Next() {
 
 		build := contracts.Build{}
-		var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8
+		var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, groupsData, organizationsData []uint8
 		var durationPendingSeconds, durationRunningSeconds int
 
 		if err = rows.Scan(
@@ -3511,7 +3577,9 @@ func (c *client) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contracts
 			&build.UpdatedAt,
 			&durationPendingSeconds,
 			&durationRunningSeconds,
-			&triggeredByEventsData); err != nil {
+			&triggeredByEventsData,
+			&groupsData,
+			&organizationsData); err != nil {
 			return
 		}
 
@@ -3521,7 +3589,7 @@ func (c *client) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contracts
 		build.PendingDuration = &pendingDuration
 		build.Duration = runningDuration
 
-		c.setBuildPropertiesFromJSONB(&build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, optimized)
+		c.setBuildPropertiesFromJSONB(&build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, groupsData, organizationsData, optimized)
 
 		if optimized {
 			// clear some properties for reduced size and improved performance over the network
@@ -3538,7 +3606,7 @@ func (c *client) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contracts
 func (c *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *contracts.Pipeline, err error) {
 
 	pipeline = &contracts.Pipeline{}
-	var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData []uint8
+	var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, groupsData, organizationsData []uint8
 	var durationPendingSeconds, durationRunningSeconds int
 
 	if err = row.Scan(
@@ -3563,7 +3631,9 @@ func (c *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *cont
 		&durationRunningSeconds,
 		&pipeline.LastUpdatedAt,
 		&triggeredByEventsData,
-		&extraInfoData); err != nil {
+		&extraInfoData,
+		&groupsData,
+		&organizationsData); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -3576,7 +3646,7 @@ func (c *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *cont
 	pipeline.PendingDuration = &pendingDuration
 	pipeline.Duration = runningDuration
 
-	c.setPipelinePropertiesFromJSONB(pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, optimized)
+	c.setPipelinePropertiesFromJSONB(pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, groupsData, organizationsData, optimized)
 
 	if optimized {
 		// clear some properties for reduced size and improved performance over the network
@@ -3595,7 +3665,7 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 	for rows.Next() {
 
 		pipeline := contracts.Pipeline{}
-		var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData []uint8
+		var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, groupsData, organizationsData []uint8
 		var durationPendingSeconds, durationRunningSeconds int
 
 		if err = rows.Scan(
@@ -3620,7 +3690,9 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 			&durationRunningSeconds,
 			&pipeline.LastUpdatedAt,
 			&triggeredByEventsData,
-			&extraInfoData); err != nil {
+			&extraInfoData,
+			&groupsData,
+			&organizationsData); err != nil {
 			return
 		}
 
@@ -3630,7 +3702,7 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 		pipeline.PendingDuration = &pendingDuration
 		pipeline.Duration = runningDuration
 
-		c.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, optimized)
+		c.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, groupsData, organizationsData, optimized)
 
 		if optimized {
 			// clear some properties for reduced size and improved performance over the network
@@ -3649,7 +3721,7 @@ func (c *client) scanRelease(row sq.RowScanner) (release *contracts.Release, err
 	release = &contracts.Release{}
 	var durationPendingSeconds, durationRunningSeconds int
 	var id int
-	var triggeredByEventsData []uint8
+	var triggeredByEventsData, groupsData, organizationsData []uint8
 
 	if err = row.Scan(
 		&id,
@@ -3665,7 +3737,9 @@ func (c *client) scanRelease(row sq.RowScanner) (release *contracts.Release, err
 		&release.UpdatedAt,
 		&durationPendingSeconds,
 		&durationRunningSeconds,
-		&triggeredByEventsData); err != nil {
+		&triggeredByEventsData,
+		&groupsData,
+		&organizationsData); err != nil {
 		return nil, err
 	}
 
@@ -3676,10 +3750,9 @@ func (c *client) scanRelease(row sq.RowScanner) (release *contracts.Release, err
 	release.Duration = &runningDuration
 	release.ID = strconv.Itoa(id)
 
-	if len(triggeredByEventsData) > 0 {
-		if err = json.Unmarshal(triggeredByEventsData, &release.Events); err != nil {
-			return
-		}
+	err = c.setReleasePropertiesFromJSONB(release, triggeredByEventsData, groupsData, organizationsData)
+	if err != nil {
+		return
 	}
 
 	return
@@ -3695,7 +3768,7 @@ func (c *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, er
 		release := contracts.Release{}
 		var durationPendingSeconds, durationRunningSeconds int
 		var id int
-		var triggeredByEventsData []uint8
+		var triggeredByEventsData, groupsData, organizationsData []uint8
 
 		if err = rows.Scan(
 			&id,
@@ -3711,7 +3784,9 @@ func (c *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, er
 			&release.UpdatedAt,
 			&durationPendingSeconds,
 			&durationRunningSeconds,
-			&triggeredByEventsData); err != nil {
+			&triggeredByEventsData,
+			&groupsData,
+			&organizationsData); err != nil {
 			return
 		}
 
@@ -3722,10 +3797,9 @@ func (c *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, er
 		release.Duration = &runningDuration
 		release.ID = strconv.Itoa(id)
 
-		if len(triggeredByEventsData) > 0 {
-			if err = json.Unmarshal(triggeredByEventsData, &release.Events); err != nil {
-				return
-			}
+		err = c.setReleasePropertiesFromJSONB(&release, triggeredByEventsData, groupsData, organizationsData)
+		if err != nil {
+			return
 		}
 
 		releases = append(releases, &release)
@@ -3744,7 +3818,7 @@ func (c *client) scanPipelineReleases(rows *sql.Rows) (releases []*contracts.Rel
 		release := contracts.Release{}
 		var durationPendingSeconds, durationRunningSeconds int
 		var id int
-		var triggeredByEventsData, extraInfoData []uint8
+		var triggeredByEventsData, extraInfoData, groupsData, organizationsData []uint8
 
 		if err = rows.Scan(
 			&id,
@@ -3761,7 +3835,9 @@ func (c *client) scanPipelineReleases(rows *sql.Rows) (releases []*contracts.Rel
 			&durationPendingSeconds,
 			&durationRunningSeconds,
 			&triggeredByEventsData,
-			&extraInfoData); err != nil {
+			&extraInfoData,
+			&groupsData,
+			&organizationsData); err != nil {
 			return
 		}
 
@@ -5573,7 +5649,7 @@ func (c *client) selectBuildsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event, a.groups, a.organizations").
 		From("builds a")
 }
 
@@ -5581,7 +5657,7 @@ func (c *client) selectPipelinesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.archived, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.last_updated_at, a.triggered_by_event, a.extra_info").
+		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.archived, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.last_updated_at, a.triggered_by_event, a.extra_info, a.groups, a.organizations").
 		From("computed_pipelines a")
 }
 
@@ -5589,7 +5665,7 @@ func (c *client) selectReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event, a.groups, a.organizations").
 		From("releases a")
 }
 
@@ -5597,7 +5673,7 @@ func (c *client) selectComputedReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event, a.extra_info").
+		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event, a.extra_info, a.groups, a.organizations").
 		From("computed_releases a")
 }
 
@@ -5653,7 +5729,7 @@ func (c *client) enrichBuild(ctx context.Context, build *contracts.Build) {
 	c.getLatestReleasesForBuild(ctx, build)
 }
 
-func (c *client) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData []uint8, optimized bool) (err error) {
+func (c *client) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, groupsData, organizationsData []uint8, optimized bool) (err error) {
 
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &pipeline.Labels); err != nil {
@@ -5690,6 +5766,16 @@ func (c *client) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, la
 			return
 		}
 	}
+	if len(groupsData) > 0 {
+		if err = json.Unmarshal(groupsData, &pipeline.Groups); err != nil {
+			return
+		}
+	}
+	if len(organizationsData) > 0 {
+		if err = json.Unmarshal(organizationsData, &pipeline.Organizations); err != nil {
+			return
+		}
+	}
 
 	if !optimized {
 		// unmarshal then marshal manifest to include defaults
@@ -5710,7 +5796,7 @@ func (c *client) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, la
 	return
 }
 
-func (c *client) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData []uint8, optimized bool) (err error) {
+func (c *client) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, groupsData, organizationsData []uint8, optimized bool) (err error) {
 
 	if len(labelsData) > 0 {
 		if err = json.Unmarshal(labelsData, &build.Labels); err != nil {
@@ -5742,6 +5828,16 @@ func (c *client) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData,
 			return
 		}
 	}
+	if len(groupsData) > 0 {
+		if err = json.Unmarshal(groupsData, &build.Groups); err != nil {
+			return
+		}
+	}
+	if len(organizationsData) > 0 {
+		if err = json.Unmarshal(organizationsData, &build.Organizations); err != nil {
+			return
+		}
+	}
 
 	if !optimized {
 		// unmarshal then marshal manifest to include defaults
@@ -5756,6 +5852,27 @@ func (c *client) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData,
 			}
 		} else {
 			log.Warn().Err(err).Str("manifest", build.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+		}
+	}
+
+	return
+}
+
+func (c *client) setReleasePropertiesFromJSONB(release *contracts.Release, triggeredByEventsData, groupsData, organizationsData []uint8) (err error) {
+
+	if len(triggeredByEventsData) > 0 {
+		if err = json.Unmarshal(triggeredByEventsData, &release.Events); err != nil {
+			return
+		}
+	}
+	if len(groupsData) > 0 {
+		if err = json.Unmarshal(groupsData, &release.Groups); err != nil {
+			return
+		}
+	}
+	if len(organizationsData) > 0 {
+		if err = json.Unmarshal(organizationsData, &release.Organizations); err != nil {
+			return
 		}
 	}
 

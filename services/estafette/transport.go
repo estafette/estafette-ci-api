@@ -1208,8 +1208,7 @@ func (h *Handler) GetPipelineWarnings(c *gin.Context) {
 
 	pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), source, owner, repo, false)
 	if err != nil {
-		log.Error().Err(err).
-			Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
+		log.Error().Err(err).Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
 	}
 	if pipeline == nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline not found"})

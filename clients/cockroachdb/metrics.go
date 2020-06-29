@@ -111,6 +111,14 @@ func (c *metricsClient) UpsertComputedPipeline(ctx context.Context, repoSource, 
 	return c.Client.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
 }
 
+func (c *metricsClient) UpdateComputedPipelinePermissions(ctx context.Context, pipeline contracts.Pipeline) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "UpdateComputedPipelinePermissions", begin)
+	}(time.Now())
+
+	return c.Client.UpdateComputedPipelinePermissions(ctx, pipeline)
+}
+
 func (c *metricsClient) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "UpdateComputedPipelineFirstInsertedAt", begin)

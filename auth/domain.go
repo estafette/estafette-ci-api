@@ -170,6 +170,8 @@ const (
 
 	PermissionPipelinesList
 	PermissionPipelinesGet
+	PermissionPipelinesUpdate
+	PermissionPipelinesArchive
 
 	PermissionBuildsList
 	PermissionBuildsGet
@@ -217,6 +219,8 @@ var permissions = []string{
 
 	"ci.pipelines.list",
 	"ci.pipelines.get",
+	"ci.pipelines.update",
+	"ci.pipelines.archive",
 
 	"ci.builds.list",
 	"ci.builds.get",
@@ -281,6 +285,8 @@ var rolesToPermissionMap = map[Role][]Permission{
 		PermissionClientsDelete,
 		PermissionPipelinesList,
 		PermissionPipelinesGet,
+		PermissionPipelinesUpdate,
+		PermissionPipelinesArchive,
 		PermissionBuildsList,
 		PermissionBuildsGet,
 		PermissionBuildsCancel,

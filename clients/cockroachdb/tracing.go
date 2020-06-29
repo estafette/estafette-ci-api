@@ -104,6 +104,13 @@ func (c *tracingClient) UpsertComputedPipeline(ctx context.Context, repoSource, 
 	return c.Client.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
 }
 
+func (c *tracingClient) UpdateComputedPipelinePermissions(ctx context.Context, pipeline contracts.Pipeline) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "UpdateComputedPipelinePermissions"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.UpdateComputedPipelinePermissions(ctx, pipeline)
+}
+
 func (c *tracingClient) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "UpdateComputedPipelineFirstInsertedAt"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()

@@ -45,6 +45,9 @@ type Service interface {
 	UpdateClient(ctx context.Context, client contracts.Client) (err error)
 	DeleteClient(ctx context.Context, id string) (err error)
 
+	UpdatePipeline(ctx context.Context, pipeline contracts.Pipeline) (err error)
+	ArchivePipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
+
 	GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error)
 }
 
@@ -351,6 +354,36 @@ func (s *service) DeleteClient(ctx context.Context, id string) (err error) {
 	}
 
 	return s.cockroachdbClient.DeleteClient(ctx, *currentClient)
+}
+
+func (s *service) UpdatePipeline(ctx context.Context, pipeline contracts.Pipeline) (err error) {
+	// get pipeline from db
+	currentPipeline, err := s.cockroachdbClient.GetPipeline(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, true)
+	if err != nil {
+		return
+	}
+	if currentPipeline == nil {
+		return fmt.Errorf("Pipeline is nil")
+	}
+
+	// copy updateable fields
+	currentPipeline.Groups = pipeline.Groups
+	currentPipeline.Organizations = pipeline.Organizations
+
+	return s.cockroachdbClient.UpdateComputedPipelinePermissions(ctx, *currentPipeline)
+}
+
+func (s *service) ArchivePipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	// get pipeline from db
+	currentPipeline, err := s.cockroachdbClient.GetPipeline(ctx, repoSource, repoOwner, repoName, true)
+	if err != nil {
+		return
+	}
+	if currentPipeline == nil {
+		return fmt.Errorf("Pipeline is nil")
+	}
+
+	return s.cockroachdbClient.ArchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
 }
 
 func (s *service) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {

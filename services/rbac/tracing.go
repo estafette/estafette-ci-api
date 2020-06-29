@@ -138,6 +138,20 @@ func (s *tracingService) DeleteClient(ctx context.Context, id string) (err error
 	return s.Service.DeleteClient(ctx, id)
 }
 
+func (s *tracingService) UpdatePipeline(ctx context.Context, pipeline contracts.Pipeline) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "UpdatePipeline"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.UpdatePipeline(ctx, pipeline)
+}
+
+func (s *tracingService) ArchivePipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "ArchivePipeline"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.ArchivePipeline(ctx, repoSource, repoOwner, repoName)
+}
+
 func (s *tracingService) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "GetInheritedRolesForUser"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()

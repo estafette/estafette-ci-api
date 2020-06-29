@@ -356,136 +356,6 @@ func (h *Handler) GetUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *Handler) GetGroups(c *gin.Context) {
-
-	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
-
-	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionGroupsList) {
-		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	response, err := helpers.GetPagedListResponse(
-		func() ([]interface{}, error) {
-			groups, err := h.cockroachdbClient.GetGroups(ctx, pageNumber, pageSize, filters, sortings)
-			if err != nil {
-				return nil, err
-			}
-
-			// convert typed array to interface array O(n)
-			items := make([]interface{}, len(groups))
-			for i := range groups {
-				items[i] = groups[i]
-			}
-
-			return items, nil
-		},
-		func() (int, error) {
-			return h.cockroachdbClient.GetGroupsCount(ctx, filters)
-		},
-		pageNumber,
-		pageSize)
-
-	if err != nil {
-		log.Error().Err(err).Msg("Failed retrieving groups from db")
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-		return
-	}
-
-	c.JSON(http.StatusOK, response)
-}
-
-func (h *Handler) GetOrganizations(c *gin.Context) {
-
-	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
-
-	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsList) {
-		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	response, err := helpers.GetPagedListResponse(
-		func() ([]interface{}, error) {
-			organizations, err := h.cockroachdbClient.GetOrganizations(ctx, pageNumber, pageSize, filters, sortings)
-			if err != nil {
-				return nil, err
-			}
-
-			// convert typed array to interface array O(n)
-			items := make([]interface{}, len(organizations))
-			for i := range organizations {
-				items[i] = organizations[i]
-			}
-
-			return items, nil
-		},
-		func() (int, error) {
-			return h.cockroachdbClient.GetOrganizationsCount(ctx, filters)
-		},
-		pageNumber,
-		pageSize)
-
-	if err != nil {
-		log.Error().Err(err).Msg("Failed retrieving organizations from db")
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-		return
-	}
-
-	c.JSON(http.StatusOK, response)
-}
-
-func (h *Handler) GetClients(c *gin.Context) {
-
-	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
-
-	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsList) {
-		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	response, err := helpers.GetPagedListResponse(
-		func() ([]interface{}, error) {
-			clients, err := h.cockroachdbClient.GetClients(ctx, pageNumber, pageSize, filters, sortings)
-			if err != nil {
-				return nil, err
-			}
-
-			// convert typed array to interface array O(n)
-			items := make([]interface{}, len(clients))
-			for i := range clients {
-				if !auth.RequestTokenHasPermission(c, auth.PermissionClientsViewSecret) {
-					// obfuscate client secret
-					clients[i].ClientSecret = "***"
-				}
-				items[i] = clients[i]
-			}
-
-			return items, nil
-		},
-		func() (int, error) {
-			return h.cockroachdbClient.GetClientsCount(ctx, filters)
-		},
-		pageNumber,
-		pageSize)
-
-	if err != nil {
-		log.Error().Err(err).Msg("Failed retrieving clients from db")
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-		return
-	}
-
-	c.JSON(http.StatusOK, response)
-}
-
 func (h *Handler) GetUser(c *gin.Context) {
 
 	// ensure the request has the correct permission
@@ -505,74 +375,6 @@ func (h *Handler) GetUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, user)
-}
-
-func (h *Handler) GetGroup(c *gin.Context) {
-
-	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionGroupsGet) {
-		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
-		return
-	}
-
-	ctx := c.Request.Context()
-	id := c.Param("id")
-
-	group, err := h.cockroachdbClient.GetGroupByID(ctx, id)
-	if err != nil || group == nil {
-		log.Error().Err(err).Msgf("Failed retrieving group with id %v from db", id)
-		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
-		return
-	}
-
-	c.JSON(http.StatusOK, group)
-}
-
-func (h *Handler) GetOrganization(c *gin.Context) {
-
-	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsGet) {
-		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
-		return
-	}
-
-	ctx := c.Request.Context()
-	id := c.Param("id")
-
-	organization, err := h.cockroachdbClient.GetOrganizationByID(ctx, id)
-	if err != nil || organization == nil {
-		log.Error().Err(err).Msgf("Failed retrieving organization with id %v from db", id)
-		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
-		return
-	}
-
-	c.JSON(http.StatusOK, organization)
-}
-
-func (h *Handler) GetClient(c *gin.Context) {
-
-	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsGet) {
-		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
-		return
-	}
-
-	ctx := c.Request.Context()
-	id := c.Param("id")
-
-	client, err := h.cockroachdbClient.GetClientByID(ctx, id)
-	if err != nil || client == nil {
-		log.Error().Err(err).Msgf("Failed retrieving client with id %v from db", id)
-		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
-		return
-	}
-
-	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsViewSecret) {
-		// obfuscate client secret
-		client.ClientSecret = "***"
-	}
-
-	c.JSON(http.StatusOK, client)
 }
 
 func (h *Handler) CreateUser(c *gin.Context) {
@@ -660,6 +462,69 @@ func (h *Handler) DeleteUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
 }
 
+func (h *Handler) GetGroups(c *gin.Context) {
+
+	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionGroupsList) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	response, err := helpers.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			groups, err := h.cockroachdbClient.GetGroups(ctx, pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(groups))
+			for i := range groups {
+				items[i] = groups[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachdbClient.GetGroupsCount(ctx, filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving groups from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) GetGroup(c *gin.Context) {
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionGroupsGet) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	group, err := h.cockroachdbClient.GetGroupByID(ctx, id)
+	if err != nil || group == nil {
+		log.Error().Err(err).Msgf("Failed retrieving group with id %v from db", id)
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
+		return
+	}
+
+	c.JSON(http.StatusOK, group)
+}
+
 func (h *Handler) CreateGroup(c *gin.Context) {
 
 	// ensure the request has the correct permission
@@ -743,6 +608,69 @@ func (h *Handler) DeleteGroup(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
+func (h *Handler) GetOrganizations(c *gin.Context) {
+
+	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsList) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	response, err := helpers.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			organizations, err := h.cockroachdbClient.GetOrganizations(ctx, pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(organizations))
+			for i := range organizations {
+				items[i] = organizations[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachdbClient.GetOrganizationsCount(ctx, filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving organizations from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) GetOrganization(c *gin.Context) {
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsGet) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	organization, err := h.cockroachdbClient.GetOrganizationByID(ctx, id)
+	if err != nil || organization == nil {
+		log.Error().Err(err).Msgf("Failed retrieving organization with id %v from db", id)
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
+		return
+	}
+
+	c.JSON(http.StatusOK, organization)
 }
 
 func (h *Handler) CreateOrganization(c *gin.Context) {
@@ -830,6 +758,78 @@ func (h *Handler) DeleteOrganization(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
 }
 
+func (h *Handler) GetClients(c *gin.Context) {
+
+	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsList) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	response, err := helpers.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			clients, err := h.cockroachdbClient.GetClients(ctx, pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(clients))
+			for i := range clients {
+				if !auth.RequestTokenHasPermission(c, auth.PermissionClientsViewSecret) {
+					// obfuscate client secret
+					clients[i].ClientSecret = "***"
+				}
+				items[i] = clients[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachdbClient.GetClientsCount(ctx, filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving clients from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) GetClient(c *gin.Context) {
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsGet) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	client, err := h.cockroachdbClient.GetClientByID(ctx, id)
+	if err != nil || client == nil {
+		log.Error().Err(err).Msgf("Failed retrieving client with id %v from db", id)
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
+		return
+	}
+
+	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsViewSecret) {
+		// obfuscate client secret
+		client.ClientSecret = "***"
+	}
+
+	c.JSON(http.StatusOK, client)
+}
+
 func (h *Handler) CreateClient(c *gin.Context) {
 
 	// ensure the request has the correct permission
@@ -908,6 +908,132 @@ func (h *Handler) DeleteClient(c *gin.Context) {
 	err := h.service.DeleteClient(ctx, id)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed deleting client")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
+func (h *Handler) GetPipelines(c *gin.Context) {
+
+	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionPipelinesList) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	response, err := helpers.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			pipelines, err := h.cockroachdbClient.GetPipelines(ctx, pageNumber, pageSize, filters, sortings, true)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(pipelines))
+			for i := range pipelines {
+				items[i] = pipelines[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachdbClient.GetPipelinesCount(ctx, filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving pipelines from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) GetPipeline(c *gin.Context) {
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionPipelinesGet) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	user, err := h.cockroachdbClient.GetPipeline(ctx, source, owner, repo, false)
+	if err != nil || user == nil {
+		log.Error().Err(err).Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+func (h *Handler) UpdatePipeline(c *gin.Context) {
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionPipelinesUpdate) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	var pipeline contracts.Pipeline
+	err := c.BindJSON(&pipeline)
+	if err != nil {
+		errorMessage := fmt.Sprint("Binding UpdatePipeline body failed")
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+
+	ctx := c.Request.Context()
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	if pipeline.RepoSource != source && pipeline.RepoOwner != owner && pipeline.RepoName != repo {
+		log.Error().Err(err).Msg("Pipeline name is incorrect")
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	err = h.service.UpdatePipeline(ctx, pipeline)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed updating pipeline")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
+func (h *Handler) ArchivePipeline(c *gin.Context) {
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionPipelinesArchive) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	err := h.service.ArchivePipeline(ctx, source, owner, repo)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed updating pipeline")
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 		return
 	}

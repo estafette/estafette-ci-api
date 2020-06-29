@@ -91,6 +91,12 @@ func (c *loggingClient) UpsertComputedPipeline(ctx context.Context, repoSource, 
 	return c.Client.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
 }
 
+func (c *loggingClient) UpdateComputedPipelinePermissions(ctx context.Context, pipeline contracts.Pipeline) (err error) {
+	defer func() { helpers.HandleLogError(c.prefix, "UpdateComputedPipelinePermissions", err) }()
+
+	return c.Client.UpdateComputedPipelinePermissions(ctx, pipeline)
+}
+
 func (c *loggingClient) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "UpdateComputedPipelineFirstInsertedAt", err) }()
 
