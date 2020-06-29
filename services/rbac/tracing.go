@@ -145,11 +145,11 @@ func (s *tracingService) UpdatePipeline(ctx context.Context, pipeline contracts.
 	return s.Service.UpdatePipeline(ctx, pipeline)
 }
 
-func (s *tracingService) ArchivePipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "ArchivePipeline"))
+func (s *tracingService) TogglePipelineArchival(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "TogglePipelineArchival"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
-	return s.Service.ArchivePipeline(ctx, repoSource, repoOwner, repoName)
+	return s.Service.TogglePipelineArchival(ctx, repoSource, repoOwner, repoName)
 }
 
 func (s *tracingService) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {

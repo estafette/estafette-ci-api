@@ -46,7 +46,7 @@ type Service interface {
 	DeleteClient(ctx context.Context, id string) (err error)
 
 	UpdatePipeline(ctx context.Context, pipeline contracts.Pipeline) (err error)
-	ArchivePipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
+	TogglePipelineArchival(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 
 	GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error)
 }
@@ -373,7 +373,7 @@ func (s *service) UpdatePipeline(ctx context.Context, pipeline contracts.Pipelin
 	return s.cockroachdbClient.UpdateComputedPipelinePermissions(ctx, *currentPipeline)
 }
 
-func (s *service) ArchivePipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+func (s *service) TogglePipelineArchival(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 	// get pipeline from db
 	currentPipeline, err := s.cockroachdbClient.GetPipeline(ctx, repoSource, repoOwner, repoName, true)
 	if err != nil {
@@ -381,6 +381,10 @@ func (s *service) ArchivePipeline(ctx context.Context, repoSource, repoOwner, re
 	}
 	if currentPipeline == nil {
 		return fmt.Errorf("Pipeline is nil")
+	}
+
+	if currentPipeline.Archived {
+		return s.cockroachdbClient.UnarchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
 	}
 
 	return s.cockroachdbClient.ArchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)

@@ -126,10 +126,10 @@ func (s *loggingService) UpdatePipeline(ctx context.Context, pipeline contracts.
 	return s.Service.UpdatePipeline(ctx, pipeline)
 }
 
-func (s *loggingService) ArchivePipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
-	defer func() { helpers.HandleLogError(s.prefix, "ArchivePipeline", err) }()
+func (s *loggingService) TogglePipelineArchival(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "TogglePipelineArchival", err) }()
 
-	return s.Service.ArchivePipeline(ctx, repoSource, repoOwner, repoName)
+	return s.Service.TogglePipelineArchival(ctx, repoSource, repoOwner, repoName)
 }
 
 func (s *loggingService) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {
