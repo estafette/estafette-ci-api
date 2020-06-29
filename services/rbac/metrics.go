@@ -73,6 +73,14 @@ func (s *metricsService) UpdateUser(ctx context.Context, user contracts.User) (e
 	return s.Service.UpdateUser(ctx, user)
 }
 
+func (s *metricsService) DeleteUser(ctx context.Context, id string) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "DeleteUser", begin)
+	}(time.Now())
+
+	return s.Service.DeleteUser(ctx, id)
+}
+
 func (s *metricsService) CreateGroup(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "CreateGroup", begin)

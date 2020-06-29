@@ -68,6 +68,13 @@ func (s *tracingService) UpdateUser(ctx context.Context, user contracts.User) (e
 	return s.Service.UpdateUser(ctx, user)
 }
 
+func (s *tracingService) DeleteUser(ctx context.Context, id string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "DeleteUser"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.DeleteUser(ctx, id)
+}
+
 func (s *tracingService) CreateGroup(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "CreateGroup"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()

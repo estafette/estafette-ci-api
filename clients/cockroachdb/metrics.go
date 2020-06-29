@@ -613,6 +613,14 @@ func (c *metricsClient) UpdateUser(ctx context.Context, user contracts.User) (er
 	return c.Client.UpdateUser(ctx, user)
 }
 
+func (c *metricsClient) DeleteUser(ctx context.Context, user contracts.User) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "DeleteUser", begin)
+	}(time.Now())
+
+	return c.Client.DeleteUser(ctx, user)
+}
+
 func (c *metricsClient) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetUserByIdentity", begin)
@@ -661,6 +669,14 @@ func (c *metricsClient) UpdateGroup(ctx context.Context, group contracts.Group) 
 	return c.Client.UpdateGroup(ctx, group)
 }
 
+func (c *metricsClient) DeleteGroup(ctx context.Context, group contracts.Group) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "DeleteGroup", begin)
+	}(time.Now())
+
+	return c.Client.DeleteGroup(ctx, group)
+}
+
 func (c *metricsClient) GetGroupByIdentity(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetGroupByIdentity", begin)
@@ -707,6 +723,14 @@ func (c *metricsClient) UpdateOrganization(ctx context.Context, organization con
 	}(time.Now())
 
 	return c.Client.UpdateOrganization(ctx, organization)
+}
+
+func (c *metricsClient) DeleteOrganization(ctx context.Context, organization contracts.Organization) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "DeleteOrganization", begin)
+	}(time.Now())
+
+	return c.Client.DeleteOrganization(ctx, organization)
 }
 
 func (c *metricsClient) GetOrganizationByIdentity(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error) {
@@ -763,6 +787,14 @@ func (c *metricsClient) UpdateClient(ctx context.Context, client contracts.Clien
 	}(time.Now())
 
 	return c.Client.UpdateClient(ctx, client)
+}
+
+func (c *metricsClient) DeleteClient(ctx context.Context, client contracts.Client) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "DeleteClient", begin)
+	}(time.Now())
+
+	return c.Client.DeleteClient(ctx, client)
 }
 
 func (c *metricsClient) GetClientByClientID(ctx context.Context, clientID string) (client *contracts.Client, err error) {

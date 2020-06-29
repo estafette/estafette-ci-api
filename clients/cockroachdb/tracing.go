@@ -552,6 +552,13 @@ func (c *tracingClient) UpdateUser(ctx context.Context, user contracts.User) (er
 	return c.Client.UpdateUser(ctx, user)
 }
 
+func (c *tracingClient) DeleteUser(ctx context.Context, user contracts.User) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "DeleteUser"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.DeleteUser(ctx, user)
+}
+
 func (c *tracingClient) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetUserByIdentity"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
@@ -594,6 +601,13 @@ func (c *tracingClient) UpdateGroup(ctx context.Context, group contracts.Group) 
 	return c.Client.UpdateGroup(ctx, group)
 }
 
+func (c *tracingClient) DeleteGroup(ctx context.Context, group contracts.Group) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "DeleteGroup"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.DeleteGroup(ctx, group)
+}
+
 func (c *tracingClient) GetGroupByIdentity(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetGroupByIdentity"))
 	defer func() { helpers.FinishSpanWithError(span, err) }()
@@ -634,6 +648,13 @@ func (c *tracingClient) UpdateOrganization(ctx context.Context, organization con
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.UpdateOrganization(ctx, organization)
+}
+
+func (c *tracingClient) DeleteOrganization(ctx context.Context, organization contracts.Organization) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "DeleteOrganization"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.DeleteOrganization(ctx, organization)
 }
 
 func (c *tracingClient) GetOrganizationByIdentity(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error) {
@@ -683,6 +704,13 @@ func (c *tracingClient) UpdateClient(ctx context.Context, client contracts.Clien
 	defer func() { helpers.FinishSpanWithError(span, err) }()
 
 	return c.Client.UpdateClient(ctx, client)
+}
+
+func (c *tracingClient) DeleteClient(ctx context.Context, client contracts.Client) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "DeleteClient"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return c.Client.DeleteClient(ctx, client)
 }
 
 func (c *tracingClient) GetClientByClientID(ctx context.Context, clientID string) (client *contracts.Client, err error) {

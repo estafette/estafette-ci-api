@@ -922,6 +922,44 @@ func TestIntegrationUpdateUser(t *testing.T) {
 	})
 }
 
+func TestIntegrationDeleteUser(t *testing.T) {
+	t.Run("DeletesUser", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		user := getUser()
+		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+		assert.Nil(t, err)
+
+		// act
+		err = cockroachdbClient.DeleteUser(ctx, *insertedUser)
+
+		assert.Nil(t, err)
+	})
+
+	t.Run("DeletesUserForNonExistingUser", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		user := getUser()
+		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+		assert.Nil(t, err)
+		insertedUser.ID = "15"
+
+		// act
+		err = cockroachdbClient.DeleteUser(ctx, *insertedUser)
+
+		assert.Nil(t, err)
+	})
+}
 func TestIntegrationGetUserByIdentity(t *testing.T) {
 	t.Run("ReturnsInsertedUserWithID", func(t *testing.T) {
 
@@ -1172,6 +1210,45 @@ func TestIntegrationUpdateGroup(t *testing.T) {
 	})
 }
 
+func TestIntegrationDeleteGroup(t *testing.T) {
+	t.Run("DeletesGroup", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		group := getGroup()
+		insertedGroup, err := cockroachdbClient.InsertGroup(ctx, group)
+		assert.Nil(t, err)
+
+		// act
+		err = cockroachdbClient.DeleteGroup(ctx, *insertedGroup)
+
+		assert.Nil(t, err)
+	})
+
+	t.Run("DeletesGroupForNonExistingGroup", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		group := getGroup()
+		insertedGroup, err := cockroachdbClient.InsertGroup(ctx, group)
+		assert.Nil(t, err)
+		insertedGroup.ID = "15"
+
+		// act
+		err = cockroachdbClient.DeleteGroup(ctx, *insertedGroup)
+
+		assert.Nil(t, err)
+	})
+}
+
 func TestIntegrationGetGroupByIdentity(t *testing.T) {
 	t.Run("ReturnsInsertedGroupWithID", func(t *testing.T) {
 
@@ -1357,6 +1434,45 @@ func TestIntegrationUpdateOrganization(t *testing.T) {
 
 		// act
 		err = cockroachdbClient.UpdateOrganization(ctx, *insertedOrganization)
+
+		assert.Nil(t, err)
+	})
+}
+
+func TestIntegrationDeleteOrganization(t *testing.T) {
+	t.Run("DeletesOrganization", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		organization := getOrganization()
+		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		assert.Nil(t, err)
+
+		// act
+		err = cockroachdbClient.DeleteOrganization(ctx, *insertedOrganization)
+
+		assert.Nil(t, err)
+	})
+
+	t.Run("DeletesOrganizationForNonExistingOrganization", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		organization := getOrganization()
+		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		assert.Nil(t, err)
+		insertedOrganization.ID = "15"
+
+		// act
+		err = cockroachdbClient.DeleteOrganization(ctx, *insertedOrganization)
 
 		assert.Nil(t, err)
 	})
@@ -1570,6 +1686,45 @@ func TestIntegrationUpdateClient(t *testing.T) {
 
 		// act
 		err = cockroachdbClient.UpdateClient(ctx, *insertedClient)
+
+		assert.Nil(t, err)
+	})
+}
+
+func TestIntegrationDeleteClient(t *testing.T) {
+	t.Run("DeletesClient", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		client := getClient()
+		insertedClient, err := cockroachdbClient.InsertClient(ctx, client)
+		assert.Nil(t, err)
+
+		// act
+		err = cockroachdbClient.DeleteClient(ctx, *insertedClient)
+
+		assert.Nil(t, err)
+	})
+
+	t.Run("DeletesClientForNonExistingClient", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		client := getClient()
+		insertedClient, err := cockroachdbClient.InsertClient(ctx, client)
+		assert.Nil(t, err)
+		insertedClient.ID = "15"
+
+		// act
+		err = cockroachdbClient.DeleteClient(ctx, *insertedClient)
 
 		assert.Nil(t, err)
 	})

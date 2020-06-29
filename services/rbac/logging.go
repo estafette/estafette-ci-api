@@ -60,6 +60,12 @@ func (s *loggingService) UpdateUser(ctx context.Context, user contracts.User) (e
 	return s.Service.UpdateUser(ctx, user)
 }
 
+func (s *loggingService) DeleteUser(ctx context.Context, id string) (err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "DeleteUser", err) }()
+
+	return s.Service.DeleteUser(ctx, id)
+}
+
 func (s *loggingService) CreateGroup(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error) {
 	defer func() { helpers.HandleLogError(s.prefix, "CreateGroup", err) }()
 

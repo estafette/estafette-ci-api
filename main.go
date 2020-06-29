@@ -521,6 +521,7 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 		jwtMiddlewareRoutes.GET("/api/users/:id", rbacHandler.GetUser)
 		jwtMiddlewareRoutes.POST("/api/users", rbacHandler.CreateUser)
 		jwtMiddlewareRoutes.PUT("/api/users/:id", rbacHandler.UpdateUser)
+		jwtMiddlewareRoutes.DELETE("/api/users/:id", rbacHandler.DeleteUser)
 
 		jwtMiddlewareRoutes.GET("/api/groups", rbacHandler.GetGroups)
 		jwtMiddlewareRoutes.GET("/api/groups/:id", rbacHandler.GetGroup)

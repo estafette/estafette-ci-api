@@ -87,6 +87,7 @@ type MockClient struct {
 
 	InsertUserFunc        func(ctx context.Context, user contracts.User) (u *contracts.User, err error)
 	UpdateUserFunc        func(ctx context.Context, user contracts.User) (err error)
+	DeleteUserFunc        func(ctx context.Context, user contracts.User) (err error)
 	GetUserByIdentityFunc func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	GetUserByIDFunc       func(ctx context.Context, id string) (user *contracts.User, err error)
 	GetUsersFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (users []*contracts.User, err error)
@@ -94,6 +95,7 @@ type MockClient struct {
 
 	InsertGroupFunc        func(ctx context.Context, group contracts.Group) (g *contracts.Group, err error)
 	UpdateGroupFunc        func(ctx context.Context, group contracts.Group) (err error)
+	DeleteGroupFunc        func(ctx context.Context, group contracts.Group) (err error)
 	GetGroupByIdentityFunc func(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error)
 	GetGroupByIDFunc       func(ctx context.Context, id string) (group *contracts.Group, err error)
 	GetGroupsFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error)
@@ -101,6 +103,7 @@ type MockClient struct {
 
 	InsertOrganizationFunc        func(ctx context.Context, organization contracts.Organization) (o *contracts.Organization, err error)
 	UpdateOrganizationFunc        func(ctx context.Context, organization contracts.Organization) (err error)
+	DeleteOrganizationFunc        func(ctx context.Context, organization contracts.Organization) (err error)
 	GetOrganizationByIdentityFunc func(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error)
 	GetOrganizationByIDFunc       func(ctx context.Context, id string) (organization *contracts.Organization, err error)
 	GetOrganizationByNameFunc     func(ctx context.Context, name string) (organization *contracts.Organization, err error)
@@ -109,6 +112,7 @@ type MockClient struct {
 
 	InsertClientFunc        func(ctx context.Context, client contracts.Client) (cl *contracts.Client, err error)
 	UpdateClientFunc        func(ctx context.Context, client contracts.Client) (err error)
+	DeleteClientFunc        func(ctx context.Context, client contracts.Client) (err error)
 	GetClientByClientIDFunc func(ctx context.Context, clientID string) (client *contracts.Client, err error)
 	GetClientByIDFunc       func(ctx context.Context, id string) (client *contracts.Client, err error)
 	GetClientsFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error)
@@ -666,6 +670,13 @@ func (c MockClient) UpdateUser(ctx context.Context, user contracts.User) (err er
 	return c.UpdateUserFunc(ctx, user)
 }
 
+func (c MockClient) DeleteUser(ctx context.Context, user contracts.User) (err error) {
+	if c.DeleteUserFunc == nil {
+		return
+	}
+	return c.DeleteUserFunc(ctx, user)
+}
+
 func (c MockClient) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 	if c.GetUserByIdentityFunc == nil {
 		return
@@ -708,6 +719,13 @@ func (c MockClient) UpdateGroup(ctx context.Context, group contracts.Group) (err
 	return c.UpdateGroupFunc(ctx, group)
 }
 
+func (c MockClient) DeleteGroup(ctx context.Context, group contracts.Group) (err error) {
+	if c.DeleteGroupFunc == nil {
+		return
+	}
+	return c.DeleteGroupFunc(ctx, group)
+}
+
 func (c MockClient) GetGroupByIdentity(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error) {
 	if c.GetGroupByIdentityFunc == nil {
 		return
@@ -748,6 +766,13 @@ func (c MockClient) UpdateOrganization(ctx context.Context, organization contrac
 		return
 	}
 	return c.UpdateOrganizationFunc(ctx, organization)
+}
+
+func (c MockClient) DeleteOrganization(ctx context.Context, organization contracts.Organization) (err error) {
+	if c.DeleteOrganizationFunc == nil {
+		return
+	}
+	return c.DeleteOrganizationFunc(ctx, organization)
 }
 
 func (c MockClient) GetOrganizationByIdentity(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error) {
@@ -797,6 +822,13 @@ func (c MockClient) UpdateClient(ctx context.Context, client contracts.Client) (
 		return
 	}
 	return c.UpdateClientFunc(ctx, client)
+}
+
+func (c MockClient) DeleteClient(ctx context.Context, client contracts.Client) (err error) {
+	if c.DeleteClientFunc == nil {
+		return
+	}
+	return c.DeleteClientFunc(ctx, client)
 }
 
 func (c MockClient) GetClientByClientID(ctx context.Context, clientID string) (client *contracts.Client, err error) {

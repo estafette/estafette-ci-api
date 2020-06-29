@@ -640,6 +640,26 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
 }
 
+func (h *Handler) DeleteUser(c *gin.Context) {
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionUsersDelete) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	id := c.Param("id")
+	err := h.service.DeleteUser(ctx, id)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed deleting user")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
 func (h *Handler) CreateGroup(c *gin.Context) {
 
 	// ensure the request has the correct permission

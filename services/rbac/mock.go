@@ -15,6 +15,7 @@ type MockService struct {
 	CreateUserFromIdentityFunc   func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	CreateUserFunc               func(ctx context.Context, user contracts.User) (insertedUser *contracts.User, err error)
 	UpdateUserFunc               func(ctx context.Context, user contracts.User) (err error)
+	DeleteUserFunc               func(ctx context.Context, id string) (err error)
 	CreateGroupFunc              func(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error)
 	UpdateGroupFunc              func(ctx context.Context, group contracts.Group) (err error)
 	DeleteGroupFunc              func(ctx context.Context, id string) (err error)
@@ -74,6 +75,13 @@ func (s MockService) UpdateUser(ctx context.Context, user contracts.User) (err e
 		return
 	}
 	return s.UpdateUserFunc(ctx, user)
+}
+
+func (s MockService) DeleteUser(ctx context.Context, id string) (err error) {
+	if s.DeleteUserFunc == nil {
+		return
+	}
+	return s.DeleteUserFunc(ctx, id)
 }
 
 func (s MockService) CreateGroup(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error) {
