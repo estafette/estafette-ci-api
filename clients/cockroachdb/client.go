@@ -430,7 +430,7 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
 		Where(sq.Eq{"build_status": allowedBuildStatusesToTransitionFrom}).
-		Suffix("RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event")
+		Suffix("RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event, groups, organizations")
 
 	if buildStatus == "running" {
 		query = query.Set("started_at", sq.Expr("now()"))
@@ -528,9 +528,7 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 			$11,
 			$12,
 			$13,
-			$14,
-			$15,
-			$16
+			$14
 		)
 		RETURNING 
 			id
@@ -604,7 +602,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
 		Where(sq.Eq{"release_status": allowedReleaseStatusesToTransitionFrom}).
-		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event")
+		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event, groups, organizations")
 
 	if releaseStatus == "running" {
 		query = query.Set("started_at", sq.Expr("now()"))
