@@ -528,7 +528,9 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 			$11,
 			$12,
 			$13,
-			$14
+			$14,
+			$15,
+			$16
 		)
 		RETURNING 
 			id
