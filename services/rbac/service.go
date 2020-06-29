@@ -34,12 +34,15 @@ type Service interface {
 
 	CreateGroup(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error)
 	UpdateGroup(ctx context.Context, group contracts.Group) (err error)
+	DeleteGroup(ctx context.Context, id string) (err error)
 
 	CreateOrganization(ctx context.Context, organization contracts.Organization) (insertedOrganization *contracts.Organization, err error)
 	UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error)
+	DeleteOrganization(ctx context.Context, id string) (err error)
 
 	CreateClient(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error)
 	UpdateClient(ctx context.Context, client contracts.Client) (err error)
+	DeleteClient(ctx context.Context, id string) (err error)
 
 	GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error)
 }
@@ -220,6 +223,10 @@ func (s *service) UpdateGroup(ctx context.Context, group contracts.Group) (err e
 	return s.cockroachdbClient.UpdateGroup(ctx, *currentGroup)
 }
 
+func (s *service) DeleteGroup(ctx context.Context, id string) (err error) {
+	return s.cockroachdbClient.DeleteGroup(ctx, id)
+}
+
 func (s *service) CreateOrganization(ctx context.Context, organization contracts.Organization) (insertedOrganization *contracts.Organization, err error) {
 
 	log.Info().Msgf("Creating record for organization %v", organization.Name)
@@ -250,6 +257,10 @@ func (s *service) UpdateOrganization(ctx context.Context, organization contracts
 	currentOrganization.Roles = organization.Roles
 
 	return s.cockroachdbClient.UpdateOrganization(ctx, *currentOrganization)
+}
+
+func (s *service) DeleteOrganization(ctx context.Context, id string) (err error) {
+	return s.cockroachdbClient.DeleteOrganization(ctx, id)
 }
 
 func (s *service) CreateClient(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error) {
@@ -292,6 +303,10 @@ func (s *service) UpdateClient(ctx context.Context, client contracts.Client) (er
 	currentClient.Roles = client.Roles
 
 	return s.cockroachdbClient.UpdateClient(ctx, *currentClient)
+}
+
+func (s *service) DeleteClient(ctx context.Context, id string) (err error) {
+	return s.cockroachdbClient.DeleteClient(ctx, id)
 }
 
 func (s *service) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {

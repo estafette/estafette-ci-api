@@ -705,6 +705,26 @@ func (h *Handler) UpdateGroup(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
 }
 
+func (h *Handler) DeleteGroup(c *gin.Context) {
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionGroupsDelete) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	id := c.Param("id")
+	err := h.service.DeleteGroup(ctx, id)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed deleting group")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
 func (h *Handler) CreateOrganization(c *gin.Context) {
 
 	// ensure the request has the correct permission
@@ -770,6 +790,26 @@ func (h *Handler) UpdateOrganization(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
 }
 
+func (h *Handler) DeleteOrganization(c *gin.Context) {
+
+	// ensure the user has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsDelete) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	id := c.Param("id")
+	err := h.service.DeleteOrganization(ctx, id)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed deleting organization")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
 func (h *Handler) CreateClient(c *gin.Context) {
 
 	// ensure the request has the correct permission
@@ -828,6 +868,26 @@ func (h *Handler) UpdateClient(c *gin.Context) {
 	err = h.service.UpdateClient(ctx, client)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed updating client")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
+func (h *Handler) DeleteClient(c *gin.Context) {
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsDelete) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	id := c.Param("id")
+	err := h.service.DeleteClient(ctx, id)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed deleting client")
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 		return
 	}

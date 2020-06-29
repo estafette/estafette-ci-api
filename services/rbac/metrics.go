@@ -89,6 +89,14 @@ func (s *metricsService) UpdateGroup(ctx context.Context, group contracts.Group)
 	return s.Service.UpdateGroup(ctx, group)
 }
 
+func (s *metricsService) DeleteGroup(ctx context.Context, id string) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "DeleteGroup", begin)
+	}(time.Now())
+
+	return s.Service.DeleteGroup(ctx, id)
+}
+
 func (s *metricsService) CreateOrganization(ctx context.Context, organization contracts.Organization) (insertedOrganization *contracts.Organization, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "CreateOrganization", begin)
@@ -105,6 +113,14 @@ func (s *metricsService) UpdateOrganization(ctx context.Context, organization co
 	return s.Service.UpdateOrganization(ctx, organization)
 }
 
+func (s *metricsService) DeleteOrganization(ctx context.Context, id string) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "DeleteOrganization", begin)
+	}(time.Now())
+
+	return s.Service.DeleteOrganization(ctx, id)
+}
+
 func (s *metricsService) CreateClient(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "CreateClient", begin)
@@ -119,6 +135,14 @@ func (s *metricsService) UpdateClient(ctx context.Context, client contracts.Clie
 	}(time.Now())
 
 	return s.Service.UpdateClient(ctx, client)
+}
+
+func (s *metricsService) DeleteClient(ctx context.Context, id string) (err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "DeleteClient", begin)
+	}(time.Now())
+
+	return s.Service.DeleteClient(ctx, id)
 }
 
 func (s *metricsService) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {

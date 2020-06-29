@@ -133,6 +133,7 @@ type Client interface {
 
 	InsertGroup(ctx context.Context, group contracts.Group) (g *contracts.Group, err error)
 	UpdateGroup(ctx context.Context, group contracts.Group) (err error)
+	DeleteGroup(ctx context.Context, id string) (err error)
 	GetGroupByIdentity(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error)
 	GetGroupByID(ctx context.Context, id string) (group *contracts.Group, err error)
 	GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error)
@@ -140,6 +141,7 @@ type Client interface {
 
 	InsertOrganization(ctx context.Context, organization contracts.Organization) (o *contracts.Organization, err error)
 	UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error)
+	DeleteOrganization(ctx context.Context, id string) (err error)
 	GetOrganizationByIdentity(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error)
 	GetOrganizationByID(ctx context.Context, id string) (organization *contracts.Organization, err error)
 	GetOrganizationByName(ctx context.Context, name string) (organization *contracts.Organization, err error)
@@ -148,6 +150,7 @@ type Client interface {
 
 	InsertClient(ctx context.Context, client contracts.Client) (cl *contracts.Client, err error)
 	UpdateClient(ctx context.Context, client contracts.Client) (err error)
+	DeleteClient(ctx context.Context, id string) (err error)
 	GetClientByClientID(ctx context.Context, clientID string) (client *contracts.Client, err error)
 	GetClientByID(ctx context.Context, id string) (client *contracts.Client, err error)
 	GetClients(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error)
@@ -4380,6 +4383,8 @@ func (c *client) UpdateGroup(ctx context.Context, group contracts.Group) (err er
 
 	return
 }
+
+func (c *client) DeleteGroup(ctx context.Context, id string) (err error)
 
 func (c *client) GetGroupByIdentity(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error) {
 	filter := struct {
