@@ -407,12 +407,15 @@ func (s *service) GetInheritedRolesForUser(ctx context.Context, user contracts.U
 		retrievedRoles = append(retrievedRoles, organization.Roles...)
 	}
 
-	// dedupe roles
+	return s.dedupeRoles(retrievedRoles), nil
+}
+
+func (s *service) dedupeRoles(retrievedRoles []*string) (roles []*string) {
 	roles = make([]*string, 0)
 	for _, r := range retrievedRoles {
 		isInRoles := false
 		for _, rr := range roles {
-			if r == rr {
+			if r != nil && rr != nil && *r == *rr {
 				isInRoles = true
 				break
 			}
@@ -422,7 +425,7 @@ func (s *service) GetInheritedRolesForUser(ctx context.Context, user contracts.U
 		}
 	}
 
-	return roles, nil
+	return roles
 }
 
 func (s *service) setAdminRoleForUserIfConfigured(user *contracts.User) {
