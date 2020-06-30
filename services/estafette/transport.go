@@ -72,7 +72,7 @@ func (h *Handler) GetPipelines(c *gin.Context) {
 
 	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
 
-	filters = auth.SetPermissionsFilters(c, filters)
+	// filters = auth.SetPermissionsFilters(c, filters)
 
 	response, err := helpers.GetPagedListResponse(
 		func() ([]interface{}, error) {
@@ -1060,9 +1060,9 @@ func (h *Handler) GetPipelineStatsBuildsDurations(c *gin.Context) {
 	repo := c.Param("repo")
 
 	// get filters (?filter[last]=100)
-	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilter(c, "succeeded")
-	filters["last"] = helpers.GetLastFilter(c, 100)
+	filters := map[helpers.FilterType][]string{}
+	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c, "succeeded")
+	filters[helpers.FilterLast] = helpers.GetLastFilter(c, 100)
 
 	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1084,9 +1084,9 @@ func (h *Handler) GetPipelineStatsReleasesDurations(c *gin.Context) {
 	repo := c.Param("repo")
 
 	// get filters (?filter[last]=100)
-	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilter(c, "succeeded")
-	filters["last"] = helpers.GetLastFilter(c, 100)
+	filters := map[helpers.FilterType][]string{}
+	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c, "succeeded")
+	filters[helpers.FilterLast] = helpers.GetLastFilter(c, 100)
 
 	durations, err := h.cockroachDBClient.GetPipelineReleasesDurations(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1108,9 +1108,9 @@ func (h *Handler) GetPipelineStatsBuildsCPUUsageMeasurements(c *gin.Context) {
 	repo := c.Param("repo")
 
 	// get filters (?filter[last]=100)
-	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilter(c, "succeeded")
-	filters["last"] = helpers.GetLastFilter(c, 100)
+	filters := map[helpers.FilterType][]string{}
+	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c, "succeeded")
+	filters[helpers.FilterLast] = helpers.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineBuildsCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1132,9 +1132,9 @@ func (h *Handler) GetPipelineStatsReleasesCPUUsageMeasurements(c *gin.Context) {
 	repo := c.Param("repo")
 
 	// get filters (?filter[last]=100)
-	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilter(c, "succeeded")
-	filters["last"] = helpers.GetLastFilter(c, 100)
+	filters := map[helpers.FilterType][]string{}
+	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c, "succeeded")
+	filters[helpers.FilterLast] = helpers.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineReleasesCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1156,9 +1156,9 @@ func (h *Handler) GetPipelineStatsBuildsMemoryUsageMeasurements(c *gin.Context) 
 	repo := c.Param("repo")
 
 	// get filters (?filter[last]=100)
-	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilter(c, "succeeded")
-	filters["last"] = helpers.GetLastFilter(c, 100)
+	filters := map[helpers.FilterType][]string{}
+	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c, "succeeded")
+	filters[helpers.FilterLast] = helpers.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineBuildsMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1180,9 +1180,9 @@ func (h *Handler) GetPipelineStatsReleasesMemoryUsageMeasurements(c *gin.Context
 	repo := c.Param("repo")
 
 	// get filters (?filter[last]=100)
-	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilter(c, "succeeded")
-	filters["last"] = helpers.GetLastFilter(c, 100)
+	filters := map[helpers.FilterType][]string{}
+	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c, "succeeded")
+	filters[helpers.FilterLast] = helpers.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineReleasesMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1204,9 +1204,9 @@ func (h *Handler) GetPipelineWarnings(c *gin.Context) {
 	repo := c.Param("repo")
 
 	// get filters (?filter[last]=100)
-	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilter(c, "succeeded")
-	filters["last"] = helpers.GetLastFilter(c, 25)
+	filters := map[helpers.FilterType][]string{}
+	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c, "succeeded")
+	filters[helpers.FilterLast] = helpers.GetLastFilter(c, 25)
 
 	pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), source, owner, repo, false)
 	if err != nil {
@@ -1288,9 +1288,9 @@ func (h *Handler) GetCatalogFilterValues(c *gin.Context) {
 func (h *Handler) GetStatsPipelinesCount(c *gin.Context) {
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
-	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilter(c)
-	filters["since"] = helpers.GetSinceFilter(c)
+	filters := map[helpers.FilterType][]string{}
+	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c)
+	filters[helpers.FilterSince] = helpers.GetSinceFilter(c)
 
 	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(c.Request.Context(), filters)
 	if err != nil {
@@ -1306,9 +1306,9 @@ func (h *Handler) GetStatsPipelinesCount(c *gin.Context) {
 func (h *Handler) GetStatsReleasesCount(c *gin.Context) {
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
-	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilter(c)
-	filters["since"] = helpers.GetSinceFilter(c)
+	filters := map[helpers.FilterType][]string{}
+	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c)
+	filters[helpers.FilterSince] = helpers.GetSinceFilter(c)
 
 	releasesCount, err := h.cockroachDBClient.GetReleasesCount(c.Request.Context(), filters)
 	if err != nil {
@@ -1324,9 +1324,9 @@ func (h *Handler) GetStatsReleasesCount(c *gin.Context) {
 func (h *Handler) GetStatsBuildsCount(c *gin.Context) {
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
-	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilter(c)
-	filters["since"] = helpers.GetSinceFilter(c)
+	filters := map[helpers.FilterType][]string{}
+	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c)
+	filters[helpers.FilterSince] = helpers.GetSinceFilter(c)
 
 	buildsCount, err := h.cockroachDBClient.GetBuildsCount(c.Request.Context(), filters)
 	if err != nil {
@@ -1414,9 +1414,9 @@ func (h *Handler) GetStatsMostReleases(c *gin.Context) {
 func (h *Handler) GetStatsBuildsDuration(c *gin.Context) {
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
-	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilter(c)
-	filters["since"] = helpers.GetSinceFilter(c)
+	filters := map[helpers.FilterType][]string{}
+	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c)
+	filters[helpers.FilterSince] = helpers.GetSinceFilter(c)
 
 	buildsDuration, err := h.cockroachDBClient.GetBuildsDuration(c.Request.Context(), filters)
 	if err != nil {
@@ -1469,10 +1469,10 @@ func (h *Handler) UpdateComputedTables(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	email := claims["email"].(string)
 
-	filters := map[string][]string{}
-	filters["status"] = helpers.GetStatusFilter(c)
-	filters["since"] = helpers.GetSinceFilter(c)
-	filters["labels"] = helpers.GetLabelsFilter(c)
+	filters := map[helpers.FilterType][]string{}
+	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c)
+	filters[helpers.FilterSince] = helpers.GetSinceFilter(c)
+	filters[helpers.FilterLabels] = helpers.GetLabelsFilter(c)
 	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(c.Request.Context(), filters)
 	if err != nil {
 		log.Error().Err(err).
@@ -1776,7 +1776,7 @@ func (h *Handler) CopyLogsToCloudStorage(c *gin.Context) {
 	pageNumber, pageSize, filters, _ := helpers.GetQueryParameters(c)
 
 	searchValue := "builds"
-	if search, ok := filters["search"]; ok && len(search) > 0 && search[0] != "" {
+	if search, ok := filters[helpers.FilterSearch]; ok && len(search) > 0 && search[0] != "" {
 		searchValue = search[0]
 	}
 

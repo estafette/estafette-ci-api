@@ -159,7 +159,7 @@ func (c *metricsClient) UnarchiveComputedPipeline(ctx context.Context, repoSourc
 	return c.Client.UnarchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
 }
 
-func (c *metricsClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
+func (c *metricsClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 	defer func(begin time.Time) { helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelines", begin) }(time.Now())
 
 	return c.Client.GetPipelines(ctx, pageNumber, pageSize, filters, sortings, optimized)
@@ -173,7 +173,7 @@ func (c *metricsClient) GetPipelinesByRepoName(ctx context.Context, repoName str
 	return c.Client.GetPipelinesByRepoName(ctx, repoName, optimized)
 }
 
-func (c *metricsClient) GetPipelinesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetPipelinesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelinesCount", begin)
 	}(time.Now())
@@ -195,7 +195,7 @@ func (c *metricsClient) GetPipelineRecentBuilds(ctx context.Context, repoSource,
 	return c.Client.GetPipelineRecentBuilds(ctx, repoSource, repoOwner, repoName, optimized)
 }
 
-func (c *metricsClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField, optimized bool) (builds []*contracts.Build, err error) {
+func (c *metricsClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField, optimized bool) (builds []*contracts.Build, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineBuilds", begin)
 	}(time.Now())
@@ -203,7 +203,7 @@ func (c *metricsClient) GetPipelineBuilds(ctx context.Context, repoSource, repoO
 	return c.Client.GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings, optimized)
 }
 
-func (c *metricsClient) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineBuildsCount", begin)
 	}(time.Now())
@@ -299,7 +299,7 @@ func (c *metricsClient) GetPipelineBuildMaxResourceUtilization(ctx context.Conte
 	return c.Client.GetPipelineBuildMaxResourceUtilization(ctx, repoSource, repoOwner, repoName, lastNRecords)
 }
 
-func (c *metricsClient) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (releases []*contracts.Release, err error) {
+func (c *metricsClient) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (releases []*contracts.Release, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineReleases", begin)
 	}(time.Now())
@@ -307,7 +307,7 @@ func (c *metricsClient) GetPipelineReleases(ctx context.Context, repoSource, rep
 	return c.Client.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *metricsClient) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineReleasesCount", begin)
 	}(time.Now())
@@ -355,7 +355,7 @@ func (c *metricsClient) GetPipelineReleaseMaxResourceUtilization(ctx context.Con
 	return c.Client.GetPipelineReleaseMaxResourceUtilization(ctx, repoSource, repoOwner, repoName, targetName, lastNRecords)
 }
 
-func (c *metricsClient) GetBuildsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetBuildsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetBuildsCount", begin)
 	}(time.Now())
@@ -363,7 +363,7 @@ func (c *metricsClient) GetBuildsCount(ctx context.Context, filters map[string][
 	return c.Client.GetBuildsCount(ctx, filters)
 }
 
-func (c *metricsClient) GetReleasesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetReleasesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetReleasesCount", begin)
 	}(time.Now())
@@ -371,7 +371,7 @@ func (c *metricsClient) GetReleasesCount(ctx context.Context, filters map[string
 	return c.Client.GetReleasesCount(ctx, filters)
 }
 
-func (c *metricsClient) GetBuildsDuration(ctx context.Context, filters map[string][]string) (duration time.Duration, err error) {
+func (c *metricsClient) GetBuildsDuration(ctx context.Context, filters map[helpers.FilterType][]string) (duration time.Duration, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetBuildsDuration", begin)
 	}(time.Now())
@@ -395,7 +395,7 @@ func (c *metricsClient) GetFirstReleaseTimes(ctx context.Context) (times []time.
 	return c.Client.GetFirstReleaseTimes(ctx)
 }
 
-func (c *metricsClient) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (durations []map[string]interface{}, err error) {
+func (c *metricsClient) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (durations []map[string]interface{}, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineBuildsDurations", begin)
 	}(time.Now())
@@ -403,7 +403,7 @@ func (c *metricsClient) GetPipelineBuildsDurations(ctx context.Context, repoSour
 	return c.Client.GetPipelineBuildsDurations(ctx, repoSource, repoOwner, repoName, filters)
 }
 
-func (c *metricsClient) GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (durations []map[string]interface{}, err error) {
+func (c *metricsClient) GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (durations []map[string]interface{}, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineReleasesDurations", begin)
 	}(time.Now())
@@ -411,7 +411,7 @@ func (c *metricsClient) GetPipelineReleasesDurations(ctx context.Context, repoSo
 	return c.Client.GetPipelineReleasesDurations(ctx, repoSource, repoOwner, repoName, filters)
 }
 
-func (c *metricsClient) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+func (c *metricsClient) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineBuildsCPUUsageMeasurements", begin)
 	}(time.Now())
@@ -419,7 +419,7 @@ func (c *metricsClient) GetPipelineBuildsCPUUsageMeasurements(ctx context.Contex
 	return c.Client.GetPipelineBuildsCPUUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
 }
 
-func (c *metricsClient) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+func (c *metricsClient) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineReleasesCPUUsageMeasurements", begin)
 	}(time.Now())
@@ -427,7 +427,7 @@ func (c *metricsClient) GetPipelineReleasesCPUUsageMeasurements(ctx context.Cont
 	return c.Client.GetPipelineReleasesCPUUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
 }
 
-func (c *metricsClient) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+func (c *metricsClient) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineBuildsMemoryUsageMeasurements", begin)
 	}(time.Now())
@@ -435,7 +435,7 @@ func (c *metricsClient) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Con
 	return c.Client.GetPipelineBuildsMemoryUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
 }
 
-func (c *metricsClient) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+func (c *metricsClient) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineReleasesMemoryUsageMeasurements", begin)
 	}(time.Now())
@@ -451,7 +451,7 @@ func (c *metricsClient) GetLabelValues(ctx context.Context, labelKey string) (la
 	return c.Client.GetLabelValues(ctx, labelKey)
 }
 
-func (c *metricsClient) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+func (c *metricsClient) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetFrequentLabels", begin)
 	}(time.Now())
@@ -459,7 +459,7 @@ func (c *metricsClient) GetFrequentLabels(ctx context.Context, pageNumber, pageS
 	return c.Client.GetFrequentLabels(ctx, pageNumber, pageSize, filters)
 }
 
-func (c *metricsClient) GetFrequentLabelsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetFrequentLabelsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetFrequentLabelsCount", begin)
 	}(time.Now())
@@ -467,7 +467,7 @@ func (c *metricsClient) GetFrequentLabelsCount(ctx context.Context, filters map[
 	return c.Client.GetFrequentLabelsCount(ctx, filters)
 }
 
-func (c *metricsClient) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
+func (c *metricsClient) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (pipelines []map[string]interface{}, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelinesWithMostBuilds", begin)
 	}(time.Now())
@@ -475,7 +475,7 @@ func (c *metricsClient) GetPipelinesWithMostBuilds(ctx context.Context, pageNumb
 	return c.Client.GetPipelinesWithMostBuilds(ctx, pageNumber, pageSize, filters)
 }
 
-func (c *metricsClient) GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelinesWithMostBuildsCount", begin)
 	}(time.Now())
@@ -483,7 +483,7 @@ func (c *metricsClient) GetPipelinesWithMostBuildsCount(ctx context.Context, fil
 	return c.Client.GetPipelinesWithMostBuildsCount(ctx, filters)
 }
 
-func (c *metricsClient) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
+func (c *metricsClient) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (pipelines []map[string]interface{}, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelinesWithMostReleases", begin)
 	}(time.Now())
@@ -491,7 +491,7 @@ func (c *metricsClient) GetPipelinesWithMostReleases(ctx context.Context, pageNu
 	return c.Client.GetPipelinesWithMostReleases(ctx, pageNumber, pageSize, filters)
 }
 
-func (c *metricsClient) GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelinesWithMostReleasesCount", begin)
 	}(time.Now())
@@ -645,7 +645,7 @@ func (c *metricsClient) GetUserByID(ctx context.Context, id string) (user *contr
 	return c.Client.GetUserByID(ctx, id)
 }
 
-func (c *metricsClient) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (users []*contracts.User, err error) {
+func (c *metricsClient) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (users []*contracts.User, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetUsers", begin)
 	}(time.Now())
@@ -653,7 +653,7 @@ func (c *metricsClient) GetUsers(ctx context.Context, pageNumber, pageSize int, 
 	return c.Client.GetUsers(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *metricsClient) GetUsersCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetUsersCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetUsersCount", begin)
 	}(time.Now())
@@ -701,7 +701,7 @@ func (c *metricsClient) GetGroupByID(ctx context.Context, id string) (group *con
 	return c.Client.GetGroupByID(ctx, id)
 }
 
-func (c *metricsClient) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error) {
+func (c *metricsClient) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetGroups", begin)
 	}(time.Now())
@@ -709,7 +709,7 @@ func (c *metricsClient) GetGroups(ctx context.Context, pageNumber, pageSize int,
 	return c.Client.GetGroups(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *metricsClient) GetGroupsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetGroupsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetGroupsCount", begin)
 	}(time.Now())
@@ -765,7 +765,7 @@ func (c *metricsClient) GetOrganizationByName(ctx context.Context, name string) 
 	return c.Client.GetOrganizationByName(ctx, name)
 }
 
-func (c *metricsClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error) {
+func (c *metricsClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetOrganizations", begin)
 	}(time.Now())
@@ -773,7 +773,7 @@ func (c *metricsClient) GetOrganizations(ctx context.Context, pageNumber, pageSi
 	return c.Client.GetOrganizations(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *metricsClient) GetOrganizationsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetOrganizationsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetOrganizationsCount", begin)
 	}(time.Now())
@@ -821,7 +821,7 @@ func (c *metricsClient) GetClientByID(ctx context.Context, id string) (client *c
 	return c.Client.GetClientByID(ctx, id)
 }
 
-func (c *metricsClient) GetClients(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error) {
+func (c *metricsClient) GetClients(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetClients", begin)
 	}(time.Now())
@@ -829,7 +829,7 @@ func (c *metricsClient) GetClients(ctx context.Context, pageNumber, pageSize int
 	return c.Client.GetClients(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *metricsClient) GetClientsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetClientsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetClientsCount", begin)
 	}(time.Now())
@@ -869,7 +869,7 @@ func (c *metricsClient) GetCatalogEntityByID(ctx context.Context, id string) (ca
 	return c.Client.GetCatalogEntityByID(ctx, id)
 }
 
-func (c *metricsClient) GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error) {
+func (c *metricsClient) GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntities", begin)
 	}(time.Now())
@@ -877,7 +877,7 @@ func (c *metricsClient) GetCatalogEntities(ctx context.Context, pageNumber, page
 	return c.Client.GetCatalogEntities(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *metricsClient) GetCatalogEntitiesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetCatalogEntitiesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntitiesCount", begin)
 	}(time.Now())
@@ -885,7 +885,7 @@ func (c *metricsClient) GetCatalogEntitiesCount(ctx context.Context, filters map
 	return c.Client.GetCatalogEntitiesCount(ctx, filters)
 }
 
-func (c *metricsClient) GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
+func (c *metricsClient) GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityParentKeys", begin)
 	}(time.Now())
@@ -893,7 +893,7 @@ func (c *metricsClient) GetCatalogEntityParentKeys(ctx context.Context, pageNumb
 	return c.Client.GetCatalogEntityParentKeys(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *metricsClient) GetCatalogEntityParentKeysCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetCatalogEntityParentKeysCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityParentKeysCount", begin)
 	}(time.Now())
@@ -901,7 +901,7 @@ func (c *metricsClient) GetCatalogEntityParentKeysCount(ctx context.Context, fil
 	return c.Client.GetCatalogEntityParentKeysCount(ctx, filters)
 }
 
-func (c *metricsClient) GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+func (c *metricsClient) GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityParentValues", begin)
 	}(time.Now())
@@ -909,7 +909,7 @@ func (c *metricsClient) GetCatalogEntityParentValues(ctx context.Context, pageNu
 	return c.Client.GetCatalogEntityParentValues(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *metricsClient) GetCatalogEntityParentValuesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetCatalogEntityParentValuesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityParentValuesCount", begin)
 	}(time.Now())
@@ -917,7 +917,7 @@ func (c *metricsClient) GetCatalogEntityParentValuesCount(ctx context.Context, f
 	return c.Client.GetCatalogEntityParentValuesCount(ctx, filters)
 }
 
-func (c *metricsClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
+func (c *metricsClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityKeys", begin)
 	}(time.Now())
@@ -925,7 +925,7 @@ func (c *metricsClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pa
 	return c.Client.GetCatalogEntityKeys(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *metricsClient) GetCatalogEntityKeysCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetCatalogEntityKeysCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityKeysCount", begin)
 	}(time.Now())
@@ -933,7 +933,7 @@ func (c *metricsClient) GetCatalogEntityKeysCount(ctx context.Context, filters m
 	return c.Client.GetCatalogEntityKeysCount(ctx, filters)
 }
 
-func (c *metricsClient) GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+func (c *metricsClient) GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityValues", begin)
 	}(time.Now())
@@ -941,7 +941,7 @@ func (c *metricsClient) GetCatalogEntityValues(ctx context.Context, pageNumber, 
 	return c.Client.GetCatalogEntityValues(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *metricsClient) GetCatalogEntityValuesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetCatalogEntityValuesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityValuesCount", begin)
 	}(time.Now())
@@ -949,7 +949,7 @@ func (c *metricsClient) GetCatalogEntityValuesCount(ctx context.Context, filters
 	return c.Client.GetCatalogEntityValuesCount(ctx, filters)
 }
 
-func (c *metricsClient) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {
+func (c *metricsClient) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (labels []map[string]interface{}, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityLabels", begin)
 	}(time.Now())
@@ -957,7 +957,7 @@ func (c *metricsClient) GetCatalogEntityLabels(ctx context.Context, pageNumber, 
 	return c.Client.GetCatalogEntityLabels(ctx, pageNumber, pageSize, filters)
 }
 
-func (c *metricsClient) GetCatalogEntityLabelsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *metricsClient) GetCatalogEntityLabelsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetCatalogEntityLabelsCount", begin)
 	}(time.Now())

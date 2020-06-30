@@ -14,6 +14,7 @@ import (
 	jwt "github.com/appleboy/gin-jwt/v2"
 	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/config"
+	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/gin-gonic/gin"
 	"github.com/sethgrid/pester"
 )
@@ -370,12 +371,12 @@ func GetOrganizationsFromRequest(c *gin.Context) (organizations []string) {
 }
 
 // SetPermissionsFilters adds permission related filters for groups and organizations
-func SetPermissionsFilters(c *gin.Context, filters map[string][]string) map[string][]string {
+func SetPermissionsFilters(c *gin.Context, filters map[helpers.FilterType][]string) map[helpers.FilterType][]string {
 
 	if RequestTokenHasSomeRole(c, RoleOrganizationPipelinesViewer, RoleOrganizationPipelinesOperator) {
-		filters["organizations"] = GetOrganizationsFromRequest(c)
+		filters[helpers.FilterOrganizations] = GetOrganizationsFromRequest(c)
 	} else if RequestTokenHasSomeRole(c, RoleGroupPipelinesViewer, RoleGroupPipelinesOperator) {
-		filters["groups"] = GetGroupsFromRequest(c)
+		filters[helpers.FilterGroups] = GetGroupsFromRequest(c)
 	}
 
 	return filters

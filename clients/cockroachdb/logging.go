@@ -127,7 +127,7 @@ func (c *loggingClient) UnarchiveComputedPipeline(ctx context.Context, repoSourc
 	return c.Client.UnarchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
 }
 
-func (c *loggingClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
+func (c *loggingClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelines", err) }()
 
 	return c.Client.GetPipelines(ctx, pageNumber, pageSize, filters, sortings, optimized)
@@ -139,7 +139,7 @@ func (c *loggingClient) GetPipelinesByRepoName(ctx context.Context, repoName str
 	return c.Client.GetPipelinesByRepoName(ctx, repoName, optimized)
 }
 
-func (c *loggingClient) GetPipelinesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetPipelinesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelinesCount", err) }()
 
 	return c.Client.GetPipelinesCount(ctx, filters)
@@ -157,13 +157,13 @@ func (c *loggingClient) GetPipelineRecentBuilds(ctx context.Context, repoSource,
 	return c.Client.GetPipelineRecentBuilds(ctx, repoSource, repoOwner, repoName, optimized)
 }
 
-func (c *loggingClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField, optimized bool) (builds []*contracts.Build, err error) {
+func (c *loggingClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField, optimized bool) (builds []*contracts.Build, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelineBuilds", err) }()
 
 	return c.Client.GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings, optimized)
 }
 
-func (c *loggingClient) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelineBuildsCount", err) }()
 
 	return c.Client.GetPipelineBuildsCount(ctx, repoSource, repoOwner, repoName, filters)
@@ -235,13 +235,13 @@ func (c *loggingClient) GetPipelineBuildMaxResourceUtilization(ctx context.Conte
 	return c.Client.GetPipelineBuildMaxResourceUtilization(ctx, repoSource, repoOwner, repoName, lastNRecords)
 }
 
-func (c *loggingClient) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (releases []*contracts.Release, err error) {
+func (c *loggingClient) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (releases []*contracts.Release, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelineReleases", err) }()
 
 	return c.Client.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *loggingClient) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelineReleasesCount", err) }()
 
 	return c.Client.GetPipelineReleasesCount(ctx, repoSource, repoOwner, repoName, filters)
@@ -277,19 +277,19 @@ func (c *loggingClient) GetPipelineReleaseMaxResourceUtilization(ctx context.Con
 	return c.Client.GetPipelineReleaseMaxResourceUtilization(ctx, repoSource, repoOwner, repoName, targetName, lastNRecords)
 }
 
-func (c *loggingClient) GetBuildsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetBuildsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetBuildsCount", err) }()
 
 	return c.Client.GetBuildsCount(ctx, filters)
 }
 
-func (c *loggingClient) GetReleasesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetReleasesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetReleasesCount", err) }()
 
 	return c.Client.GetReleasesCount(ctx, filters)
 }
 
-func (c *loggingClient) GetBuildsDuration(ctx context.Context, filters map[string][]string) (duration time.Duration, err error) {
+func (c *loggingClient) GetBuildsDuration(ctx context.Context, filters map[helpers.FilterType][]string) (duration time.Duration, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetBuildsDuration", err) }()
 
 	return c.Client.GetBuildsDuration(ctx, filters)
@@ -307,37 +307,37 @@ func (c *loggingClient) GetFirstReleaseTimes(ctx context.Context) (times []time.
 	return c.Client.GetFirstReleaseTimes(ctx)
 }
 
-func (c *loggingClient) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (durations []map[string]interface{}, err error) {
+func (c *loggingClient) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (durations []map[string]interface{}, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelineBuildsDurations", err) }()
 
 	return c.Client.GetPipelineBuildsDurations(ctx, repoSource, repoOwner, repoName, filters)
 }
 
-func (c *loggingClient) GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (durations []map[string]interface{}, err error) {
+func (c *loggingClient) GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (durations []map[string]interface{}, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelineReleasesDurations", err) }()
 
 	return c.Client.GetPipelineReleasesDurations(ctx, repoSource, repoOwner, repoName, filters)
 }
 
-func (c *loggingClient) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+func (c *loggingClient) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelineBuildsCPUUsageMeasurements", err) }()
 
 	return c.Client.GetPipelineBuildsCPUUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
 }
 
-func (c *loggingClient) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+func (c *loggingClient) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelineReleasesCPUUsageMeasurements", err) }()
 
 	return c.Client.GetPipelineReleasesCPUUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
 }
 
-func (c *loggingClient) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+func (c *loggingClient) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelineBuildsMemoryUsageMeasurements", err) }()
 
 	return c.Client.GetPipelineBuildsMemoryUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
 }
 
-func (c *loggingClient) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+func (c *loggingClient) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelineReleasesMemoryUsageMeasurements", err) }()
 
 	return c.Client.GetPipelineReleasesMemoryUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
@@ -349,37 +349,37 @@ func (c *loggingClient) GetLabelValues(ctx context.Context, labelKey string) (la
 	return c.Client.GetLabelValues(ctx, labelKey)
 }
 
-func (c *loggingClient) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (measurements []map[string]interface{}, err error) {
+func (c *loggingClient) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetFrequentLabels", err) }()
 
 	return c.Client.GetFrequentLabels(ctx, pageNumber, pageSize, filters)
 }
 
-func (c *loggingClient) GetFrequentLabelsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetFrequentLabelsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetFrequentLabelsCount", err) }()
 
 	return c.Client.GetFrequentLabelsCount(ctx, filters)
 }
 
-func (c *loggingClient) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
+func (c *loggingClient) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (pipelines []map[string]interface{}, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelinesWithMostBuilds", err) }()
 
 	return c.Client.GetPipelinesWithMostBuilds(ctx, pageNumber, pageSize, filters)
 }
 
-func (c *loggingClient) GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelinesWithMostBuildsCount", err) }()
 
 	return c.Client.GetPipelinesWithMostBuildsCount(ctx, filters)
 }
 
-func (c *loggingClient) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (pipelines []map[string]interface{}, err error) {
+func (c *loggingClient) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (pipelines []map[string]interface{}, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelinesWithMostReleases", err) }()
 
 	return c.Client.GetPipelinesWithMostReleases(ctx, pageNumber, pageSize, filters)
 }
 
-func (c *loggingClient) GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetPipelinesWithMostReleasesCount", err) }()
 
 	return c.Client.GetPipelinesWithMostReleasesCount(ctx, filters)
@@ -499,13 +499,13 @@ func (c *loggingClient) GetUserByID(ctx context.Context, id string) (user *contr
 	return c.Client.GetUserByID(ctx, id)
 }
 
-func (c *loggingClient) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (users []*contracts.User, err error) {
+func (c *loggingClient) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (users []*contracts.User, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetUsers", err) }()
 
 	return c.Client.GetUsers(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *loggingClient) GetUsersCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetUsersCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetUsersCount", err) }()
 
 	return c.Client.GetUsersCount(ctx, filters)
@@ -541,13 +541,13 @@ func (c *loggingClient) GetGroupByID(ctx context.Context, id string) (group *con
 	return c.Client.GetGroupByID(ctx, id)
 }
 
-func (c *loggingClient) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error) {
+func (c *loggingClient) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetGroups", err) }()
 
 	return c.Client.GetGroups(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *loggingClient) GetGroupsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetGroupsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetGroupsCount", err) }()
 
 	return c.Client.GetGroupsCount(ctx, filters)
@@ -589,13 +589,13 @@ func (c *loggingClient) GetOrganizationByName(ctx context.Context, name string) 
 	return c.Client.GetOrganizationByName(ctx, name)
 }
 
-func (c *loggingClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error) {
+func (c *loggingClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetGroups", err) }()
 
 	return c.Client.GetOrganizations(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *loggingClient) GetOrganizationsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetOrganizationsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetGroupsCount", err) }()
 
 	return c.Client.GetOrganizationsCount(ctx, filters)
@@ -631,13 +631,13 @@ func (c *loggingClient) GetClientByID(ctx context.Context, id string) (client *c
 	return c.Client.GetClientByID(ctx, id)
 }
 
-func (c *loggingClient) GetClients(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error) {
+func (c *loggingClient) GetClients(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetClients", err) }()
 
 	return c.Client.GetClients(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *loggingClient) GetClientsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetClientsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetClientsCount", err) }()
 
 	return c.Client.GetClientsCount(ctx, filters)
@@ -667,73 +667,73 @@ func (c *loggingClient) GetCatalogEntityByID(ctx context.Context, id string) (ca
 	return c.Client.GetCatalogEntityByID(ctx, id)
 }
 
-func (c *loggingClient) GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error) {
+func (c *loggingClient) GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntities", err) }()
 
 	return c.Client.GetCatalogEntities(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *loggingClient) GetCatalogEntitiesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetCatalogEntitiesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntitiesCount", err) }()
 
 	return c.Client.GetCatalogEntitiesCount(ctx, filters)
 }
 
-func (c *loggingClient) GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
+func (c *loggingClient) GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityParentKeys", err) }()
 
 	return c.Client.GetCatalogEntityParentKeys(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *loggingClient) GetCatalogEntityParentKeysCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetCatalogEntityParentKeysCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityParentKeysCount", err) }()
 
 	return c.Client.GetCatalogEntityParentKeysCount(ctx, filters)
 }
 
-func (c *loggingClient) GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+func (c *loggingClient) GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityParentValues", err) }()
 
 	return c.Client.GetCatalogEntityParentValues(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *loggingClient) GetCatalogEntityParentValuesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetCatalogEntityParentValuesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityParentValuesCount", err) }()
 
 	return c.Client.GetCatalogEntityParentValuesCount(ctx, filters)
 }
 
-func (c *loggingClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
+func (c *loggingClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityKeys", err) }()
 
 	return c.Client.GetCatalogEntityKeys(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *loggingClient) GetCatalogEntityKeysCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetCatalogEntityKeysCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityKeysCount", err) }()
 
 	return c.Client.GetCatalogEntityKeysCount(ctx, filters)
 }
 
-func (c *loggingClient) GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[string][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+func (c *loggingClient) GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityValues", err) }()
 
 	return c.Client.GetCatalogEntityValues(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c *loggingClient) GetCatalogEntityValuesCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetCatalogEntityValuesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityValuesCount", err) }()
 
 	return c.Client.GetCatalogEntityValuesCount(ctx, filters)
 }
 
-func (c *loggingClient) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[string][]string) (labels []map[string]interface{}, err error) {
+func (c *loggingClient) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (labels []map[string]interface{}, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityLabels", err) }()
 
 	return c.Client.GetCatalogEntityLabels(ctx, pageNumber, pageSize, filters)
 }
 
-func (c *loggingClient) GetCatalogEntityLabelsCount(ctx context.Context, filters map[string][]string) (count int, err error) {
+func (c *loggingClient) GetCatalogEntityLabelsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
 	defer func() { helpers.HandleLogError(c.prefix, "GetCatalogEntityLabelsCount", err) }()
 
 	return c.Client.GetCatalogEntityLabelsCount(ctx, filters)

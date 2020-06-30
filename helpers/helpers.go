@@ -21,7 +21,7 @@ func StringArrayContains(array []string, value string) bool {
 }
 
 // GetQueryParameters extracts query parameters specified according to https://jsonapi.org/format/
-func GetQueryParameters(c *gin.Context) (int, int, map[string][]string, []OrderField) {
+func GetQueryParameters(c *gin.Context) (int, int, map[FilterType][]string, []OrderField) {
 	return GetPageNumber(c), GetPageSize(c), GetFilters(c), GetSorting(c)
 }
 
@@ -76,45 +76,46 @@ func GetSorting(c *gin.Context) (sorting []OrderField) {
 }
 
 // GetFilters extracts specific filter parameters specified according to https://jsonapi.org/format/
-func GetFilters(c *gin.Context) map[string][]string {
+func GetFilters(c *gin.Context) map[FilterType][]string {
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w&filter[labels]=team%3Destafette-team)
-	filters := map[string][]string{}
-	filters["status"] = GetStatusFilter(c)
-	filters["since"] = GetSinceFilter(c)
-	filters["labels"] = GetLabelsFilter(c)
-	filters["search"] = GetGenericFilter(c, "search")
-	filters["recent-committer"] = GetGenericFilter(c, "recent-committer")
-	filters["recent-releaser"] = GetGenericFilter(c, "recent-releaser")
-	filters["group-id"] = GetGenericFilter(c, "group-id")
-	filters["organization-id"] = GetGenericFilter(c, "organization-id")
-	filters["pipeline"] = GetGenericFilter(c, "pipeline")
-	filters["parent"] = GetGenericFilter(c, "parent")
-	filters["entity"] = GetGenericFilter(c, "entity")
+	filters := map[FilterType][]string{}
+	filters[FilterStatus] = GetStatusFilter(c)
+	filters[FilterSince] = GetSinceFilter(c)
+	filters[FilterLabels] = GetLabelsFilter(c)
+	filters[FilterSearch] = GetGenericFilter(c, FilterSearch)
+	filters[FilterRecentCommitter] = GetGenericFilter(c, FilterRecentCommitter)
+	filters[FilterRecentReleaser] = GetGenericFilter(c, FilterRecentReleaser)
+	filters[FilterGroupID] = GetGenericFilter(c, FilterGroupID)
+	filters[FilterOrganizationID] = GetGenericFilter(c, FilterOrganizationID)
+	filters[FilterPipeline] = GetGenericFilter(c, FilterPipeline)
+	filters[FilterParent] = GetGenericFilter(c, FilterParent)
+	filters[FilterEntity] = GetGenericFilter(c, FilterEntity)
+
 	return filters
 }
 
 // GetStatusFilter extracts a filter on status
 func GetStatusFilter(c *gin.Context, defaultValues ...string) []string {
-	return GetGenericFilter(c, "status", defaultValues...)
+	return GetGenericFilter(c, FilterStatus, defaultValues...)
 }
 
 // GetLastFilter extracts a filter to select last n items
 func GetLastFilter(c *gin.Context, defaultValue int) []string {
-	return GetGenericFilter(c, "last", strconv.Itoa(defaultValue))
+	return GetGenericFilter(c, FilterLast, strconv.Itoa(defaultValue))
 }
 
 // GetSinceFilter extracts a filter on build/release date
 func GetSinceFilter(c *gin.Context) []string {
-	return GetGenericFilter(c, "since", "eternity")
+	return GetGenericFilter(c, FilterSince, "eternity")
 }
 
 // GetLabelsFilter extracts a filter to select specific labels
 func GetLabelsFilter(c *gin.Context) []string {
-	return GetGenericFilter(c, "labels")
+	return GetGenericFilter(c, FilterLabels)
 }
 
 // GetGenericFilter extracts a filter
-func GetGenericFilter(c *gin.Context, filterKey string, defaultValues ...string) []string {
+func GetGenericFilter(c *gin.Context, filterKey FilterType, defaultValues ...string) []string {
 
 	filterValues, filterExist := c.GetQueryArray(fmt.Sprintf("filter[%v]", filterKey))
 	if filterExist && len(filterValues) > 0 && filterValues[0] != "" {
