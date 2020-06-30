@@ -547,11 +547,11 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 		jwtMiddlewareRoutes.GET("/api/admin/pipelines/:source/:owner/:repo", rbacHandler.GetPipeline)
 		jwtMiddlewareRoutes.PUT("/api/admin/pipelines/:source/:owner/:repo", rbacHandler.UpdatePipeline)
 
-		jwtMiddlewareRoutes.POST("/api/batch/users", rbacHandler.BatchUpdateUsers)
-		jwtMiddlewareRoutes.POST("/api/batch/groups", rbacHandler.BatchUpdateGroups)
-		jwtMiddlewareRoutes.POST("/api/batch/organizations", rbacHandler.BatchUpdateOrganizations)
-		jwtMiddlewareRoutes.POST("/api/batch/clients", rbacHandler.BatchUpdateClients)
-		jwtMiddlewareRoutes.POST("/api/batch/pipelines", rbacHandler.BatchUpdatePipelines)
+		jwtMiddlewareRoutes.POST("/api/admin/batch/users", rbacHandler.BatchUpdateUsers)
+		jwtMiddlewareRoutes.POST("/api/admin/batch/groups", rbacHandler.BatchUpdateGroups)
+		jwtMiddlewareRoutes.POST("/api/admin/batch/organizations", rbacHandler.BatchUpdateOrganizations)
+		jwtMiddlewareRoutes.POST("/api/admin/batch/clients", rbacHandler.BatchUpdateClients)
+		jwtMiddlewareRoutes.POST("/api/admin/batch/pipelines", rbacHandler.BatchUpdatePipelines)
 
 		jwtMiddlewareRoutes.GET("/api/groups", rbacHandler.GetGroups)
 		jwtMiddlewareRoutes.GET("/api/groups/:id", rbacHandler.GetGroup)
