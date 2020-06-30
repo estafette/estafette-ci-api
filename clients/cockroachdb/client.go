@@ -3331,6 +3331,9 @@ func whereClauseGeneratorForGroupsFilter(query sq.SelectBuilder, alias string, f
 			expressions = append(expressions, sq.Expr(fmt.Sprintf("%v.groups @> ?", alias), string(bytes)))
 		}
 		query = query.Where(expressions)
+
+		sql, _, _ := query.ToSql()
+		log.Debug().Str("sql", sql).Msg("whereClauseGeneratorForGroupsFilter")
 	}
 
 	return query, nil
@@ -3356,6 +3359,9 @@ func whereClauseGeneratorForOrganizationsFilter(query sq.SelectBuilder, alias st
 			expressions = append(expressions, sq.Expr(fmt.Sprintf("%v.organizations @> ?", alias), string(bytes)))
 		}
 		query = query.Where(expressions)
+
+		sql, _, _ := query.ToSql()
+		log.Debug().Str("sql", sql).Msg("whereClauseGeneratorForOrganizationsFilter")
 	}
 
 	return query, nil
