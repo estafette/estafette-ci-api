@@ -413,6 +413,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
 	})
+
 	t.Run("ReturnsPipelinesForSinceFilter", func(t *testing.T) {
 
 		if testing.Short() {
@@ -573,6 +574,84 @@ func TestIngrationGetPipelines(t *testing.T) {
 
 		filters := map[string][]string{
 			"recent-releaser": {"me@estafette.io"},
+		}
+
+		// act
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []helpers.OrderField{}, false)
+
+		assert.Nil(t, err)
+		assert.True(t, len(pipelines) > 0)
+	})
+
+	t.Run("ReturnsPipelinesForGroupsFilter", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+		pipeline := contracts.Pipeline{
+			RepoSource: build.RepoSource,
+			RepoOwner:  build.RepoOwner,
+			RepoName:   build.RepoName,
+			Groups: []*contracts.Group{
+				{
+					ID:   "123123",
+					Name: "my group",
+				},
+			},
+		}
+		err = cockroachdbClient.UpdateComputedPipelinePermissions(ctx, pipeline)
+		assert.Nil(t, err)
+
+		filters := map[string][]string{
+			"groups": {"my group", "my other group"},
+		}
+
+		// act
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []helpers.OrderField{}, false)
+
+		assert.Nil(t, err)
+		assert.True(t, len(pipelines) > 0)
+	})
+
+	t.Run("ReturnsPipelinesForOrganizationsFilter", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+		pipeline := contracts.Pipeline{
+			RepoSource: build.RepoSource,
+			RepoOwner:  build.RepoOwner,
+			RepoName:   build.RepoName,
+			Organizations: []*contracts.Organization{
+				{
+					ID:   "234423435",
+					Name: "my org",
+				},
+			},
+		}
+		err = cockroachdbClient.UpdateComputedPipelinePermissions(ctx, pipeline)
+		assert.Nil(t, err)
+
+		filters := map[string][]string{
+			"organizations": {"my org", "my other org"},
 		}
 
 		// act

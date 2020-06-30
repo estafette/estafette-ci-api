@@ -3172,6 +3172,14 @@ func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias, sinceColum
 	if err != nil {
 		return query, err
 	}
+	query, err = whereClauseGeneratorForGroupsFilter(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForOrganizationsFilter(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
 
 	return query, nil
 }
@@ -3298,6 +3306,56 @@ func whereClauseGeneratorForRecentReleaserFilter(query sq.SelectBuilder, alias s
 		}
 
 		query = query.Where(fmt.Sprintf("%v.recent_releasers @> ?", alias), string(bytes))
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForGroupsFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if groups, ok := filters["groups"]; ok && len(groups) > 0 {
+
+		expressions := sq.Or{}
+		for _, g := range groups {
+			groupParam := []*contracts.Group{
+				{
+					Name: g,
+				},
+			}
+
+			bytes, err := json.Marshal(groupParam)
+			if err != nil {
+				return query, err
+			}
+
+			expressions = append(expressions, sq.Expr(fmt.Sprintf("%v.groups @> ?", alias), string(bytes)))
+		}
+		query = query.Where(expressions)
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForOrganizationsFilter(query sq.SelectBuilder, alias string, filters map[string][]string) (sq.SelectBuilder, error) {
+
+	if organizations, ok := filters["organizations"]; ok && len(organizations) > 0 {
+
+		expressions := sq.Or{}
+		for _, o := range organizations {
+			organizationParam := []*contracts.Organization{
+				{
+					Name: o,
+				},
+			}
+
+			bytes, err := json.Marshal(organizationParam)
+			if err != nil {
+				return query, err
+			}
+
+			expressions = append(expressions, sq.Expr(fmt.Sprintf("%v.organizations @> ?", alias), string(bytes)))
+		}
+		query = query.Where(expressions)
 	}
 
 	return query, nil

@@ -72,6 +72,8 @@ func (h *Handler) GetPipelines(c *gin.Context) {
 
 	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
 
+	filters = auth.GetPermissionsFilters(c, filters)
+
 	response, err := helpers.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			pipelines, err := h.cockroachDBClient.GetPipelines(c.Request.Context(), pageNumber, pageSize, filters, sortings, true)

@@ -316,3 +316,64 @@ func RequestTokenHasPermission(c *gin.Context, permission Permission) bool {
 
 	return false
 }
+
+func GetGroupsFromRequest(c *gin.Context) (groups []string) {
+
+	if !RequestTokenIsValid(c) {
+		return
+	}
+
+	claims := jwt.ExtractClaims(c)
+	val, ok := claims["groups"]
+	if !ok {
+		return
+	}
+
+	groupsFromClaim, ok := val.([]interface{})
+	if !ok {
+		return
+	}
+
+	for _, r := range groupsFromClaim {
+		if rval, ok := r.(string); ok {
+			groups = append(groups, rval)
+		}
+	}
+
+	return
+}
+
+func GetOrganizationsFromRequest(c *gin.Context) (organizations []string) {
+
+	if !RequestTokenIsValid(c) {
+		return
+	}
+
+	claims := jwt.ExtractClaims(c)
+	val, ok := claims["organizations"]
+	if !ok {
+		return
+	}
+
+	organizationsFromClaim, ok := val.([]interface{})
+	if !ok {
+		return
+	}
+
+	for _, r := range organizationsFromClaim {
+		if rval, ok := r.(string); ok {
+			organizations = append(organizations, rval)
+		}
+	}
+
+	return
+}
+
+// GetPermissionsFilters extracts permission related filters for groups and organizations
+func GetPermissionsFilters(c *gin.Context, filters map[string][]string) map[string][]string {
+
+	filters["groups"] = GetGroupsFromRequest(c)
+	filters["organizations"] = GetOrganizationsFromRequest(c)
+
+	return filters
+}
