@@ -72,7 +72,7 @@ func (h *Handler) GetPipelines(c *gin.Context) {
 
 	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
 
-	filters = auth.GetPermissionsFilters(c, filters)
+	filters = auth.SetPermissionsFilters(c, filters)
 
 	response, err := helpers.GetPagedListResponse(
 		func() ([]interface{}, error) {
