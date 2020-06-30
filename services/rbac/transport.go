@@ -1018,6 +1018,404 @@ func (h *Handler) UpdatePipeline(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
 }
 
+func (h *Handler) BatchUpdateUsers(c *gin.Context) {
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionUsersUpdate) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	var body struct {
+		Users        []string                `json:"users"`
+		Role         *string                 `json:"role"`
+		Group        *contracts.Group        `json:"group"`
+		Organization *contracts.Organization `json:"organization"`
+	}
+
+	err := c.BindJSON(&body)
+	if err != nil {
+		errorMessage := fmt.Sprint("Binding BatchUpdateUsers body failed")
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	if len(body.Users) == 0 || (body.Role == nil && body.Group == nil && body.Organization == nil) {
+		log.Error().Err(err).Msg("Request body is incorrect")
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	// http://jmoiron.net/blog/limiting-concurrency-in-go/
+	concurrency := 10
+	semaphore := make(chan bool, concurrency)
+
+	resultChannel := make(chan error, len(body.Users))
+
+	for _, u := range body.Users {
+		// try to fill semaphore up to it's full size otherwise wait for a routine to finish
+		semaphore <- true
+
+		go func(u string) {
+			// lower semaphore once the routine's finished, making room for another one to start
+			defer func() { <-semaphore }()
+
+			user, err := h.cockroachdbClient.GetUserByID(ctx, u)
+			if err != nil {
+				resultChannel <- err
+				return
+			}
+
+			// add role if not present
+			if body.Role != nil {
+				hasRole := false
+				for _, r := range user.Roles {
+					if r != nil && *r == *body.Role {
+						hasRole = true
+					}
+				}
+				if !hasRole {
+					user.Roles = append(user.Roles, body.Role)
+				}
+			}
+
+			// add group if not present
+			if body.Group != nil {
+				hasGroup := false
+				for _, g := range user.Groups {
+					if g != nil && g.Name == body.Group.Name && g.ID == body.Group.ID {
+						hasGroup = true
+					}
+				}
+				if !hasGroup {
+					user.Groups = append(user.Groups, body.Group)
+				}
+			}
+
+			// add organization if not present
+			if body.Organization != nil {
+				hasOrganization := false
+				for _, o := range user.Organizations {
+					if o != nil && o.Name == body.Organization.Name && o.ID == body.Organization.ID {
+						hasOrganization = true
+					}
+				}
+				if !hasOrganization {
+					user.Organizations = append(user.Organizations, body.Organization)
+				}
+			}
+
+			err = h.service.UpdateUser(ctx, *user)
+			if err != nil {
+				resultChannel <- err
+				return
+			}
+
+			resultChannel <- nil
+		}(u)
+	}
+
+	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
+	for i := 0; i < cap(semaphore); i++ {
+		semaphore <- true
+	}
+
+	close(resultChannel)
+	for err := range resultChannel {
+		if err != nil {
+			log.Error().Err(err).Msg("Failed updating user")
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
+func (h *Handler) BatchUpdateGroups(c *gin.Context) {
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionGroupsUpdate) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	var body struct {
+		Groups       []string                `json:"groups"`
+		Role         *string                 `json:"role"`
+		Organization *contracts.Organization `json:"organization"`
+	}
+
+	err := c.BindJSON(&body)
+	if err != nil {
+		errorMessage := fmt.Sprint("Binding BatchUpdateGroups body failed")
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	if len(body.Groups) == 0 || (body.Role == nil && body.Organization == nil) {
+		log.Error().Err(err).Msg("Request body is incorrect")
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	// http://jmoiron.net/blog/limiting-concurrency-in-go/
+	concurrency := 10
+	semaphore := make(chan bool, concurrency)
+
+	resultChannel := make(chan error, len(body.Groups))
+
+	for _, g := range body.Groups {
+		// try to fill semaphore up to it's full size otherwise wait for a routine to finish
+		semaphore <- true
+
+		go func(g string) {
+			// lower semaphore once the routine's finished, making room for another one to start
+			defer func() { <-semaphore }()
+
+			group, err := h.cockroachdbClient.GetGroupByID(ctx, g)
+			if err != nil {
+				resultChannel <- err
+				return
+			}
+
+			// add role if not present
+			if body.Role != nil {
+				hasRole := false
+				for _, r := range group.Roles {
+					if r != nil && *r == *body.Role {
+						hasRole = true
+					}
+				}
+				if !hasRole {
+					group.Roles = append(group.Roles, body.Role)
+				}
+			}
+
+			// add organization if not present
+			if body.Organization != nil {
+				hasOrganization := false
+				for _, o := range group.Organizations {
+					if o != nil && o.Name == body.Organization.Name && o.ID == body.Organization.ID {
+						hasOrganization = true
+					}
+				}
+				if !hasOrganization {
+					group.Organizations = append(group.Organizations, body.Organization)
+				}
+			}
+
+			err = h.service.UpdateGroup(ctx, *group)
+			if err != nil {
+				resultChannel <- err
+				return
+			}
+
+			resultChannel <- nil
+		}(g)
+	}
+
+	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
+	for i := 0; i < cap(semaphore); i++ {
+		semaphore <- true
+	}
+
+	close(resultChannel)
+	for err := range resultChannel {
+		if err != nil {
+			log.Error().Err(err).Msg("Failed updating group")
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
+func (h *Handler) BatchUpdateOrganizations(c *gin.Context) {
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsUpdate) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	var body struct {
+		Organizations []string `json:"organizations"`
+		Role          *string  `json:"role"`
+	}
+
+	err := c.BindJSON(&body)
+	if err != nil {
+		errorMessage := fmt.Sprint("Binding BatchUpdateOrganizations body failed")
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	if len(body.Organizations) == 0 || body.Role == nil {
+		log.Error().Err(err).Msg("Request body is incorrect")
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	// http://jmoiron.net/blog/limiting-concurrency-in-go/
+	concurrency := 10
+	semaphore := make(chan bool, concurrency)
+
+	resultChannel := make(chan error, len(body.Organizations))
+
+	for _, o := range body.Organizations {
+		// try to fill semaphore up to it's full size otherwise wait for a routine to finish
+		semaphore <- true
+
+		go func(o string) {
+			// lower semaphore once the routine's finished, making room for another one to start
+			defer func() { <-semaphore }()
+
+			organization, err := h.cockroachdbClient.GetOrganizationByID(ctx, o)
+			if err != nil {
+				resultChannel <- err
+				return
+			}
+
+			// add role if not present
+			if body.Role != nil {
+				hasRole := false
+				for _, r := range organization.Roles {
+					if r != nil && *r == *body.Role {
+						hasRole = true
+					}
+				}
+				if !hasRole {
+					organization.Roles = append(organization.Roles, body.Role)
+				}
+			}
+
+			err = h.service.UpdateOrganization(ctx, *organization)
+			if err != nil {
+				resultChannel <- err
+				return
+			}
+
+			resultChannel <- nil
+		}(o)
+	}
+
+	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
+	for i := 0; i < cap(semaphore); i++ {
+		semaphore <- true
+	}
+
+	close(resultChannel)
+	for err := range resultChannel {
+		if err != nil {
+			log.Error().Err(err).Msg("Failed updating organization")
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
+func (h *Handler) BatchUpdateClients(c *gin.Context) {
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsUpdate) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	var body struct {
+		Clients []string `json:"clients"`
+		Role    *string  `json:"role"`
+	}
+
+	err := c.BindJSON(&body)
+	if err != nil {
+		errorMessage := fmt.Sprint("Binding BatchUpdateClients body failed")
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	if len(body.Clients) == 0 || body.Role == nil {
+		log.Error().Err(err).Msg("Request body is incorrect")
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	// http://jmoiron.net/blog/limiting-concurrency-in-go/
+	concurrency := 10
+	semaphore := make(chan bool, concurrency)
+
+	resultChannel := make(chan error, len(body.Clients))
+
+	for _, c := range body.Clients {
+		// try to fill semaphore up to it's full size otherwise wait for a routine to finish
+		semaphore <- true
+
+		go func(c string) {
+			// lower semaphore once the routine's finished, making room for another one to start
+			defer func() { <-semaphore }()
+
+			client, err := h.cockroachdbClient.GetClientByID(ctx, c)
+			if err != nil {
+				resultChannel <- err
+				return
+			}
+
+			// add role if not present
+			if body.Role != nil {
+				hasRole := false
+				for _, r := range client.Roles {
+					if r != nil && *r == *body.Role {
+						hasRole = true
+					}
+				}
+				if !hasRole {
+					client.Roles = append(client.Roles, body.Role)
+				}
+			}
+
+			err = h.service.UpdateClient(ctx, *client)
+			if err != nil {
+				resultChannel <- err
+				return
+			}
+
+			resultChannel <- nil
+		}(c)
+	}
+
+	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
+	for i := 0; i < cap(semaphore); i++ {
+		semaphore <- true
+	}
+
+	close(resultChannel)
+	for err := range resultChannel {
+		if err != nil {
+			log.Error().Err(err).Msg("Failed updating client")
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
 func (h *Handler) BatchUpdatePipelines(c *gin.Context) {
 
 	// ensure the request has the correct permission
