@@ -131,3 +131,9 @@ func (s *loggingService) GetInheritedRolesForUser(ctx context.Context, user cont
 
 	return s.Service.GetInheritedRolesForUser(ctx, user)
 }
+
+func (s *loggingService) GetInheritedOrganizationsForUser(ctx context.Context, user contracts.User) (organizations []*contracts.Organization, err error) {
+	defer func() { helpers.HandleLogError(s.prefix, "GetInheritedOrganizationsForUser", err) }()
+
+	return s.Service.GetInheritedOrganizationsForUser(ctx, user)
+}

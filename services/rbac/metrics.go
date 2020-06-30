@@ -168,3 +168,11 @@ func (s *metricsService) GetInheritedRolesForUser(ctx context.Context, user cont
 
 	return s.Service.GetInheritedRolesForUser(ctx, user)
 }
+
+func (s *metricsService) GetInheritedOrganizationsForUser(ctx context.Context, user contracts.User) (organizations []*contracts.Organization, err error) {
+	defer func(begin time.Time) {
+		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GetInheritedOrganizationsForUser", begin)
+	}(time.Now())
+
+	return s.Service.GetInheritedOrganizationsForUser(ctx, user)
+}

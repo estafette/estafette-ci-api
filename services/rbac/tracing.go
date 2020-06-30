@@ -151,3 +151,10 @@ func (s *tracingService) GetInheritedRolesForUser(ctx context.Context, user cont
 
 	return s.Service.GetInheritedRolesForUser(ctx, user)
 }
+
+func (s *tracingService) GetInheritedOrganizationsForUser(ctx context.Context, user contracts.User) (organizations []*contracts.Organization, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "GetInheritedOrganizationsForUser"))
+	defer func() { helpers.FinishSpanWithError(span, err) }()
+
+	return s.Service.GetInheritedOrganizationsForUser(ctx, user)
+}

@@ -268,12 +268,19 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 			}
 		}(*user)
 
-		// get all roles the user inherites from groups and organizations
+		// get all roles the user inherits from groups and organizations
 		inheritedRoles, err := h.service.GetInheritedRolesForUser(ctx, *user)
 		if err != nil {
 			return nil, err
 		}
 		user.Roles = inheritedRoles
+
+		// get all organizations the user inherits from groups
+		inheritedOrganizations, err := h.service.GetInheritedOrganizationsForUser(ctx, *user)
+		if err != nil {
+			return nil, err
+		}
+		user.Organizations = inheritedOrganizations
 
 		return user, nil
 	}

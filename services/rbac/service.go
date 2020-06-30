@@ -48,6 +48,7 @@ type Service interface {
 	UpdatePipeline(ctx context.Context, pipeline contracts.Pipeline) (err error)
 
 	GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error)
+	GetInheritedOrganizationsForUser(ctx context.Context, user contracts.User) (organizations []*contracts.Organization, err error)
 }
 
 // NewService returns a github.Service to handle incoming webhook events
@@ -426,6 +427,41 @@ func (s *service) dedupeRoles(retrievedRoles []*string) (roles []*string) {
 	}
 
 	return roles
+}
+
+func (s *service) GetInheritedOrganizationsForUser(ctx context.Context, user contracts.User) (organizations []*contracts.Organization, err error) {
+	retrievedOrganizations := make([]*contracts.Organization, 0)
+
+	// get direct roles from user
+	retrievedOrganizations = append(retrievedOrganizations, user.Organizations...)
+
+	// get organizations from groups linked to user
+	for _, g := range user.Groups {
+		// get roles from organizations linked to groups
+		for _, o := range g.Organizations {
+			retrievedOrganizations = append(retrievedOrganizations, o)
+		}
+	}
+
+	return s.dedupeOrganizations(retrievedOrganizations), nil
+}
+
+func (s *service) dedupeOrganizations(retrievedOrganizations []*contracts.Organization) (organizations []*contracts.Organization) {
+	organizations = make([]*contracts.Organization, 0)
+	for _, o := range retrievedOrganizations {
+		isInOrganizations := false
+		for _, oo := range organizations {
+			if o != nil && oo != nil && o.ID == oo.ID {
+				isInOrganizations = true
+				break
+			}
+		}
+		if !isInOrganizations {
+			organizations = append(organizations, o)
+		}
+	}
+
+	return organizations
 }
 
 func (s *service) setAdminRoleForUserIfConfigured(user *contracts.User) {
