@@ -620,6 +620,11 @@ func TestIngrationGetPipelines(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
+		for _, p := range pipelines {
+			for _, g := range p.Groups {
+				assert.Equal(t, "my group", g.Name)
+			}
+		}
 	})
 
 	t.Run("ReturnsPipelinesForOrganizationsFilter", func(t *testing.T) {
@@ -659,6 +664,11 @@ func TestIngrationGetPipelines(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
+		for _, p := range pipelines {
+			for _, o := range p.Organizations {
+				assert.Equal(t, "my org", o.Name)
+			}
+		}
 	})
 }
 
