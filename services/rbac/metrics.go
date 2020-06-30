@@ -161,14 +161,6 @@ func (s *metricsService) UpdatePipeline(ctx context.Context, pipeline contracts.
 	return s.Service.UpdatePipeline(ctx, pipeline)
 }
 
-func (s *metricsService) TogglePipelineArchival(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
-	defer func(begin time.Time) {
-		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "TogglePipelineArchival", begin)
-	}(time.Now())
-
-	return s.Service.TogglePipelineArchival(ctx, repoSource, repoOwner, repoName)
-}
-
 func (s *metricsService) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {
 	defer func(begin time.Time) {
 		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "GetInheritedRolesForUser", begin)

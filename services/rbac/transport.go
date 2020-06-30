@@ -1017,26 +1017,3 @@ func (h *Handler) UpdatePipeline(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
 }
-
-func (h *Handler) TogglePipelineArchival(c *gin.Context) {
-
-	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionPipelinesArchive) {
-		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
-		return
-	}
-
-	ctx := c.Request.Context()
-	source := c.Param("source")
-	owner := c.Param("owner")
-	repo := c.Param("repo")
-
-	err := h.service.TogglePipelineArchival(ctx, source, owner, repo)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed updating pipeline")
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
-}

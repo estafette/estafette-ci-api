@@ -1129,6 +1129,7 @@ func (c *client) UpdateComputedPipelinePermissions(ctx context.Context, pipeline
 		Update("computed_pipelines").
 		Set("groups", groupsBytes).
 		Set("organizations", organizationsBytes).
+		Set("archived", pipeline.Archived).
 		Where(sq.Eq{"repo_source": pipeline.RepoSource}).
 		Where(sq.Eq{"repo_owner": pipeline.RepoOwner}).
 		Where(sq.Eq{"repo_name": pipeline.RepoName})
