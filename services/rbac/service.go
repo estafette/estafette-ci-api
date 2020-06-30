@@ -377,6 +377,9 @@ func (s *service) GetInheritedRolesForUser(ctx context.Context, user contracts.U
 
 	retrievedRoles := make([]*string, 0)
 
+	// get direct roles from user
+	retrievedRoles = append(retrievedRoles, user.Roles...)
+
 	// get roles from groups linked to user
 	for _, g := range user.Groups {
 		group, err := s.cockroachdbClient.GetGroupByID(ctx, g.ID)

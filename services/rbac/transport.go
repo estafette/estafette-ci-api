@@ -273,7 +273,7 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 		if err != nil {
 			return nil, err
 		}
-		user.Roles = append(user.Roles, inheritedRoles...)
+		user.Roles = inheritedRoles
 
 		return user, nil
 	}
