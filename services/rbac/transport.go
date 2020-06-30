@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -58,6 +59,11 @@ func (h *Handler) GetRoles(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	roles, err := h.service.GetRoles(ctx)
+
+	// sort
+	sort.Slice(roles, func(i, j int) bool {
+		return roles[i] < roles[j]
+	})
 
 	if err != nil {
 		log.Error().Err(err).Msg("Retrieving roles failed")
@@ -481,6 +487,12 @@ func (h *Handler) GetGroups(c *gin.Context) {
 				return nil, err
 			}
 
+			if len(sortings) == 0 {
+				sort.Slice(groups, func(i, j int) bool {
+					return groups[i].Name < groups[j].Name
+				})
+			}
+
 			// convert typed array to interface array O(n)
 			items := make([]interface{}, len(groups))
 			for i := range groups {
@@ -627,6 +639,12 @@ func (h *Handler) GetOrganizations(c *gin.Context) {
 			organizations, err := h.cockroachdbClient.GetOrganizations(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
+			}
+
+			if len(sortings) == 0 {
+				sort.Slice(organizations, func(i, j int) bool {
+					return organizations[i].Name < organizations[j].Name
+				})
 			}
 
 			// convert typed array to interface array O(n)
