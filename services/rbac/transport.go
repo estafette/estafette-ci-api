@@ -970,14 +970,14 @@ func (h *Handler) GetPipeline(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	user, err := h.cockroachdbClient.GetPipeline(ctx, source, owner, repo, false)
-	if err != nil || user == nil {
+	pipeline, err := h.cockroachdbClient.GetPipeline(ctx, source, owner, repo, false)
+	if err != nil || pipeline == nil {
 		log.Error().Err(err).Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, pipeline)
 }
 
 func (h *Handler) UpdatePipeline(c *gin.Context) {
@@ -1013,6 +1013,116 @@ func (h *Handler) UpdatePipeline(c *gin.Context) {
 		log.Error().Err(err).Msg("Failed updating pipeline")
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
+func (h *Handler) BatchUpdatePipelines(c *gin.Context) {
+
+	// ensure the request has the correct permission
+	if !auth.RequestTokenHasPermission(c, auth.PermissionPipelinesUpdate) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	var body struct {
+		Pipelines    []string                `json:"pipelines"`
+		Group        *contracts.Group        `json:"group"`
+		Organization *contracts.Organization `json:"organization"`
+	}
+
+	err := c.BindJSON(&body)
+	if err != nil {
+		errorMessage := fmt.Sprint("Binding BatchUpdatePipelines body failed")
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	if len(body.Pipelines) == 0 || (body.Group == nil && body.Organization == nil) {
+		log.Error().Err(err).Msg("Request body is incorrect")
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	// http://jmoiron.net/blog/limiting-concurrency-in-go/
+	concurrency := 10
+	semaphore := make(chan bool, concurrency)
+
+	resultChannel := make(chan error, len(body.Pipelines))
+
+	for _, p := range body.Pipelines {
+		// try to fill semaphore up to it's full size otherwise wait for a routine to finish
+		semaphore <- true
+
+		go func(p string) {
+			// lower semaphore once the routine's finished, making room for another one to start
+			defer func() { <-semaphore }()
+
+			// split pipeline in source, owner and name
+			pipelineParts := strings.Split(p, "/")
+			if len(pipelineParts) != 3 {
+				resultChannel <- fmt.Errorf("Pipeline '%v' has invalid name", p)
+				return
+			}
+
+			pipeline, err := h.cockroachdbClient.GetPipeline(ctx, pipelineParts[0], pipelineParts[1], pipelineParts[2], true)
+			if err != nil {
+				resultChannel <- err
+				return
+			}
+
+			// add group if not present
+			if body.Group != nil {
+				hasGroup := false
+				for _, g := range pipeline.Groups {
+					if g != nil && g.Name == body.Group.Name && g.ID == body.Group.ID {
+						hasGroup = true
+					}
+				}
+				if !hasGroup {
+					pipeline.Groups = append(pipeline.Groups, body.Group)
+				}
+			}
+
+			// add organization if not present
+			if body.Organization != nil {
+				hasOrganization := false
+				for _, o := range pipeline.Organizations {
+					if o != nil && o.Name == body.Organization.Name && o.ID == body.Organization.ID {
+						hasOrganization = true
+					}
+				}
+				if !hasOrganization {
+					pipeline.Organizations = append(pipeline.Organizations, body.Organization)
+				}
+			}
+
+			err = h.service.UpdatePipeline(ctx, *pipeline)
+			if err != nil {
+				resultChannel <- err
+				return
+			}
+
+			resultChannel <- nil
+		}(p)
+	}
+
+	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
+	for i := 0; i < cap(semaphore); i++ {
+		semaphore <- true
+	}
+
+	close(resultChannel)
+	for err := range resultChannel {
+		if err != nil {
+			log.Error().Err(err).Msg("Failed updating pipeline")
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
