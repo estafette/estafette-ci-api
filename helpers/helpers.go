@@ -117,7 +117,7 @@ func GetLabelsFilter(c *gin.Context) []string {
 // GetGenericFilter extracts a filter
 func GetGenericFilter(c *gin.Context, filterKey FilterType, defaultValues ...string) []string {
 
-	filterValues, filterExist := c.GetQueryArray(fmt.Sprintf("filter[%v]", filterKey))
+	filterValues, filterExist := c.GetQueryArray(fmt.Sprintf("filter[%v]", filterKey.String()))
 	if filterExist && len(filterValues) > 0 && filterValues[0] != "" {
 		return filterValues
 	}
