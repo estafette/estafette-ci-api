@@ -163,6 +163,7 @@ releases:
         basepath: /api
         chaosproof: true
         useGoogleCloudCredentials: true
+        disableServiceAccountKeyRotation: false
         manifests:
           files:
           - gke/ingress.yaml
