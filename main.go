@@ -520,7 +520,6 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	routes.GET("/api/auth/providers", rbacHandler.GetProviders)
 	routes.GET("/api/auth/login/:provider", rbacHandler.LoginProvider)
 	routes.GET("/api/auth/logout", jwtMiddleware.LogoutHandler)
-	routes.GET("/api/auth/impersonate/:id", impersonateJWTMiddleware.LoginHandler)
 	routes.GET("/api/auth/handle/:provider", jwtMiddleware.LoginHandler)
 	routes.POST("/api/auth/client/login", clientLoginJWTMiddleware.LoginHandler)
 	routes.POST("/api/auth/client/logout", clientLoginJWTMiddleware.LogoutHandler)
@@ -529,6 +528,8 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	jwtMiddlewareRoutes := routes.Group("/", jwtMiddleware.MiddlewareFunc())
 	{
 		// require claims
+		jwtMiddlewareRoutes.GET("/api/auth/impersonate/:id", impersonateJWTMiddleware.LoginHandler)
+
 		jwtMiddlewareRoutes.GET("/api/me", rbacHandler.GetLoggedInUser)
 		jwtMiddlewareRoutes.GET("/api/update-computed-tables", estafetteHandler.UpdateComputedTables)
 		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/builds", estafetteHandler.CreatePipelineBuild)
