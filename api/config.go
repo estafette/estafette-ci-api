@@ -295,20 +295,34 @@ type APIConfigIntegrations struct {
 
 // GithubConfig is used to configure github integration
 type GithubConfig struct {
-	PrivateKeyPath           string `yaml:"privateKeyPath"`
-	AppID                    string `yaml:"appID"`
-	ClientID                 string `yaml:"clientID"`
-	ClientSecret             string `yaml:"clientSecret"`
-	WebhookSecret            string `yaml:"webhookSecret"`
-	WhitelistedInstallations []int  `yaml:"whitelistedInstallations"`
+	PrivateKeyPath            string                      `yaml:"privateKeyPath"`
+	AppID                     string                      `yaml:"appID"`
+	ClientID                  string                      `yaml:"clientID"`
+	ClientSecret              string                      `yaml:"clientSecret"`
+	WebhookSecret             string                      `yaml:"webhookSecret"`
+	WhitelistedInstallations  []int                       `yaml:"whitelistedInstallations"`
+	InstallationOrganizations []InstallationOrganizations `yaml:"installationOrganizations"`
+}
+
+// InstallationOrganizations is used to assign organizations to builds triggered through a specific installation
+type InstallationOrganizations struct {
+	Installation  int                       `yaml:"installation"`
+	Organizations []*contracts.Organization `yaml:"organizations"`
 }
 
 // BitbucketConfig is used to configure bitbucket integration
 type BitbucketConfig struct {
-	APIKey            string   `yaml:"apiKey"`
-	AppOAuthKey       string   `yaml:"appOAuthKey"`
-	AppOAuthSecret    string   `yaml:"appOAuthSecret"`
-	WhitelistedOwners []string `yaml:"whitelistedOwners"`
+	APIKey             string               `yaml:"apiKey"`
+	AppOAuthKey        string               `yaml:"appOAuthKey"`
+	AppOAuthSecret     string               `yaml:"appOAuthSecret"`
+	WhitelistedOwners  []string             `yaml:"whitelistedOwners"`
+	OwnerOrganizations []OwnerOrganizations `yaml:"ownerOrganizations"`
+}
+
+// OwnerOrganizations is used to assign organizations to builds triggered through a specific owner
+type OwnerOrganizations struct {
+	Owner         string                    `yaml:"owner"`
+	Organizations []*contracts.Organization `yaml:"organizations"`
 }
 
 // SlackConfig is used to configure slack integration
@@ -351,7 +365,14 @@ type BigQueryConfig struct {
 
 // CloudSourceConfig is used to configure cloudSource integration
 type CloudSourceConfig struct {
-	WhitelistedProjects []string `yaml:"whitelistedProjects"`
+	WhitelistedProjects  []string               `yaml:"whitelistedProjects"`
+	ProjectOrganizations []ProjectOrganizations `yaml:"projectOrganizations"`
+}
+
+// ProjectOrganizations is used to assign organizations to builds triggered through a specific project
+type ProjectOrganizations struct {
+	Project       string                    `yaml:"project"`
+	Organizations []*contracts.Organization `yaml:"organizations"`
 }
 
 // ConfigReader reads the api config from file
