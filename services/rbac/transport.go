@@ -330,7 +330,6 @@ func (h *Handler) HandleImpersonateAuthenticator() func(c *gin.Context) (interfa
 
 		// ensure the request has the correct permission
 		if !api.RequestTokenHasPermission(c, api.PermissionUsersImpersonate) {
-			c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 			return nil, fmt.Errorf("User is not allowed to impersonate other user")
 		}
 
