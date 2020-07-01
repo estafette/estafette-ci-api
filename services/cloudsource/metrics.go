@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
-	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/go-kit/kit/metrics"
 )
 
@@ -22,7 +22,7 @@ type metricsService struct {
 
 func (s *metricsService) CreateJobForCloudSourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error) {
 	defer func(begin time.Time) {
-		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "CreateJobForCloudSourcePush", begin)
+		api.UpdateMetrics(s.requestCount, s.requestLatency, "CreateJobForCloudSourcePush", begin)
 	}(time.Now())
 
 	return s.Service.CreateJobForCloudSourcePush(ctx, notification)

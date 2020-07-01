@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/api"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
@@ -28,13 +28,13 @@ type MockClient struct {
 	UpdateComputedReleaseFirstInsertedAtFunc       func(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error)
 	ArchiveComputedPipelineFunc                    func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UnarchiveComputedPipelineFunc                  func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
-	GetPipelinesFunc                               func(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error)
+	GetPipelinesFunc                               func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error)
 	GetPipelinesByRepoNameFunc                     func(ctx context.Context, repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error)
-	GetPipelinesCountFunc                          func(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetPipelinesCountFunc                          func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetPipelineFunc                                func(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error)
 	GetPipelineRecentBuildsFunc                    func(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (builds []*contracts.Build, err error)
-	GetPipelineBuildsFunc                          func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField, optimized bool) (builds []*contracts.Build, err error)
-	GetPipelineBuildsCountFunc                     func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (count int, err error)
+	GetPipelineBuildsFunc                          func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error)
+	GetPipelineBuildsCountFunc                     func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error)
 	GetPipelineBuildFunc                           func(ctx context.Context, repoSource, repoOwner, repoName, repoRevision string, optimized bool) (build *contracts.Build, err error)
 	GetPipelineBuildByIDFunc                       func(ctx context.Context, repoSource, repoOwner, repoName string, id int, optimized bool) (build *contracts.Build, err error)
 	GetLastPipelineBuildFunc                       func(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error)
@@ -46,31 +46,31 @@ type MockClient struct {
 	GetPipelineBuildLogsFunc                       func(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error)
 	GetPipelineBuildLogsPerPageFunc                func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
 	GetPipelineBuildMaxResourceUtilizationFunc     func(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobresources JobResources, count int, err error)
-	GetPipelineReleasesFunc                        func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (releases []*contracts.Release, err error)
-	GetPipelineReleasesCountFunc                   func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (count int, err error)
+	GetPipelineReleasesFunc                        func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (releases []*contracts.Release, err error)
+	GetPipelineReleasesCountFunc                   func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error)
 	GetPipelineReleaseFunc                         func(ctx context.Context, repoSource, repoOwner, repoName string, id int) (release *contracts.Release, err error)
 	GetPipelineLastReleasesByNameFunc              func(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error)
 	GetPipelineReleaseLogsFunc                     func(ctx context.Context, repoSource, repoOwner, repoName string, id int, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error)
 	GetPipelineReleaseLogsPerPageFunc              func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error)
 	GetPipelineReleaseMaxResourceUtilizationFunc   func(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobresources JobResources, count int, err error)
-	GetBuildsCountFunc                             func(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
-	GetReleasesCountFunc                           func(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
-	GetBuildsDurationFunc                          func(ctx context.Context, filters map[helpers.FilterType][]string) (duration time.Duration, err error)
+	GetBuildsCountFunc                             func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetReleasesCountFunc                           func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetBuildsDurationFunc                          func(ctx context.Context, filters map[api.FilterType][]string) (duration time.Duration, err error)
 	GetFirstBuildTimesFunc                         func(ctx context.Context) (times []time.Time, err error)
 	GetFirstReleaseTimesFunc                       func(ctx context.Context) (times []time.Time, err error)
-	GetPipelineBuildsDurationsFunc                 func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (durations []map[string]interface{}, err error)
-	GetPipelineReleasesDurationsFunc               func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (durations []map[string]interface{}, err error)
-	GetPipelineBuildsCPUUsageMeasurementsFunc      func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error)
-	GetPipelineReleasesCPUUsageMeasurementsFunc    func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error)
-	GetPipelineBuildsMemoryUsageMeasurementsFunc   func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error)
-	GetPipelineReleasesMemoryUsageMeasurementsFunc func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error)
+	GetPipelineBuildsDurationsFunc                 func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error)
+	GetPipelineReleasesDurationsFunc               func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error)
+	GetPipelineBuildsCPUUsageMeasurementsFunc      func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
+	GetPipelineReleasesCPUUsageMeasurementsFunc    func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
+	GetPipelineBuildsMemoryUsageMeasurementsFunc   func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
+	GetPipelineReleasesMemoryUsageMeasurementsFunc func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
 	GetLabelValuesFunc                             func(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error)
-	GetFrequentLabelsFunc                          func(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (labels []map[string]interface{}, err error)
-	GetFrequentLabelsCountFunc                     func(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
-	GetPipelinesWithMostBuildsFunc                 func(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (pipelines []map[string]interface{}, err error)
-	GetPipelinesWithMostBuildsCountFunc            func(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
-	GetPipelinesWithMostReleasesFunc               func(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (pipelines []map[string]interface{}, err error)
-	GetPipelinesWithMostReleasesCountFunc          func(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetFrequentLabelsFunc                          func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error)
+	GetFrequentLabelsCountFunc                     func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetPipelinesWithMostBuildsFunc                 func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (pipelines []map[string]interface{}, err error)
+	GetPipelinesWithMostBuildsCountFunc            func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetPipelinesWithMostReleasesFunc               func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (pipelines []map[string]interface{}, err error)
+	GetPipelinesWithMostReleasesCountFunc          func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetTriggersFunc                                func(ctx context.Context, triggerType, identifier, event string) (pipelines []*contracts.Pipeline, err error)
 	GetGitTriggersFunc                             func(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (pipelines []*contracts.Pipeline, err error)
 	GetPipelineTriggersFunc                        func(ctx context.Context, build contracts.Build, event string) (pipelines []*contracts.Pipeline, err error)
@@ -91,16 +91,16 @@ type MockClient struct {
 	DeleteUserFunc        func(ctx context.Context, user contracts.User) (err error)
 	GetUserByIdentityFunc func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	GetUserByIDFunc       func(ctx context.Context, id string) (user *contracts.User, err error)
-	GetUsersFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (users []*contracts.User, err error)
-	GetUsersCountFunc     func(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetUsersFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (users []*contracts.User, err error)
+	GetUsersCountFunc     func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
 	InsertGroupFunc        func(ctx context.Context, group contracts.Group) (g *contracts.Group, err error)
 	UpdateGroupFunc        func(ctx context.Context, group contracts.Group) (err error)
 	DeleteGroupFunc        func(ctx context.Context, group contracts.Group) (err error)
 	GetGroupByIdentityFunc func(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error)
 	GetGroupByIDFunc       func(ctx context.Context, id string) (group *contracts.Group, err error)
-	GetGroupsFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error)
-	GetGroupsCountFunc     func(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetGroupsFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (groups []*contracts.Group, err error)
+	GetGroupsCountFunc     func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
 	InsertOrganizationFunc        func(ctx context.Context, organization contracts.Organization) (o *contracts.Organization, err error)
 	UpdateOrganizationFunc        func(ctx context.Context, organization contracts.Organization) (err error)
@@ -108,34 +108,34 @@ type MockClient struct {
 	GetOrganizationByIdentityFunc func(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error)
 	GetOrganizationByIDFunc       func(ctx context.Context, id string) (organization *contracts.Organization, err error)
 	GetOrganizationByNameFunc     func(ctx context.Context, name string) (organization *contracts.Organization, err error)
-	GetOrganizationsFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error)
-	GetOrganizationsCountFunc     func(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetOrganizationsFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (organizations []*contracts.Organization, err error)
+	GetOrganizationsCountFunc     func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
 	InsertClientFunc        func(ctx context.Context, client contracts.Client) (cl *contracts.Client, err error)
 	UpdateClientFunc        func(ctx context.Context, client contracts.Client) (err error)
 	DeleteClientFunc        func(ctx context.Context, client contracts.Client) (err error)
 	GetClientByClientIDFunc func(ctx context.Context, clientID string) (client *contracts.Client, err error)
 	GetClientByIDFunc       func(ctx context.Context, id string) (client *contracts.Client, err error)
-	GetClientsFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error)
-	GetClientsCountFunc     func(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetClientsFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (clients []*contracts.Client, err error)
+	GetClientsCountFunc     func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
 	InsertCatalogEntityFunc     func(ctx context.Context, catalogEntity contracts.CatalogEntity) (insertedCatalogEntity *contracts.CatalogEntity, err error)
 	UpdateCatalogEntityFunc     func(ctx context.Context, catalogEntity contracts.CatalogEntity) (err error)
 	DeleteCatalogEntityFunc     func(ctx context.Context, id string) (err error)
 	GetCatalogEntityByIDFunc    func(ctx context.Context, id string) (catalogEntity *contracts.CatalogEntity, err error)
-	GetCatalogEntitiesFunc      func(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error)
-	GetCatalogEntitiesCountFunc func(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetCatalogEntitiesFunc      func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (catalogEntities []*contracts.CatalogEntity, err error)
+	GetCatalogEntitiesCountFunc func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
-	GetCatalogEntityParentKeysFunc        func(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error)
-	GetCatalogEntityParentKeysCountFunc   func(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
-	GetCatalogEntityParentValuesFunc      func(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error)
-	GetCatalogEntityParentValuesCountFunc func(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
-	GetCatalogEntityKeysFunc              func(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error)
-	GetCatalogEntityKeysCountFunc         func(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
-	GetCatalogEntityValuesFunc            func(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error)
-	GetCatalogEntityValuesCountFunc       func(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
-	GetCatalogEntityLabelsFunc            func(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (labels []map[string]interface{}, err error)
-	GetCatalogEntityLabelsCountFunc       func(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetCatalogEntityParentKeysFunc        func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (keys []map[string]interface{}, err error)
+	GetCatalogEntityParentKeysCountFunc   func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetCatalogEntityParentValuesFunc      func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (values []map[string]interface{}, err error)
+	GetCatalogEntityParentValuesCountFunc func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetCatalogEntityKeysFunc              func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (keys []map[string]interface{}, err error)
+	GetCatalogEntityKeysCountFunc         func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetCatalogEntityValuesFunc            func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (values []map[string]interface{}, err error)
+	GetCatalogEntityValuesCountFunc       func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetCatalogEntityLabelsFunc            func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error)
+	GetCatalogEntityLabelsCountFunc       func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 }
 
 func (c MockClient) Connect(ctx context.Context) (err error) {
@@ -264,7 +264,7 @@ func (c MockClient) UnarchiveComputedPipeline(ctx context.Context, repoSource, r
 	return c.UnarchiveComputedPipelineFunc(ctx, repoSource, repoOwner, repoName)
 }
 
-func (c MockClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
+func (c MockClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 	if c.GetPipelinesFunc == nil {
 		return
 	}
@@ -278,7 +278,7 @@ func (c MockClient) GetPipelinesByRepoName(ctx context.Context, repoName string,
 	return c.GetPipelinesByRepoNameFunc(ctx, repoName, optimized)
 }
 
-func (c MockClient) GetPipelinesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetPipelinesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetPipelinesCountFunc == nil {
 		return
 	}
@@ -300,14 +300,14 @@ func (c MockClient) GetPipelineRecentBuilds(ctx context.Context, repoSource, rep
 	return c.GetPipelineRecentBuildsFunc(ctx, repoSource, repoOwner, repoName, optimized)
 }
 
-func (c MockClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField, optimized bool) (builds []*contracts.Build, err error) {
+func (c MockClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error) {
 	if c.GetPipelineBuildsFunc == nil {
 		return
 	}
 	return c.GetPipelineBuildsFunc(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings, optimized)
 }
 
-func (c MockClient) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetPipelineBuildsCountFunc == nil {
 		return
 	}
@@ -391,14 +391,14 @@ func (c MockClient) GetPipelineBuildMaxResourceUtilization(ctx context.Context, 
 	return c.GetPipelineBuildMaxResourceUtilizationFunc(ctx, repoSource, repoOwner, repoName, lastNRecords)
 }
 
-func (c MockClient) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (releases []*contracts.Release, err error) {
+func (c MockClient) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (releases []*contracts.Release, err error) {
 	if c.GetPipelineReleasesFunc == nil {
 		return
 	}
 	return c.GetPipelineReleasesFunc(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings)
 }
 
-func (c MockClient) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetPipelineReleasesCountFunc == nil {
 		return
 	}
@@ -440,21 +440,21 @@ func (c MockClient) GetPipelineReleaseMaxResourceUtilization(ctx context.Context
 	return c.GetPipelineReleaseMaxResourceUtilizationFunc(ctx, repoSource, repoOwner, repoName, targetName, lastNRecords)
 }
 
-func (c MockClient) GetBuildsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetBuildsCountFunc == nil {
 		return
 	}
 	return c.GetBuildsCountFunc(ctx, filters)
 }
 
-func (c MockClient) GetReleasesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetReleasesCountFunc == nil {
 		return
 	}
 	return c.GetReleasesCountFunc(ctx, filters)
 }
 
-func (c MockClient) GetBuildsDuration(ctx context.Context, filters map[helpers.FilterType][]string) (duration time.Duration, err error) {
+func (c MockClient) GetBuildsDuration(ctx context.Context, filters map[api.FilterType][]string) (duration time.Duration, err error) {
 	if c.GetBuildsDurationFunc == nil {
 		return
 	}
@@ -475,42 +475,42 @@ func (c MockClient) GetFirstReleaseTimes(ctx context.Context) (times []time.Time
 	return c.GetFirstReleaseTimesFunc(ctx)
 }
 
-func (c MockClient) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (durations []map[string]interface{}, err error) {
+func (c MockClient) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error) {
 	if c.GetPipelineBuildsDurationsFunc == nil {
 		return
 	}
 	return c.GetPipelineBuildsDurationsFunc(ctx, repoSource, repoOwner, repoName, filters)
 }
 
-func (c MockClient) GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (durations []map[string]interface{}, err error) {
+func (c MockClient) GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error) {
 	if c.GetPipelineReleasesDurationsFunc == nil {
 		return
 	}
 	return c.GetPipelineReleasesDurationsFunc(ctx, repoSource, repoOwner, repoName, filters)
 }
 
-func (c MockClient) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
+func (c MockClient) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
 	if c.GetPipelineBuildsCPUUsageMeasurementsFunc == nil {
 		return
 	}
 	return c.GetPipelineBuildsCPUUsageMeasurementsFunc(ctx, repoSource, repoOwner, repoName, filters)
 }
 
-func (c MockClient) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
+func (c MockClient) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
 	if c.GetPipelineReleasesCPUUsageMeasurementsFunc == nil {
 		return
 	}
 	return c.GetPipelineReleasesCPUUsageMeasurementsFunc(ctx, repoSource, repoOwner, repoName, filters)
 }
 
-func (c MockClient) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
+func (c MockClient) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
 	if c.GetPipelineBuildsMemoryUsageMeasurementsFunc == nil {
 		return
 	}
 	return c.GetPipelineBuildsMemoryUsageMeasurementsFunc(ctx, repoSource, repoOwner, repoName, filters)
 }
 
-func (c MockClient) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
+func (c MockClient) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
 	if c.GetPipelineReleasesMemoryUsageMeasurementsFunc == nil {
 		return
 	}
@@ -524,42 +524,42 @@ func (c MockClient) GetLabelValues(ctx context.Context, labelKey string) (labels
 	return c.GetLabelValuesFunc(ctx, labelKey)
 }
 
-func (c MockClient) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (labels []map[string]interface{}, err error) {
+func (c MockClient) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error) {
 	if c.GetFrequentLabelsFunc == nil {
 		return
 	}
 	return c.GetFrequentLabelsFunc(ctx, pageNumber, pageSize, filters)
 }
 
-func (c MockClient) GetFrequentLabelsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetFrequentLabelsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetFrequentLabelsCountFunc == nil {
 		return
 	}
 	return c.GetFrequentLabelsCountFunc(ctx, filters)
 }
 
-func (c MockClient) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (pipelines []map[string]interface{}, err error) {
+func (c MockClient) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (pipelines []map[string]interface{}, err error) {
 	if c.GetPipelinesWithMostBuildsFunc == nil {
 		return
 	}
 	return c.GetPipelinesWithMostBuildsFunc(ctx, pageNumber, pageSize, filters)
 }
 
-func (c MockClient) GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetPipelinesWithMostBuildsCountFunc == nil {
 		return
 	}
 	return c.GetPipelinesWithMostBuildsCountFunc(ctx, filters)
 }
 
-func (c MockClient) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (pipelines []map[string]interface{}, err error) {
+func (c MockClient) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (pipelines []map[string]interface{}, err error) {
 	if c.GetPipelinesWithMostReleasesFunc == nil {
 		return
 	}
 	return c.GetPipelinesWithMostReleasesFunc(ctx, pageNumber, pageSize, filters)
 }
 
-func (c MockClient) GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetPipelinesWithMostReleasesCountFunc == nil {
 		return
 	}
@@ -699,14 +699,14 @@ func (c MockClient) GetUserByID(ctx context.Context, id string) (user *contracts
 	return c.GetUserByIDFunc(ctx, id)
 }
 
-func (c MockClient) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (users []*contracts.User, err error) {
+func (c MockClient) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (users []*contracts.User, err error) {
 	if c.GetUsersFunc == nil {
 		return
 	}
 	return c.GetUsersFunc(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c MockClient) GetUsersCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetUsersCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetUsersCountFunc == nil {
 		return
 	}
@@ -748,14 +748,14 @@ func (c MockClient) GetGroupByID(ctx context.Context, id string) (group *contrac
 	return c.GetGroupByIDFunc(ctx, id)
 }
 
-func (c MockClient) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error) {
+func (c MockClient) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (groups []*contracts.Group, err error) {
 	if c.GetGroupsFunc == nil {
 		return
 	}
 	return c.GetGroupsFunc(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c MockClient) GetGroupsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetGroupsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetGroupsCountFunc == nil {
 		return
 	}
@@ -804,14 +804,14 @@ func (c MockClient) GetOrganizationByName(ctx context.Context, name string) (org
 	return c.GetOrganizationByNameFunc(ctx, name)
 }
 
-func (c MockClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error) {
+func (c MockClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (organizations []*contracts.Organization, err error) {
 	if c.GetOrganizationsFunc == nil {
 		return
 	}
 	return c.GetOrganizationsFunc(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c MockClient) GetOrganizationsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetOrganizationsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetOrganizationsCountFunc == nil {
 		return
 	}
@@ -853,14 +853,14 @@ func (c MockClient) GetClientByID(ctx context.Context, id string) (client *contr
 	return c.GetClientByIDFunc(ctx, id)
 }
 
-func (c MockClient) GetClients(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error) {
+func (c MockClient) GetClients(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (clients []*contracts.Client, err error) {
 	if c.GetClientsFunc == nil {
 		return
 	}
 	return c.GetClientsFunc(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c MockClient) GetClientsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetClientsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetClientsCountFunc == nil {
 		return
 	}
@@ -895,84 +895,84 @@ func (c MockClient) GetCatalogEntityByID(ctx context.Context, id string) (catalo
 	return c.GetCatalogEntityByIDFunc(ctx, id)
 }
 
-func (c MockClient) GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error) {
+func (c MockClient) GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (catalogEntities []*contracts.CatalogEntity, err error) {
 	if c.GetCatalogEntitiesFunc == nil {
 		return
 	}
 	return c.GetCatalogEntitiesFunc(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c MockClient) GetCatalogEntitiesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetCatalogEntitiesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetCatalogEntitiesCountFunc == nil {
 		return
 	}
 	return c.GetCatalogEntitiesCountFunc(ctx, filters)
 }
 
-func (c MockClient) GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
+func (c MockClient) GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (keys []map[string]interface{}, err error) {
 	if c.GetCatalogEntityParentKeysFunc == nil {
 		return
 	}
 	return c.GetCatalogEntityParentKeysFunc(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c MockClient) GetCatalogEntityParentKeysCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetCatalogEntityParentKeysCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetCatalogEntityParentKeysCountFunc == nil {
 		return
 	}
 	return c.GetCatalogEntityParentKeysCountFunc(ctx, filters)
 }
 
-func (c MockClient) GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+func (c MockClient) GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (values []map[string]interface{}, err error) {
 	if c.GetCatalogEntityParentValuesFunc == nil {
 		return
 	}
 	return c.GetCatalogEntityParentValuesFunc(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c MockClient) GetCatalogEntityParentValuesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetCatalogEntityParentValuesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetCatalogEntityParentValuesCountFunc == nil {
 		return
 	}
 	return c.GetCatalogEntityParentValuesCountFunc(ctx, filters)
 }
 
-func (c MockClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
+func (c MockClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (keys []map[string]interface{}, err error) {
 	if c.GetCatalogEntityKeysFunc == nil {
 		return
 	}
 	return c.GetCatalogEntityKeysFunc(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c MockClient) GetCatalogEntityKeysCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetCatalogEntityKeysCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetCatalogEntityKeysCountFunc == nil {
 		return
 	}
 	return c.GetCatalogEntityKeysCountFunc(ctx, filters)
 }
 
-func (c MockClient) GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+func (c MockClient) GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (values []map[string]interface{}, err error) {
 	if c.GetCatalogEntityValuesFunc == nil {
 		return
 	}
 	return c.GetCatalogEntityValuesFunc(ctx, pageNumber, pageSize, filters, sortings)
 }
 
-func (c MockClient) GetCatalogEntityValuesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetCatalogEntityValuesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetCatalogEntityValuesCountFunc == nil {
 		return
 	}
 	return c.GetCatalogEntityValuesCountFunc(ctx, filters)
 }
 
-func (c MockClient) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (labels []map[string]interface{}, err error) {
+func (c MockClient) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error) {
 	if c.GetCatalogEntityLabelsFunc == nil {
 		return
 	}
 	return c.GetCatalogEntityLabelsFunc(ctx, pageNumber, pageSize, filters)
 }
 
-func (c MockClient) GetCatalogEntityLabelsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c MockClient) GetCatalogEntityLabelsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	if c.GetCatalogEntityLabelsCountFunc == nil {
 		return
 	}

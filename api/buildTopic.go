@@ -1,10 +1,9 @@
-package topics
+package api
 
 import (
 	"context"
 	"sync"
 
-	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/opentracing/opentracing-go"
 	opentracinglog "github.com/opentracing/opentracing-go/log"
@@ -47,9 +46,9 @@ func (t *BuildTopic) Subscribe(name string) <-chan BuildTopicMessage {
 
 func (t *BuildTopic) Publish(publisher string, message BuildTopicMessage) {
 
-	span, ctx := opentracing.StartSpanFromContext(message.Ctx, helpers.GetSpanName("topics.GitEventTopic", "Publish"))
+	span, ctx := opentracing.StartSpanFromContext(message.Ctx, GetSpanName("topics.GitEventTopic", "Publish"))
 	message.Ctx = ctx
-	defer func() { helpers.FinishSpan(span) }()
+	defer func() { FinishSpan(span) }()
 
 	t.mu.RLock()
 	defer t.mu.RUnlock()

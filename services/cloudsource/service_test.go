@@ -7,11 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/services/estafette"
-	"github.com/estafette/estafette-ci-api/topics"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,15 +19,15 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 	t.Run("ReturnsErrNonCloneableEventIfNotificationHasNoRefUpdate", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				CloudSource: &config.CloudSourceConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				CloudSource: &api.CloudSourceConfig{},
 			},
 		}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		notification := cloudsourceapi.PubSubNotification{
 			Name:      "test-pubsub",
@@ -45,9 +44,9 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 	t.Run("CallsGetAccessTokenOnCloudSourceAPIClient", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				CloudSource: &config.CloudSourceConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				CloudSource: &api.CloudSourceConfig{},
 			},
 		}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
@@ -60,7 +59,7 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 			return
 		}
 
-		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		notification := cloudsourceapi.PubSubNotification{
 			Name:      "test-pubsub",
@@ -87,9 +86,9 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 	t.Run("CallsGetEstafetteManifestOnCloudSourceAPIClient", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				CloudSource: &config.CloudSourceConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				CloudSource: &api.CloudSourceConfig{},
 			},
 		}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
@@ -102,7 +101,7 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 			return true, "builder:\n  track: dev\n", nil
 		}
 
-		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		notification := cloudsourceapi.PubSubNotification{
 			Name:      "projects/test-project/repos/pubsub-test",
@@ -130,9 +129,9 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 	t.Run("CallsCreateBuildOnEstafetteService", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				CloudSource: &config.CloudSourceConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				CloudSource: &api.CloudSourceConfig{},
 			},
 		}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
@@ -149,7 +148,7 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 			return
 		}
 
-		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		notification := cloudsourceapi.PubSubNotification{
 			Name:      "projects/test-project/repos/pubsub-test",
@@ -177,15 +176,15 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 	t.Run("PublishesGitTriggersOnTopic", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				CloudSource: &config.CloudSourceConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				CloudSource: &api.CloudSourceConfig{},
 			},
 		}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		gitEventTopic := topics.NewGitEventTopic("test topic")
+		gitEventTopic := api.NewGitEventTopic("test topic")
 		defer gitEventTopic.Close()
 		subscriptionChannel := gitEventTopic.Subscribe("PublishesGitTriggersOnTopic")
 
@@ -223,9 +222,9 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 	t.Run("CallsSubscribeToPubsubTriggersOnPubsubAPIClient", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				CloudSource: &config.CloudSourceConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				CloudSource: &api.CloudSourceConfig{},
 			},
 		}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
@@ -245,7 +244,7 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 			return
 		}
 
-		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		notification := cloudsourceapi.PubSubNotification{
 			Name:      "projects/test-project/repos/pubsub-test",
@@ -278,9 +277,9 @@ func TestIsWhitelistedProject(t *testing.T) {
 
 	t.Run("ReturnsTrueIfWhitelistedProjectsConfigIsEmpty", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				CloudSource: &config.CloudSourceConfig{
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				CloudSource: &api.CloudSourceConfig{
 					WhitelistedProjects: []string{},
 				},
 			},
@@ -288,7 +287,7 @@ func TestIsWhitelistedProject(t *testing.T) {
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		notification := cloudsourceapi.PubSubNotification{
 			Name:      "projects/test-project/repos/pubsub-test",
@@ -315,9 +314,9 @@ func TestIsWhitelistedProject(t *testing.T) {
 
 	t.Run("ReturnsFalseIfOwnerUsernameIsNotInWhitelistedProjectsConfig", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				CloudSource: &config.CloudSourceConfig{
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				CloudSource: &api.CloudSourceConfig{
 					WhitelistedProjects: []string{
 						"someone-else",
 					},
@@ -327,7 +326,7 @@ func TestIsWhitelistedProject(t *testing.T) {
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		notification := cloudsourceapi.PubSubNotification{
 			Name:      "projects/test-project/repos/pubsub-test",
@@ -354,9 +353,9 @@ func TestIsWhitelistedProject(t *testing.T) {
 
 	t.Run("ReturnsTrueIfOwnerUsernameIsInWhitelistedProjectsConfig", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				CloudSource: &config.CloudSourceConfig{
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				CloudSource: &api.CloudSourceConfig{
 					WhitelistedProjects: []string{
 						"someone-else",
 						"estafette-in-cloudsource",
@@ -367,7 +366,7 @@ func TestIsWhitelistedProject(t *testing.T) {
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		notification := cloudsourceapi.PubSubNotification{
 			Name:      "projects/estafette-in-cloudsource/repos/pubsub",

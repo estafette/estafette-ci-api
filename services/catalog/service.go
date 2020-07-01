@@ -3,8 +3,8 @@ package catalog
 import (
 	"context"
 
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
-	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
 )
 
@@ -16,7 +16,7 @@ type Service interface {
 }
 
 // NewService returns a github.Service to handle incoming webhook events
-func NewService(config *config.APIConfig, cockroachdbClient cockroachdb.Client) Service {
+func NewService(config *api.APIConfig, cockroachdbClient cockroachdb.Client) Service {
 	return &service{
 		config:            config,
 		cockroachdbClient: cockroachdbClient,
@@ -24,7 +24,7 @@ func NewService(config *config.APIConfig, cockroachdbClient cockroachdb.Client) 
 }
 
 type service struct {
-	config            *config.APIConfig
+	config            *api.APIConfig
 	cockroachdbClient cockroachdb.Client
 }
 

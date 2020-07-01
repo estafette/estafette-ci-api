@@ -1,4 +1,4 @@
-package auth
+package api
 
 import (
 	"net/http"
@@ -6,7 +6,6 @@ import (
 	"time"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
-	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -19,8 +18,8 @@ type Middleware interface {
 	GinJWTMiddlewareForClientLogin(authenticator func(c *gin.Context) (interface{}, error)) (middleware *jwt.GinJWTMiddleware, err error)
 }
 
-// NewAuthMiddleware returns a new auth.AuthMiddleware
-func NewAuthMiddleware(config *config.APIConfig) (authMiddleware Middleware) {
+// NewAuthMiddleware returns a new api.AuthMiddleware
+func NewAuthMiddleware(config *APIConfig) (authMiddleware Middleware) {
 	authMiddleware = &authMiddlewareImpl{
 		config: config,
 	}
@@ -29,7 +28,7 @@ func NewAuthMiddleware(config *config.APIConfig) (authMiddleware Middleware) {
 }
 
 type authMiddlewareImpl struct {
-	config *config.APIConfig
+	config *APIConfig
 }
 
 func (m *authMiddlewareImpl) GoogleJWTMiddlewareFunc() gin.HandlerFunc {

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/estafette/estafette-ci-api/config"
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
@@ -31,14 +31,14 @@ type Client interface {
 }
 
 // NewClient creates an githubapi.Client to communicate with the Github api
-func NewClient(config *config.APIConfig) Client {
+func NewClient(config *api.APIConfig) Client {
 	return &client{
 		config: config,
 	}
 }
 
 type client struct {
-	config *config.APIConfig
+	config *api.APIConfig
 }
 
 // GetGithubAppToken returns a Github app token with which to retrieve an installation token

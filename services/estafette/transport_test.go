@@ -10,11 +10,10 @@ import (
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudstorage"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
-	"github.com/estafette/estafette-ci-api/config"
-	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	"github.com/gin-gonic/gin"
@@ -89,8 +88,8 @@ func TestGetCatalogFilters(t *testing.T) {
 	t.Run("ReturnsUpdatedConfigAfterReload", func(t *testing.T) {
 
 		configFilePath := "/configs/config.yaml"
-		cfg := &config.APIConfig{
-			Catalog: &config.CatalogConfig{
+		cfg := &api.APIConfig{
+			Catalog: &api.CatalogConfig{
 				Filters: []string{
 					"type",
 				},
@@ -104,7 +103,7 @@ func TestGetCatalogFilters(t *testing.T) {
 
 		buildService := MockService{}
 		secretHelper := crypt.NewSecretHelper("abc", false)
-		warningHelper := helpers.NewWarningHelper(secretHelper)
+		warningHelper := api.NewWarningHelper(secretHelper)
 		githubJobVarsFunc := func(context.Context, string, string, string) (string, string, error) {
 			return "", "", nil
 		}
@@ -124,8 +123,8 @@ func TestGetCatalogFilters(t *testing.T) {
 		assert.Equal(t, "[\"type\"]\n", string(body))
 
 		// act
-		*cfg = *&config.APIConfig{
-			Catalog: &config.CatalogConfig{
+		*cfg = *&api.APIConfig{
+			Catalog: &api.CatalogConfig{
 				Filters: []string{
 					"type",
 					"language",
@@ -149,7 +148,7 @@ func TestGetPipeline(t *testing.T) {
 	t.Run("ReturnsPipelineFromNewCockroachdbClientAfterReload", func(t *testing.T) {
 
 		configFilePath := "/configs/config.yaml"
-		cfg := &config.APIConfig{}
+		cfg := &api.APIConfig{}
 		encryptedConfig := cfg
 
 		var cockroachdbClient cockroachdb.Client
@@ -165,7 +164,7 @@ func TestGetPipeline(t *testing.T) {
 		builderapiClient := builderapi.MockClient{}
 		buildService := MockService{}
 		secretHelper := crypt.NewSecretHelper("abc", false)
-		warningHelper := helpers.NewWarningHelper(secretHelper)
+		warningHelper := api.NewWarningHelper(secretHelper)
 		githubJobVarsFunc := func(context.Context, string, string, string) (string, string, error) {
 			return "", "", nil
 		}

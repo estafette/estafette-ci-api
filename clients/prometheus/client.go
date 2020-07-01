@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/estafette/estafette-ci-api/config"
+	"github.com/estafette/estafette-ci-api/api"
 	foundation "github.com/estafette/estafette-foundation"
 	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
@@ -24,14 +24,14 @@ type Client interface {
 }
 
 // NewClient creates an prometheus.Client to communicate with Prometheus
-func NewClient(config *config.APIConfig) Client {
+func NewClient(config *api.APIConfig) Client {
 	return &client{
 		config: config,
 	}
 }
 
 type client struct {
-	config *config.APIConfig
+	config *api.APIConfig
 }
 
 func (c *client) AwaitScrapeInterval(ctx context.Context) {

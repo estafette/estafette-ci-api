@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/bigquery"
-	"github.com/estafette/estafette-ci-api/config"
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/rs/zerolog/log"
 )
 
@@ -22,7 +22,7 @@ type Client interface {
 }
 
 // NewClient returns new bigquery.Client
-func NewClient(config *config.APIConfig, bigqueryClient *bigquery.Client) Client {
+func NewClient(config *api.APIConfig, bigqueryClient *bigquery.Client) Client {
 
 	if config == nil || config.Integrations == nil || config.Integrations.BigQuery == nil || !config.Integrations.BigQuery.Enable {
 		return &client{
@@ -40,7 +40,7 @@ func NewClient(config *config.APIConfig, bigqueryClient *bigquery.Client) Client
 
 type client struct {
 	client                 *bigquery.Client
-	config                 *config.APIConfig
+	config                 *api.APIConfig
 	buildEventsTableName   string
 	releaseEventsTableName string
 }

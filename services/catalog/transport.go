@@ -4,17 +4,15 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/estafette/estafette-ci-api/auth"
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
-	"github.com/estafette/estafette-ci-api/config"
-	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
 
 // NewHandler returns a new rbac.Handler
-func NewHandler(config *config.APIConfig, service Service, cockroachdbClient cockroachdb.Client) Handler {
+func NewHandler(config *api.APIConfig, service Service, cockroachdbClient cockroachdb.Client) Handler {
 	return Handler{
 		config:            config,
 		service:           service,
@@ -23,7 +21,7 @@ func NewHandler(config *config.APIConfig, service Service, cockroachdbClient coc
 }
 
 type Handler struct {
-	config            *config.APIConfig
+	config            *api.APIConfig
 	service           Service
 	cockroachdbClient cockroachdb.Client
 }
@@ -31,16 +29,16 @@ type Handler struct {
 func (h *Handler) GetCatalogEntityLabels(c *gin.Context) {
 
 	// // ensure the request has the correct permission
-	// if !auth.RequestTokenHasPermission(c, auth.PermissionCatalogEntitiesList) {
+	// if !api.RequestTokenHasPermission(c, api.PermissionCatalogEntitiesList) {
 	// 	c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 	// 	return
 	// }
 
-	pageNumber, pageSize, filters, _ := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
 
 	ctx := c.Request.Context()
 
-	response, err := helpers.GetPagedListResponse(
+	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			catalogEntityKeys, err := h.cockroachdbClient.GetCatalogEntityLabels(ctx, pageNumber, pageSize, filters)
 			if err != nil {
@@ -73,16 +71,16 @@ func (h *Handler) GetCatalogEntityLabels(c *gin.Context) {
 func (h *Handler) GetCatalogEntityKeys(c *gin.Context) {
 
 	// // ensure the request has the correct permission
-	// if !auth.RequestTokenHasPermission(c, auth.PermissionCatalogEntitiesList) {
+	// if !api.RequestTokenHasPermission(c, api.PermissionCatalogEntitiesList) {
 	// 	c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 	// 	return
 	// }
 
-	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
 
 	ctx := c.Request.Context()
 
-	response, err := helpers.GetPagedListResponse(
+	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			catalogEntityKeys, err := h.cockroachdbClient.GetCatalogEntityKeys(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
@@ -115,16 +113,16 @@ func (h *Handler) GetCatalogEntityKeys(c *gin.Context) {
 func (h *Handler) GetCatalogEntityValues(c *gin.Context) {
 
 	// // ensure the request has the correct permission
-	// if !auth.RequestTokenHasPermission(c, auth.PermissionCatalogEntitiesList) {
+	// if !api.RequestTokenHasPermission(c, api.PermissionCatalogEntitiesList) {
 	// 	c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 	// 	return
 	// }
 
-	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
 
 	ctx := c.Request.Context()
 
-	response, err := helpers.GetPagedListResponse(
+	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			catalogEntityValues, err := h.cockroachdbClient.GetCatalogEntityValues(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
@@ -157,16 +155,16 @@ func (h *Handler) GetCatalogEntityValues(c *gin.Context) {
 func (h *Handler) GetCatalogEntityParentKeys(c *gin.Context) {
 
 	// // ensure the request has the correct permission
-	// if !auth.RequestTokenHasPermission(c, auth.PermissionCatalogEntitiesList) {
+	// if !api.RequestTokenHasPermission(c, api.PermissionCatalogEntitiesList) {
 	// 	c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 	// 	return
 	// }
 
-	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
 
 	ctx := c.Request.Context()
 
-	response, err := helpers.GetPagedListResponse(
+	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			catalogEntityKeys, err := h.cockroachdbClient.GetCatalogEntityParentKeys(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
@@ -199,16 +197,16 @@ func (h *Handler) GetCatalogEntityParentKeys(c *gin.Context) {
 func (h *Handler) GetCatalogEntityParentValues(c *gin.Context) {
 
 	// // ensure the request has the correct permission
-	// if !auth.RequestTokenHasPermission(c, auth.PermissionCatalogEntitiesList) {
+	// if !api.RequestTokenHasPermission(c, api.PermissionCatalogEntitiesList) {
 	// 	c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 	// 	return
 	// }
 
-	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
 
 	ctx := c.Request.Context()
 
-	response, err := helpers.GetPagedListResponse(
+	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			catalogEntityValues, err := h.cockroachdbClient.GetCatalogEntityParentValues(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
@@ -241,16 +239,16 @@ func (h *Handler) GetCatalogEntityParentValues(c *gin.Context) {
 func (h *Handler) GetCatalogEntities(c *gin.Context) {
 
 	// // ensure the request has the correct permission
-	// if !auth.RequestTokenHasPermission(c, auth.PermissionCatalogEntitiesList) {
+	// if !api.RequestTokenHasPermission(c, api.PermissionCatalogEntitiesList) {
 	// 	c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 	// 	return
 	// }
 
-	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
 
 	ctx := c.Request.Context()
 
-	response, err := helpers.GetPagedListResponse(
+	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			catalogEntities, err := h.cockroachdbClient.GetCatalogEntities(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
@@ -283,7 +281,7 @@ func (h *Handler) GetCatalogEntities(c *gin.Context) {
 func (h *Handler) GetCatalogEntity(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionCatalogEntitiesGet) {
+	if !api.RequestTokenHasPermission(c, api.PermissionCatalogEntitiesGet) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -304,7 +302,7 @@ func (h *Handler) GetCatalogEntity(c *gin.Context) {
 func (h *Handler) CreateCatalogEntity(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionCatalogEntitiesCreate) {
+	if !api.RequestTokenHasPermission(c, api.PermissionCatalogEntitiesCreate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -333,7 +331,7 @@ func (h *Handler) CreateCatalogEntity(c *gin.Context) {
 func (h *Handler) UpdateCatalogEntity(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionCatalogEntitiesUpdate) {
+	if !api.RequestTokenHasPermission(c, api.PermissionCatalogEntitiesUpdate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -369,7 +367,7 @@ func (h *Handler) UpdateCatalogEntity(c *gin.Context) {
 func (h *Handler) DeleteCatalogEntity(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionCatalogEntitiesDelete) {
+	if !api.RequestTokenHasPermission(c, api.PermissionCatalogEntitiesDelete) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}

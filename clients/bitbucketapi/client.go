@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/config"
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sethgrid/pester"
@@ -27,7 +27,7 @@ type Client interface {
 }
 
 // NewClient returns a new bitbucket.Client
-func NewClient(config *config.APIConfig) Client {
+func NewClient(config *api.APIConfig) Client {
 
 	if config == nil || config.Integrations == nil || config.Integrations.Bitbucket == nil {
 		return nil
@@ -39,7 +39,7 @@ func NewClient(config *config.APIConfig) Client {
 }
 
 type client struct {
-	config *config.APIConfig
+	config *api.APIConfig
 }
 
 // GetAccessToken returns an access token to access the Bitbucket api

@@ -4,11 +4,10 @@ import (
 	"context"
 	"errors"
 
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/services/estafette"
-	"github.com/estafette/estafette-ci-api/topics"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
@@ -29,7 +28,7 @@ type Service interface {
 }
 
 // NewService returns a new bitbucket.Service
-func NewService(config *config.APIConfig, bitbucketapiClient bitbucketapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, gitEventTopic *topics.GitEventTopic) Service {
+func NewService(config *api.APIConfig, bitbucketapiClient bitbucketapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, gitEventTopic *api.GitEventTopic) Service {
 	return &service{
 		config:             config,
 		bitbucketapiClient: bitbucketapiClient,
@@ -40,11 +39,11 @@ func NewService(config *config.APIConfig, bitbucketapiClient bitbucketapi.Client
 }
 
 type service struct {
-	config             *config.APIConfig
+	config             *api.APIConfig
 	bitbucketapiClient bitbucketapi.Client
 	pubsubapiClient    pubsubapi.Client
 	estafetteService   estafette.Service
-	gitEventTopic      *topics.GitEventTopic
+	gitEventTopic      *api.GitEventTopic
 }
 
 func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbucketapi.RepositoryPushEvent) (err error) {
@@ -61,7 +60,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	}
 
 	// handle git triggers
-	s.gitEventTopic.Publish("bitbucket.Service", topics.GitEventTopicMessage{Ctx: ctx, Event: gitEvent})
+	s.gitEventTopic.Publish("bitbucket.Service", api.GitEventTopicMessage{Ctx: ctx, Event: gitEvent})
 
 	// get access token
 	accessToken, err := s.bitbucketapiClient.GetAccessToken(ctx)

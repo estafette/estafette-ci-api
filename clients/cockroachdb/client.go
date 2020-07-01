@@ -13,8 +13,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/estafette/estafette-ci-api/config"
-	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/api"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	foundation "github.com/estafette/estafette-foundation"
@@ -63,13 +62,13 @@ type Client interface {
 	ArchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UnarchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 
-	GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error)
+	GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error)
 	GetPipelinesByRepoName(ctx context.Context, repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error)
-	GetPipelinesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetPipelinesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error)
 	GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (builds []*contracts.Build, err error)
-	GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField, optimized bool) (builds []*contracts.Build, err error)
-	GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (count int, err error)
+	GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error)
+	GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error)
 	GetPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName, repoRevision string, optimized bool) (build *contracts.Build, err error)
 	GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, id int, optimized bool) (build *contracts.Build, err error)
 	GetLastPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error)
@@ -81,33 +80,33 @@ type Client interface {
 	GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error)
 	GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
 	GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobresources JobResources, count int, err error)
-	GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (releases []*contracts.Release, err error)
-	GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (count int, err error)
+	GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (releases []*contracts.Release, err error)
+	GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error)
 	GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, id int) (release *contracts.Release, err error)
 	GetPipelineLastReleasesByName(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error)
 	GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, id int, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error)
 	GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error)
 	GetPipelineReleaseMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobresources JobResources, count int, err error)
-	GetBuildsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
-	GetReleasesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
-	GetBuildsDuration(ctx context.Context, filters map[helpers.FilterType][]string) (duration time.Duration, err error)
+	GetBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetBuildsDuration(ctx context.Context, filters map[api.FilterType][]string) (duration time.Duration, err error)
 	GetFirstBuildTimes(ctx context.Context) (times []time.Time, err error)
 	GetFirstReleaseTimes(ctx context.Context) (times []time.Time, err error)
-	GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (durations []map[string]interface{}, err error)
-	GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (durations []map[string]interface{}, err error)
-	GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error)
-	GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error)
-	GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error)
-	GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error)
+	GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error)
+	GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error)
+	GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
+	GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
+	GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
+	GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
 
 	GetLabelValues(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error)
-	GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (labels []map[string]interface{}, err error)
-	GetFrequentLabelsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error)
+	GetFrequentLabelsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
-	GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (pipelines []map[string]interface{}, err error)
-	GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
-	GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (pipelines []map[string]interface{}, err error)
-	GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (pipelines []map[string]interface{}, err error)
+	GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (pipelines []map[string]interface{}, err error)
+	GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
 	GetTriggers(ctx context.Context, triggerType, identifier, event string) (pipelines []*contracts.Pipeline, err error)
 	GetGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (pipelines []*contracts.Pipeline, err error)
@@ -130,16 +129,16 @@ type Client interface {
 	DeleteUser(ctx context.Context, user contracts.User) (err error)
 	GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	GetUserByID(ctx context.Context, id string) (user *contracts.User, err error)
-	GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (users []*contracts.User, err error)
-	GetUsersCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (users []*contracts.User, err error)
+	GetUsersCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
 	InsertGroup(ctx context.Context, group contracts.Group) (g *contracts.Group, err error)
 	UpdateGroup(ctx context.Context, group contracts.Group) (err error)
 	DeleteGroup(ctx context.Context, group contracts.Group) (err error)
 	GetGroupByIdentity(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error)
 	GetGroupByID(ctx context.Context, id string) (group *contracts.Group, err error)
-	GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error)
-	GetGroupsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (groups []*contracts.Group, err error)
+	GetGroupsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
 	InsertOrganization(ctx context.Context, organization contracts.Organization) (o *contracts.Organization, err error)
 	UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error)
@@ -147,38 +146,38 @@ type Client interface {
 	GetOrganizationByIdentity(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error)
 	GetOrganizationByID(ctx context.Context, id string) (organization *contracts.Organization, err error)
 	GetOrganizationByName(ctx context.Context, name string) (organization *contracts.Organization, err error)
-	GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error)
-	GetOrganizationsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (organizations []*contracts.Organization, err error)
+	GetOrganizationsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
 	InsertClient(ctx context.Context, client contracts.Client) (cl *contracts.Client, err error)
 	UpdateClient(ctx context.Context, client contracts.Client) (err error)
 	DeleteClient(ctx context.Context, client contracts.Client) (err error)
 	GetClientByClientID(ctx context.Context, clientID string) (client *contracts.Client, err error)
 	GetClientByID(ctx context.Context, id string) (client *contracts.Client, err error)
-	GetClients(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error)
-	GetClientsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetClients(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (clients []*contracts.Client, err error)
+	GetClientsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
 	InsertCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (insertedCatalogEntity *contracts.CatalogEntity, err error)
 	UpdateCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (err error)
 	DeleteCatalogEntity(ctx context.Context, id string) (err error)
 	GetCatalogEntityByID(ctx context.Context, id string) (catalogEntity *contracts.CatalogEntity, err error)
-	GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error)
-	GetCatalogEntitiesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (catalogEntities []*contracts.CatalogEntity, err error)
+	GetCatalogEntitiesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
-	GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error)
-	GetCatalogEntityParentKeysCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
-	GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error)
-	GetCatalogEntityParentValuesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
-	GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error)
-	GetCatalogEntityKeysCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
-	GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error)
-	GetCatalogEntityValuesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
-	GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (labels []map[string]interface{}, err error)
-	GetCatalogEntityLabelsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error)
+	GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (keys []map[string]interface{}, err error)
+	GetCatalogEntityParentKeysCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (values []map[string]interface{}, err error)
+	GetCatalogEntityParentValuesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (keys []map[string]interface{}, err error)
+	GetCatalogEntityKeysCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (values []map[string]interface{}, err error)
+	GetCatalogEntityValuesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error)
+	GetCatalogEntityLabelsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 }
 
 // NewClient returns a new cockroach.Client
-func NewClient(config *config.APIConfig) Client {
+func NewClient(config *api.APIConfig) Client {
 	return &client{
 		databaseDriver: "postgres",
 		config:         config,
@@ -187,7 +186,7 @@ func NewClient(config *config.APIConfig) Client {
 
 type client struct {
 	databaseDriver     string
-	config             *config.APIConfig
+	config             *api.APIConfig
 	databaseConnection *sql.DB
 }
 
@@ -840,7 +839,7 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 
 	// get last x builds
-	lastBuilds, err := c.GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, 1, 10, map[helpers.FilterType][]string{}, []helpers.OrderField{}, false)
+	lastBuilds, err := c.GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, 1, 10, map[api.FilterType][]string{}, []api.OrderField{}, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last build for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
 		return
@@ -908,7 +907,7 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 	c.enrichPipeline(ctx, upsertedPipeline)
 
 	// get last x releases
-	lastReleases, err := c.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, 1, 10, map[helpers.FilterType][]string{helpers.FilterSince: {"1w"}}, []helpers.OrderField{})
+	lastReleases, err := c.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, 1, 10, map[api.FilterType][]string{api.FilterSince: {"1w"}}, []api.OrderField{})
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last releases for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
 		return
@@ -1429,7 +1428,7 @@ func (c *client) UnarchiveComputedPipeline(ctx context.Context, repoSource, repo
 
 	return nil
 }
-func (c *client) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
+func (c *client) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error) {
 
 	// generate query
 	query := c.selectPipelinesQuery().
@@ -1489,7 +1488,7 @@ func (c *client) GetPipelinesByRepoName(ctx context.Context, repoName string, op
 	return
 }
 
-func (c *client) GetPipelinesCount(ctx context.Context, filters map[helpers.FilterType][]string) (totalCount int, err error) {
+func (c *client) GetPipelinesCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
 
 	// generate query
 	query :=
@@ -1572,7 +1571,7 @@ func (c *client) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOw
 	return
 }
 
-func (c *client) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField, optimized bool) (builds []*contracts.Build, err error) {
+func (c *client) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error) {
 
 	// generate query
 	query := c.selectBuildsQuery().
@@ -1612,7 +1611,7 @@ func (c *client) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, r
 	return
 }
 
-func (c *client) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (totalCount int, err error) {
+func (c *client) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (totalCount int, err error) {
 
 	// generate query
 	query :=
@@ -1980,7 +1979,7 @@ func (c *client) GetPipelineBuildMaxResourceUtilization(ctx context.Context, rep
 	return
 }
 
-func (c *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (releases []*contracts.Release, err error) {
+func (c *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (releases []*contracts.Release, err error) {
 
 	// generate query
 	query := c.selectReleasesQuery().
@@ -2020,7 +2019,7 @@ func (c *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner,
 	return
 }
 
-func (c *client) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (totalCount int, err error) {
+func (c *client) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (totalCount int, err error) {
 
 	// generate query
 	query :=
@@ -2250,7 +2249,7 @@ func (c *client) GetPipelineReleaseMaxResourceUtilization(ctx context.Context, r
 	return
 }
 
-func (c *client) GetBuildsCount(ctx context.Context, filters map[helpers.FilterType][]string) (totalCount int, err error) {
+func (c *client) GetBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
 
 	// generate query
 	query :=
@@ -2275,7 +2274,7 @@ func (c *client) GetBuildsCount(ctx context.Context, filters map[helpers.FilterT
 	return
 }
 
-func (c *client) GetReleasesCount(ctx context.Context, filters map[helpers.FilterType][]string) (totalCount int, err error) {
+func (c *client) GetReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
 
 	// generate query
 	query :=
@@ -2300,7 +2299,7 @@ func (c *client) GetReleasesCount(ctx context.Context, filters map[helpers.Filte
 	return
 }
 
-func (c *client) GetBuildsDuration(ctx context.Context, filters map[helpers.FilterType][]string) (totalDuration time.Duration, err error) {
+func (c *client) GetBuildsDuration(ctx context.Context, filters map[api.FilterType][]string) (totalDuration time.Duration, err error) {
 
 	// generate query
 	query :=
@@ -2406,7 +2405,7 @@ func (c *client) GetFirstReleaseTimes(ctx context.Context) (releaseTimes []time.
 	return
 }
 
-func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (durations []map[string]interface{}, err error) {
+func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error) {
 
 	// generate query
 	innerquery :=
@@ -2472,7 +2471,7 @@ func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, rep
 	return
 }
 
-func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (durations []map[string]interface{}, err error) {
+func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error) {
 
 	// generate query
 	innerquery :=
@@ -2543,7 +2542,7 @@ func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, r
 	return
 }
 
-func (c *client) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
+func (c *client) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
 
 	// generate query
 	innerquery :=
@@ -2604,7 +2603,7 @@ func (c *client) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repo
 	return
 }
 
-func (c *client) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
+func (c *client) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
 
 	// generate query
 	innerquery :=
@@ -2668,7 +2667,7 @@ func (c *client) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, re
 	return
 }
 
-func (c *client) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
+func (c *client) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
 
 	// generate query
 	innerquery :=
@@ -2729,7 +2728,7 @@ func (c *client) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, r
 	return
 }
 
-func (c *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[helpers.FilterType][]string) (measurements []map[string]interface{}, err error) {
+func (c *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
 
 	// generate query
 	innerquery :=
@@ -2856,7 +2855,7 @@ func (c *client) GetLabelValues(ctx context.Context, labelKey string) (labels []
 	return c.scanItems(ctx, rows)
 }
 
-func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (labels []map[string]interface{}, err error) {
+func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error) {
 
 	// see https://github.com/cockroachdb/cockroach/issues/35848
 
@@ -2940,7 +2939,7 @@ func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int
 	return c.scanItems(ctx, rows)
 }
 
-func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[helpers.FilterType][]string) (totalCount int, err error) {
+func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
 
 	// see https://github.com/cockroachdb/cockroach/issues/35848
 
@@ -3021,7 +3020,7 @@ func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[helpers
 	return
 }
 
-func (c *client) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (pipelines []map[string]interface{}, err error) {
+func (c *client) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (pipelines []map[string]interface{}, err error) {
 
 	// generate query
 	query :=
@@ -3060,11 +3059,11 @@ func (c *client) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pag
 	return c.scanItems(ctx, rows)
 }
 
-func (c *client) GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[helpers.FilterType][]string) (totalCount int, err error) {
+func (c *client) GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
 	return c.GetPipelinesCount(ctx, filters)
 }
 
-func (c *client) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (pipelines []map[string]interface{}, err error) {
+func (c *client) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (pipelines []map[string]interface{}, err error) {
 
 	// generate query
 	query :=
@@ -3097,7 +3096,7 @@ func (c *client) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, p
 	return c.scanItems(ctx, rows)
 }
 
-func (c *client) GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[helpers.FilterType][]string) (totalCount int, err error) {
+func (c *client) GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
 
 	// generate query
 	innerquery :=
@@ -3133,7 +3132,7 @@ func (c *client) GetPipelinesWithMostReleasesCount(ctx context.Context, filters 
 	return
 }
 
-func orderByClauseGeneratorForSortings(query sq.SelectBuilder, alias, defaultOrderBy string, sortings []helpers.OrderField) (sq.SelectBuilder, error) {
+func orderByClauseGeneratorForSortings(query sq.SelectBuilder, alias, defaultOrderBy string, sortings []api.OrderField) (sq.SelectBuilder, error) {
 
 	if len(sortings) == 0 {
 		return query.OrderBy(defaultOrderBy), nil
@@ -3146,7 +3145,7 @@ func orderByClauseGeneratorForSortings(query sq.SelectBuilder, alias, defaultOrd
 	return query, nil
 }
 
-func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias, sinceColumn string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias, sinceColumn string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	query, err := whereClauseGeneratorForSinceFilter(query, alias, sinceColumn, filters)
 	if err != nil {
@@ -3184,7 +3183,7 @@ func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias, sinceColum
 	return query, nil
 }
 
-func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, alias, sinceColumn string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, alias, sinceColumn string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	query, err := whereClauseGeneratorForReleaseStatusFilter(query, alias, filters)
 	if err != nil {
@@ -3198,9 +3197,9 @@ func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, alias, sin
 	return query, nil
 }
 
-func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, alias, sinceColumn string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, alias, sinceColumn string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	if since, ok := filters[helpers.FilterSince]; ok && len(since) > 0 && since[0] != "eternity" {
+	if since, ok := filters[api.FilterSince]; ok && len(since) > 0 && since[0] != "eternity" {
 		sinceValue := since[0]
 		switch sinceValue {
 		case "1h":
@@ -3219,9 +3218,9 @@ func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, alias, sinceColu
 	return query, nil
 }
 
-func whereClauseGeneratorForSearchFilter(query sq.SelectBuilder, alias string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForSearchFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	if search, ok := filters[helpers.FilterSearch]; ok && len(search) > 0 && search[0] != "" {
+	if search, ok := filters[api.FilterSearch]; ok && len(search) > 0 && search[0] != "" {
 		searchValue := search[0]
 		query = query.Where(sq.Like{fmt.Sprintf("%v.repo_name", alias): fmt.Sprint("%", searchValue, "%")})
 	}
@@ -3229,27 +3228,27 @@ func whereClauseGeneratorForSearchFilter(query sq.SelectBuilder, alias string, f
 	return query, nil
 }
 
-func whereClauseGeneratorForBuildStatusFilter(query sq.SelectBuilder, alias string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForBuildStatusFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	if statuses, ok := filters[helpers.FilterStatus]; ok && len(statuses) > 0 && statuses[0] != "all" {
+	if statuses, ok := filters[api.FilterStatus]; ok && len(statuses) > 0 && statuses[0] != "all" {
 		query = query.Where(sq.Eq{fmt.Sprintf("%v.build_status", alias): statuses})
 	}
 
 	return query, nil
 }
 
-func whereClauseGeneratorForReleaseStatusFilter(query sq.SelectBuilder, alias string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForReleaseStatusFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	if statuses, ok := filters[helpers.FilterStatus]; ok && len(statuses) > 0 && statuses[0] != "all" {
+	if statuses, ok := filters[api.FilterStatus]; ok && len(statuses) > 0 && statuses[0] != "all" {
 		query = query.Where(sq.Eq{fmt.Sprintf("%v.release_status", alias): statuses})
 	}
 
 	return query, nil
 }
 
-func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, alias string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	if labels, ok := filters[helpers.FilterLabels]; ok && len(labels) > 0 {
+	if labels, ok := filters[api.FilterLabels]; ok && len(labels) > 0 {
 
 		labelsParam := []contracts.Label{}
 
@@ -3277,9 +3276,9 @@ func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, alias string, f
 	return query, nil
 }
 
-func whereClauseGeneratorForRecentCommitterFilter(query sq.SelectBuilder, alias string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForRecentCommitterFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	if user, ok := filters[helpers.FilterRecentCommitter]; ok && len(user) > 0 {
+	if user, ok := filters[api.FilterRecentCommitter]; ok && len(user) > 0 {
 
 		userParam := []string{user[0]}
 
@@ -3294,9 +3293,9 @@ func whereClauseGeneratorForRecentCommitterFilter(query sq.SelectBuilder, alias 
 	return query, nil
 }
 
-func whereClauseGeneratorForRecentReleaserFilter(query sq.SelectBuilder, alias string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForRecentReleaserFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	if user, ok := filters[helpers.FilterRecentReleaser]; ok && len(user) > 0 {
+	if user, ok := filters[api.FilterRecentReleaser]; ok && len(user) > 0 {
 
 		userParam := []string{user[0]}
 
@@ -3311,9 +3310,9 @@ func whereClauseGeneratorForRecentReleaserFilter(query sq.SelectBuilder, alias s
 	return query, nil
 }
 
-func whereClauseGeneratorForGroupsFilter(query sq.SelectBuilder, alias string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForGroupsFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	if groups, ok := filters[helpers.FilterGroups]; ok && len(groups) > 0 {
+	if groups, ok := filters[api.FilterGroups]; ok && len(groups) > 0 {
 
 		expressions := sq.Or{}
 		for _, g := range groups {
@@ -3336,9 +3335,9 @@ func whereClauseGeneratorForGroupsFilter(query sq.SelectBuilder, alias string, f
 	return query, nil
 }
 
-func whereClauseGeneratorForOrganizationsFilter(query sq.SelectBuilder, alias string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForOrganizationsFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	if organizations, ok := filters[helpers.FilterOrganizations]; ok && len(organizations) > 0 {
+	if organizations, ok := filters[api.FilterOrganizations]; ok && len(organizations) > 0 {
 
 		expressions := sq.Or{}
 		for _, o := range organizations {
@@ -3361,7 +3360,7 @@ func whereClauseGeneratorForOrganizationsFilter(query sq.SelectBuilder, alias st
 	return query, nil
 }
 
-func whereClauseGeneratorForUserFilters(query sq.SelectBuilder, alias string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForUserFilters(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	query, err := whereClauseGeneratorForUserGroupFilters(query, alias, filters)
 	if err != nil {
@@ -3376,8 +3375,8 @@ func whereClauseGeneratorForUserFilters(query sq.SelectBuilder, alias string, fi
 	return query, nil
 }
 
-func whereClauseGeneratorForUserGroupFilters(query sq.SelectBuilder, alias string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
-	if groupIDs, ok := filters[helpers.FilterGroupID]; ok && len(groupIDs) > 0 {
+func whereClauseGeneratorForUserGroupFilters(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+	if groupIDs, ok := filters[api.FilterGroupID]; ok && len(groupIDs) > 0 {
 
 		groupID := groupIDs[0]
 
@@ -3407,8 +3406,8 @@ func whereClauseGeneratorForUserGroupFilters(query sq.SelectBuilder, alias strin
 	return query, nil
 }
 
-func whereClauseGeneratorForUserOrganizationFilters(query sq.SelectBuilder, alias string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
-	if organizationIDs, ok := filters[helpers.FilterOrganizationID]; ok && len(organizationIDs) > 0 {
+func whereClauseGeneratorForUserOrganizationFilters(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+	if organizationIDs, ok := filters[api.FilterOrganizationID]; ok && len(organizationIDs) > 0 {
 
 		organizationID := organizationIDs[0]
 
@@ -3438,7 +3437,7 @@ func whereClauseGeneratorForUserOrganizationFilters(query sq.SelectBuilder, alia
 	return query, nil
 }
 
-func whereClauseGeneratorForCatalogEntityFilters(query sq.SelectBuilder, alias string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForCatalogEntityFilters(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	query, err := whereClauseGeneratorForParentFilter(query, alias, filters)
 	if err != nil {
@@ -3463,9 +3462,9 @@ func whereClauseGeneratorForCatalogEntityFilters(query sq.SelectBuilder, alias s
 	return query, nil
 }
 
-func whereClauseGeneratorForParentFilter(query sq.SelectBuilder, alias string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForParentFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	if parents, ok := filters[helpers.FilterParent]; ok && len(parents) == 1 {
+	if parents, ok := filters[api.FilterParent]; ok && len(parents) == 1 {
 		keyValuePair := strings.Split(parents[0], "=")
 		if len(keyValuePair) > 0 {
 			query = query.Where(sq.Eq{fmt.Sprintf("%v.parent_key", alias): keyValuePair[0]})
@@ -3478,9 +3477,9 @@ func whereClauseGeneratorForParentFilter(query sq.SelectBuilder, alias string, f
 	return query, nil
 }
 
-func whereClauseGeneratorForEntityFilter(query sq.SelectBuilder, alias string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForEntityFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	if entities, ok := filters[helpers.FilterEntity]; ok && len(entities) == 1 {
+	if entities, ok := filters[api.FilterEntity]; ok && len(entities) == 1 {
 		keyValuePair := strings.Split(entities[0], "=")
 		if len(keyValuePair) > 0 {
 			query = query.Where(sq.Eq{fmt.Sprintf("%v.entity_key", alias): keyValuePair[0]})
@@ -3493,18 +3492,18 @@ func whereClauseGeneratorForEntityFilter(query sq.SelectBuilder, alias string, f
 	return query, nil
 }
 
-func whereClauseGeneratorForLinkedPipelineFilter(query sq.SelectBuilder, alias string, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForLinkedPipelineFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	if pipelines, ok := filters[helpers.FilterPipeline]; ok && len(pipelines) == 1 {
+	if pipelines, ok := filters[api.FilterPipeline]; ok && len(pipelines) == 1 {
 		query = query.Where(sq.Eq{fmt.Sprintf("%v.linked_pipeline", alias): pipelines[0]})
 	}
 
 	return query, nil
 }
 
-func limitClauseGeneratorForLastFilter(query sq.SelectBuilder, filters map[helpers.FilterType][]string) (sq.SelectBuilder, error) {
+func limitClauseGeneratorForLastFilter(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	if last, ok := filters[helpers.FilterLast]; ok && len(last) == 1 {
+	if last, ok := filters[api.FilterLast]; ok && len(last) == 1 {
 		lastValue := last[0]
 		limitSize, err := strconv.ParseUint(lastValue, 10, 64)
 		if err != nil {
@@ -4428,7 +4427,7 @@ func (c *client) GetUserByIdentity(ctx context.Context, identity contracts.UserI
 	return user, nil
 }
 
-func (c *client) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (users []*contracts.User, err error) {
+func (c *client) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (users []*contracts.User, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -4441,7 +4440,7 @@ func (c *client) GetUsers(ctx context.Context, pageNumber, pageSize int, filters
 	// wait for https://github.com/cockroachdb/cockroach/issues/35706 to be implemented for sorting jsonb fields
 
 	// // fix sortings for fields inside the user_data jsonb object
-	// fixedSortings := []helpers.OrderField{}
+	// fixedSortings := []api.OrderField{}
 	// for _, s := range sortings {
 	// 	fieldName := s.FieldName
 	// 	direction := s.Direction
@@ -4453,7 +4452,7 @@ func (c *client) GetUsers(ctx context.Context, pageNumber, pageSize int, filters
 	// 		fieldName = "user_data-->'email'"
 	// 	}
 
-	// 	fixedSortings = append(fixedSortings, helpers.OrderField{
+	// 	fixedSortings = append(fixedSortings, api.OrderField{
 	// 		FieldName: fieldName,
 	// 		Direction: direction,
 	// 	})
@@ -4476,7 +4475,7 @@ func (c *client) GetUsers(ctx context.Context, pageNumber, pageSize int, filters
 	return c.scanUsers(rows)
 }
 
-func (c *client) GetUsersCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c *client) GetUsersCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -4645,7 +4644,7 @@ func (c *client) GetGroupByID(ctx context.Context, id string) (group *contracts.
 	return group, nil
 }
 
-func (c *client) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (groups []*contracts.Group, err error) {
+func (c *client) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (groups []*contracts.Group, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -4664,7 +4663,7 @@ func (c *client) GetGroups(ctx context.Context, pageNumber, pageSize int, filter
 	return c.scanGroups(rows)
 }
 
-func (c *client) GetGroupsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c *client) GetGroupsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -4851,7 +4850,7 @@ func (c *client) GetOrganizationByName(ctx context.Context, name string) (organi
 	return organization, nil
 }
 
-func (c *client) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (organizations []*contracts.Organization, err error) {
+func (c *client) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (organizations []*contracts.Organization, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -4870,7 +4869,7 @@ func (c *client) GetOrganizations(ctx context.Context, pageNumber, pageSize int,
 	return c.scanOrganizations(rows)
 }
 
-func (c *client) GetOrganizationsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c *client) GetOrganizationsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -5016,7 +5015,7 @@ func (c *client) GetClientByID(ctx context.Context, id string) (client *contract
 	return client, nil
 }
 
-func (c *client) GetClients(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (clients []*contracts.Client, err error) {
+func (c *client) GetClients(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (clients []*contracts.Client, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -5035,7 +5034,7 @@ func (c *client) GetClients(ctx context.Context, pageNumber, pageSize int, filte
 	return c.scanClients(rows)
 }
 
-func (c *client) GetClientsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c *client) GetClientsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -5174,7 +5173,7 @@ func (c *client) GetCatalogEntityByID(ctx context.Context, id string) (catalogEn
 	return catalogEntity, nil
 }
 
-func (c *client) GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (catalogEntities []*contracts.CatalogEntity, err error) {
+func (c *client) GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (catalogEntities []*contracts.CatalogEntity, err error) {
 
 	query := c.selectCatalogEntityQuery().
 		Limit(uint64(pageSize)).
@@ -5192,7 +5191,7 @@ func (c *client) GetCatalogEntities(ctx context.Context, pageNumber, pageSize in
 	return c.scanCatalogEntities(rows)
 }
 
-func (c *client) GetCatalogEntitiesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c *client) GetCatalogEntitiesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -5210,39 +5209,39 @@ func (c *client) GetCatalogEntitiesCount(ctx context.Context, filters map[helper
 	return
 }
 
-func (c *client) GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
+func (c *client) GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (keys []map[string]interface{}, err error) {
 	return c.getCatalogEntityColumn(ctx, "parent_key", "id", pageNumber, pageSize, filters, sortings)
 }
 
-func (c *client) GetCatalogEntityParentKeysCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c *client) GetCatalogEntityParentKeysCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	return c.getCatalogEntityColumnCount(ctx, "parent_key", filters)
 }
 
-func (c *client) GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+func (c *client) GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (values []map[string]interface{}, err error) {
 	return c.getCatalogEntityColumn(ctx, "parent_value", "id", pageNumber, pageSize, filters, sortings)
 }
 
-func (c *client) GetCatalogEntityParentValuesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c *client) GetCatalogEntityParentValuesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	return c.getCatalogEntityColumnCount(ctx, "parent_value", filters)
 }
 
-func (c *client) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
+func (c *client) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (keys []map[string]interface{}, err error) {
 	return c.getCatalogEntityColumn(ctx, "entity_key", "id", pageNumber, pageSize, filters, sortings)
 }
 
-func (c *client) GetCatalogEntityKeysCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c *client) GetCatalogEntityKeysCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	return c.getCatalogEntityColumnCount(ctx, "entity_key", filters)
 }
 
-func (c *client) GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (values []map[string]interface{}, err error) {
+func (c *client) GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (values []map[string]interface{}, err error) {
 	return c.getCatalogEntityColumn(ctx, "entity_value", "id", pageNumber, pageSize, filters, sortings)
 }
 
-func (c *client) GetCatalogEntityValuesCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c *client) GetCatalogEntityValuesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	return c.getCatalogEntityColumnCount(ctx, "entity_value", filters)
 }
 
-func (c *client) getCatalogEntityColumn(ctx context.Context, groupColumn, countColumn string, pageNumber, pageSize int, filters map[helpers.FilterType][]string, sortings []helpers.OrderField) (keys []map[string]interface{}, err error) {
+func (c *client) getCatalogEntityColumn(ctx context.Context, groupColumn, countColumn string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (keys []map[string]interface{}, err error) {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -5266,7 +5265,7 @@ func (c *client) getCatalogEntityColumn(ctx context.Context, groupColumn, countC
 	return c.scanItems(ctx, rows)
 }
 
-func (c *client) getCatalogEntityColumnCount(ctx context.Context, groupColumn string, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c *client) getCatalogEntityColumnCount(ctx context.Context, groupColumn string, filters map[api.FilterType][]string) (count int, err error) {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -5287,7 +5286,7 @@ func (c *client) getCatalogEntityColumnCount(ctx context.Context, groupColumn st
 	return
 }
 
-func (c *client) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[helpers.FilterType][]string) (labels []map[string]interface{}, err error) {
+func (c *client) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	arrayElementsQuery :=
@@ -5330,7 +5329,7 @@ func (c *client) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSiz
 	return c.scanItems(ctx, rows)
 }
 
-func (c *client) GetCatalogEntityLabelsCount(ctx context.Context, filters map[helpers.FilterType][]string) (count int, err error) {
+func (c *client) GetCatalogEntityLabelsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	arrayElementsQuery :=

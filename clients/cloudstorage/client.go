@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"cloud.google.com/go/storage"
-	"github.com/estafette/estafette-ci-api/config"
+	"github.com/estafette/estafette-ci-api/api"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	foundation "github.com/estafette/estafette-foundation"
 	"github.com/rs/zerolog/log"
@@ -34,7 +34,7 @@ type Client interface {
 }
 
 // NewClient returns new cloudstorage.Client
-func NewClient(config *config.APIConfig, storageClient *storage.Client) Client {
+func NewClient(config *api.APIConfig, storageClient *storage.Client) Client {
 
 	if config == nil {
 		return &client{
@@ -50,7 +50,7 @@ func NewClient(config *config.APIConfig, storageClient *storage.Client) Client {
 
 type client struct {
 	client *storage.Client
-	config *config.APIConfig
+	config *api.APIConfig
 }
 
 func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error) {

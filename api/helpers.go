@@ -1,4 +1,4 @@
-package auth
+package api
 
 import (
 	"crypto/rsa"
@@ -7,14 +7,16 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	jwtgo "github.com/dgrijalva/jwt-go"
-	"github.com/estafette/estafette-ci-api/config"
-	"github.com/estafette/estafette-ci-api/helpers"
+	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
 	"github.com/sethgrid/pester"
 )
@@ -24,7 +26,7 @@ var (
 	ErrInvalidSigningAlgorithm = errors.New("invalid signing algorithm")
 )
 
-func GenerateJWT(config *config.APIConfig, validDuration time.Duration, optionalClaims jwtgo.MapClaims) (tokenString string, err error) {
+func GenerateJWT(config *APIConfig, validDuration time.Duration, optionalClaims jwtgo.MapClaims) (tokenString string, err error) {
 
 	// Create the token
 	token := jwtgo.New(jwtgo.GetSigningMethod("HS256"))
@@ -46,7 +48,7 @@ func GenerateJWT(config *config.APIConfig, validDuration time.Duration, optional
 	return token.SignedString([]byte(config.Auth.JWT.Key))
 }
 
-func ValidateJWT(config *config.APIConfig, tokenString string) (token *jwtgo.Token, err error) {
+func ValidateJWT(config *APIConfig, tokenString string) (token *jwtgo.Token, err error) {
 	return jwtgo.Parse(tokenString, func(t *jwtgo.Token) (interface{}, error) {
 		if jwtgo.GetSigningMethod("HS256") != t.Method {
 			return nil, ErrInvalidSigningAlgorithm
@@ -55,7 +57,7 @@ func ValidateJWT(config *config.APIConfig, tokenString string) (token *jwtgo.Tok
 	})
 }
 
-func GetClaimsFromJWT(config *config.APIConfig, tokenString string) (claims jwtgo.MapClaims, err error) {
+func GetClaimsFromJWT(config *APIConfig, tokenString string) (claims jwtgo.MapClaims, err error) {
 	token, err := ValidateJWT(config, tokenString)
 	if err != nil {
 		return nil, err
@@ -371,13 +373,181 @@ func GetOrganizationsFromRequest(c *gin.Context) (organizations []string) {
 }
 
 // SetPermissionsFilters adds permission related filters for groups and organizations
-func SetPermissionsFilters(c *gin.Context, filters map[helpers.FilterType][]string) map[helpers.FilterType][]string {
+func SetPermissionsFilters(c *gin.Context, filters map[FilterType][]string) map[FilterType][]string {
 
 	if RequestTokenHasSomeRole(c, RoleOrganizationPipelinesViewer, RoleOrganizationPipelinesOperator) {
-		filters[helpers.FilterOrganizations] = GetOrganizationsFromRequest(c)
+		filters[FilterOrganizations] = GetOrganizationsFromRequest(c)
 	} else if RequestTokenHasSomeRole(c, RoleGroupPipelinesViewer, RoleGroupPipelinesOperator) {
-		filters[helpers.FilterGroups] = GetGroupsFromRequest(c)
+		filters[FilterGroups] = GetGroupsFromRequest(c)
 	}
 
 	return filters
+}
+
+// StringArrayContains returns true of a value is present in the array
+func StringArrayContains(array []string, value string) bool {
+	for _, v := range array {
+		if v == value {
+			return true
+		}
+	}
+	return false
+}
+
+// GetQueryParameters extracts query parameters specified according to https://jsonapi.org/format/
+func GetQueryParameters(c *gin.Context) (int, int, map[FilterType][]string, []OrderField) {
+	return GetPageNumber(c), GetPageSize(c), GetFilters(c), GetSorting(c)
+}
+
+// GetPageNumber extracts pagination parameters specified according to https://jsonapi.org/format/
+func GetPageNumber(c *gin.Context) int {
+	// get page number query string value or default to 1
+	pageNumberValue := c.DefaultQuery("page[number]", "1")
+	pageNumber, err := strconv.Atoi(pageNumberValue)
+	if err != nil {
+		pageNumber = 1
+	}
+
+	return pageNumber
+}
+
+// GetPageSize extracts pagination parameters specified according to https://jsonapi.org/format/
+func GetPageSize(c *gin.Context) int {
+	// get page number query string value or default to 20 (maximize at 100)
+	pageSizeValue := c.DefaultQuery("page[size]", "20")
+	pageSize, err := strconv.Atoi(pageSizeValue)
+	if err != nil {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
+	return pageSize
+}
+
+// GetSorting extracts sorting parameters specified according to https://jsonapi.org/format/
+func GetSorting(c *gin.Context) (sorting []OrderField) {
+	// ?sort=-created,title
+	sortValue := c.DefaultQuery("sort", "")
+	if sortValue == "" {
+		return
+	}
+
+	splittedSortValues := strings.Split(sortValue, ",")
+	for _, sv := range splittedSortValues {
+		direction := "ASC"
+		if strings.HasPrefix(sv, "-") {
+			direction = "DESC"
+		}
+		sorting = append(sorting, OrderField{
+			FieldName: strings.TrimPrefix(sv, "-"),
+			Direction: direction,
+		})
+	}
+
+	return
+}
+
+// GetFilters extracts specific filter parameters specified according to https://jsonapi.org/format/
+func GetFilters(c *gin.Context) map[FilterType][]string {
+	// get filters (?filter[status]=running,succeeded&filter[since]=1w&filter[labels]=team%3Destafette-team)
+	filters := map[FilterType][]string{}
+	filters[FilterStatus] = GetStatusFilter(c)
+	filters[FilterSince] = GetSinceFilter(c)
+	filters[FilterLabels] = GetLabelsFilter(c)
+	filters[FilterSearch] = GetGenericFilter(c, FilterSearch)
+	filters[FilterRecentCommitter] = GetGenericFilter(c, FilterRecentCommitter)
+	filters[FilterRecentReleaser] = GetGenericFilter(c, FilterRecentReleaser)
+	filters[FilterGroupID] = GetGenericFilter(c, FilterGroupID)
+	filters[FilterOrganizationID] = GetGenericFilter(c, FilterOrganizationID)
+	filters[FilterPipeline] = GetGenericFilter(c, FilterPipeline)
+	filters[FilterParent] = GetGenericFilter(c, FilterParent)
+	filters[FilterEntity] = GetGenericFilter(c, FilterEntity)
+
+	return filters
+}
+
+// GetStatusFilter extracts a filter on status
+func GetStatusFilter(c *gin.Context, defaultValues ...string) []string {
+	return GetGenericFilter(c, FilterStatus, defaultValues...)
+}
+
+// GetLastFilter extracts a filter to select last n items
+func GetLastFilter(c *gin.Context, defaultValue int) []string {
+	return GetGenericFilter(c, FilterLast, strconv.Itoa(defaultValue))
+}
+
+// GetSinceFilter extracts a filter on build/release date
+func GetSinceFilter(c *gin.Context) []string {
+	return GetGenericFilter(c, FilterSince, "eternity")
+}
+
+// GetLabelsFilter extracts a filter to select specific labels
+func GetLabelsFilter(c *gin.Context) []string {
+	return GetGenericFilter(c, FilterLabels)
+}
+
+// GetGenericFilter extracts a filter
+func GetGenericFilter(c *gin.Context, filterKey FilterType, defaultValues ...string) []string {
+
+	filterValues, filterExist := c.GetQueryArray(fmt.Sprintf("filter[%v]", filterKey.String()))
+	if filterExist && len(filterValues) > 0 && filterValues[0] != "" {
+		return filterValues
+	}
+
+	return defaultValues
+}
+
+// GetPagedListResponse runs a paged item query and a count query in parallel and returns them as a ListResponse
+func GetPagedListResponse(itemsFunc func() ([]interface{}, error), countFunc func() (int, error), pageNumber, pageSize int) (contracts.ListResponse, error) {
+
+	type ItemsResult struct {
+		items []interface{}
+		err   error
+	}
+	type CountResult struct {
+		count int
+		err   error
+	}
+
+	// run 2 database queries in parallel and return their result via channels
+	itemsChannel := make(chan ItemsResult)
+	countChannel := make(chan CountResult)
+
+	go func() {
+		defer close(itemsChannel)
+		items, err := itemsFunc()
+
+		itemsChannel <- ItemsResult{items, err}
+	}()
+
+	go func() {
+		defer close(countChannel)
+		count, err := countFunc()
+
+		countChannel <- CountResult{count, err}
+	}()
+
+	itemsResult := <-itemsChannel
+	if itemsResult.err != nil {
+		return contracts.ListResponse{}, itemsResult.err
+	}
+
+	countResult := <-countChannel
+	if countResult.err != nil {
+		return contracts.ListResponse{}, countResult.err
+	}
+
+	response := contracts.ListResponse{
+		Items: itemsResult.items,
+		Pagination: contracts.Pagination{
+			Page:       pageNumber,
+			Size:       pageSize,
+			TotalItems: countResult.count,
+			TotalPages: int(math.Ceil(float64(countResult.count) / float64(pageSize))),
+		},
+	}
+
+	return response, nil
 }

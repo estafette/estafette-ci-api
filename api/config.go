@@ -1,4 +1,4 @@
-package config
+package api
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
@@ -48,12 +47,12 @@ type APIServerConfig struct {
 
 // WriteLogToDatabase indicates if database is in the logWriters config
 func (c *APIServerConfig) WriteLogToDatabase() bool {
-	return len(c.LogWriters) == 0 || helpers.StringArrayContains(c.LogWriters, "database")
+	return len(c.LogWriters) == 0 || StringArrayContains(c.LogWriters, "database")
 }
 
 // WriteLogToCloudStorage indicates if cloudstorage is in the logWriters config
 func (c *APIServerConfig) WriteLogToCloudStorage() bool {
-	return helpers.StringArrayContains(c.LogWriters, "cloudstorage")
+	return StringArrayContains(c.LogWriters, "cloudstorage")
 }
 
 // ReadLogFromDatabase indicates if logReader config is database

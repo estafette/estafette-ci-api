@@ -3,7 +3,7 @@ package slackapi
 import (
 	"context"
 
-	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/opentracing/opentracing-go"
 )
 
@@ -18,8 +18,8 @@ type tracingClient struct {
 }
 
 func (c *tracingClient) GetUserProfile(ctx context.Context, userID string) (profile *UserProfile, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetUserProfile"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetUserProfile"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetUserProfile(ctx, userID)
 }

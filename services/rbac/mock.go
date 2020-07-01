@@ -3,14 +3,14 @@ package rbac
 import (
 	"context"
 
-	"github.com/estafette/estafette-ci-api/config"
+	"github.com/estafette/estafette-ci-api/api"
 	contracts "github.com/estafette/estafette-ci-contracts"
 )
 
 type MockService struct {
 	GetRolesFunc                         func(ctx context.Context) (roles []string, err error)
-	GetProvidersFunc                     func(ctx context.Context) (providers map[string][]*config.OAuthProvider, err error)
-	GetProviderByNameFunc                func(ctx context.Context, organization, name string) (provider *config.OAuthProvider, err error)
+	GetProvidersFunc                     func(ctx context.Context) (providers map[string][]*api.OAuthProvider, err error)
+	GetProviderByNameFunc                func(ctx context.Context, organization, name string) (provider *api.OAuthProvider, err error)
 	GetUserByIdentityFunc                func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	CreateUserFromIdentityFunc           func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	CreateUserFunc                       func(ctx context.Context, user contracts.User) (insertedUser *contracts.User, err error)
@@ -37,14 +37,14 @@ func (s MockService) GetRoles(ctx context.Context) (roles []string, err error) {
 	return s.GetRolesFunc(ctx)
 }
 
-func (s MockService) GetProviders(ctx context.Context) (providers map[string][]*config.OAuthProvider, err error) {
+func (s MockService) GetProviders(ctx context.Context) (providers map[string][]*api.OAuthProvider, err error) {
 	if s.GetProvidersFunc == nil {
 		return
 	}
 	return s.GetProvidersFunc(ctx)
 }
 
-func (s MockService) GetProviderByName(ctx context.Context, organization, name string) (provider *config.OAuthProvider, err error) {
+func (s MockService) GetProviderByName(ctx context.Context, organization, name string) (provider *api.OAuthProvider, err error) {
 	if s.GetProviderByNameFunc == nil {
 		return
 	}

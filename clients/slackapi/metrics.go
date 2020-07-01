@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/go-kit/kit/metrics"
 )
 
@@ -21,7 +21,7 @@ type metricsClient struct {
 
 func (c *metricsClient) GetUserProfile(ctx context.Context, userID string) (profile *UserProfile, err error) {
 	defer func(begin time.Time) {
-		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetUserProfile", begin)
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetUserProfile", begin)
 	}(time.Now())
 
 	return c.Client.GetUserProfile(ctx, userID)

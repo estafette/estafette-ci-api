@@ -3,7 +3,7 @@ package builderapi
 import (
 	"context"
 
-	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/api"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/opentracing/opentracing-go"
 	batchv1 "k8s.io/api/batch/v1"
@@ -20,50 +20,50 @@ type tracingClient struct {
 }
 
 func (c *tracingClient) CreateCiBuilderJob(ctx context.Context, params CiBuilderParams) (job *batchv1.Job, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "CreateCiBuilderJob"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "CreateCiBuilderJob"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.CreateCiBuilderJob(ctx, params)
 }
 
 func (c *tracingClient) RemoveCiBuilderJob(ctx context.Context, jobName string) (err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "RemoveCiBuilderJob"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "RemoveCiBuilderJob"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.RemoveCiBuilderJob(ctx, jobName)
 }
 
 func (c *tracingClient) CancelCiBuilderJob(ctx context.Context, jobName string) (err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "CancelCiBuilderJob"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "CancelCiBuilderJob"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.CancelCiBuilderJob(ctx, jobName)
 }
 
 func (c *tracingClient) RemoveCiBuilderConfigMap(ctx context.Context, configmapName string) (err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "RemoveCiBuilderConfigMap"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "RemoveCiBuilderConfigMap"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.RemoveCiBuilderConfigMap(ctx, configmapName)
 }
 
 func (c *tracingClient) RemoveCiBuilderSecret(ctx context.Context, secretName string) (err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "RemoveCiBuilderSecret"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "RemoveCiBuilderSecret"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.RemoveCiBuilderSecret(ctx, secretName)
 }
 
 func (c *tracingClient) TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "TailCiBuilderJobLogs"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "TailCiBuilderJobLogs"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.TailCiBuilderJobLogs(ctx, jobName, logChannel)
 }
 
 func (c *tracingClient) GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) string {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetJobName"))
-	defer func() { helpers.FinishSpan(span) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetJobName"))
+	defer func() { api.FinishSpan(span) }()
 
 	return c.Client.GetJobName(ctx, jobType, repoOwner, repoName, id)
 }

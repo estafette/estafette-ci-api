@@ -10,17 +10,15 @@ import (
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	jwtgo "github.com/dgrijalva/jwt-go"
-	"github.com/estafette/estafette-ci-api/auth"
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
-	"github.com/estafette/estafette-ci-api/config"
-	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
 
 // NewHandler returns a new rbac.Handler
-func NewHandler(config *config.APIConfig, service Service, cockroachdbClient cockroachdb.Client) Handler {
+func NewHandler(config *api.APIConfig, service Service, cockroachdbClient cockroachdb.Client) Handler {
 	return Handler{
 		config:            config,
 		service:           service,
@@ -29,7 +27,7 @@ func NewHandler(config *config.APIConfig, service Service, cockroachdbClient coc
 }
 
 type Handler struct {
-	config            *config.APIConfig
+	config            *api.APIConfig
 	service           Service
 	cockroachdbClient cockroachdb.Client
 }
@@ -52,7 +50,7 @@ func (h *Handler) GetLoggedInUser(c *gin.Context) {
 func (h *Handler) GetRoles(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionRolesList) {
+	if !api.RequestTokenHasPermission(c, api.PermissionRolesList) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -125,7 +123,7 @@ func (h *Handler) LoginProvider(c *gin.Context) {
 	}
 
 	// generate jwt to use as state
-	state, err := auth.GenerateJWT(h.config, time.Duration(10)*time.Minute, optionalClaims)
+	state, err := api.GenerateJWT(h.config, time.Duration(10)*time.Minute, optionalClaims)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed generating JWT to use as state")
 		c.String(http.StatusInternalServerError, "Failed generating JWT to use as state")
@@ -142,7 +140,7 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 		state := c.Query("state")
 
 		// validate jwt in state
-		claims, err := auth.GetClaimsFromJWT(h.config, state)
+		claims, err := api.GetClaimsFromJWT(h.config, state)
 		if err != nil {
 			return nil, err
 		}
@@ -329,17 +327,17 @@ func (h *Handler) HandleClientLoginProviderAuthenticator() func(c *gin.Context) 
 
 func (h *Handler) GetUsers(c *gin.Context) {
 
-	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionUsersList) {
+	if !api.RequestTokenHasPermission(c, api.PermissionUsersList) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
 
 	ctx := c.Request.Context()
 
-	response, err := helpers.GetPagedListResponse(
+	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			users, err := h.cockroachdbClient.GetUsers(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
@@ -372,7 +370,7 @@ func (h *Handler) GetUsers(c *gin.Context) {
 func (h *Handler) GetUser(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionUsersGet) {
+	if !api.RequestTokenHasPermission(c, api.PermissionUsersGet) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -393,7 +391,7 @@ func (h *Handler) GetUser(c *gin.Context) {
 func (h *Handler) CreateUser(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionUsersCreate) {
+	if !api.RequestTokenHasPermission(c, api.PermissionUsersCreate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -422,7 +420,7 @@ func (h *Handler) CreateUser(c *gin.Context) {
 func (h *Handler) UpdateUser(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionUsersUpdate) {
+	if !api.RequestTokenHasPermission(c, api.PermissionUsersUpdate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -458,7 +456,7 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 func (h *Handler) DeleteUser(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionUsersDelete) {
+	if !api.RequestTokenHasPermission(c, api.PermissionUsersDelete) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -477,17 +475,17 @@ func (h *Handler) DeleteUser(c *gin.Context) {
 
 func (h *Handler) GetGroups(c *gin.Context) {
 
-	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionGroupsList) {
+	if !api.RequestTokenHasPermission(c, api.PermissionGroupsList) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
 
 	ctx := c.Request.Context()
 
-	response, err := helpers.GetPagedListResponse(
+	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			groups, err := h.cockroachdbClient.GetGroups(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
@@ -526,7 +524,7 @@ func (h *Handler) GetGroups(c *gin.Context) {
 func (h *Handler) GetGroup(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionGroupsGet) {
+	if !api.RequestTokenHasPermission(c, api.PermissionGroupsGet) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -547,7 +545,7 @@ func (h *Handler) GetGroup(c *gin.Context) {
 func (h *Handler) CreateGroup(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionGroupsCreate) {
+	if !api.RequestTokenHasPermission(c, api.PermissionGroupsCreate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -576,7 +574,7 @@ func (h *Handler) CreateGroup(c *gin.Context) {
 func (h *Handler) UpdateGroup(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionGroupsUpdate) {
+	if !api.RequestTokenHasPermission(c, api.PermissionGroupsUpdate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -612,7 +610,7 @@ func (h *Handler) UpdateGroup(c *gin.Context) {
 func (h *Handler) DeleteGroup(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionGroupsDelete) {
+	if !api.RequestTokenHasPermission(c, api.PermissionGroupsDelete) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -631,17 +629,17 @@ func (h *Handler) DeleteGroup(c *gin.Context) {
 
 func (h *Handler) GetOrganizations(c *gin.Context) {
 
-	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsList) {
+	if !api.RequestTokenHasPermission(c, api.PermissionOrganizationsList) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
 
 	ctx := c.Request.Context()
 
-	response, err := helpers.GetPagedListResponse(
+	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			organizations, err := h.cockroachdbClient.GetOrganizations(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
@@ -680,7 +678,7 @@ func (h *Handler) GetOrganizations(c *gin.Context) {
 func (h *Handler) GetOrganization(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsGet) {
+	if !api.RequestTokenHasPermission(c, api.PermissionOrganizationsGet) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -701,7 +699,7 @@ func (h *Handler) GetOrganization(c *gin.Context) {
 func (h *Handler) CreateOrganization(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsCreate) {
+	if !api.RequestTokenHasPermission(c, api.PermissionOrganizationsCreate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -730,7 +728,7 @@ func (h *Handler) CreateOrganization(c *gin.Context) {
 func (h *Handler) UpdateOrganization(c *gin.Context) {
 
 	// ensure the user has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsUpdate) {
+	if !api.RequestTokenHasPermission(c, api.PermissionOrganizationsUpdate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -766,7 +764,7 @@ func (h *Handler) UpdateOrganization(c *gin.Context) {
 func (h *Handler) DeleteOrganization(c *gin.Context) {
 
 	// ensure the user has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsDelete) {
+	if !api.RequestTokenHasPermission(c, api.PermissionOrganizationsDelete) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -785,17 +783,17 @@ func (h *Handler) DeleteOrganization(c *gin.Context) {
 
 func (h *Handler) GetClients(c *gin.Context) {
 
-	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsList) {
+	if !api.RequestTokenHasPermission(c, api.PermissionClientsList) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
 
 	ctx := c.Request.Context()
 
-	response, err := helpers.GetPagedListResponse(
+	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			clients, err := h.cockroachdbClient.GetClients(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
@@ -805,7 +803,7 @@ func (h *Handler) GetClients(c *gin.Context) {
 			// convert typed array to interface array O(n)
 			items := make([]interface{}, len(clients))
 			for i := range clients {
-				if !auth.RequestTokenHasPermission(c, auth.PermissionClientsViewSecret) {
+				if !api.RequestTokenHasPermission(c, api.PermissionClientsViewSecret) {
 					// obfuscate client secret
 					clients[i].ClientSecret = "***"
 				}
@@ -832,7 +830,7 @@ func (h *Handler) GetClients(c *gin.Context) {
 func (h *Handler) GetClient(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsGet) {
+	if !api.RequestTokenHasPermission(c, api.PermissionClientsGet) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -847,7 +845,7 @@ func (h *Handler) GetClient(c *gin.Context) {
 		return
 	}
 
-	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsViewSecret) {
+	if !api.RequestTokenHasPermission(c, api.PermissionClientsViewSecret) {
 		// obfuscate client secret
 		client.ClientSecret = "***"
 	}
@@ -858,7 +856,7 @@ func (h *Handler) GetClient(c *gin.Context) {
 func (h *Handler) CreateClient(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsCreate) {
+	if !api.RequestTokenHasPermission(c, api.PermissionClientsCreate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -887,7 +885,7 @@ func (h *Handler) CreateClient(c *gin.Context) {
 func (h *Handler) UpdateClient(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsUpdate) {
+	if !api.RequestTokenHasPermission(c, api.PermissionClientsUpdate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -923,7 +921,7 @@ func (h *Handler) UpdateClient(c *gin.Context) {
 func (h *Handler) DeleteClient(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionClientsDelete) {
+	if !api.RequestTokenHasPermission(c, api.PermissionClientsDelete) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -942,17 +940,17 @@ func (h *Handler) DeleteClient(c *gin.Context) {
 
 func (h *Handler) GetPipelines(c *gin.Context) {
 
-	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionPipelinesList) {
+	if !api.RequestTokenHasPermission(c, api.PermissionPipelinesList) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
 
 	ctx := c.Request.Context()
 
-	response, err := helpers.GetPagedListResponse(
+	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			pipelines, err := h.cockroachdbClient.GetPipelines(ctx, pageNumber, pageSize, filters, sortings, true)
 			if err != nil {
@@ -985,7 +983,7 @@ func (h *Handler) GetPipelines(c *gin.Context) {
 func (h *Handler) GetPipeline(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionPipelinesGet) {
+	if !api.RequestTokenHasPermission(c, api.PermissionPipelinesGet) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -1008,7 +1006,7 @@ func (h *Handler) GetPipeline(c *gin.Context) {
 func (h *Handler) UpdatePipeline(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionPipelinesUpdate) {
+	if !api.RequestTokenHasPermission(c, api.PermissionPipelinesUpdate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -1046,7 +1044,7 @@ func (h *Handler) UpdatePipeline(c *gin.Context) {
 func (h *Handler) BatchUpdateUsers(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionUsersUpdate) {
+	if !api.RequestTokenHasPermission(c, api.PermissionUsersUpdate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -1163,7 +1161,7 @@ func (h *Handler) BatchUpdateUsers(c *gin.Context) {
 func (h *Handler) BatchUpdateGroups(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionGroupsUpdate) {
+	if !api.RequestTokenHasPermission(c, api.PermissionGroupsUpdate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -1266,7 +1264,7 @@ func (h *Handler) BatchUpdateGroups(c *gin.Context) {
 func (h *Handler) BatchUpdateOrganizations(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsUpdate) {
+	if !api.RequestTokenHasPermission(c, api.PermissionOrganizationsUpdate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -1355,7 +1353,7 @@ func (h *Handler) BatchUpdateOrganizations(c *gin.Context) {
 func (h *Handler) BatchUpdateClients(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionOrganizationsUpdate) {
+	if !api.RequestTokenHasPermission(c, api.PermissionOrganizationsUpdate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
@@ -1444,7 +1442,7 @@ func (h *Handler) BatchUpdateClients(c *gin.Context) {
 func (h *Handler) BatchUpdatePipelines(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !auth.RequestTokenHasPermission(c, auth.PermissionPipelinesUpdate) {
+	if !api.RequestTokenHasPermission(c, api.PermissionPipelinesUpdate) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}

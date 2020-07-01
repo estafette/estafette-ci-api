@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/estafette/estafette-ci-api/api"
+
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
@@ -12,8 +14,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/clients/slackapi"
-	"github.com/estafette/estafette-ci-api/config"
-	"github.com/estafette/estafette-ci-api/helpers"
+
 	"github.com/estafette/estafette-ci-api/services/bitbucket"
 	"github.com/estafette/estafette-ci-api/services/catalog"
 	"github.com/estafette/estafette-ci-api/services/cloudsource"
@@ -22,15 +23,16 @@ import (
 	"github.com/estafette/estafette-ci-api/services/pubsub"
 	"github.com/estafette/estafette-ci-api/services/rbac"
 	"github.com/estafette/estafette-ci-api/services/slack"
+
 	crypt "github.com/estafette/estafette-ci-crypt"
 )
 
 func TestConfigureGinGonic(t *testing.T) {
 	t.Run("DoesNotPanic", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Auth: &config.AuthConfig{
-				JWT: &config.JWTConfig{
+		config := &api.APIConfig{
+			Auth: &api.AuthConfig{
+				JWT: &api.JWTConfig{
 					Domain: "mydomain",
 					Key:    "abc",
 				},
@@ -44,7 +46,7 @@ func TestConfigureGinGonic(t *testing.T) {
 		builderapiClient := builderapi.MockClient{}
 		estafetteService := estafette.MockService{}
 		secretHelper := crypt.NewSecretHelper("abc", false)
-		warningHelper := helpers.NewWarningHelper(secretHelper)
+		warningHelper := api.NewWarningHelper(secretHelper)
 		githubapiClient := githubapi.MockClient{}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		cloudsourceapiClient := cloudsourceapi.MockClient{}

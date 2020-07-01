@@ -3,7 +3,7 @@ package dockerhubapi
 import (
 	"context"
 
-	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/opentracing/opentracing-go"
 )
 
@@ -18,22 +18,22 @@ type tracingClient struct {
 }
 
 func (c *tracingClient) GetToken(ctx context.Context, repository string) (token DockerHubToken, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetToken"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetToken"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetToken(ctx, repository)
 }
 
 func (c *tracingClient) GetDigest(ctx context.Context, token DockerHubToken, repository string, tag string) (digest DockerImageDigest, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetDigest"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetDigest"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetDigest(ctx, token, repository, tag)
 }
 
 func (c *tracingClient) GetDigestCached(ctx context.Context, repository string, tag string) (digest DockerImageDigest, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetDigestCached"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetDigestCached"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetDigestCached(ctx, repository, tag)
 }

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	stdpubsub "cloud.google.com/go/pubsub"
-	"github.com/estafette/estafette-ci-api/config"
+	"github.com/estafette/estafette-ci-api/api"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
 )
@@ -20,7 +20,7 @@ type Client interface {
 }
 
 // NewClient returns a new pubsub.Client
-func NewClient(config *config.APIConfig, pubsubClient *stdpubsub.Client) Client {
+func NewClient(config *api.APIConfig, pubsubClient *stdpubsub.Client) Client {
 	return &client{
 		config:       config,
 		pubsubClient: pubsubClient,
@@ -28,7 +28,7 @@ func NewClient(config *config.APIConfig, pubsubClient *stdpubsub.Client) Client 
 }
 
 type client struct {
-	config       *config.APIConfig
+	config       *api.APIConfig
 	pubsubClient *stdpubsub.Client
 }
 

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/config"
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sethgrid/pester"
@@ -20,14 +20,14 @@ type Client interface {
 }
 
 // NewClient returns a slack.Client to communicate with the Slack API
-func NewClient(config *config.APIConfig) Client {
+func NewClient(config *api.APIConfig) Client {
 	return &client{
 		config: config,
 	}
 }
 
 type client struct {
-	config *config.APIConfig
+	config *api.APIConfig
 }
 
 // GetUserProfile returns a Slack user profile

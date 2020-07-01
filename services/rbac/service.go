@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/auth"
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
-	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
@@ -24,8 +23,8 @@ var (
 type Service interface {
 	GetRoles(ctx context.Context) (roles []string, err error)
 
-	GetProviders(ctx context.Context) (providers map[string][]*config.OAuthProvider, err error)
-	GetProviderByName(ctx context.Context, organization, name string) (provider *config.OAuthProvider, err error)
+	GetProviders(ctx context.Context) (providers map[string][]*api.OAuthProvider, err error)
+	GetProviderByName(ctx context.Context, organization, name string) (provider *api.OAuthProvider, err error)
 
 	GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
 	CreateUserFromIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
@@ -52,7 +51,7 @@ type Service interface {
 }
 
 // NewService returns a github.Service to handle incoming webhook events
-func NewService(config *config.APIConfig, cockroachdbClient cockroachdb.Client) Service {
+func NewService(config *api.APIConfig, cockroachdbClient cockroachdb.Client) Service {
 	return &service{
 		config:            config,
 		cockroachdbClient: cockroachdbClient,
@@ -60,17 +59,17 @@ func NewService(config *config.APIConfig, cockroachdbClient cockroachdb.Client) 
 }
 
 type service struct {
-	config            *config.APIConfig
+	config            *api.APIConfig
 	cockroachdbClient cockroachdb.Client
 }
 
 func (s *service) GetRoles(ctx context.Context) (roles []string, err error) {
-	return auth.Roles(), nil
+	return api.Roles(), nil
 }
 
-func (s *service) GetProviders(ctx context.Context) (providers map[string][]*config.OAuthProvider, err error) {
+func (s *service) GetProviders(ctx context.Context) (providers map[string][]*api.OAuthProvider, err error) {
 
-	providers = map[string][]*config.OAuthProvider{}
+	providers = map[string][]*api.OAuthProvider{}
 
 	for _, c := range s.config.Auth.Organizations {
 		providers[c.Name] = c.OAuthProviders
@@ -78,7 +77,7 @@ func (s *service) GetProviders(ctx context.Context) (providers map[string][]*con
 	return providers, nil
 }
 
-func (s *service) GetProviderByName(ctx context.Context, organization, name string) (provider *config.OAuthProvider, err error) {
+func (s *service) GetProviderByName(ctx context.Context, organization, name string) (provider *api.OAuthProvider, err error) {
 	providers, err := s.GetProviders(ctx)
 	if err != nil {
 		return
@@ -468,9 +467,9 @@ func (s *service) setAdminRoleForUserIfConfigured(user *contracts.User) {
 	// check if email matches configured administrators and add/remove administrator role correspondingly
 	if s.config.Auth.IsConfiguredAsAdministrator(user.Email) {
 		// ensure user has administrator role
-		user.AddRole(auth.RoleAdministrator.String())
+		user.AddRole(api.RoleAdministrator.String())
 	} else {
 		// ensure user does not have administrator role
-		user.RemoveRole(auth.RoleAdministrator.String())
+		user.RemoveRole(api.RoleAdministrator.String())
 	}
 }

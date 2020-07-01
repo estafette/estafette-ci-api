@@ -32,11 +32,7 @@ import (
 	"google.golang.org/api/sourcerepo/v1"
 	stdsourcerepo "google.golang.org/api/sourcerepo/v1"
 
-	"github.com/estafette/estafette-ci-api/auth"
-	"github.com/estafette/estafette-ci-api/config"
-	"github.com/estafette/estafette-ci-api/helpers"
-	"github.com/estafette/estafette-ci-api/middlewares"
-	"github.com/estafette/estafette-ci-api/topics"
+	"github.com/estafette/estafette-ci-api/api"
 
 	"github.com/estafette/estafette-ci-api/clients/bigquery"
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
@@ -168,8 +164,8 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	return srv
 }
 
-func getTopics(ctx context.Context, stopChannel <-chan struct{}) (gitEventTopic *topics.GitEventTopic) {
-	gitEventTopic = topics.NewGitEventTopic("push events")
+func getTopics(ctx context.Context, stopChannel <-chan struct{}) (gitEventTopic *api.GitEventTopic) {
+	gitEventTopic = api.NewGitEventTopic("push events")
 
 	// close channels when stopChannel is signaled
 	go func(stopChannel <-chan struct{}) {
@@ -180,11 +176,11 @@ func getTopics(ctx context.Context, stopChannel <-chan struct{}) (gitEventTopic 
 	return
 }
 
-func subscribeToTopics(ctx context.Context, gitEventTopic *topics.GitEventTopic, estafetteService estafette.Service) {
+func subscribeToTopics(ctx context.Context, gitEventTopic *api.GitEventTopic, estafetteService estafette.Service) {
 	go estafetteService.SubscribeToGitEventsTopic(ctx, gitEventTopic)
 }
 
-func getConfig(ctx context.Context) (*config.APIConfig, *config.APIConfig, crypt.SecretHelper) {
+func getConfig(ctx context.Context) (*api.APIConfig, *api.APIConfig, crypt.SecretHelper) {
 
 	// read decryption key from secretDecryptionKeyPath
 	if !foundation.FileExists(*secretDecryptionKeyPath) {
@@ -202,7 +198,7 @@ func getConfig(ctx context.Context) (*config.APIConfig, *config.APIConfig, crypt
 
 	log.Debug().Msg("Creating config reader...")
 
-	configReader := config.NewConfigReader(secretHelper)
+	configReader := api.NewConfigReader(secretHelper)
 
 	config, err := configReader.ReadConfigFromFile(*configFilePath, true)
 	if err != nil {
@@ -217,7 +213,7 @@ func getConfig(ctx context.Context) (*config.APIConfig, *config.APIConfig, crypt
 	return config, encryptedConfig, secretHelper
 }
 
-func getGoogleCloudClients(ctx context.Context, config *config.APIConfig) (*stdbigquery.Client, *stdpubsub.Client, *stdstorage.Client, oauth2.TokenSource, *stdsourcerepo.Service) {
+func getGoogleCloudClients(ctx context.Context, config *api.APIConfig) (*stdbigquery.Client, *stdpubsub.Client, *stdstorage.Client, oauth2.TokenSource, *stdsourcerepo.Service) {
 
 	log.Debug().Msg("Creating Google Cloud clients...")
 
@@ -248,7 +244,7 @@ func getGoogleCloudClients(ctx context.Context, config *config.APIConfig) (*stdb
 	return bqClient, pubsubClient, gcsClient, tokenSource, sourcerepoService
 }
 
-func getClients(ctx context.Context, config *config.APIConfig, encryptedConfig *config.APIConfig, secretHelper crypt.SecretHelper, bqClient *stdbigquery.Client, pubsubClient *stdpubsub.Client, gcsClient *stdstorage.Client, sourcerepoTokenSource oauth2.TokenSource, sourcerepoService *stdsourcerepo.Service) (bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client) {
+func getClients(ctx context.Context, config *api.APIConfig, encryptedConfig *api.APIConfig, secretHelper crypt.SecretHelper, bqClient *stdbigquery.Client, pubsubClient *stdpubsub.Client, gcsClient *stdstorage.Client, sourcerepoTokenSource oauth2.TokenSource, sourcerepoService *stdsourcerepo.Service) (bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client) {
 
 	log.Debug().Msg("Creating clients...")
 
@@ -257,8 +253,8 @@ func getClients(ctx context.Context, config *config.APIConfig, encryptedConfig *
 	bigqueryClient = bigquery.NewTracingClient(bigqueryClient)
 	bigqueryClient = bigquery.NewLoggingClient(bigqueryClient)
 	bigqueryClient = bigquery.NewMetricsClient(bigqueryClient,
-		helpers.NewRequestCounter("bigquery_client"),
-		helpers.NewRequestHistogram("bigquery_client"),
+		api.NewRequestCounter("bigquery_client"),
+		api.NewRequestHistogram("bigquery_client"),
 	)
 	err := bigqueryClient.Init(ctx)
 	if err != nil {
@@ -270,8 +266,8 @@ func getClients(ctx context.Context, config *config.APIConfig, encryptedConfig *
 	bitbucketapiClient = bitbucketapi.NewTracingClient(bitbucketapiClient)
 	bitbucketapiClient = bitbucketapi.NewLoggingClient(bitbucketapiClient)
 	bitbucketapiClient = bitbucketapi.NewMetricsClient(bitbucketapiClient,
-		helpers.NewRequestCounter("bitbucketapi_client"),
-		helpers.NewRequestHistogram("bitbucketapi_client"),
+		api.NewRequestCounter("bitbucketapi_client"),
+		api.NewRequestHistogram("bitbucketapi_client"),
 	)
 
 	// githubapi client
@@ -279,8 +275,8 @@ func getClients(ctx context.Context, config *config.APIConfig, encryptedConfig *
 	githubapiClient = githubapi.NewTracingClient(githubapiClient)
 	githubapiClient = githubapi.NewLoggingClient(githubapiClient)
 	githubapiClient = githubapi.NewMetricsClient(githubapiClient,
-		helpers.NewRequestCounter("githubapi_client"),
-		helpers.NewRequestHistogram("githubapi_client"),
+		api.NewRequestCounter("githubapi_client"),
+		api.NewRequestHistogram("githubapi_client"),
 	)
 
 	// slackapi client
@@ -288,8 +284,8 @@ func getClients(ctx context.Context, config *config.APIConfig, encryptedConfig *
 	slackapiClient = slackapi.NewTracingClient(slackapiClient)
 	slackapiClient = slackapi.NewLoggingClient(slackapiClient)
 	slackapiClient = slackapi.NewMetricsClient(slackapiClient,
-		helpers.NewRequestCounter("slackapi_client"),
-		helpers.NewRequestHistogram("slackapi_client"),
+		api.NewRequestCounter("slackapi_client"),
+		api.NewRequestHistogram("slackapi_client"),
 	)
 
 	// pubsubapi client
@@ -297,8 +293,8 @@ func getClients(ctx context.Context, config *config.APIConfig, encryptedConfig *
 	pubsubapiClient = pubsubapi.NewTracingClient(pubsubapiClient)
 	pubsubapiClient = pubsubapi.NewLoggingClient(pubsubapiClient)
 	pubsubapiClient = pubsubapi.NewMetricsClient(pubsubapiClient,
-		helpers.NewRequestCounter("pubsubapi_client"),
-		helpers.NewRequestHistogram("pubsubapi_client"),
+		api.NewRequestCounter("pubsubapi_client"),
+		api.NewRequestHistogram("pubsubapi_client"),
 	)
 
 	// cockroachdb client
@@ -306,8 +302,8 @@ func getClients(ctx context.Context, config *config.APIConfig, encryptedConfig *
 	cockroachdbClient = cockroachdb.NewTracingClient(cockroachdbClient)
 	cockroachdbClient = cockroachdb.NewLoggingClient(cockroachdbClient)
 	cockroachdbClient = cockroachdb.NewMetricsClient(cockroachdbClient,
-		helpers.NewRequestCounter("cockroachdb_client"),
-		helpers.NewRequestHistogram("cockroachdb_client"),
+		api.NewRequestCounter("cockroachdb_client"),
+		api.NewRequestHistogram("cockroachdb_client"),
 	)
 	err = cockroachdbClient.Connect(ctx)
 	if err != nil {
@@ -319,8 +315,8 @@ func getClients(ctx context.Context, config *config.APIConfig, encryptedConfig *
 	dockerhubapiClient = dockerhubapi.NewTracingClient(dockerhubapiClient)
 	dockerhubapiClient = dockerhubapi.NewLoggingClient(dockerhubapiClient)
 	dockerhubapiClient = dockerhubapi.NewMetricsClient(dockerhubapiClient,
-		helpers.NewRequestCounter("dockerhubapi_client"),
-		helpers.NewRequestHistogram("dockerhubapi_client"),
+		api.NewRequestCounter("dockerhubapi_client"),
+		api.NewRequestHistogram("dockerhubapi_client"),
 	)
 
 	// builderapi client
@@ -343,8 +339,8 @@ func getClients(ctx context.Context, config *config.APIConfig, encryptedConfig *
 	builderapiClient = builderapi.NewTracingClient(builderapiClient)
 	builderapiClient = builderapi.NewLoggingClient(builderapiClient)
 	builderapiClient = builderapi.NewMetricsClient(builderapiClient,
-		helpers.NewRequestCounter("builderapi_client"),
-		helpers.NewRequestHistogram("builderapi_client"),
+		api.NewRequestCounter("builderapi_client"),
+		api.NewRequestHistogram("builderapi_client"),
 	)
 
 	// cloudstorage client
@@ -352,8 +348,8 @@ func getClients(ctx context.Context, config *config.APIConfig, encryptedConfig *
 	cloudstorageClient = cloudstorage.NewTracingClient(cloudstorageClient)
 	cloudstorageClient = cloudstorage.NewLoggingClient(cloudstorageClient)
 	cloudstorageClient = cloudstorage.NewMetricsClient(cloudstorageClient,
-		helpers.NewRequestCounter("cloudstorage_client"),
-		helpers.NewRequestHistogram("cloudstorage_client"),
+		api.NewRequestCounter("cloudstorage_client"),
+		api.NewRequestHistogram("cloudstorage_client"),
 	)
 
 	// prometheus client
@@ -361,8 +357,8 @@ func getClients(ctx context.Context, config *config.APIConfig, encryptedConfig *
 	prometheusClient = prometheus.NewTracingClient(prometheusClient)
 	prometheusClient = prometheus.NewLoggingClient(prometheusClient)
 	prometheusClient = prometheus.NewMetricsClient(prometheusClient,
-		helpers.NewRequestCounter("prometheus_client"),
-		helpers.NewRequestHistogram("prometheus_client"),
+		api.NewRequestCounter("prometheus_client"),
+		api.NewRequestHistogram("prometheus_client"),
 	)
 
 	// cloudsourceapi client
@@ -373,14 +369,14 @@ func getClients(ctx context.Context, config *config.APIConfig, encryptedConfig *
 	cloudsourceClient = cloudsourceapi.NewTracingClient(cloudsourceClient)
 	cloudsourceClient = cloudsourceapi.NewLoggingClient(cloudsourceClient)
 	cloudsourceClient = cloudsourceapi.NewMetricsClient(cloudsourceClient,
-		helpers.NewRequestCounter("cloudsource_client"),
-		helpers.NewRequestHistogram("cloudsource_client"),
+		api.NewRequestCounter("cloudsource_client"),
+		api.NewRequestHistogram("cloudsource_client"),
 	)
 
 	return
 }
 
-func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig *config.APIConfig, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client, gitEventTopic *topics.GitEventTopic) (estafetteService estafette.Service, rbacService rbac.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service, catalogService catalog.Service) {
+func getServices(ctx context.Context, config *api.APIConfig, encryptedConfig *api.APIConfig, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client, gitEventTopic *api.GitEventTopic) (estafetteService estafette.Service, rbacService rbac.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service, catalogService catalog.Service) {
 
 	log.Debug().Msg("Creating services...")
 
@@ -389,8 +385,8 @@ func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig 
 	estafetteService = estafette.NewTracingService(estafetteService)
 	estafetteService = estafette.NewLoggingService(estafetteService)
 	estafetteService = estafette.NewMetricsService(estafetteService,
-		helpers.NewRequestCounter("estafette_service"),
-		helpers.NewRequestHistogram("estafette_service"),
+		api.NewRequestCounter("estafette_service"),
+		api.NewRequestHistogram("estafette_service"),
 	)
 
 	// rbac service
@@ -398,8 +394,8 @@ func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig 
 	rbacService = rbac.NewTracingService(rbacService)
 	rbacService = rbac.NewLoggingService(rbacService)
 	rbacService = rbac.NewMetricsService(rbacService,
-		helpers.NewRequestCounter("rbac_service"),
-		helpers.NewRequestHistogram("rbac_service"),
+		api.NewRequestCounter("rbac_service"),
+		api.NewRequestHistogram("rbac_service"),
 	)
 
 	// github service
@@ -407,8 +403,8 @@ func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig 
 	githubService = github.NewTracingService(githubService)
 	githubService = github.NewLoggingService(githubService)
 	githubService = github.NewMetricsService(githubService,
-		helpers.NewRequestCounter("github_service"),
-		helpers.NewRequestHistogram("github_service"),
+		api.NewRequestCounter("github_service"),
+		api.NewRequestHistogram("github_service"),
 	)
 
 	// bitbucket service
@@ -416,8 +412,8 @@ func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig 
 	bitbucketService = bitbucket.NewTracingService(bitbucketService)
 	bitbucketService = bitbucket.NewLoggingService(bitbucketService)
 	bitbucketService = bitbucket.NewMetricsService(bitbucketService,
-		helpers.NewRequestCounter("bitbucket_service"),
-		helpers.NewRequestHistogram("bitbucket_service"),
+		api.NewRequestCounter("bitbucket_service"),
+		api.NewRequestHistogram("bitbucket_service"),
 	)
 
 	// cloudsource service
@@ -425,8 +421,8 @@ func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig 
 	cloudsourceService = cloudsource.NewTracingService(cloudsourceService)
 	cloudsourceService = cloudsource.NewLoggingService(cloudsourceService)
 	cloudsourceService = cloudsource.NewMetricsService(cloudsourceService,
-		helpers.NewRequestCounter("cloudsource_service"),
-		helpers.NewRequestHistogram("cloudsource_service"),
+		api.NewRequestCounter("cloudsource_service"),
+		api.NewRequestHistogram("cloudsource_service"),
 	)
 
 	// catalog service
@@ -434,18 +430,18 @@ func getServices(ctx context.Context, config *config.APIConfig, encryptedConfig 
 	catalogService = catalog.NewTracingService(catalogService)
 	catalogService = catalog.NewLoggingService(catalogService)
 	catalogService = catalog.NewMetricsService(catalogService,
-		helpers.NewRequestCounter("catalog_service"),
-		helpers.NewRequestHistogram("catalog_service"),
+		api.NewRequestCounter("catalog_service"),
+		api.NewRequestHistogram("catalog_service"),
 	)
 
 	return
 }
 
-func getHandlers(ctx context.Context, config *config.APIConfig, encryptedConfig *config.APIConfig, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client, estafetteService estafette.Service, rbacService rbac.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service, catalogService catalog.Service) (bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, rbacHandler rbac.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler, catalogHandler catalog.Handler) {
+func getHandlers(ctx context.Context, config *api.APIConfig, encryptedConfig *api.APIConfig, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client, estafetteService estafette.Service, rbacService rbac.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service, catalogService catalog.Service) (bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, rbacHandler rbac.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler, catalogHandler catalog.Handler) {
 
 	log.Debug().Msg("Creating http handlers...")
 
-	warningHelper := helpers.NewWarningHelper(secretHelper)
+	warningHelper := api.NewWarningHelper(secretHelper)
 
 	// transport
 	bitbucketHandler = bitbucket.NewHandler(bitbucketService)
@@ -460,7 +456,7 @@ func getHandlers(ctx context.Context, config *config.APIConfig, encryptedConfig 
 	return
 }
 
-func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, rbacHandler rbac.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler, catalogHandler catalog.Handler) *http.Server {
+func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, rbacHandler rbac.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler, catalogHandler catalog.Handler) *http.Server {
 
 	// run gin in release mode and other defaults
 	gin.SetMode(gin.ReleaseMode)
@@ -477,11 +473,11 @@ func configureGinGonic(config *config.APIConfig, bitbucketHandler bitbucket.Hand
 
 	// opentracing middleware
 	log.Debug().Msg("Adding opentracing middleware...")
-	router.Use(middlewares.OpenTracingMiddleware())
+	router.Use(api.OpenTracingMiddleware())
 
 	// middleware to handle auth for different endpoints
 	log.Debug().Msg("Adding auth middleware...")
-	authMiddleware := auth.NewAuthMiddleware(config)
+	authMiddleware := api.NewAuthMiddleware(config)
 	jwtMiddleware, err := authMiddleware.GinJWTMiddleware(rbacHandler.HandleOAuthLoginProviderAuthenticator())
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed creating JWT middleware")

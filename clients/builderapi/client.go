@@ -22,9 +22,8 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/estafette/estafette-ci-api/auth"
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/dockerhubapi"
-	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
@@ -43,7 +42,7 @@ type Client interface {
 }
 
 // NewClient returns a new estafette.Client
-func NewClient(config *config.APIConfig, encryptedConfig *config.APIConfig, secretHelper crypt.SecretHelper, kubeClientset *kubernetes.Clientset, dockerHubClient dockerhubapi.Client) Client {
+func NewClient(config *api.APIConfig, encryptedConfig *api.APIConfig, secretHelper crypt.SecretHelper, kubeClientset *kubernetes.Clientset, dockerHubClient dockerhubapi.Client) Client {
 
 	return &client{
 		kubeClientset:   kubeClientset,
@@ -57,8 +56,8 @@ func NewClient(config *config.APIConfig, encryptedConfig *config.APIConfig, secr
 type client struct {
 	kubeClientset   *kubernetes.Clientset
 	dockerHubClient dockerhubapi.Client
-	config          *config.APIConfig
-	encryptedConfig *config.APIConfig
+	config          *api.APIConfig
+	encryptedConfig *api.APIConfig
 	secretHelper    crypt.SecretHelper
 }
 
@@ -605,7 +604,7 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 
 	localBuilderConfig.Manifest = &ciBuilderParams.Manifest
 
-	jwt, err := auth.GenerateJWT(c.config, time.Duration(6)*time.Hour, jwtgo.MapClaims{
+	jwt, err := api.GenerateJWT(c.config, time.Duration(6)*time.Hour, jwtgo.MapClaims{
 		"job": jobName,
 	})
 	if err != nil {

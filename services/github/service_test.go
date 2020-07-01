@@ -7,11 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/services/estafette"
-	"github.com/estafette/estafette-ci-api/topics"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,15 +19,15 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 	t.Run("ReturnsErrNonCloneableEventIfPushEventHasNoRefsHeadsPrefix", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Github: &config.GithubConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Github: &api.GithubConfig{},
 			},
 		}
 		githubapiClient := githubapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		pushEvent := githubapi.PushEvent{
 			Ref: "refs/noheads",
@@ -43,9 +42,9 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 	t.Run("CallsGetInstallationTokenOnGithubapiClient", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Github: &config.GithubConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Github: &api.GithubConfig{},
 			},
 		}
 		githubapiClient := githubapi.MockClient{}
@@ -58,7 +57,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 			return
 		}
 
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		pushEvent := githubapi.PushEvent{
 			Ref: "refs/heads/master",
@@ -72,9 +71,9 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 	t.Run("CallsGetEstafetteManifestOnGithubapiClient", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Github: &config.GithubConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Github: &api.GithubConfig{},
 			},
 		}
 		githubapiClient := githubapi.MockClient{}
@@ -87,7 +86,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 			return true, "builder:\n  track: dev\n", nil
 		}
 
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		pushEvent := githubapi.PushEvent{
 			Ref: "refs/heads/master",
@@ -102,9 +101,9 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 	t.Run("CallsCreateBuildOnEstafetteService", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Github: &config.GithubConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Github: &api.GithubConfig{},
 			},
 		}
 		githubapiClient := githubapi.MockClient{}
@@ -121,7 +120,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 			return
 		}
 
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		pushEvent := githubapi.PushEvent{
 			Ref: "refs/heads/master",
@@ -136,16 +135,16 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 	t.Run("PublishesGitTriggersOnTopic", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Github: &config.GithubConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Github: &api.GithubConfig{},
 			},
 		}
 		githubapiClient := githubapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
 
-		gitEventTopic := topics.NewGitEventTopic("test topic")
+		gitEventTopic := api.NewGitEventTopic("test topic")
 		defer gitEventTopic.Close()
 		subscriptionChannel := gitEventTopic.Subscribe("PublishesGitTriggersOnTopic")
 
@@ -170,9 +169,9 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 	t.Run("CallsSubscribeToPubsubTriggersOnPubsubAPIClient", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Github: &config.GithubConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Github: &api.GithubConfig{},
 			},
 		}
 		githubapiClient := githubapi.MockClient{}
@@ -192,7 +191,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 			return
 		}
 
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		pushEvent := githubapi.PushEvent{
 			Ref: "refs/heads/master",
@@ -212,9 +211,9 @@ func TestIsWhitelistedInstallation(t *testing.T) {
 
 	t.Run("ReturnsTrueIfWhitelistedInstallationsConfigIsEmpty", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Github: &config.GithubConfig{
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Github: &api.GithubConfig{
 					WhitelistedInstallations: []int{},
 				},
 			},
@@ -222,7 +221,7 @@ func TestIsWhitelistedInstallation(t *testing.T) {
 		githubapiClient := githubapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		installation := githubapi.Installation{
 			ID: 513,
@@ -236,9 +235,9 @@ func TestIsWhitelistedInstallation(t *testing.T) {
 
 	t.Run("ReturnsFalseIfInstallationIDIsNotInWhitelistedInstallationsConfig", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Github: &config.GithubConfig{
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Github: &api.GithubConfig{
 					WhitelistedInstallations: []int{
 						236,
 					},
@@ -248,7 +247,7 @@ func TestIsWhitelistedInstallation(t *testing.T) {
 		githubapiClient := githubapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		installation := githubapi.Installation{
 			ID: 513,
@@ -262,9 +261,9 @@ func TestIsWhitelistedInstallation(t *testing.T) {
 
 	t.Run("ReturnsTrueIfInstallationIDIsInWhitelistedInstallationsConfig", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Github: &config.GithubConfig{
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Github: &api.GithubConfig{
 					WhitelistedInstallations: []int{
 						236,
 						513,
@@ -275,7 +274,7 @@ func TestIsWhitelistedInstallation(t *testing.T) {
 		githubapiClient := githubapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		installation := githubapi.Installation{
 			ID: 513,
@@ -292,9 +291,9 @@ func TestRename(t *testing.T) {
 
 	t.Run("CallsRenameOnEstafetteService", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Github: &config.GithubConfig{
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Github: &api.GithubConfig{
 					WhitelistedInstallations: []int{},
 				},
 			},
@@ -310,7 +309,7 @@ func TestRename(t *testing.T) {
 			return
 		}
 
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		// act
 		err := service.Rename(context.Background(), "github.com", "estafette", "estafette-ci-contracts", "github.com", "estafette", "estafette-ci-protos")
@@ -324,9 +323,9 @@ func TestHasValidSignature(t *testing.T) {
 
 	t.Run("ReturnsFalseIfSignatureDoesNotMatchExpectedSignature", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Github: &config.GithubConfig{
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Github: &api.GithubConfig{
 					WebhookSecret: "m1gw5wmje424dmfvpb72ny6vjnubw79jvi7dlw2h",
 				},
 			},
@@ -336,7 +335,7 @@ func TestHasValidSignature(t *testing.T) {
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
 
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		body := []byte(`{"action": "opened","issue": {"url": "https://api.github.com/repos/octocat/Hello-World/issues/1347","number": 1347,...},"repository" : {"id": 1296269,"full_name": "octocat/Hello-World","owner": {"login": "octocat","id": 1,...},...},"sender": {"login": "octocat","id": 1,...}}`)
 		signatureHeader := "sha1=7d38cdd689735b008b3c702edd92eea23791c5f6"
@@ -350,9 +349,9 @@ func TestHasValidSignature(t *testing.T) {
 
 	t.Run("ReturnTrueIfSignatureMatchesExpectedSignature", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Github: &config.GithubConfig{
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Github: &api.GithubConfig{
 					WebhookSecret: "m1gw5wmje424dmfvpb72ny6vjnubw79jvi7dlw2h",
 				},
 			},
@@ -362,7 +361,7 @@ func TestHasValidSignature(t *testing.T) {
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
 
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		body := []byte(`{"action": "opened","issue": {"url": "https://api.github.com/repos/octocat/Hello-World/issues/1347","number": 1347,...},"repository" : {"id": 1296269,"full_name": "octocat/Hello-World","owner": {"login": "octocat","id": 1,...},...},"sender": {"login": "octocat","id": 1,...}}`)
 		signatureHeader := "sha1=765539562e575982123574d8325a636e16e0efba"

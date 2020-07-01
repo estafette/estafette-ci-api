@@ -3,8 +3,8 @@ package estafette
 import (
 	"context"
 
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
-	"github.com/estafette/estafette-ci-api/topics"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
@@ -24,7 +24,7 @@ type MockService struct {
 	UnarchiveFunc                 func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpdateBuildStatusFunc         func(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 	UpdateJobResourcesFunc        func(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
-	SubscribeToGitEventsTopicFunc func(ctx context.Context, gitEventTopic *topics.GitEventTopic)
+	SubscribeToGitEventsTopicFunc func(ctx context.Context, gitEventTopic *api.GitEventTopic)
 }
 
 func (s MockService) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error) {
@@ -125,7 +125,7 @@ func (s MockService) UpdateJobResources(ctx context.Context, event builderapi.Ci
 	return s.UpdateJobResourcesFunc(ctx, event)
 }
 
-func (s MockService) SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *topics.GitEventTopic) {
+func (s MockService) SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *api.GitEventTopic) {
 	if s.SubscribeToGitEventsTopicFunc != nil {
 		s.SubscribeToGitEventsTopicFunc(ctx, gitEventTopic)
 	}

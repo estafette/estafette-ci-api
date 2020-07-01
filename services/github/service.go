@@ -8,11 +8,10 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/services/estafette"
-	"github.com/estafette/estafette-ci-api/topics"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
@@ -34,7 +33,7 @@ type Service interface {
 }
 
 // NewService returns a github.Service to handle incoming webhook events
-func NewService(config *config.APIConfig, githubapiClient githubapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, gitEventTopic *topics.GitEventTopic) Service {
+func NewService(config *api.APIConfig, githubapiClient githubapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, gitEventTopic *api.GitEventTopic) Service {
 	return &service{
 		githubapiClient:  githubapiClient,
 		pubsubapiClient:  pubsubapiClient,
@@ -48,8 +47,8 @@ type service struct {
 	githubapiClient  githubapi.Client
 	pubsubapiClient  pubsubapi.Client
 	estafetteService estafette.Service
-	config           *config.APIConfig
-	gitEventTopic    *topics.GitEventTopic
+	config           *api.APIConfig
+	gitEventTopic    *api.GitEventTopic
 }
 
 func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubapi.PushEvent) (err error) {
@@ -66,7 +65,7 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 	}
 
 	// handle git triggers
-	s.gitEventTopic.Publish("github.Service", topics.GitEventTopicMessage{Ctx: ctx, Event: gitEvent})
+	s.gitEventTopic.Publish("github.Service", api.GitEventTopicMessage{Ctx: ctx, Event: gitEvent})
 
 	// get access token
 	accessToken, err := s.githubapiClient.GetInstallationToken(ctx, pushEvent.Installation.ID)

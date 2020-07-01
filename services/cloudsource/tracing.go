@@ -3,8 +3,8 @@ package cloudsource
 import (
 	"context"
 
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
-	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/opentracing/opentracing-go"
 )
 
@@ -19,8 +19,8 @@ type tracingService struct {
 }
 
 func (s *tracingService) CreateJobForCloudsourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "CreateJobForCloudSourcePush"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "CreateJobForCloudSourcePush"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return s.Service.CreateJobForCloudSourcePush(ctx, notification)
 }

@@ -7,11 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/services/estafette"
-	"github.com/estafette/estafette-ci-api/topics"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,15 +19,15 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("ReturnsErrNonCloneableEventIfPushEventHasNoChanges", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Bitbucket: &config.BitbucketConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Bitbucket: &api.BitbucketConfig{},
 			},
 		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{}
 
@@ -41,15 +40,15 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("ReturnsErrNonCloneableEventIfPushEventChangeHasNoNewObject", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Bitbucket: &config.BitbucketConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Bitbucket: &api.BitbucketConfig{},
 			},
 		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -70,15 +69,15 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("ReturnsErrNonCloneableEventIfPushEventNewTypeDoesNotEqualBranch", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Bitbucket: &config.BitbucketConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Bitbucket: &api.BitbucketConfig{},
 			},
 		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -101,15 +100,15 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("ReturnsErrNonCloneableEventIfPushEventNewTargetHasNoHash", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Bitbucket: &config.BitbucketConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Bitbucket: &api.BitbucketConfig{},
 			},
 		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -135,9 +134,9 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("CallsGetAccessTokenOnBitbucketAPIClient", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Bitbucket: &config.BitbucketConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Bitbucket: &api.BitbucketConfig{},
 			},
 		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
@@ -150,7 +149,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			return
 		}
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -175,9 +174,9 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("CallsGetEstafetteManifestOnBitbucketAPIClient", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Bitbucket: &config.BitbucketConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Bitbucket: &api.BitbucketConfig{},
 			},
 		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
@@ -190,7 +189,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			return true, "builder:\n  track: dev\n", nil
 		}
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -219,9 +218,9 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("CallsCreateBuildOnEstafetteService", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Bitbucket: &config.BitbucketConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Bitbucket: &api.BitbucketConfig{},
 			},
 		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
@@ -238,7 +237,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			return
 		}
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -267,16 +266,16 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("PublishesGitTriggersOnTopic", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Bitbucket: &config.BitbucketConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Bitbucket: &api.BitbucketConfig{},
 			},
 		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
 
-		gitEventTopic := topics.NewGitEventTopic("test topic")
+		gitEventTopic := api.NewGitEventTopic("test topic")
 		defer gitEventTopic.Close()
 		subscriptionChannel := gitEventTopic.Subscribe("PublishesGitTriggersOnTopic")
 
@@ -312,9 +311,9 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 	t.Run("CallsSubscribeToPubsubTriggersOnPubsubAPIClient", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Bitbucket: &config.BitbucketConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Bitbucket: &api.BitbucketConfig{},
 			},
 		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
@@ -334,7 +333,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			return
 		}
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -368,9 +367,9 @@ func TestIsWhitelistedOwner(t *testing.T) {
 
 	t.Run("ReturnsTrueIfWhitelistedOwnersConfigIsEmpty", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Bitbucket: &config.BitbucketConfig{
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Bitbucket: &api.BitbucketConfig{
 					WhitelistedOwners: []string{},
 				},
 			},
@@ -378,7 +377,7 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		repository := bitbucketapi.Repository{
 			Owner: bitbucketapi.Owner{
@@ -394,9 +393,9 @@ func TestIsWhitelistedOwner(t *testing.T) {
 
 	t.Run("ReturnsFalseIfOwnerUsernameIsNotInWhitelistedOwnersConfig", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Bitbucket: &config.BitbucketConfig{
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Bitbucket: &api.BitbucketConfig{
 					WhitelistedOwners: []string{
 						"someone-else",
 					},
@@ -406,7 +405,7 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		repository := bitbucketapi.Repository{
 			Owner: bitbucketapi.Owner{
@@ -422,9 +421,9 @@ func TestIsWhitelistedOwner(t *testing.T) {
 
 	t.Run("ReturnsTrueIfOwnerUsernameIsInWhitelistedOwnersConfig", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Bitbucket: &config.BitbucketConfig{
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Bitbucket: &api.BitbucketConfig{
 					WhitelistedOwners: []string{
 						"someone-else",
 						"estafette-in-bitbucket",
@@ -435,7 +434,7 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.MockClient{}
 		pubsubapiClient := pubsubapi.MockClient{}
 		estafetteService := estafette.MockService{}
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		repository := bitbucketapi.Repository{
 			Owner: bitbucketapi.Owner{
@@ -454,9 +453,9 @@ func TestRename(t *testing.T) {
 
 	t.Run("CallsRenameOnEstafetteService", func(t *testing.T) {
 
-		config := &config.APIConfig{
-			Integrations: &config.APIConfigIntegrations{
-				Bitbucket: &config.BitbucketConfig{},
+		config := &api.APIConfig{
+			Integrations: &api.APIConfigIntegrations{
+				Bitbucket: &api.BitbucketConfig{},
 			},
 		}
 		bitbucketapiClient := bitbucketapi.MockClient{}
@@ -469,7 +468,7 @@ func TestRename(t *testing.T) {
 			return
 		}
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, topics.NewGitEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		// act
 		err := service.Rename(context.Background(), "bitbucket.org", "estafette", "estafette-ci-contracts", "bitbucket.org", "estafette", "estafette-ci-protos")

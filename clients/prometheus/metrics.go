@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/go-kit/kit/metrics"
 )
 
@@ -21,7 +21,7 @@ type metricsClient struct {
 
 func (c *metricsClient) AwaitScrapeInterval(ctx context.Context) {
 	defer func(begin time.Time) {
-		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "AwaitScrapeInterval", begin)
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "AwaitScrapeInterval", begin)
 	}(time.Now())
 
 	c.Client.AwaitScrapeInterval(ctx)
@@ -29,7 +29,7 @@ func (c *metricsClient) AwaitScrapeInterval(ctx context.Context) {
 
 func (c *metricsClient) GetMaxMemoryByPodName(ctx context.Context, podName string) (max float64, err error) {
 	defer func(begin time.Time) {
-		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetMaxMemoryByPodName", begin)
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetMaxMemoryByPodName", begin)
 	}(time.Now())
 
 	return c.Client.GetMaxMemoryByPodName(ctx, podName)
@@ -37,7 +37,7 @@ func (c *metricsClient) GetMaxMemoryByPodName(ctx context.Context, podName strin
 
 func (c *metricsClient) GetMaxCPUByPodName(ctx context.Context, podName string) (max float64, err error) {
 	defer func(begin time.Time) {
-		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "GetMaxCPUByPodName", begin)
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetMaxCPUByPodName", begin)
 	}(time.Now())
 
 	return c.Client.GetMaxCPUByPodName(ctx, podName)

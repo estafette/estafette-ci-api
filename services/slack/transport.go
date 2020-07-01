@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
 	"github.com/estafette/estafette-ci-api/clients/slackapi"
-	"github.com/estafette/estafette-ci-api/config"
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
@@ -18,7 +18,7 @@ import (
 )
 
 // NewHandler returns a pubsub.Handler
-func NewHandler(secretHelper crypt.SecretHelper, config *config.APIConfig, slackapiClient slackapi.Client, cockroachdbClient cockroachdb.Client, estafetteService estafette.Service, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
+func NewHandler(secretHelper crypt.SecretHelper, config *api.APIConfig, slackapiClient slackapi.Client, cockroachdbClient cockroachdb.Client, estafetteService estafette.Service, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
 	return Handler{
 		config:               config,
 		secretHelper:         secretHelper,
@@ -31,7 +31,7 @@ func NewHandler(secretHelper crypt.SecretHelper, config *config.APIConfig, slack
 }
 
 type Handler struct {
-	config               *config.APIConfig
+	config               *api.APIConfig
 	secretHelper         crypt.SecretHelper
 	slackapiClient       slackapi.Client
 	cockroachdbClient    cockroachdb.Client

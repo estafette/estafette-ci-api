@@ -3,7 +3,7 @@ package pubsubapi
 import (
 	"context"
 
-	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/api"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/opentracing/opentracing-go"
 )
@@ -19,22 +19,22 @@ type tracingClient struct {
 }
 
 func (c *tracingClient) SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (event *manifest.EstafettePubSubEvent, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "SubscriptionForTopic"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "SubscriptionForTopic"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.SubscriptionForTopic(ctx, message)
 }
 
 func (c *tracingClient) SubscribeToTopic(ctx context.Context, projectID, topicID string) (err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "SubscribeToTopic"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "SubscribeToTopic"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.SubscribeToTopic(ctx, projectID, topicID)
 }
 
 func (c *tracingClient) SubscribeToPubsubTriggers(ctx context.Context, manifestString string) (err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "SubscribeToPubsubTriggers"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "SubscribeToPubsubTriggers"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.SubscribeToPubsubTriggers(ctx, manifestString)
 }

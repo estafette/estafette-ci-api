@@ -20,12 +20,10 @@ import (
 	"time"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
-	"github.com/estafette/estafette-ci-api/auth"
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudstorage"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
-	"github.com/estafette/estafette-ci-api/config"
-	"github.com/estafette/estafette-ci-api/helpers"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
@@ -35,7 +33,7 @@ import (
 )
 
 // NewHandler returns a new estafette.Handler
-func NewHandler(configFilePath string, config *config.APIConfig, encryptedConfig *config.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper helpers.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
+func NewHandler(configFilePath string, config *api.APIConfig, encryptedConfig *api.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper api.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
 
 	return Handler{
 		configFilePath:         configFilePath,
@@ -55,13 +53,13 @@ func NewHandler(configFilePath string, config *config.APIConfig, encryptedConfig
 
 type Handler struct {
 	configFilePath         string
-	config                 *config.APIConfig
-	encryptedConfig        *config.APIConfig
+	config                 *api.APIConfig
+	encryptedConfig        *api.APIConfig
 	cockroachDBClient      cockroachdb.Client
 	cloudStorageClient     cloudstorage.Client
 	ciBuilderClient        builderapi.Client
 	buildService           Service
-	warningHelper          helpers.WarningHelper
+	warningHelper          api.WarningHelper
 	secretHelper           crypt.SecretHelper
 	githubJobVarsFunc      func(context.Context, string, string, string) (string, string, error)
 	bitbucketJobVarsFunc   func(context.Context, string, string, string) (string, string, error)
@@ -70,11 +68,11 @@ type Handler struct {
 
 func (h *Handler) GetPipelines(c *gin.Context) {
 
-	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
 
-	filters = auth.SetPermissionsFilters(c, filters)
+	filters = api.SetPermissionsFilters(c, filters)
 
-	response, err := helpers.GetPagedListResponse(
+	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			pipelines, err := h.cockroachDBClient.GetPipelines(c.Request.Context(), pageNumber, pageSize, filters, sortings, true)
 			if err != nil {
@@ -145,9 +143,9 @@ func (h *Handler) GetPipelineBuilds(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
 
-	response, err := helpers.GetPagedListResponse(
+	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			builds, err := h.cockroachDBClient.GetPipelineBuilds(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters, sortings, true)
 			if err != nil {
@@ -237,7 +235,7 @@ func (h *Handler) GetPipelineBuild(c *gin.Context) {
 
 func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
-	if !auth.RequestTokenIsValid(c) {
+	if !api.RequestTokenIsValid(c) {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
 	}
@@ -336,7 +334,7 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
 func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 
-	if !auth.RequestTokenIsValid(c) {
+	if !api.RequestTokenIsValid(c) {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
 	}
@@ -611,9 +609,9 @@ func (h *Handler) GetPipelineReleases(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	pageNumber, pageSize, filters, sortings := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
 
-	response, err := helpers.GetPagedListResponse(
+	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			releases, err := h.cockroachDBClient.GetPipelineReleases(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters, sortings)
 			if err != nil {
@@ -645,7 +643,7 @@ func (h *Handler) GetPipelineReleases(c *gin.Context) {
 
 func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 
-	if !auth.RequestTokenIsValid(c) {
+	if !api.RequestTokenIsValid(c) {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
 	}
@@ -790,7 +788,7 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 
 func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 
-	if !auth.RequestTokenIsValid(c) {
+	if !api.RequestTokenIsValid(c) {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
 	}
@@ -1021,9 +1019,9 @@ func (h *Handler) PostPipelineReleaseLogs(c *gin.Context) {
 
 func (h *Handler) GetFrequentLabels(c *gin.Context) {
 
-	pageNumber, pageSize, filters, _ := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
 
-	response, err := helpers.GetPagedListResponse(
+	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			labels, err := h.cockroachDBClient.GetFrequentLabels(c.Request.Context(), pageNumber, pageSize, filters)
 			if err != nil {
@@ -1060,9 +1058,9 @@ func (h *Handler) GetPipelineStatsBuildsDurations(c *gin.Context) {
 	repo := c.Param("repo")
 
 	// get filters (?filter[last]=100)
-	filters := map[helpers.FilterType][]string{}
-	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c, "succeeded")
-	filters[helpers.FilterLast] = helpers.GetLastFilter(c, 100)
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c, "succeeded")
+	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
 	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1084,9 +1082,9 @@ func (h *Handler) GetPipelineStatsReleasesDurations(c *gin.Context) {
 	repo := c.Param("repo")
 
 	// get filters (?filter[last]=100)
-	filters := map[helpers.FilterType][]string{}
-	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c, "succeeded")
-	filters[helpers.FilterLast] = helpers.GetLastFilter(c, 100)
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c, "succeeded")
+	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
 	durations, err := h.cockroachDBClient.GetPipelineReleasesDurations(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1108,9 +1106,9 @@ func (h *Handler) GetPipelineStatsBuildsCPUUsageMeasurements(c *gin.Context) {
 	repo := c.Param("repo")
 
 	// get filters (?filter[last]=100)
-	filters := map[helpers.FilterType][]string{}
-	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c, "succeeded")
-	filters[helpers.FilterLast] = helpers.GetLastFilter(c, 100)
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c, "succeeded")
+	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineBuildsCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1132,9 +1130,9 @@ func (h *Handler) GetPipelineStatsReleasesCPUUsageMeasurements(c *gin.Context) {
 	repo := c.Param("repo")
 
 	// get filters (?filter[last]=100)
-	filters := map[helpers.FilterType][]string{}
-	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c, "succeeded")
-	filters[helpers.FilterLast] = helpers.GetLastFilter(c, 100)
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c, "succeeded")
+	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineReleasesCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1156,9 +1154,9 @@ func (h *Handler) GetPipelineStatsBuildsMemoryUsageMeasurements(c *gin.Context) 
 	repo := c.Param("repo")
 
 	// get filters (?filter[last]=100)
-	filters := map[helpers.FilterType][]string{}
-	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c, "succeeded")
-	filters[helpers.FilterLast] = helpers.GetLastFilter(c, 100)
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c, "succeeded")
+	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineBuildsMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1180,9 +1178,9 @@ func (h *Handler) GetPipelineStatsReleasesMemoryUsageMeasurements(c *gin.Context
 	repo := c.Param("repo")
 
 	// get filters (?filter[last]=100)
-	filters := map[helpers.FilterType][]string{}
-	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c, "succeeded")
-	filters[helpers.FilterLast] = helpers.GetLastFilter(c, 100)
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c, "succeeded")
+	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineReleasesMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
@@ -1204,9 +1202,9 @@ func (h *Handler) GetPipelineWarnings(c *gin.Context) {
 	repo := c.Param("repo")
 
 	// get filters (?filter[last]=100)
-	filters := map[helpers.FilterType][]string{}
-	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c, "succeeded")
-	filters[helpers.FilterLast] = helpers.GetLastFilter(c, 25)
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c, "succeeded")
+	filters[api.FilterLast] = api.GetLastFilter(c, 25)
 
 	pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), source, owner, repo, false)
 	if err != nil {
@@ -1288,9 +1286,9 @@ func (h *Handler) GetCatalogFilterValues(c *gin.Context) {
 func (h *Handler) GetStatsPipelinesCount(c *gin.Context) {
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
-	filters := map[helpers.FilterType][]string{}
-	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c)
-	filters[helpers.FilterSince] = helpers.GetSinceFilter(c)
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c)
+	filters[api.FilterSince] = api.GetSinceFilter(c)
 
 	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(c.Request.Context(), filters)
 	if err != nil {
@@ -1306,9 +1304,9 @@ func (h *Handler) GetStatsPipelinesCount(c *gin.Context) {
 func (h *Handler) GetStatsReleasesCount(c *gin.Context) {
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
-	filters := map[helpers.FilterType][]string{}
-	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c)
-	filters[helpers.FilterSince] = helpers.GetSinceFilter(c)
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c)
+	filters[api.FilterSince] = api.GetSinceFilter(c)
 
 	releasesCount, err := h.cockroachDBClient.GetReleasesCount(c.Request.Context(), filters)
 	if err != nil {
@@ -1324,9 +1322,9 @@ func (h *Handler) GetStatsReleasesCount(c *gin.Context) {
 func (h *Handler) GetStatsBuildsCount(c *gin.Context) {
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
-	filters := map[helpers.FilterType][]string{}
-	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c)
-	filters[helpers.FilterSince] = helpers.GetSinceFilter(c)
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c)
+	filters[api.FilterSince] = api.GetSinceFilter(c)
 
 	buildsCount, err := h.cockroachDBClient.GetBuildsCount(c.Request.Context(), filters)
 	if err != nil {
@@ -1341,7 +1339,7 @@ func (h *Handler) GetStatsBuildsCount(c *gin.Context) {
 
 func (h *Handler) GetStatsMostBuilds(c *gin.Context) {
 
-	pageNumber, pageSize, filters, _ := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
 
 	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostBuilds(c.Request.Context(), pageNumber, pageSize, filters)
 	if err != nil {
@@ -1377,7 +1375,7 @@ func (h *Handler) GetStatsMostBuilds(c *gin.Context) {
 
 func (h *Handler) GetStatsMostReleases(c *gin.Context) {
 
-	pageNumber, pageSize, filters, _ := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
 
 	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostReleases(c.Request.Context(), pageNumber, pageSize, filters)
 	if err != nil {
@@ -1414,9 +1412,9 @@ func (h *Handler) GetStatsMostReleases(c *gin.Context) {
 func (h *Handler) GetStatsBuildsDuration(c *gin.Context) {
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w
-	filters := map[helpers.FilterType][]string{}
-	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c)
-	filters[helpers.FilterSince] = helpers.GetSinceFilter(c)
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c)
+	filters[api.FilterSince] = api.GetSinceFilter(c)
 
 	buildsDuration, err := h.cockroachDBClient.GetBuildsDuration(c.Request.Context(), filters)
 	if err != nil {
@@ -1461,7 +1459,7 @@ func (h *Handler) GetStatsReleasesAdoption(c *gin.Context) {
 
 func (h *Handler) UpdateComputedTables(c *gin.Context) {
 
-	if !auth.RequestTokenIsValid(c) {
+	if !api.RequestTokenIsValid(c) {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
 	}
@@ -1469,10 +1467,10 @@ func (h *Handler) UpdateComputedTables(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	email := claims["email"].(string)
 
-	filters := map[helpers.FilterType][]string{}
-	filters[helpers.FilterStatus] = helpers.GetStatusFilter(c)
-	filters[helpers.FilterSince] = helpers.GetSinceFilter(c)
-	filters[helpers.FilterLabels] = helpers.GetLabelsFilter(c)
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c)
+	filters[api.FilterSince] = api.GetSinceFilter(c)
+	filters[api.FilterLabels] = api.GetLabelsFilter(c)
 	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(c.Request.Context(), filters)
 	if err != nil {
 		log.Error().Err(err).
@@ -1481,7 +1479,7 @@ func (h *Handler) UpdateComputedTables(c *gin.Context) {
 	pageSize := 20
 	totalPages := int(math.Ceil(float64(pipelinesCount) / float64(pageSize)))
 	for pageNumber := 1; pageNumber <= totalPages; pageNumber++ {
-		pipelines, err := h.cockroachDBClient.GetPipelines(c.Request.Context(), pageNumber, pageSize, filters, []helpers.OrderField{}, false)
+		pipelines, err := h.cockroachDBClient.GetPipelines(c.Request.Context(), pageNumber, pageSize, filters, []api.OrderField{}, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msg("Failed retrieving pipelines from db")
@@ -1617,7 +1615,7 @@ func (h *Handler) GetManifestTemplates(c *gin.Context) {
 			// reduce and deduplicate [["{{.Application}}","Application"],["{{.Team}}","Team"],["{{.ProjectName}}","ProjectName"],["{{.ProjectName}}","ProjectName"]] to ["Application","Team","ProjectName"]
 			placeholders := []string{}
 			for _, m := range placeholderMatches {
-				if len(m) == 2 && !helpers.StringArrayContains(placeholders, m[1]) {
+				if len(m) == 2 && !api.StringArrayContains(placeholders, m[1]) {
 					placeholders = append(placeholders, m[1])
 				}
 			}
@@ -1749,7 +1747,7 @@ func (h *Handler) EncryptSecret(c *gin.Context) {
 func (h *Handler) PostCronEvent(c *gin.Context) {
 
 	// ensure the user has administrator role
-	if !auth.RequestTokenHasRole(c, auth.RoleCronTrigger) {
+	if !api.RequestTokenHasRole(c, api.RoleCronTrigger) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have cron-trigger role"})
 		return
 	}
@@ -1768,15 +1766,15 @@ func (h *Handler) PostCronEvent(c *gin.Context) {
 func (h *Handler) CopyLogsToCloudStorage(c *gin.Context) {
 
 	// ensure the user has administrator role
-	if !auth.RequestTokenHasRole(c, auth.RoleLogMigrator) {
+	if !api.RequestTokenHasRole(c, api.RoleLogMigrator) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have log-migrator role"})
 		return
 	}
 
-	pageNumber, pageSize, filters, _ := helpers.GetQueryParameters(c)
+	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
 
 	searchValue := "builds"
-	if search, ok := filters[helpers.FilterSearch]; ok && len(search) > 0 && search[0] != "" {
+	if search, ok := filters[api.FilterSearch]; ok && len(search) > 0 && search[0] != "" {
 		searchValue = search[0]
 	}
 

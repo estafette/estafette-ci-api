@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
@@ -11,7 +12,6 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
 	"github.com/estafette/estafette-ci-api/clients/prometheus"
-	"github.com/estafette/estafette-ci-api/config"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/stretchr/testify/assert"
@@ -24,9 +24,9 @@ func TestCreateBuild(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs:      &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{},
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
 		}
 
 		cockroachdbClient := cockroachdb.MockClient{}
@@ -64,9 +64,9 @@ func TestCreateBuild(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs:      &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{},
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
 		}
 		cockroachdbClient := cockroachdb.MockClient{}
 		prometheusClient := prometheus.MockClient{}
@@ -102,9 +102,9 @@ func TestCreateBuild(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs:      &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{},
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
 		}
 		cockroachdbClient := cockroachdb.MockClient{}
 		prometheusClient := prometheus.MockClient{}
@@ -141,9 +141,9 @@ func TestCreateBuild(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs:      &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{},
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
 		}
 		cockroachdbClient := cockroachdb.MockClient{}
 		prometheusClient := prometheus.MockClient{}
@@ -180,9 +180,9 @@ func TestCreateBuild(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs:      &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{},
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
 		}
 		cockroachdbClient := cockroachdb.MockClient{}
 		prometheusClient := prometheus.MockClient{}
@@ -224,9 +224,9 @@ func TestCreateBuild(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs:      &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{},
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
 		}
 		cockroachdbClient := cockroachdb.MockClient{}
 		prometheusClient := prometheus.MockClient{}
@@ -275,9 +275,9 @@ func TestCreateBuild(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs: &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{
+		config := &api.APIConfig{
+			Jobs: &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{
 				LogWriters: []string{"cloudstorage"},
 			},
 		}
@@ -328,9 +328,9 @@ func TestCreateBuild(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs:      &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{},
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
 		}
 		cockroachdbClient := cockroachdb.MockClient{}
 		prometheusClient := prometheus.MockClient{}
@@ -377,9 +377,9 @@ func TestFinishBuild(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs:      &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{},
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
 		}
 		cockroachdbClient := cockroachdb.MockClient{}
 		prometheusClient := prometheus.MockClient{}
@@ -417,9 +417,9 @@ func TestCreateRelease(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs:      &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{},
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
 		}
 		cockroachdbClient := cockroachdb.MockClient{}
 		prometheusClient := prometheus.MockClient{}
@@ -458,9 +458,9 @@ func TestCreateRelease(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs:      &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{},
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
 		}
 		cockroachdbClient := cockroachdb.MockClient{}
 		prometheusClient := prometheus.MockClient{}
@@ -507,9 +507,9 @@ func TestFinishRelease(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs:      &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{},
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
 		}
 		cockroachdbClient := cockroachdb.MockClient{}
 		prometheusClient := prometheus.MockClient{}
@@ -547,9 +547,9 @@ func TestRename(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs:      &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{},
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
 		}
 		cockroachdbClient := cockroachdb.MockClient{}
 		prometheusClient := prometheus.MockClient{}
@@ -579,9 +579,9 @@ func TestRename(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs: &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{
+		config := &api.APIConfig{
+			Jobs: &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{
 				LogWriters: []string{"cloudstorage"},
 			},
 		}
@@ -615,9 +615,9 @@ func TestUpdateBuildStatus(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs:      &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{},
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
 		}
 		cockroachdbClient := cockroachdb.MockClient{}
 		prometheusClient := prometheus.MockClient{}
@@ -652,9 +652,9 @@ func TestUpdateBuildStatus(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs:      &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{},
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
 		}
 		cockroachdbClient := cockroachdb.MockClient{}
 		prometheusClient := prometheus.MockClient{}
@@ -691,9 +691,9 @@ func TestUpdateJobResources(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs:      &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{},
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
 		}
 		cockroachdbClient := cockroachdb.MockClient{}
 		prometheusClient := prometheus.MockClient{}
@@ -729,9 +729,9 @@ func TestUpdateJobResources(t *testing.T) {
 
 		ctx := context.Background()
 
-		config := &config.APIConfig{
-			Jobs:      &config.JobsConfig{},
-			APIServer: &config.APIServerConfig{},
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
 		}
 		cockroachdbClient := cockroachdb.MockClient{}
 		prometheusClient := prometheus.MockClient{}

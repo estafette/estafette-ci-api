@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
@@ -17,9 +18,6 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
 	"github.com/estafette/estafette-ci-api/clients/prometheus"
-	"github.com/estafette/estafette-ci-api/config"
-	"github.com/estafette/estafette-ci-api/helpers"
-	"github.com/estafette/estafette-ci-api/topics"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/rs/zerolog/log"
@@ -46,11 +44,11 @@ type Service interface {
 	Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 	UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
-	SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *topics.GitEventTopic)
+	SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *api.GitEventTopic)
 }
 
 // NewService returns a new estafette.Service
-func NewService(config *config.APIConfig, cockroachdbClient cockroachdb.Client, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
+func NewService(config *api.APIConfig, cockroachdbClient cockroachdb.Client, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
 
 	return &service{
 		config:                 config,
@@ -65,7 +63,7 @@ func NewService(config *config.APIConfig, cockroachdbClient cockroachdb.Client, 
 }
 
 type service struct {
-	config                 *config.APIConfig
+	config                 *api.APIConfig
 	cockroachdbClient      cockroachdb.Client
 	prometheusClient       prometheus.Client
 	cloudStorageClient     cloudstorage.Client
@@ -106,7 +104,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 
 	// inject build stages
 	if hasValidManifest {
-		mft, err = helpers.InjectSteps(s.config.ManifestPreferences, mft, builderTrack, shortRepoSource, s.supportsBuildStatus(build.RepoSource))
+		mft, err = api.InjectSteps(s.config.ManifestPreferences, mft, builderTrack, shortRepoSource, s.supportsBuildStatus(build.RepoSource))
 		if err != nil {
 			log.Error().Err(err).
 				Msg("Failed injecting build stages for pipeline %v/%v/%v and revision %v")
@@ -297,7 +295,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	releaseStatus := "pending"
 
 	// inject build stages
-	mft, err = helpers.InjectSteps(s.config.ManifestPreferences, mft, builderTrack, shortRepoSource, s.supportsBuildStatus(release.RepoSource))
+	mft, err = api.InjectSteps(s.config.ManifestPreferences, mft, builderTrack, shortRepoSource, s.supportsBuildStatus(release.RepoSource))
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed injecting build stages for release to %v of pipeline %v/%v/%v version %v", release.Name, release.RepoSource, release.RepoOwner, release.RepoName, release.ReleaseVersion)
@@ -1017,7 +1015,7 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent builder
 	return nil
 }
 
-func (s *service) SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *topics.GitEventTopic) {
+func (s *service) SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *api.GitEventTopic) {
 	eventChannel := gitEventTopic.Subscribe("estafette.Service")
 	for {
 		message, ok := <-eventChannel

@@ -3,7 +3,7 @@ package prometheus
 import (
 	"context"
 
-	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/opentracing/opentracing-go"
 )
 
@@ -18,22 +18,22 @@ type tracingClient struct {
 }
 
 func (c *tracingClient) AwaitScrapeInterval(ctx context.Context) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "AwaitScrapeInterval"))
-	defer func() { helpers.FinishSpan(span) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "AwaitScrapeInterval"))
+	defer func() { api.FinishSpan(span) }()
 
 	c.Client.AwaitScrapeInterval(ctx)
 }
 
 func (c *tracingClient) GetMaxMemoryByPodName(ctx context.Context, podName string) (max float64, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetMaxMemoryByPodName"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetMaxMemoryByPodName"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetMaxMemoryByPodName(ctx, podName)
 }
 
 func (c *tracingClient) GetMaxCPUByPodName(ctx context.Context, podName string) (max float64, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(c.prefix, "GetMaxCPUByPodName"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetMaxCPUByPodName"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetMaxCPUByPodName(ctx, podName)
 }

@@ -3,7 +3,7 @@ package bigquery
 import (
 	"context"
 
-	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/api"
 )
 
 func NewLoggingClient(c Client) Client {
@@ -16,7 +16,7 @@ type loggingClient struct {
 }
 
 func (c *loggingClient) Init(ctx context.Context) (err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "Init", err) }()
+	defer func() { api.HandleLogError(c.prefix, "Init", err) }()
 
 	return c.Client.Init(ctx)
 }
@@ -30,25 +30,25 @@ func (c *loggingClient) CheckIfTableExists(ctx context.Context, table string) (e
 }
 
 func (c *loggingClient) CreateTable(ctx context.Context, table string, typeForSchema interface{}, partitionField string, waitReady bool) (err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "CreateTable", err) }()
+	defer func() { api.HandleLogError(c.prefix, "CreateTable", err) }()
 
 	return c.Client.CreateTable(ctx, table, typeForSchema, partitionField, waitReady)
 }
 
 func (c *loggingClient) UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) (err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "UpdateTableSchema", err) }()
+	defer func() { api.HandleLogError(c.prefix, "UpdateTableSchema", err) }()
 
 	return c.Client.UpdateTableSchema(ctx, table, typeForSchema)
 }
 
 func (c *loggingClient) InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) (err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "InsertBuildEvent", err) }()
+	defer func() { api.HandleLogError(c.prefix, "InsertBuildEvent", err) }()
 
 	return c.Client.InsertBuildEvent(ctx, event)
 }
 
 func (c *loggingClient) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) (err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "InsertReleaseEvent", err) }()
+	defer func() { api.HandleLogError(c.prefix, "InsertReleaseEvent", err) }()
 
 	return c.Client.InsertReleaseEvent(ctx, event)
 }

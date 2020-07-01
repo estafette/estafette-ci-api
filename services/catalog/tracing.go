@@ -3,7 +3,7 @@ package catalog
 import (
 	"context"
 
-	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/api"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/opentracing/opentracing-go"
 )
@@ -19,22 +19,22 @@ type tracingService struct {
 }
 
 func (s *tracingService) CreateCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (insertedCatalogEntity *contracts.CatalogEntity, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "CreateCatalogEntity"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "CreateCatalogEntity"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return s.Service.CreateCatalogEntity(ctx, catalogEntity)
 }
 
 func (s *tracingService) UpdateCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "UpdateCatalogEntity"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "UpdateCatalogEntity"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return s.Service.UpdateCatalogEntity(ctx, catalogEntity)
 }
 
 func (s *tracingService) DeleteCatalogEntity(ctx context.Context, id string) (err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, helpers.GetSpanName(s.prefix, "DeleteCatalogEntity"))
-	defer func() { helpers.FinishSpanWithError(span, err) }()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "DeleteCatalogEntity"))
+	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return s.Service.DeleteCatalogEntity(ctx, id)
 }

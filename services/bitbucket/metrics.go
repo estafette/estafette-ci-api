@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
-	"github.com/estafette/estafette-ci-api/helpers"
 	"github.com/go-kit/kit/metrics"
 )
 
@@ -22,14 +22,14 @@ type metricsService struct {
 
 func (s *metricsService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error) {
 	defer func(begin time.Time) {
-		helpers.UpdateMetrics(s.requestCount, s.requestLatency, "CreateJobForBitbucketPush", begin)
+		api.UpdateMetrics(s.requestCount, s.requestLatency, "CreateJobForBitbucketPush", begin)
 	}(time.Now())
 
 	return s.Service.CreateJobForBitbucketPush(ctx, event)
 }
 
 func (s *metricsService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
-	defer func(begin time.Time) { helpers.UpdateMetrics(s.requestCount, s.requestLatency, "Rename", begin) }(time.Now())
+	defer func(begin time.Time) { api.UpdateMetrics(s.requestCount, s.requestLatency, "Rename", begin) }(time.Now())
 
 	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }

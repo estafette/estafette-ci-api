@@ -7,8 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/config"
-	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/api"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/stretchr/testify/assert"
@@ -379,7 +378,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, map[helpers.FilterType][]string{}, []helpers.OrderField{}, false)
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, map[api.FilterType][]string{}, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -400,15 +399,15 @@ func TestIngrationGetPipelines(t *testing.T) {
 		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
-		sortings := []helpers.OrderField{
-			helpers.OrderField{
+		sortings := []api.OrderField{
+			api.OrderField{
 				FieldName: "inserted_at",
 				Direction: "DESC",
 			},
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, map[helpers.FilterType][]string{}, sortings, false)
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, map[api.FilterType][]string{}, sortings, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -429,12 +428,12 @@ func TestIngrationGetPipelines(t *testing.T) {
 		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterSince: {"1h"},
+		filters := map[api.FilterType][]string{
+			api.FilterSince: {"1h"},
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []helpers.OrderField{}, false)
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -455,12 +454,12 @@ func TestIngrationGetPipelines(t *testing.T) {
 		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterStatus: {"succeeded"},
+		filters := map[api.FilterType][]string{
+			api.FilterStatus: {"succeeded"},
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []helpers.OrderField{}, false)
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -481,12 +480,12 @@ func TestIngrationGetPipelines(t *testing.T) {
 		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterLabels: {"app-group=estafette-ci"},
+		filters := map[api.FilterType][]string{
+			api.FilterLabels: {"app-group=estafette-ci"},
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []helpers.OrderField{}, false)
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -507,12 +506,12 @@ func TestIngrationGetPipelines(t *testing.T) {
 		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterSearch: {"ci-api"},
+		filters := map[api.FilterType][]string{
+			api.FilterSearch: {"ci-api"},
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []helpers.OrderField{}, false)
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -533,12 +532,12 @@ func TestIngrationGetPipelines(t *testing.T) {
 		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterRecentCommitter: {"me@estafette.io"},
+		filters := map[api.FilterType][]string{
+			api.FilterRecentCommitter: {"me@estafette.io"},
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []helpers.OrderField{}, false)
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -572,12 +571,12 @@ func TestIngrationGetPipelines(t *testing.T) {
 		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterRecentReleaser: {"me@estafette.io"},
+		filters := map[api.FilterType][]string{
+			api.FilterRecentReleaser: {"me@estafette.io"},
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []helpers.OrderField{}, false)
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -611,12 +610,12 @@ func TestIngrationGetPipelines(t *testing.T) {
 		err = cockroachdbClient.UpdateComputedPipelinePermissions(ctx, pipeline)
 		assert.Nil(t, err)
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterGroups: {"my group", "my other group"},
+		filters := map[api.FilterType][]string{
+			api.FilterGroups: {"my group", "my other group"},
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []helpers.OrderField{}, false)
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -655,12 +654,12 @@ func TestIngrationGetPipelines(t *testing.T) {
 		err = cockroachdbClient.UpdateComputedPipelinePermissions(ctx, pipeline)
 		assert.Nil(t, err)
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterOrganizations: {"my org", "my other org"},
+		filters := map[api.FilterType][]string{
+			api.FilterOrganizations: {"my org", "my other org"},
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []helpers.OrderField{}, false)
+		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -920,11 +919,11 @@ func TestIntegrationGetFrequentLabels(t *testing.T) {
 		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterLabels: {
+		filters := map[api.FilterType][]string{
+			api.FilterLabels: {
 				"label-test=GetFrequentLabels",
 			},
-			helpers.FilterSince: {
+			api.FilterSince: {
 				"1d",
 			},
 		}
@@ -967,11 +966,11 @@ func TestIntegrationGetFrequentLabelsCount(t *testing.T) {
 		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterLabels: {
+		filters := map[api.FilterType][]string{
+			api.FilterLabels: {
 				"label-count-test=GetFrequentLabelsCount",
 			},
-			helpers.FilterSince: {
+			api.FilterSince: {
 				"1d",
 			},
 		}
@@ -1189,7 +1188,7 @@ func TestIntegrationGetUsers(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		users, err := cockroachdbClient.GetUsers(ctx, 1, 100, map[helpers.FilterType][]string{}, []helpers.OrderField{})
+		users, err := cockroachdbClient.GetUsers(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, users)
@@ -1214,12 +1213,12 @@ func TestIntegrationGetUsers(t *testing.T) {
 		_, err := cockroachdbClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterGroupID: {"36"},
+		filters := map[api.FilterType][]string{
+			api.FilterGroupID: {"36"},
 		}
 
 		// act
-		users, err := cockroachdbClient.GetUsers(ctx, 1, 100, filters, []helpers.OrderField{})
+		users, err := cockroachdbClient.GetUsers(ctx, 1, 100, filters, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, users)
@@ -1244,12 +1243,12 @@ func TestIntegrationGetUsers(t *testing.T) {
 		_, err := cockroachdbClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterOrganizationID: {"638"},
+		filters := map[api.FilterType][]string{
+			api.FilterOrganizationID: {"638"},
 		}
 
 		// act
-		users, err := cockroachdbClient.GetUsers(ctx, 1, 100, filters, []helpers.OrderField{})
+		users, err := cockroachdbClient.GetUsers(ctx, 1, 100, filters, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, users)
@@ -1271,7 +1270,7 @@ func TestIntegrationGetUsersCount(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetUsersCount(ctx, map[helpers.FilterType][]string{})
+		count, err := cockroachdbClient.GetUsersCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -1478,7 +1477,7 @@ func TestIntegrationGetGroups(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		groups, err := cockroachdbClient.GetGroups(ctx, 1, 100, map[helpers.FilterType][]string{}, []helpers.OrderField{})
+		groups, err := cockroachdbClient.GetGroups(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, groups)
@@ -1500,7 +1499,7 @@ func TestIntegrationGetGroupsCount(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetGroupsCount(ctx, map[helpers.FilterType][]string{})
+		count, err := cockroachdbClient.GetGroupsCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -1730,7 +1729,7 @@ func TestIntegrationGetOrganizations(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		organizations, err := cockroachdbClient.GetOrganizations(ctx, 1, 100, map[helpers.FilterType][]string{}, []helpers.OrderField{})
+		organizations, err := cockroachdbClient.GetOrganizations(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, organizations)
@@ -1752,7 +1751,7 @@ func TestIntegrationGetOrganizationsCount(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetOrganizationsCount(ctx, map[helpers.FilterType][]string{})
+		count, err := cockroachdbClient.GetOrganizationsCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -1941,7 +1940,7 @@ func TestIntegrationGetClients(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		clients, err := cockroachdbClient.GetClients(ctx, 1, 100, map[helpers.FilterType][]string{}, []helpers.OrderField{})
+		clients, err := cockroachdbClient.GetClients(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, clients)
@@ -1963,7 +1962,7 @@ func TestIntegrationGetClientsCount(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetClientsCount(ctx, map[helpers.FilterType][]string{})
+		count, err := cockroachdbClient.GetClientsCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -2111,7 +2110,7 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, map[helpers.FilterType][]string{}, []helpers.OrderField{})
+		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, catalogEntitys)
@@ -2131,14 +2130,14 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterParent: {
+		filters := map[api.FilterType][]string{
+			api.FilterParent: {
 				"parent-key-retrieval-test",
 			},
 		}
 
 		// act
-		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []helpers.OrderField{})
+		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, catalogEntitys)
@@ -2159,14 +2158,14 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterParent: {
+		filters := map[api.FilterType][]string{
+			api.FilterParent: {
 				"parent-key-value-retrieval-test=some-value",
 			},
 		}
 
 		// act
-		catalogEntities, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []helpers.OrderField{})
+		catalogEntities, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, catalogEntities)
@@ -2186,14 +2185,14 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterEntity: {
+		filters := map[api.FilterType][]string{
+			api.FilterEntity: {
 				"entity-key-retrieval-test",
 			},
 		}
 
 		// act
-		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []helpers.OrderField{})
+		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, catalogEntitys)
@@ -2214,14 +2213,14 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterEntity: {
+		filters := map[api.FilterType][]string{
+			api.FilterEntity: {
 				"entity-key-value-retrieval-test=some-value",
 			},
 		}
 
 		// act
-		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []helpers.OrderField{})
+		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, catalogEntitys)
@@ -2241,14 +2240,14 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterPipeline: {
+		filters := map[api.FilterType][]string{
+			api.FilterPipeline: {
 				"github.com/estafette/estafette-ci-api",
 			},
 		}
 
 		// act
-		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []helpers.OrderField{})
+		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, catalogEntitys)
@@ -2273,14 +2272,14 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
-		filters := map[helpers.FilterType][]string{
-			helpers.FilterLabels: {
+		filters := map[api.FilterType][]string{
+			api.FilterLabels: {
 				"environment=production",
 			},
 		}
 
 		// act
-		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []helpers.OrderField{})
+		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, catalogEntitys)
@@ -2302,7 +2301,7 @@ func TestIntegrationGetCatalogEntitiesCount(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetCatalogEntitiesCount(ctx, map[helpers.FilterType][]string{})
+		count, err := cockroachdbClient.GetCatalogEntitiesCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -2323,7 +2322,7 @@ func TestIntegrationGetCatalogEntityParentKeys(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		keys, err := cockroachdbClient.GetCatalogEntityParentKeys(ctx, 1, 100, map[helpers.FilterType][]string{}, []helpers.OrderField{})
+		keys, err := cockroachdbClient.GetCatalogEntityParentKeys(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(keys) > 0)
@@ -2344,7 +2343,7 @@ func TestIntegrationGetCatalogEntityParentKeysCount(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetCatalogEntityParentKeysCount(ctx, map[helpers.FilterType][]string{})
+		count, err := cockroachdbClient.GetCatalogEntityParentKeysCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -2365,7 +2364,7 @@ func TestIntegrationGetCatalogEntityParentValues(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		values, err := cockroachdbClient.GetCatalogEntityParentValues(ctx, 1, 100, map[helpers.FilterType][]string{}, []helpers.OrderField{})
+		values, err := cockroachdbClient.GetCatalogEntityParentValues(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(values) > 0)
@@ -2386,7 +2385,7 @@ func TestIntegrationGetCatalogEntityParentValuesCount(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetCatalogEntityParentValuesCount(ctx, map[helpers.FilterType][]string{})
+		count, err := cockroachdbClient.GetCatalogEntityParentValuesCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -2407,7 +2406,7 @@ func TestIntegrationGetCatalogEntityKeys(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		keys, err := cockroachdbClient.GetCatalogEntityKeys(ctx, 1, 100, map[helpers.FilterType][]string{}, []helpers.OrderField{})
+		keys, err := cockroachdbClient.GetCatalogEntityKeys(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(keys) > 0)
@@ -2428,7 +2427,7 @@ func TestIntegrationGetCatalogEntityKeysCount(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetCatalogEntityKeysCount(ctx, map[helpers.FilterType][]string{})
+		count, err := cockroachdbClient.GetCatalogEntityKeysCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -2449,7 +2448,7 @@ func TestIntegrationGetCatalogEntityValues(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		values, err := cockroachdbClient.GetCatalogEntityValues(ctx, 1, 100, map[helpers.FilterType][]string{}, []helpers.OrderField{})
+		values, err := cockroachdbClient.GetCatalogEntityValues(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(values) > 0)
@@ -2470,7 +2469,7 @@ func TestIntegrationGetCatalogEntityValuesCount(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetCatalogEntityValuesCount(ctx, map[helpers.FilterType][]string{})
+		count, err := cockroachdbClient.GetCatalogEntityValuesCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -2496,7 +2495,7 @@ func TestIntegrationGetCatalogEntityLabels(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		keys, err := cockroachdbClient.GetCatalogEntityLabels(ctx, 1, 100, map[helpers.FilterType][]string{})
+		keys, err := cockroachdbClient.GetCatalogEntityLabels(ctx, 1, 100, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(keys) > 0)
@@ -2522,7 +2521,7 @@ func TestIntegrationGetCatalogEntityLabelsCount(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetCatalogEntityLabelsCount(ctx, map[helpers.FilterType][]string{})
+		count, err := cockroachdbClient.GetCatalogEntityLabelsCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -2545,7 +2544,7 @@ func TestIntegrationGetPipelineBuildsDurations(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		durations, err := cockroachdbClient.GetPipelineBuildsDurations(ctx, build.RepoSource, build.RepoOwner, build.RepoName, map[helpers.FilterType][]string{})
+		durations, err := cockroachdbClient.GetPipelineBuildsDurations(ctx, build.RepoSource, build.RepoOwner, build.RepoName, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(durations) > 0)
@@ -2566,7 +2565,7 @@ func TestIntegrationGetPipelineReleasesDurations(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		durations, err := cockroachdbClient.GetPipelineReleasesDurations(ctx, release.RepoSource, release.RepoOwner, release.RepoName, map[helpers.FilterType][]string{})
+		durations, err := cockroachdbClient.GetPipelineReleasesDurations(ctx, release.RepoSource, release.RepoOwner, release.RepoName, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(durations) > 0)
@@ -2575,8 +2574,8 @@ func TestIntegrationGetPipelineReleasesDurations(t *testing.T) {
 
 func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 
-	apiConfig := &config.APIConfig{
-		Database: &config.DatabaseConfig{
+	apiConfig := &api.APIConfig{
+		Database: &api.DatabaseConfig{
 			DatabaseName:   "defaultdb",
 			Host:           "cockroachdb",
 			Insecure:       true,

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/api"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/go-kit/kit/metrics"
 )
@@ -22,7 +22,7 @@ type metricsClient struct {
 
 func (c *metricsClient) SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (event *manifest.EstafettePubSubEvent, err error) {
 	defer func(begin time.Time) {
-		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "SubscriptionForTopic", begin)
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "SubscriptionForTopic", begin)
 	}(time.Now())
 
 	return c.Client.SubscriptionForTopic(ctx, message)
@@ -30,7 +30,7 @@ func (c *metricsClient) SubscriptionForTopic(ctx context.Context, message PubSub
 
 func (c *metricsClient) SubscribeToTopic(ctx context.Context, projectID, topicID string) (err error) {
 	defer func(begin time.Time) {
-		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "SubscribeToTopic", begin)
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "SubscribeToTopic", begin)
 	}(time.Now())
 
 	return c.Client.SubscribeToTopic(ctx, projectID, topicID)
@@ -38,7 +38,7 @@ func (c *metricsClient) SubscribeToTopic(ctx context.Context, projectID, topicID
 
 func (c *metricsClient) SubscribeToPubsubTriggers(ctx context.Context, manifestString string) (err error) {
 	defer func(begin time.Time) {
-		helpers.UpdateMetrics(c.requestCount, c.requestLatency, "SubscribeToPubsubTriggers", begin)
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "SubscribeToPubsubTriggers", begin)
 	}(time.Now())
 
 	return c.Client.SubscribeToPubsubTriggers(ctx, manifestString)

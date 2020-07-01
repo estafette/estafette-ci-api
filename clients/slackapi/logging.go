@@ -3,7 +3,7 @@ package slackapi
 import (
 	"context"
 
-	"github.com/estafette/estafette-ci-api/helpers"
+	"github.com/estafette/estafette-ci-api/api"
 )
 
 // NewLoggingClient returns a new instance of a logging Client.
@@ -17,7 +17,7 @@ type loggingClient struct {
 }
 
 func (c *loggingClient) GetUserProfile(ctx context.Context, userID string) (profile *UserProfile, err error) {
-	defer func() { helpers.HandleLogError(c.prefix, "GetUserProfile", err) }()
+	defer func() { api.HandleLogError(c.prefix, "GetUserProfile", err) }()
 
 	return c.Client.GetUserProfile(ctx, userID)
 }
