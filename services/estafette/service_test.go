@@ -77,7 +77,7 @@ func TestCreateBuild(t *testing.T) {
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		callCount := 0
-		cockroachdbClient.GetPipelineFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error) {
+		cockroachdbClient.GetPipelineFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
 			callCount++
 			return
 		}

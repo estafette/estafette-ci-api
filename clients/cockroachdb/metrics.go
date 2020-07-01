@@ -181,10 +181,10 @@ func (c *metricsClient) GetPipelinesCount(ctx context.Context, filters map[api.F
 	return c.Client.GetPipelinesCount(ctx, filters)
 }
 
-func (c *metricsClient) GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error) {
+func (c *metricsClient) GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
 	defer func(begin time.Time) { api.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipeline", begin) }(time.Now())
 
-	return c.Client.GetPipeline(ctx, repoSource, repoOwner, repoName, optimized)
+	return c.Client.GetPipeline(ctx, repoSource, repoOwner, repoName, filters, optimized)
 }
 
 func (c *metricsClient) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (builds []*contracts.Build, err error) {

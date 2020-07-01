@@ -940,16 +940,13 @@ func (h *Handler) DeleteClient(c *gin.Context) {
 
 func (h *Handler) GetPipelines(c *gin.Context) {
 
-	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
-
-	// include archived
-	filters[api.FilterArchived] = []string{"true", "false"}
-
 	// ensure the request has the correct permission
 	if !api.RequestTokenHasPermission(c, api.PermissionPipelinesList) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
+
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
 
 	ctx := c.Request.Context()
 
@@ -996,7 +993,7 @@ func (h *Handler) GetPipeline(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	pipeline, err := h.cockroachdbClient.GetPipeline(ctx, source, owner, repo, false)
+	pipeline, err := h.cockroachdbClient.GetPipeline(ctx, source, owner, repo, map[api.FilterType][]string{}, false)
 	if err != nil || pipeline == nil {
 		log.Error().Err(err).Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
@@ -1493,7 +1490,7 @@ func (h *Handler) BatchUpdatePipelines(c *gin.Context) {
 				return
 			}
 
-			pipeline, err := h.cockroachdbClient.GetPipeline(ctx, pipelineParts[0], pipelineParts[1], pipelineParts[2], true)
+			pipeline, err := h.cockroachdbClient.GetPipeline(ctx, pipelineParts[0], pipelineParts[1], pipelineParts[2], map[api.FilterType][]string{}, true)
 			if err != nil {
 				resultChannel <- err
 				return

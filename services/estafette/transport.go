@@ -70,6 +70,7 @@ func (h *Handler) GetPipelines(c *gin.Context) {
 
 	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
 
+	// filter on organizations / groups
 	filters = api.SetPermissionsFilters(c, filters)
 
 	response, err := api.GetPagedListResponse(
@@ -108,7 +109,9 @@ func (h *Handler) GetPipeline(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), source, owner, repo, true)
+	filters := api.GetPipelineFilters(c)
+
+	pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), source, owner, repo, filters, true)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
@@ -680,7 +683,9 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 		return
 	}
 
-	pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, false)
+	filters := api.GetPipelineFilters(c)
+
+	pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, filters, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving pipeline %v/%v/%v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
 		log.Error().Err(err).Msg(errorMessage)
@@ -1021,6 +1026,9 @@ func (h *Handler) GetFrequentLabels(c *gin.Context) {
 
 	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
 
+	// filter on organizations / groups
+	filters = api.SetPermissionsFilters(c, filters)
+
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
 			labels, err := h.cockroachDBClient.GetFrequentLabels(c.Request.Context(), pageNumber, pageSize, filters)
@@ -1201,12 +1209,9 @@ func (h *Handler) GetPipelineWarnings(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	// get filters (?filter[last]=100)
-	filters := map[api.FilterType][]string{}
-	filters[api.FilterStatus] = api.GetStatusFilter(c, "succeeded")
-	filters[api.FilterLast] = api.GetLastFilter(c, 25)
+	filters := api.GetPipelineFilters(c)
 
-	pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), source, owner, repo, false)
+	pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), source, owner, repo, filters, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
 	}
@@ -1217,7 +1222,16 @@ func (h *Handler) GetPipelineWarnings(c *gin.Context) {
 
 	warnings := []contracts.Warning{}
 
-	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(c.Request.Context(), source, owner, repo, filters)
+	// get filters (?filter[last]=100)
+	buildsFilters := map[api.FilterType][]string{}
+
+	// only use durations of successful builds
+	buildsFilters[api.FilterStatus] = api.GetStatusFilter(c, "succeeded")
+
+	// get last 25 builds
+	buildsFilters[api.FilterLast] = api.GetLastFilter(c, 25)
+
+	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(c.Request.Context(), source, owner, repo, buildsFilters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build durations from db for pipeline %v/%v/%v warnings", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)

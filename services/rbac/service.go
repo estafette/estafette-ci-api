@@ -357,7 +357,7 @@ func (s *service) DeleteClient(ctx context.Context, id string) (err error) {
 
 func (s *service) UpdatePipeline(ctx context.Context, pipeline contracts.Pipeline) (err error) {
 	// get pipeline from db
-	currentPipeline, err := s.cockroachdbClient.GetPipeline(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, true)
+	currentPipeline, err := s.cockroachdbClient.GetPipeline(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, map[api.FilterType][]string{}, true)
 	if err != nil {
 		return
 	}

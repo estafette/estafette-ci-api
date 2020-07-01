@@ -82,7 +82,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	// if manifest is invalid get the pipeline in order to use same labels, release targets and triggers as before
 	var pipeline *contracts.Pipeline
 	if !hasValidManifest {
-		pipeline, _ = s.cockroachdbClient.GetPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName, false)
+		pipeline, _ = s.cockroachdbClient.GetPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName, map[api.FilterType][]string{}, false)
 	}
 
 	// set builder track

@@ -145,10 +145,10 @@ func (c *loggingClient) GetPipelinesCount(ctx context.Context, filters map[api.F
 	return c.Client.GetPipelinesCount(ctx, filters)
 }
 
-func (c *loggingClient) GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error) {
+func (c *loggingClient) GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
 	defer func() { api.HandleLogError(c.prefix, "GetPipeline", err) }()
 
-	return c.Client.GetPipeline(ctx, repoSource, repoOwner, repoName, optimized)
+	return c.Client.GetPipeline(ctx, repoSource, repoOwner, repoName, filters, optimized)
 }
 
 func (c *loggingClient) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (builds []*contracts.Build, err error) {

@@ -134,7 +134,7 @@ func (h *Handler) Handle(c *gin.Context) {
 						}
 						pipeline = pipelines[0]
 					} else {
-						pipeline, err := h.cockroachdbClient.GetPipeline(c.Request.Context(), fullRepoNameArray[0], fullRepoNameArray[1], fullRepoNameArray[2], false)
+						pipeline, err := h.cockroachdbClient.GetPipeline(c.Request.Context(), fullRepoNameArray[0], fullRepoNameArray[1], fullRepoNameArray[2], map[api.FilterType][]string{}, false)
 						if err != nil {
 							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
 							return

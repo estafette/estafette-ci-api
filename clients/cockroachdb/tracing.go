@@ -167,11 +167,11 @@ func (c *tracingClient) GetPipelinesCount(ctx context.Context, filters map[api.F
 	return c.Client.GetPipelinesCount(ctx, filters)
 }
 
-func (c *tracingClient) GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error) {
+func (c *tracingClient) GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipeline"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetPipeline(ctx, repoSource, repoOwner, repoName, optimized)
+	return c.Client.GetPipeline(ctx, repoSource, repoOwner, repoName, filters, optimized)
 }
 
 func (c *tracingClient) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (builds []*contracts.Build, err error) {

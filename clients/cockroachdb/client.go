@@ -65,7 +65,7 @@ type Client interface {
 	GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error)
 	GetPipelinesByRepoName(ctx context.Context, repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error)
 	GetPipelinesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
-	GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error)
+	GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error)
 	GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error)
@@ -1498,7 +1498,6 @@ func (c *client) GetPipelinesCount(ctx context.Context, filters map[api.FilterTy
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "last_updated_at", filters)
 	if err != nil {
-
 		return
 	}
 
@@ -1512,7 +1511,7 @@ func (c *client) GetPipelinesCount(ctx context.Context, filters map[api.FilterTy
 	return
 }
 
-func (c *client) GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error) {
+func (c *client) GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
 
 	// generate query
 	query := c.selectPipelinesQuery().
@@ -1521,6 +1520,12 @@ func (c *client) GetPipeline(ctx context.Context, repoSource, repoOwner, repoNam
 		Where(sq.Eq{"a.repo_name": repoName}).
 		OrderBy("a.inserted_at DESC").
 		Limit(uint64(1))
+
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForAllFilters(query, "a", "last_updated_at", filters)
+	if err != nil {
+		return
+	}
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()

@@ -31,7 +31,7 @@ type MockClient struct {
 	GetPipelinesFunc                               func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (pipelines []*contracts.Pipeline, err error)
 	GetPipelinesByRepoNameFunc                     func(ctx context.Context, repoName string, optimized bool) (pipelines []*contracts.Pipeline, err error)
 	GetPipelinesCountFunc                          func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
-	GetPipelineFunc                                func(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error)
+	GetPipelineFunc                                func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error)
 	GetPipelineRecentBuildsFunc                    func(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuildsFunc                          func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuildsCountFunc                     func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error)
@@ -285,11 +285,11 @@ func (c MockClient) GetPipelinesCount(ctx context.Context, filters map[api.Filte
 	return c.GetPipelinesCountFunc(ctx, filters)
 }
 
-func (c MockClient) GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (pipeline *contracts.Pipeline, err error) {
+func (c MockClient) GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
 	if c.GetPipelineFunc == nil {
 		return
 	}
-	return c.GetPipelineFunc(ctx, repoSource, repoOwner, repoName, optimized)
+	return c.GetPipelineFunc(ctx, repoSource, repoOwner, repoName, filters, optimized)
 }
 
 func (c MockClient) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (builds []*contracts.Build, err error) {
