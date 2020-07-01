@@ -41,10 +41,10 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, 2, len(githubConfig.InstallationOrganizations))
 		assert.Equal(t, 15, githubConfig.InstallationOrganizations[0].Installation)
 		assert.Equal(t, 1, len(githubConfig.InstallationOrganizations[0].Organizations))
-		assert.Equal(t, "Estafette", len(githubConfig.InstallationOrganizations[0].Organizations[0].Name))
+		assert.Equal(t, "Estafette", githubConfig.InstallationOrganizations[0].Organizations[0].Name)
 		assert.Equal(t, 83, githubConfig.InstallationOrganizations[1].Installation)
 		assert.Equal(t, 1, len(githubConfig.InstallationOrganizations[1].Organizations))
-		assert.Equal(t, "Estafette", len(githubConfig.InstallationOrganizations[1].Organizations[0].Name))
+		assert.Equal(t, "Estafette", githubConfig.InstallationOrganizations[1].Organizations[0].Name)
 	})
 
 	t.Run("ReturnsBitbucketConfig", func(t *testing.T) {
@@ -65,7 +65,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, 1, len(bitbucketConfig.OwnerOrganizations))
 		assert.Equal(t, "estafette", bitbucketConfig.OwnerOrganizations[0].Owner)
 		assert.Equal(t, 1, len(bitbucketConfig.OwnerOrganizations[0].Organizations))
-		assert.Equal(t, "Estafette", len(bitbucketConfig.OwnerOrganizations[0].Organizations[0].Name))
+		assert.Equal(t, "Estafette", bitbucketConfig.OwnerOrganizations[0].Organizations[0].Name)
 	})
 
 	t.Run("ReturnsCloudsourceConfig", func(t *testing.T) {
@@ -81,7 +81,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, 1, len(cloudsourceConfig.ProjectOrganizations))
 		assert.Equal(t, "estafette", cloudsourceConfig.ProjectOrganizations[0].Project)
 		assert.Equal(t, 1, len(cloudsourceConfig.ProjectOrganizations[0].Organizations))
-		assert.Equal(t, "Estafette", len(cloudsourceConfig.ProjectOrganizations[0].Organizations[0].Name))
+		assert.Equal(t, "Estafette", cloudsourceConfig.ProjectOrganizations[0].Organizations[0].Name)
 	})
 
 	t.Run("ReturnsSlackConfig", func(t *testing.T) {

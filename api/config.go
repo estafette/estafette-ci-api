@@ -306,8 +306,8 @@ type GithubConfig struct {
 
 // InstallationOrganizations is used to assign organizations to builds triggered through a specific installation
 type InstallationOrganizations struct {
-	Installation  int                       `yaml:"installation"`
-	Organizations []*contracts.Organization `yaml:"organizations"`
+	Installation  int                      `yaml:"installation"`
+	Organizations []contracts.Organization `yaml:"organizations"`
 }
 
 // BitbucketConfig is used to configure bitbucket integration
@@ -321,8 +321,8 @@ type BitbucketConfig struct {
 
 // OwnerOrganizations is used to assign organizations to builds triggered through a specific owner
 type OwnerOrganizations struct {
-	Owner         string                    `yaml:"owner"`
-	Organizations []*contracts.Organization `yaml:"organizations"`
+	Owner         string                   `yaml:"owner"`
+	Organizations []contracts.Organization `yaml:"organizations"`
 }
 
 // SlackConfig is used to configure slack integration
@@ -371,8 +371,8 @@ type CloudSourceConfig struct {
 
 // ProjectOrganizations is used to assign organizations to builds triggered through a specific project
 type ProjectOrganizations struct {
-	Project       string                    `yaml:"project"`
-	Organizations []*contracts.Organization `yaml:"organizations"`
+	Project       string                   `yaml:"project"`
+	Organizations []contracts.Organization `yaml:"organizations"`
 }
 
 // ConfigReader reads the api config from file
