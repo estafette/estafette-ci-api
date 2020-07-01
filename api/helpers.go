@@ -375,10 +375,13 @@ func GetOrganizationsFromRequest(c *gin.Context) (organizations []string) {
 // SetPermissionsFilters adds permission related filters for groups and organizations
 func SetPermissionsFilters(c *gin.Context, filters map[FilterType][]string) map[FilterType][]string {
 
-	if RequestTokenHasSomeRole(c, RoleOrganizationPipelinesViewer, RoleOrganizationPipelinesOperator) {
-		filters[FilterOrganizations] = GetOrganizationsFromRequest(c)
-	} else if RequestTokenHasSomeRole(c, RoleGroupPipelinesViewer, RoleGroupPipelinesOperator) {
-		filters[FilterGroups] = GetGroupsFromRequest(c)
+	requestOrganizations := GetOrganizationsFromRequest(c)
+	requestGroups := GetGroupsFromRequest(c)
+
+	if len(requestOrganizations) > 0 {
+		filters[FilterOrganizations] = requestOrganizations
+	} else if len(requestGroups) > 0 {
+		filters[FilterGroups] = requestGroups
 	}
 
 	return filters
@@ -464,6 +467,7 @@ func GetFilters(c *gin.Context) map[FilterType][]string {
 	filters[FilterPipeline] = GetGenericFilter(c, FilterPipeline)
 	filters[FilterParent] = GetGenericFilter(c, FilterParent)
 	filters[FilterEntity] = GetGenericFilter(c, FilterEntity)
+	filters[FilterArchived] = GetGenericFilter(c, FilterArchived, "false")
 
 	return filters
 }

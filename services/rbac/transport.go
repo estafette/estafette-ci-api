@@ -942,6 +942,9 @@ func (h *Handler) GetPipelines(c *gin.Context) {
 
 	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
 
+	// include archived
+	filters[api.FilterArchived] = []string{"true", "false"}
+
 	// ensure the request has the correct permission
 	if !api.RequestTokenHasPermission(c, api.PermissionPipelinesList) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})

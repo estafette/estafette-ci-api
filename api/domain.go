@@ -425,6 +425,7 @@ const (
 	FilterGroups
 	FilterOrganizations
 	FilterLast
+	FilterArchived
 )
 
 var filters = []string{
@@ -442,6 +443,7 @@ var filters = []string{
 	"groups",
 	"organizations",
 	"last",
+	"archived",
 }
 
 func (f FilterType) String() string {

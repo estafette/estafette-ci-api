@@ -1432,7 +1432,6 @@ func (c *client) GetPipelines(ctx context.Context, pageNumber, pageSize int, fil
 
 	// generate query
 	query := c.selectPipelinesQuery().
-		Where(sq.Eq{"a.archived": false}).
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
@@ -1494,8 +1493,7 @@ func (c *client) GetPipelinesCount(ctx context.Context, filters map[api.FilterTy
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 			Select("COUNT(a.id)").
-			From("computed_pipelines a").
-			Where(sq.Eq{"a.archived": false})
+			From("computed_pipelines a")
 
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllFilters(query, "a", "last_updated_at", filters)
@@ -2889,8 +2887,7 @@ func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int
 		psql.
 			Select("a.id, jsonb_array_elements(a.labels) AS l").
 			From("computed_pipelines a").
-			Where("jsonb_typeof(labels) = 'array'").
-			Where(sq.Eq{"a.archived": false})
+			Where("jsonb_typeof(labels) = 'array'")
 
 	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
 	if err != nil {
@@ -2905,6 +2902,12 @@ func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int
 	}
 
 	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+
+		return
+	}
+
+	arrayElementsQuery, err = whereClauseGeneratorForArchivedFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
 
 		return
@@ -2973,8 +2976,7 @@ func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[api.Fil
 		psql.
 			Select("a.id, jsonb_array_elements(a.labels) AS l").
 			From("computed_pipelines a").
-			Where("jsonb_typeof(labels) = 'array'").
-			Where(sq.Eq{"a.archived": false})
+			Where("jsonb_typeof(labels) = 'array'")
 
 	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
 	if err != nil {
@@ -2989,6 +2991,12 @@ func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[api.Fil
 	}
 
 	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+
+		return
+	}
+
+	arrayElementsQuery, err = whereClauseGeneratorForArchivedFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
 
 		return
@@ -3179,6 +3187,10 @@ func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias, sinceColum
 	if err != nil {
 		return query, err
 	}
+	query, err = whereClauseGeneratorForArchivedFilter(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
 
 	return query, nil
 }
@@ -3355,6 +3367,31 @@ func whereClauseGeneratorForOrganizationsFilter(query sq.SelectBuilder, alias st
 			expressions = append(expressions, sq.Expr(fmt.Sprintf("%v.organizations @> ?", alias), string(bytes)))
 		}
 		query = query.Where(expressions)
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForArchivedFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+
+	if archiveds, ok := filters[api.FilterArchived]; ok && len(archiveds) > 0 {
+
+		hasTrue := false
+		hasFalse := false
+		for _, a := range archiveds {
+			if a == "true" {
+				hasTrue = true
+			}
+			if a == "false" {
+				hasFalse = true
+			}
+		}
+
+		if hasTrue && !hasFalse {
+			query = query.Where(sq.Eq{"a.archived": true})
+		} else if hasFalse && !hasTrue {
+			query = query.Where(sq.Eq{"a.archived": false})
+		}
 	}
 
 	return query, nil
