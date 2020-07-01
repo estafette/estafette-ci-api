@@ -214,7 +214,7 @@ func TestIsWhitelistedInstallation(t *testing.T) {
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Github: &api.GithubConfig{
-					WhitelistedInstallations: []int{},
+					InstallationOrganizations: []api.InstallationOrganizations{},
 				},
 			},
 		}
@@ -238,8 +238,10 @@ func TestIsWhitelistedInstallation(t *testing.T) {
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Github: &api.GithubConfig{
-					WhitelistedInstallations: []int{
-						236,
+					InstallationOrganizations: []api.InstallationOrganizations{
+						{
+							Installation: 236,
+						},
 					},
 				},
 			},
@@ -264,9 +266,13 @@ func TestIsWhitelistedInstallation(t *testing.T) {
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Github: &api.GithubConfig{
-					WhitelistedInstallations: []int{
-						236,
-						513,
+					InstallationOrganizations: []api.InstallationOrganizations{
+						{
+							Installation: 236,
+						},
+						{
+							Installation: 513,
+						},
 					},
 				},
 			},

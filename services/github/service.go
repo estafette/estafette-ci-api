@@ -174,12 +174,12 @@ func (s *service) Unarchive(ctx context.Context, repoSource, repoOwner, repoName
 
 func (s *service) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) bool {
 
-	if len(s.config.Integrations.Github.WhitelistedInstallations) == 0 {
+	if len(s.config.Integrations.Github.InstallationOrganizations) == 0 {
 		return true
 	}
 
-	for _, id := range s.config.Integrations.Github.WhitelistedInstallations {
-		if id == installation.ID {
+	for _, io := range s.config.Integrations.Github.InstallationOrganizations {
+		if io.Installation == installation.ID {
 			return true
 		}
 	}

@@ -143,12 +143,12 @@ func (s *service) Unarchive(ctx context.Context, repoSource, repoOwner, repoName
 
 func (s *service) IsWhitelistedOwner(repository bitbucketapi.Repository) (isWhiteListed bool) {
 
-	if len(s.config.Integrations.Bitbucket.WhitelistedOwners) == 0 {
+	if len(s.config.Integrations.Bitbucket.OwnerOrganizations) == 0 {
 		return true
 	}
 
-	for _, owner := range s.config.Integrations.Bitbucket.WhitelistedOwners {
-		if owner == repository.Owner.UserName {
+	for _, oo := range s.config.Integrations.Bitbucket.OwnerOrganizations {
+		if oo.Owner == repository.Owner.UserName {
 			return true
 		}
 	}

@@ -280,7 +280,7 @@ func TestIsWhitelistedProject(t *testing.T) {
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				CloudSource: &api.CloudSourceConfig{
-					WhitelistedProjects: []string{},
+					ProjectOrganizations: []api.ProjectOrganizations{},
 				},
 			},
 		}
@@ -317,8 +317,10 @@ func TestIsWhitelistedProject(t *testing.T) {
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				CloudSource: &api.CloudSourceConfig{
-					WhitelistedProjects: []string{
-						"someone-else",
+					ProjectOrganizations: []api.ProjectOrganizations{
+						{
+							Project: "someone-else",
+						},
 					},
 				},
 			},
@@ -356,9 +358,13 @@ func TestIsWhitelistedProject(t *testing.T) {
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				CloudSource: &api.CloudSourceConfig{
-					WhitelistedProjects: []string{
-						"someone-else",
-						"estafette-in-cloudsource",
+					ProjectOrganizations: []api.ProjectOrganizations{
+						{
+							Project: "someone-else",
+						},
+						{
+							Project: "estafette-in-cloudsource",
+						},
 					},
 				},
 			},

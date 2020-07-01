@@ -370,7 +370,7 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Bitbucket: &api.BitbucketConfig{
-					WhitelistedOwners: []string{},
+					OwnerOrganizations: []api.OwnerOrganizations{},
 				},
 			},
 		}
@@ -396,8 +396,10 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Bitbucket: &api.BitbucketConfig{
-					WhitelistedOwners: []string{
-						"someone-else",
+					OwnerOrganizations: []api.OwnerOrganizations{
+						{
+							Owner: "someone-else",
+						},
 					},
 				},
 			},
@@ -424,9 +426,13 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Bitbucket: &api.BitbucketConfig{
-					WhitelistedOwners: []string{
-						"someone-else",
-						"estafette-in-bitbucket",
+					OwnerOrganizations: []api.OwnerOrganizations{
+						{
+							Owner: "someone-else",
+						},
+						{
+							Owner: "estafette-in-bitbucket",
+						},
 					},
 				},
 			},

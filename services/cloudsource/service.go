@@ -131,12 +131,12 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 
 func (s *service) IsWhitelistedProject(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool) {
 
-	if len(s.config.Integrations.CloudSource.WhitelistedProjects) == 0 {
+	if len(s.config.Integrations.CloudSource.ProjectOrganizations) == 0 {
 		return true
 	}
 
-	for _, project := range s.config.Integrations.CloudSource.WhitelistedProjects {
-		if project == notification.GetRepoOwner() {
+	for _, po := range s.config.Integrations.CloudSource.ProjectOrganizations {
+		if po.Project == notification.GetRepoOwner() {
 			return true
 		}
 	}
