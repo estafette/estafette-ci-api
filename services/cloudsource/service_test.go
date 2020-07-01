@@ -307,7 +307,7 @@ func TestIsWhitelistedProject(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted := service.IsWhitelistedProject(notification)
+		isWhitelisted, _ := service.IsWhitelistedProject(notification)
 
 		assert.True(t, isWhitelisted)
 	})
@@ -348,7 +348,7 @@ func TestIsWhitelistedProject(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted := service.IsWhitelistedProject(notification)
+		isWhitelisted, _ := service.IsWhitelistedProject(notification)
 
 		assert.False(t, isWhitelisted)
 	})
@@ -392,7 +392,7 @@ func TestIsWhitelistedProject(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted := service.IsWhitelistedProject(notification)
+		isWhitelisted, _ := service.IsWhitelistedProject(notification)
 
 		assert.True(t, isWhitelisted)
 	})

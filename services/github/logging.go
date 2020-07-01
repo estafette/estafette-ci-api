@@ -5,6 +5,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
+	contracts "github.com/estafette/estafette-ci-contracts"
 )
 
 // NewLoggingService returns a new instance of a logging Service.
@@ -37,6 +38,6 @@ func (s *loggingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwn
 	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
-func (s *loggingService) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) bool {
+func (s *loggingService) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool, organizations []*contracts.Organization) {
 	return s.Service.IsWhitelistedInstallation(ctx, installation)
 }

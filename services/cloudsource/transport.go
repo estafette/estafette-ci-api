@@ -52,6 +52,13 @@ func (h *Handler) PostPubsubEvent(c *gin.Context) {
 		Str("subscription", message.GetSubscription()).
 		Msg("Successfully binded pubsub push event")
 
+	// verify project is whitelisted
+	isWhitelisted, _ := h.service.IsWhitelistedProject(notification)
+	if !isWhitelisted {
+		c.Status(http.StatusUnauthorized)
+		return
+	}
+
 	err = h.service.CreateJobForCloudSourcePush(c.Request.Context(), notification)
 	if err != nil && !errors.Is(err, ErrNonCloneableEvent) && !errors.Is(err, ErrNoManifest) {
 		c.String(http.StatusInternalServerError, "Oops, something went wrong!")

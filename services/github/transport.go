@@ -56,7 +56,8 @@ func (h *Handler) Handle(c *gin.Context) {
 	}
 
 	// verify installation id is whitelisted
-	if !h.service.IsWhitelistedInstallation(c.Request.Context(), anyEvent.Installation) {
+	isWhitelisted, _ := h.service.IsWhitelistedInstallation(c.Request.Context(), anyEvent.Installation)
+	if !isWhitelisted {
 		c.Status(http.StatusUnauthorized)
 		return
 	}

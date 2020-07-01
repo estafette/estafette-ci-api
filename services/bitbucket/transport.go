@@ -44,7 +44,8 @@ func (h *Handler) Handle(c *gin.Context) {
 	}
 
 	// verify owner is whitelisted
-	if !h.service.IsWhitelistedOwner(anyEvent.Repository) {
+	isWhitelisted, _ := h.service.IsWhitelistedOwner(anyEvent.Repository)
+	if !isWhitelisted {
 		c.Status(http.StatusUnauthorized)
 		return
 	}

@@ -21,7 +21,7 @@ var (
 // Service handles pubsub events for Cloud Source Repository integration
 type Service interface {
 	CreateJobForCloudSourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error)
-	IsWhitelistedProject(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool)
+	IsWhitelistedProject(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool, organizations []*contracts.Organization)
 }
 
 // NewService returns a new bitbucket.Service
@@ -96,18 +96,21 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 		return ErrNoManifest
 	}
 
+	// get organizations linked to integration
+	_, organizations := s.IsWhitelistedProject(notification)
+
 	// create build object and hand off to build service
 	_, err = s.estafetteService.CreateBuild(ctx, contracts.Build{
-		RepoSource:   notification.GetRepoSource(),
-		RepoOwner:    notification.GetRepoOwner(),
-		RepoName:     notification.GetRepoName(),
-		RepoBranch:   repoBranch,
-		RepoRevision: repoRevision,
-		Manifest:     manifestString,
-		Commits:      commits,
-
+		RepoSource:    notification.GetRepoSource(),
+		RepoOwner:     notification.GetRepoOwner(),
+		RepoName:      notification.GetRepoName(),
+		RepoBranch:    repoBranch,
+		RepoRevision:  repoRevision,
+		Manifest:      manifestString,
+		Commits:       commits,
+		Organizations: organizations,
 		Events: []manifest.EstafetteEvent{
-			manifest.EstafetteEvent{
+			{
 				Git: &gitEvent,
 			},
 		},
@@ -129,17 +132,17 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 	return nil
 }
 
-func (s *service) IsWhitelistedProject(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool) {
+func (s *service) IsWhitelistedProject(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool, organizations []*contracts.Organization) {
 
 	if len(s.config.Integrations.CloudSource.ProjectOrganizations) == 0 {
-		return true
+		return true, []*contracts.Organization{}
 	}
 
 	for _, po := range s.config.Integrations.CloudSource.ProjectOrganizations {
 		if po.Project == notification.GetRepoOwner() {
-			return true
+			return true, po.Organizations
 		}
 	}
 
-	return false
+	return false, []*contracts.Organization{}
 }

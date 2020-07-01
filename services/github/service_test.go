@@ -228,7 +228,7 @@ func TestIsWhitelistedInstallation(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted := service.IsWhitelistedInstallation(context.Background(), installation)
+		isWhitelisted, _ := service.IsWhitelistedInstallation(context.Background(), installation)
 
 		assert.True(t, isWhitelisted)
 	})
@@ -256,7 +256,7 @@ func TestIsWhitelistedInstallation(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted := service.IsWhitelistedInstallation(context.Background(), installation)
+		isWhitelisted, _ := service.IsWhitelistedInstallation(context.Background(), installation)
 
 		assert.False(t, isWhitelisted)
 	})
@@ -287,7 +287,7 @@ func TestIsWhitelistedInstallation(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted := service.IsWhitelistedInstallation(context.Background(), installation)
+		isWhitelisted, _ := service.IsWhitelistedInstallation(context.Background(), installation)
 
 		assert.True(t, isWhitelisted)
 	})

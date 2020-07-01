@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
+	contracts "github.com/estafette/estafette-ci-contracts"
 )
 
 type MockService struct {
@@ -12,7 +13,7 @@ type MockService struct {
 	RenameFunc                    func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	ArchiveFunc                   func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UnarchiveFunc                 func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
-	IsWhitelistedInstallationFunc func(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool)
+	IsWhitelistedInstallationFunc func(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool, organizations []*contracts.Organization)
 }
 
 func (s MockService) CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) (err error) {
@@ -50,7 +51,7 @@ func (s MockService) Unarchive(ctx context.Context, repoSource, repoOwner, repoN
 	return s.UnarchiveFunc(ctx, repoSource, repoOwner, repoName)
 }
 
-func (s MockService) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool) {
+func (s MockService) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool, organizations []*contracts.Organization) {
 	if s.IsWhitelistedInstallationFunc == nil {
 		return
 	}

@@ -29,7 +29,7 @@ type Service interface {
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
-	IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool)
+	IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool, organizations []*contracts.Organization)
 }
 
 // NewService returns a github.Service to handle incoming webhook events
@@ -99,18 +99,21 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 		})
 	}
 
+	// get organizations linked to integration
+	_, organizations := s.IsWhitelistedInstallation(ctx, pushEvent.Installation)
+
 	// create build object and hand off to build service
 	_, err = s.estafetteService.CreateBuild(ctx, contracts.Build{
-		RepoSource:   pushEvent.GetRepoSource(),
-		RepoOwner:    pushEvent.GetRepoOwner(),
-		RepoName:     pushEvent.GetRepoName(),
-		RepoBranch:   pushEvent.GetRepoBranch(),
-		RepoRevision: pushEvent.GetRepoRevision(),
-		Manifest:     manifestString,
-		Commits:      commits,
-
+		RepoSource:    pushEvent.GetRepoSource(),
+		RepoOwner:     pushEvent.GetRepoOwner(),
+		RepoName:      pushEvent.GetRepoName(),
+		RepoBranch:    pushEvent.GetRepoBranch(),
+		RepoRevision:  pushEvent.GetRepoRevision(),
+		Manifest:      manifestString,
+		Commits:       commits,
+		Organizations: organizations,
 		Events: []manifest.EstafetteEvent{
-			manifest.EstafetteEvent{
+			{
 				Git: &gitEvent,
 			},
 		},
@@ -172,17 +175,17 @@ func (s *service) Unarchive(ctx context.Context, repoSource, repoOwner, repoName
 	return s.estafetteService.Unarchive(ctx, repoSource, repoOwner, repoName)
 }
 
-func (s *service) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) bool {
+func (s *service) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool, organizations []*contracts.Organization) {
 
 	if len(s.config.Integrations.Github.InstallationOrganizations) == 0 {
-		return true
+		return true, []*contracts.Organization{}
 	}
 
 	for _, io := range s.config.Integrations.Github.InstallationOrganizations {
 		if io.Installation == installation.ID {
-			return true
+			return true, io.Organizations
 		}
 	}
 
-	return false
+	return false, []*contracts.Organization{}
 }

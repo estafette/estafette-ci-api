@@ -5,6 +5,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
+	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/opentracing/opentracing-go"
 )
 
@@ -39,7 +40,7 @@ func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwn
 	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
-func (s *tracingService) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) bool {
+func (s *tracingService) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool, organizations []*contracts.Organization) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "Rename"))
 	defer func() { api.FinishSpan(span) }()
 

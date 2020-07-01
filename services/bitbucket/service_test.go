@@ -386,7 +386,7 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted := service.IsWhitelistedOwner(repository)
+		isWhitelisted, _ := service.IsWhitelistedOwner(repository)
 
 		assert.True(t, isWhitelisted)
 	})
@@ -416,7 +416,7 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted := service.IsWhitelistedOwner(repository)
+		isWhitelisted, _ := service.IsWhitelistedOwner(repository)
 
 		assert.False(t, isWhitelisted)
 	})
@@ -449,7 +449,7 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted := service.IsWhitelistedOwner(repository)
+		isWhitelisted, _ := service.IsWhitelistedOwner(repository)
 
 		assert.True(t, isWhitelisted)
 	})
