@@ -148,6 +148,7 @@ const (
 	PermissionUsersCreate
 	PermissionUsersUpdate
 	PermissionUsersDelete
+	PermissionUsersImpersonate
 
 	PermissionGroupsList
 	PermissionGroupsGet
@@ -198,6 +199,7 @@ var permissions = []string{
 	"rbac.users.create",
 	"rbac.users.update",
 	"rbac.users.delete",
+	"rbac.users.impersonate",
 
 	"rbac.groups.list",
 	"rbac.groups.get",
@@ -267,6 +269,7 @@ var rolesToPermissionMap = map[Role][]Permission{
 		PermissionUsersCreate,
 		PermissionUsersUpdate,
 		PermissionUsersDelete,
+		PermissionUsersImpersonate,
 		PermissionGroupsList,
 		PermissionGroupsGet,
 		PermissionGroupsCreate,

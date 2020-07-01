@@ -486,6 +486,10 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed creating JWT middleware for client login")
 	}
+	impersonateJWTMiddleware, err := authMiddleware.GinJWTMiddleware(rbacHandler.HandleImpersonateAuthenticator())
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed creating JWT middleware for user impersonation")
+	}
 
 	preZippedJWTMiddlewareRoutes := router.Group("/", jwtMiddleware.MiddlewareFunc())
 
@@ -516,6 +520,7 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	routes.GET("/api/auth/providers", rbacHandler.GetProviders)
 	routes.GET("/api/auth/login/:provider", rbacHandler.LoginProvider)
 	routes.GET("/api/auth/logout", jwtMiddleware.LogoutHandler)
+	routes.GET("/api/auth/impersonate/:id", impersonateJWTMiddleware.LoginHandler)
 	routes.GET("/api/auth/handle/:provider", jwtMiddleware.LoginHandler)
 	routes.POST("/api/auth/client/login", clientLoginJWTMiddleware.LoginHandler)
 	routes.POST("/api/auth/client/logout", clientLoginJWTMiddleware.LogoutHandler)

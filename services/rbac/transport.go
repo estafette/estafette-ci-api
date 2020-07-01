@@ -325,6 +325,41 @@ func (h *Handler) HandleClientLoginProviderAuthenticator() func(c *gin.Context) 
 	}
 }
 
+func (h *Handler) HandleImpersonateAuthenticator() func(c *gin.Context) (interface{}, error) {
+	return func(c *gin.Context) (interface{}, error) {
+
+		// ensure the request has the correct permission
+		if !api.RequestTokenHasPermission(c, api.PermissionUsersImpersonate) {
+			c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+			return nil, fmt.Errorf("User is not allowed to impersonate other user")
+		}
+
+		ctx := c.Request.Context()
+		id := c.Param("id")
+
+		user, err := h.cockroachdbClient.GetUserByID(ctx, id)
+		if err != nil || user == nil {
+			return nil, err
+		}
+
+		// get all roles the user inherits from groups and organizations
+		inheritedRoles, err := h.service.GetInheritedRolesForUser(ctx, *user)
+		if err != nil {
+			return nil, err
+		}
+		user.Roles = inheritedRoles
+
+		// get all organizations the user inherits from groups
+		inheritedOrganizations, err := h.service.GetInheritedOrganizationsForUser(ctx, *user)
+		if err != nil {
+			return nil, err
+		}
+		user.Organizations = inheritedOrganizations
+
+		return user, nil
+	}
+}
+
 func (h *Handler) GetUsers(c *gin.Context) {
 
 	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
