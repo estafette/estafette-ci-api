@@ -990,7 +990,16 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 	extraInfoBytes, err := json.Marshal(upsertedPipeline.ExtraInfo)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
-
+		return
+	}
+	groupsBytes, err := json.Marshal(upsertedPipeline.Groups)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
+		return
+	}
+	organizationsBytes, err := json.Marshal(upsertedPipeline.Organizations)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
 		return
 	}
 
@@ -1022,7 +1031,9 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 			triggered_by_event,
 			recent_committers,
 			recent_releasers,
-			extra_info
+			extra_info,
+			organizations,
+			groups
 		)
 		VALUES
 		(
@@ -1048,7 +1059,9 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 			$20,
 			$21,
 			$22,
-			$23
+			$23,
+			$24,
+			$25
 		)
 		ON CONFLICT
 		(
@@ -1100,6 +1113,8 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 		recentCommittersBytes,
 		recentReleasersBytes,
 		extraInfoBytes,
+		organizationsBytes,
+		groupsBytes,
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
@@ -6047,6 +6062,8 @@ func (c *client) mapBuildToPipeline(build *contracts.Build) (pipeline *contracts
 		Manifest:             build.Manifest,
 		ManifestWithDefaults: build.ManifestWithDefaults,
 		Commits:              build.Commits,
+		Groups:               build.Groups,
+		Organizations:        build.Organizations,
 		Triggers:             build.Triggers,
 		Archived:             archived,
 		InsertedAt:           build.InsertedAt,
