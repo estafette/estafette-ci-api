@@ -375,7 +375,11 @@ func GetOrganizationsFromRequest(c *gin.Context) (organizations []string) {
 // SetPermissionsFilters adds permission related filters for groups and organizations
 func SetPermissionsFilters(c *gin.Context, filters map[FilterType][]string) map[FilterType][]string {
 
+	// filter out archived pipelines
+	filters[FilterArchived] = GetGenericFilter(c, FilterArchived, "false")
+
 	if RequestTokenHasRole(c, RoleAdministrator) {
+		// admin can see all pipelines for all orgs and groups
 		return filters
 	}
 
@@ -388,9 +392,6 @@ func SetPermissionsFilters(c *gin.Context, filters map[FilterType][]string) map[
 	} else if len(requestGroups) > 0 {
 		filters[FilterGroups] = requestGroups
 	}
-
-	// filter out archived pipelines
-	filters[FilterArchived] = GetGenericFilter(c, FilterArchived, "false")
 
 	return filters
 }
