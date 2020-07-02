@@ -770,10 +770,12 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 		RepoOwner:      releaseCommand.RepoOwner,
 		RepoName:       releaseCommand.RepoName,
 		ReleaseVersion: releaseCommand.ReleaseVersion,
+		Groups:         build.Groups,
+		Organizations:  build.Organizations,
 
 		// set trigger event to manual
 		Events: []manifest.EstafetteEvent{
-			manifest.EstafetteEvent{
+			{
 				Manual: &manifest.EstafetteManualEvent{
 					UserID: email,
 				},

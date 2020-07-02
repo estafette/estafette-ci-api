@@ -198,9 +198,11 @@ func (h *Handler) Handle(c *gin.Context) {
 						RepoOwner:      build.RepoOwner,
 						RepoName:       build.RepoName,
 						ReleaseVersion: buildVersion,
+						Groups:         build.Groups,
+						Organizations:  build.Organizations,
 
 						Events: []manifest.EstafetteEvent{
-							manifest.EstafetteEvent{
+							{
 								Manual: &manifest.EstafetteManualEvent{
 									UserID: profile.Email,
 								},

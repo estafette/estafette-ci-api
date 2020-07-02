@@ -144,6 +144,8 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 		Commits:        build.Commits,
 		Triggers:       build.Triggers,
 		Events:         build.Events,
+		Groups:         build.Groups,
+		Organizations:  build.Organizations,
 	}, jobResources)
 	if err != nil {
 		return
@@ -323,6 +325,8 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 		ReleaseVersion: release.ReleaseVersion,
 		ReleaseStatus:  releaseStatus,
 		Events:         release.Events,
+		Groups:         release.Groups,
+		Organizations:  release.Organizations,
 	}, jobResources)
 	if err != nil {
 		return
