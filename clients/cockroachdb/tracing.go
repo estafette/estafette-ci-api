@@ -573,11 +573,11 @@ func (c *tracingClient) GetUserByIdentity(ctx context.Context, identity contract
 	return c.Client.GetUserByIdentity(ctx, identity)
 }
 
-func (c *tracingClient) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
+func (c *tracingClient) GetUserByID(ctx context.Context, id string, filters map[api.FilterType][]string) (user *contracts.User, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetUserByID"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetUserByID(ctx, id)
+	return c.Client.GetUserByID(ctx, id, filters)
 }
 
 func (c *tracingClient) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (users []*contracts.User, err error) {
@@ -622,11 +622,11 @@ func (c *tracingClient) GetGroupByIdentity(ctx context.Context, identity contrac
 	return c.Client.GetGroupByIdentity(ctx, identity)
 }
 
-func (c *tracingClient) GetGroupByID(ctx context.Context, id string) (group *contracts.Group, err error) {
+func (c *tracingClient) GetGroupByID(ctx context.Context, id string, filters map[api.FilterType][]string) (group *contracts.Group, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetGroupByID"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetGroupByID(ctx, id)
+	return c.Client.GetGroupByID(ctx, id, filters)
 }
 
 func (c *tracingClient) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (groups []*contracts.Group, err error) {

@@ -38,7 +38,7 @@ func (h *Handler) GetLoggedInUser(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	user, err := h.cockroachdbClient.GetUserByID(ctx, id)
+	user, err := h.cockroachdbClient.GetUserByID(ctx, id, map[api.FilterType][]string{})
 	if err != nil {
 		log.Error().Err(err).Msgf("Retrieving user from db failed with id %v", id)
 		c.String(http.StatusInternalServerError, "Retrieving user from db failed")
@@ -336,7 +336,7 @@ func (h *Handler) HandleImpersonateAuthenticator() func(c *gin.Context) (interfa
 		ctx := c.Request.Context()
 		id := c.Param("id")
 
-		user, err := h.cockroachdbClient.GetUserByID(ctx, id)
+		user, err := h.cockroachdbClient.GetUserByID(ctx, id, map[api.FilterType][]string{})
 		if err != nil || user == nil {
 			return nil, err
 		}
@@ -412,7 +412,7 @@ func (h *Handler) GetUser(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
 
-	user, err := h.cockroachdbClient.GetUserByID(ctx, id)
+	user, err := h.cockroachdbClient.GetUserByID(ctx, id, map[api.FilterType][]string{})
 	if err != nil || user == nil {
 		log.Error().Err(err).Msgf("Failed retrieving user with id %v from db", id)
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
@@ -566,7 +566,7 @@ func (h *Handler) GetGroup(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
 
-	group, err := h.cockroachdbClient.GetGroupByID(ctx, id)
+	group, err := h.cockroachdbClient.GetGroupByID(ctx, id, map[api.FilterType][]string{})
 	if err != nil || group == nil {
 		log.Error().Err(err).Msgf("Failed retrieving group with id %v from db", id)
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
@@ -1120,7 +1120,7 @@ func (h *Handler) BatchUpdateUsers(c *gin.Context) {
 			// lower semaphore once the routine's finished, making room for another one to start
 			defer func() { <-semaphore }()
 
-			user, err := h.cockroachdbClient.GetUserByID(ctx, u)
+			user, err := h.cockroachdbClient.GetUserByID(ctx, u, map[api.FilterType][]string{})
 			if err != nil {
 				resultChannel <- err
 				return
@@ -1236,7 +1236,7 @@ func (h *Handler) BatchUpdateGroups(c *gin.Context) {
 			// lower semaphore once the routine's finished, making room for another one to start
 			defer func() { <-semaphore }()
 
-			group, err := h.cockroachdbClient.GetGroupByID(ctx, g)
+			group, err := h.cockroachdbClient.GetGroupByID(ctx, g, map[api.FilterType][]string{})
 			if err != nil {
 				resultChannel <- err
 				return

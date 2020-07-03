@@ -128,7 +128,7 @@ type Client interface {
 	UpdateUser(ctx context.Context, user contracts.User) (err error)
 	DeleteUser(ctx context.Context, user contracts.User) (err error)
 	GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
-	GetUserByID(ctx context.Context, id string) (user *contracts.User, err error)
+	GetUserByID(ctx context.Context, id string, filters map[api.FilterType][]string) (user *contracts.User, err error)
 	GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (users []*contracts.User, err error)
 	GetUsersCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
@@ -136,7 +136,7 @@ type Client interface {
 	UpdateGroup(ctx context.Context, group contracts.Group) (err error)
 	DeleteGroup(ctx context.Context, group contracts.Group) (err error)
 	GetGroupByIdentity(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error)
-	GetGroupByID(ctx context.Context, id string) (group *contracts.Group, err error)
+	GetGroupByID(ctx context.Context, id string, filters map[api.FilterType][]string) (group *contracts.Group, err error)
 	GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (groups []*contracts.Group, err error)
 	GetGroupsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
@@ -4425,7 +4425,7 @@ func (c *client) DeleteUser(ctx context.Context, user contracts.User) (err error
 
 	return
 }
-func (c *client) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
+func (c *client) GetUserByID(ctx context.Context, id string, filters map[api.FilterType][]string) (user *contracts.User, err error) {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -4435,6 +4435,11 @@ func (c *client) GetUserByID(ctx context.Context, id string) (user *contracts.Us
 		Where(sq.Eq{"a.id": id}).
 		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(1))
+
+	query, err = whereClauseGeneratorForOrganizationsFilter(query, "a", filters)
+	if err != nil {
+		return nil, err
+	}
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
@@ -4686,7 +4691,7 @@ func (c *client) GetGroupByIdentity(ctx context.Context, identity contracts.Grou
 	return group, nil
 }
 
-func (c *client) GetGroupByID(ctx context.Context, id string) (group *contracts.Group, err error) {
+func (c *client) GetGroupByID(ctx context.Context, id string, filters map[api.FilterType][]string) (group *contracts.Group, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -4695,6 +4700,11 @@ func (c *client) GetGroupByID(ctx context.Context, id string) (group *contracts.
 		Where(sq.Eq{"a.id": id}).
 		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(1))
+
+	query, err = whereClauseGeneratorForOrganizationsFilter(query, "a", filters)
+	if err != nil {
+		return nil, err
+	}
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()

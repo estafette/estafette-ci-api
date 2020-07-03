@@ -1473,57 +1473,6 @@ func (h *Handler) GetStatsReleasesAdoption(c *gin.Context) {
 	})
 }
 
-func (h *Handler) UpdateComputedTables(c *gin.Context) {
-
-	if !api.RequestTokenIsValid(c) {
-		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
-		return
-	}
-
-	claims := jwt.ExtractClaims(c)
-	email := claims["email"].(string)
-
-	filters := map[api.FilterType][]string{}
-	filters[api.FilterStatus] = api.GetStatusFilter(c)
-	filters[api.FilterSince] = api.GetSinceFilter(c)
-	filters[api.FilterLabels] = api.GetLabelsFilter(c)
-	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(c.Request.Context(), filters)
-	if err != nil {
-		log.Error().Err(err).
-			Msg("Failed retrieving pipelines count from db")
-	}
-	pageSize := 20
-	totalPages := int(math.Ceil(float64(pipelinesCount) / float64(pageSize)))
-	for pageNumber := 1; pageNumber <= totalPages; pageNumber++ {
-		pipelines, err := h.cockroachDBClient.GetPipelines(c.Request.Context(), pageNumber, pageSize, filters, []api.OrderField{}, false)
-		if err != nil {
-			log.Error().Err(err).
-				Msg("Failed retrieving pipelines from db")
-		}
-		for _, p := range pipelines {
-
-			h.cockroachDBClient.UpsertComputedPipeline(c.Request.Context(), p.RepoSource, p.RepoOwner, p.RepoName)
-			h.cockroachDBClient.UpdateComputedPipelineFirstInsertedAt(c.Request.Context(), p.RepoSource, p.RepoOwner, p.RepoName)
-			manifest, err := manifest.ReadManifest(h.config.ManifestPreferences, p.Manifest, false)
-			if err == nil {
-				for _, r := range manifest.Releases {
-					if len(r.Actions) > 0 {
-						for _, a := range r.Actions {
-							h.cockroachDBClient.UpsertComputedRelease(c.Request.Context(), p.RepoSource, p.RepoOwner, p.RepoName, r.Name, a.Name)
-							h.cockroachDBClient.UpdateComputedReleaseFirstInsertedAt(c.Request.Context(), p.RepoSource, p.RepoOwner, p.RepoName, r.Name, a.Name)
-						}
-					} else {
-						h.cockroachDBClient.UpsertComputedRelease(c.Request.Context(), p.RepoSource, p.RepoOwner, p.RepoName, r.Name, "")
-						h.cockroachDBClient.UpdateComputedReleaseFirstInsertedAt(c.Request.Context(), p.RepoSource, p.RepoOwner, p.RepoName, r.Name, "")
-					}
-				}
-			}
-		}
-	}
-
-	c.JSON(http.StatusOK, email)
-}
-
 func (h *Handler) GetConfig(c *gin.Context) {
 
 	configBytes, err := yaml.Marshal(h.encryptedConfig)

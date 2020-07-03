@@ -166,7 +166,7 @@ func (s *service) CreateUser(ctx context.Context, user contracts.User) (inserted
 func (s *service) UpdateUser(ctx context.Context, user contracts.User) (err error) {
 
 	// get user from db
-	currentUser, err := s.cockroachdbClient.GetUserByID(ctx, user.ID)
+	currentUser, err := s.cockroachdbClient.GetUserByID(ctx, user.ID, map[api.FilterType][]string{})
 	if err != nil {
 		return
 	}
@@ -195,7 +195,7 @@ func (s *service) UpdateUser(ctx context.Context, user contracts.User) (err erro
 func (s *service) DeleteUser(ctx context.Context, id string) (err error) {
 
 	// get user from db
-	currentUser, err := s.cockroachdbClient.GetUserByID(ctx, id)
+	currentUser, err := s.cockroachdbClient.GetUserByID(ctx, id, map[api.FilterType][]string{})
 	if err != nil {
 		return
 	}
@@ -222,7 +222,7 @@ func (s *service) CreateGroup(ctx context.Context, group contracts.Group) (inser
 func (s *service) UpdateGroup(ctx context.Context, group contracts.Group) (err error) {
 
 	// get group from db
-	currentGroup, err := s.cockroachdbClient.GetGroupByID(ctx, group.ID)
+	currentGroup, err := s.cockroachdbClient.GetGroupByID(ctx, group.ID, map[api.FilterType][]string{})
 	if err != nil {
 		return
 	}
@@ -242,7 +242,7 @@ func (s *service) UpdateGroup(ctx context.Context, group contracts.Group) (err e
 func (s *service) DeleteGroup(ctx context.Context, id string) (err error) {
 
 	// get group from db
-	currentGroup, err := s.cockroachdbClient.GetGroupByID(ctx, id)
+	currentGroup, err := s.cockroachdbClient.GetGroupByID(ctx, id, map[api.FilterType][]string{})
 	if err != nil {
 		return
 	}
@@ -382,7 +382,7 @@ func (s *service) GetInheritedRolesForUser(ctx context.Context, user contracts.U
 
 	// get roles from groups linked to user
 	for _, g := range user.Groups {
-		group, err := s.cockroachdbClient.GetGroupByID(ctx, g.ID)
+		group, err := s.cockroachdbClient.GetGroupByID(ctx, g.ID, map[api.FilterType][]string{})
 		if err != nil {
 			return nil, err
 		}

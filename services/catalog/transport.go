@@ -3,6 +3,7 @@ package catalog
 import (
 	"fmt"
 	"net/http"
+	"sort"
 
 	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
@@ -383,4 +384,128 @@ func (h *Handler) DeleteCatalogEntity(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
+func (h *Handler) GetCatalogUsers(c *gin.Context) {
+
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
+
+	// filter on organizations / groups
+	filters = api.SetPermissionsFilters(c, filters)
+
+	ctx := c.Request.Context()
+
+	response, err := api.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			users, err := h.cockroachdbClient.GetUsers(ctx, pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
+
+			if len(sortings) == 0 {
+				sort.Slice(users, func(i, j int) bool {
+					return users[i].Name < users[j].Name
+				})
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(users))
+			for i := range users {
+				items[i] = users[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachdbClient.GetUsersCount(ctx, filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving users from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) GetCatalogUser(c *gin.Context) {
+
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	filters := api.SetPermissionsFilters(c, map[api.FilterType][]string{})
+
+	user, err := h.cockroachdbClient.GetUserByID(ctx, id, filters)
+	if err != nil || user == nil {
+		log.Error().Err(err).Msgf("Failed retrieving user with id %v from db", id)
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+func (h *Handler) GetCatalogGroups(c *gin.Context) {
+
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
+
+	// filter on organizations / groups
+	filters = api.SetPermissionsFilters(c, filters)
+
+	ctx := c.Request.Context()
+
+	response, err := api.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			groups, err := h.cockroachdbClient.GetGroups(ctx, pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
+
+			if len(sortings) == 0 {
+				sort.Slice(groups, func(i, j int) bool {
+					return groups[i].Name < groups[j].Name
+				})
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(groups))
+			for i := range groups {
+				items[i] = groups[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachdbClient.GetGroupsCount(ctx, filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving groups from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) GetCatalogGroup(c *gin.Context) {
+
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	filters := api.SetPermissionsFilters(c, map[api.FilterType][]string{})
+
+	group, err := h.cockroachdbClient.GetGroupByID(ctx, id, filters)
+	if err != nil || group == nil {
+		log.Error().Err(err).Msgf("Failed retrieving group with id %v from db", id)
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
+		return
+	}
+
+	c.JSON(http.StatusOK, group)
 }

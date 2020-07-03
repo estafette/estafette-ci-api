@@ -1166,7 +1166,30 @@ func TestIntegrationGetUserByID(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		retrievedUser, err := cockroachdbClient.GetUserByID(ctx, insertedUser.ID)
+		retrievedUser, err := cockroachdbClient.GetUserByID(ctx, insertedUser.ID, map[api.FilterType][]string{})
+
+		assert.Nil(t, err)
+		assert.NotNil(t, retrievedUser)
+		assert.Equal(t, retrievedUser.ID, insertedUser.ID)
+	})
+
+	t.Run("ReturnsInsertedUserWithIDFilteredOnOrganization", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		user := getUser()
+		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+		assert.Nil(t, err)
+		filters := map[api.FilterType][]string{
+			api.FilterOrganizations: []string{"Estafette"},
+		}
+
+		// act
+		retrievedUser, err := cockroachdbClient.GetUserByID(ctx, insertedUser.ID, filters)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedUser)
@@ -1455,7 +1478,30 @@ func TestIntegrationGetGroupByID(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		retrievedGroup, err := cockroachdbClient.GetGroupByID(ctx, insertedGroup.ID)
+		retrievedGroup, err := cockroachdbClient.GetGroupByID(ctx, insertedGroup.ID, map[api.FilterType][]string{})
+
+		assert.Nil(t, err)
+		assert.NotNil(t, retrievedGroup)
+		assert.Equal(t, retrievedGroup.ID, insertedGroup.ID)
+	})
+
+	t.Run("ReturnsInsertedGroupWithIDIfFilteredOnOrganization", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		group := getGroup()
+		insertedGroup, err := cockroachdbClient.InsertGroup(ctx, group)
+		assert.Nil(t, err)
+		filters := map[api.FilterType][]string{
+			api.FilterOrganizations: []string{"Org A"},
+		}
+
+		// act
+		retrievedGroup, err := cockroachdbClient.GetGroupByID(ctx, insertedGroup.ID, filters)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedGroup)
@@ -2738,6 +2784,12 @@ func getGroup() contracts.Group {
 				Provider: "google",
 				Name:     "Team A",
 				ID:       "team-a",
+			},
+		},
+		Organizations: []*contracts.Organization{
+			{
+				ID:   "12332443",
+				Name: "Org A",
 			},
 		},
 	}

@@ -493,10 +493,10 @@ func (c *loggingClient) GetUserByIdentity(ctx context.Context, identity contract
 	return c.Client.GetUserByIdentity(ctx, identity)
 }
 
-func (c *loggingClient) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
+func (c *loggingClient) GetUserByID(ctx context.Context, id string, filters map[api.FilterType][]string) (user *contracts.User, err error) {
 	defer func() { api.HandleLogError(c.prefix, "GetUserByID", err, ErrUserNotFound) }()
 
-	return c.Client.GetUserByID(ctx, id)
+	return c.Client.GetUserByID(ctx, id, filters)
 }
 
 func (c *loggingClient) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (users []*contracts.User, err error) {
@@ -535,10 +535,10 @@ func (c *loggingClient) GetGroupByIdentity(ctx context.Context, identity contrac
 	return c.Client.GetGroupByIdentity(ctx, identity)
 }
 
-func (c *loggingClient) GetGroupByID(ctx context.Context, id string) (group *contracts.Group, err error) {
+func (c *loggingClient) GetGroupByID(ctx context.Context, id string, filters map[api.FilterType][]string) (group *contracts.Group, err error) {
 	defer func() { api.HandleLogError(c.prefix, "GetGroupByID", err, ErrGroupNotFound) }()
 
-	return c.Client.GetGroupByID(ctx, id)
+	return c.Client.GetGroupByID(ctx, id, filters)
 }
 
 func (c *loggingClient) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (groups []*contracts.Group, err error) {

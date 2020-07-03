@@ -90,7 +90,7 @@ type MockClient struct {
 	UpdateUserFunc        func(ctx context.Context, user contracts.User) (err error)
 	DeleteUserFunc        func(ctx context.Context, user contracts.User) (err error)
 	GetUserByIdentityFunc func(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
-	GetUserByIDFunc       func(ctx context.Context, id string) (user *contracts.User, err error)
+	GetUserByIDFunc       func(ctx context.Context, id string, filters map[api.FilterType][]string) (user *contracts.User, err error)
 	GetUsersFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (users []*contracts.User, err error)
 	GetUsersCountFunc     func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
@@ -98,7 +98,7 @@ type MockClient struct {
 	UpdateGroupFunc        func(ctx context.Context, group contracts.Group) (err error)
 	DeleteGroupFunc        func(ctx context.Context, group contracts.Group) (err error)
 	GetGroupByIdentityFunc func(ctx context.Context, identity contracts.GroupIdentity) (group *contracts.Group, err error)
-	GetGroupByIDFunc       func(ctx context.Context, id string) (group *contracts.Group, err error)
+	GetGroupByIDFunc       func(ctx context.Context, id string, filters map[api.FilterType][]string) (group *contracts.Group, err error)
 	GetGroupsFunc          func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (groups []*contracts.Group, err error)
 	GetGroupsCountFunc     func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
@@ -692,11 +692,11 @@ func (c MockClient) GetUserByIdentity(ctx context.Context, identity contracts.Us
 	return c.GetUserByIdentityFunc(ctx, identity)
 }
 
-func (c MockClient) GetUserByID(ctx context.Context, id string) (user *contracts.User, err error) {
+func (c MockClient) GetUserByID(ctx context.Context, id string, filters map[api.FilterType][]string) (user *contracts.User, err error) {
 	if c.GetUserByIDFunc == nil {
 		return
 	}
-	return c.GetUserByIDFunc(ctx, id)
+	return c.GetUserByIDFunc(ctx, id, filters)
 }
 
 func (c MockClient) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (users []*contracts.User, err error) {
@@ -741,11 +741,11 @@ func (c MockClient) GetGroupByIdentity(ctx context.Context, identity contracts.G
 	return c.GetGroupByIdentityFunc(ctx, identity)
 }
 
-func (c MockClient) GetGroupByID(ctx context.Context, id string) (group *contracts.Group, err error) {
+func (c MockClient) GetGroupByID(ctx context.Context, id string, filters map[api.FilterType][]string) (group *contracts.Group, err error) {
 	if c.GetGroupByIDFunc == nil {
 		return
 	}
-	return c.GetGroupByIDFunc(ctx, id)
+	return c.GetGroupByIDFunc(ctx, id, filters)
 }
 
 func (c MockClient) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (groups []*contracts.Group, err error) {

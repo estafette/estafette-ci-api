@@ -527,16 +527,16 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	// routes that require to be logged in and have a valid jwt
 	jwtMiddlewareRoutes := routes.Group("/", jwtMiddleware.MiddlewareFunc())
 	{
-		// require claims
-		jwtMiddlewareRoutes.GET("/api/auth/impersonate/:id", impersonateJWTMiddleware.LoginHandler)
-
+		// logged in user endpoints
 		jwtMiddlewareRoutes.GET("/api/me", rbacHandler.GetLoggedInUser)
-		jwtMiddlewareRoutes.GET("/api/update-computed-tables", estafetteHandler.UpdateComputedTables)
+
+		// actions
 		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/builds", estafetteHandler.CreatePipelineBuild)
 		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/releases", estafetteHandler.CreatePipelineRelease)
 		jwtMiddlewareRoutes.DELETE("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteHandler.CancelPipelineBuild)
 		jwtMiddlewareRoutes.DELETE("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.CancelPipelineRelease)
 
+		// to be removed after changing web frontend to use the /api/admin routes
 		jwtMiddlewareRoutes.GET("/api/roles", rbacHandler.GetRoles)
 
 		jwtMiddlewareRoutes.GET("/api/users", rbacHandler.GetUsers)
@@ -544,16 +544,6 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 		jwtMiddlewareRoutes.POST("/api/users", rbacHandler.CreateUser)
 		jwtMiddlewareRoutes.PUT("/api/users/:id", rbacHandler.UpdateUser)
 		jwtMiddlewareRoutes.DELETE("/api/users/:id", rbacHandler.DeleteUser)
-
-		jwtMiddlewareRoutes.GET("/api/admin/pipelines", rbacHandler.GetPipelines)
-		jwtMiddlewareRoutes.GET("/api/admin/pipelines/:source/:owner/:repo", rbacHandler.GetPipeline)
-		jwtMiddlewareRoutes.PUT("/api/admin/pipelines/:source/:owner/:repo", rbacHandler.UpdatePipeline)
-
-		jwtMiddlewareRoutes.POST("/api/admin/batch/users", rbacHandler.BatchUpdateUsers)
-		jwtMiddlewareRoutes.POST("/api/admin/batch/groups", rbacHandler.BatchUpdateGroups)
-		jwtMiddlewareRoutes.POST("/api/admin/batch/organizations", rbacHandler.BatchUpdateOrganizations)
-		jwtMiddlewareRoutes.POST("/api/admin/batch/clients", rbacHandler.BatchUpdateClients)
-		jwtMiddlewareRoutes.POST("/api/admin/batch/pipelines", rbacHandler.BatchUpdatePipelines)
 
 		jwtMiddlewareRoutes.GET("/api/groups", rbacHandler.GetGroups)
 		jwtMiddlewareRoutes.GET("/api/groups/:id", rbacHandler.GetGroup)
@@ -573,6 +563,45 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 		jwtMiddlewareRoutes.PUT("/api/clients/:id", rbacHandler.UpdateClient)
 		jwtMiddlewareRoutes.DELETE("/api/clients/:id", rbacHandler.DeleteClient)
 
+		// admin section
+		jwtMiddlewareRoutes.GET("/api/auth/impersonate/:id", impersonateJWTMiddleware.LoginHandler)
+		jwtMiddlewareRoutes.GET("/api/admin/roles", rbacHandler.GetRoles)
+
+		jwtMiddlewareRoutes.GET("/api/admin/users", rbacHandler.GetUsers)
+		jwtMiddlewareRoutes.GET("/api/admin/users/:id", rbacHandler.GetUser)
+		jwtMiddlewareRoutes.POST("/api/admin/users", rbacHandler.CreateUser)
+		jwtMiddlewareRoutes.PUT("/api/admin/users/:id", rbacHandler.UpdateUser)
+		jwtMiddlewareRoutes.DELETE("/api/admin/users/:id", rbacHandler.DeleteUser)
+
+		jwtMiddlewareRoutes.GET("/api/admin/pipelines", rbacHandler.GetPipelines)
+		jwtMiddlewareRoutes.GET("/api/admin/pipelines/:source/:owner/:repo", rbacHandler.GetPipeline)
+		jwtMiddlewareRoutes.PUT("/api/admin/pipelines/:source/:owner/:repo", rbacHandler.UpdatePipeline)
+
+		jwtMiddlewareRoutes.POST("/api/admin/batch/users", rbacHandler.BatchUpdateUsers)
+		jwtMiddlewareRoutes.POST("/api/admin/batch/groups", rbacHandler.BatchUpdateGroups)
+		jwtMiddlewareRoutes.POST("/api/admin/batch/organizations", rbacHandler.BatchUpdateOrganizations)
+		jwtMiddlewareRoutes.POST("/api/admin/batch/clients", rbacHandler.BatchUpdateClients)
+		jwtMiddlewareRoutes.POST("/api/admin/batch/pipelines", rbacHandler.BatchUpdatePipelines)
+
+		jwtMiddlewareRoutes.GET("/api/admin/groups", rbacHandler.GetGroups)
+		jwtMiddlewareRoutes.GET("/api/admin/groups/:id", rbacHandler.GetGroup)
+		jwtMiddlewareRoutes.POST("/api/admin/groups", rbacHandler.CreateGroup)
+		jwtMiddlewareRoutes.PUT("/api/admin/groups/:id", rbacHandler.UpdateGroup)
+		jwtMiddlewareRoutes.DELETE("/api/admin/groups/:id", rbacHandler.DeleteGroup)
+
+		jwtMiddlewareRoutes.GET("/api/admin/organizations", rbacHandler.GetOrganizations)
+		jwtMiddlewareRoutes.GET("/api/admin/organizations/:id", rbacHandler.GetOrganization)
+		jwtMiddlewareRoutes.POST("/api/admin/organizations", rbacHandler.CreateOrganization)
+		jwtMiddlewareRoutes.PUT("/api/admin/organizations/:id", rbacHandler.UpdateOrganization)
+		jwtMiddlewareRoutes.DELETE("/api/admin/organizations/:id", rbacHandler.DeleteOrganization)
+
+		jwtMiddlewareRoutes.GET("/api/admin/clients", rbacHandler.GetClients)
+		jwtMiddlewareRoutes.GET("/api/admin/clients/:id", rbacHandler.GetClient)
+		jwtMiddlewareRoutes.POST("/api/admin/clients", rbacHandler.CreateClient)
+		jwtMiddlewareRoutes.PUT("/api/admin/clients/:id", rbacHandler.UpdateClient)
+		jwtMiddlewareRoutes.DELETE("/api/admin/clients/:id", rbacHandler.DeleteClient)
+
+		// catalog routes
 		jwtMiddlewareRoutes.GET("/api/catalog/entity-labels", catalogHandler.GetCatalogEntityLabels)
 		jwtMiddlewareRoutes.GET("/api/catalog/entity-parent-keys", catalogHandler.GetCatalogEntityParentKeys)
 		jwtMiddlewareRoutes.GET("/api/catalog/entity-parent-values", catalogHandler.GetCatalogEntityParentValues)
@@ -583,6 +612,10 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 		jwtMiddlewareRoutes.POST("/api/catalog/entities", catalogHandler.CreateCatalogEntity)
 		jwtMiddlewareRoutes.PUT("/api/catalog/entities/:id", catalogHandler.UpdateCatalogEntity)
 		jwtMiddlewareRoutes.DELETE("/api/catalog/entities/:id", catalogHandler.DeleteCatalogEntity)
+		jwtMiddlewareRoutes.GET("/api/catalog/users", catalogHandler.GetCatalogUsers)
+		jwtMiddlewareRoutes.GET("/api/catalog/users/:id", catalogHandler.GetCatalogUser)
+		jwtMiddlewareRoutes.GET("/api/catalog/groups", catalogHandler.GetCatalogGroups)
+		jwtMiddlewareRoutes.GET("/api/catalog/groups/:id", catalogHandler.GetCatalogGroup)
 
 		// do not require claims
 		jwtMiddlewareRoutes.GET("/api/config", estafetteHandler.GetConfig)
