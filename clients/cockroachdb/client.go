@@ -3397,6 +3397,60 @@ func whereClauseGeneratorForOrganizationsFilter(query sq.SelectBuilder, alias st
 	return query, nil
 }
 
+func whereClauseGeneratorForOrganizationsInUserDataFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+
+	if organizations, ok := filters[api.FilterOrganizations]; ok && len(organizations) > 0 {
+
+		expressions := sq.Or{}
+		for _, o := range organizations {
+			organizationParam := contracts.User{
+				Organizations: []*contracts.Organization{
+					{
+						Name: o,
+					},
+				},
+			}
+
+			bytes, err := json.Marshal(organizationParam)
+			if err != nil {
+				return query, err
+			}
+
+			expressions = append(expressions, sq.Expr(fmt.Sprintf("%v.user_data @> ?", alias), string(bytes)))
+		}
+		query = query.Where(expressions)
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForOrganizationsInGroupDataFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+
+	if organizations, ok := filters[api.FilterOrganizations]; ok && len(organizations) > 0 {
+
+		expressions := sq.Or{}
+		for _, o := range organizations {
+			organizationParam := contracts.Group{
+				Organizations: []*contracts.Organization{
+					{
+						Name: o,
+					},
+				},
+			}
+
+			bytes, err := json.Marshal(organizationParam)
+			if err != nil {
+				return query, err
+			}
+
+			expressions = append(expressions, sq.Expr(fmt.Sprintf("%v.group_data @> ?", alias), string(bytes)))
+		}
+		query = query.Where(expressions)
+	}
+
+	return query, nil
+}
+
 func whereClauseGeneratorForArchivedFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if archiveds, ok := filters[api.FilterArchived]; ok && len(archiveds) > 0 {
@@ -3430,6 +3484,11 @@ func whereClauseGeneratorForUserFilters(query sq.SelectBuilder, alias string, fi
 	}
 
 	query, err = whereClauseGeneratorForUserOrganizationFilters(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
+
+	query, err = whereClauseGeneratorForOrganizationsInUserDataFilter(query, "a", filters)
 	if err != nil {
 		return query, err
 	}
@@ -4436,7 +4495,7 @@ func (c *client) GetUserByID(ctx context.Context, id string, filters map[api.Fil
 		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(1))
 
-	query, err = whereClauseGeneratorForOrganizationsFilter(query, "a", filters)
+	query, err = whereClauseGeneratorForOrganizationsInUserDataFilter(query, "a", filters)
 	if err != nil {
 		return nil, err
 	}
@@ -4701,7 +4760,7 @@ func (c *client) GetGroupByID(ctx context.Context, id string, filters map[api.Fi
 		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(1))
 
-	query, err = whereClauseGeneratorForOrganizationsFilter(query, "a", filters)
+	query, err = whereClauseGeneratorForOrganizationsInGroupDataFilter(query, "a", filters)
 	if err != nil {
 		return nil, err
 	}
@@ -4725,6 +4784,11 @@ func (c *client) GetGroups(ctx context.Context, pageNumber, pageSize int, filter
 		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
+
+	query, err = whereClauseGeneratorForOrganizationsInGroupDataFilter(query, "a", filters)
+	if err != nil {
+		return groups, err
+	}
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
