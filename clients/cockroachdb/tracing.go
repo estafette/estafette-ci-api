@@ -342,18 +342,18 @@ func (c *tracingClient) GetBuildsDuration(ctx context.Context, filters map[api.F
 	return c.Client.GetBuildsDuration(ctx, filters)
 }
 
-func (c *tracingClient) GetFirstBuildTimes(ctx context.Context) (times []time.Time, err error) {
+func (c *tracingClient) GetFirstBuildTimes(ctx context.Context, filters map[api.FilterType][]string) (times []time.Time, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetFirstBuildTimes"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetFirstBuildTimes(ctx)
+	return c.Client.GetFirstBuildTimes(ctx, filters)
 }
 
-func (c *tracingClient) GetFirstReleaseTimes(ctx context.Context) (times []time.Time, err error) {
+func (c *tracingClient) GetFirstReleaseTimes(ctx context.Context, filters map[api.FilterType][]string) (times []time.Time, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetFirstReleaseTimes"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetFirstReleaseTimes(ctx)
+	return c.Client.GetFirstReleaseTimes(ctx, filters)
 }
 
 func (c *tracingClient) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error) {

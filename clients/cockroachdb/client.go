@@ -90,8 +90,8 @@ type Client interface {
 	GetBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetBuildsDuration(ctx context.Context, filters map[api.FilterType][]string) (duration time.Duration, err error)
-	GetFirstBuildTimes(ctx context.Context) (times []time.Time, err error)
-	GetFirstReleaseTimes(ctx context.Context) (times []time.Time, err error)
+	GetFirstBuildTimes(ctx context.Context, filters map[api.FilterType][]string) (times []time.Time, err error)
+	GetFirstReleaseTimes(ctx context.Context, filters map[api.FilterType][]string) (times []time.Time, err error)
 	GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error)
 	GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error)
 	GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
@@ -2351,7 +2351,7 @@ func (c *client) GetBuildsDuration(ctx context.Context, filters map[api.FilterTy
 	return
 }
 
-func (c *client) GetFirstBuildTimes(ctx context.Context) (buildTimes []time.Time, err error) {
+func (c *client) GetFirstBuildTimes(ctx context.Context, filters map[api.FilterType][]string) (buildTimes []time.Time, err error) {
 
 	// generate query
 	query :=
@@ -2360,13 +2360,24 @@ func (c *client) GetFirstBuildTimes(ctx context.Context) (buildTimes []time.Time
 			From("computed_pipelines a").
 			OrderBy("a.first_inserted_at")
 
+	query, err = whereClauseGeneratorForGroupsFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+	query, err = whereClauseGeneratorForOrganizationsFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+	query, err = whereClauseGeneratorForArchivedFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
 	buildTimes = make([]time.Time, 0)
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
-
 	if err != nil {
-
 		return
 	}
 
@@ -2387,7 +2398,7 @@ func (c *client) GetFirstBuildTimes(ctx context.Context) (buildTimes []time.Time
 	return
 }
 
-func (c *client) GetFirstReleaseTimes(ctx context.Context) (releaseTimes []time.Time, err error) {
+func (c *client) GetFirstReleaseTimes(ctx context.Context, filters map[api.FilterType][]string) (releaseTimes []time.Time, err error) {
 
 	// generate query
 	query :=
@@ -2396,6 +2407,20 @@ func (c *client) GetFirstReleaseTimes(ctx context.Context) (releaseTimes []time.
 			From("computed_releases a").
 			GroupBy("a.repo_source,a.repo_owner,a.repo_name").
 			OrderBy("MIN(a.first_inserted_at)")
+
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForGroupsFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+	query, err = whereClauseGeneratorForOrganizationsFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+	query, err = whereClauseGeneratorForArchivedFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
 
 	releaseTimes = make([]time.Time, 0)
 

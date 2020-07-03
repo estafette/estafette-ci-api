@@ -1306,6 +1306,9 @@ func (h *Handler) GetStatsPipelinesCount(c *gin.Context) {
 	filters[api.FilterStatus] = api.GetStatusFilter(c)
 	filters[api.FilterSince] = api.GetSinceFilter(c)
 
+	// filter on organizations / groups
+	filters = api.SetPermissionsFilters(c, filters)
+
 	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(c.Request.Context(), filters)
 	if err != nil {
 		log.Error().Err(err).
@@ -1323,6 +1326,9 @@ func (h *Handler) GetStatsReleasesCount(c *gin.Context) {
 	filters := map[api.FilterType][]string{}
 	filters[api.FilterStatus] = api.GetStatusFilter(c)
 	filters[api.FilterSince] = api.GetSinceFilter(c)
+
+	// filter on organizations / groups
+	filters = api.SetPermissionsFilters(c, filters)
 
 	releasesCount, err := h.cockroachDBClient.GetReleasesCount(c.Request.Context(), filters)
 	if err != nil {
@@ -1342,6 +1348,9 @@ func (h *Handler) GetStatsBuildsCount(c *gin.Context) {
 	filters[api.FilterStatus] = api.GetStatusFilter(c)
 	filters[api.FilterSince] = api.GetSinceFilter(c)
 
+	// filter on organizations / groups
+	filters = api.SetPermissionsFilters(c, filters)
+
 	buildsCount, err := h.cockroachDBClient.GetBuildsCount(c.Request.Context(), filters)
 	if err != nil {
 		log.Error().Err(err).
@@ -1356,6 +1365,9 @@ func (h *Handler) GetStatsBuildsCount(c *gin.Context) {
 func (h *Handler) GetStatsMostBuilds(c *gin.Context) {
 
 	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
+
+	// filter on organizations / groups
+	filters = api.SetPermissionsFilters(c, filters)
 
 	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostBuilds(c.Request.Context(), pageNumber, pageSize, filters)
 	if err != nil {
@@ -1392,6 +1404,9 @@ func (h *Handler) GetStatsMostBuilds(c *gin.Context) {
 func (h *Handler) GetStatsMostReleases(c *gin.Context) {
 
 	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
+
+	// filter on organizations / groups
+	filters = api.SetPermissionsFilters(c, filters)
 
 	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostReleases(c.Request.Context(), pageNumber, pageSize, filters)
 	if err != nil {
@@ -1445,7 +1460,10 @@ func (h *Handler) GetStatsBuildsDuration(c *gin.Context) {
 
 func (h *Handler) GetStatsBuildsAdoption(c *gin.Context) {
 
-	buildTimes, err := h.cockroachDBClient.GetFirstBuildTimes(c.Request.Context())
+	// filter on organizations / groups
+	filters := api.SetPermissionsFilters(c, map[api.FilterType][]string{})
+
+	buildTimes, err := h.cockroachDBClient.GetFirstBuildTimes(c.Request.Context(), filters)
 	if err != nil {
 		errorMessage := "Failed retrieving first build times from db"
 		log.Error().Err(err).Msg(errorMessage)
@@ -1460,7 +1478,10 @@ func (h *Handler) GetStatsBuildsAdoption(c *gin.Context) {
 
 func (h *Handler) GetStatsReleasesAdoption(c *gin.Context) {
 
-	releaseTimes, err := h.cockroachDBClient.GetFirstReleaseTimes(c.Request.Context())
+	// filter on organizations / groups
+	filters := api.SetPermissionsFilters(c, map[api.FilterType][]string{})
+
+	releaseTimes, err := h.cockroachDBClient.GetFirstReleaseTimes(c.Request.Context(), filters)
 	if err != nil {
 		errorMessage := "Failed retrieving first release times from db"
 		log.Error().Err(err).Msg(errorMessage)

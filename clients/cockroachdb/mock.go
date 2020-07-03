@@ -56,8 +56,8 @@ type MockClient struct {
 	GetBuildsCountFunc                             func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetReleasesCountFunc                           func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetBuildsDurationFunc                          func(ctx context.Context, filters map[api.FilterType][]string) (duration time.Duration, err error)
-	GetFirstBuildTimesFunc                         func(ctx context.Context) (times []time.Time, err error)
-	GetFirstReleaseTimesFunc                       func(ctx context.Context) (times []time.Time, err error)
+	GetFirstBuildTimesFunc                         func(ctx context.Context, filters map[api.FilterType][]string) (times []time.Time, err error)
+	GetFirstReleaseTimesFunc                       func(ctx context.Context, filters map[api.FilterType][]string) (times []time.Time, err error)
 	GetPipelineBuildsDurationsFunc                 func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error)
 	GetPipelineReleasesDurationsFunc               func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error)
 	GetPipelineBuildsCPUUsageMeasurementsFunc      func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
@@ -461,18 +461,18 @@ func (c MockClient) GetBuildsDuration(ctx context.Context, filters map[api.Filte
 	return c.GetBuildsDurationFunc(ctx, filters)
 }
 
-func (c MockClient) GetFirstBuildTimes(ctx context.Context) (times []time.Time, err error) {
+func (c MockClient) GetFirstBuildTimes(ctx context.Context, filters map[api.FilterType][]string) (times []time.Time, err error) {
 	if c.GetFirstBuildTimesFunc == nil {
 		return
 	}
-	return c.GetFirstBuildTimesFunc(ctx)
+	return c.GetFirstBuildTimesFunc(ctx, filters)
 }
 
-func (c MockClient) GetFirstReleaseTimes(ctx context.Context) (times []time.Time, err error) {
+func (c MockClient) GetFirstReleaseTimes(ctx context.Context, filters map[api.FilterType][]string) (times []time.Time, err error) {
 	if c.GetFirstReleaseTimesFunc == nil {
 		return
 	}
-	return c.GetFirstReleaseTimesFunc(ctx)
+	return c.GetFirstReleaseTimesFunc(ctx, filters)
 }
 
 func (c MockClient) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error) {

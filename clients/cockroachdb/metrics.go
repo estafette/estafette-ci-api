@@ -379,20 +379,20 @@ func (c *metricsClient) GetBuildsDuration(ctx context.Context, filters map[api.F
 	return c.Client.GetBuildsDuration(ctx, filters)
 }
 
-func (c *metricsClient) GetFirstBuildTimes(ctx context.Context) (times []time.Time, err error) {
+func (c *metricsClient) GetFirstBuildTimes(ctx context.Context, filters map[api.FilterType][]string) (times []time.Time, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetFirstBuildTimes", begin)
 	}(time.Now())
 
-	return c.Client.GetFirstBuildTimes(ctx)
+	return c.Client.GetFirstBuildTimes(ctx, filters)
 }
 
-func (c *metricsClient) GetFirstReleaseTimes(ctx context.Context) (times []time.Time, err error) {
+func (c *metricsClient) GetFirstReleaseTimes(ctx context.Context, filters map[api.FilterType][]string) (times []time.Time, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetFirstReleaseTimes", begin)
 	}(time.Now())
 
-	return c.Client.GetFirstReleaseTimes(ctx)
+	return c.Client.GetFirstReleaseTimes(ctx, filters)
 }
 
 func (c *metricsClient) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error) {

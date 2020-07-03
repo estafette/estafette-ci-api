@@ -295,16 +295,16 @@ func (c *loggingClient) GetBuildsDuration(ctx context.Context, filters map[api.F
 	return c.Client.GetBuildsDuration(ctx, filters)
 }
 
-func (c *loggingClient) GetFirstBuildTimes(ctx context.Context) (times []time.Time, err error) {
+func (c *loggingClient) GetFirstBuildTimes(ctx context.Context, filters map[api.FilterType][]string) (times []time.Time, err error) {
 	defer func() { api.HandleLogError(c.prefix, "GetFirstBuildTimes", err) }()
 
-	return c.Client.GetFirstBuildTimes(ctx)
+	return c.Client.GetFirstBuildTimes(ctx, filters)
 }
 
-func (c *loggingClient) GetFirstReleaseTimes(ctx context.Context) (times []time.Time, err error) {
+func (c *loggingClient) GetFirstReleaseTimes(ctx context.Context, filters map[api.FilterType][]string) (times []time.Time, err error) {
 	defer func() { api.HandleLogError(c.prefix, "GetFirstReleaseTimes", err) }()
 
-	return c.Client.GetFirstReleaseTimes(ctx)
+	return c.Client.GetFirstReleaseTimes(ctx, filters)
 }
 
 func (c *loggingClient) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error) {
