@@ -372,6 +372,36 @@ func GetOrganizationsFromRequest(c *gin.Context) (organizations []string) {
 	return
 }
 
+func GroupsFromRequestOverlap(c *gin.Context, groups []*contracts.Group) bool {
+
+	requestGroups := GetGroupsFromRequest(c)
+
+	for _, g := range groups {
+		for _, rg := range requestGroups {
+			if g.Name == rg {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func OrganizationsFromRequestOverlap(c *gin.Context, organizations []*contracts.Organization) bool {
+
+	requestOrganizations := GetOrganizationsFromRequest(c)
+
+	for _, o := range organizations {
+		for _, ro := range requestOrganizations {
+			if o.Name == ro {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 // SetPermissionsFilters adds permission related filters for groups and organizations
 func SetPermissionsFilters(c *gin.Context, filters map[FilterType][]string) map[FilterType][]string {
 

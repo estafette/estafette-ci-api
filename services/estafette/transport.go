@@ -275,6 +275,23 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 		return
 	}
 
+	// check if requester is member of the pipeline groups
+	if !api.RequestTokenHasRole(c, api.RoleAdministrator) {
+		filters := api.GetPipelineFilters(c)
+		pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, filters, false)
+		if err != nil {
+			errorMessage := fmt.Sprintf("Failed retrieving pipeline %v/%v/%v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, email)
+			log.Error().Err(err).Msg(errorMessage)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+			return
+		}
+
+		if !api.GroupsFromRequestOverlap(c, pipeline.Groups) {
+			c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "Only group members owning the pipeline are allowed to rebuild"})
+			return
+		}
+	}
+
 	// check if version exists and is valid to re-run
 	failedBuilds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(c.Request.Context(), buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, []string{"failed", "canceled"}, 1, false)
 	if err != nil {
@@ -316,7 +333,7 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
 	// set trigger event to manual
 	failedBuild.Events = []manifest.EstafetteEvent{
-		manifest.EstafetteEvent{
+		{
 			Manual: &manifest.EstafetteManualEvent{
 				UserID: email,
 			},
@@ -356,6 +373,23 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 			Msgf("Failed reading id from path parameter for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
 		return
+	}
+
+	// check if requester is member of the pipeline groups
+	if !api.RequestTokenHasRole(c, api.RoleAdministrator) {
+		filters := api.GetPipelineFilters(c)
+		pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), source, owner, repo, filters, false)
+		if err != nil {
+			errorMessage := fmt.Sprintf("Failed retrieving pipeline %v/%v/%v for cancel command issued by %v", source, owner, repo, email)
+			log.Error().Err(err).Msg(errorMessage)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+			return
+		}
+
+		if !api.GroupsFromRequestOverlap(c, pipeline.Groups) {
+			c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "Only group members owning the pipeline are allowed to cancel"})
+			return
+		}
 	}
 
 	// retrieve build
@@ -699,6 +733,14 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 		return
 	}
 
+	// check if requester is member of the pipeline groups
+	if !api.RequestTokenHasRole(c, api.RoleAdministrator) {
+		if !api.GroupsFromRequestOverlap(c, pipeline.Groups) {
+			c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "Only group members owning the pipeline are allowed to release"})
+			return
+		}
+	}
+
 	// check if version exists and is valid to release
 	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(c.Request.Context(), releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion, []string{"succeeded"}, 1, false)
 	if err != nil {
@@ -813,6 +855,23 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 		log.Error().Err(err).Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, idValue)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
 		return
+	}
+
+	// check if requester is member of the pipeline groups
+	if !api.RequestTokenHasRole(c, api.RoleAdministrator) {
+		filters := api.GetPipelineFilters(c)
+		pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), source, owner, repo, filters, false)
+		if err != nil {
+			errorMessage := fmt.Sprintf("Failed retrieving pipeline %v/%v/%v for cancel command issued by %v", source, owner, repo, email)
+			log.Error().Err(err).Msg(errorMessage)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+			return
+		}
+
+		if !api.GroupsFromRequestOverlap(c, pipeline.Groups) {
+			c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "Only group members owning the pipeline are allowed to cancel"})
+			return
+		}
 	}
 
 	release, err := h.cockroachDBClient.GetPipelineRelease(c.Request.Context(), source, owner, repo, id)
