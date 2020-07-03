@@ -211,6 +211,7 @@ func (s *service) CreateGroup(ctx context.Context, group contracts.Group) (inser
 
 	insertedGroup = &contracts.Group{
 		Name:          group.Name,
+		Description:   group.Description,
 		Identities:    group.Identities,
 		Organizations: group.Organizations,
 		Roles:         group.Roles,
@@ -232,6 +233,7 @@ func (s *service) UpdateGroup(ctx context.Context, group contracts.Group) (err e
 
 	// copy updateable fields
 	currentGroup.Name = group.Name
+	currentGroup.Description = group.Description
 	currentGroup.Identities = group.Identities
 	currentGroup.Organizations = group.Organizations
 	currentGroup.Roles = group.Roles
