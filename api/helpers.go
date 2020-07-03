@@ -377,6 +377,8 @@ func SetPermissionsFilters(c *gin.Context, filters map[FilterType][]string) map[
 
 	// filter out archived pipelines
 	filters[FilterArchived] = GetGenericFilter(c, FilterArchived, "false")
+	filters[FilterOrganizations] = GetGenericFilter(c, FilterOrganizations)
+	filters[FilterGroups] = GetGenericFilter(c, FilterGroups)
 
 	if RequestTokenHasRole(c, RoleAdministrator) {
 		// admin can see all pipelines for all orgs and groups
