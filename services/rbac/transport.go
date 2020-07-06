@@ -1393,8 +1393,9 @@ func (h *Handler) BatchUpdateClients(c *gin.Context) {
 	}
 
 	var body struct {
-		Clients []string `json:"clients"`
-		Role    *string  `json:"role"`
+		Clients       []string  `json:"clients"`
+		RolesToAdd    []*string `json:"rolesToAdd"`
+		RolesToRemove []*string `json:"rolesToRemove"`
 	}
 
 	err := c.BindJSON(&body)
@@ -1407,7 +1408,7 @@ func (h *Handler) BatchUpdateClients(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	if len(body.Clients) == 0 || body.Role == nil {
+	if len(body.Clients) == 0 || (len(body.RolesToAdd) == 0 && len(body.RolesToRemove) == 0) {
 		log.Error().Err(err).Msg("Request body is incorrect")
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
 		return
@@ -1434,16 +1435,27 @@ func (h *Handler) BatchUpdateClients(c *gin.Context) {
 			}
 
 			// add role if not present
-			if body.Role != nil {
+			for _, roleToAdd := range body.RolesToAdd {
 				hasRole := false
 				for _, r := range client.Roles {
-					if r != nil && *r == *body.Role {
+					if r != nil && *r == *roleToAdd {
 						hasRole = true
 					}
 				}
 				if !hasRole {
-					client.Roles = append(client.Roles, body.Role)
+					client.Roles = append(client.Roles, roleToAdd)
 				}
+			}
+
+			// remove role if present
+			for _, roleToRemove := range body.RolesToRemove {
+				newRoles := []*string{}
+				for _, r := range client.Roles {
+					if r == nil || *r != *roleToRemove {
+						newRoles = append(newRoles, r)
+					}
+				}
+				client.Roles = newRoles
 			}
 
 			err = h.service.UpdateClient(ctx, *client)
