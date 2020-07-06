@@ -1084,10 +1084,16 @@ func (h *Handler) BatchUpdateUsers(c *gin.Context) {
 	}
 
 	var body struct {
-		Users        []string                `json:"users"`
-		Role         *string                 `json:"role"`
-		Group        *contracts.Group        `json:"group"`
-		Organization *contracts.Organization `json:"organization"`
+		Users                 []string                  `json:"users"`
+		Role                  *string                   `json:"role"`
+		RolesToAdd            []*string                 `json:"rolesToAdd"`
+		RolesToRemove         []*string                 `json:"rolesToRemove"`
+		Group                 *contracts.Group          `json:"group"`
+		GroupsToAdd           []*contracts.Group        `json:"groupsToAdd"`
+		GroupsToRemove        []*contracts.Group        `json:"groupsToRemove"`
+		Organization          *contracts.Organization   `json:"organization"`
+		OrganizationsToAdd    []*contracts.Organization `json:"organizationsToAdd"`
+		OrganizationsToRemove []*contracts.Organization `json:"organizationsToRemove"`
 	}
 
 	err := c.BindJSON(&body)
@@ -1100,7 +1106,7 @@ func (h *Handler) BatchUpdateUsers(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	if len(body.Users) == 0 || (body.Role == nil && body.Group == nil && body.Organization == nil) {
+	if len(body.Users) == 0 || (body.Role == nil && len(body.RolesToAdd) == 0 && len(body.RolesToRemove) == 0 && body.Group == nil && len(body.GroupsToAdd) == 0 && len(body.GroupsToRemove) == 0 && body.Organization == nil && len(body.OrganizationsToAdd) == 0 && len(body.OrganizationsToRemove) == 0) {
 		log.Error().Err(err).Msg("Request body is incorrect")
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
 		return
@@ -1139,6 +1145,30 @@ func (h *Handler) BatchUpdateUsers(c *gin.Context) {
 				}
 			}
 
+			// add role if not present
+			for _, roleToAdd := range body.RolesToAdd {
+				hasRole := false
+				for _, r := range user.Roles {
+					if r != nil && *r == *roleToAdd {
+						hasRole = true
+					}
+				}
+				if !hasRole {
+					user.Roles = append(user.Roles, roleToAdd)
+				}
+			}
+
+			// remove role if present
+			for _, roleToRemove := range body.RolesToRemove {
+				newRoles := []*string{}
+				for _, r := range user.Roles {
+					if r == nil || *r != *roleToRemove {
+						newRoles = append(newRoles, r)
+					}
+				}
+				user.Roles = newRoles
+			}
+
 			// add group if not present
 			if body.Group != nil {
 				hasGroup := false
@@ -1152,6 +1182,30 @@ func (h *Handler) BatchUpdateUsers(c *gin.Context) {
 				}
 			}
 
+			// add group if not present
+			for _, groupToAdd := range body.GroupsToAdd {
+				hasGroup := false
+				for _, g := range user.Groups {
+					if g != nil && g.Name == groupToAdd.Name && g.ID == groupToAdd.ID {
+						hasGroup = true
+					}
+				}
+				if !hasGroup {
+					user.Groups = append(user.Groups, groupToAdd)
+				}
+			}
+
+			// remove group if present
+			for _, groupToRemove := range body.GroupsToRemove {
+				newGroups := []*contracts.Group{}
+				for _, g := range user.Groups {
+					if g == nil || g.Name != groupToRemove.Name || g.ID != groupToRemove.ID {
+						newGroups = append(newGroups, g)
+					}
+				}
+				user.Groups = newGroups
+			}
+
 			// add organization if not present
 			if body.Organization != nil {
 				hasOrganization := false
@@ -1163,6 +1217,30 @@ func (h *Handler) BatchUpdateUsers(c *gin.Context) {
 				if !hasOrganization {
 					user.Organizations = append(user.Organizations, body.Organization)
 				}
+			}
+
+			// add organization if not present
+			for _, organizationToAdd := range body.OrganizationsToAdd {
+				hasOrganization := false
+				for _, o := range user.Organizations {
+					if o != nil && o.Name == organizationToAdd.Name && o.ID == organizationToAdd.ID {
+						hasOrganization = true
+					}
+				}
+				if !hasOrganization {
+					user.Organizations = append(user.Organizations, organizationToAdd)
+				}
+			}
+
+			// remove organization if present
+			for _, organizationToRemove := range body.OrganizationsToRemove {
+				newOrganizations := []*contracts.Organization{}
+				for _, o := range user.Organizations {
+					if o == nil || o.Name != organizationToRemove.Name || o.ID != organizationToRemove.ID {
+						newOrganizations = append(newOrganizations, o)
+					}
+				}
+				user.Organizations = newOrganizations
 			}
 
 			err = h.service.UpdateUser(ctx, *user)
@@ -1201,9 +1279,13 @@ func (h *Handler) BatchUpdateGroups(c *gin.Context) {
 	}
 
 	var body struct {
-		Groups       []string                `json:"groups"`
-		Role         *string                 `json:"role"`
-		Organization *contracts.Organization `json:"organization"`
+		Groups                []string                  `json:"groups"`
+		Role                  *string                   `json:"role"`
+		RolesToAdd            []*string                 `json:"rolesToAdd"`
+		RolesToRemove         []*string                 `json:"rolesToRemove"`
+		Organization          *contracts.Organization   `json:"organization"`
+		OrganizationsToAdd    []*contracts.Organization `json:"organizationsToAdd"`
+		OrganizationsToRemove []*contracts.Organization `json:"organizationsToRemove"`
 	}
 
 	err := c.BindJSON(&body)
@@ -1216,7 +1298,7 @@ func (h *Handler) BatchUpdateGroups(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	if len(body.Groups) == 0 || (body.Role == nil && body.Organization == nil) {
+	if len(body.Groups) == 0 || (body.Role == nil && len(body.RolesToAdd) == 0 && len(body.RolesToRemove) == 0 && body.Organization == nil && len(body.OrganizationsToAdd) == 0 && len(body.OrganizationsToRemove) == 0) {
 		log.Error().Err(err).Msg("Request body is incorrect")
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
 		return
@@ -1255,6 +1337,30 @@ func (h *Handler) BatchUpdateGroups(c *gin.Context) {
 				}
 			}
 
+			// add role if not present
+			for _, roleToAdd := range body.RolesToAdd {
+				hasRole := false
+				for _, r := range group.Roles {
+					if r != nil && *r == *roleToAdd {
+						hasRole = true
+					}
+				}
+				if !hasRole {
+					group.Roles = append(group.Roles, roleToAdd)
+				}
+			}
+
+			// remove role if present
+			for _, roleToRemove := range body.RolesToRemove {
+				newRoles := []*string{}
+				for _, r := range group.Roles {
+					if r == nil || *r != *roleToRemove {
+						newRoles = append(newRoles, r)
+					}
+				}
+				group.Roles = newRoles
+			}
+
 			// add organization if not present
 			if body.Organization != nil {
 				hasOrganization := false
@@ -1266,6 +1372,30 @@ func (h *Handler) BatchUpdateGroups(c *gin.Context) {
 				if !hasOrganization {
 					group.Organizations = append(group.Organizations, body.Organization)
 				}
+			}
+
+			// add organization if not present
+			for _, organizationToAdd := range body.OrganizationsToAdd {
+				hasOrganization := false
+				for _, o := range group.Organizations {
+					if o != nil && o.Name == organizationToAdd.Name && o.ID == organizationToAdd.ID {
+						hasOrganization = true
+					}
+				}
+				if !hasOrganization {
+					group.Organizations = append(group.Organizations, organizationToAdd)
+				}
+			}
+
+			// remove organization if present
+			for _, organizationToRemove := range body.OrganizationsToRemove {
+				newOrganizations := []*contracts.Organization{}
+				for _, o := range group.Organizations {
+					if o == nil || o.Name != organizationToRemove.Name || o.ID != organizationToRemove.ID {
+						newOrganizations = append(newOrganizations, o)
+					}
+				}
+				group.Organizations = newOrganizations
 			}
 
 			err = h.service.UpdateGroup(ctx, *group)
@@ -1304,8 +1434,10 @@ func (h *Handler) BatchUpdateOrganizations(c *gin.Context) {
 	}
 
 	var body struct {
-		Organizations []string `json:"organizations"`
-		Role          *string  `json:"role"`
+		Organizations []string  `json:"organizations"`
+		Role          *string   `json:"role"`
+		RolesToAdd    []*string `json:"rolesToAdd"`
+		RolesToRemove []*string `json:"rolesToRemove"`
 	}
 
 	err := c.BindJSON(&body)
@@ -1318,7 +1450,7 @@ func (h *Handler) BatchUpdateOrganizations(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	if len(body.Organizations) == 0 || body.Role == nil {
+	if len(body.Organizations) == 0 || (body.Role == nil && len(body.RolesToAdd) == 0 && len(body.RolesToRemove) == 0) {
 		log.Error().Err(err).Msg("Request body is incorrect")
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
 		return
@@ -1355,6 +1487,30 @@ func (h *Handler) BatchUpdateOrganizations(c *gin.Context) {
 				if !hasRole {
 					organization.Roles = append(organization.Roles, body.Role)
 				}
+			}
+
+			// add role if not present
+			for _, roleToAdd := range body.RolesToAdd {
+				hasRole := false
+				for _, r := range organization.Roles {
+					if r != nil && *r == *roleToAdd {
+						hasRole = true
+					}
+				}
+				if !hasRole {
+					organization.Roles = append(organization.Roles, roleToAdd)
+				}
+			}
+
+			// remove role if present
+			for _, roleToRemove := range body.RolesToRemove {
+				newRoles := []*string{}
+				for _, r := range organization.Roles {
+					if r == nil || *r != *roleToRemove {
+						newRoles = append(newRoles, r)
+					}
+				}
+				organization.Roles = newRoles
 			}
 
 			err = h.service.UpdateOrganization(ctx, *organization)
@@ -1508,9 +1664,13 @@ func (h *Handler) BatchUpdatePipelines(c *gin.Context) {
 	}
 
 	var body struct {
-		Pipelines    []string                `json:"pipelines"`
-		Group        *contracts.Group        `json:"group"`
-		Organization *contracts.Organization `json:"organization"`
+		Pipelines             []string                  `json:"pipelines"`
+		Group                 *contracts.Group          `json:"group"`
+		GroupsToAdd           []*contracts.Group        `json:"groupsToAdd"`
+		GroupsToRemove        []*contracts.Group        `json:"groupsToRemove"`
+		Organization          *contracts.Organization   `json:"organization"`
+		OrganizationsToAdd    []*contracts.Organization `json:"organizationsToAdd"`
+		OrganizationsToRemove []*contracts.Organization `json:"organizationsToRemove"`
 	}
 
 	err := c.BindJSON(&body)
@@ -1523,7 +1683,7 @@ func (h *Handler) BatchUpdatePipelines(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	if len(body.Pipelines) == 0 || (body.Group == nil && body.Organization == nil) {
+	if len(body.Pipelines) == 0 || (body.Group == nil && len(body.GroupsToAdd) == 0 && len(body.GroupsToRemove) == 0 && body.Organization == nil && len(body.OrganizationsToAdd) == 0 && len(body.OrganizationsToRemove) == 0) {
 		log.Error().Err(err).Msg("Request body is incorrect")
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest)})
 		return
@@ -1569,6 +1729,30 @@ func (h *Handler) BatchUpdatePipelines(c *gin.Context) {
 				}
 			}
 
+			// add group if not present
+			for _, groupToAdd := range body.GroupsToAdd {
+				hasGroup := false
+				for _, g := range pipeline.Groups {
+					if g != nil && g.Name == groupToAdd.Name && g.ID == groupToAdd.ID {
+						hasGroup = true
+					}
+				}
+				if !hasGroup {
+					pipeline.Groups = append(pipeline.Groups, groupToAdd)
+				}
+			}
+
+			// remove group if present
+			for _, groupToRemove := range body.GroupsToRemove {
+				newGroups := []*contracts.Group{}
+				for _, g := range pipeline.Groups {
+					if g == nil || g.Name != groupToRemove.Name || g.ID != groupToRemove.ID {
+						newGroups = append(newGroups, g)
+					}
+				}
+				pipeline.Groups = newGroups
+			}
+
 			// add organization if not present
 			if body.Organization != nil {
 				hasOrganization := false
@@ -1580,6 +1764,30 @@ func (h *Handler) BatchUpdatePipelines(c *gin.Context) {
 				if !hasOrganization {
 					pipeline.Organizations = append(pipeline.Organizations, body.Organization)
 				}
+			}
+
+			// add organization if not present
+			for _, organizationToAdd := range body.OrganizationsToAdd {
+				hasOrganization := false
+				for _, o := range pipeline.Organizations {
+					if o != nil && o.Name == organizationToAdd.Name && o.ID == organizationToAdd.ID {
+						hasOrganization = true
+					}
+				}
+				if !hasOrganization {
+					pipeline.Organizations = append(pipeline.Organizations, organizationToAdd)
+				}
+			}
+
+			// remove organization if present
+			for _, organizationToRemove := range body.OrganizationsToRemove {
+				newOrganizations := []*contracts.Organization{}
+				for _, o := range pipeline.Organizations {
+					if o == nil || o.Name != organizationToRemove.Name || o.ID != organizationToRemove.ID {
+						newOrganizations = append(newOrganizations, o)
+					}
+				}
+				pipeline.Organizations = newOrganizations
 			}
 
 			err = h.service.UpdatePipeline(ctx, *pipeline)
