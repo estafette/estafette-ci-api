@@ -10,6 +10,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "nginx-public"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-ssl-verify: "on"
     # the list of bitbucket's ip addresses is too large and too dynamic, so allowing all traffic for now (https://bitbucket.org/blog/update-to-outgoing-webhook-ip-addresses)
     nginx.ingress.kubernetes.io/whitelist-source-range: "0.0.0.0/0"
     nginx.ingress.kubernetes.io/client-body-buffer-size: "{{.NginxIngressClientBodyBufferSize}}"
