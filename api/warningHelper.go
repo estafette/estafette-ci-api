@@ -125,7 +125,7 @@ func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteMani
 			if errors.Is(err, crypt.ErrRestrictedSecret) {
 				warnings = append(warnings, contracts.Warning{
 					Status:  "warning",
-					Message: "This pipeline uses a _restricted_ secret which can only be used by the pipeline it's created for; please replace it with a restricted secret created for this pipeline.",
+					Message: "This pipeline uses a _restricted secret_ created for another pipeline; please replace it with one created for this pipeline.",
 				})
 				break
 			}
