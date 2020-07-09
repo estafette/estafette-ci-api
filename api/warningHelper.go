@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -117,8 +118,16 @@ func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteMani
 
 		for _, sv := range secretValues {
 			_, pipelineWhitelist, err := w.secretHelper.Decrypt(sv, fullRepoPath)
-			if err != nil {
+			if err != nil && !errors.Is(err, crypt.ErrRestrictedSecret) {
 				return warnings, err
+			}
+
+			if errors.Is(err, crypt.ErrRestrictedSecret) {
+				warnings = append(warnings, contracts.Warning{
+					Status:  "warning",
+					Message: "This pipeline uses a _restricted_ secret which can only be used by the pipeline it's created for; please replace it with a restricted secret created for this pipeline.",
+				})
+				break
 			}
 
 			if pipelineWhitelist == crypt.DefaultPipelineWhitelist {
