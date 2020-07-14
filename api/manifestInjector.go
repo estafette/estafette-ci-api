@@ -26,6 +26,15 @@ func InjectSteps(preferences *manifest.EstafetteManifestPreferences, mft manifes
 		AutoInjected:   true,
 	}
 
+	snykStep := &manifest.EstafetteStage{
+		Name:           "snyk-scan",
+		ContainerImage: fmt.Sprintf("extensions/snyk-scan:%v", builderTrack),
+		CustomProperties: map[string]interface{}{
+			"SnykScore": 9.9,
+		},
+		AutoInjected: true,
+	}
+
 	if !StepExists(injectedManifest.Stages, "git-clone") {
 		initStep.ParallelStages = append(initStep.ParallelStages, &manifest.EstafetteStage{
 			Name:           "git-clone",
@@ -53,6 +62,7 @@ func InjectSteps(preferences *manifest.EstafetteManifestPreferences, mft manifes
 	}
 
 	if len(initStep.ParallelStages) > 0 {
+		injectedManifest.Stages = append([]*manifest.EstafetteStage{snykStep}, injectedManifest.Stages...)
 		injectedManifest.Stages = append([]*manifest.EstafetteStage{initStep}, injectedManifest.Stages...)
 	}
 
