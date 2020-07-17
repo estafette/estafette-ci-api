@@ -7,7 +7,7 @@ import (
 )
 
 // InjectSteps injects git-clone and build-status steps if not present in manifest
-func InjectSteps(preferences *manifest.EstafetteManifestPreferences, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (injectedManifest manifest.EstafetteManifest, err error) {
+func InjectSteps(preferences *manifest.EstafetteManifestPreferences, snykConfig *SnykIOConfig, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (injectedManifest manifest.EstafetteManifest, err error) {
 
 	injectedManifest = mft
 
@@ -24,6 +24,17 @@ func InjectSteps(preferences *manifest.EstafetteManifestPreferences, mft manifes
 		Name:           initStepName,
 		ParallelStages: []*manifest.EstafetteStage{},
 		AutoInjected:   true,
+	}
+
+	snykStep := &manifest.EstafetteStage{
+		Name:           "snyk-scan",
+		ContainerImage: fmt.Sprintf("extensions/snyk-scan:%v", builderTrack),
+		CustomProperties: map[string]interface{}{
+			"Score": snykConfig.Score,
+			"Token": snykConfig.Token,
+			"Mode":  snykConfig.Mode,
+		},
+		AutoInjected: true,
 	}
 
 	if !StepExists(injectedManifest.Stages, "git-clone") {
@@ -53,6 +64,7 @@ func InjectSteps(preferences *manifest.EstafetteManifestPreferences, mft manifes
 	}
 
 	if len(initStep.ParallelStages) > 0 {
+		injectedManifest.Stages = append([]*manifest.EstafetteStage{snykStep}, injectedManifest.Stages...)
 		injectedManifest.Stages = append([]*manifest.EstafetteStage{initStep}, injectedManifest.Stages...)
 	}
 
