@@ -291,6 +291,7 @@ type APIConfigIntegrations struct {
 	BigQuery     *BigQueryConfig     `yaml:"bigquery,omitempty"`
 	CloudStorage *CloudStorageConfig `yaml:"gcs,omitempty"`
 	CloudSource  *CloudSourceConfig  `yaml:"cloudsource,omitempty"`
+	SnykIO       *SnykIOConfig       `yaml:"snyk,omitempty"`
 }
 
 // GithubConfig is used to configure github integration
@@ -367,6 +368,13 @@ type BigQueryConfig struct {
 type CloudSourceConfig struct {
 	WhitelistedProjects  []string               `yaml:"whitelistedProjects"`
 	ProjectOrganizations []ProjectOrganizations `yaml:"projectOrganizations"`
+}
+
+// SnykIOConfig is used to configure snykIO integration
+type SnykIOConfig struct {
+	Score float64 `yaml:"score"`
+	Token string  `yaml:"token"`
+	Mode  string  `yaml:"mode"`
 }
 
 // ProjectOrganizations is used to assign organizations to builds triggered through a specific project

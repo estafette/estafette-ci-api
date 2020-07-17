@@ -7,7 +7,7 @@ import (
 )
 
 // InjectSteps injects git-clone and build-status steps if not present in manifest
-func InjectSteps(preferences *manifest.EstafetteManifestPreferences, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (injectedManifest manifest.EstafetteManifest, err error) {
+func InjectSteps(preferences *manifest.EstafetteManifestPreferences, snykConfig *SnykIOConfig, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (injectedManifest manifest.EstafetteManifest, err error) {
 
 	injectedManifest = mft
 
@@ -30,7 +30,9 @@ func InjectSteps(preferences *manifest.EstafetteManifestPreferences, mft manifes
 		Name:           "snyk-scan",
 		ContainerImage: fmt.Sprintf("extensions/snyk-scan:%v", builderTrack),
 		CustomProperties: map[string]interface{}{
-			"SnykScore": 9.9,
+			"Score": snykConfig.Score,
+			"Token": snykConfig.Token,
+			"Mode":  snykConfig.Mode,
 		},
 		AutoInjected: true,
 	}
