@@ -18,7 +18,7 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
 
 		assert.Nil(t, err)
-		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
+		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
 			assert.Equal(t, "initialize", injectedManifest.Stages[0].Name)
 			assert.Equal(t, 3, len(injectedManifest.Stages[0].ParallelStages))
 
@@ -35,7 +35,7 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "dev", "github", true)
 
 		assert.Nil(t, err)
-		if assert.Equal(t, 5, len(injectedManifest.Stages)) {
+		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
 			assert.Equal(t, "initialize", injectedManifest.Stages[0].Name)
 			assert.Equal(t, 2, len(injectedManifest.Stages[0].ParallelStages))
 			assert.Equal(t, "set-pending-build-status", injectedManifest.Stages[0].ParallelStages[0].Name)
@@ -54,7 +54,7 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
 
 		assert.Nil(t, err)
-		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
+		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
 			assert.Equal(t, "initialize", injectedManifest.Stages[0].Name)
 			assert.Equal(t, 3, len(injectedManifest.Stages[0].ParallelStages))
 
@@ -72,7 +72,7 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "dev", "github", true)
 
 		assert.Nil(t, err)
-		if assert.Equal(t, 5, len(injectedManifest.Stages)) {
+		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
 			assert.Equal(t, "initialize", injectedManifest.Stages[0].Name)
 			assert.Equal(t, 2, len(injectedManifest.Stages[0].ParallelStages))
 			assert.Equal(t, "git-clone", injectedManifest.Stages[0].ParallelStages[0].Name)
@@ -92,7 +92,7 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
 
 		assert.Nil(t, err)
-		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
+		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
 			assert.Equal(t, "initialize", injectedManifest.Stages[0].Name)
 			assert.Equal(t, 3, len(injectedManifest.Stages[0].ParallelStages))
 
@@ -143,7 +143,7 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
 
 		assert.Nil(t, err)
-		if assert.Equal(t, 5, len(injectedManifest.Stages)) {
+		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
 			assert.Equal(t, "initialize-0", injectedManifest.Stages[0].Name)
 			assert.Equal(t, "initialize", injectedManifest.Stages[1].Name)
 			assert.Equal(t, "build", injectedManifest.Stages[2].Name)
@@ -159,7 +159,7 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
 
 		assert.Nil(t, err)
-		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
+		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
 			assert.Equal(t, "set-build-status", injectedManifest.Stages[2].Name)
 			assert.Equal(t, "extensions/github-status:beta", injectedManifest.Stages[2].ContainerImage)
 		}
@@ -173,7 +173,7 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "dev", "github", true)
 
 		assert.Nil(t, err)
-		if assert.Equal(t, 5, len(injectedManifest.Stages)) {
+		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
 			assert.Equal(t, "set-build-status", injectedManifest.Stages[3].Name)
 			assert.Equal(t, "extensions/github-status:stable", injectedManifest.Stages[3].ContainerImage)
 		}
@@ -229,7 +229,7 @@ func TestInjectSteps(t *testing.T) {
 		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "dev", "source", false)
 
 		assert.Nil(t, err)
-		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
+		if assert.Equal(t, 2, len(injectedManifest.Stages)) {
 			assert.Equal(t, "initialize", injectedManifest.Stages[0].Name)
 			assert.Equal(t, 2, len(injectedManifest.Stages[0].ParallelStages))
 			assert.Equal(t, "git-clone", injectedManifest.Stages[0].ParallelStages[0].Name)

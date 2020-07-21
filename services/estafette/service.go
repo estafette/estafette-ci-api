@@ -104,11 +104,20 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 
 	// inject build stages
 	if hasValidManifest {
-		mft, err = api.InjectSteps(s.config.ManifestPreferences, s.config.Integrations.SnykIO, mft, builderTrack, shortRepoSource, s.supportsBuildStatus(build.RepoSource))
+		mft, err = api.InjectSteps(s.config.ManifestPreferences, mft, builderTrack, shortRepoSource, s.supportsBuildStatus(build.RepoSource))
 		if err != nil {
 			log.Error().Err(err).
 				Msg("Failed injecting build stages for pipeline %v/%v/%v and revision %v")
 			return
+		}
+
+		if s.config.Integrations.SnykIO != nil {
+			mft, err = api.InjectSnykStep(mft, s.config.Integrations.SnykIO, builderTrack)
+			if err != nil {
+				log.Error().Err(err).
+					Msg("Failed injecting snyk stage for pipeline %v/%v/%v and revision %v")
+				return
+			}
 		}
 	}
 
@@ -297,7 +306,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	releaseStatus := "pending"
 
 	// inject build stages
-	mft, err = api.InjectSteps(s.config.ManifestPreferences, s.config.Integrations.SnykIO, mft, builderTrack, shortRepoSource, s.supportsBuildStatus(release.RepoSource))
+	mft, err = api.InjectSteps(s.config.ManifestPreferences, mft, builderTrack, shortRepoSource, s.supportsBuildStatus(release.RepoSource))
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed injecting build stages for release to %v of pipeline %v/%v/%v version %v", release.Name, release.RepoSource, release.RepoOwner, release.RepoName, release.ReleaseVersion)
