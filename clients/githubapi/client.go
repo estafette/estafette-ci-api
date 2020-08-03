@@ -122,7 +122,7 @@ func (c *client) GetInstallationToken(ctx context.Context, installationID int) (
 		return
 	}
 
-	_, body, err := c.callGithubAPI(ctx, "POST", fmt.Sprintf("https://api.github.com/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
+	_, body, err := c.callGithubAPI(ctx, "POST", fmt.Sprintf("https://api.github.com//app/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
 
 	// unmarshal json body
 	err = json.Unmarshal(body, &accessToken)
