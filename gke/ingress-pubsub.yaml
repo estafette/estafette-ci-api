@@ -10,6 +10,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "nginx-public"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-ssl-verify: "on"
     nginx.ingress.kubernetes.io/whitelist-source-range: "0.0.0.0/0"
     nginx.ingress.kubernetes.io/client-body-buffer-size: "{{.NginxIngressClientBodyBufferSize}}"
     nginx.ingress.kubernetes.io/proxy-body-size: "{{.NginxIngressProxyBodySize}}"
@@ -20,13 +21,21 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "{{.NginxIngressProxyReadTimeout}}"
     estafette.io/cloudflare-dns: "true"
     estafette.io/cloudflare-proxy: "true"
-    estafette.io/cloudflare-hostnames: "{{.ManifestData.IntegrationsHostname}}"
+    estafette.io/cloudflare-hostnames: "{{.ManifestData.IntegrationsHostname}},{{.ManifestData.IntegrationsHostname2}}"
 spec:
   tls:
   - hosts:
     - {{.ManifestData.IntegrationsHostname}}
+    - {{.ManifestData.IntegrationsHostname2}}
     secretName: {{.Name}}-integrations-letsencrypt-certificate
   rules:
+  - host: {{.ManifestData.IntegrationsHostname}}
+    http:
+      paths:
+      - path: /api/integrations/pubsub
+        backend:
+          serviceName: {{.Name}}
+          servicePort: https
   - host: {{.ManifestData.IntegrationsHostname}}
     http:
       paths:
