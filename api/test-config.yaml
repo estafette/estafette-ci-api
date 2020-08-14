@@ -64,11 +64,15 @@ apiServer:
   logReader: database
   injectStages:
     build:
-      before: []
+      before:
+      - name: envvars
+        image: extensions/envvars:stable
       after: []
     release:
       before: []
-      after: []
+      after:
+      - name: envvars
+        image: extensions/envvars:dev
 
 auth:
   jwt:
