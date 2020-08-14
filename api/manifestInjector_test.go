@@ -13,14 +13,17 @@ func TestInjectSteps(t *testing.T) {
 	t.Run("PrependParallelGitCloneStepInInitStage", func(t *testing.T) {
 
 		mft := getManifestWithoutBuildStatusSteps()
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+		}
 
 		// act
-		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
-			assert.Equal(t, "initialize", injectedManifest.Stages[0].Name)
-			assert.Equal(t, 3, len(injectedManifest.Stages[0].ParallelStages))
+			assert.Equal(t, "injected-before", injectedManifest.Stages[0].Name)
+			assert.Equal(t, 2, len(injectedManifest.Stages[0].ParallelStages))
 
 			assert.Equal(t, "git-clone", injectedManifest.Stages[0].ParallelStages[0].Name)
 			assert.Equal(t, "extensions/git-clone:beta", injectedManifest.Stages[0].ParallelStages[0].ContainerImage)
@@ -30,16 +33,18 @@ func TestInjectSteps(t *testing.T) {
 	t.Run("DoNotPrependParallelGitCloneStepIfGitCloneStepExists", func(t *testing.T) {
 
 		mft := getManifestWithoutBuildStatusStepsAndWithGitClone()
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+		}
 
 		// act
-		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "dev", "github", true)
+		injectedManifest, err := InjectSteps(config, mft, "dev", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
-			assert.Equal(t, "initialize", injectedManifest.Stages[0].Name)
-			assert.Equal(t, 2, len(injectedManifest.Stages[0].ParallelStages))
+			assert.Equal(t, "injected-before", injectedManifest.Stages[0].Name)
+			assert.Equal(t, 1, len(injectedManifest.Stages[0].ParallelStages))
 			assert.Equal(t, "set-pending-build-status", injectedManifest.Stages[0].ParallelStages[0].Name)
-			assert.Equal(t, "envvars", injectedManifest.Stages[0].ParallelStages[1].Name)
 
 			assert.Equal(t, "git-clone", injectedManifest.Stages[1].Name)
 			assert.Equal(t, "extensions/git-clone:stable", injectedManifest.Stages[1].ContainerImage)
@@ -49,14 +54,17 @@ func TestInjectSteps(t *testing.T) {
 	t.Run("PrependParallelSetPendingBuildStatusStepInInitStage", func(t *testing.T) {
 
 		mft := getManifestWithoutBuildStatusSteps()
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+		}
 
 		// act
-		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
-			assert.Equal(t, "initialize", injectedManifest.Stages[0].Name)
-			assert.Equal(t, 3, len(injectedManifest.Stages[0].ParallelStages))
+			assert.Equal(t, "injected-before", injectedManifest.Stages[0].Name)
+			assert.Equal(t, 2, len(injectedManifest.Stages[0].ParallelStages))
 
 			assert.Equal(t, "set-pending-build-status", injectedManifest.Stages[0].ParallelStages[1].Name)
 			assert.Equal(t, "extensions/github-status:beta", injectedManifest.Stages[0].ParallelStages[1].ContainerImage)
@@ -67,16 +75,18 @@ func TestInjectSteps(t *testing.T) {
 	t.Run("DoNotPrependParallelSetPendingBuildStatusStepIfPendingBuildStatusStepExists", func(t *testing.T) {
 
 		mft := getManifestWithBuildStatusSteps()
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+		}
 
 		// act
-		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "dev", "github", true)
+		injectedManifest, err := InjectSteps(config, mft, "dev", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
-			assert.Equal(t, "initialize", injectedManifest.Stages[0].Name)
-			assert.Equal(t, 2, len(injectedManifest.Stages[0].ParallelStages))
+			assert.Equal(t, "injected-before", injectedManifest.Stages[0].Name)
+			assert.Equal(t, 1, len(injectedManifest.Stages[0].ParallelStages))
 			assert.Equal(t, "git-clone", injectedManifest.Stages[0].ParallelStages[0].Name)
-			assert.Equal(t, "envvars", injectedManifest.Stages[0].ParallelStages[1].Name)
 
 			assert.Equal(t, "set-pending-build-status", injectedManifest.Stages[1].Name)
 			assert.Equal(t, "extensions/github-status:stable", injectedManifest.Stages[1].ContainerImage)
@@ -84,29 +94,15 @@ func TestInjectSteps(t *testing.T) {
 		}
 	})
 
-	t.Run("PrependParallelEnvvarsStepInInitStage", func(t *testing.T) {
-
-		mft := getManifestWithoutBuildStatusSteps()
-
-		// act
-		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
-
-		assert.Nil(t, err)
-		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
-			assert.Equal(t, "initialize", injectedManifest.Stages[0].Name)
-			assert.Equal(t, 3, len(injectedManifest.Stages[0].ParallelStages))
-
-			assert.Equal(t, "envvars", injectedManifest.Stages[0].ParallelStages[2].Name)
-			assert.Equal(t, "extensions/envvars:beta", injectedManifest.Stages[0].ParallelStages[2].ContainerImage)
-		}
-	})
-
 	t.Run("DoNotPrependInitStageIfGitCloneAndSetPendingBuildStatusAndEnvvarsStagesExist", func(t *testing.T) {
 
 		mft := getManifestWithAllSteps()
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+		}
 
 		// act
-		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 5, len(injectedManifest.Stages)) {
@@ -121,9 +117,12 @@ func TestInjectSteps(t *testing.T) {
 	t.Run("DoNotPrependInitStageIfGitCloneAndSetPendingBuildStatusAndEnvvarsStagesExist", func(t *testing.T) {
 
 		mft := getManifestWithAllSteps()
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+		}
 
 		// act
-		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 5, len(injectedManifest.Stages)) {
@@ -135,42 +134,53 @@ func TestInjectSteps(t *testing.T) {
 		}
 	})
 
-	t.Run("PrependInitStageWithDifferentNameIfInitializeStageExist", func(t *testing.T) {
+	t.Run("PrependInitStageWithDifferentNameIfInjectedBeforeStageExist", func(t *testing.T) {
 
-		mft := getManifestWithoutInjectedStepsButWithInitializeStage()
+		mft := getManifestWithoutInjectedStepsButWithInjectedBeforeStage()
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+		}
 
 		// act
-		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
-			assert.Equal(t, "initialize-0", injectedManifest.Stages[0].Name)
-			assert.Equal(t, "initialize", injectedManifest.Stages[1].Name)
+			assert.Equal(t, "injected-before-0", injectedManifest.Stages[0].Name)
+			assert.Equal(t, "injected-before", injectedManifest.Stages[1].Name)
 			assert.Equal(t, "build", injectedManifest.Stages[2].Name)
-			assert.Equal(t, "set-build-status", injectedManifest.Stages[3].Name)
+			assert.Equal(t, "injected-after", injectedManifest.Stages[3].Name)
+			assert.Equal(t, "set-build-status", injectedManifest.Stages[3].ParallelStages[0].Name)
 		}
 	})
 
 	t.Run("AppendSetBuildStatusStep", func(t *testing.T) {
 
 		mft := getManifestWithoutBuildStatusSteps()
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+		}
 
 		// act
-		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
-			assert.Equal(t, "set-build-status", injectedManifest.Stages[2].Name)
-			assert.Equal(t, "extensions/github-status:beta", injectedManifest.Stages[2].ContainerImage)
+			assert.Equal(t, "injected-after", injectedManifest.Stages[2].Name)
+			assert.Equal(t, "set-build-status", injectedManifest.Stages[2].ParallelStages[0].Name)
+			assert.Equal(t, "extensions/github-status:beta", injectedManifest.Stages[2].ParallelStages[0].ContainerImage)
 		}
 	})
 
 	t.Run("DoNotAppendSetBuildStatusStepIfSetBuildStatusStepExists", func(t *testing.T) {
 
 		mft := getManifestWithBuildStatusSteps()
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+		}
 
 		// act
-		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "dev", "github", true)
+		injectedManifest, err := InjectSteps(config, mft, "dev", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
@@ -182,9 +192,12 @@ func TestInjectSteps(t *testing.T) {
 	t.Run("PrependGitCloneStepToReleaseStagesIfCloneRepositoryIsTrue", func(t *testing.T) {
 
 		mft := getManifestWithoutBuildStatusSteps()
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+		}
 
 		// act
-		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 2, len(injectedManifest.Releases[1].Stages)) {
@@ -196,9 +209,12 @@ func TestInjectSteps(t *testing.T) {
 	t.Run("DoNotPrependGitCloneStepToReleaseStagesIfCloneRepositoryIsFalse", func(t *testing.T) {
 
 		mft := getManifestWithoutBuildStatusSteps()
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+		}
 
 		// act
-		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages)) {
@@ -210,9 +226,12 @@ func TestInjectSteps(t *testing.T) {
 	t.Run("DoNotPrependGitCloneStepToReleaseStagesIfCloneRepositoryIsTrueButStageAlreadyExists", func(t *testing.T) {
 
 		mft := getManifestWithBuildStatusSteps()
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+		}
 
 		// act
-		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "beta", "github", true)
+		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 2, len(injectedManifest.Releases[0].Stages)) {
@@ -224,16 +243,18 @@ func TestInjectSteps(t *testing.T) {
 	t.Run("DoNotPrependParallelSetPendingBuildStatusStepIfSupportsBuildStatusFalse", func(t *testing.T) {
 
 		mft := getManifestWithoutBuildStatusSteps()
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+		}
 
 		// act
-		injectedManifest, err := InjectSteps(manifest.GetDefaultManifestPreferences(), mft, "dev", "source", false)
+		injectedManifest, err := InjectSteps(config, mft, "dev", "source", false)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 2, len(injectedManifest.Stages)) {
-			assert.Equal(t, "initialize", injectedManifest.Stages[0].Name)
-			assert.Equal(t, 2, len(injectedManifest.Stages[0].ParallelStages))
+			assert.Equal(t, "injected-before", injectedManifest.Stages[0].Name)
+			assert.Equal(t, 1, len(injectedManifest.Stages[0].ParallelStages))
 			assert.Equal(t, "git-clone", injectedManifest.Stages[0].ParallelStages[0].Name)
-			assert.Equal(t, "envvars", injectedManifest.Stages[0].ParallelStages[1].Name)
 		}
 	})
 
@@ -256,28 +277,28 @@ func getManifestWithoutBuildStatusSteps() manifest.EstafetteManifest {
 		Labels:        map[string]string{},
 		GlobalEnvVars: map[string]string{},
 		Stages: []*manifest.EstafetteStage{
-			&manifest.EstafetteStage{
+			{
 				Name:             "build",
 				ContainerImage:   "golang:1.10.2-alpine3.7",
 				WorkingDirectory: "/go/src/github.com/estafette/${ESTAFETTE_GIT_NAME}",
 			},
 		},
 		Releases: []*manifest.EstafetteRelease{
-			&manifest.EstafetteRelease{
+			{
 				Name:            "staging",
 				CloneRepository: false,
 				Stages: []*manifest.EstafetteStage{
-					&manifest.EstafetteStage{
+					{
 						Name:           "deploy",
 						ContainerImage: "extensions/gke",
 					},
 				},
 			},
-			&manifest.EstafetteRelease{
+			{
 				Name:            "production",
 				CloneRepository: true,
 				Stages: []*manifest.EstafetteStage{
-					&manifest.EstafetteStage{
+					{
 						Name:           "deploy",
 						ContainerImage: "extensions/gke",
 						Shell:          "/bin/sh",
@@ -306,34 +327,34 @@ func getManifestWithoutBuildStatusStepsAndWithGitClone() manifest.EstafetteManif
 		Labels:        map[string]string{},
 		GlobalEnvVars: map[string]string{},
 		Stages: []*manifest.EstafetteStage{
-			&manifest.EstafetteStage{
+			{
 				Name:           "git-clone",
 				ContainerImage: "extensions/git-clone:stable",
 				Shell:          "/bin/sh",
 				When:           "status == 'succeeded'",
 			},
-			&manifest.EstafetteStage{
+			{
 				Name:             "build",
 				ContainerImage:   "golang:1.10.2-alpine3.7",
 				WorkingDirectory: "/go/src/github.com/estafette/${ESTAFETTE_GIT_NAME}",
 			},
 		},
 		Releases: []*manifest.EstafetteRelease{
-			&manifest.EstafetteRelease{
+			{
 				Name:            "staging",
 				CloneRepository: false,
 				Stages: []*manifest.EstafetteStage{
-					&manifest.EstafetteStage{
+					{
 						Name:           "deploy",
 						ContainerImage: "extensions/gke",
 					},
 				},
 			},
-			&manifest.EstafetteRelease{
+			{
 				Name:            "production",
 				CloneRepository: true,
 				Stages: []*manifest.EstafetteStage{
-					&manifest.EstafetteStage{
+					{
 						Name:           "deploy",
 						ContainerImage: "extensions/gke",
 						Shell:          "/bin/sh",
@@ -362,7 +383,7 @@ func getManifestWithBuildStatusSteps() manifest.EstafetteManifest {
 		Labels:        map[string]string{},
 		GlobalEnvVars: map[string]string{},
 		Stages: []*manifest.EstafetteStage{
-			&manifest.EstafetteStage{
+			{
 				Name:           "set-pending-build-status",
 				ContainerImage: "extensions/github-status:stable",
 				CustomProperties: map[string]interface{}{
@@ -372,14 +393,14 @@ func getManifestWithBuildStatusSteps() manifest.EstafetteManifest {
 				WorkingDirectory: "/estafette-work",
 				When:             "status == 'succeeded'",
 			},
-			&manifest.EstafetteStage{
+			{
 				Name:             "build",
 				ContainerImage:   "golang:1.10.2-alpine3.7",
 				Shell:            "/bin/sh",
 				WorkingDirectory: "/go/src/github.com/estafette/${ESTAFETTE_GIT_NAME}",
 				When:             "status == 'succeeded'",
 			},
-			&manifest.EstafetteStage{
+			{
 				Name:             "set-build-status",
 				ContainerImage:   "extensions/github-status:stable",
 				Shell:            "/bin/sh",
@@ -388,17 +409,17 @@ func getManifestWithBuildStatusSteps() manifest.EstafetteManifest {
 			},
 		},
 		Releases: []*manifest.EstafetteRelease{
-			&manifest.EstafetteRelease{
+			{
 				Name:            "production",
 				CloneRepository: true,
 				Stages: []*manifest.EstafetteStage{
-					&manifest.EstafetteStage{
+					{
 						Name:           "git-clone",
 						ContainerImage: "extensions/git-clone:stable",
 						Shell:          "/bin/sh",
 						When:           "status == 'succeeded'",
 					},
-					&manifest.EstafetteStage{
+					{
 						Name:           "deploy",
 						ContainerImage: "extensions/gke",
 						Shell:          "/bin/sh",
@@ -427,7 +448,7 @@ func getManifestWithAllSteps() manifest.EstafetteManifest {
 		Labels:        map[string]string{},
 		GlobalEnvVars: map[string]string{},
 		Stages: []*manifest.EstafetteStage{
-			&manifest.EstafetteStage{
+			{
 				Name:           "set-pending-build-status",
 				ContainerImage: "extensions/github-status:stable",
 				CustomProperties: map[string]interface{}{
@@ -437,26 +458,26 @@ func getManifestWithAllSteps() manifest.EstafetteManifest {
 				WorkingDirectory: "/estafette-work",
 				When:             "status == 'succeeded'",
 			},
-			&manifest.EstafetteStage{
+			{
 				Name:           "git-clone",
 				ContainerImage: "extensions/git-clone:stable",
 				Shell:          "/bin/sh",
 				When:           "status == 'succeeded'",
 			},
-			&manifest.EstafetteStage{
+			{
 				Name:           "envvars",
 				ContainerImage: "extensions/envvars:stable",
 				Shell:          "/bin/sh",
 				When:           "status == 'succeeded'",
 			},
-			&manifest.EstafetteStage{
+			{
 				Name:             "build",
 				ContainerImage:   "golang:1.10.2-alpine3.7",
 				Shell:            "/bin/sh",
 				WorkingDirectory: "/go/src/github.com/estafette/${ESTAFETTE_GIT_NAME}",
 				When:             "status == 'succeeded'",
 			},
-			&manifest.EstafetteStage{
+			{
 				Name:             "set-build-status",
 				ContainerImage:   "extensions/github-status:stable",
 				Shell:            "/bin/sh",
@@ -465,17 +486,17 @@ func getManifestWithAllSteps() manifest.EstafetteManifest {
 			},
 		},
 		Releases: []*manifest.EstafetteRelease{
-			&manifest.EstafetteRelease{
+			{
 				Name:            "production",
 				CloneRepository: true,
 				Stages: []*manifest.EstafetteStage{
-					&manifest.EstafetteStage{
+					{
 						Name:           "git-clone",
 						ContainerImage: "extensions/git-clone:stable",
 						Shell:          "/bin/sh",
 						When:           "status == 'succeeded'",
 					},
-					&manifest.EstafetteStage{
+					{
 						Name:           "deploy",
 						ContainerImage: "extensions/gke",
 						Shell:          "/bin/sh",
@@ -487,7 +508,7 @@ func getManifestWithAllSteps() manifest.EstafetteManifest {
 	}
 }
 
-func getManifestWithoutInjectedStepsButWithInitializeStage() manifest.EstafetteManifest {
+func getManifestWithoutInjectedStepsButWithInjectedBeforeStage() manifest.EstafetteManifest {
 	return manifest.EstafetteManifest{
 		Builder: manifest.EstafetteBuilder{
 			Track: "stable",
@@ -504,31 +525,31 @@ func getManifestWithoutInjectedStepsButWithInitializeStage() manifest.EstafetteM
 		Labels:        map[string]string{},
 		GlobalEnvVars: map[string]string{},
 		Stages: []*manifest.EstafetteStage{
-			&manifest.EstafetteStage{
-				Name: "initialize",
+			{
+				Name: "injected-before",
 			},
-			&manifest.EstafetteStage{
+			{
 				Name:             "build",
 				ContainerImage:   "golang:1.10.2-alpine3.7",
 				WorkingDirectory: "/go/src/github.com/estafette/${ESTAFETTE_GIT_NAME}",
 			},
 		},
 		Releases: []*manifest.EstafetteRelease{
-			&manifest.EstafetteRelease{
+			{
 				Name:            "staging",
 				CloneRepository: false,
 				Stages: []*manifest.EstafetteStage{
-					&manifest.EstafetteStage{
+					{
 						Name:           "deploy",
 						ContainerImage: "extensions/gke",
 					},
 				},
 			},
-			&manifest.EstafetteRelease{
+			{
 				Name:            "production",
 				CloneRepository: true,
 				Stages: []*manifest.EstafetteStage{
-					&manifest.EstafetteStage{
+					{
 						Name:           "deploy",
 						ContainerImage: "extensions/gke",
 						Shell:          "/bin/sh",

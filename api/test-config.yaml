@@ -62,6 +62,13 @@ apiServer:
   - database
   - cloudstorage
   logReader: database
+  injectStages:
+    build:
+      before: []
+      after: []
+    release:
+      before: []
+      after: []
 
 auth:
   jwt:
