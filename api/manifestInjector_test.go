@@ -8,7 +8,7 @@ import (
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
 
-func TestInjectSteps(t *testing.T) {
+func TestInjectStages(t *testing.T) {
 
 	t.Run("PrependParallelGitCloneStepInInitStage", func(t *testing.T) {
 
@@ -18,7 +18,7 @@ func TestInjectSteps(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
@@ -38,7 +38,7 @@ func TestInjectSteps(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectSteps(config, mft, "dev", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "dev", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
@@ -59,7 +59,7 @@ func TestInjectSteps(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
@@ -80,7 +80,7 @@ func TestInjectSteps(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectSteps(config, mft, "dev", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "dev", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
@@ -102,7 +102,7 @@ func TestInjectSteps(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 5, len(injectedManifest.Stages)) {
@@ -122,7 +122,7 @@ func TestInjectSteps(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 5, len(injectedManifest.Stages)) {
@@ -142,7 +142,7 @@ func TestInjectSteps(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
@@ -162,7 +162,7 @@ func TestInjectSteps(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
@@ -180,7 +180,7 @@ func TestInjectSteps(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectSteps(config, mft, "dev", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "dev", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
@@ -197,12 +197,13 @@ func TestInjectSteps(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 2, len(injectedManifest.Releases[1].Stages)) {
-			assert.Equal(t, "git-clone", injectedManifest.Releases[1].Stages[0].Name)
-			assert.Equal(t, "extensions/git-clone:beta", injectedManifest.Releases[1].Stages[0].ContainerImage)
+			assert.Equal(t, "injected-before", injectedManifest.Releases[1].Stages[0].Name)
+			assert.Equal(t, "git-clone", injectedManifest.Releases[1].Stages[0].ParallelStages[0].Name)
+			assert.Equal(t, "extensions/git-clone:beta", injectedManifest.Releases[1].Stages[0].ParallelStages[0].ContainerImage)
 		}
 	})
 
@@ -214,7 +215,7 @@ func TestInjectSteps(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages)) {
@@ -231,7 +232,7 @@ func TestInjectSteps(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectSteps(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 2, len(injectedManifest.Releases[0].Stages)) {
@@ -248,7 +249,7 @@ func TestInjectSteps(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectSteps(config, mft, "dev", "source", false)
+		injectedManifest, err := InjectStages(config, mft, "dev", "source", false)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 2, len(injectedManifest.Stages)) {

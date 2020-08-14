@@ -6,19 +6,22 @@ import (
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
 
-// InjectSteps injects git-clone and build-status steps if not present in manifest
-func InjectSteps(config *APIConfig, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (injectedManifest manifest.EstafetteManifest, err error) {
+// InjectStages injects some mandatory and configured stages
+func InjectStages(config *APIConfig, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (injectedManifest manifest.EstafetteManifest, err error) {
 
 	injectedManifest = mft
 
+	// inject build stages
 	injectedManifest.Stages = injectBuildStagesBefore(config, injectedManifest, builderTrack, gitSource, supportsBuildStatus)
 	injectedManifest.Stages = injectBuildStagesAfter(config, injectedManifest, builderTrack, gitSource, supportsBuildStatus)
 
+	// inject release stages
 	for _, r := range injectedManifest.Releases {
 		r.Stages = injectReleaseStagesBefore(config, *r, builderTrack, gitSource, supportsBuildStatus)
 		r.Stages = injectReleaseStagesAfter(config, *r, builderTrack, gitSource, supportsBuildStatus)
 	}
 
+	// get preferences for defaults
 	var preferences *manifest.EstafetteManifestPreferences
 	if config != nil && config.ManifestPreferences != nil {
 		preferences = config.ManifestPreferences
@@ -32,54 +35,65 @@ func InjectSteps(config *APIConfig, mft manifest.EstafetteManifest, builderTrack
 	return
 }
 
-func injectBuildStagesBefore(config *APIConfig, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
+func getInjectedStageName(stageBaseName string, stages []*manifest.EstafetteStage) string {
 
-	stages = mft.Stages
-
-	injectedBeforeStageName := "injected-before"
-	if StageExists(stages, injectedBeforeStageName) {
+	injectedStageName := stageBaseName
+	if stageExists(stages, injectedStageName) {
 		i := 0
-		for StageExists(stages, injectedBeforeStageName) {
-			injectedBeforeStageName = fmt.Sprintf("injected-before-%v", i)
+		for stageExists(stages, injectedStageName) {
+			injectedStageName = fmt.Sprintf("%v-%v", stageBaseName, i)
 			i++
 		}
 	}
 
-	injectedBeforeStage := &manifest.EstafetteStage{
-		Name:           injectedBeforeStageName,
+	return injectedStageName
+}
+
+func injectIfNotExists(stages, parallelStages []*manifest.EstafetteStage, stageToInject *manifest.EstafetteStage) []*manifest.EstafetteStage {
+	if !stageExists(stages, stageToInject.Name) {
+		return append(parallelStages, stageToInject)
+	}
+
+	return parallelStages
+}
+
+func injectBuildStagesBefore(config *APIConfig, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
+
+	stages = mft.Stages
+
+	injectedStage := &manifest.EstafetteStage{
+		Name:           getInjectedStageName("injected-before", stages),
 		ParallelStages: []*manifest.EstafetteStage{},
 		AutoInjected:   true,
 	}
 
-	if !StageExists(stages, "git-clone") {
-		injectedBeforeStage.ParallelStages = append(injectedBeforeStage.ParallelStages, &manifest.EstafetteStage{
-			Name:           "git-clone",
-			ContainerImage: fmt.Sprintf("extensions/git-clone:%v", builderTrack),
-			AutoInjected:   true,
-		})
-	}
+	injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
+		Name:           "git-clone",
+		ContainerImage: fmt.Sprintf("extensions/git-clone:%v", builderTrack),
+	})
 
-	if !StageExists(stages, "set-pending-build-status") && supportsBuildStatus {
-		injectedBeforeStage.ParallelStages = append(injectedBeforeStage.ParallelStages, &manifest.EstafetteStage{
+	if supportsBuildStatus {
+		injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
 			Name:           "set-pending-build-status",
 			ContainerImage: fmt.Sprintf("extensions/%v-status:%v", gitSource, builderTrack),
 			CustomProperties: map[string]interface{}{
 				"status": "pending",
 			},
-			AutoInjected: true,
 		})
 	}
 
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStages != nil && config.APIServer.InjectStages.Build != nil && config.APIServer.InjectStages.Build.Before != nil {
 		for _, s := range config.APIServer.InjectStages.Build.Before {
-			s.AutoInjected = true
-			injectedBeforeStage.ParallelStages = append(injectedBeforeStage.ParallelStages, s)
+			injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
 		}
 	}
 
-	if len(injectedBeforeStage.ParallelStages) > 0 {
-		stages = append([]*manifest.EstafetteStage{injectedBeforeStage}, stages...)
+	if len(injectedStage.ParallelStages) > 0 {
+		for _, ps := range injectedStage.ParallelStages {
+			ps.AutoInjected = true
+		}
+		stages = append([]*manifest.EstafetteStage{injectedStage}, stages...)
 	}
 
 	return stages
@@ -89,41 +103,32 @@ func injectBuildStagesAfter(config *APIConfig, mft manifest.EstafetteManifest, b
 
 	stages = mft.Stages
 
-	injectedAfterStageName := "injected-after"
-	if StageExists(stages, injectedAfterStageName) {
-		i := 0
-		for StageExists(stages, injectedAfterStageName) {
-			injectedAfterStageName = fmt.Sprintf("inject-after-%v", i)
-			i++
-		}
-	}
-
-	injectedAfterStage := &manifest.EstafetteStage{
-		Name:           injectedAfterStageName,
+	injectedStage := &manifest.EstafetteStage{
+		Name:           getInjectedStageName("injected-after", stages),
 		ParallelStages: []*manifest.EstafetteStage{},
 		AutoInjected:   true,
 	}
 
-	if !StageExists(stages, "set-build-status") && supportsBuildStatus {
-		// add set-build-status at the end if it doesn't exist yet
-		injectedAfterStage.ParallelStages = append(injectedAfterStage.ParallelStages, &manifest.EstafetteStage{
+	if supportsBuildStatus {
+		injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
 			Name:           "set-build-status",
 			ContainerImage: fmt.Sprintf("extensions/%v-status:%v", gitSource, builderTrack),
 			When:           "status == 'succeeded' || status == 'failed'",
-			AutoInjected:   true,
 		})
 	}
 
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStages != nil && config.APIServer.InjectStages.Build != nil && config.APIServer.InjectStages.Build.After != nil {
 		for _, s := range config.APIServer.InjectStages.Build.After {
-			s.AutoInjected = true
-			injectedAfterStage.ParallelStages = append(injectedAfterStage.ParallelStages, s)
+			injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
 		}
 	}
 
-	if len(injectedAfterStage.ParallelStages) > 0 {
-		stages = append(stages, injectedAfterStage)
+	if len(injectedStage.ParallelStages) > 0 {
+		for _, ps := range injectedStage.ParallelStages {
+			ps.AutoInjected = true
+		}
+		stages = append(stages, injectedStage)
 	}
 
 	return stages
@@ -133,43 +138,31 @@ func injectReleaseStagesBefore(config *APIConfig, release manifest.EstafetteRele
 
 	stages = release.Stages
 
-	injectedBeforeStageName := "injected-before"
-	if StageExists(stages, injectedBeforeStageName) {
-		i := 0
-		for StageExists(stages, injectedBeforeStageName) {
-			injectedBeforeStageName = fmt.Sprintf("injected-before-%v", i)
-			i++
-		}
-	}
-
-	injectedBeforeStage := &manifest.EstafetteStage{
-		Name:           injectedBeforeStageName,
+	injectedStage := &manifest.EstafetteStage{
+		Name:           getInjectedStageName("injected-before", stages),
 		ParallelStages: []*manifest.EstafetteStage{},
 		AutoInjected:   true,
 	}
 
 	if release.CloneRepository {
-		if !StageExists(stages, "git-clone") {
-			// add git-clone at the start
-			gitCloneStep := &manifest.EstafetteStage{
-				Name:           "git-clone",
-				ContainerImage: fmt.Sprintf("extensions/git-clone:%v", builderTrack),
-				AutoInjected:   true,
-			}
-			stages = append([]*manifest.EstafetteStage{gitCloneStep}, stages...)
-		}
+		injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
+			Name:           "git-clone",
+			ContainerImage: fmt.Sprintf("extensions/git-clone:%v", builderTrack),
+		})
 	}
 
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStages != nil && config.APIServer.InjectStages.Build != nil && config.APIServer.InjectStages.Build.Before != nil {
 		for _, s := range config.APIServer.InjectStages.Build.Before {
-			s.AutoInjected = true
-			injectedBeforeStage.ParallelStages = append(injectedBeforeStage.ParallelStages, s)
+			injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
 		}
 	}
 
-	if len(injectedBeforeStage.ParallelStages) > 0 {
-		stages = append([]*manifest.EstafetteStage{injectedBeforeStage}, stages...)
+	if len(injectedStage.ParallelStages) > 0 {
+		for _, ps := range injectedStage.ParallelStages {
+			ps.AutoInjected = true
+		}
+		stages = append([]*manifest.EstafetteStage{injectedStage}, stages...)
 	}
 
 	return stages
@@ -179,17 +172,8 @@ func injectReleaseStagesAfter(config *APIConfig, release manifest.EstafetteRelea
 
 	stages = release.Stages
 
-	injectedAfterStageName := "injected-after"
-	if StageExists(stages, injectedAfterStageName) {
-		i := 0
-		for StageExists(stages, injectedAfterStageName) {
-			injectedAfterStageName = fmt.Sprintf("inject-after-%v", i)
-			i++
-		}
-	}
-
-	injectedAfterStage := &manifest.EstafetteStage{
-		Name:           injectedAfterStageName,
+	injectedStage := &manifest.EstafetteStage{
+		Name:           getInjectedStageName("injected-after", stages),
 		ParallelStages: []*manifest.EstafetteStage{},
 		AutoInjected:   true,
 	}
@@ -197,20 +181,21 @@ func injectReleaseStagesAfter(config *APIConfig, release manifest.EstafetteRelea
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStages != nil && config.APIServer.InjectStages.Release != nil && config.APIServer.InjectStages.Release.After != nil {
 		for _, s := range config.APIServer.InjectStages.Release.After {
-			s.AutoInjected = true
-			injectedAfterStage.ParallelStages = append(injectedAfterStage.ParallelStages, s)
+			injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
 		}
 	}
 
-	if len(injectedAfterStage.ParallelStages) > 0 {
-		stages = append(stages, injectedAfterStage)
+	if len(injectedStage.ParallelStages) > 0 {
+		for _, ps := range injectedStage.ParallelStages {
+			ps.AutoInjected = true
+		}
+		stages = append(stages, injectedStage)
 	}
 
 	return stages
 }
 
-// StageExists returns true if a stage with stageName already exists, false otherwise
-func StageExists(stages []*manifest.EstafetteStage, stageName string) bool {
+func stageExists(stages []*manifest.EstafetteStage, stageName string) bool {
 	for _, stage := range stages {
 		if stage.Name == stageName {
 			return true
