@@ -2,6 +2,7 @@ package estafette
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -455,16 +456,19 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 
 				firedTriggerCount++
 
+				var localPipeline contracts.Pipeline
+				s.deepCopy(*p, localPipeline)
+
 				// create new build for t.Run
 				if t.BuildAction != nil {
 					log.Info().Msgf("[trigger:git(%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(ctx, *p, t, e)
+					err := s.fireBuild(ctx, localPipeline, t, e)
 					if err != nil {
 						log.Error().Err(err).Msgf("[trigger:git(%v-%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					}
 				} else if t.ReleaseAction != nil {
 					log.Info().Msgf("[trigger:git(%v-%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(ctx, *p, t, e)
+					err := s.fireRelease(ctx, localPipeline, t, e)
 					if err != nil {
 						log.Error().Err(err).Msgf("[trigger:git(%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
@@ -521,16 +525,19 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 
 				firedTriggerCount++
 
+				var localPipeline contracts.Pipeline
+				s.deepCopy(*p, localPipeline)
+
 				// create new build for t.Run
 				if t.BuildAction != nil {
 					log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(ctx, *p, t, e)
+					err := s.fireBuild(ctx, localPipeline, t, e)
 					if err != nil {
 						log.Error().Err(err).Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					}
 				} else if t.ReleaseAction != nil {
 					log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(ctx, *p, t, e)
+					err := s.fireRelease(ctx, localPipeline, t, e)
 					if err != nil {
 						log.Error().Err(err).Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
@@ -586,15 +593,18 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 
 				firedTriggerCount++
 
+				var localPipeline contracts.Pipeline
+				s.deepCopy(*p, localPipeline)
+
 				if t.BuildAction != nil {
 					log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(ctx, *p, t, e)
+					err := s.fireBuild(ctx, localPipeline, t, e)
 					if err != nil {
 						log.Error().Err(err).Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting build action '%v/%v/%v', branch '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					}
 				} else if t.ReleaseAction != nil {
 					log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(ctx, *p, t, e)
+					err := s.fireRelease(ctx, localPipeline, t, e)
 					if err != nil {
 						log.Error().Err(err).Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
@@ -641,16 +651,19 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 
 				firedTriggerCount++
 
+				var localPipeline contracts.Pipeline
+				s.deepCopy(*p, localPipeline)
+
 				// create new build for t.Run
 				if t.BuildAction != nil {
 					log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Firing build action '%v/%v/%v', branch '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(ctx, *p, t, e)
+					err := s.fireBuild(ctx, localPipeline, t, e)
 					if err != nil {
 						log.Error().Err(err).Msgf("[trigger:pubsub(projects/%v/topics/%v)] Failed starting build action'%v/%v/%v', branch '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					}
 				} else if t.ReleaseAction != nil {
 					log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(ctx, *p, t, e)
+					err := s.fireRelease(ctx, localPipeline, t, e)
 					if err != nil {
 						log.Error().Err(err).Msgf("[trigger:pubsub(projects/%v/topics/%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
@@ -700,16 +713,19 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 
 				firedTriggerCount++
 
+				var localPipeline contracts.Pipeline
+				s.deepCopy(*p, localPipeline)
+
 				// create new build for t.Run
 				if t.BuildAction != nil {
 					log.Info().Msgf("[trigger:cron(%v)] Firing build action '%v/%v/%v', branch '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(ctx, *p, t, e)
+					err := s.fireBuild(ctx, localPipeline, t, e)
 					if err != nil {
 						log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting build action'%v/%v/%v', branch '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 					}
 				} else if t.ReleaseAction != nil {
 					log.Info().Msgf("[trigger:cron(%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(ctx, *p, t, e)
+					err := s.fireRelease(ctx, localPipeline, t, e)
 					if err != nil {
 						log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 					}
@@ -1266,4 +1282,9 @@ func (s *service) supportsBuildStatus(repoSource string) bool {
 	}
 
 	return false
+}
+
+func (s *service) deepCopy(a, b interface{}) {
+	byt, _ := json.Marshal(a)
+	json.Unmarshal(byt, b)
 }
