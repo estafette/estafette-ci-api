@@ -138,6 +138,8 @@ github.com/estafette/estafette-ci-crypt v0.0.38 h1:rl8jBXRTZAg4cvvme7GRpujO6ttUN
 github.com/estafette/estafette-ci-crypt v0.0.38/go.mod h1:yODzGbzW7Jj0xEFjAv1Is+FHcYaugHUtrPdkJdHV8/c=
 github.com/estafette/estafette-ci-manifest v0.1.155 h1:3l7EaRlKVVw7t9/aosb2GUClxH/x2pKESBr9LSCITTU=
 github.com/estafette/estafette-ci-manifest v0.1.155/go.mod h1:POR0DdB7udqxoFxTsheexgwP+NJauoHsDTSbHiLetEo=
+github.com/estafette/estafette-ci-manifest v0.1.159 h1:NxV4bWQlqqGJTAiCEAkG8I394emkKqcXWuZoCYV/g04=
+github.com/estafette/estafette-ci-manifest v0.1.159/go.mod h1:POR0DdB7udqxoFxTsheexgwP+NJauoHsDTSbHiLetEo=
 github.com/estafette/estafette-foundation v0.0.54 h1:EYiKInvQg0B4wtvb6gAvQuMOEvf7Y3Td2+Fx2/asxGU=
 github.com/estafette/estafette-foundation v0.0.54/go.mod h1:3tosAek4nyGDaWbi9dz2jSb2Wa4dAtLw/7c7mDWwaLA=
 github.com/evanphx/json-patch v4.2.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=

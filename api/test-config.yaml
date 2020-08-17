@@ -62,6 +62,17 @@ apiServer:
   - database
   - cloudstorage
   logReader: database
+  injectStages:
+    build:
+      before:
+      - name: envvars
+        image: extensions/envvars:stable
+      after: []
+    release:
+      before: []
+      after:
+      - name: envvars
+        image: extensions/envvars:dev
 
 auth:
   jwt:
