@@ -39,7 +39,7 @@ spec:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ template "estafette-ci-api.imageTag" . }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- with .Values.extraArgs }}
           args:
@@ -51,13 +51,13 @@ spec:
               protocol: TCP
           livenessProbe:
             httpGet:
-              path: {{.Values.application.livenessPath}}
+              path: /liveness
               port: web
               scheme: HTTP
           {{- if not .Values.openresty.enabled }}
           readinessProbe:
             httpGet:
-              path: {{.Values.application.readinessPath}}
+              path: /readiness
               port: web
               scheme: HTTP
           {{- end }}

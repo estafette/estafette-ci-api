@@ -39,10 +39,21 @@ type APIConfig struct {
 
 // APIServerConfig represents configuration for the api server
 type APIServerConfig struct {
-	BaseURL    string   `yaml:"baseURL"`
-	ServiceURL string   `yaml:"serviceURL"`
-	LogWriters []string `yaml:"logWriters"`
-	LogReader  string   `yaml:"logReader"`
+	BaseURL      string              `yaml:"baseURL"`
+	ServiceURL   string              `yaml:"serviceURL"`
+	LogWriters   []string            `yaml:"logWriters"`
+	LogReader    string              `yaml:"logReader"`
+	InjectStages *InjectStagesConfig `yaml:"injectStages,omitempty"`
+}
+
+type InjectStagesConfig struct {
+	Build   *InjectStagesTypeConfig `yaml:"build,omitempty"`
+	Release *InjectStagesTypeConfig `yaml:"release,omitempty"`
+}
+
+type InjectStagesTypeConfig struct {
+	Before []*manifest.EstafetteStage `yaml:"before,omitempty"`
+	After  []*manifest.EstafetteStage `yaml:"after,omitempty"`
 }
 
 // WriteLogToDatabase indicates if database is in the logWriters config

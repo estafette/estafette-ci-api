@@ -10,12 +10,6 @@ application:
   # port the main application container is listening on
   port: 5000
 
-  # endpoint to check for liveness
-  livenessPath: /liveness
-
-  # endpoint to check for readiness
-  readinessPath: /readiness
-
 # prometheus metrics settings
 metrics:
   enabled: true
@@ -267,13 +261,13 @@ securityContext: {}
   # runAsNonRoot: true
   # runAsUser: 1000
 
-resources:
-  requests:
-    cpu: 60m
-    memory: 236Mi
-  limits:
-    cpu: 120m
-    memory: 472Mi
+resources: {}
+  # requests:
+  #   cpu: 60m
+  #   memory: 236Mi
+  # limits:
+  #   cpu: 120m
+  #   memory: 472Mi
 
 service:
   type: ClusterIP
