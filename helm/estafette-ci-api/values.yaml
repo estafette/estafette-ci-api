@@ -19,7 +19,7 @@ metrics:
 
 jaeger:
   # if enabled the jaeger tracing library sends traces into the jaeger backend, otherwise the NoopTracer is used
-  enable: false
+  enabled: false
   # probabilistic, const or remote
   samplerType: remote
   # provides the probability if samplerType is probabilistic or remote (until remote config is received)
@@ -216,6 +216,7 @@ pdb:
 
 # horizontalpodautoscaler settings
 hpa:
+  enable: true
   minReplicas: 3
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80

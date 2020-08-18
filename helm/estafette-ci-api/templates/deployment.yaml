@@ -67,7 +67,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "estafette-ci-api.fullname" . }}
                   key: decryptionKey
-            {{- if .Values.jaeger.enable }}
+            {{- if .Values.jaeger.enabled }}
             - name: JAEGER_AGENT_HOST
               valueFrom:
                 fieldRef:
@@ -141,7 +141,7 @@ spec:
               value: {{.Values.openresty.proxySendTimeout | quote }}
             - name: SEND_TIMEOUT
               value: {{.Values.openresty.sendTimeout | quote }}
-            {{- if .Values.jaeger.enable }}
+            {{- if .Values.jaeger.enabled }}
             - name: JAEGER_AGENT_HOST
               valueFrom:
                 fieldRef:

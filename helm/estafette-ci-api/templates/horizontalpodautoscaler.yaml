@@ -1,3 +1,4 @@
+{{- if .Values.hpa.enabled -}}
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
@@ -13,3 +14,4 @@ spec:
     kind: Deployment
     name: {{ include "estafette-ci-api.fullname" . }}
   targetCPUUtilizationPercentage: {{ .Values.hpa.targetCPUUtilizationPercentage }}
+{{- end -}}
