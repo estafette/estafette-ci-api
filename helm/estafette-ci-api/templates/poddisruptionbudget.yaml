@@ -2,7 +2,6 @@ apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:
   name: {{ include "estafette-ci-api.fullname" . }}
-  namespace: {{ .Release.Namespace }}
   labels:
 {{ include "estafette-ci-api.labels" . | indent 4 }}
 spec:

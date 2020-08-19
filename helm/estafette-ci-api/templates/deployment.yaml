@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "estafette-ci-api.fullname" . }}
-  namespace: {{ .Release.Namespace }}
   labels:
 {{ include "estafette-ci-api.labels" . | indent 4 }}
 spec:
@@ -96,6 +95,10 @@ spec:
             - name: JAEGER_DISABLED
               value: 'true'
             {{- end }}
+            {{- if .Values.gcpServiceaccount.enable -}}
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: '/gcp-service-account/service-account-key.json'
+            {{- end }}
             {{- range $key, $value := .Values.extraEnv }}
             - name: {{ $key }}
               value: {{ $value }}
@@ -113,6 +116,10 @@ spec:
             mountPath: /configs
           - name: secrets
             mountPath: /secrets
+          {{- if .Values.gcpServiceaccount.enable -}}
+          - name: gcp-service-account
+            mountPath: /gcp-service-account
+          {{- end }}
         {{- if .Values.openresty.enable }}
         - name: {{ .Chart.Name }}-openresty
           securityContext:
@@ -211,15 +218,19 @@ spec:
       volumes:
       - name: configs
         configMap:
-          name: {{ include "estafette-ci-api.fullname" . }}
+          name: {{ include "estafette-ci-api.fullname" . }}-configs
       - name: secrets
         secret:
-          secretName: {{ include "estafette-ci-api.fullname" . }}
+          secretName: {{ include "estafette-ci-api.fullname" . }}-secrets
       {{- if .Values.openresty.enable }}
       - name: certificate
         secret:
-          defaultMode: 420
           secretName: {{ include "estafette-ci-api.fullname" . }}-letsencrypt-certificate
+      {{- end }}
+      {{- if .Values.gcpServiceaccount.enable -}}
+      - name: gcp-service-account
+        secret:
+          secretName: {{ include "estafette-ci-api.fullname" . }}-service-account
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

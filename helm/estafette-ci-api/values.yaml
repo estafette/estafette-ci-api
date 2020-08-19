@@ -194,6 +194,13 @@ secret:
   # private key file for certificate
   certificateKeyFile:
 
+# for integration with any google cloud api a service account keyfile is required, which can be set with these values
+gcpServiceaccount:
+  enable: false
+  useEstafetteGcpServiceAccountAnnotation: false
+  valuesAreBase64Encoded: false
+  keyfile:
+
 # prometheus metrics settings
 metrics:
   enable: true
