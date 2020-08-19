@@ -123,11 +123,9 @@ stages:
     image: extensions/helm:dev
     action: test
     values: |-
-      jobs:
-        namespace: estafette-ci-jobs
       secret:
         valuesAreBase64Encoded: true
-        decryptionKey: MVBzdlhWT01raGZBUXVCSWNJR0N0eklkUFhOVjBOWUcK
+        secretDecryptionKey: MVBzdlhWT01raGZBUXVCSWNJR0N0eklkUFhOVjBOWUcK
         # generated with
         # > openssl req -x509 -sha256 -nodes -days 1024 -newkey rsa:2048 -keyout certificate.key -out certificate.crt
         # > cat certificate.crt certificate.key | base64
