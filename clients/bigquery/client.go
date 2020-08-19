@@ -23,14 +23,14 @@ type Client interface {
 
 // NewClient returns new bigquery.Client
 func NewClient(config *api.APIConfig, bigqueryClient *bigquery.Client) Client {
-
 	if config == nil || config.Integrations == nil || config.Integrations.BigQuery == nil || !config.Integrations.BigQuery.Enable {
 		return &client{
-			config: config,
+			enabled: false,
 		}
 	}
 
 	return &client{
+		enabled:                true,
 		client:                 bigqueryClient,
 		config:                 config,
 		buildEventsTableName:   "estafette_ci_build_events",
@@ -39,6 +39,7 @@ func NewClient(config *api.APIConfig, bigqueryClient *bigquery.Client) Client {
 }
 
 type client struct {
+	enabled                bool
 	client                 *bigquery.Client
 	config                 *api.APIConfig
 	buildEventsTableName   string
@@ -47,7 +48,7 @@ type client struct {
 
 func (c *client) Init(ctx context.Context) (err error) {
 
-	if c.config == nil || c.config.Integrations == nil || c.config.Integrations.BigQuery == nil || !c.config.Integrations.BigQuery.Enable {
+	if !c.enabled {
 		return
 	}
 
@@ -83,7 +84,7 @@ func (c *client) Init(ctx context.Context) (err error) {
 
 func (c *client) CheckIfDatasetExists(ctx context.Context) bool {
 
-	if c.config == nil || c.config.Integrations == nil || c.config.Integrations.BigQuery == nil || !c.config.Integrations.BigQuery.Enable {
+	if !c.enabled {
 		return false
 	}
 
@@ -101,7 +102,7 @@ func (c *client) CheckIfDatasetExists(ctx context.Context) bool {
 
 func (c *client) CheckIfTableExists(ctx context.Context, table string) bool {
 
-	if c.config == nil || c.config.Integrations == nil || c.config.Integrations.BigQuery == nil || !c.config.Integrations.BigQuery.Enable {
+	if !c.enabled {
 		return false
 	}
 
@@ -119,7 +120,7 @@ func (c *client) CheckIfTableExists(ctx context.Context, table string) bool {
 
 func (c *client) CreateTable(ctx context.Context, table string, typeForSchema interface{}, partitionField string, waitReady bool) error {
 
-	if c.config == nil || c.config.Integrations == nil || c.config.Integrations.BigQuery == nil || !c.config.Integrations.BigQuery.Enable {
+	if !c.enabled {
 		return nil
 	}
 
@@ -166,7 +167,7 @@ func (c *client) CreateTable(ctx context.Context, table string, typeForSchema in
 
 func (c *client) UpdateTableSchema(ctx context.Context, table string, typeForSchema interface{}) error {
 
-	if c.config == nil || c.config.Integrations == nil || c.config.Integrations.BigQuery == nil || !c.config.Integrations.BigQuery.Enable {
+	if !c.enabled {
 		return nil
 	}
 
@@ -197,7 +198,7 @@ func (c *client) UpdateTableSchema(ctx context.Context, table string, typeForSch
 
 func (c *client) InsertBuildEvent(ctx context.Context, event PipelineBuildEvent) error {
 
-	if c.config == nil || c.config.Integrations == nil || c.config.Integrations.BigQuery == nil || !c.config.Integrations.BigQuery.Enable {
+	if !c.enabled {
 		return nil
 	}
 
@@ -214,7 +215,7 @@ func (c *client) InsertBuildEvent(ctx context.Context, event PipelineBuildEvent)
 
 func (c *client) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEvent) error {
 
-	if c.config == nil || c.config.Integrations == nil || c.config.Integrations.BigQuery == nil || !c.config.Integrations.BigQuery.Enable {
+	if !c.enabled {
 		return nil
 	}
 

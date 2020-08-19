@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/estafette/estafette-ci-api/api"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -19,8 +20,8 @@ func TestGetToken(t *testing.T) {
 
 	t.Run("ReturnsTokenForRepository", func(t *testing.T) {
 
-		tokenSource, service := getTokenSourceAndService()
-		client, err := NewClient(tokenSource, service)
+		config, tokenSource, service := getTokenSourceAndService()
+		client, err := NewClient(config, tokenSource, service)
 		assert.Nil(t, err)
 
 		// act
@@ -35,8 +36,8 @@ func TestGetAuthenticatedRepositoryURL(t *testing.T) {
 
 	t.Run("ReturnsAuthenticatedURLForRepository", func(t *testing.T) {
 
-		tokenSource, service := getTokenSourceAndService()
-		client, err := NewClient(tokenSource, service)
+		config, tokenSource, service := getTokenSourceAndService()
+		client, err := NewClient(config, tokenSource, service)
 		assert.Nil(t, err)
 
 		// act
@@ -74,8 +75,8 @@ func TestGetEstafetteManifest(t *testing.T) {
 
 	t.Run("ReturnsFalseIfNoManifestExists", func(t *testing.T) {
 
-		tokenSource, service := getTokenSourceAndService()
-		client, err := NewClient(tokenSource, service)
+		config, tokenSource, service := getTokenSourceAndService()
+		client, err := NewClient(config, tokenSource, service)
 		assert.Nil(t, err)
 
 		ctx := context.Background()
@@ -98,8 +99,8 @@ func TestGetEstafetteManifest(t *testing.T) {
 
 	t.Run("ReturnsTrueIfManifestExists", func(t *testing.T) {
 
-		tokenSource, service := getTokenSourceAndService()
-		client, err := NewClient(tokenSource, service)
+		config, tokenSource, service := getTokenSourceAndService()
+		client, err := NewClient(config, tokenSource, service)
 		assert.Nil(t, err)
 
 		ctx := context.Background()
@@ -130,7 +131,7 @@ func TestGetEstafetteManifest(t *testing.T) {
 	})
 }
 
-func getTokenSourceAndService() (oauth2.TokenSource, *sourcerepo.Service) {
+func getTokenSourceAndService() (*api.APIConfig, oauth2.TokenSource, *sourcerepo.Service) {
 	ctx := context.Background()
 	tokenSource, err := google.DefaultTokenSource(ctx, sourcerepo.CloudPlatformScope)
 	if err != nil {
@@ -141,5 +142,5 @@ func getTokenSourceAndService() (oauth2.TokenSource, *sourcerepo.Service) {
 		log.Fatal("Creating google cloud source repo service has failed")
 	}
 
-	return tokenSource, sourcerepoService
+	return &api.APIConfig{Integrations: &api.APIConfigIntegrations{CloudSource: &api.CloudSourceConfig{Enable: true}}}, tokenSource, sourcerepoService
 }

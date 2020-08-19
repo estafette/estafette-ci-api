@@ -346,6 +346,7 @@ type SlackConfig struct {
 
 // PubsubConfig is used to be able to subscribe to pub/sub topics for triggering pipelines based on pub/sub events
 type PubsubConfig struct {
+	Enable                         bool   `yaml:"enable"`
 	DefaultProject                 string `yaml:"defaultProject"`
 	Endpoint                       string `yaml:"endpoint"`
 	Audience                       string `yaml:"audience"`
@@ -356,6 +357,7 @@ type PubsubConfig struct {
 
 // CloudStorageConfig is used to configure a google cloud storage bucket to be used to store logs
 type CloudStorageConfig struct {
+	Enable        bool   `yaml:"enable"`
 	ProjectID     string `yaml:"projectID"`
 	Bucket        string `yaml:"bucket"`
 	LogsDirectory string `yaml:"logsDir"`
@@ -376,6 +378,7 @@ type BigQueryConfig struct {
 
 // CloudSourceConfig is used to configure cloudSource integration
 type CloudSourceConfig struct {
+	Enable               bool                   `yaml:"enable"`
 	WhitelistedProjects  []string               `yaml:"whitelistedProjects"`
 	ProjectOrganizations []ProjectOrganizations `yaml:"projectOrganizations"`
 }

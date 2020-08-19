@@ -226,23 +226,29 @@ func getGoogleCloudClients(ctx context.Context, config *api.APIConfig) (bqClient
 		}
 	}
 
-	pubsubClient, err = stdpubsub.NewClient(ctx, config.Integrations.Pubsub.DefaultProject)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating google pubsub client has failed")
+	if config.Integrations.Pubsub.Enable {
+		pubsubClient, err = stdpubsub.NewClient(ctx, config.Integrations.Pubsub.DefaultProject)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Creating google pubsub client has failed")
+		}
 	}
 
-	gcsClient, err = stdstorage.NewClient(ctx)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating google cloud storage client has failed")
+	if config.Integrations.CloudStorage.Enable {
+		gcsClient, err = stdstorage.NewClient(ctx)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Creating google cloud storage client has failed")
+		}
 	}
 
-	tokenSource, err = google.DefaultTokenSource(ctx, sourcerepo.CloudPlatformScope)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating google cloud token source has failed")
-	}
-	sourcerepoService, err = stdsourcerepo.New(oauth2.NewClient(ctx, tokenSource))
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating google cloud source repo service has failed")
+	if config.Integrations.CloudSource.Enable {
+		tokenSource, err = google.DefaultTokenSource(ctx, sourcerepo.CloudPlatformScope)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Creating google cloud token source has failed")
+		}
+		sourcerepoService, err = stdsourcerepo.New(oauth2.NewClient(ctx, tokenSource))
+		if err != nil {
+			log.Fatal().Err(err).Msg("Creating google cloud source repo service has failed")
+		}
 	}
 
 	return bqClient, pubsubClient, gcsClient, tokenSource, sourcerepoService
@@ -366,7 +372,7 @@ func getClients(ctx context.Context, config *api.APIConfig, encryptedConfig *api
 	)
 
 	// cloudsourceapi client
-	cloudsourceClient, err = cloudsourceapi.NewClient(sourcerepoTokenSource, sourcerepoService)
+	cloudsourceClient, err = cloudsourceapi.NewClient(config, sourcerepoTokenSource, sourcerepoService)
 	if err != nil {
 		log.Error().Err(err).Msg("Creating new client for Cloud Source has failed")
 	}

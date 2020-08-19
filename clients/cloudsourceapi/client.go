@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/estafette/estafette-ci-api/api"
 	"golang.org/x/oauth2"
 	sourcerepo "google.golang.org/api/sourcerepo/v1"
 	"gopkg.in/src-d/go-git.v4"
@@ -23,14 +24,24 @@ type Client interface {
 }
 
 // NewClient creates an cloudsource.Client to communicate with the Google Cloud Source Repository api
-func NewClient(tokenSource oauth2.TokenSource, sourcerepoService *sourcerepo.Service) (Client, error) {
+func NewClient(config *api.APIConfig, tokenSource oauth2.TokenSource, sourcerepoService *sourcerepo.Service) (Client, error) {
+	if config == nil || config.Integrations == nil || config.Integrations.CloudSource == nil || !config.Integrations.CloudSource.Enable {
+		return &client{
+			enabled: false,
+		}, nil
+	}
+
 	return &client{
+		enabled:     true,
+		config:      config,
 		service:     sourcerepoService,
 		tokenSource: tokenSource,
 	}, nil
 }
 
 type client struct {
+	enabled     bool
+	config      *api.APIConfig
 	service     *sourcerepo.Service
 	tokenSource oauth2.TokenSource
 }
