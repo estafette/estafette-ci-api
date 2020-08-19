@@ -8,13 +8,14 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
+    - name: https
       {{- if .Values.openresty.enable }}
+      port: 443
       targetPort: https
       {{- else }}
+      port: {{ .Values.service.port }}
       targetPort: web
       {{- end }}
       protocol: TCP
-      name: https
   selector:
 {{ include "estafette-ci-api.selectorLabels" . | indent 4 }}

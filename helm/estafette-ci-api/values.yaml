@@ -308,7 +308,7 @@ podAnnotations: {}
 
 service:
   type: ClusterIP
-  port: 443
+  port: 80
 
 ingress:
   enable: false
