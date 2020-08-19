@@ -174,18 +174,18 @@ spec:
               name: https
               protocol: TCP
             - containerPort: 82
-              name: openresty-liveness
+              name: or-liveness
               protocol: TCP
             - containerPort: 81
-              name: openresty-readiness
+              name: or-readiness
               protocol: TCP
             - containerPort: 9101
-              name: openresty-metrics
+              name: or-metrics
               protocol: TCP
           livenessProbe:
             httpGet:
               path: /liveness
-              port: openresty-liveness
+              port: or-liveness
               scheme: HTTP
           readinessProbe:
             httpGet:
