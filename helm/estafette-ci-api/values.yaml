@@ -63,7 +63,7 @@ config: |
       scrapeIntervalSeconds: 10
 
     bigquery:
-      enable: true
+      enable: false
       projectID: my-gcp-project
       dataset: my-dataset
 
