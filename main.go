@@ -219,28 +219,28 @@ func getGoogleCloudClients(ctx context.Context, config *api.APIConfig) (bqClient
 
 	var err error
 
-	if config.Integrations.BigQuery.Enable {
+	if config != nil && config.Integrations != nil && config.Integrations.BigQuery != nil && config.Integrations.BigQuery.Enable {
 		bqClient, err = stdbigquery.NewClient(ctx, config.Integrations.BigQuery.ProjectID)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Creating new BigQueryClient has failed")
 		}
 	}
 
-	if config.Integrations.Pubsub.Enable {
+	if config != nil && config.Integrations != nil && config.Integrations.Pubsub != nil && config.Integrations.Pubsub.Enable {
 		pubsubClient, err = stdpubsub.NewClient(ctx, config.Integrations.Pubsub.DefaultProject)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Creating google pubsub client has failed")
 		}
 	}
 
-	if config.Integrations.CloudStorage.Enable {
+	if config != nil && config.Integrations != nil && config.Integrations.CloudStorage != nil && config.Integrations.CloudStorage.Enable {
 		gcsClient, err = stdstorage.NewClient(ctx)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Creating google cloud storage client has failed")
 		}
 	}
 
-	if config.Integrations.CloudSource.Enable {
+	if config != nil && config.Integrations != nil && config.Integrations.CloudSource != nil && config.Integrations.CloudSource.Enable {
 		tokenSource, err = google.DefaultTokenSource(ctx, sourcerepo.CloudPlatformScope)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Creating google cloud token source has failed")
