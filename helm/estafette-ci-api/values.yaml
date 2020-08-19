@@ -43,6 +43,7 @@ config: |
       appOAuthAccessToken: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
 
     pubsub:
+      enable: false
       defaultProject: estafette
       endpoint: https://ci-integrations.estafette.io/api/integrations/pubsub/events
       audience: estafette-audience
@@ -51,6 +52,7 @@ config: |
       subscriptionIdleExpirationDays: 365
 
     cloudsource:
+      enable: false
       whitelistedProjects:
       - estafette
       projectOrganizations:
@@ -68,6 +70,7 @@ config: |
       dataset: my-dataset
 
     gcs:
+      enable: false
       projectID: my-gcp-project
       bucket: my-bucket
       logsDir: logs
