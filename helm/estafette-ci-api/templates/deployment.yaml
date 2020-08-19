@@ -52,18 +52,27 @@ spec:
           {{- end }}
           ports:
             - containerPort: 5000
+              {{- if not .Values.openresty.enable }}
               name: web
+              {{- else }}
+              name: http
+              {{- end }}
               protocol: TCP
           livenessProbe:
             httpGet:
               path: /liveness
+              {{- if not .Values.openresty.enable }}
+              port: web
+              {{- else }}
+              port: http
+              {{- end }}
               port: web
               scheme: HTTP
           {{- if not .Values.openresty.enable }}
           readinessProbe:
             httpGet:
               path: /readiness
-              port: web
+              port: http
               scheme: HTTP
           {{- end }}
           env:

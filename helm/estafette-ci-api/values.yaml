@@ -177,7 +177,7 @@ secret:
   valuesAreBase64Encoded: false
 
   # the aes-256 key to encrypt/decrypt estafette secrets
-  decryptionKey:
+  secretDecryptionKey:
 
   # private key file for github app to communicate with the github api
   githubPrivateKey:
