@@ -69,11 +69,6 @@ spec:
           env:
             - name: ESTAFETTE_LOG_FORMAT
               value: {{ .Values.logFormat }}
-            - name: "SECRET_DECRYPTION_KEY_BASE64"
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "estafette-ci-api.fullname" . }}
-                  key: decryptionKey
             {{- if .Values.jaeger.enabled }}
             - name: JAEGER_AGENT_HOST
               valueFrom:
@@ -107,6 +102,8 @@ spec:
           volumeMounts:
           - name: configs
             mountPath: /configs
+          - name: secrets
+            mountPath: /secrets
         {{- if .Values.openresty.enabled }}
         - name: {{ .Chart.Name }}-openresty
           securityContext:
@@ -206,6 +203,9 @@ spec:
       - name: configs
         configMap:
           name: {{ include "estafette-ci-api.fullname" . }}
+      - name: secrets
+        secret:
+          secretName: {{ include "estafette-ci-api.fullname" . }}
       {{- if .Values.openresty.enabled }}
       - name: certificate
         secret:

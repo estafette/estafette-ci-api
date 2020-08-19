@@ -87,6 +87,7 @@ jobs:
 
 integrations:
   github:
+    enabled: false
     privateKeyPath: /secrets/private-key.pem
     appID:
     clientID:
@@ -94,17 +95,20 @@ integrations:
     webhookSecret:
 
   bitbucket:
+    enabled: false
     apiKey: 
     appOAuthKey: 
     appOAuthSecret: 
 
   slack:
+    enabled: false
     clientID: 
     clientSecret:
     appVerificationToken:
     appOAuthAccessToken:
 
   pubsub:
+    enabled: false
     defaultProject:
     endpoint:
     audience:
@@ -117,9 +121,12 @@ integrations:
     scrapeIntervalSeconds: 10
 
   bigquery:
-    enable:
+    enabled: false
     projectID:
     dataset:
+
+  cloudsource:
+    enabled: false
 
 apiServer:
   baseURL:
