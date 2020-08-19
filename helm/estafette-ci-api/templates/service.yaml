@@ -17,5 +17,4 @@ spec:
       protocol: TCP
       name: https
   selector:
-    app.kubernetes.io/name: {{ include "estafette-ci-api.name" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+{{ include "estafette-ci-api.selectorLabels" . | indent 4 }}

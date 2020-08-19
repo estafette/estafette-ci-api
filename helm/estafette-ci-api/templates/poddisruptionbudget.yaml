@@ -8,6 +8,5 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "estafette-ci-api.name" . }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
+{{ include "estafette-ci-api.selectorLabels" . | indent 6 }}
   maxUnavailable: {{ .Values.pdb.maxUnavailable }}

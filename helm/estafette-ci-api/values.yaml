@@ -6,16 +6,14 @@
 # APPLICATION SETTINGS
 #
 
-application:
-  # port the main application container is listening on
-  port: 5000
-
 # prometheus metrics settings
 metrics:
   enabled: true
   path: /metrics
   port: 9001
   scheme: http
+
+logFormat: json
 
 jaeger:
   # if enabled the jaeger tracing library sends traces into the jaeger backend, otherwise the NoopTracer is used
@@ -48,13 +46,15 @@ openresty:
   proxyReadTimeout: 60s
   proxySendTimeout: 60s
   sendTimeout: 60s
-  resources:
-    requests:
-      cpu: 50m
-      memory: 30Mi
-    limits:
-      cpu: 75m
-      memory: 50Mi
+  resources: {}
+    # requests:
+    #   cpu: 50m
+    #   memory: 30Mi
+    # limits:
+    #   cpu: 75m
+    #   memory: 50Mi
+
+extraContainers: |
 
 secret:
   # if set to true the values are already base64 encoded when provided, otherwise the template performs the base64 encoding
@@ -267,6 +267,9 @@ resources: {}
   #   cpu: 120m
   #   memory: 472Mi
 
+podAnnotations: {}
+  # prometheus.io/scrape-nginx-sidecar: "true"
+
 service:
   type: ClusterIP
   port: 80
@@ -289,7 +292,22 @@ nodeSelector: {}
 
 tolerations: []
 
-affinity:
+affinity: |
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - {{ include "estafette-ci-api.name" . }}
+          - key: app.kubernetes.io/instance
+            operator: In
+            values:
+            - {{ .Release.Name }}
+        topologyKey: kubernetes.io/hostname
   nodeAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:
     - weight: 10

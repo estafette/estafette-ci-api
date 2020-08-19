@@ -6,16 +6,16 @@ metadata:
   labels:
 {{ include "estafette-ci-api.labels" . | indent 4 }}
 spec:
+  {{- if not .Values.hpa.enabled }}
   replicas: {{ .Values.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "estafette-ci-api.name" . }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
+{{ include "estafette-ci-api.selectorLabels" . | indent 6 }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "estafette-ci-api.name" . }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
+{{ include "estafette-ci-api.selectorLabels" . | indent 8 }}
         {{- if .Chart.AppVersion }}
         app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
         {{- end }}
@@ -23,10 +23,15 @@ spec:
         {{ $key }}: {{ $value }}
         {{- end }}
       annotations:
-        prometheus.io/scrape: "{{.Values.metrics.enabled}}"
-        prometheus.io/path: "{{.Values.metrics.path}}"
-        prometheus.io/port: "{{.Values.metrics.port}}"
-        prometheus.io/scheme: "{{.Values.metrics.scheme}}"
+        {{- if .Values.metrics.enabled }}
+        prometheus.io/scrape: {{ .Values.metrics.enabled | quote }}
+        prometheus.io/path: {{ .Values.metrics.path | quote }}
+        prometheus.io/port: {{ .Values.metrics.port | quote }}
+        prometheus.io/scheme: {{ .Values.metrics.scheme | quote }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
     {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -46,7 +51,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - containerPort: {{.Values.application.port}}
+            - containerPort: 5000
               name: web
               protocol: TCP
           livenessProbe:
@@ -62,6 +67,8 @@ spec:
               scheme: HTTP
           {{- end }}
           env:
+            - name: ESTAFETTE_LOG_FORMAT
+              value: {{ .Values.logFormat }}
             - name: "SECRET_DECRYPTION_KEY_BASE64"
               valueFrom:
                 secretKeyRef:
@@ -110,13 +117,13 @@ spec:
             - name: OFFLOAD_TO_HOST
               value: 127.0.0.1
             - name: OFFLOAD_TO_PORT
-              value: "{{.Values.application.port}}"
+              value: "5000"
             - name: SERVICE_NAME
               value: {{ include "estafette-ci-api.fullname" . }}
             - name: NAMESPACE
               value: {{ .Release.Namespace }}
             - name: HEALT_CHECK_PATH
-              value: {{.Values.application.readinessPath}}
+              value: /readiness
             - name: CLIENT_BODY_BUFFER_SIZE
               value: {{.Values.openresty.clientBodyBufferSize | quote }}
             - name: CLIENT_BODY_TIMEOUT
@@ -167,22 +174,22 @@ spec:
               name: https
               protocol: TCP
             - containerPort: 82
-              name: nginx-liveness
+              name: openresty-liveness
               protocol: TCP
             - containerPort: 81
-              name: nginx-readiness
+              name: openresty-readiness
               protocol: TCP
             - containerPort: 9101
-              name: nginx-prom
+              name: openresty-metrics
               protocol: TCP
           livenessProbe:
             httpGet:
               path: /liveness
-              port: nginx-liveness
+              port: openresty-liveness
               scheme: HTTP
           readinessProbe:
             httpGet:
-              path: {{.Values.application.readinessPath}}
+              path: /readiness
               port: https
               scheme: HTTPS
           resources:
@@ -190,6 +197,9 @@ spec:
           volumeMounts:
           - name: certificate
             mountPath: /etc/ssl/private
+      {{- end }}
+      {{- with .Values.extraContainers }}
+      {{ tpl . $ | nindent 8 }}
       {{- end }}
       terminationGracePeriodSeconds: 300
       volumes:
@@ -208,7 +218,7 @@ spec:
       {{- end }}
       {{- with .Values.affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
+        {{- tpl . $ | nindent 8 }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
