@@ -84,6 +84,23 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "Estafette", cloudsourceConfig.ProjectOrganizations[0].Organizations[0].Name)
 	})
 
+	t.Run("ReturnsPubsubConfig", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		pubsubConfig := config.Integrations.Pubsub
+
+		assert.Equal(t, "estafette", pubsubConfig.DefaultProject)
+		assert.Equal(t, "https://ci-integrations.estafette.io/api/integrations/pubsub/events", pubsubConfig.Endpoint)
+		assert.Equal(t, "estafette-audience", pubsubConfig.Audience)
+		assert.Equal(t, "estafette@estafette.iam.gserviceaccount.com", pubsubConfig.ServiceAccountEmail)
+		assert.Equal(t, "~estafette-ci-pubsub-trigger", pubsubConfig.SubscriptionNameSuffix)
+		assert.Equal(t, 365, pubsubConfig.SubscriptionIdleExpirationDays)
+	})
+
 	t.Run("ReturnsSlackConfig", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))

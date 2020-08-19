@@ -33,6 +33,22 @@ integrations:
     appVerificationToken: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
     appOAuthAccessToken: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
 
+  pubsub:
+    defaultProject: estafette
+    endpoint: https://ci-integrations.estafette.io/api/integrations/pubsub/events
+    audience: estafette-audience
+    serviceAccountEmail: estafette@estafette.iam.gserviceaccount.com
+    subscriptionNameSuffix: ~estafette-ci-pubsub-trigger
+    subscriptionIdleExpirationDays: 365
+
+  cloudsource:
+    whitelistedProjects:
+    - estafette
+    projectOrganizations:
+    - project: estafette
+      organizations:
+      - name: Estafette
+
   prometheus:
     serverURL: http://prometheus-server.monitoring.svc.cluster.local
     scrapeIntervalSeconds: 10
@@ -46,14 +62,6 @@ integrations:
     projectID: my-gcp-project
     bucket: my-bucket
     logsDir: logs
-
-  cloudsource:
-    whitelistedProjects:
-    - estafette
-    projectOrganizations:
-    - project: estafette
-      organizations:
-      - name: Estafette
 
 apiServer:
   baseURL: https://ci.estafette.io/

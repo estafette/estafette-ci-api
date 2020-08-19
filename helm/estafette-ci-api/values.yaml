@@ -6,70 +6,92 @@
 # APPLICATION SETTINGS
 #
 
-config:
+config: |
+  integrations:
+    github:
+      privateKeyPath: /github-app-key/private-key.pem
+      appID: 15
+      clientID: asdas2342
+      clientSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
+      webhookSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
+      whitelistedInstallations:
+      - 15
+      - 83
+      installationOrganizations:
+      - installation: 15
+        organizations:
+        - name: Estafette
+      - installation: 83
+        organizations:
+        - name: Estafette
+
+    bitbucket:
+      apiKey: sd9ewiwuejkwejkewk
+      appOAuthKey: 2390w3e90jdsk
+      appOAuthSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
+      whitelistedOwners:
+      - estafette
+      ownerOrganizations:
+      - owner: estafette
+        organizations:
+        - name: Estafette
+
+    slack:
+      clientID: d9ew90weoijewjke
+      clientSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
+      appVerificationToken: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
+      appOAuthAccessToken: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
+
+    pubsub:
+      defaultProject: estafette
+      endpoint: https://ci-integrations.estafette.io/api/integrations/pubsub/events
+      audience: estafette-audience
+      serviceAccountEmail: estafette@estafette.iam.gserviceaccount.com
+      subscriptionNameSuffix: ~estafette-ci-pubsub-trigger
+      subscriptionIdleExpirationDays: 365
+
+    cloudsource:
+      whitelistedProjects:
+      - estafette
+      projectOrganizations:
+      - project: estafette
+        organizations:
+        - name: Estafette
+
+    prometheus:
+      serverURL: http://prometheus-server.monitoring.svc.cluster.local
+      scrapeIntervalSeconds: 10
+
+    bigquery:
+      enable: true
+      projectID: my-gcp-project
+      dataset: my-dataset
+
+    gcs:
+      projectID: my-gcp-project
+      bucket: my-bucket
+      logsDir: logs
+
+  apiServer:
+    baseURL:
+    serviceURL:
+
   jobs:
     # the namespace in which build/release jobs are created
-    namespace: estafette-ci-jobs
+    namespace: {{ .Release.Namespace }}-jobs
     minCPUCores: 0.1
     maxCPUCores: 7.0
     cpuRequestRatio: 1.0
     minMemoryBytes: 67108864
     maxMemoryBytes: 21474836480
     memoryRequestRatio: 1.25
-  
-  integrations:
-    github:
-      enable: false
-      privateKeyPath: /secrets/private-key.pem
-      appID:
-      clientID:
-      clientSecret:
-      webhookSecret:
-  
-    bitbucket:
-      enable: false
-      apiKey: 
-      appOAuthKey: 
-      appOAuthSecret: 
-  
-    slack:
-      enable: false
-      clientID: 
-      clientSecret:
-      appVerificationToken:
-      appOAuthAccessToken:
-  
-    pubsub:
-      enable: false
-      defaultProject:
-      endpoint:
-      audience:
-      serviceAccountEmail:
-      subscriptionNameSuffix:
-      subscriptionIdleExpirationDays: 365
-  
-    prometheus:
-      serverURL: http://prometheus-server.monitoring.svc.cluster.local
-      scrapeIntervalSeconds: 10
-  
-    bigquery:
-      enable: false
-      projectID:
-      dataset:
-  
-    cloudsource:
-      enable: false
-  
-  apiServer:
-    baseURL:
-    serviceURL:
-  
+
   auth:
     iap:
       enable:
       audience:
     apiKey:
-  
+
   database:
     databaseName:
     host:
@@ -78,7 +100,7 @@ config:
     port:
     user:
     password:
-  
+
   credentials:
   - name:
     type: 'container-registry'
@@ -86,7 +108,7 @@ config:
     private: false
     username:
     password:
-  
+
   trustedImages:
   - path: extensions/git-clone
     injectedCredentialTypes:
@@ -140,7 +162,7 @@ config:
     - cloudflare
   - path: bsycorp/kind
     runPrivileged: true
-  
+
   docker:
     registryMirror: https://mirror.gcr.io
     dindMtu: 1460
@@ -193,7 +215,7 @@ hostnames:
 
 # injects a sidecar to proxy traffic and emit metrics; not needed if you use a service mesh
 openresty:
-  enable: true
+  enable: false
   image:
     repository: estafette/openresty-sidecar
     tag: 6f4ddb92882349c8a3058b21fc2d75f246e7ce68a470c5533da3b205fd6381e4
@@ -286,7 +308,7 @@ podAnnotations: {}
 
 service:
   type: ClusterIP
-  port: 80
+  port: 443
 
 ingress:
   enable: false
