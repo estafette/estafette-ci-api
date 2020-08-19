@@ -213,30 +213,34 @@ func getConfig(ctx context.Context) (*api.APIConfig, *api.APIConfig, crypt.Secre
 	return config, encryptedConfig, secretHelper
 }
 
-func getGoogleCloudClients(ctx context.Context, config *api.APIConfig) (*stdbigquery.Client, *stdpubsub.Client, *stdstorage.Client, oauth2.TokenSource, *stdsourcerepo.Service) {
+func getGoogleCloudClients(ctx context.Context, config *api.APIConfig) (bqClient *stdbigquery.Client, pubsubClient *stdpubsub.Client, gcsClient *stdstorage.Client, tokenSource oauth2.TokenSource, sourcerepoService *stdsourcerepo.Service) {
 
 	log.Debug().Msg("Creating Google Cloud clients...")
 
-	bqClient, err := stdbigquery.NewClient(ctx, config.Integrations.BigQuery.ProjectID)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating new BigQueryClient has failed")
+	var err error
+
+	if config.Integrations.BigQuery.Enable {
+		bqClient, err = stdbigquery.NewClient(ctx, config.Integrations.BigQuery.ProjectID)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Creating new BigQueryClient has failed")
+		}
 	}
 
-	pubsubClient, err := stdpubsub.NewClient(ctx, config.Integrations.Pubsub.DefaultProject)
+	pubsubClient, err = stdpubsub.NewClient(ctx, config.Integrations.Pubsub.DefaultProject)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating google pubsub client has failed")
 	}
 
-	gcsClient, err := stdstorage.NewClient(ctx)
+	gcsClient, err = stdstorage.NewClient(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating google cloud storage client has failed")
 	}
 
-	tokenSource, err := google.DefaultTokenSource(ctx, sourcerepo.CloudPlatformScope)
+	tokenSource, err = google.DefaultTokenSource(ctx, sourcerepo.CloudPlatformScope)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating google cloud token source has failed")
 	}
-	sourcerepoService, err := stdsourcerepo.New(oauth2.NewClient(ctx, tokenSource))
+	sourcerepoService, err = stdsourcerepo.New(oauth2.NewClient(ctx, tokenSource))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating google cloud source repo service has failed")
 	}
