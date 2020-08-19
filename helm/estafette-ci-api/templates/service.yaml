@@ -9,7 +9,7 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
-      {{- if .Values.openresty.enabled }}
+      {{- if .Values.openresty.enable }}
       targetPort: https
       {{- else }}
       targetPort: web

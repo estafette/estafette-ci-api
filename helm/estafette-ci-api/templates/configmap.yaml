@@ -7,34 +7,45 @@ metadata:
 {{ include "estafette-ci-api.labels" . | indent 4 }}
 data:
   config.yaml: |-
-    {{- with .Values.integrations }}
+    {{- with .Values.config.integrations }}
     integrations:
       {{- with .github }}
+      {{- if .enable }}
       github:
+        enable: true
         privateKeyPath: {{.privateKeyPath}}
         appID: {{.appID}}
         clientID: {{.clientID}}
         clientSecret: {{.clientSecret}}
         webhookSecret: {{.webhookSecret}}
       {{- end }}
+      {{- end }}
 
       {{- with .bitbucket }}
+      {{- if .enable }}
       bitbucket:
+        enable: true
         apiKey: {{.apiKey}}
         appOAuthKey: {{.appOAuthKey}}
         appOAuthSecret: {{.appOAuthSecret}}
       {{- end }}
+      {{- end }}
 
       {{- with .slack }}
+      {{- if .enable }}
       slack:
+        enable: true
         clientID: {{.clientID}}
         clientSecret: {{.clientSecret}}
         appVerificationToken: {{.appVerificationToken}}
         appOAuthAccessToken: {{.appOAuthAccessToken}}
       {{- end }}
+      {{- end }}
 
       {{- with .pubsub }}
+      {{- if .enable }}
       pubsub:
+        enable: true
         defaultProject: {{.defaultProject}}
         endpoint: {{.endpoint}}
         audience: {{.audience}}
@@ -42,28 +53,34 @@ data:
         subscriptionNameSuffix: {{.subscriptionNameSuffix}}
         subscriptionIdleExpirationDays: 365
       {{- end }}
+      {{- end }}
 
       {{- with .prometheus }}
+      {{- if .enable }}
       prometheus:
+        enable: true
         serverURL: {{.serverURL}}
         scrapeIntervalSeconds: {{.scrapeIntervalSeconds}}
       {{- end }}
+      {{- end }}
 
       {{- with .bigquery }}
+      {{- if .enable }}
       bigquery:
-        enable: {{.enable}}
+        enable: true
         projectID: {{.projectID}}
         dataset: {{.dataset}}
       {{- end }}
+      {{- end }}
     {{- end }}
 
-    {{- with .Values.apiServer }}
+    {{- with .Values.config.apiServer }}
     apiServer:
       baseURL: {{.baseURL}}
       serviceURL: {{.serviceURL}}
     {{- end }}
 
-    {{- with .Values.auth }}
+    {{- with .Values.config.auth }}
     auth:
       {{- with .iap }}
       iap:
@@ -73,7 +90,7 @@ data:
       apiKey: {{.apiKey}}
     {{- end }}
 
-    {{- with .Values.jobs }}
+    {{- with .Values.config.jobs }}
     jobs:
       namespace: {{.namespace}}
       minCPUCores: {{.minCPUCores}}
@@ -84,7 +101,7 @@ data:
       memoryRequestRatio: {{.memoryRequestRatio}}
     {{- end }}
 
-    {{- with .Values.apiServer }}
+    {{- with .Values.config.database }}
     database:
       databaseName: {{.databaseName}}
       host: {{.host}}
@@ -95,27 +112,26 @@ data:
       password: {{.password}}
     {{- end }}
 
-    {{- with .Values.credentials }}
+    {{- with .Values.config.credentials }}
     credentials:
     {{- toYaml . | nindent 4 }}
     {{- end }}
 
-    {{- with .Values.trustedImages }}
+    {{- with .Values.config.trustedImages }}
     trustedImages:
     {{- toYaml . | nindent 4 }}
     {{- end }}
 
-
-    {{- with .Values.registryMirror }}
+    {{- with .Values.config.docker.registryMirror }}
     registryMirror: {{.}}
     {{- end }}
-    {{- with .Values.dindMtu }}
+    {{- with .Values.config.docker.dindMtu }}
     registryMdindMtuirror: {{.}}
     {{- end }}
-    {{- with .Values.dindBip }}
+    {{- with .Values.config.docker.dindBip }}
     dindBip: {{.}}
     {{- end }}
-    {{- with .Values.dindNetwork }}
+    {{- with .Values.config.docker.dindNetwork }}
     dindNetwork:
       name: {{.name}}
       subnet: {{.subnet}}

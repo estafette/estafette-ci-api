@@ -6,18 +6,182 @@
 # APPLICATION SETTINGS
 #
 
+config:
+  jobs:
+    # the namespace in which build/release jobs are created
+    namespace: estafette-ci-jobs
+    minCPUCores: 0.1
+    maxCPUCores: 7.0
+    cpuRequestRatio: 1.0
+    minMemoryBytes: 67108864
+    maxMemoryBytes: 21474836480
+    memoryRequestRatio: 1.25
+  
+  integrations:
+    github:
+      enable: false
+      privateKeyPath: /secrets/private-key.pem
+      appID:
+      clientID:
+      clientSecret:
+      webhookSecret:
+  
+    bitbucket:
+      enable: false
+      apiKey: 
+      appOAuthKey: 
+      appOAuthSecret: 
+  
+    slack:
+      enable: false
+      clientID: 
+      clientSecret:
+      appVerificationToken:
+      appOAuthAccessToken:
+  
+    pubsub:
+      enable: false
+      defaultProject:
+      endpoint:
+      audience:
+      serviceAccountEmail:
+      subscriptionNameSuffix:
+      subscriptionIdleExpirationDays: 365
+  
+    prometheus:
+      serverURL: http://prometheus-server.monitoring.svc.cluster.local
+      scrapeIntervalSeconds: 10
+  
+    bigquery:
+      enable: false
+      projectID:
+      dataset:
+  
+    cloudsource:
+      enable: false
+  
+  apiServer:
+    baseURL:
+    serviceURL:
+  
+  auth:
+    iap:
+      enable:
+      audience:
+    apiKey:
+  
+  database:
+    databaseName:
+    host:
+    insecure:
+    certificateDir:
+    port:
+    user:
+    password:
+  
+  credentials:
+  - name:
+    type: 'container-registry'
+    repository:
+    private: false
+    username:
+    password:
+  
+  trustedImages:
+  - path: extensions/git-clone
+    injectedCredentialTypes:
+    - bitbucket-api-token
+    - github-api-token
+  - path: extensions/git-trigger
+    injectedCredentialTypes:
+    - bitbucket-api-token
+    - github-api-token
+  - path: extensions/docker
+    runDocker: true
+    injectedCredentialTypes:
+    - container-registry
+  - path: extensions/prefetch
+    runDocker: true
+    injectedCredentialTypes:
+    - container-registry
+  - path: extensions/gke
+    injectedCredentialTypes:
+    - kubernetes-engine
+  - path: extensions/gcs
+    injectedCredentialTypes:
+    - kubernetes-engine
+  - path: extensions/cloud-function
+    injectedCredentialTypes:
+    - kubernetes-engine
+  - path: extensions/bitbucket-status
+    injectedCredentialTypes:
+    - bitbucket-api-token
+  - path: extensions/github-status
+    injectedCredentialTypes:
+    - github-api-token
+  - path: extensions/github-release
+    injectedCredentialTypes:
+    - github-api-token
+  - path: extensions/slack-build-status
+    injectedCredentialTypes:
+    - slack-webhook
+  - path: extensions/npm-audit
+    injectedCredentialTypes:
+    - slack-webhook
+  - path: extensions/dotnet
+    injectedCredentialTypes:
+    - nuget-server
+    - sonarqube-server
+  - path: estafette/estafette-ci-builder
+    runPrivileged: true
+    whitelistedPipelines: github.com/estafette/estafette-ci-builder
+  - path: extensions/cloudflare-purge
+    injectedCredentialTypes:
+    - cloudflare
+  - path: bsycorp/kind
+    runPrivileged: true
+  
+  docker:
+    registryMirror: https://mirror.gcr.io
+    dindMtu: 1460
+    dindBip: 192.168.1.1/24
+    dindNetwork:
+      name: estafette
+      subnet: 192.168.2.1/24
+      gateway: 192.168.2.1
+
+secret:
+  # if set to true the values are already base64 encoded when provided, otherwise the template performs the base64 encoding
+  valuesAreBase64Encoded: false
+
+  # the aes-256 key to encrypt/decrypt estafette secrets
+  decryptionKey:
+
+  # private key file for github app to communicate with the github api
+  githubPrivateKey:
+
+  # when using estafette-letsencrypt-certificate controller to fetch key files, set this to true and leave googleServiceAccountKeyfileJson empty
+  useLetsEncryptCertificateAnnotation: false
+
+  # pem file for certificate
+  certificatePemFile:
+
+  # private key file for certificate
+  certificateKeyFile:
+
 # prometheus metrics settings
 metrics:
-  enabled: true
+  enable: true
   path: /metrics
   port: 9001
   scheme: http
 
+# log format, can be one of plaintext, console, json or stackdriver
 logFormat: json
 
 jaeger:
   # if enabled the jaeger tracing library sends traces into the jaeger backend, otherwise the NoopTracer is used
-  enabled: false
+  enable: false
   # probabilistic, const or remote
   samplerType: remote
   # provides the probability if samplerType is probabilistic or remote (until remote config is received)
@@ -27,8 +191,9 @@ jaeger:
 hostnames:
 - ci.estafette.io
 
+# injects a sidecar to proxy traffic and emit metrics; not needed if you use a service mesh
 openresty:
-  enabled: true
+  enable: true
   image:
     repository: estafette/openresty-sidecar
     tag: 6f4ddb92882349c8a3058b21fc2d75f246e7ce68a470c5533da3b205fd6381e4
@@ -53,180 +218,6 @@ openresty:
     # limits:
     #   cpu: 75m
     #   memory: 50Mi
-
-extraContainers: |
-
-secret:
-  # if set to true the values are already base64 encoded when provided, otherwise the template performs the base64 encoding
-  valuesAreBase64Encoded: false
-
-  # the aes-256 key to encrypt/decrypt estafette secrets
-  decryptionKey:
-
-  # private key file for github app to communicate with the github api
-  githubPrivateKey:
-
-  # when using estafette-letsencrypt-certificate controller to fetch key files, set this to true and leave googleServiceAccountKeyfileJson empty
-  useLetsEncryptCertificateAnnotation: false
-
-  # pem file for certificate
-  certificatePemFile:
-
-  # private key file for certificate
-  certificateKeyFile:
-
-jobs:
-  # the namespace in which build/release jobs are created
-  namespace: estafette-ci-jobs
-  minCPUCores: 0.1
-  maxCPUCores: 7.0
-  cpuRequestRatio: 1.0
-  minMemoryBytes: 67108864
-  maxMemoryBytes: 21474836480
-  memoryRequestRatio: 1.25
-
-integrations:
-  github:
-    enabled: false
-    privateKeyPath: /secrets/private-key.pem
-    appID:
-    clientID:
-    clientSecret:
-    webhookSecret:
-
-  bitbucket:
-    enabled: false
-    apiKey: 
-    appOAuthKey: 
-    appOAuthSecret: 
-
-  slack:
-    enabled: false
-    clientID: 
-    clientSecret:
-    appVerificationToken:
-    appOAuthAccessToken:
-
-  pubsub:
-    enabled: false
-    defaultProject:
-    endpoint:
-    audience:
-    serviceAccountEmail:
-    subscriptionNameSuffix:
-    subscriptionIdleExpirationDays: 365
-
-  prometheus:
-    serverURL: http://prometheus-server.monitoring.svc.cluster.local
-    scrapeIntervalSeconds: 10
-
-  bigquery:
-    enabled: false
-    projectID:
-    dataset:
-
-  cloudsource:
-    enabled: false
-
-apiServer:
-  baseURL:
-  serviceURL:
-
-auth:
-  iap:
-    enable:
-    audience:
-  apiKey:
-
-database:
-  databaseName:
-  host:
-  insecure:
-  certificateDir:
-  port:
-  user:
-  password:
-
-credentials:
-- name:
-  type: 'container-registry'
-  repository:
-  private: false
-  username:
-  password:
-
-trustedImages:
-- path: extensions/git-clone
-  injectedCredentialTypes:
-  - bitbucket-api-token
-  - github-api-token
-- path: extensions/git-trigger
-  injectedCredentialTypes:
-  - bitbucket-api-token
-  - github-api-token
-- path: extensions/docker
-  runDocker: true
-  injectedCredentialTypes:
-  - container-registry
-- path: extensions/prefetch
-  runDocker: true
-  injectedCredentialTypes:
-  - container-registry
-- path: extensions/gke
-  injectedCredentialTypes:
-  - kubernetes-engine
-- path: extensions/gcs
-  injectedCredentialTypes:
-  - kubernetes-engine
-- path: extensions/cloud-function
-  injectedCredentialTypes:
-  - kubernetes-engine
-- path: extensions/bitbucket-status
-  injectedCredentialTypes:
-  - bitbucket-api-token
-- path: extensions/github-status
-  injectedCredentialTypes:
-  - github-api-token
-- path: extensions/github-release
-  injectedCredentialTypes:
-  - github-api-token
-- path: extensions/slack-build-status
-  injectedCredentialTypes:
-  - slack-webhook
-- path: extensions/npm-audit
-  injectedCredentialTypes:
-  - slack-webhook
-- path: extensions/dotnet
-  injectedCredentialTypes:
-  - nuget-server
-  - sonarqube-server
-- path: estafette/estafette-ci-builder
-  runPrivileged: true
-  whitelistedPipelines: github.com/estafette/estafette-ci-builder
-- path: extensions/cloudflare-purge
-  injectedCredentialTypes:
-  - cloudflare
-- path: bsycorp/kind
-  runPrivileged: true
-
-registryMirror: https://mirror.gcr.io
-dindMtu: 1460
-dindBip: 192.168.1.1/24
-dindNetwork:
-  name: estafette
-  subnet: 192.168.2.1/24
-  gateway: 192.168.2.1
-
-# poddisruptionbudget settings
-pdb:
-  maxUnavailable: 1
-
-# horizontalpodautoscaler settings
-hpa:
-  enable: true
-  minReplicas: 3
-  maxReplicas: 10
-  targetCPUUtilizationPercentage: 80
 
 #
 # GENERIC SETTINGS
@@ -255,6 +246,22 @@ rbac:
   # Specifies whether roles and bindings should be created
   enable: true
 
+# specify extra containers as a string, interpreted with tpl; this allows use of helm values.
+# - name: {{ .Chart.Name }}-sidecar
+# image: registry/git-sync
+extraContainers: |
+
+# poddisruptionbudget settings
+pdb:
+  maxUnavailable: 1
+
+# horizontalpodautoscaler settings
+hpa:
+  enable: true
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
 podSecurityContext: {}
   # fsGroup: 2000
 
@@ -282,14 +289,13 @@ service:
   port: 80
 
 ingress:
-  enabled: false
+  enable: false
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   hosts:
     - host: chart-example.local
       paths: []
-
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
@@ -299,6 +305,7 @@ nodeSelector: {}
 
 tolerations: []
 
+# set affinity rules as a string, interpreted by tpl
 affinity: |
   podAntiAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:
