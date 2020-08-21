@@ -43,7 +43,6 @@ type Client interface {
 
 // NewClient returns a new estafette.Client
 func NewClient(config *api.APIConfig, encryptedConfig *api.APIConfig, secretHelper crypt.SecretHelper, kubeClientset *kubernetes.Clientset, dockerHubClient dockerhubapi.Client) Client {
-
 	return &client{
 		kubeClientset:   kubeClientset,
 		dockerHubClient: dockerHubClient,

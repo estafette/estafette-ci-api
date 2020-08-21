@@ -9,6 +9,7 @@
 config: |
   integrations:
     github:
+      enable: false
       privateKeyPath: /secrets/private-key.pem
       appID: 15
       clientID: asdas2342
@@ -26,6 +27,7 @@ config: |
         - name: Estafette
 
     bitbucket:
+      enable: false
       apiKey: sd9ewiwuejkwejkewk
       appOAuthKey: 2390w3e90jdsk
       appOAuthSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
@@ -37,6 +39,7 @@ config: |
         - name: Estafette
 
     slack:
+      enable: false
       clientID: d9ew90weoijewjke
       clientSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
       appVerificationToken: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
@@ -61,6 +64,7 @@ config: |
         - name: Estafette
 
     prometheus:
+      enable: false
       serverURL: http://prometheus-server.monitoring.svc.cluster.local
       scrapeIntervalSeconds: 10
 

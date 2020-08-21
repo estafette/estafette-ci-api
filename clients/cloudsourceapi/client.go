@@ -24,11 +24,11 @@ type Client interface {
 }
 
 // NewClient creates an cloudsource.Client to communicate with the Google Cloud Source Repository api
-func NewClient(config *api.APIConfig, tokenSource oauth2.TokenSource, sourcerepoService *sourcerepo.Service) (Client, error) {
+func NewClient(config *api.APIConfig, tokenSource oauth2.TokenSource, sourcerepoService *sourcerepo.Service) Client {
 	if config == nil || config.Integrations == nil || config.Integrations.CloudSource == nil || !config.Integrations.CloudSource.Enable {
 		return &client{
 			enabled: false,
-		}, nil
+		}
 	}
 
 	return &client{
@@ -36,7 +36,7 @@ func NewClient(config *api.APIConfig, tokenSource oauth2.TokenSource, sourcerepo
 		config:      config,
 		service:     sourcerepoService,
 		tokenSource: tokenSource,
-	}, nil
+	}
 }
 
 type client struct {

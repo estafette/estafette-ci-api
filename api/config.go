@@ -306,6 +306,7 @@ type APIConfigIntegrations struct {
 
 // GithubConfig is used to configure github integration
 type GithubConfig struct {
+	Enable                    bool                        `yaml:"enable"`
 	PrivateKeyPath            string                      `yaml:"privateKeyPath"`
 	AppID                     string                      `yaml:"appID"`
 	ClientID                  string                      `yaml:"clientID"`
@@ -323,6 +324,7 @@ type InstallationOrganizations struct {
 
 // BitbucketConfig is used to configure bitbucket integration
 type BitbucketConfig struct {
+	Enable             bool                 `yaml:"enable"`
 	APIKey             string               `yaml:"apiKey"`
 	AppOAuthKey        string               `yaml:"appOAuthKey"`
 	AppOAuthSecret     string               `yaml:"appOAuthSecret"`
@@ -338,6 +340,7 @@ type OwnerOrganizations struct {
 
 // SlackConfig is used to configure slack integration
 type SlackConfig struct {
+	Enable               bool   `yaml:"enable"`
 	ClientID             string `yaml:"clientID"`
 	ClientSecret         string `yaml:"clientSecret"`
 	AppVerificationToken string `yaml:"appVerificationToken"`
@@ -365,6 +368,7 @@ type CloudStorageConfig struct {
 
 // PrometheusConfig configures where to find prometheus for retrieving max cpu and memory consumption of build and release jobs
 type PrometheusConfig struct {
+	Enable                bool   `yaml:"enable"`
 	ServerURL             string `yaml:"serverURL"`
 	ScrapeIntervalSeconds int    `yaml:"scrapeIntervalSeconds"`
 }

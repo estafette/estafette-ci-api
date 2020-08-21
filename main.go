@@ -372,10 +372,7 @@ func getClients(ctx context.Context, config *api.APIConfig, encryptedConfig *api
 	)
 
 	// cloudsourceapi client
-	cloudsourceClient, err = cloudsourceapi.NewClient(config, sourcerepoTokenSource, sourcerepoService)
-	if err != nil {
-		log.Error().Err(err).Msg("Creating new client for Cloud Source has failed")
-	}
+	cloudsourceClient = cloudsourceapi.NewClient(config, sourcerepoTokenSource, sourcerepoService)
 	cloudsourceClient = cloudsourceapi.NewTracingClient(cloudsourceClient)
 	cloudsourceClient = cloudsourceapi.NewLoggingClient(cloudsourceClient)
 	cloudsourceClient = cloudsourceapi.NewMetricsClient(cloudsourceClient,

@@ -21,8 +21,7 @@ func TestGetToken(t *testing.T) {
 	t.Run("ReturnsTokenForRepository", func(t *testing.T) {
 
 		config, tokenSource, service := getTokenSourceAndService()
-		client, err := NewClient(config, tokenSource, service)
-		assert.Nil(t, err)
+		client := NewClient(config, tokenSource, service)
 
 		// act
 		token, err := client.GetAccessToken(context.Background())
@@ -37,8 +36,7 @@ func TestGetAuthenticatedRepositoryURL(t *testing.T) {
 	t.Run("ReturnsAuthenticatedURLForRepository", func(t *testing.T) {
 
 		config, tokenSource, service := getTokenSourceAndService()
-		client, err := NewClient(config, tokenSource, service)
-		assert.Nil(t, err)
+		client := NewClient(config, tokenSource, service)
 
 		// act
 		ctx := context.Background()
@@ -76,8 +74,7 @@ func TestGetEstafetteManifest(t *testing.T) {
 	t.Run("ReturnsFalseIfNoManifestExists", func(t *testing.T) {
 
 		config, tokenSource, service := getTokenSourceAndService()
-		client, err := NewClient(config, tokenSource, service)
-		assert.Nil(t, err)
+		client := NewClient(config, tokenSource, service)
 
 		ctx := context.Background()
 		token, err := client.GetAccessToken(ctx)
@@ -100,8 +97,7 @@ func TestGetEstafetteManifest(t *testing.T) {
 	t.Run("ReturnsTrueIfManifestExists", func(t *testing.T) {
 
 		config, tokenSource, service := getTokenSourceAndService()
-		client, err := NewClient(config, tokenSource, service)
-		assert.Nil(t, err)
+		client := NewClient(config, tokenSource, service)
 
 		ctx := context.Background()
 		token, err := client.GetAccessToken(ctx)

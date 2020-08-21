@@ -35,7 +35,6 @@ type Client interface {
 
 // NewClient returns new cloudstorage.Client
 func NewClient(config *api.APIConfig, storageClient *storage.Client) Client {
-
 	if config == nil || config.Integrations == nil || config.Integrations.CloudStorage == nil || !config.Integrations.CloudStorage.Enable {
 		return &client{
 			enabled: false,

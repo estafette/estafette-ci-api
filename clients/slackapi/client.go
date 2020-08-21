@@ -21,13 +21,21 @@ type Client interface {
 
 // NewClient returns a slack.Client to communicate with the Slack API
 func NewClient(config *api.APIConfig) Client {
+	if config == nil || config.Integrations == nil || config.Integrations.Slack == nil || !config.Integrations.Slack.Enable {
+		return &client{
+			enabled: true,
+		}
+	}
+
 	return &client{
-		config: config,
+		enabled: true,
+		config:  config,
 	}
 }
 
 type client struct {
-	config *api.APIConfig
+	enabled bool
+	config  *api.APIConfig
 }
 
 // GetUserProfile returns a Slack user profile

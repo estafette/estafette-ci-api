@@ -1,5 +1,6 @@
 integrations:
   github:
+    enable: true
     privateKeyPath: /github-app-key/private-key.pem
     appID: 15
     clientID: asdas2342
@@ -17,6 +18,7 @@ integrations:
       - name: Estafette
 
   bitbucket:
+    enable: true
     apiKey: sd9ewiwuejkwejkewk
     appOAuthKey: 2390w3e90jdsk
     appOAuthSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
@@ -28,12 +30,14 @@ integrations:
       - name: Estafette
   
   slack:
+    enable: true
     clientID: d9ew90weoijewjke
     clientSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
     appVerificationToken: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
     appOAuthAccessToken: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
 
   pubsub:
+    enable: true
     defaultProject: estafette
     endpoint: https://ci-integrations.estafette.io/api/integrations/pubsub/events
     audience: estafette-audience
@@ -51,6 +55,7 @@ integrations:
       - name: Estafette
 
   prometheus:
+    enable: true
     serverURL: http://prometheus-server.monitoring.svc.cluster.local
     scrapeIntervalSeconds: 10
 
