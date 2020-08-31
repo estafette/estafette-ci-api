@@ -207,9 +207,9 @@ func TestCreateJobForGithubPush(t *testing.T) {
 	})
 }
 
-func TestIsWhitelistedInstallation(t *testing.T) {
+func TestIsAllowedInstallation(t *testing.T) {
 
-	t.Run("ReturnsTrueIfWhitelistedInstallationsConfigIsEmpty", func(t *testing.T) {
+	t.Run("ReturnsTrueIfAllowedInstallationsConfigIsEmpty", func(t *testing.T) {
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
@@ -228,12 +228,12 @@ func TestIsWhitelistedInstallation(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted, _ := service.IsWhitelistedInstallation(context.Background(), installation)
+		isAllowed, _ := service.IsAllowedInstallation(context.Background(), installation)
 
-		assert.True(t, isWhitelisted)
+		assert.True(t, isAllowed)
 	})
 
-	t.Run("ReturnsFalseIfInstallationIDIsNotInWhitelistedInstallationsConfig", func(t *testing.T) {
+	t.Run("ReturnsFalseIfInstallationIDIsNotInAllowedInstallationsConfig", func(t *testing.T) {
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
@@ -256,12 +256,12 @@ func TestIsWhitelistedInstallation(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted, _ := service.IsWhitelistedInstallation(context.Background(), installation)
+		isAllowed, _ := service.IsAllowedInstallation(context.Background(), installation)
 
-		assert.False(t, isWhitelisted)
+		assert.False(t, isAllowed)
 	})
 
-	t.Run("ReturnsTrueIfInstallationIDIsInWhitelistedInstallationsConfig", func(t *testing.T) {
+	t.Run("ReturnsTrueIfInstallationIDIsInAllowedInstallationsConfig", func(t *testing.T) {
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
@@ -287,9 +287,9 @@ func TestIsWhitelistedInstallation(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted, _ := service.IsWhitelistedInstallation(context.Background(), installation)
+		isAllowed, _ := service.IsAllowedInstallation(context.Background(), installation)
 
-		assert.True(t, isWhitelisted)
+		assert.True(t, isAllowed)
 	})
 }
 
@@ -300,7 +300,7 @@ func TestRename(t *testing.T) {
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Github: &api.GithubConfig{
-					WhitelistedInstallations: []int{},
+					AllowedInstallations: []int{},
 				},
 			},
 		}

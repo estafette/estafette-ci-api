@@ -29,7 +29,7 @@ type Service interface {
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
-	IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool, organizations []*contracts.Organization)
+	IsAllowedInstallation(ctx context.Context, installation githubapi.Installation) (isAllowed bool, organizations []*contracts.Organization)
 }
 
 // NewService returns a github.Service to handle incoming webhook events
@@ -100,7 +100,7 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 	}
 
 	// get organizations linked to integration
-	_, organizations := s.IsWhitelistedInstallation(ctx, pushEvent.Installation)
+	_, organizations := s.IsAllowedInstallation(ctx, pushEvent.Installation)
 
 	// create build object and hand off to build service
 	_, err = s.estafetteService.CreateBuild(ctx, contracts.Build{
@@ -175,7 +175,7 @@ func (s *service) Unarchive(ctx context.Context, repoSource, repoOwner, repoName
 	return s.estafetteService.Unarchive(ctx, repoSource, repoOwner, repoName)
 }
 
-func (s *service) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool, organizations []*contracts.Organization) {
+func (s *service) IsAllowedInstallation(ctx context.Context, installation githubapi.Installation) (isAllowed bool, organizations []*contracts.Organization) {
 
 	if len(s.config.Integrations.Github.InstallationOrganizations) == 0 {
 		return true, []*contracts.Organization{}

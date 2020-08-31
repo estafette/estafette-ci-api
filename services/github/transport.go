@@ -47,7 +47,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		return
 	}
 
-	// unmarshal json body to check if installation is whitelisted
+	// unmarshal json body to check if installation is allowed
 	var anyEvent githubapi.AnyEvent
 	err = json.Unmarshal(body, &anyEvent)
 	if err != nil {
@@ -55,9 +55,9 @@ func (h *Handler) Handle(c *gin.Context) {
 		return
 	}
 
-	// verify installation id is whitelisted
-	isWhitelisted, _ := h.service.IsWhitelistedInstallation(c.Request.Context(), anyEvent.Installation)
-	if !isWhitelisted {
+	// verify installation id is allowed
+	isAllowed, _ := h.service.IsAllowedInstallation(c.Request.Context(), anyEvent.Installation)
+	if !isAllowed {
 		c.Status(http.StatusUnauthorized)
 		return
 	}

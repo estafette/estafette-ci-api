@@ -17,7 +17,7 @@ type AccessToken struct {
 	TokenType    string `json:"token_type"`
 }
 
-// AnyEvent represents any Bitbucket event to check for whitelisted owners
+// AnyEvent represents any Bitbucket event to check for allowed owners
 type AnyEvent struct {
 	Repository Repository `json:"repository"`
 }

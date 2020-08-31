@@ -8,12 +8,12 @@ import (
 )
 
 type MockService struct {
-	CreateJobForGithubPushFunc    func(ctx context.Context, event githubapi.PushEvent) (err error)
-	HasValidSignatureFunc         func(ctx context.Context, body []byte, signatureHeader string) (validSignature bool, err error)
-	RenameFunc                    func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
-	ArchiveFunc                   func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
-	UnarchiveFunc                 func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
-	IsWhitelistedInstallationFunc func(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool, organizations []*contracts.Organization)
+	CreateJobForGithubPushFunc func(ctx context.Context, event githubapi.PushEvent) (err error)
+	HasValidSignatureFunc      func(ctx context.Context, body []byte, signatureHeader string) (validSignature bool, err error)
+	RenameFunc                 func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
+	ArchiveFunc                func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
+	UnarchiveFunc              func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
+	IsAllowedInstallationFunc  func(ctx context.Context, installation githubapi.Installation) (isAllowed bool, organizations []*contracts.Organization)
 }
 
 func (s MockService) CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) (err error) {
@@ -51,9 +51,9 @@ func (s MockService) Unarchive(ctx context.Context, repoSource, repoOwner, repoN
 	return s.UnarchiveFunc(ctx, repoSource, repoOwner, repoName)
 }
 
-func (s MockService) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool, organizations []*contracts.Organization) {
-	if s.IsWhitelistedInstallationFunc == nil {
+func (s MockService) IsAllowedInstallation(ctx context.Context, installation githubapi.Installation) (isAllowed bool, organizations []*contracts.Organization) {
+	if s.IsAllowedInstallationFunc == nil {
 		return
 	}
-	return s.IsWhitelistedInstallationFunc(ctx, installation)
+	return s.IsAllowedInstallationFunc(ctx, installation)
 }

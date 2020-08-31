@@ -43,8 +43,8 @@ func (s *metricsService) Rename(ctx context.Context, fromRepoSource, fromRepoOwn
 	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
-func (s *metricsService) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool, organizations []*contracts.Organization) {
+func (s *metricsService) IsAllowedInstallation(ctx context.Context, installation githubapi.Installation) (isAllowed bool, organizations []*contracts.Organization) {
 	defer func(begin time.Time) { api.UpdateMetrics(s.requestCount, s.requestLatency, "Rename", begin) }(time.Now())
 
-	return s.Service.IsWhitelistedInstallation(ctx, installation)
+	return s.Service.IsAllowedInstallation(ctx, installation)
 }

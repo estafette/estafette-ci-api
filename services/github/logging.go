@@ -38,6 +38,6 @@ func (s *loggingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwn
 	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
-func (s *loggingService) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool, organizations []*contracts.Organization) {
-	return s.Service.IsWhitelistedInstallation(ctx, installation)
+func (s *loggingService) IsAllowedInstallation(ctx context.Context, installation githubapi.Installation) (isAllowed bool, organizations []*contracts.Organization) {
+	return s.Service.IsAllowedInstallation(ctx, installation)
 }

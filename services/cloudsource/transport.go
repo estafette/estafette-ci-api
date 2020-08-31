@@ -52,9 +52,9 @@ func (h *Handler) PostPubsubEvent(c *gin.Context) {
 		Str("subscription", message.GetSubscription()).
 		Msg("Successfully binded pubsub push event")
 
-	// verify project is whitelisted
-	isWhitelisted, _ := h.service.IsWhitelistedProject(notification)
-	if !isWhitelisted {
+	// verify project is allowed
+	isAllowed, _ := h.service.IsAllowedProject(notification)
+	if !isAllowed {
 		c.Status(http.StatusUnauthorized)
 		return
 	}

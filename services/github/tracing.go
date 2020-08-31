@@ -40,9 +40,9 @@ func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwn
 	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
-func (s *tracingService) IsWhitelistedInstallation(ctx context.Context, installation githubapi.Installation) (isWhiteListed bool, organizations []*contracts.Organization) {
+func (s *tracingService) IsAllowedInstallation(ctx context.Context, installation githubapi.Installation) (isAllowed bool, organizations []*contracts.Organization) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "Rename"))
 	defer func() { api.FinishSpan(span) }()
 
-	return s.Service.IsWhitelistedInstallation(ctx, installation)
+	return s.Service.IsAllowedInstallation(ctx, installation)
 }

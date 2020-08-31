@@ -273,9 +273,9 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 	})
 }
 
-func TestIsWhitelistedProject(t *testing.T) {
+func TestIsAllowedProject(t *testing.T) {
 
-	t.Run("ReturnsTrueIfWhitelistedProjectsConfigIsEmpty", func(t *testing.T) {
+	t.Run("ReturnsTrueIfAllowedProjectsConfigIsEmpty", func(t *testing.T) {
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
@@ -307,12 +307,12 @@ func TestIsWhitelistedProject(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted, _ := service.IsWhitelistedProject(notification)
+		isAllowed, _ := service.IsAllowedProject(notification)
 
-		assert.True(t, isWhitelisted)
+		assert.True(t, isAllowed)
 	})
 
-	t.Run("ReturnsFalseIfOwnerUsernameIsNotInWhitelistedProjectsConfig", func(t *testing.T) {
+	t.Run("ReturnsFalseIfOwnerUsernameIsNotInAllowedProjectsConfig", func(t *testing.T) {
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
@@ -348,12 +348,12 @@ func TestIsWhitelistedProject(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted, _ := service.IsWhitelistedProject(notification)
+		isAllowed, _ := service.IsAllowedProject(notification)
 
-		assert.False(t, isWhitelisted)
+		assert.False(t, isAllowed)
 	})
 
-	t.Run("ReturnsTrueIfOwnerUsernameIsInWhitelistedProjectsConfig", func(t *testing.T) {
+	t.Run("ReturnsTrueIfOwnerUsernameIsInAllowedProjectsConfig", func(t *testing.T) {
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
@@ -392,8 +392,8 @@ func TestIsWhitelistedProject(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted, _ := service.IsWhitelistedProject(notification)
+		isAllowed, _ := service.IsAllowedProject(notification)
 
-		assert.True(t, isWhitelisted)
+		assert.True(t, isAllowed)
 	})
 }

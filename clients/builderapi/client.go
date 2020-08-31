@@ -506,7 +506,7 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 	// add dynamic github api token credential
 	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_GITHUB_API_TOKEN"]; ok {
 
-		encryptedTokenEnvelope, err := c.secretHelper.EncryptEnvelope(token, crypt.DefaultPipelineWhitelist)
+		encryptedTokenEnvelope, err := c.secretHelper.EncryptEnvelope(token, crypt.DefaultPipelineAllowList)
 		if err != nil {
 			return contracts.BuilderConfig{}, err
 		}
@@ -523,7 +523,7 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 	// add dynamic bitbucket api token credential
 	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_BITBUCKET_API_TOKEN"]; ok {
 
-		encryptedTokenEnvelope, err := c.secretHelper.EncryptEnvelope(token, crypt.DefaultPipelineWhitelist)
+		encryptedTokenEnvelope, err := c.secretHelper.EncryptEnvelope(token, crypt.DefaultPipelineAllowList)
 		if err != nil {
 			return contracts.BuilderConfig{}, err
 		}
@@ -540,7 +540,7 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 	// add dynamic cloudsource api token credential
 	if token, ok := ciBuilderParams.EnvironmentVariables["ESTAFETTE_CLOUDSOURCE_API_TOKEN"]; ok {
 
-		encryptedTokenEnvelope, err := c.secretHelper.EncryptEnvelope(token, crypt.DefaultPipelineWhitelist)
+		encryptedTokenEnvelope, err := c.secretHelper.EncryptEnvelope(token, crypt.DefaultPipelineAllowList)
 		if err != nil {
 			return contracts.BuilderConfig{}, err
 		}
@@ -559,7 +559,7 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 	credentials = contracts.FilterCredentials(credentials, trustedImages, ciBuilderParams.GetFullRepoPath())
 
 	// add container-registry credentials to allow private registry images to be used in stages
-	credentials = contracts.AddCredentialsIfNotPresent(credentials, contracts.FilterCredentialsByPipelinesWhitelist(contracts.GetCredentialsByType(c.encryptedConfig.Credentials, "container-registry"), ciBuilderParams.GetFullRepoPath()))
+	credentials = contracts.AddCredentialsIfNotPresent(credentials, contracts.FilterCredentialsByPipelinesAllowList(contracts.GetCredentialsByType(c.encryptedConfig.Credentials, "container-registry"), ciBuilderParams.GetFullRepoPath()))
 
 	localBuilderConfig := contracts.BuilderConfig{
 		Credentials:     credentials,

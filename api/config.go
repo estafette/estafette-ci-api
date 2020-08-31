@@ -311,7 +311,7 @@ type GithubConfig struct {
 	ClientID                  string                      `yaml:"clientID"`
 	ClientSecret              string                      `yaml:"clientSecret"`
 	WebhookSecret             string                      `yaml:"webhookSecret"`
-	WhitelistedInstallations  []int                       `yaml:"whitelistedInstallations"`
+	AllowedInstallations      []int                       `yaml:"allowedInstallations"`
 	InstallationOrganizations []InstallationOrganizations `yaml:"installationOrganizations"`
 }
 
@@ -326,7 +326,7 @@ type BitbucketConfig struct {
 	APIKey             string               `yaml:"apiKey"`
 	AppOAuthKey        string               `yaml:"appOAuthKey"`
 	AppOAuthSecret     string               `yaml:"appOAuthSecret"`
-	WhitelistedOwners  []string             `yaml:"whitelistedOwners"`
+	AllowedOwners      []string             `yaml:"allowedOwners"`
 	OwnerOrganizations []OwnerOrganizations `yaml:"ownerOrganizations"`
 }
 
@@ -376,7 +376,7 @@ type BigQueryConfig struct {
 
 // CloudSourceConfig is used to configure cloudSource integration
 type CloudSourceConfig struct {
-	WhitelistedProjects  []string               `yaml:"whitelistedProjects"`
+	AllowedProjects      []string               `yaml:"allowedProjects"`
 	ProjectOrganizations []ProjectOrganizations `yaml:"projectOrganizations"`
 }
 

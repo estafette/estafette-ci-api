@@ -12,7 +12,7 @@ type MockService struct {
 	RenameFunc                    func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	ArchiveFunc                   func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UnarchiveFunc                 func(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
-	IsWhitelistedOwnerFunc        func(repository bitbucketapi.Repository) (isWhiteListed bool, organizations []*contracts.Organization)
+	IsAllowedOwnerFunc            func(repository bitbucketapi.Repository) (isAllowed bool, organizations []*contracts.Organization)
 }
 
 func (s MockService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error) {
@@ -43,9 +43,9 @@ func (s MockService) Unarchive(ctx context.Context, repoSource, repoOwner, repoN
 	return s.UnarchiveFunc(ctx, repoSource, repoOwner, repoName)
 }
 
-func (s MockService) IsWhitelistedOwner(repository bitbucketapi.Repository) (isWhiteListed bool, organizations []*contracts.Organization) {
-	if s.IsWhitelistedOwnerFunc == nil {
+func (s MockService) IsAllowedOwner(repository bitbucketapi.Repository) (isAllowed bool, organizations []*contracts.Organization) {
+	if s.IsAllowedOwnerFunc == nil {
 		return
 	}
-	return s.IsWhitelistedOwnerFunc(repository)
+	return s.IsAllowedOwnerFunc(repository)
 }

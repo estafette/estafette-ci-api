@@ -34,9 +34,9 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "15", githubConfig.AppID)
 		assert.Equal(t, "asdas2342", githubConfig.ClientID)
 		assert.Equal(t, "this is my secret", githubConfig.ClientSecret)
-		assert.Equal(t, 2, len(githubConfig.WhitelistedInstallations))
-		assert.Equal(t, 15, githubConfig.WhitelistedInstallations[0])
-		assert.Equal(t, 83, githubConfig.WhitelistedInstallations[1])
+		assert.Equal(t, 2, len(githubConfig.AllowedInstallations))
+		assert.Equal(t, 15, githubConfig.AllowedInstallations[0])
+		assert.Equal(t, 83, githubConfig.AllowedInstallations[1])
 
 		assert.Equal(t, 2, len(githubConfig.InstallationOrganizations))
 		assert.Equal(t, 15, githubConfig.InstallationOrganizations[0].Installation)
@@ -59,8 +59,8 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "sd9ewiwuejkwejkewk", bitbucketConfig.APIKey)
 		assert.Equal(t, "2390w3e90jdsk", bitbucketConfig.AppOAuthKey)
 		assert.Equal(t, "this is my secret", bitbucketConfig.AppOAuthSecret)
-		assert.Equal(t, 1, len(bitbucketConfig.WhitelistedOwners))
-		assert.Equal(t, "estafette", bitbucketConfig.WhitelistedOwners[0])
+		assert.Equal(t, 1, len(bitbucketConfig.AllowedOwners))
+		assert.Equal(t, "estafette", bitbucketConfig.AllowedOwners[0])
 
 		assert.Equal(t, 1, len(bitbucketConfig.OwnerOrganizations))
 		assert.Equal(t, "estafette", bitbucketConfig.OwnerOrganizations[0].Owner)
@@ -77,7 +77,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		cloudsourceConfig := config.Integrations.CloudSource
 
-		assert.Equal(t, "estafette", cloudsourceConfig.WhitelistedProjects[0])
+		assert.Equal(t, "estafette", cloudsourceConfig.AllowedProjects[0])
 		assert.Equal(t, 1, len(cloudsourceConfig.ProjectOrganizations))
 		assert.Equal(t, "estafette", cloudsourceConfig.ProjectOrganizations[0].Project)
 		assert.Equal(t, 1, len(cloudsourceConfig.ProjectOrganizations[0].Organizations))

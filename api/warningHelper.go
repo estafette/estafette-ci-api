@@ -117,7 +117,7 @@ func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteMani
 		}
 
 		for _, sv := range secretValues {
-			_, pipelineWhitelist, err := w.secretHelper.Decrypt(sv, fullRepoPath)
+			_, pipelineAllowList, err := w.secretHelper.Decrypt(sv, fullRepoPath)
 			if err != nil && !errors.Is(err, crypt.ErrRestrictedSecret) {
 				return warnings, err
 			}
@@ -130,7 +130,7 @@ func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteMani
 				break
 			}
 
-			if pipelineWhitelist == crypt.DefaultPipelineWhitelist {
+			if pipelineAllowList == crypt.DefaultPipelineAllowList {
 				warnings = append(warnings, contracts.Warning{
 					Status:  "warning",
 					Message: "This pipeline uses _global_ secrets which can be used by any pipeline; it is [best practice](https://estafette.io/usage/best-practices/#use-pipeline-restricted-secrets-instead-of-global-secrets) to use _restricted_ secrets instead, that can only be used by this pipeline. Please rotate the value stored in the secret and create a new one in the pipeline's secrets tab.",

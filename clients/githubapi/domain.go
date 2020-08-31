@@ -7,7 +7,7 @@ import (
 
 const repoSource = "github.com"
 
-// AnyEvent represents any of the Github webhook events, to check if installation is whitelisted
+// AnyEvent represents any of the Github webhook events, to check if installation is allowed
 type AnyEvent struct {
 	Installation Installation `json:"installation"`
 }

@@ -9,7 +9,7 @@ import (
 
 type MockService struct {
 	CreateJobForCloudSourcePushFunc func(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error)
-	IsWhitelistedProjectFunc        func(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool, organizations []*contracts.Organization)
+	IsAllowedProjectFunc            func(notification cloudsourceapi.PubSubNotification) (isAllowed bool, organizations []*contracts.Organization)
 }
 
 func (s MockService) CreateJobForCloudSourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error) {
@@ -19,9 +19,9 @@ func (s MockService) CreateJobForCloudSourcePush(ctx context.Context, notificati
 	return s.CreateJobForCloudSourcePushFunc(ctx, notification)
 }
 
-func (s MockService) IsWhitelistedProject(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool, organizations []*contracts.Organization) {
-	if s.IsWhitelistedProjectFunc == nil {
+func (s MockService) IsAllowedProject(notification cloudsourceapi.PubSubNotification) (isAllowed bool, organizations []*contracts.Organization) {
+	if s.IsAllowedProjectFunc == nil {
 		return
 	}
-	return s.IsWhitelistedProjectFunc(notification)
+	return s.IsAllowedProjectFunc(notification)
 }

@@ -363,9 +363,9 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 	})
 }
 
-func TestIsWhitelistedOwner(t *testing.T) {
+func TestIsAllowedOwner(t *testing.T) {
 
-	t.Run("ReturnsTrueIfWhitelistedOwnersConfigIsEmpty", func(t *testing.T) {
+	t.Run("ReturnsTrueIfAllowedOwnersConfigIsEmpty", func(t *testing.T) {
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
@@ -386,12 +386,12 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted, _ := service.IsWhitelistedOwner(repository)
+		isAllowed, _ := service.IsAllowedOwner(repository)
 
-		assert.True(t, isWhitelisted)
+		assert.True(t, isAllowed)
 	})
 
-	t.Run("ReturnsFalseIfOwnerUsernameIsNotInWhitelistedOwnersConfig", func(t *testing.T) {
+	t.Run("ReturnsFalseIfOwnerUsernameIsNotInAllowedOwnersConfig", func(t *testing.T) {
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
@@ -416,12 +416,12 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted, _ := service.IsWhitelistedOwner(repository)
+		isAllowed, _ := service.IsAllowedOwner(repository)
 
-		assert.False(t, isWhitelisted)
+		assert.False(t, isAllowed)
 	})
 
-	t.Run("ReturnsTrueIfOwnerUsernameIsInWhitelistedOwnersConfig", func(t *testing.T) {
+	t.Run("ReturnsTrueIfOwnerUsernameIsInAllowedOwnersConfig", func(t *testing.T) {
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
@@ -449,9 +449,9 @@ func TestIsWhitelistedOwner(t *testing.T) {
 		}
 
 		// act
-		isWhitelisted, _ := service.IsWhitelistedOwner(repository)
+		isAllowed, _ := service.IsAllowedOwner(repository)
 
-		assert.True(t, isWhitelisted)
+		assert.True(t, isAllowed)
 	})
 }
 

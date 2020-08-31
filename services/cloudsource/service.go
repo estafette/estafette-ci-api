@@ -21,7 +21,7 @@ var (
 // Service handles pubsub events for Cloud Source Repository integration
 type Service interface {
 	CreateJobForCloudSourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error)
-	IsWhitelistedProject(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool, organizations []*contracts.Organization)
+	IsAllowedProject(notification cloudsourceapi.PubSubNotification) (isAllowed bool, organizations []*contracts.Organization)
 }
 
 // NewService returns a new bitbucket.Service
@@ -97,7 +97,7 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 	}
 
 	// get organizations linked to integration
-	_, organizations := s.IsWhitelistedProject(notification)
+	_, organizations := s.IsAllowedProject(notification)
 
 	// create build object and hand off to build service
 	_, err = s.estafetteService.CreateBuild(ctx, contracts.Build{
@@ -132,7 +132,7 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 	return nil
 }
 
-func (s *service) IsWhitelistedProject(notification cloudsourceapi.PubSubNotification) (isWhiteListed bool, organizations []*contracts.Organization) {
+func (s *service) IsAllowedProject(notification cloudsourceapi.PubSubNotification) (isAllowed bool, organizations []*contracts.Organization) {
 
 	if len(s.config.Integrations.CloudSource.ProjectOrganizations) == 0 {
 		return true, []*contracts.Organization{}

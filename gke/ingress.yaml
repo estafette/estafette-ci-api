@@ -19,8 +19,8 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "{{.NginxIngressProxyConnectTimeout}}"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "{{.NginxIngressProxySendTimeout}}"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "{{.NginxIngressProxyReadTimeout}}"
-    {{- if .OverrideDefaultWhitelist}}
-    nginx.ingress.kubernetes.io/whitelist-source-range: "{{.NginxIngressWhitelist}}"
+    {{- if .OverrideDefaultAllowList}}
+    nginx.ingress.kubernetes.io/whitelist-source-range: "{{.NginxIngressAllowList}}"
     {{- end}}
     {{- end}}
     {{- if .UseGCEIngress}}

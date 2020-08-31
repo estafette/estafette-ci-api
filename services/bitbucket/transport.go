@@ -35,7 +35,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		return
 	}
 
-	// unmarshal json body to check if installation is whitelisted
+	// unmarshal json body to check if installation is allowed
 	var anyEvent bitbucketapi.AnyEvent
 	err = json.Unmarshal(body, &anyEvent)
 	if err != nil {
@@ -43,9 +43,9 @@ func (h *Handler) Handle(c *gin.Context) {
 		return
 	}
 
-	// verify owner is whitelisted
-	isWhitelisted, _ := h.service.IsWhitelistedOwner(anyEvent.Repository)
-	if !isWhitelisted {
+	// verify owner is allowed
+	isAllowed, _ := h.service.IsAllowedOwner(anyEvent.Repository)
+	if !isAllowed {
 		c.Status(http.StatusUnauthorized)
 		return
 	}
