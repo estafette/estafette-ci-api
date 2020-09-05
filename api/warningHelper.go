@@ -43,15 +43,17 @@ func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteMani
 		for _, s := range manifest.Stages {
 			if len(s.ParallelStages) > 0 {
 				for _, ns := range s.ParallelStages {
-					containerImageRepo, _, containerImageTag := w.GetContainerImageParts(ns.ContainerImage)
-					if containerImageTag == "latest" {
-						stagesUsingLatestTag = append(stagesUsingLatestTag, ns.Name)
-					}
-					if containerImageTag == "dev" && containerImageRepo == "extensions" && !isEstafettePipeline {
-						stagesUsingDevTag = append(stagesUsingDevTag, ns.Name)
+					if ns.ContainerImage != "" {
+						containerImageRepo, _, containerImageTag := w.GetContainerImageParts(ns.ContainerImage)
+						if containerImageTag == "latest" {
+							stagesUsingLatestTag = append(stagesUsingLatestTag, ns.Name)
+						}
+						if containerImageTag == "dev" && containerImageRepo == "extensions" && !isEstafettePipeline {
+							stagesUsingDevTag = append(stagesUsingDevTag, ns.Name)
+						}
 					}
 				}
-			} else {
+			} else if s.ContainerImage != "" {
 				containerImageRepo, _, containerImageTag := w.GetContainerImageParts(s.ContainerImage)
 				if containerImageTag == "latest" {
 					stagesUsingLatestTag = append(stagesUsingLatestTag, s.Name)
@@ -66,15 +68,17 @@ func (w *warningHelperImpl) GetManifestWarnings(manifest *manifest.EstafetteMani
 			for _, s := range r.Stages {
 				if len(s.ParallelStages) > 0 {
 					for _, ns := range s.ParallelStages {
-						containerImageRepo, _, containerImageTag := w.GetContainerImageParts(ns.ContainerImage)
-						if containerImageTag == "latest" {
-							stagesUsingLatestTag = append(stagesUsingLatestTag, ns.Name)
-						}
-						if containerImageTag == "dev" && containerImageRepo == "extensions" && !isEstafettePipeline {
-							stagesUsingDevTag = append(stagesUsingDevTag, ns.Name)
+						if ns.ContainerImage != "" {
+							containerImageRepo, _, containerImageTag := w.GetContainerImageParts(ns.ContainerImage)
+							if containerImageTag == "latest" {
+								stagesUsingLatestTag = append(stagesUsingLatestTag, ns.Name)
+							}
+							if containerImageTag == "dev" && containerImageRepo == "extensions" && !isEstafettePipeline {
+								stagesUsingDevTag = append(stagesUsingDevTag, ns.Name)
+							}
 						}
 					}
-				} else {
+				} else if s.ContainerImage != "" {
 					containerImageRepo, _, containerImageTag := w.GetContainerImageParts(s.ContainerImage)
 					if containerImageTag == "latest" {
 						stagesUsingLatestTag = append(stagesUsingLatestTag, fmt.Sprintf("%v/%v", r.Name, s.Name))
