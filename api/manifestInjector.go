@@ -177,6 +177,7 @@ func injectReleaseStagesAfter(config *APIConfig, release manifest.EstafetteRelea
 		Name:           getInjectedStageName("injected-after", stages),
 		ParallelStages: []*manifest.EstafetteStage{},
 		AutoInjected:   true,
+		When:           "status == 'succeeded' || status == 'failed'",
 	}
 
 	// add any configured injected stages

@@ -167,6 +167,7 @@ func TestInjectStages(t *testing.T) {
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
 			assert.Equal(t, "injected-after", injectedManifest.Stages[2].Name)
+			assert.Equal(t, "status == 'succeeded' || status == 'failed'", injectedManifest.Stages[2].When)
 			assert.Equal(t, "set-build-status", injectedManifest.Stages[2].ParallelStages[0].Name)
 			assert.Equal(t, "extensions/github-status:beta", injectedManifest.Stages[2].ParallelStages[0].ContainerImage)
 		}
