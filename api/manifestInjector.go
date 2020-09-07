@@ -107,6 +107,7 @@ func injectBuildStagesAfter(config *APIConfig, mft manifest.EstafetteManifest, b
 		Name:           getInjectedStageName("injected-after", stages),
 		ParallelStages: []*manifest.EstafetteStage{},
 		AutoInjected:   true,
+		When:           "status == 'succeeded' || status == 'failed'",
 	}
 
 	if supportsBuildStatus {
