@@ -11,6 +11,7 @@ version:
   semver:
     major: 0
     minor: 1
+    releaseBranch: main
 
 triggers:
 - pipeline:
@@ -21,7 +22,7 @@ triggers:
 
 stages:
   build:
-    image: golang:1.15.0-alpine3.12
+    image: golang:1.15.1-alpine3.12
     env:
       CGO_ENABLED: 0
       GOOS: linux
@@ -51,7 +52,7 @@ stages:
       ESTAFETTE_LOG_FORMAT: console
 
   integration-tests:
-    image: golang:1.15.0-alpine3.12
+    image: golang:1.15.1-alpine3.12
     env:
       CGO_ENABLED: 0
       GOOS: linux
