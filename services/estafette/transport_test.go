@@ -88,6 +88,7 @@ func TestGetCatalogFilters(t *testing.T) {
 	t.Run("ReturnsUpdatedConfigAfterReload", func(t *testing.T) {
 
 		configFilePath := "/configs/config.yaml"
+		templatesPath := "/templates"
 		cfg := &api.APIConfig{
 			Catalog: &api.CatalogConfig{
 				Filters: []string{
@@ -110,7 +111,7 @@ func TestGetCatalogFilters(t *testing.T) {
 		bitbucketJobVarsFunc := githubJobVarsFunc
 		cloudsourceJobVarsFunc := githubJobVarsFunc
 
-		handler := NewHandler(configFilePath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper, githubJobVarsFunc, bitbucketJobVarsFunc, cloudsourceJobVarsFunc)
+		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper, githubJobVarsFunc, bitbucketJobVarsFunc, cloudsourceJobVarsFunc)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 
@@ -148,6 +149,7 @@ func TestGetPipeline(t *testing.T) {
 	t.Run("ReturnsPipelineFromNewCockroachdbClientAfterReload", func(t *testing.T) {
 
 		configFilePath := "/configs/config.yaml"
+		templatesPath := "/templates"
 		cfg := &api.APIConfig{}
 		encryptedConfig := cfg
 
@@ -171,7 +173,7 @@ func TestGetPipeline(t *testing.T) {
 		bitbucketJobVarsFunc := githubJobVarsFunc
 		cloudsourceJobVarsFunc := githubJobVarsFunc
 
-		handler := NewHandler(configFilePath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper, githubJobVarsFunc, bitbucketJobVarsFunc, cloudsourceJobVarsFunc)
+		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper, githubJobVarsFunc, bitbucketJobVarsFunc, cloudsourceJobVarsFunc)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 		bodyReader := strings.NewReader("")
