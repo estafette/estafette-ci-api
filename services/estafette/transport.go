@@ -33,10 +33,11 @@ import (
 )
 
 // NewHandler returns a new estafette.Handler
-func NewHandler(configFilePath string, config *api.APIConfig, encryptedConfig *api.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper api.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
+func NewHandler(configFilePath string, templatesPath string, config *api.APIConfig, encryptedConfig *api.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper api.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
 
 	return Handler{
 		configFilePath:         configFilePath,
+		templatesPath:          templatesPath,
 		config:                 config,
 		encryptedConfig:        encryptedConfig,
 		cockroachDBClient:      cockroachDBClient,
@@ -53,6 +54,7 @@ func NewHandler(configFilePath string, config *api.APIConfig, encryptedConfig *a
 
 type Handler struct {
 	configFilePath         string
+	templatesPath          string
 	config                 *api.APIConfig
 	encryptedConfig        *api.APIConfig
 	cockroachDBClient      cockroachdb.Client
@@ -1547,26 +1549,26 @@ func (h *Handler) GetConfigTrustedImages(c *gin.Context) {
 
 func (h *Handler) GetManifestTemplates(c *gin.Context) {
 
-	configFiles, err := ioutil.ReadDir(filepath.Dir(h.configFilePath))
+	templateFiles, err := ioutil.ReadDir(filepath.Dir(h.templatesPath))
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed listing config files directory")
+		log.Error().Err(err).Msgf("Failed listing template files directory")
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
 
 	templates := []interface{}{}
-	for _, f := range configFiles {
+	for _, f := range templateFiles {
 
-		configfileName := f.Name()
+		templateFileName := f.Name()
 
 		// check if it's a manifest template
 		re := regexp.MustCompile(`^manifest-(.+)\.tmpl`)
-		match := re.FindStringSubmatch(configfileName)
+		match := re.FindStringSubmatch(templateFileName)
 
 		if len(match) == 2 {
 
 			// read template file
-			templateFilePath := filepath.Join(filepath.Dir(h.configFilePath), configfileName)
+			templateFilePath := filepath.Join(filepath.Dir(h.configFilePath), templateFileName)
 			data, err := ioutil.ReadFile(templateFilePath)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed reading template file %v", templateFilePath)
