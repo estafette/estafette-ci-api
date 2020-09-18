@@ -1549,7 +1549,7 @@ func (h *Handler) GetConfigTrustedImages(c *gin.Context) {
 
 func (h *Handler) GetManifestTemplates(c *gin.Context) {
 
-	templateFiles, err := ioutil.ReadDir(filepath.Dir(h.templatesPath))
+	templateFiles, err := ioutil.ReadDir(h.templatesPath)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed listing template files directory")
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
