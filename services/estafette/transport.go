@@ -1568,7 +1568,7 @@ func (h *Handler) GetManifestTemplates(c *gin.Context) {
 		if len(match) == 2 {
 
 			// read template file
-			templateFilePath := filepath.Join(filepath.Dir(h.configFilePath), templateFileName)
+			templateFilePath := filepath.Join(h.templatesPath, templateFileName)
 			data, err := ioutil.ReadFile(templateFilePath)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed reading template file %v", templateFilePath)
@@ -1614,7 +1614,7 @@ func (h *Handler) GenerateManifest(c *gin.Context) {
 		return
 	}
 
-	templateFilePath := filepath.Join(filepath.Dir(h.configFilePath), fmt.Sprintf("manifest-%v.tmpl", aux.Template))
+	templateFilePath := filepath.Join(h.templatesPath, fmt.Sprintf("manifest-%v.tmpl", aux.Template))
 	data, err := ioutil.ReadFile(templateFilePath)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed reading template file %v", templateFilePath)
