@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -210,5 +212,105 @@ func TestGetPipeline(t *testing.T) {
 		body, err = ioutil.ReadAll(recorder.Result().Body)
 		assert.Nil(t, err)
 		// assert.Equal(t, "{\"id\":\"\",\"repoSource\":\"\",\"repoOwner\":\"\",\"repoName\":\"\",\"repoBranch\":\"\",\"repoRevision\":\"\",\"buildStatus\":\"failed\",\"insertedAt\":\"0001-01-01T00:00:00Z\",\"updatedAt\":\"0001-01-01T00:00:00Z\",\"duration\":0,\"lastUpdatedAt\":\"0001-01-01T00:00:00Z\"}\n", string(body))
+	})
+}
+
+func TestGetManifestTemplates(t *testing.T) {
+	t.Run("ReturnsTemplatesCorrectly", func(t *testing.T) {
+
+		content := []byte("track: stable")
+		templatesPath, err := ioutil.TempDir("", "templates")
+		assert.Nil(t, err)
+
+		defer os.RemoveAll(templatesPath) // clean up
+
+		tmpfn := filepath.Join(templatesPath, "manifest-docker.tmpl")
+		err = ioutil.WriteFile(tmpfn, content, 0666)
+		assert.Nil(t, err)
+
+		configFilePath := "/configs/config.yaml"
+		cfg := &api.APIConfig{}
+		encryptedConfig := cfg
+
+		var cockroachdbClient cockroachdb.Client
+		cockroachdbClient = &cockroachdb.MockClient{}
+		cloudStorageClient := cloudstorage.MockClient{}
+		builderapiClient := builderapi.MockClient{}
+		buildService := MockService{}
+		secretHelper := crypt.NewSecretHelper("abc", false)
+		warningHelper := api.NewWarningHelper(secretHelper)
+		githubJobVarsFunc := func(context.Context, string, string, string) (string, string, error) {
+			return "", "", nil
+		}
+		bitbucketJobVarsFunc := githubJobVarsFunc
+		cloudsourceJobVarsFunc := githubJobVarsFunc
+
+		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper, githubJobVarsFunc, bitbucketJobVarsFunc, cloudsourceJobVarsFunc)
+		recorder := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(recorder)
+		bodyReader := strings.NewReader("")
+		c.Request = httptest.NewRequest("GET", "https://ci.estafette.io/manifest/templates", bodyReader)
+		if !assert.NotNil(t, c.Request) {
+			return
+		}
+
+		// act
+		handler.GetManifestTemplates(c)
+
+		assert.Equal(t, http.StatusOK, recorder.Result().StatusCode)
+		body, err := ioutil.ReadAll(recorder.Result().Body)
+		assert.Nil(t, err)
+		assert.Equal(t, "{\"templates\":[{\"placeholders\":[],\"template\":\"docker\"}]}\n", string(body))
+
+	})
+}
+
+func TestGenerateManifest(t *testing.T) {
+	t.Run("ReturnsManifestFromTemplate", func(t *testing.T) {
+
+		content := []byte("track: stable\nteam: {{.TeamName}}")
+		templatesPath, err := ioutil.TempDir("", "templates")
+		assert.Nil(t, err)
+
+		defer os.RemoveAll(templatesPath) // clean up
+
+		tmpfn := filepath.Join(templatesPath, "manifest-docker.tmpl")
+		err = ioutil.WriteFile(tmpfn, content, 0666)
+		assert.Nil(t, err)
+
+		configFilePath := "/configs/config.yaml"
+		cfg := &api.APIConfig{}
+		encryptedConfig := cfg
+
+		var cockroachdbClient cockroachdb.Client
+		cockroachdbClient = &cockroachdb.MockClient{}
+		cloudStorageClient := cloudstorage.MockClient{}
+		builderapiClient := builderapi.MockClient{}
+		buildService := MockService{}
+		secretHelper := crypt.NewSecretHelper("abc", false)
+		warningHelper := api.NewWarningHelper(secretHelper)
+		githubJobVarsFunc := func(context.Context, string, string, string) (string, string, error) {
+			return "", "", nil
+		}
+		bitbucketJobVarsFunc := githubJobVarsFunc
+		cloudsourceJobVarsFunc := githubJobVarsFunc
+
+		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper, githubJobVarsFunc, bitbucketJobVarsFunc, cloudsourceJobVarsFunc)
+		recorder := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(recorder)
+		bodyReader := strings.NewReader("{\"template\": \"docker\", \"placeholders\": {\"TeamName\": \"estafette\"}}")
+		c.Request = httptest.NewRequest("POST", "https://ci.estafette.io/manifest/generate", bodyReader)
+		if !assert.NotNil(t, c.Request) {
+			return
+		}
+
+		// act
+		handler.GenerateManifest(c)
+
+		assert.Equal(t, http.StatusOK, recorder.Result().StatusCode)
+		body, err := ioutil.ReadAll(recorder.Result().Body)
+		assert.Nil(t, err)
+		assert.Equal(t, "{\"manifest\":\"track: stable\\nteam: estafette\"}\n", string(body))
+
 	})
 }
