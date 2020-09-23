@@ -104,7 +104,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 
 	// inject build stages
 	if hasValidManifest {
-		mft, err = api.InjectStages(s.config, mft, builderTrack, shortRepoSource, s.supportsBuildStatus(build.RepoSource))
+		mft, err = api.InjectStages(s.config, mft, builderTrack, shortRepoSource, build.RepoBranch, s.supportsBuildStatus(build.RepoSource))
 		if err != nil {
 			log.Error().Err(err).
 				Msg("Failed injecting build stages for pipeline %v/%v/%v and revision %v")
@@ -297,7 +297,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	releaseStatus := "pending"
 
 	// inject release stages
-	mft, err = api.InjectStages(s.config, mft, builderTrack, shortRepoSource, s.supportsBuildStatus(release.RepoSource))
+	mft, err = api.InjectStages(s.config, mft, builderTrack, shortRepoSource, repoBranch, s.supportsBuildStatus(release.RepoSource))
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed injecting build stages for release to %v of pipeline %v/%v/%v version %v", release.Name, release.RepoSource, release.RepoOwner, release.RepoName, release.ReleaseVersion)

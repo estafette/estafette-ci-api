@@ -18,7 +18,7 @@ func TestInjectStages(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", "main", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
@@ -38,7 +38,7 @@ func TestInjectStages(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectStages(config, mft, "dev", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "dev", "github", "main", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
@@ -59,7 +59,7 @@ func TestInjectStages(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", "main", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
@@ -80,7 +80,7 @@ func TestInjectStages(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectStages(config, mft, "dev", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "dev", "github", "main", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
@@ -102,7 +102,7 @@ func TestInjectStages(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", "main", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 5, len(injectedManifest.Stages)) {
@@ -122,7 +122,7 @@ func TestInjectStages(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", "main", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 5, len(injectedManifest.Stages)) {
@@ -142,7 +142,7 @@ func TestInjectStages(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", "main", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
@@ -162,7 +162,7 @@ func TestInjectStages(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", "main", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
@@ -181,7 +181,7 @@ func TestInjectStages(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectStages(config, mft, "dev", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "dev", "github", "main", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
@@ -198,7 +198,7 @@ func TestInjectStages(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", "main", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 2, len(injectedManifest.Releases[1].Stages)) {
@@ -216,7 +216,7 @@ func TestInjectStages(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", "main", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages)) {
@@ -233,7 +233,7 @@ func TestInjectStages(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectStages(config, mft, "beta", "github", true)
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", "main", true)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 2, len(injectedManifest.Releases[0].Stages)) {
@@ -250,7 +250,7 @@ func TestInjectStages(t *testing.T) {
 		}
 
 		// act
-		injectedManifest, err := InjectStages(config, mft, "dev", "source", false)
+		injectedManifest, err := InjectStages(config, mft, "dev", "source", "main", false)
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 2, len(injectedManifest.Stages)) {

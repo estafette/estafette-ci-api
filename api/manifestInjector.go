@@ -7,7 +7,7 @@ import (
 )
 
 // InjectStages injects some mandatory and configured stages
-func InjectStages(config *APIConfig, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (injectedManifest manifest.EstafetteManifest, err error) {
+func InjectStages(config *APIConfig, mft manifest.EstafetteManifest, builderTrack, gitSource, gitBranch string, supportsBuildStatus bool) (injectedManifest manifest.EstafetteManifest, err error) {
 
 	injectedManifest = mft
 
@@ -27,6 +27,12 @@ func InjectStages(config *APIConfig, mft manifest.EstafetteManifest, builderTrac
 		preferences = config.ManifestPreferences
 	} else {
 		preferences = manifest.GetDefaultManifestPreferences()
+	}
+
+	// set preferences DefaultBranch to main if this happens to be used at this moment, so it gets set in the triggers correctly
+	// todo figure out the default branch if a non-default branch is built
+	if gitBranch == "main" {
+		preferences.DefaultBranch = "main"
 	}
 
 	// ensure all injected stages have defaults for shell and working directory matching the target operating system
