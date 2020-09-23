@@ -10,9 +10,9 @@ require (
 	github.com/alecthomas/kingpin v2.2.6+incompatible
 	github.com/appleboy/gin-jwt/v2 v2.6.3
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/estafette/estafette-ci-contracts v0.0.220
+	github.com/estafette/estafette-ci-contracts v0.0.223
 	github.com/estafette/estafette-ci-crypt v0.0.39
-	github.com/estafette/estafette-ci-manifest v0.1.162
+	github.com/estafette/estafette-ci-manifest v0.1.165
 	github.com/estafette/estafette-foundation v0.0.54
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gin-contrib/gzip v0.0.2-0.20190827144029-5602d8b438ea
