@@ -374,12 +374,11 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 	if build.BuildStatus == "canceling" {
 		// apparently cancel was already clicked, but somehow the job didn't update the status to canceled
 		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "build", build.RepoOwner, build.RepoName, build.ID)
-		h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
-		h.cockroachDBClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, id, "canceled")
+		_ = h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
+		_ = h.cockroachDBClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, id, "canceled")
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", email)})
 		return
 	}
-
 	if build.BuildStatus != "pending" && build.BuildStatus != "running" {
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": fmt.Sprintf("Build with status %v cannot be canceled", build.BuildStatus)})
 		return
@@ -1908,8 +1907,7 @@ func (h *Handler) Commands(c *gin.Context) {
 			go func(eventJobname string) {
 				err = h.ciBuilderClient.RemoveCiBuilderJob(c.Request.Context(), eventJobname)
 				if err != nil {
-					errorMessage := fmt.Sprintf("Failed removing job %v for event %v", eventJobname, eventType)
-					log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)
+					log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Failed removing job %v for event %v", eventJobname, eventType)
 				}
 			}(eventJobname)
 		} else {
@@ -1917,7 +1915,7 @@ func (h *Handler) Commands(c *gin.Context) {
 		}
 
 		go func(ctx context.Context, ciBuilderEvent builderapi.CiBuilderEvent) {
-			err := h.buildService.UpdateJobResources(c.Request.Context(), ciBuilderEvent)
+			err = h.buildService.UpdateJobResources(c.Request.Context(), ciBuilderEvent)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed updating max cpu and memory from prometheus for pod %v", ciBuilderEvent.PodName)
 			}
