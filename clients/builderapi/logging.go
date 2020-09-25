@@ -31,6 +31,8 @@ func (c *loggingClient) RemoveCiBuilderJob(ctx context.Context, jobName string) 
 }
 
 func (c *loggingClient) CancelCiBuilderJob(ctx context.Context, jobName string) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "CancelCiBuilderJob", err) }()
+
 	return c.Client.CancelCiBuilderJob(ctx, jobName)
 }
 

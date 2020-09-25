@@ -12,6 +12,6 @@ func HandleLogError(client string, funcName string, err error, ignoredErrors ...
 			errors.Is(err, e)
 			return
 		}
-		log.Error().Str("client", client).Str("func", funcName).Err(err).Msg("Failure")
+		log.Warn().Str("client", client).Str("func", funcName).Err(err).Msg("Logging decorator error")
 	}
 }
