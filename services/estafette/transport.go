@@ -388,7 +388,7 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "build", build.RepoOwner, build.RepoName, build.ID)
 	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 	buildStatus := "canceling"
-	if build.BuildStatus == "pending" {
+	if build.BuildStatus == "pending" || cancelErr != nil {
 		// job might not have created a builder yet, so set status to canceled straightaway
 		buildStatus = "canceled"
 	}
@@ -828,8 +828,8 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 	}
 	if release.ReleaseStatus == "canceling" {
 		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "release", release.RepoOwner, release.RepoName, release.ID)
-		h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
-		h.cockroachDBClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, id, "canceled")
+		_ = h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
+		_ = h.cockroachDBClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, id, "canceled")
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", email)})
 		return
 	}
@@ -842,7 +842,7 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "release", release.RepoOwner, release.RepoName, release.ID)
 	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 	releaseStatus := "canceling"
-	if release.ReleaseStatus == "pending" {
+	if release.ReleaseStatus == "pending" || cancelErr != nil {
 		// job might not have created a builder yet, so set status to canceled straightaway
 		releaseStatus = "canceled"
 	}
