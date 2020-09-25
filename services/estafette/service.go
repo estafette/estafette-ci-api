@@ -2,7 +2,6 @@ package estafette
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -20,6 +19,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/prometheus"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
 
@@ -79,12 +79,6 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	mft, manifestError := manifest.ReadManifest(s.config.ManifestPreferences, build.Manifest, true)
 	hasValidManifest := manifestError == nil
 
-	// if manifest is invalid get the pipeline in order to use same labels, release targets and triggers as before
-	var pipeline *contracts.Pipeline
-	if !hasValidManifest {
-		pipeline, _ = s.cockroachdbClient.GetPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName, map[api.FilterType][]string{}, false)
-	}
-
 	// set builder track
 	builderTrack := "stable"
 	builderOperatingSystem := "linux"
@@ -106,15 +100,36 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	if hasValidManifest {
 		mft, err = api.InjectStages(s.config, mft, builderTrack, shortRepoSource, build.RepoBranch, s.supportsBuildStatus(build.RepoSource))
 		if err != nil {
-			log.Error().Err(err).
-				Msg("Failed injecting build stages for pipeline %v/%v/%v and revision %v")
-			return
+			return nil, errors.Wrapf(err, "Failed injecting build stages for pipeline %v/%v/%v and revision %v", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 		}
 	}
 
-	autoincrement, build, err := s.getBuildAutoIncrement(ctx, build, shortRepoSource, hasValidManifest, mft, pipeline)
+	// retrieve pipeline if already exists to get counter value
+	pipeline, _ := s.cockroachdbClient.GetPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName, map[api.FilterType][]string{}, false)
+
+	// get counter and update build labels if manifest is invalid
+	currentCounter, build, err := s.getBuildCounter(ctx, build, shortRepoSource, hasValidManifest, mft, pipeline)
 	if err != nil {
 		return nil, err
+	}
+
+	maxCounter := currentCounter
+	maxCounterCurrentBranch := currentCounter
+	if pipeline != nil {
+		// get max counter for pipeline
+		mc := s.getVersionCounter(ctx, pipeline.BuildVersion, mft)
+		if mc > maxCounter {
+			maxCounter = mc
+		}
+
+		// get max counter for same branch
+		lastBuildsForBranch, _ := s.cockroachdbClient.GetPipelineBuilds(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, 1, 10, map[api.FilterType][]string{api.FilterBranch: []string{pipeline.RepoBranch}}, []api.OrderField{}, false)
+		if lastBuildsForBranch != nil && len(lastBuildsForBranch) == 1 {
+			mc := s.getVersionCounter(ctx, lastBuildsForBranch[0].BuildVersion, mft)
+			if mc > maxCounterCurrentBranch {
+				maxCounterCurrentBranch = mc
+			}
+		}
 	}
 
 	build.Labels = s.getBuildLabels(build, hasValidManifest, mft, pipeline)
@@ -161,22 +176,24 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 
 	// define ci builder params
 	ciBuilderParams := builderapi.CiBuilderParams{
-		JobType:              "build",
-		RepoSource:           build.RepoSource,
-		RepoOwner:            build.RepoOwner,
-		RepoName:             build.RepoName,
-		RepoURL:              authenticatedRepositoryURL,
-		RepoBranch:           build.RepoBranch,
-		RepoRevision:         build.RepoRevision,
-		EnvironmentVariables: environmentVariableWithToken,
-		Track:                builderTrack,
-		OperatingSystem:      builderOperatingSystem,
-		AutoIncrement:        autoincrement,
-		VersionNumber:        build.BuildVersion,
-		Manifest:             mft,
-		BuildID:              buildID,
-		TriggeredByEvents:    build.Events,
-		JobResources:         jobResources,
+		JobType:                 "build",
+		RepoSource:              build.RepoSource,
+		RepoOwner:               build.RepoOwner,
+		RepoName:                build.RepoName,
+		RepoURL:                 authenticatedRepositoryURL,
+		RepoBranch:              build.RepoBranch,
+		RepoRevision:            build.RepoRevision,
+		EnvironmentVariables:    environmentVariableWithToken,
+		Track:                   builderTrack,
+		OperatingSystem:         builderOperatingSystem,
+		CurrentCounter:          currentCounter,
+		MaxCounter:              maxCounter,
+		MaxCounterCurrentBranch: maxCounterCurrentBranch,
+		VersionNumber:           build.BuildVersion,
+		Manifest:                mft,
+		BuildID:                 buildID,
+		TriggeredByEvents:       build.Events,
+		JobResources:            jobResources,
 	}
 
 	// create ci builder job
@@ -305,7 +322,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	}
 
 	// get autoincrement from release version
-	autoincrement := s.getReleaseAutoIncrement(ctx, release, mft)
+	currentCounter := s.getVersionCounter(ctx, release.ReleaseVersion, mft)
 
 	// get authenticated url
 	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, release.RepoSource, release.RepoOwner, release.RepoName)
@@ -350,27 +367,51 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 		}
 	}
 
+	maxCounter := currentCounter
+	maxCounterCurrentBranch := currentCounter
+
+	// retrieve pipeline if already exists to get counter value
+	pipeline, _ := s.cockroachdbClient.GetPipeline(ctx, release.RepoSource, release.RepoOwner, release.RepoName, map[api.FilterType][]string{}, false)
+	if pipeline != nil {
+		// get max counter for pipeline
+		mc := s.getVersionCounter(ctx, pipeline.BuildVersion, mft)
+		if mc > maxCounter {
+			maxCounter = mc
+		}
+
+		// get max counter for same branch
+		lastBuildsForBranch, _ := s.cockroachdbClient.GetPipelineBuilds(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, 1, 10, map[api.FilterType][]string{api.FilterBranch: []string{repoBranch}}, []api.OrderField{}, false)
+		if lastBuildsForBranch != nil && len(lastBuildsForBranch) == 1 {
+			mc := s.getVersionCounter(ctx, lastBuildsForBranch[0].BuildVersion, mft)
+			if mc > maxCounterCurrentBranch {
+				maxCounterCurrentBranch = mc
+			}
+		}
+	}
+
 	// define ci builder params
 	ciBuilderParams := builderapi.CiBuilderParams{
-		JobType:              "release",
-		RepoSource:           release.RepoSource,
-		RepoOwner:            release.RepoOwner,
-		RepoName:             release.RepoName,
-		RepoURL:              authenticatedRepositoryURL,
-		RepoBranch:           repoBranch,
-		RepoRevision:         repoRevision,
-		EnvironmentVariables: environmentVariableWithToken,
-		Track:                builderTrack,
-		OperatingSystem:      builderOperatingSystem,
-		AutoIncrement:        autoincrement,
-		VersionNumber:        release.ReleaseVersion,
-		Manifest:             mft,
-		ReleaseID:            insertedReleaseID,
-		ReleaseName:          release.Name,
-		ReleaseAction:        release.Action,
-		ReleaseTriggeredBy:   triggeredBy,
-		TriggeredByEvents:    release.Events,
-		JobResources:         jobResources,
+		JobType:                 "release",
+		RepoSource:              release.RepoSource,
+		RepoOwner:               release.RepoOwner,
+		RepoName:                release.RepoName,
+		RepoURL:                 authenticatedRepositoryURL,
+		RepoBranch:              repoBranch,
+		RepoRevision:            repoRevision,
+		EnvironmentVariables:    environmentVariableWithToken,
+		Track:                   builderTrack,
+		OperatingSystem:         builderOperatingSystem,
+		CurrentCounter:          currentCounter,
+		MaxCounter:              maxCounter,
+		MaxCounterCurrentBranch: maxCounterCurrentBranch,
+		VersionNumber:           release.ReleaseVersion,
+		Manifest:                mft,
+		ReleaseID:               insertedReleaseID,
+		ReleaseName:             release.Name,
+		ReleaseAction:           release.Action,
+		ReleaseTriggeredBy:      triggeredBy,
+		TriggeredByEvents:       release.Events,
+		JobResources:            jobResources,
 	}
 
 	// create ci release job
@@ -1089,21 +1130,21 @@ func (s *service) getBuildTriggers(build contracts.Build, hasValidManifest bool,
 	return build.Triggers
 }
 
-func (s *service) getBuildAutoIncrement(ctx context.Context, build contracts.Build, shortRepoSource string, hasValidManifest bool, mft manifest.EstafetteManifest, pipeline *contracts.Pipeline) (autoincrement int, updatedBuild contracts.Build, err error) {
+func (s *service) getBuildCounter(ctx context.Context, build contracts.Build, shortRepoSource string, hasValidManifest bool, mft manifest.EstafetteManifest, pipeline *contracts.Pipeline) (counter int, updatedBuild contracts.Build, err error) {
 
 	// get or set autoincrement and build version
-	autoincrement = 0
+	counter = 0
 	if build.BuildVersion == "" {
-		// get autoincrement number
-		autoincrement, err = s.cockroachdbClient.GetAutoIncrement(ctx, shortRepoSource, build.RepoOwner, build.RepoName)
+		// get autoincrementing counter
+		counter, err = s.cockroachdbClient.GetAutoIncrement(ctx, shortRepoSource, build.RepoOwner, build.RepoName)
 		if err != nil {
-			return autoincrement, build, err
+			return counter, build, err
 		}
 
 		// set build version number
 		if hasValidManifest {
 			build.BuildVersion = mft.Version.Version(manifest.EstafetteVersionParams{
-				AutoIncrement: autoincrement,
+				AutoIncrement: counter,
 				Branch:        build.RepoBranch,
 				Revision:      build.RepoRevision,
 			})
@@ -1112,17 +1153,17 @@ func (s *service) getBuildAutoIncrement(ctx context.Context, build contracts.Bui
 			previousManifest, err := manifest.ReadManifest(s.config.ManifestPreferences, build.Manifest, false)
 			if err != nil {
 				build.BuildVersion = previousManifest.Version.Version(manifest.EstafetteVersionParams{
-					AutoIncrement: autoincrement,
+					AutoIncrement: counter,
 					Branch:        build.RepoBranch,
 					Revision:      build.RepoRevision,
 				})
 			} else {
 				log.Warn().Msgf("Not using previous versioning for pipeline %v/%v/%v, because its manifest is also invalid...", build.RepoSource, build.RepoOwner, build.RepoName)
-				build.BuildVersion = strconv.Itoa(autoincrement)
+				build.BuildVersion = strconv.Itoa(counter)
 			}
 		} else {
 			// set build version to autoincrement so there's at least a version in the db and gui
-			build.BuildVersion = strconv.Itoa(autoincrement)
+			build.BuildVersion = strconv.Itoa(counter)
 		}
 	} else {
 		// get autoincrement from build version
@@ -1136,33 +1177,33 @@ func (s *service) getBuildAutoIncrement(ctx context.Context, build contracts.Bui
 			}
 		}
 
-		autoincrement, err = strconv.Atoi(autoincrementCandidate)
+		counter, err = strconv.Atoi(autoincrementCandidate)
 		if err != nil {
 			log.Warn().Err(err).Str("buildversion", build.BuildVersion).Msgf("Failed extracting autoincrement from build version %v for pipeline %v/%v/%v revision %v", build.BuildVersion, build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 		}
 	}
 
-	return autoincrement, build, nil
+	return counter, build, nil
 }
 
-func (s *service) getReleaseAutoIncrement(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest) (autoincrement int) {
+func (s *service) getVersionCounter(ctx context.Context, version string, mft manifest.EstafetteManifest) (counter int) {
 
-	autoincrementCandidate := release.ReleaseVersion
+	counterCandidate := version
 	if mft.Version.SemVer != nil {
 		re := regexp.MustCompile(`^[0-9]+\.[0-9]+\.([0-9]+)(-[0-9a-zA-Z-/]+)?$`)
-		match := re.FindStringSubmatch(release.ReleaseVersion)
+		match := re.FindStringSubmatch(version)
 
 		if len(match) > 1 {
-			autoincrementCandidate = match[1]
+			counterCandidate = match[1]
 		}
 	}
 
-	autoincrement, err := strconv.Atoi(autoincrementCandidate)
+	counter, err := strconv.Atoi(counterCandidate)
 	if err != nil {
-		log.Warn().Err(err).Str("releaseversion", release.ReleaseVersion).Msgf("Failed extracting autoincrement from build version %v for pipeline %v/%v/%v", release.ReleaseVersion, release.RepoSource, release.RepoOwner, release.RepoName)
+		log.Warn().Err(err).Msgf("Failed extracting counter from version %v", version)
 	}
 
-	return autoincrement
+	return counter
 }
 
 func (s *service) getBuildJobResources(ctx context.Context, build contracts.Build) cockroachdb.JobResources {

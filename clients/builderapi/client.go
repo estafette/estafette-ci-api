@@ -585,7 +585,7 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 	}
 	if ciBuilderParams.Manifest.Version.SemVer != nil {
 		versionParams := manifest.EstafetteVersionParams{
-			AutoIncrement: ciBuilderParams.AutoIncrement,
+			AutoIncrement: ciBuilderParams.CurrentCounter,
 			Branch:        ciBuilderParams.RepoBranch,
 			Revision:      ciBuilderParams.RepoRevision,
 		}
@@ -597,12 +597,22 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 			Minor:         &ciBuilderParams.Manifest.Version.SemVer.Minor,
 			Patch:         &patchWithLabel,
 			Label:         &label,
-			AutoIncrement: &ciBuilderParams.AutoIncrement,
+			AutoIncrement: &ciBuilderParams.CurrentCounter,
+
+			// set counters to enable release locking for older revisions
+			CurrentCounter:          ciBuilderParams.CurrentCounter,
+			MaxCounter:              ciBuilderParams.MaxCounter,
+			MaxCounterCurrentBranch: ciBuilderParams.MaxCounterCurrentBranch,
 		}
 	} else {
 		localBuilderConfig.BuildVersion = &contracts.BuildVersionConfig{
 			Version:       ciBuilderParams.VersionNumber,
-			AutoIncrement: &ciBuilderParams.AutoIncrement,
+			AutoIncrement: &ciBuilderParams.CurrentCounter,
+
+			// set counters to enable release locking for older revisions
+			CurrentCounter:          ciBuilderParams.CurrentCounter,
+			MaxCounter:              ciBuilderParams.MaxCounter,
+			MaxCounterCurrentBranch: ciBuilderParams.MaxCounterCurrentBranch,
 		}
 	}
 

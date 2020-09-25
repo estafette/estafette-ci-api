@@ -3211,6 +3211,10 @@ func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias, sinceColum
 	if err != nil {
 		return query, err
 	}
+	query, err = whereClauseGeneratorForBranchFilter(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
 
 	return query, nil
 }
@@ -3245,6 +3249,15 @@ func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, alias, sinceColu
 		case "1y":
 			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.%v", alias, sinceColumn): time.Now().AddDate(-1, 0, 0)})
 		}
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForBranchFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+	if branch, ok := filters[api.FilterBranch]; ok && len(branch) > 0 && branch[0] != "" {
+		branchValue := branch[0]
+		query = query.Where(sq.Eq{fmt.Sprintf("%v.repo_branch", alias): branchValue})
 	}
 
 	return query, nil

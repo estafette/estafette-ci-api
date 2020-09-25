@@ -418,6 +418,7 @@ const (
 	FilterSince
 	FilterLabels
 	FilterSearch
+	FilterBranch
 	FilterRecentCommitter
 	FilterRecentReleaser
 	FilterGroupID
@@ -436,6 +437,7 @@ var filters = []string{
 	"since",
 	"labels",
 	"search",
+	"branch",
 	"recent-committer",
 	"recent-releaser",
 	"group-id",

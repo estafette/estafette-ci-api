@@ -10,18 +10,20 @@ import (
 
 // CiBuilderParams contains the parameters required to create a ci builder job
 type CiBuilderParams struct {
-	JobType              string
-	RepoSource           string
-	RepoOwner            string
-	RepoName             string
-	RepoURL              string
-	RepoBranch           string
-	RepoRevision         string
-	EnvironmentVariables map[string]string
-	Track                string
-	OperatingSystem      string
-	AutoIncrement        int
-	VersionNumber        string
+	JobType                 string
+	RepoSource              string
+	RepoOwner               string
+	RepoName                string
+	RepoURL                 string
+	RepoBranch              string
+	RepoRevision            string
+	EnvironmentVariables    map[string]string
+	Track                   string
+	OperatingSystem         string
+	CurrentCounter          int
+	MaxCounter              int
+	MaxCounterCurrentBranch int
+	VersionNumber           string
 	//HasValidManifest     bool
 	Manifest           manifest.EstafetteManifest
 	ReleaseName        string
