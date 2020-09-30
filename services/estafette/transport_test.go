@@ -159,7 +159,7 @@ func TestGetPipeline(t *testing.T) {
 		cockroachdbClient = &cockroachdb.MockClient{
 			GetPipelineFunc: func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
 				pipeline = &contracts.Pipeline{
-					BuildStatus: "succeeded",
+					BuildStatus: contracts.StatusSucceeded,
 				}
 				return
 			},
@@ -196,7 +196,7 @@ func TestGetPipeline(t *testing.T) {
 		cockroachdbClient = cockroachdb.MockClient{
 			GetPipelineFunc: func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
 				pipeline = &contracts.Pipeline{
-					BuildStatus: "failed",
+					BuildStatus: contracts.StatusFailed,
 				}
 				return
 			},

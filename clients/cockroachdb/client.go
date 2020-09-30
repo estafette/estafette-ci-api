@@ -46,10 +46,10 @@ type Client interface {
 
 	GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error)
 	InsertBuild(ctx context.Context, build contracts.Build, jobResources JobResources) (b *contracts.Build, err error)
-	UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error)
+	UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error)
 	UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources JobResources) (err error)
 	InsertRelease(ctx context.Context, release contracts.Release, jobResources JobResources) (r *contracts.Release, err error)
-	UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus string) (err error)
+	UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus contracts.Status) (err error)
 	UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) (err error)
 	InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (log contracts.BuildLog, err error)
 	InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (log contracts.ReleaseLog, err error)
@@ -76,7 +76,7 @@ type Client interface {
 	GetLastPipelineBuildForBranch(ctx context.Context, repoSource, repoOwner, repoName, branch string) (build *contracts.Build, err error)
 	GetLastPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string, pageSize int) (releases []*contracts.Release, err error)
 	GetFirstPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error)
-	GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) (builds []*contracts.Build, err error)
+	GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []contracts.Status, limit uint64, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error)
 	GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
 	GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobresources JobResources, count int, err error)
@@ -401,20 +401,20 @@ func (c *client) InsertBuild(ctx context.Context, build contracts.Build, jobReso
 	return
 }
 
-func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
+func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
 
-	allowedBuildStatusesToTransitionFrom := []string{}
+	allowedBuildStatusesToTransitionFrom := []contracts.Status{}
 	switch buildStatus {
-	case "running":
-		allowedBuildStatusesToTransitionFrom = []string{"pending"}
+	case contracts.StatusRunning:
+		allowedBuildStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending}
 		break
-	case "succeeded",
-		"failed",
-		"canceling":
-		allowedBuildStatusesToTransitionFrom = []string{"running"}
+	case contracts.StatusSucceeded,
+		contracts.StatusFailed,
+		contracts.StatusCanceling:
+		allowedBuildStatusesToTransitionFrom = []contracts.Status{contracts.StatusRunning}
 		break
-	case "canceled":
-		allowedBuildStatusesToTransitionFrom = []string{"pending", "canceling"}
+	case contracts.StatusCanceled:
+		allowedBuildStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending, contracts.StatusRunning, contracts.StatusCanceling}
 		break
 	}
 
@@ -431,7 +431,7 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 		Where(sq.Eq{"build_status": allowedBuildStatusesToTransitionFrom}).
 		Suffix("RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event, groups, organizations")
 
-	if buildStatus == "running" {
+	if buildStatus == contracts.StatusRunning {
 		query = query.Set("started_at", sq.Expr("now()"))
 	}
 
@@ -573,20 +573,20 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 	return
 }
 
-func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus string) (err error) {
+func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus contracts.Status) (err error) {
 
-	allowedReleaseStatusesToTransitionFrom := []string{}
+	allowedReleaseStatusesToTransitionFrom := []contracts.Status{}
 	switch releaseStatus {
-	case "running":
-		allowedReleaseStatusesToTransitionFrom = []string{"pending"}
+	case contracts.StatusRunning:
+		allowedReleaseStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending}
 		break
-	case "succeeded",
-		"failed",
-		"canceling":
-		allowedReleaseStatusesToTransitionFrom = []string{"running"}
+	case contracts.StatusSucceeded,
+		contracts.StatusFailed,
+		contracts.StatusCanceling:
+		allowedReleaseStatusesToTransitionFrom = []contracts.Status{contracts.StatusRunning}
 		break
-	case "canceled":
-		allowedReleaseStatusesToTransitionFrom = []string{"pending", "canceling"}
+	case contracts.StatusCanceled:
+		allowedReleaseStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending, contracts.StatusRunning, contracts.StatusCanceling}
 		break
 	}
 
@@ -603,7 +603,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 		Where(sq.Eq{"release_status": allowedReleaseStatusesToTransitionFrom}).
 		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event, groups, organizations")
 
-	if releaseStatus == "running" {
+	if releaseStatus == contracts.StatusRunning {
 		query = query.Set("started_at", sq.Expr("now()"))
 	}
 
@@ -869,7 +869,7 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 	buildDurations := []time.Duration{}
 	buildPendingDurations := []time.Duration{}
 	for _, b := range lastBuilds {
-		if b.BuildStatus != "succeeded" {
+		if b.BuildStatus != contracts.StatusSucceeded {
 			continue
 		}
 		buildDurations = append(buildDurations, b.Duration)
@@ -1219,7 +1219,7 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 	releaseDurations := []time.Duration{}
 	releasePendingDurations := []time.Duration{}
 	for _, r := range lastReleases {
-		if r.ReleaseStatus != "succeeded" {
+		if r.ReleaseStatus != contracts.StatusSucceeded {
 			continue
 		}
 		if r.Duration != nil {
@@ -1807,7 +1807,7 @@ func (c *client) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOw
 
 }
 
-func (c *client) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
+func (c *client) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []contracts.Status, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
 
 	// generate query
 	query := c.selectBuildsQuery().

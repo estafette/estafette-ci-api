@@ -31,9 +31,9 @@ var (
 // Service encapsulates build and release creation and re-triggering
 type Service interface {
 	CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error)
-	FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error)
+	FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error)
 	CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (r *contracts.Release, err error)
-	FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) (err error)
+	FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) (err error)
 	FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error)
 	FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) (err error)
 	FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) (err error)
@@ -91,9 +91,9 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	shortRepoSource := s.getShortRepoSource(build.RepoSource)
 
 	// set build status
-	buildStatus := "failed"
+	buildStatus := contracts.StatusFailed
 	if hasValidManifest {
-		buildStatus = "pending"
+		buildStatus = contracts.StatusPending
 	}
 
 	// inject build stages
@@ -235,7 +235,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 				&contracts.BuildLogStep{
 					Step:         "validate-manifest",
 					ExitCode:     1,
-					Status:       "FAILED",
+					Status:       contracts.LogStatusFailed,
 					AutoInjected: true,
 					RunIndex:     0,
 					LogLines: []contracts.BuildLogLine{
@@ -266,7 +266,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	return
 }
 
-func (s *service) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) error {
+func (s *service) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) error {
 
 	err := s.cockroachdbClient.UpdateBuildStatus(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
 	if err != nil {
@@ -311,7 +311,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	shortRepoSource := s.getShortRepoSource(release.RepoSource)
 
 	// set release status
-	releaseStatus := "pending"
+	releaseStatus := contracts.StatusPending
 
 	// inject release stages
 	mft, err = api.InjectStages(s.config, mft, builderTrack, shortRepoSource, repoBranch, s.supportsBuildStatus(release.RepoSource))
@@ -440,7 +440,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	return
 }
 
-func (s *service) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) error {
+func (s *service) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) error {
 	err := s.cockroachdbClient.UpdateReleaseStatus(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)
 	if err != nil {
 		return err
@@ -536,7 +536,7 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 		RepoOwner:    build.RepoOwner,
 		RepoName:     build.RepoName,
 		Branch:       build.RepoBranch,
-		Status:       build.BuildStatus,
+		Status:       string(build.BuildStatus),
 		Event:        event,
 	}
 	e := manifest.EstafetteEvent{
@@ -601,7 +601,7 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 		RepoOwner:      release.RepoOwner,
 		RepoName:       release.RepoName,
 		Target:         release.Name,
-		Status:         release.ReleaseStatus,
+		Status:         string(release.ReleaseStatus),
 		Event:          event,
 	}
 	e := manifest.EstafetteEvent{
@@ -835,7 +835,7 @@ func (s *service) fireRelease(ctx context.Context, p contracts.Pipeline, t manif
 	repoBranch := p.RepoBranch
 	repoRevision := p.RepoRevision
 	if versionToRelease != p.BuildVersion {
-		succeededBuilds, err := s.cockroachdbClient.GetPipelineBuildsByVersion(ctx, p.RepoSource, p.RepoOwner, p.RepoName, versionToRelease, []string{"succeeded"}, 1, true)
+		succeededBuilds, err := s.cockroachdbClient.GetPipelineBuildsByVersion(ctx, p.RepoSource, p.RepoOwner, p.RepoName, versionToRelease, []contracts.Status{contracts.StatusSucceeded}, 1, true)
 		if err != nil {
 			return err
 		}
@@ -983,7 +983,7 @@ func (s *service) UpdateBuildStatus(ctx context.Context, ciBuilderEvent buildera
 
 		return err
 
-	} else if ciBuilderEvent.BuildStatus != "" && ciBuilderEvent.BuildID != "" {
+	} else if ciBuilderEvent.BuildStatus != contracts.StatusUnknown && ciBuilderEvent.BuildID != "" {
 
 		buildID, err := strconv.Atoi(ciBuilderEvent.BuildID)
 		if err != nil {

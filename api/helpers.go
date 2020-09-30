@@ -495,8 +495,13 @@ func GetPipelineFilters(c *gin.Context) map[FilterType][]string {
 }
 
 // GetStatusFilter extracts a filter on status
-func GetStatusFilter(c *gin.Context, defaultValues ...string) []string {
-	return GetGenericFilter(c, FilterStatus, defaultValues...)
+func GetStatusFilter(c *gin.Context, defaultValues ...contracts.Status) []string {
+	defaultValuesAsStrings := []string{}
+	for _, dv := range defaultValues {
+		defaultValuesAsStrings = append(defaultValuesAsStrings, string(dv))
+	}
+
+	return GetGenericFilter(c, FilterStatus, defaultValuesAsStrings...)
 }
 
 // GetLastFilter extracts a filter to select last n items

@@ -49,7 +49,7 @@ func (c *metricsClient) InsertBuild(ctx context.Context, build contracts.Build, 
 	return c.Client.InsertBuild(ctx, build, jobResources)
 }
 
-func (c *metricsClient) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
+func (c *metricsClient) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "UpdateBuildStatus", begin)
 	}(time.Now())
@@ -71,7 +71,7 @@ func (c *metricsClient) InsertRelease(ctx context.Context, release contracts.Rel
 	return c.Client.InsertRelease(ctx, release, jobResources)
 }
 
-func (c *metricsClient) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus string) (err error) {
+func (c *metricsClient) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus contracts.Status) (err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "UpdateReleaseStatus", begin)
 	}(time.Now())
@@ -267,7 +267,7 @@ func (c *metricsClient) GetFirstPipelineRelease(ctx context.Context, repoSource,
 	return c.Client.GetFirstPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 }
 
-func (c *metricsClient) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
+func (c *metricsClient) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []contracts.Status, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineBuildsByVersion", begin)
 	}(time.Now())

@@ -278,7 +278,7 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 	}
 
 	// check if version exists and is valid to re-run
-	failedBuilds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(c.Request.Context(), buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, []string{"failed", "canceled"}, 1, false)
+	failedBuilds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(c.Request.Context(), buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, []contracts.Status{contracts.StatusFailed, contracts.StatusCanceled}, 1, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, email)
 		log.Error().Err(err).Msg(errorMessage)
@@ -286,7 +286,7 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 		return
 	}
 
-	nonFailedBuilds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(c.Request.Context(), buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, []string{"succeeded", "running", "pending", "canceling"}, 1, false)
+	nonFailedBuilds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(c.Request.Context(), buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, []contracts.Status{contracts.StatusSucceeded, contracts.StatusRunning, contracts.StatusPending, contracts.StatusCanceling}, 1, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, email)
 		log.Error().Err(err).Msg(errorMessage)
@@ -371,15 +371,15 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
 		return
 	}
-	if build.BuildStatus == "canceling" {
+	if build.BuildStatus == contracts.StatusCanceling {
 		// apparently cancel was already clicked, but somehow the job didn't update the status to canceled
 		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "build", build.RepoOwner, build.RepoName, build.ID)
 		_ = h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
-		_ = h.cockroachDBClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, id, "canceled")
+		_ = h.cockroachDBClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, id, contracts.StatusCanceled)
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", email)})
 		return
 	}
-	if build.BuildStatus != "pending" && build.BuildStatus != "running" {
+	if build.BuildStatus != contracts.StatusPending && build.BuildStatus != contracts.StatusRunning {
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": fmt.Sprintf("Build with status %v cannot be canceled", build.BuildStatus)})
 		return
 	}
@@ -387,10 +387,10 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 	// this build can be canceled, set status 'canceling' and cancel the build job
 	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "build", build.RepoOwner, build.RepoName, build.ID)
 	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
-	buildStatus := "canceling"
-	if build.BuildStatus == "pending" || cancelErr != nil {
+	buildStatus := contracts.StatusCanceling
+	if build.BuildStatus == contracts.StatusPending || cancelErr != nil {
 		// job might not have created a builder yet, so set status to canceled straightaway
-		buildStatus = "canceled"
+		buildStatus = contracts.StatusCanceled
 	}
 	err = h.cockroachDBClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, id, buildStatus)
 	if err != nil {
@@ -400,8 +400,8 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 	}
 
 	// canceling the job failed because it no longer existed we should set canceled status right after having set it to canceling
-	if cancelErr != nil && build.BuildStatus == "running" {
-		buildStatus = "canceled"
+	if cancelErr != nil && build.BuildStatus == contracts.StatusRunning {
+		buildStatus = contracts.StatusCanceled
 		err = h.cockroachDBClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, id, buildStatus)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed updating build status to canceled after setting it to canceling for %v/%v/%v/builds/%v in db", source, owner, repo, revisionOrID)
@@ -701,7 +701,7 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 	}
 
 	// check if version exists and is valid to release
-	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(c.Request.Context(), releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion, []string{"succeeded"}, 1, false)
+	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(c.Request.Context(), releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion, []contracts.Status{contracts.StatusSucceeded}, 1, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
 		log.Error().Err(err).Msg(errorMessage)
@@ -721,7 +721,7 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
 	}
-	if build.BuildStatus != "succeeded" {
+	if build.BuildStatus != contracts.StatusSucceeded {
 		errorMessage := fmt.Sprintf("Build %v for pipeline %v/%v/%v has status %v for release command; only succeeded pipelines are allowed to be released", releaseCommand.ReleaseVersion, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, build.BuildStatus)
 		log.Error().Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
@@ -826,14 +826,14 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline release not found"})
 		return
 	}
-	if release.ReleaseStatus == "canceling" {
+	if release.ReleaseStatus == contracts.StatusCanceling {
 		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "release", release.RepoOwner, release.RepoName, release.ID)
 		_ = h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
-		_ = h.cockroachDBClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, id, "canceled")
+		_ = h.cockroachDBClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, id, contracts.StatusCanceled)
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", email)})
 		return
 	}
-	if release.ReleaseStatus != "pending" && release.ReleaseStatus != "running" {
+	if release.ReleaseStatus != contracts.StatusPending && release.ReleaseStatus != contracts.StatusRunning {
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": fmt.Sprintf("Release with status %v cannot be canceled", release.ReleaseStatus)})
 		return
 	}
@@ -841,10 +841,10 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 	// this release can be canceled, set status 'canceling' and cancel the release job
 	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "release", release.RepoOwner, release.RepoName, release.ID)
 	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
-	releaseStatus := "canceling"
-	if release.ReleaseStatus == "pending" || cancelErr != nil {
+	releaseStatus := contracts.StatusCanceling
+	if release.ReleaseStatus == contracts.StatusPending || cancelErr != nil {
 		// job might not have created a builder yet, so set status to canceled straightaway
-		releaseStatus = "canceled"
+		releaseStatus = contracts.StatusCanceled
 	}
 	err = h.cockroachDBClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, id, releaseStatus)
 	if err != nil {
@@ -854,8 +854,8 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 	}
 
 	// canceling the job failed because it no longer existed we should set canceled status right after having set it to canceling
-	if cancelErr != nil && release.ReleaseStatus == "running" {
-		releaseStatus = "canceled"
+	if cancelErr != nil && release.ReleaseStatus == contracts.StatusRunning {
+		releaseStatus = contracts.StatusCanceled
 		err = h.cockroachDBClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, id, releaseStatus)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed updating release status to canceled after setting it to canceling for %v/%v/%v/builds/%v in db", source, owner, repo, id)
@@ -1070,7 +1070,7 @@ func (h *Handler) GetPipelineStatsBuildsDurations(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[api.FilterType][]string{}
-	filters[api.FilterStatus] = api.GetStatusFilter(c, "succeeded")
+	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
 	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
 	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(c.Request.Context(), source, owner, repo, filters)
@@ -1094,7 +1094,7 @@ func (h *Handler) GetPipelineStatsReleasesDurations(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[api.FilterType][]string{}
-	filters[api.FilterStatus] = api.GetStatusFilter(c, "succeeded")
+	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
 	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
 	durations, err := h.cockroachDBClient.GetPipelineReleasesDurations(c.Request.Context(), source, owner, repo, filters)
@@ -1118,7 +1118,7 @@ func (h *Handler) GetPipelineStatsBuildsCPUUsageMeasurements(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[api.FilterType][]string{}
-	filters[api.FilterStatus] = api.GetStatusFilter(c, "succeeded")
+	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
 	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineBuildsCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
@@ -1142,7 +1142,7 @@ func (h *Handler) GetPipelineStatsReleasesCPUUsageMeasurements(c *gin.Context) {
 
 	// get filters (?filter[last]=100)
 	filters := map[api.FilterType][]string{}
-	filters[api.FilterStatus] = api.GetStatusFilter(c, "succeeded")
+	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
 	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineReleasesCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
@@ -1166,7 +1166,7 @@ func (h *Handler) GetPipelineStatsBuildsMemoryUsageMeasurements(c *gin.Context) 
 
 	// get filters (?filter[last]=100)
 	filters := map[api.FilterType][]string{}
-	filters[api.FilterStatus] = api.GetStatusFilter(c, "succeeded")
+	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
 	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineBuildsMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
@@ -1190,7 +1190,7 @@ func (h *Handler) GetPipelineStatsReleasesMemoryUsageMeasurements(c *gin.Context
 
 	// get filters (?filter[last]=100)
 	filters := map[api.FilterType][]string{}
-	filters[api.FilterStatus] = api.GetStatusFilter(c, "succeeded")
+	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
 	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
 	measurements, err := h.cockroachDBClient.GetPipelineReleasesMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
@@ -1229,7 +1229,7 @@ func (h *Handler) GetPipelineWarnings(c *gin.Context) {
 	buildsFilters := map[api.FilterType][]string{}
 
 	// only use durations of successful builds
-	buildsFilters[api.FilterStatus] = api.GetStatusFilter(c, "succeeded")
+	buildsFilters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
 
 	// get last 25 builds
 	buildsFilters[api.FilterLast] = api.GetLastFilter(c, 25)
@@ -1654,10 +1654,10 @@ func (h *Handler) ValidateManifest(c *gin.Context) {
 	}
 
 	_, err = manifest.ReadManifest(h.config.ManifestPreferences, aux.Manifest, true)
-	status := "succeeded"
+	status := contracts.StatusSucceeded
 	errorString := ""
 	if err != nil {
-		status = "failed"
+		status = contracts.StatusFailed
 		errorString = err.Error()
 	}
 
@@ -1903,7 +1903,7 @@ func (h *Handler) Commands(c *gin.Context) {
 
 		log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Unmarshaled body of /api/commands event %v for job %v", eventType, eventJobname)
 
-		if ciBuilderEvent.BuildStatus != "canceled" {
+		if ciBuilderEvent.BuildStatus != contracts.StatusCanceled {
 			go func(eventJobname string) {
 				err = h.ciBuilderClient.RemoveCiBuilderJob(c.Request.Context(), eventJobname)
 				if err != nil {

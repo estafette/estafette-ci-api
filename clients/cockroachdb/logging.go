@@ -43,7 +43,7 @@ func (c *loggingClient) InsertBuild(ctx context.Context, build contracts.Build, 
 	return c.Client.InsertBuild(ctx, build, jobResources)
 }
 
-func (c *loggingClient) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
+func (c *loggingClient) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
 	defer func() { api.HandleLogError(c.prefix, "UpdateBuildStatus", err) }()
 
 	return c.Client.UpdateBuildStatus(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
@@ -61,7 +61,7 @@ func (c *loggingClient) InsertRelease(ctx context.Context, release contracts.Rel
 	return c.Client.InsertRelease(ctx, release, jobResources)
 }
 
-func (c *loggingClient) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus string) (err error) {
+func (c *loggingClient) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus contracts.Status) (err error) {
 	defer func() { api.HandleLogError(c.prefix, "UpdateReleaseStatus", err) }()
 
 	return c.Client.UpdateReleaseStatus(ctx, repoSource, repoOwner, repoName, id, releaseStatus)
@@ -211,7 +211,7 @@ func (c *loggingClient) GetFirstPipelineRelease(ctx context.Context, repoSource,
 	return c.Client.GetFirstPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 }
 
-func (c *loggingClient) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
+func (c *loggingClient) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []contracts.Status, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
 	defer func() { api.HandleLogError(c.prefix, "GetPipelineBuildsByVersion", err) }()
 
 	return c.Client.GetPipelineBuildsByVersion(ctx, repoSource, repoOwner, repoName, buildVersion, statuses, limit, optimized)

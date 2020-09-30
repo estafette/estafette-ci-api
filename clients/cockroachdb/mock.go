@@ -14,10 +14,10 @@ type MockClient struct {
 	ConnectWithDriverAndSourceFunc                 func(ctx context.Context, driverName, dataSourceName string) (err error)
 	GetAutoIncrementFunc                           func(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error)
 	InsertBuildFunc                                func(ctx context.Context, build contracts.Build, jobResources JobResources) (b *contracts.Build, err error)
-	UpdateBuildStatusFunc                          func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error)
+	UpdateBuildStatusFunc                          func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error)
 	UpdateBuildResourceUtilizationFunc             func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources JobResources) (err error)
 	InsertReleaseFunc                              func(ctx context.Context, release contracts.Release, jobResources JobResources) (r *contracts.Release, err error)
-	UpdateReleaseStatusFunc                        func(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus string) (err error)
+	UpdateReleaseStatusFunc                        func(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus contracts.Status) (err error)
 	UpdateReleaseResourceUtilizationFunc           func(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) (err error)
 	InsertBuildLogFunc                             func(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (log contracts.BuildLog, err error)
 	InsertReleaseLogFunc                           func(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (log contracts.ReleaseLog, err error)
@@ -42,7 +42,7 @@ type MockClient struct {
 	GetLastPipelineBuildForBranchFunc              func(ctx context.Context, repoSource, repoOwner, repoName, branch string) (build *contracts.Build, err error)
 	GetLastPipelineReleasesFunc                    func(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string, pageSize int) (releases []*contracts.Release, err error)
 	GetFirstPipelineReleaseFunc                    func(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error)
-	GetPipelineBuildsByVersionFunc                 func(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) (builds []*contracts.Build, err error)
+	GetPipelineBuildsByVersionFunc                 func(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []contracts.Status, limit uint64, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuildLogsFunc                       func(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error)
 	GetPipelineBuildLogsPerPageFunc                func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
 	GetPipelineBuildMaxResourceUtilizationFunc     func(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobresources JobResources, count int, err error)
@@ -166,7 +166,7 @@ func (c MockClient) InsertBuild(ctx context.Context, build contracts.Build, jobR
 	return c.InsertBuildFunc(ctx, build, jobResources)
 }
 
-func (c MockClient) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
+func (c MockClient) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
 	if c.UpdateBuildStatusFunc == nil {
 		return
 	}
@@ -187,7 +187,7 @@ func (c MockClient) InsertRelease(ctx context.Context, release contracts.Release
 	return c.InsertReleaseFunc(ctx, release, jobResources)
 }
 
-func (c MockClient) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus string) (err error) {
+func (c MockClient) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus contracts.Status) (err error) {
 	if c.UpdateReleaseStatusFunc == nil {
 		return
 	}
@@ -363,7 +363,7 @@ func (c MockClient) GetFirstPipelineRelease(ctx context.Context, repoSource, rep
 	return c.GetFirstPipelineReleaseFunc(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 }
 
-func (c MockClient) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
+func (c MockClient) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []contracts.Status, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
 	if c.GetPipelineBuildsByVersionFunc == nil {
 		return
 	}

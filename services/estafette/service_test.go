@@ -390,7 +390,7 @@ func TestFinishBuild(t *testing.T) {
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		callCount := 0
-		cockroachdbClient.UpdateBuildStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
+		cockroachdbClient.UpdateBuildStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
 			callCount++
 			return
 		}
@@ -401,7 +401,7 @@ func TestFinishBuild(t *testing.T) {
 		repoOwner := "estafette"
 		repoName := "estafette-ci-api"
 		buildID := 1557
-		buildStatus := "succeeded"
+		buildStatus := contracts.StatusSucceeded
 
 		// act
 		err := service.FinishBuild(context.Background(), repoSource, repoOwner, repoName, buildID, buildStatus)
@@ -520,7 +520,7 @@ func TestFinishRelease(t *testing.T) {
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		callCount := 0
-		cockroachdbClient.UpdateReleaseStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
+		cockroachdbClient.UpdateReleaseStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
 			callCount++
 			return
 		}
@@ -531,7 +531,7 @@ func TestFinishRelease(t *testing.T) {
 		repoOwner := "estafette"
 		repoName := "estafette-ci-api"
 		buildID := 1557
-		buildStatus := "succeeded"
+		buildStatus := contracts.StatusSucceeded
 
 		// act
 		err := service.FinishRelease(context.Background(), repoSource, repoOwner, repoName, buildID, buildStatus)
@@ -629,7 +629,7 @@ func TestUpdateBuildStatus(t *testing.T) {
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		callCount := 0
-		cockroachdbClient.UpdateBuildStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
+		cockroachdbClient.UpdateBuildStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
 			callCount++
 			return
 		}
@@ -666,7 +666,7 @@ func TestUpdateBuildStatus(t *testing.T) {
 		cloudsourceapiClient := cloudsourceapi.MockClient{}
 
 		callCount := 0
-		cockroachdbClient.UpdateReleaseStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
+		cockroachdbClient.UpdateReleaseStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
 			callCount++
 			return
 		}

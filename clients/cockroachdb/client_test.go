@@ -92,7 +92,7 @@ func TestIntegrationUpdateBuildStatus(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpdateBuildStatus(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName, buildID, "succeeded")
+		err = cockroachdbClient.UpdateBuildStatus(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName, buildID, contracts.StatusSucceeded)
 
 		assert.Nil(t, err)
 	})
@@ -109,7 +109,7 @@ func TestIntegrationUpdateBuildStatus(t *testing.T) {
 		buildID := 15
 
 		// act
-		err := cockroachdbClient.UpdateBuildStatus(ctx, build.RepoSource, build.RepoOwner, build.RepoName, buildID, "succeeded")
+		err := cockroachdbClient.UpdateBuildStatus(ctx, build.RepoSource, build.RepoOwner, build.RepoName, buildID, contracts.StatusSucceeded)
 
 		assert.Nil(t, err)
 	})
@@ -200,7 +200,7 @@ func TestIntegrationUpdateReleaseStatus(t *testing.T) {
 		ctx := context.Background()
 		cockroachdbClient := getCockroachdbClient(ctx, t)
 		release := getRelease()
-		release.ReleaseStatus = "pending"
+		release.ReleaseStatus = contracts.StatusPending
 		jobResources := getJobResources()
 		insertedRelease, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
 		assert.Nil(t, err)
@@ -208,7 +208,7 @@ func TestIntegrationUpdateReleaseStatus(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpdateReleaseStatus(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, releaseID, "running")
+		err = cockroachdbClient.UpdateReleaseStatus(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, releaseID, contracts.StatusRunning)
 
 		assert.Nil(t, err)
 	})
@@ -225,7 +225,7 @@ func TestIntegrationUpdateReleaseStatus(t *testing.T) {
 		releaseID := 15
 
 		// act
-		err := cockroachdbClient.UpdateReleaseStatus(ctx, release.RepoSource, release.RepoOwner, release.RepoName, releaseID, "running")
+		err := cockroachdbClient.UpdateReleaseStatus(ctx, release.RepoSource, release.RepoOwner, release.RepoName, releaseID, contracts.StatusRunning)
 
 		assert.Nil(t, err)
 	})
@@ -455,7 +455,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
-			api.FilterStatus: {"succeeded"},
+			api.FilterStatus: {string(contracts.StatusSucceeded)},
 		}
 
 		// act
@@ -2648,7 +2648,7 @@ func getBuild() contracts.Build {
 		RepoBranch:     "master",
 		RepoRevision:   "08e9480b75154b5584995053344beb4d4aef65f4",
 		BuildVersion:   "0.0.99",
-		BuildStatus:    "pending",
+		BuildStatus:    contracts.StatusPending,
 		Labels:         []contracts.Label{{Key: "app-group", Value: "estafette-ci"}, {Key: "language", Value: "golang"}},
 		ReleaseTargets: []contracts.ReleaseTarget{},
 		Manifest:       "stages:\n  test:\n    image: golang:1.14.2-alpine3.11\n    commands:\n    - go test -short ./...",
@@ -2673,7 +2673,7 @@ func getRelease() contracts.Release {
 		RepoOwner:      "estafette",
 		RepoName:       "estafette-ci-api",
 		ReleaseVersion: "0.0.99",
-		ReleaseStatus:  "pending",
+		ReleaseStatus:  contracts.StatusPending,
 		Events:         []manifest.EstafetteEvent{},
 	}
 }
@@ -2703,7 +2703,7 @@ func getBuildLog() contracts.BuildLog {
 					Tag:  "1.14.2-alpine3.11",
 				},
 				Duration: time.Duration(1234567),
-				Status:   "SUCCEEDED",
+				Status:   contracts.LogStatusSucceeded,
 				LogLines: []contracts.BuildLogLine{
 					{
 						LineNumber: 1,
@@ -2731,7 +2731,7 @@ func getReleaseLog() contracts.ReleaseLog {
 					Tag:  "1.14.2-alpine3.11",
 				},
 				Duration: time.Duration(1234567),
-				Status:   "SUCCEEDED",
+				Status:   contracts.LogStatusSucceeded,
 				LogLines: []contracts.BuildLogLine{
 					{
 						LineNumber: 1,

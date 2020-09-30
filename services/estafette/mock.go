@@ -11,9 +11,9 @@ import (
 
 type MockService struct {
 	CreateBuildFunc               func(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error)
-	FinishBuildFunc               func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error)
+	FinishBuildFunc               func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error)
 	CreateReleaseFunc             func(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (r *contracts.Release, err error)
-	FinishReleaseFunc             func(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) (err error)
+	FinishReleaseFunc             func(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) (err error)
 	FireGitTriggersFunc           func(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error)
 	FirePipelineTriggersFunc      func(ctx context.Context, build contracts.Build, event string) (err error)
 	FireReleaseTriggersFunc       func(ctx context.Context, release contracts.Release, event string) (err error)
@@ -34,7 +34,7 @@ func (s MockService) CreateBuild(ctx context.Context, build contracts.Build, wai
 	return s.CreateBuildFunc(ctx, build, waitForJobToStart)
 }
 
-func (s MockService) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
+func (s MockService) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
 	if s.FinishBuildFunc == nil {
 		return
 	}
@@ -48,7 +48,7 @@ func (s MockService) CreateRelease(ctx context.Context, release contracts.Releas
 	return s.CreateReleaseFunc(ctx, release, mft, repoBranch, repoRevision, waitForJobToStart)
 }
 
-func (s MockService) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus string) (err error) {
+func (s MockService) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) (err error) {
 	if s.FinishReleaseFunc == nil {
 		return
 	}

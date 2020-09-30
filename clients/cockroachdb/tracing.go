@@ -48,7 +48,7 @@ func (c *tracingClient) InsertBuild(ctx context.Context, build contracts.Build, 
 	return c.Client.InsertBuild(ctx, build, jobResources)
 }
 
-func (c *tracingClient) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus string) (err error) {
+func (c *tracingClient) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "UpdateBuildStatus"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
@@ -69,7 +69,7 @@ func (c *tracingClient) InsertRelease(ctx context.Context, release contracts.Rel
 	return c.Client.InsertRelease(ctx, release, jobResources)
 }
 
-func (c *tracingClient) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus string) (err error) {
+func (c *tracingClient) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus contracts.Status) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "UpdateReleaseStatus"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
@@ -244,7 +244,7 @@ func (c *tracingClient) GetFirstPipelineRelease(ctx context.Context, repoSource,
 	return c.Client.GetFirstPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 }
 
-func (c *tracingClient) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []string, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
+func (c *tracingClient) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []contracts.Status, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBuildsByVersion"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 

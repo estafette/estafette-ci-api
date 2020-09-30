@@ -146,7 +146,7 @@ func (h *Handler) Handle(c *gin.Context) {
 					}
 
 					// check if version exists
-					builds, err := h.cockroachdbClient.GetPipelineBuildsByVersion(c.Request.Context(), pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion, []string{"succeeded"}, 1, false)
+					builds, err := h.cockroachdbClient.GetPipelineBuildsByVersion(c.Request.Context(), pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion, []contracts.Status{contracts.StatusSucceeded}, 1, false)
 
 					if err != nil {
 						c.String(http.StatusOK, fmt.Sprintf("Retrieving the build for repository %v and version %v from the database failed: %v", fullRepoName, buildVersion, err))
@@ -162,7 +162,7 @@ func (h *Handler) Handle(c *gin.Context) {
 						c.String(http.StatusOK, fmt.Sprintf("The version %v in your command does not exist", buildVersion))
 						return
 					}
-					if build.BuildStatus != "succeeded" {
+					if build.BuildStatus != contracts.StatusSucceeded {
 						c.String(http.StatusOK, fmt.Sprintf("The build for version %v is not successful and cannot be used", buildVersion))
 						return
 					}
