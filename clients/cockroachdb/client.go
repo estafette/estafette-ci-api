@@ -418,6 +418,12 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 		break
 	}
 
+	// turn into string array so query works as expected
+	allowedBuildStatusesToTransitionFromAsStrings := []string{}
+	for _, as := range allowedBuildStatusesToTransitionFrom {
+		allowedBuildStatusesToTransitionFromAsStrings = append(allowedBuildStatusesToTransitionFromAsStrings, string(as))
+	}
+
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -428,7 +434,7 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 		Where(sq.Eq{"repo_source": repoSource}).
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
-		Where(sq.Eq{"build_status": allowedBuildStatusesToTransitionFrom}).
+		Where(sq.Eq{"build_status": allowedBuildStatusesToTransitionFromAsStrings}).
 		Suffix("RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event, groups, organizations")
 
 	if buildStatus == contracts.StatusRunning {
@@ -590,6 +596,12 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 		break
 	}
 
+	// turn into string array so query works as expected
+	allowedReleaseStatusesToTransitionFromAsStrings := []string{}
+	for _, as := range allowedReleaseStatusesToTransitionFrom {
+		allowedReleaseStatusesToTransitionFromAsStrings = append(allowedReleaseStatusesToTransitionFromAsStrings, string(as))
+	}
+
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -600,7 +612,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 		Where(sq.Eq{"repo_source": repoSource}).
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
-		Where(sq.Eq{"release_status": allowedReleaseStatusesToTransitionFrom}).
+		Where(sq.Eq{"release_status": allowedReleaseStatusesToTransitionFromAsStrings}).
 		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event, groups, organizations")
 
 	if releaseStatus == contracts.StatusRunning {
