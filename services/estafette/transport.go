@@ -388,7 +388,7 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "build", build.RepoOwner, build.RepoName, build.ID)
 	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 	buildStatus := contracts.StatusCanceling
-	if build.BuildStatus == contracts.StatusPending || cancelErr != nil {
+	if build.BuildStatus == contracts.StatusPending {
 		// job might not have created a builder yet, so set status to canceled straightaway
 		buildStatus = contracts.StatusCanceled
 	}
@@ -400,7 +400,7 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 	}
 
 	// canceling the job failed because it no longer existed we should set canceled status right after having set it to canceling
-	if cancelErr != nil && build.BuildStatus == contracts.StatusRunning {
+	if errors.Is(cancelErr, builderapi.ErrJobNotFound) && build.BuildStatus == contracts.StatusRunning {
 		buildStatus = contracts.StatusCanceled
 		err = h.cockroachDBClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, id, buildStatus)
 		if err != nil {
@@ -842,7 +842,7 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "release", release.RepoOwner, release.RepoName, release.ID)
 	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 	releaseStatus := contracts.StatusCanceling
-	if release.ReleaseStatus == contracts.StatusPending || cancelErr != nil {
+	if release.ReleaseStatus == contracts.StatusPending {
 		// job might not have created a builder yet, so set status to canceled straightaway
 		releaseStatus = contracts.StatusCanceled
 	}
@@ -854,7 +854,7 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 	}
 
 	// canceling the job failed because it no longer existed we should set canceled status right after having set it to canceling
-	if cancelErr != nil && release.ReleaseStatus == contracts.StatusRunning {
+	if errors.Is(cancelErr, builderapi.ErrJobNotFound) && release.ReleaseStatus == contracts.StatusRunning {
 		releaseStatus = contracts.StatusCanceled
 		err = h.cockroachDBClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, id, releaseStatus)
 		if err != nil {

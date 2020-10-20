@@ -31,6 +31,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+var (
+	// ErrJobNotFound is returned if a job can't be found
+	ErrJobNotFound = errors.New("The job can't be found")
+)
+
 // Client is the interface for running kubernetes commands specific to this application
 type Client interface {
 	CreateCiBuilderJob(ctx context.Context, params CiBuilderParams) (job *batchv1.Job, err error)
@@ -168,12 +173,21 @@ func (c *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err er
 
 	log.Info().Msgf("Removing job %v after completion...", jobName)
 
-	err = c.awaitCiBuilderJob(ctx, jobName)
+	// check if job exists
+	job, err := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Get(jobName, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(ErrJobNotFound, "Job %v does not exist: %v", jobName, err)
+	}
+	if job == nil {
+		return errors.Wrapf(ErrJobNotFound, "Job %v does not exist", jobName)
+	}
+
+	err = c.awaitCiBuilderJob(ctx, job)
 	if err != nil {
 		return errors.Wrapf(err, "Failed waiting job %v after completion", jobName)
 	}
 
-	err = c.removeCiBuilderJobCore(ctx, jobName)
+	err = c.removeCiBuilderJobCore(ctx, job)
 	if err != nil {
 		return errors.Wrapf(err, "Failed removing job %v after completion", jobName)
 	}
@@ -188,7 +202,16 @@ func (c *client) CancelCiBuilderJob(ctx context.Context, jobName string) (err er
 
 	log.Info().Msgf("Canceling job %v...", jobName)
 
-	err = c.removeCiBuilderJobCore(ctx, jobName)
+	// check if job exists
+	job, err := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Get(jobName, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(ErrJobNotFound, "Job %v does not exist: %v", jobName, err)
+	}
+	if job == nil {
+		return errors.Wrapf(ErrJobNotFound, "Job %v does not exist", jobName)
+	}
+
+	err = c.removeCiBuilderJobCore(ctx, job)
 	if err != nil {
 		return errors.Wrapf(err, "Failed canceling job %v", jobName)
 	}
@@ -198,33 +221,32 @@ func (c *client) CancelCiBuilderJob(ctx context.Context, jobName string) (err er
 	return
 }
 
-func (c *client) awaitCiBuilderJob(ctx context.Context, jobName string) (err error) {
+func (c *client) awaitCiBuilderJob(ctx context.Context, job *batchv1.Job) (err error) {
 	// check if job is finished
-	job, err := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Get(jobName, metav1.GetOptions{})
-	if err != nil || job.Status.Succeeded != 1 {
-		log.Debug().Str("jobName", jobName).Msgf("Job is not done yet, watching job %v to succeed", jobName)
+	if job.Status.Succeeded != 1 {
+		log.Debug().Str("jobName", job.Name).Msgf("Job is not done yet, watching job %v to succeed", job.Name)
 
 		// watch for job updates
 		timeoutSeconds := int64(300)
 		watcher, err := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Watch(metav1.ListOptions{
-			FieldSelector:  fields.OneTermEqualSelector("metadata.name", jobName).String(),
+			FieldSelector:  fields.OneTermEqualSelector("metadata.name", job.Name).String(),
 			TimeoutSeconds: &timeoutSeconds,
 		})
 
 		if err != nil {
-			log.Warn().Err(err).Str("jobName", jobName).Msgf("Watcher call for job %v failed, ignoring", jobName)
+			log.Warn().Err(err).Str("jobName", job.Name).Msgf("Watcher call for job %v failed, ignoring", job.Name)
 		} else {
 			// wait for job to succeed
 			for {
 				event, ok := <-watcher.ResultChan()
 				if !ok {
-					log.Warn().Msgf("Watcher for job %v is closed, ignoring", jobName)
+					log.Warn().Msgf("Watcher for job %v is closed, ignoring", job.Name)
 					break
 				}
 				if event.Type == watch.Modified {
 					job, ok := event.Object.(*batchv1.Job)
 					if !ok {
-						log.Warn().Msgf("Watcher for job %v returns event object of incorrect type, ignoring", jobName)
+						log.Warn().Msgf("Watcher for job %v returns event object of incorrect type, ignoring", job.Name)
 						break
 					}
 					if job.Status.Succeeded == 1 {
@@ -330,23 +352,23 @@ func (c *client) RemoveCiBuilderSecret(ctx context.Context, secretName string) (
 	return
 }
 
-func (c *client) removeCiBuilderJobCore(ctx context.Context, jobName string) (err error) {
+func (c *client) removeCiBuilderJobCore(ctx context.Context, job *batchv1.Job) (err error) {
 
 	// delete job
-	removeJobErr := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Delete(jobName, &metav1.DeleteOptions{})
-	removeConfigmapErr := c.RemoveCiBuilderConfigMap(ctx, jobName)
-	removeSecretErr := c.RemoveCiBuilderSecret(ctx, jobName)
+	removeJobErr := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Delete(job.Name, &metav1.DeleteOptions{})
+	removeConfigmapErr := c.RemoveCiBuilderConfigMap(ctx, job.Name)
+	removeSecretErr := c.RemoveCiBuilderSecret(ctx, job.Name)
 
 	if removeJobErr != nil {
-		return errors.Wrapf(removeJobErr, "Deleting job %v failed", jobName)
+		return errors.Wrapf(removeJobErr, "Deleting job %v failed", job.Name)
 	}
 
 	if removeConfigmapErr != nil {
-		return errors.Wrapf(removeConfigmapErr, "Removing configmap for job %v failed", jobName)
+		return errors.Wrapf(removeConfigmapErr, "Removing configmap for job %v failed", job.Name)
 	}
 
 	if removeSecretErr != nil {
-		return errors.Wrapf(removeSecretErr, "Removing secret for job %v failed", jobName)
+		return errors.Wrapf(removeSecretErr, "Removing secret for job %v failed", job.Name)
 	}
 
 	return nil
@@ -786,7 +808,7 @@ func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderP
 			Name:      "app-configs",
 			MountPath: "/configs",
 		},
-		v1.VolumeMount{
+		{
 			Name:      "app-secret",
 			MountPath: "/secrets",
 		},

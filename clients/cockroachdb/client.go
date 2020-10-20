@@ -414,7 +414,7 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 		allowedBuildStatusesToTransitionFrom = []contracts.Status{contracts.StatusRunning}
 		break
 	case contracts.StatusCanceled:
-		allowedBuildStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending, contracts.StatusRunning, contracts.StatusCanceling}
+		allowedBuildStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending, contracts.StatusCanceling}
 		break
 	}
 
@@ -443,14 +443,15 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 
 	// update build status
 	row := query.RunWith(c.databaseConnection).QueryRow()
-
 	_, err = c.scanBuild(ctx, row, false, false)
-	if err != nil && err != sql.ErrNoRows {
 
-		return
-	} else if err != nil {
-		log.Warn().Err(err).Msgf("Updating build status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, buildStatus, allowedBuildStatusesToTransitionFrom, buildStatus)
-		return
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Warn().Err(err).Msgf("Updating build status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, buildStatus, allowedBuildStatusesToTransitionFrom, buildStatus)
+			return nil
+		}
+
+		return err
 	}
 
 	// update computed tables
@@ -592,7 +593,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 		allowedReleaseStatusesToTransitionFrom = []contracts.Status{contracts.StatusRunning}
 		break
 	case contracts.StatusCanceled:
-		allowedReleaseStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending, contracts.StatusRunning, contracts.StatusCanceling}
+		allowedReleaseStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending, contracts.StatusCanceling}
 		break
 	}
 
