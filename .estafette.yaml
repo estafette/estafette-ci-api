@@ -219,6 +219,11 @@ releases:
           mountpath: /configs
           volume: 
             emptyDir: {}
+        - name: app-templates
+          mountpath: /templates
+          volume:
+            configMap:
+              name: estafette-ci-manifest-templates-configs
 
       slack-notify:
         image: extensions/slack-build-status:dev
