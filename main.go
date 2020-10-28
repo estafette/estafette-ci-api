@@ -201,6 +201,11 @@ func getConfig(ctx context.Context) (*api.APIConfig, *api.APIConfig, crypt.Secre
 
 	configReader := api.NewConfigReader(secretHelper)
 
+	for !foundation.FileExists(*configFilePath) {
+		log.Debug().Msg("Sleeping for 30 seconds while config file is created...")
+		time.Sleep(30 * time.Second)
+	}
+
 	config, err := configReader.ReadConfigFromFile(*configFilePath, true)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed reading configuration")

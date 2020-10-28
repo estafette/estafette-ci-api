@@ -167,11 +167,10 @@ releases:
           - "-dest=/configs"
           - "-branch=master"
           - "-depth=1"
-          - "-webhook-url=http://127.0.0.1:9090/-/reload"
           securityContext:
             runAsUser: 65534 # git-sync user
           volumeMounts:
-          - name: shared-config
+          - name: app-configs
             mountPath: /configs
           secrets:
             keys:
