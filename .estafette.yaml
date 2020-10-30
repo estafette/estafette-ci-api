@@ -152,6 +152,12 @@ releases:
         customsidecars:
         - name: estafette-ci-api-git-sync
           image: k8s.gcr.io/git-sync:v3.1.5
+          args:
+          - -ssh
+          - -repo=estafette.secret(qy7o7SKbzOL1NSTf.nFNX_QO2JiVO-WzIq2ory58Fu7rcFA5Q6PiAMZ5j2WA2csTFe-DDdFVe-_EauA4ocGdHGZO0R8-08rCbb7UdOq8c5lQ1jxIK.2RdR8Aa7NSFI4APPsWoo2JkaqqvdHg9Ds-aMM4t0gCw6LNHUdJTEW4oO47nVON4JHmFYhlY=)
+          - -dest=configs
+          - -branch=git-sync
+          - -depth=1
           env:
           - name: GIT_KNOWN_HOSTS
             value: "false"
@@ -160,17 +166,7 @@ releases:
           - name: GIT_SYNC_WAIT
             value: "60"
           - name: GIT_SYNC_ROOT
-            value: "/git-sync-root"
-          - name: GIT_SYNC_SSH
-            value: "estafette.secret(qy7o7SKbzOL1NSTf.nFNX_QO2JiVO-WzIq2ory58Fu7rcFA5Q6PiAMZ5j2WA2csTFe-DDdFVe-_EauA4ocGdHGZO0R8-08rCbb7UdOq8c5lQ1jxIK.2RdR8Aa7NSFI4APPsWoo2JkaqqvdHg9Ds-aMM4t0gCw6LNHUdJTEW4oO47nVON4JHmFYhlY=)"
-          - name: GIT_SYNC_BRANCH
-            value: "git-sync"
-          - name: GIT_SYNC_DEST
-            value: "/configs"
-          - name: GIT_SYNC_DEPTH
-            value: "1"
-          - name: GIT_SSH_KEY_FILE
-            value: "/secrets/git-sync-rsa"
+            value: /configs
           securityContext:
             runAsUser: 65534 # git-sync user
           resources:
@@ -184,7 +180,7 @@ releases:
           - name: app-configs
             mountPath: /configs
           - name: app-secrets
-            mountpath: /secrets
+            mountPath: /secrets
         request:
           timeout: 120s
           maxbodysize: 128M
