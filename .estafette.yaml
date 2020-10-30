@@ -169,8 +169,8 @@ releases:
             value: "/configs"
           - name: GIT_SYNC_DEPTH
             value: "1"
-          - name: GIT_SSH_KEY_FILE:
-            value: "/secrets"
+          - name: GIT_SSH_KEY_FILE
+            value: "/secrets/git-sync-rsa"
           securityContext:
             runAsUser: 65534 # git-sync user
           resources:
