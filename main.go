@@ -201,9 +201,10 @@ func getConfig(ctx context.Context) (*api.APIConfig, *api.APIConfig, crypt.Secre
 
 	configReader := api.NewConfigReader(secretHelper)
 
+	// await for config file to be present, due to git-sync sidecar startup it can take some time
 	for !foundation.FileExists(*configFilePath) {
-		log.Debug().Msg("Sleeping for 30 seconds while config file is created...")
-		time.Sleep(30 * time.Second)
+		log.Debug().Msg("Sleeping for 5 seconds while config file is created...")
+		time.Sleep(5 * time.Second)
 	}
 
 	config, err := configReader.ReadConfigFromFile(*configFilePath, true)

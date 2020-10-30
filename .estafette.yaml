@@ -165,7 +165,7 @@ releases:
           - "-ssh"
           - estafette.secret(qy7o7SKbzOL1NSTf.nFNX_QO2JiVO-WzIq2ory58Fu7rcFA5Q6PiAMZ5j2WA2csTFe-DDdFVe-_EauA4ocGdHGZO0R8-08rCbb7UdOq8c5lQ1jxIK.2RdR8Aa7NSFI4APPsWoo2JkaqqvdHg9Ds-aMM4t0gCw6LNHUdJTEW4oO47nVON4JHmFYhlY=)
           - "-dest=/configs"
-          - "-branch=master"
+          - "-branch=git-sync"
           - "-depth=1"
           securityContext:
             runAsUser: 65534 # git-sync user
