@@ -203,7 +203,7 @@ func getConfig(ctx context.Context) (*api.APIConfig, *api.APIConfig, crypt.Secre
 
 	// await for config file to be present, due to git-sync sidecar startup it can take some time
 	for !foundation.FileExists(*configFilePath) {
-		log.Debug().Msg("Sleeping for 5 seconds while config file is created...")
+		log.Debug().Msg("Sleeping for 5 seconds while config file is synced...")
 		time.Sleep(5 * time.Second)
 	}
 
