@@ -355,9 +355,6 @@ func (c *client) createCiBuilderImagePullSecret(ctx context.Context, ciBuilderPa
 		return
 	}
 
-	dockerconfigjson := base64.StdEncoding.EncodeToString(jsonBytes)
-	log.Debug().Interface("dockerconfig", dockerconfig).Str("jsonBytes", string(jsonBytes)).Str("dockerconfigjson", dockerconfigjson).Msgf("dockerconfigjson for %v", imagePullSecretName)
-
 	// create image pull secret
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -370,7 +367,7 @@ func (c *client) createCiBuilderImagePullSecret(ctx context.Context, ciBuilderPa
 		},
 		Type: "kubernetes.io/dockerconfigjson",
 		Data: map[string][]byte{
-			".dockerconfigjson": []byte(dockerconfigjson),
+			".dockerconfigjson": jsonBytes,
 		},
 	}
 
