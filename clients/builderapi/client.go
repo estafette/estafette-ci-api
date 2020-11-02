@@ -586,6 +586,7 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 
 	// add container-registry credentials to allow private registry images to be used in stages
 	credentials = contracts.AddCredentialsIfNotPresent(credentials, contracts.FilterCredentialsByPipelinesAllowList(contracts.GetCredentialsByType(c.encryptedConfig.Credentials, "container-registry"), ciBuilderParams.GetFullRepoPath()))
+	credentials = contracts.AddCredentialsIfNotPresent(credentials, contracts.FilterCredentialsByPipelinesAllowList(contracts.GetCredentialsByType(c.encryptedConfig.Credentials, "container-registry-pull"), ciBuilderParams.GetFullRepoPath()))
 
 	localBuilderConfig := contracts.BuilderConfig{
 		Credentials:     credentials,
