@@ -167,7 +167,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 
 	if createImagePullSecret {
 		job.Spec.Template.Spec.ImagePullSecrets = append(job.Spec.Template.Spec.ImagePullSecrets, v1.LocalObjectReference{
-			Name: fmt.Sprintf("%v-pull", jobName),
+			Name: c.getImagePullSecretName(jobName),
 		})
 	}
 
@@ -338,7 +338,7 @@ func (c *client) createCiBuilderImagePullSecret(ctx context.Context, ciBuilderPa
 	password := registryPullCredentials[0].AdditionalProperties["password"].(string)
 
 	dockerconfigjson := map[string]map[string]map[string]string{
-		"auths": map[string]map[string]string{
+		"auths": {
 			"https://index.docker.io/v1/": map[string]string{
 				"username": username,
 				"password": password,
@@ -352,7 +352,7 @@ func (c *client) createCiBuilderImagePullSecret(ctx context.Context, ciBuilderPa
 		return
 	}
 
-	imagePullSecretName := fmt.Sprintf("%v-pull", jobName)
+	imagePullSecretName := c.getImagePullSecretName(jobName)
 
 	// create image pull secret
 	secret := &v1.Secret{
@@ -424,7 +424,7 @@ func (c *client) RemoveCiBuilderSecret(ctx context.Context, jobName string) (err
 
 func (c *client) RemoveCiBuilderImagePullSecret(ctx context.Context, jobName string) (err error) {
 
-	secretName := fmt.Sprintf("%v-pull", jobName)
+	secretName := c.getImagePullSecretName(jobName)
 
 	// check if secret exists
 	_, err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Get(secretName, metav1.GetOptions{})
@@ -602,6 +602,14 @@ func (c *client) GetJobName(ctx context.Context, jobType, repoOwner, repoName, i
 	}
 
 	return strings.ToLower(fmt.Sprintf("%v-%v-%v", jobType, fullRepoName, id))
+}
+
+func (c *client) getImagePullSecretName(jobName string) string {
+
+	jobName = strings.TrimPrefix(jobName, "release-")
+	jobName = strings.TrimPrefix(jobName, "build-")
+
+	return "pull-" + jobName
 }
 
 func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilderParams, jobName string) (contracts.BuilderConfig, error) {
