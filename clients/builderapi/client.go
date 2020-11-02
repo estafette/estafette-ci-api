@@ -335,10 +335,12 @@ func (c *client) createCiBuilderImagePullSecret(ctx context.Context, ciBuilderPa
 		return false, nil
 	}
 
+	imagePullSecretName := c.getImagePullSecretName(jobName)
+
 	username := registryPullCredentials[0].AdditionalProperties["username"].(string)
 	password := registryPullCredentials[0].AdditionalProperties["password"].(string)
 
-	dockerconfigjson := map[string]map[string]map[string]string{
+	dockerconfig := map[string]map[string]map[string]string{
 		"auths": {
 			"https://index.docker.io/v1/": map[string]string{
 				"username": username,
@@ -348,12 +350,13 @@ func (c *client) createCiBuilderImagePullSecret(ctx context.Context, ciBuilderPa
 		},
 	}
 
-	jsonBytes, err := json.Marshal(dockerconfigjson)
+	jsonBytes, err := json.Marshal(dockerconfig)
 	if err != nil {
 		return
 	}
 
-	imagePullSecretName := c.getImagePullSecretName(jobName)
+	dockerconfigjson := base64.StdEncoding.EncodeToString(jsonBytes)
+	log.Debug().Interface("dockerconfig", dockerconfig).Str("jsonBytes", string(jsonBytes)).Str("dockerconfigjson", dockerconfigjson).Msgf("dockerconfigjson for %v", imagePullSecretName)
 
 	// create image pull secret
 	secret := &v1.Secret{
@@ -367,7 +370,7 @@ func (c *client) createCiBuilderImagePullSecret(ctx context.Context, ciBuilderPa
 		},
 		Type: "kubernetes.io/dockerconfigjson",
 		Data: map[string][]byte{
-			".dockerconfigjson": []byte(base64.StdEncoding.EncodeToString(jsonBytes)),
+			".dockerconfigjson": []byte(dockerconfigjson),
 		},
 	}
 
