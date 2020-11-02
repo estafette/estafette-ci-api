@@ -61,6 +61,14 @@ func (c *metricsClient) RemoveCiBuilderSecret(ctx context.Context, secretName st
 	return c.Client.RemoveCiBuilderSecret(ctx, secretName)
 }
 
+func (c *metricsClient) RemoveCiBuilderImagePullSecret(ctx context.Context, secretName string) (err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "RemoveCiBuilderImagePullSecret", begin)
+	}(time.Now())
+
+	return c.Client.RemoveCiBuilderImagePullSecret(ctx, secretName)
+}
+
 func (c *metricsClient) TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "TailCiBuilderJobLogs", begin)

@@ -3,6 +3,7 @@ package builderapi
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -43,6 +44,7 @@ type Client interface {
 	CancelCiBuilderJob(ctx context.Context, jobName string) (err error)
 	RemoveCiBuilderConfigMap(ctx context.Context, configmapName string) (err error)
 	RemoveCiBuilderSecret(ctx context.Context, secretName string) (err error)
+	RemoveCiBuilderImagePullSecret(ctx context.Context, secretName string) (err error)
 	TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error)
 	GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) (jobname string)
 }
@@ -102,6 +104,11 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 		return nil, errors.Wrapf(err, "Failed creating job %v secret...", jobName)
 	}
 
+	createImagePullSecret, err := c.createCiBuilderImagePullSecret(ctx, ciBuilderParams, jobName)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed creating job %v image pull secret...", jobName)
+	}
+
 	// other job config
 	repository := "estafette/estafette-ci-builder"
 	tag := ciBuilderParams.Track
@@ -156,6 +163,12 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 				},
 			},
 		},
+	}
+
+	if createImagePullSecret {
+		job.Spec.Template.Spec.ImagePullSecrets = append(job.Spec.Template.Spec.ImagePullSecrets, v1.LocalObjectReference{
+			Name: fmt.Sprintf("%v-pull", jobName),
+		})
 	}
 
 	job, err = c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Create(job)
@@ -314,7 +327,62 @@ func (c *client) createCiBuilderSecret(ctx context.Context, ciBuilderParams CiBu
 	return nil
 }
 
-func (c *client) RemoveCiBuilderConfigMap(ctx context.Context, configmapName string) (err error) {
+func (c *client) createCiBuilderImagePullSecret(ctx context.Context, ciBuilderParams CiBuilderParams, jobName string) (created bool, err error) {
+
+	registryPullCredentials := contracts.GetCredentialsByType(c.encryptedConfig.Credentials, "container-registry-pull")
+	if len(registryPullCredentials) == 0 {
+		return false, nil
+	}
+
+	username := registryPullCredentials[0].AdditionalProperties["username"].(string)
+	password := registryPullCredentials[0].AdditionalProperties["password"].(string)
+
+	dockerconfigjson := map[string]map[string]map[string]string{
+		"auths": map[string]map[string]string{
+			"https://index.docker.io/v1/": map[string]string{
+				"username": username,
+				"password": password,
+				"auth":     base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", username, password))),
+			},
+		},
+	}
+
+	jsonBytes, err := json.Marshal(dockerconfigjson)
+	if err != nil {
+		return
+	}
+
+	imagePullSecretName := fmt.Sprintf("%v-pull", jobName)
+
+	// create image pull secret
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      imagePullSecretName,
+			Namespace: c.config.Jobs.Namespace,
+			Labels: map[string]string{
+				"createdBy": "estafette",
+				"jobType":   ciBuilderParams.JobType,
+			},
+		},
+		Type: "kubernetes.io/dockerconfigjson",
+		Data: map[string][]byte{
+			".dockerconfigjson": []byte(base64.StdEncoding.EncodeToString(jsonBytes)),
+		},
+	}
+
+	_, err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Create(secret)
+	if err != nil {
+		return false, errors.Wrapf(err, "Creating secret %v failed", imagePullSecretName)
+	}
+
+	log.Info().Msgf("Secret %v is created", imagePullSecretName)
+
+	return true, nil
+}
+
+func (c *client) RemoveCiBuilderConfigMap(ctx context.Context, jobName string) (err error) {
+
+	configmapName := jobName
 
 	// check if configmap exists
 	_, err = c.kubeClientset.CoreV1().ConfigMaps(c.config.Jobs.Namespace).Get(configmapName, metav1.GetOptions{})
@@ -333,7 +401,30 @@ func (c *client) RemoveCiBuilderConfigMap(ctx context.Context, configmapName str
 	return
 }
 
-func (c *client) RemoveCiBuilderSecret(ctx context.Context, secretName string) (err error) {
+func (c *client) RemoveCiBuilderSecret(ctx context.Context, jobName string) (err error) {
+
+	secretName := jobName
+
+	// check if secret exists
+	_, err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Get(secretName, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "Get call for secret %v failed", secretName)
+	}
+
+	// delete secret
+	err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Delete(secretName, &metav1.DeleteOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "Deleting secret %v failed", secretName)
+	}
+
+	log.Info().Msgf("Secret %v is deleted", secretName)
+
+	return
+}
+
+func (c *client) RemoveCiBuilderImagePullSecret(ctx context.Context, jobName string) (err error) {
+
+	secretName := fmt.Sprintf("%v-pull", jobName)
 
 	// check if secret exists
 	_, err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Get(secretName, metav1.GetOptions{})
@@ -358,6 +449,7 @@ func (c *client) removeCiBuilderJobCore(ctx context.Context, job *batchv1.Job) (
 	removeJobErr := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Delete(job.Name, &metav1.DeleteOptions{})
 	removeConfigmapErr := c.RemoveCiBuilderConfigMap(ctx, job.Name)
 	removeSecretErr := c.RemoveCiBuilderSecret(ctx, job.Name)
+	removeImagePullSecretErr := c.RemoveCiBuilderImagePullSecret(ctx, job.Name)
 
 	if removeJobErr != nil {
 		return errors.Wrapf(removeJobErr, "Deleting job %v failed", job.Name)
@@ -369,6 +461,10 @@ func (c *client) removeCiBuilderJobCore(ctx context.Context, job *batchv1.Job) (
 
 	if removeSecretErr != nil {
 		return errors.Wrapf(removeSecretErr, "Removing secret for job %v failed", job.Name)
+	}
+
+	if removeImagePullSecretErr != nil {
+		return errors.Wrapf(removeImagePullSecretErr, "Removing image pull secret for job %v failed", job.Name)
 	}
 
 	return nil

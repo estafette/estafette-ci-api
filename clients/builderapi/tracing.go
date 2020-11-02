@@ -54,6 +54,13 @@ func (c *tracingClient) RemoveCiBuilderSecret(ctx context.Context, secretName st
 	return c.Client.RemoveCiBuilderSecret(ctx, secretName)
 }
 
+func (c *tracingClient) RemoveCiBuilderImagePullSecret(ctx context.Context, secretName string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "RemoveCiBuilderImagePullSecret"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.RemoveCiBuilderImagePullSecret(ctx, secretName)
+}
+
 func (c *tracingClient) TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "TailCiBuilderJobLogs"))
 	defer func() { api.FinishSpanWithError(span, err) }()
