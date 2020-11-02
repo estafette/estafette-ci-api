@@ -330,7 +330,7 @@ func (c *client) createCiBuilderSecret(ctx context.Context, ciBuilderParams CiBu
 
 func (c *client) createCiBuilderImagePullSecret(ctx context.Context, ciBuilderParams CiBuilderParams, jobName string) (created bool, err error) {
 
-	registryPullCredentials := contracts.GetCredentialsByType(c.encryptedConfig.Credentials, "container-registry-pull")
+	registryPullCredentials := contracts.GetCredentialsByType(c.config.Credentials, "container-registry-pull")
 	if len(registryPullCredentials) == 0 {
 		return false, nil
 	}
