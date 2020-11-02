@@ -106,8 +106,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 
 	createImagePullSecret, err := c.createCiBuilderImagePullSecret(ctx, ciBuilderParams, jobName)
 	if err != nil {
-		log.Warn().Err(err).Msgf("Failed creating job %v image pull secret...", jobName)
-		// return nil, errors.Wrapf(err, "Failed creating job %v image pull secret...", jobName)
+		return nil, errors.Wrapf(err, "Failed creating job %v image pull secret...", jobName)
 	}
 
 	// other job config
