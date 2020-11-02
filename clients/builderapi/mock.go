@@ -8,13 +8,14 @@ import (
 )
 
 type MockClient struct {
-	CreateCiBuilderJobFunc       func(ctx context.Context, params CiBuilderParams) (job *batchv1.Job, err error)
-	RemoveCiBuilderJobFunc       func(ctx context.Context, jobName string) (err error)
-	CancelCiBuilderJobFunc       func(ctx context.Context, jobName string) (err error)
-	RemoveCiBuilderConfigMapFunc func(ctx context.Context, configmapName string) (err error)
-	RemoveCiBuilderSecretFunc    func(ctx context.Context, secretName string) (err error)
-	TailCiBuilderJobLogsFunc     func(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error)
-	GetJobNameFunc               func(ctx context.Context, jobType, repoOwner, repoName, id string) (jobname string)
+	CreateCiBuilderJobFunc             func(ctx context.Context, params CiBuilderParams) (job *batchv1.Job, err error)
+	RemoveCiBuilderJobFunc             func(ctx context.Context, jobName string) (err error)
+	CancelCiBuilderJobFunc             func(ctx context.Context, jobName string) (err error)
+	RemoveCiBuilderConfigMapFunc       func(ctx context.Context, configmapName string) (err error)
+	RemoveCiBuilderSecretFunc          func(ctx context.Context, secretName string) (err error)
+	RemoveCiBuilderImagePullSecretFunc func(ctx context.Context, secretName string) (err error)
+	TailCiBuilderJobLogsFunc           func(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error)
+	GetJobNameFunc                     func(ctx context.Context, jobType, repoOwner, repoName, id string) (jobname string)
 }
 
 func (c MockClient) CreateCiBuilderJob(ctx context.Context, params CiBuilderParams) (job *batchv1.Job, err error) {
@@ -50,6 +51,13 @@ func (c MockClient) RemoveCiBuilderSecret(ctx context.Context, secretName string
 		return
 	}
 	return c.RemoveCiBuilderSecretFunc(ctx, secretName)
+}
+
+func (c MockClient) RemoveCiBuilderImagePullSecret(ctx context.Context, secretName string) (err error) {
+	if c.RemoveCiBuilderImagePullSecretFunc == nil {
+		return
+	}
+	return c.RemoveCiBuilderImagePullSecretFunc(ctx, secretName)
 }
 
 func (c MockClient) TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error) {

@@ -48,6 +48,12 @@ func (c *loggingClient) RemoveCiBuilderSecret(ctx context.Context, secretName st
 	return c.Client.RemoveCiBuilderSecret(ctx, secretName)
 }
 
+func (c *loggingClient) RemoveCiBuilderImagePullSecret(ctx context.Context, secretName string) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "RemoveCiBuilderImagePullSecret", err) }()
+
+	return c.Client.RemoveCiBuilderImagePullSecret(ctx, secretName)
+}
+
 func (c *loggingClient) TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error) {
 	defer func() { api.HandleLogError(c.prefix, "TailCiBuilderJobLogs", err) }()
 
