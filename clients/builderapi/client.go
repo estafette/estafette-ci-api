@@ -982,13 +982,19 @@ func (c *client) getCiBuilderJobTolerations(ctx context.Context, ciBuilderParams
 	tolerations = []v1.Toleration{}
 
 	if ciBuilderParams.OperatingSystem == "windows" {
-		tolerationKey := "node.kubernetes.io/os"
-		tolerationValue := "windows"
 		tolerations = append(tolerations, v1.Toleration{
 			Effect:   v1.TaintEffectNoSchedule,
-			Key:      tolerationKey,
+			Key:      "node.kubernetes.io/os",
 			Operator: v1.TolerationOpEqual,
-			Value:    tolerationValue,
+			Value:    "windows",
+		})
+	} else if ciBuilderParams.JobType != "release" {
+		// to run build jobs on preemptibles when node autoprovisioning is used, add a toleration for it
+		tolerations = append(tolerations, v1.Toleration{
+			Effect:   v1.TaintEffectNoSchedule,
+			Key:      "cloud.google.com/gke-preemptible",
+			Operator: v1.TolerationOpEqual,
+			Value:    "true",
 		})
 	}
 
