@@ -33,8 +33,8 @@ func GenerateJWT(config *APIConfig, validDuration time.Duration, optionalClaims 
 	claims := token.Claims.(jwtgo.MapClaims)
 
 	// set required claims
-	now := time.Now()
-	expire := now.Add(time.Hour)
+	now := time.Now().UTC()
+	expire := now.Add(validDuration)
 	claims["exp"] = expire.Unix()
 	claims["orig_iat"] = now.Unix()
 
