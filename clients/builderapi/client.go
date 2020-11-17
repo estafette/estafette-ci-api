@@ -391,7 +391,10 @@ func (c *client) RemoveCiBuilderConfigMap(ctx context.Context, jobName string) (
 	}
 
 	// delete configmap
-	err = c.kubeClientset.CoreV1().ConfigMaps(c.config.Jobs.Namespace).Delete(configmapName, &metav1.DeleteOptions{})
+	propagationPolicy := metav1.DeletePropagationForeground
+	err = c.kubeClientset.CoreV1().ConfigMaps(c.config.Jobs.Namespace).Delete(configmapName, &metav1.DeleteOptions{
+		PropagationPolicy: &propagationPolicy,
+	})
 	if err != nil {
 		return errors.Wrapf(err, "Deleting configmap %v failed", configmapName)
 	}
@@ -412,7 +415,10 @@ func (c *client) RemoveCiBuilderSecret(ctx context.Context, jobName string) (err
 	}
 
 	// delete secret
-	err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Delete(secretName, &metav1.DeleteOptions{})
+	propagationPolicy := metav1.DeletePropagationForeground
+	err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Delete(secretName, &metav1.DeleteOptions{
+		PropagationPolicy: &propagationPolicy,
+	})
 	if err != nil {
 		return errors.Wrapf(err, "Deleting secret %v failed", secretName)
 	}
@@ -433,7 +439,10 @@ func (c *client) RemoveCiBuilderImagePullSecret(ctx context.Context, jobName str
 	}
 
 	// delete secret
-	err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Delete(secretName, &metav1.DeleteOptions{})
+	propagationPolicy := metav1.DeletePropagationForeground
+	err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Delete(secretName, &metav1.DeleteOptions{
+		PropagationPolicy: &propagationPolicy,
+	})
 	if err != nil {
 		return errors.Wrapf(err, "Deleting secret %v failed", secretName)
 	}
@@ -446,7 +455,10 @@ func (c *client) RemoveCiBuilderImagePullSecret(ctx context.Context, jobName str
 func (c *client) removeCiBuilderJobCore(ctx context.Context, job *batchv1.Job) (err error) {
 
 	// delete job
-	removeJobErr := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Delete(job.Name, &metav1.DeleteOptions{})
+	propagationPolicy := metav1.DeletePropagationForeground
+	removeJobErr := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Delete(job.Name, &metav1.DeleteOptions{
+		PropagationPolicy: &propagationPolicy,
+	})
 	removeConfigmapErr := c.RemoveCiBuilderConfigMap(ctx, job.Name)
 	removeSecretErr := c.RemoveCiBuilderSecret(ctx, job.Name)
 	removeImagePullSecretErr := c.RemoveCiBuilderImagePullSecret(ctx, job.Name)
