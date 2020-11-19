@@ -2651,7 +2651,7 @@ func getBuild() contracts.Build {
 		BuildStatus:    contracts.StatusPending,
 		Labels:         []contracts.Label{{Key: "app-group", Value: "estafette-ci"}, {Key: "language", Value: "golang"}},
 		ReleaseTargets: []contracts.ReleaseTarget{},
-		Manifest:       "stages:\n  test:\n    image: golang:1.14.2-alpine3.11\n    commands:\n    - go test -short ./...",
+		Manifest:       "stages:\n  test:\n    image: golang:1.15.5-alpine3.12\n    commands:\n    - go test -short ./...",
 		Commits: []contracts.GitCommit{
 			{
 				Message: "test commit",

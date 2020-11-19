@@ -1018,7 +1018,7 @@ func (c *client) getCiBuilderJobAffinity(ctx context.Context, ciBuilderParams Ci
 	preemptibleAffinityWeight := int32(10)
 	preemptibleAffinityKey := "cloud.google.com/gke-preemptible"
 
-	operatingSystemAffinityKey := "beta.kubernetes.io/os"
+	operatingSystemAffinityKey := "kubernetes.io/os"
 	operatingSystemAffinityValue := ciBuilderParams.OperatingSystem
 
 	if ciBuilderParams.JobType == "release" {
