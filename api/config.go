@@ -269,9 +269,11 @@ type JWTConfig struct {
 type JobsConfig struct {
 	Namespace          string  `yaml:"namespace"`
 	MinCPUCores        float64 `yaml:"minCPUCores"`
+	DefaultCPUCores    float64 `yaml:"defaultCPUCores"`
 	MaxCPUCores        float64 `yaml:"maxCPUCores"`
 	CPURequestRatio    float64 `yaml:"cpuRequestRatio"`
 	MinMemoryBytes     float64 `yaml:"minMemoryBytes"`
+	DefaultMemoryBytes float64 `yaml:"defaultMemoryBytes"`
 	MaxMemoryBytes     float64 `yaml:"maxMemoryBytes"`
 	MemoryRequestRatio float64 `yaml:"memoryRequestRatio"`
 }

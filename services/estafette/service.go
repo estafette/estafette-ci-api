@@ -1208,11 +1208,20 @@ func (s *service) getVersionCounter(ctx context.Context, version string, mft man
 
 func (s *service) getBuildJobResources(ctx context.Context, build contracts.Build) cockroachdb.JobResources {
 	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
+	defaultCPUCores := s.config.Jobs.DefaultCPUCores
+	if defaultCPUCores == 0 {
+		defaultCPUCores = s.config.Jobs.MaxCPUCores
+	}
+	defaultMemory := s.config.Jobs.DefaultMemoryBytes
+	if defaultMemory == 0 {
+		defaultMemory = s.config.Jobs.MaxMemoryBytes
+	}
+
 	jobResources := cockroachdb.JobResources{
-		CPURequest:    s.config.Jobs.MaxCPUCores,
-		CPULimit:      s.config.Jobs.MaxCPUCores,
-		MemoryRequest: s.config.Jobs.MaxMemoryBytes,
-		MemoryLimit:   s.config.Jobs.MaxMemoryBytes,
+		CPURequest:    defaultCPUCores,
+		CPULimit:      defaultCPUCores,
+		MemoryRequest: defaultMemory,
+		MemoryLimit:   defaultMemory,
 	}
 
 	// get max usage from previous builds
