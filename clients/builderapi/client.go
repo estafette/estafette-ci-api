@@ -579,8 +579,7 @@ func (c *client) followPodLogs(ctx context.Context, pod *v1.Pod, jobName string,
 			break
 		}
 		if err != nil {
-			log.Warn().Err(err).Msgf("Error while reading lines from logs from pod %v for job %v", pod.Name, jobName)
-			continue
+			return err
 		}
 
 		// only forward if it's a json object with property 'tailLogLine'
