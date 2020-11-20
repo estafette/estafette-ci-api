@@ -1243,7 +1243,11 @@ func (s *service) getBuildJobResources(ctx context.Context, build contracts.Buil
 			} else {
 				jobResources.CPURequest = desiredCPURequest
 			}
-			jobResources.CPULimit = jobResources.CPURequest
+
+			// keep limit at default, unless cpu request is larger
+			if jobResources.CPURequest > jobResources.CPULimit {
+				jobResources.CPULimit = jobResources.CPURequest
+			}
 		}
 
 		if measuredResources.MemoryMaxUsage > 0 {
@@ -1255,7 +1259,11 @@ func (s *service) getBuildJobResources(ctx context.Context, build contracts.Buil
 			} else {
 				jobResources.MemoryRequest = desiredMemoryRequest
 			}
-			jobResources.MemoryLimit = jobResources.MemoryRequest
+
+			// keep limit at default, unless cpu request is larger
+			if jobResources.MemoryRequest > jobResources.MemoryLimit {
+				jobResources.MemoryLimit = jobResources.MemoryRequest
+			}
 		}
 	}
 
