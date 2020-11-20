@@ -1235,23 +1235,27 @@ func (s *service) getBuildJobResources(ctx context.Context, build contracts.Buil
 
 		// only override cpu and memory request values if measured values are within min and max
 		if measuredResources.CPUMaxUsage > 0 {
-			if measuredResources.CPUMaxUsage*s.config.Jobs.CPURequestRatio <= s.config.Jobs.MinCPUCores {
+			desiredCPURequest := measuredResources.CPUMaxUsage * s.config.Jobs.CPURequestRatio
+			if desiredCPURequest <= s.config.Jobs.MinCPUCores {
 				jobResources.CPURequest = s.config.Jobs.MinCPUCores
-			} else if measuredResources.CPUMaxUsage*s.config.Jobs.CPURequestRatio >= s.config.Jobs.MaxCPUCores {
+			} else if desiredCPURequest >= s.config.Jobs.MaxCPUCores {
 				jobResources.CPURequest = s.config.Jobs.MaxCPUCores
 			} else {
-				jobResources.CPURequest = measuredResources.CPUMaxUsage * s.config.Jobs.CPURequestRatio
+				jobResources.CPURequest = desiredCPURequest
 			}
+			jobResources.CPULimit = jobResources.CPURequest
 		}
 
 		if measuredResources.MemoryMaxUsage > 0 {
-			if measuredResources.MemoryMaxUsage*s.config.Jobs.MemoryRequestRatio <= s.config.Jobs.MinMemoryBytes {
+			desiredMemoryRequest := measuredResources.MemoryMaxUsage * s.config.Jobs.MemoryRequestRatio
+			if desiredMemoryRequest <= s.config.Jobs.MinMemoryBytes {
 				jobResources.MemoryRequest = s.config.Jobs.MinMemoryBytes
-			} else if measuredResources.MemoryMaxUsage*s.config.Jobs.MemoryRequestRatio >= s.config.Jobs.MaxMemoryBytes {
+			} else if desiredMemoryRequest >= s.config.Jobs.MaxMemoryBytes {
 				jobResources.MemoryRequest = s.config.Jobs.MaxMemoryBytes
 			} else {
-				jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.config.Jobs.MemoryRequestRatio
+				jobResources.MemoryRequest = desiredMemoryRequest
 			}
+			jobResources.MemoryLimit = jobResources.MemoryRequest
 		}
 	}
 
