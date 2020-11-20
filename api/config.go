@@ -267,15 +267,19 @@ type JWTConfig struct {
 
 // JobsConfig configures the lower and upper bounds for automatically setting resources for build/release jobs
 type JobsConfig struct {
-	Namespace          string  `yaml:"namespace"`
-	MinCPUCores        float64 `yaml:"minCPUCores"`
-	DefaultCPUCores    float64 `yaml:"defaultCPUCores"`
-	MaxCPUCores        float64 `yaml:"maxCPUCores"`
-	CPURequestRatio    float64 `yaml:"cpuRequestRatio"`
+	Namespace string `yaml:"namespace"`
+
+	MinCPUCores     float64 `yaml:"minCPUCores"`
+	DefaultCPUCores float64 `yaml:"defaultCPUCores"`
+	MaxCPUCores     float64 `yaml:"maxCPUCores"`
+	CPURequestRatio float64 `yaml:"cpuRequestRatio"`
+	CPULimitRatio   float64 `yaml:"cpuLimitRatio"`
+
 	MinMemoryBytes     float64 `yaml:"minMemoryBytes"`
 	DefaultMemoryBytes float64 `yaml:"defaultMemoryBytes"`
 	MaxMemoryBytes     float64 `yaml:"maxMemoryBytes"`
 	MemoryRequestRatio float64 `yaml:"memoryRequestRatio"`
+	MemoryLimitRatio   float64 `yaml:"memoryLimitRatio"`
 }
 
 // DatabaseConfig contains config for the dabase connection
