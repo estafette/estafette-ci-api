@@ -41,7 +41,7 @@ func (c *client) AwaitScrapeInterval(ctx context.Context) {
 
 func (c *client) GetMaxMemoryByPodName(ctx context.Context, podName string) (maxMemory float64, err error) {
 
-	query := fmt.Sprintf("max_over_time(container_memory_working_set_bytes{container_name=\"estafette-ci-builder\",pod_name=\"%v\"}[3h])", podName)
+	query := fmt.Sprintf("max_over_time(container_memory_working_set_bytes{container=\"estafette-ci-builder\",pod=\"%v\"}[3h])", podName)
 
 	err = foundation.Retry(func() error {
 		maxMemory, err = c.getQueryResult(query)
@@ -53,7 +53,7 @@ func (c *client) GetMaxMemoryByPodName(ctx context.Context, podName string) (max
 
 func (c *client) GetMaxCPUByPodName(ctx context.Context, podName string) (maxCPU float64, err error) {
 
-	query := fmt.Sprintf("max_over_time(container_cpu_usage_rate1m{container_name=\"estafette-ci-builder\",pod_name=\"%v\"}[3h])", podName)
+	query := fmt.Sprintf("max_over_time(container_cpu_usage_rate1m{container=\"estafette-ci-builder\",pod=\"%v\"}[3h])", podName)
 
 	err = foundation.Retry(func() error {
 		maxCPU, err = c.getQueryResult(query)
