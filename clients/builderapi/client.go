@@ -133,6 +133,9 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 			Name:      jobName,
 			Namespace: c.config.Jobs.Namespace,
 			Labels:    labels,
+			Annotations: map[string]string{
+				"cluster-autoscaler.kubernetes.io/safe-to-evict": "false",
+			},
 		},
 		Spec: batchv1.JobSpec{
 			Template: v1.PodTemplateSpec{
