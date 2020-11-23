@@ -1042,19 +1042,20 @@ func (c *client) getCiBuilderJobAffinity(ctx context.Context, ciBuilderParams Ci
 		if affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms == nil {
 			affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms = []v1.NodeSelectorTerm{}
 		}
+		if len(affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms) == 0 {
+			affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms = append(affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms, v1.NodeSelectorTerm{
+				MatchExpressions: []v1.NodeSelectorRequirement{},
+			})
+		}
 
 		// ensure it runs on a windows node
 		operatingSystemAffinityKey := "kubernetes.io/os"
 		operatingSystemAffinityValue := ciBuilderParams.OperatingSystem
 
-		affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms = append(affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms, v1.NodeSelectorTerm{
-			MatchExpressions: []v1.NodeSelectorRequirement{
-				{
-					Key:      operatingSystemAffinityKey,
-					Operator: v1.NodeSelectorOpIn,
-					Values:   []string{operatingSystemAffinityValue},
-				},
-			},
+		affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions = append(affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions, v1.NodeSelectorRequirement{
+			Key:      operatingSystemAffinityKey,
+			Operator: v1.NodeSelectorOpIn,
+			Values:   []string{operatingSystemAffinityValue},
 		})
 	}
 
