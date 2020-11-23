@@ -7,6 +7,7 @@ import (
 
 	crypt "github.com/estafette/estafette-ci-crypt"
 	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
 )
 
 func TestReadConfigFromFile(t *testing.T) {
@@ -202,12 +203,109 @@ func TestReadConfigFromFile(t *testing.T) {
 		jobsConfig := config.Jobs
 
 		assert.Equal(t, "estafette-ci-jobs", jobsConfig.Namespace)
-		assert.Equal(t, 0.1, jobsConfig.MinCPUCores)
-		assert.Equal(t, 3.5, jobsConfig.MaxCPUCores)
+		assert.Equal(t, 2.0, jobsConfig.DefaultCPUCores)
+		assert.Equal(t, 0.2, jobsConfig.MinCPUCores)
+		assert.Equal(t, 60.0, jobsConfig.MaxCPUCores)
 		assert.Equal(t, 1.0, jobsConfig.CPURequestRatio)
-		assert.Equal(t, 64*math.Pow(2, 10)*math.Pow(2, 10), jobsConfig.MinMemoryBytes)                 // 64Mi
-		assert.Equal(t, 12*math.Pow(2, 10)*math.Pow(2, 10)*math.Pow(2, 10), jobsConfig.MaxMemoryBytes) // 12Gi
+		assert.Equal(t, 2.0, jobsConfig.CPULimitRatio)
+
+		assert.Equal(t, 8*math.Pow(2, 10)*math.Pow(2, 10)*math.Pow(2, 10), jobsConfig.DefaultMemoryBytes) // 8Gi
+		assert.Equal(t, 128*math.Pow(2, 10)*math.Pow(2, 10), jobsConfig.MinMemoryBytes)                   // 128Mi
+		assert.Equal(t, 200*math.Pow(2, 10)*math.Pow(2, 10)*math.Pow(2, 10), jobsConfig.MaxMemoryBytes)   // 200Gi
 		assert.Equal(t, 1.25, jobsConfig.MemoryRequestRatio)
+		assert.Equal(t, 1.0, jobsConfig.MemoryLimitRatio)
+	})
+
+	t.Run("ReturnsJobsConfigAffinityAndTolerations", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		jobsConfig := config.Jobs
+
+		// build affinity
+		assert.Equal(t, v1.Affinity{
+			NodeAffinity: &v1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+					NodeSelectorTerms: []v1.NodeSelectorTerm{
+						{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "role",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"privileged"},
+								},
+							},
+						},
+					},
+				},
+				PreferredDuringSchedulingIgnoredDuringExecution: []v1.PreferredSchedulingTerm{
+					{
+						Weight: 10,
+						Preference: v1.NodeSelectorTerm{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "cloud.google.com/gke-preemptible",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"true"},
+								},
+							},
+						},
+					},
+				},
+			},
+		}, *jobsConfig.BuildAffinityAndTolerations.Affinity)
+
+		// build tolerations
+		assert.Equal(t, []v1.Toleration{
+			{
+				Key:      "role",
+				Operator: v1.TolerationOpEqual,
+				Value:    "privileged",
+				Effect:   v1.TaintEffectNoSchedule,
+			},
+			{
+				Key:      "cloud.google.com/gke-preemptible",
+				Operator: v1.TolerationOpEqual,
+				Value:    "true",
+				Effect:   v1.TaintEffectNoSchedule,
+			},
+		}, jobsConfig.BuildAffinityAndTolerations.Tolerations)
+
+		// release affinity
+		assert.Equal(t, v1.Affinity{
+			NodeAffinity: &v1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+					NodeSelectorTerms: []v1.NodeSelectorTerm{
+						{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "role",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"privileged"},
+								},
+								{
+									Key:      "cloud.google.com/gke-preemptible",
+									Operator: v1.NodeSelectorOpDoesNotExist,
+								},
+							},
+						},
+					},
+				},
+			},
+		}, *jobsConfig.ReleaseAffinityAndTolerations.Affinity)
+
+		// release tolerations
+		assert.Equal(t, []v1.Toleration{
+			{
+				Key:      "role",
+				Operator: v1.TolerationOpEqual,
+				Value:    "privileged",
+				Effect:   v1.TaintEffectNoSchedule,
+			},
+		}, jobsConfig.ReleaseAffinityAndTolerations.Tolerations)
 	})
 
 	t.Run("ReturnsDatabaseConfig", func(t *testing.T) {

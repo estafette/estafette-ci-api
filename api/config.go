@@ -18,6 +18,7 @@ import (
 	googleoauth2v2 "google.golang.org/api/oauth2/v2"
 	"google.golang.org/api/option"
 	yaml "gopkg.in/yaml.v2"
+	v1 "k8s.io/api/core/v1"
 )
 
 // APIConfig represent the configuration for the entire api application
@@ -280,6 +281,14 @@ type JobsConfig struct {
 	MaxMemoryBytes     float64 `yaml:"maxMemoryBytes"`
 	MemoryRequestRatio float64 `yaml:"memoryRequestRatio"`
 	MemoryLimitRatio   float64 `yaml:"memoryLimitRatio"`
+
+	BuildAffinityAndTolerations   *AffinityAndTolerationsConfig `yaml:"build"`
+	ReleaseAffinityAndTolerations *AffinityAndTolerationsConfig `yaml:"release"`
+}
+
+type AffinityAndTolerationsConfig struct {
+	Affinity    *v1.Affinity    `yaml:"affinity"`
+	Tolerations []v1.Toleration `yaml:"tolerations"`
 }
 
 // DatabaseConfig contains config for the dabase connection
@@ -437,4 +446,84 @@ func (h *configReaderImpl) ReadConfigFromFile(configPath string, decryptSecrets 
 	log.Info().Msgf("Finished reading %v file successfully", configPath)
 
 	return
+}
+
+// UnmarshalYAML customizes unmarshalling an AffinityAndTolerationsConfig
+func (c *AffinityAndTolerationsConfig) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
+
+	var aux struct {
+		Affinity    map[string]interface{} `json:"affinity,omitempty" yaml:"affinity"`
+		Tolerations []interface{}          `json:"tolerations,omitempty" yaml:"tolerations"`
+	}
+
+	// unmarshal to auxiliary type
+	if err := unmarshal(&aux); err != nil {
+		return err
+	}
+
+	// fix for map[interface{}]interface breaking json.marshal - see https://github.com/go-yaml/yaml/issues/139
+	aux.Affinity = cleanUpStringMap(aux.Affinity)
+	aux.Tolerations = cleanUpInterfaceArray(aux.Tolerations)
+
+	// marshal to json
+	jsonBytes, err := json.Marshal(aux)
+	if err != nil {
+		return err
+	}
+
+	var auxJson struct {
+		Affinity    *v1.Affinity    `json:"affinity"`
+		Tolerations []v1.Toleration `json:"tolerations"`
+	}
+
+	err = json.Unmarshal(jsonBytes, &auxJson)
+	if err != nil {
+		return err
+	}
+
+	c.Affinity = auxJson.Affinity
+	c.Tolerations = auxJson.Tolerations
+
+	return nil
+}
+
+func cleanUpStringMap(in map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for k, v := range in {
+		result[fmt.Sprintf("%v", k)] = cleanUpMapValue(v)
+	}
+	return result
+}
+
+func cleanUpInterfaceMap(in map[interface{}]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for k, v := range in {
+		result[fmt.Sprintf("%v", k)] = cleanUpMapValue(v)
+	}
+	return result
+}
+
+func cleanUpMapValue(v interface{}) interface{} {
+	switch v := v.(type) {
+	case []interface{}:
+		return cleanUpInterfaceArray(v)
+	case map[interface{}]interface{}:
+		return cleanUpInterfaceMap(v)
+	case string:
+		return v
+	case int:
+		return v
+	case bool:
+		return v
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
+
+func cleanUpInterfaceArray(in []interface{}) []interface{} {
+	result := make([]interface{}, len(in))
+	for i, v := range in {
+		result[i] = cleanUpMapValue(v)
+	}
+	return result
 }

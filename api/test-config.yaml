@@ -103,12 +103,66 @@ auth:
 
 jobs:
   namespace: estafette-ci-jobs
-  minCPUCores: 0.1
-  maxCPUCores: 3.5
+
+  defaultCPUCores: 2.0
+  minCPUCores: 0.2
+  maxCPUCores: 60.0
   cpuRequestRatio: 1.0
-  minMemoryBytes: 67108864
-  maxMemoryBytes: 12884901888
+  cpuLimitRatio: 2.0
+
+  defaultMemoryBytes: 8589934592
+  minMemoryBytes: 134217728
+  maxMemoryBytes: 214748364800
   memoryRequestRatio: 1.25
+  memoryLimitRatio: 1.0
+
+  build:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: role
+              operator: In
+              values:
+              - privileged
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 10
+          preference:
+            matchExpressions:
+            - key: cloud.google.com/gke-preemptible
+              operator: In
+              values:
+              - "true"
+    tolerations:
+    - key: role
+      operator: Equal
+      value: privileged
+      effect: NoSchedule
+    - key: cloud.google.com/gke-preemptible
+      operator: Equal
+      value: "true"
+      effect: NoSchedule
+
+  release:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: role
+              operator: In
+              values:
+              - privileged
+            - key: cloud.google.com/gke-preemptible
+              operator: DoesNotExist
+    tolerations:
+    - key: role
+      operator: Equal
+      value: privileged
+      effect: NoSchedule
+
+
 
 database:
   databaseName: estafette_ci_api

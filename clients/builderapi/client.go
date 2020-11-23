@@ -995,20 +995,24 @@ func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderP
 func (c *client) getCiBuilderJobTolerations(ctx context.Context, ciBuilderParams CiBuilderParams) (tolerations []v1.Toleration) {
 	tolerations = []v1.Toleration{}
 
+	switch ciBuilderParams.JobType {
+	case "build":
+		if c.config.Jobs.BuildAffinityAndTolerations != nil && c.config.Jobs.BuildAffinityAndTolerations.Tolerations != nil && len(c.config.Jobs.BuildAffinityAndTolerations.Tolerations) > 0 {
+			tolerations = append(tolerations, c.config.Jobs.BuildAffinityAndTolerations.Tolerations...)
+		}
+	case "release":
+		if c.config.Jobs.ReleaseAffinityAndTolerations != nil && c.config.Jobs.ReleaseAffinityAndTolerations.Tolerations != nil && len(c.config.Jobs.ReleaseAffinityAndTolerations.Tolerations) > 0 {
+			tolerations = append(tolerations, c.config.Jobs.ReleaseAffinityAndTolerations.Tolerations...)
+		}
+	}
+
+	// ensure it runs on a windows node
 	if ciBuilderParams.OperatingSystem == "windows" {
 		tolerations = append(tolerations, v1.Toleration{
 			Effect:   v1.TaintEffectNoSchedule,
 			Key:      "node.kubernetes.io/os",
 			Operator: v1.TolerationOpEqual,
 			Value:    "windows",
-		})
-	} else if ciBuilderParams.JobType != "release" {
-		// to run build jobs on preemptibles when node autoprovisioning is used, add a toleration for it
-		tolerations = append(tolerations, v1.Toleration{
-			Effect:   v1.TaintEffectNoSchedule,
-			Key:      "cloud.google.com/gke-preemptible",
-			Operator: v1.TolerationOpEqual,
-			Value:    "true",
 		})
 	}
 
@@ -1017,72 +1021,47 @@ func (c *client) getCiBuilderJobTolerations(ctx context.Context, ciBuilderParams
 
 func (c *client) getCiBuilderJobAffinity(ctx context.Context, ciBuilderParams CiBuilderParams) (affinity *v1.Affinity) {
 
-	preemptibleAffinityWeight := int32(10)
-	preemptibleAffinityKey := "cloud.google.com/gke-preemptible"
-
-	operatingSystemAffinityKey := "kubernetes.io/os"
-	operatingSystemAffinityValue := ciBuilderParams.OperatingSystem
-
-	if ciBuilderParams.JobType == "release" {
-		// keep off of preemptibles
-		return &v1.Affinity{
-			NodeAffinity: &v1.NodeAffinity{
-				RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
-					NodeSelectorTerms: []v1.NodeSelectorTerm{
-						{
-							MatchExpressions: []v1.NodeSelectorRequirement{
-								{
-									Key:      preemptibleAffinityKey,
-									Operator: v1.NodeSelectorOpDoesNotExist,
-								},
-							},
-						},
-						{
-							MatchExpressions: []v1.NodeSelectorRequirement{
-								{
-									Key:      operatingSystemAffinityKey,
-									Operator: v1.NodeSelectorOpIn,
-									Values:   []string{operatingSystemAffinityValue},
-								},
-							},
-						},
-					},
-				},
-			},
+	switch ciBuilderParams.JobType {
+	case "build":
+		if c.config.Jobs.BuildAffinityAndTolerations != nil && c.config.Jobs.BuildAffinityAndTolerations.Affinity != nil {
+			affinity = c.config.Jobs.BuildAffinityAndTolerations.Affinity
+		}
+	case "release":
+		if c.config.Jobs.ReleaseAffinityAndTolerations != nil && c.config.Jobs.ReleaseAffinityAndTolerations.Tolerations != nil && len(c.config.Jobs.ReleaseAffinityAndTolerations.Tolerations) > 0 {
+			affinity = c.config.Jobs.ReleaseAffinityAndTolerations.Affinity
 		}
 	}
 
-	return &v1.Affinity{
-		NodeAffinity: &v1.NodeAffinity{
-			PreferredDuringSchedulingIgnoredDuringExecution: []v1.PreferredSchedulingTerm{
+	if ciBuilderParams.OperatingSystem == "windows" {
+		if affinity == nil {
+			affinity = &v1.Affinity{}
+		}
+		if affinity.NodeAffinity == nil {
+			affinity.NodeAffinity = &v1.NodeAffinity{}
+		}
+		if affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution == nil {
+			affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution = &v1.NodeSelector{}
+		}
+		if affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms == nil {
+			affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms = []v1.NodeSelectorTerm{}
+		}
+
+		// ensure it runs on a windows node
+		operatingSystemAffinityKey := "kubernetes.io/os"
+		operatingSystemAffinityValue := ciBuilderParams.OperatingSystem
+
+		affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms = append(affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms, v1.NodeSelectorTerm{
+			MatchExpressions: []v1.NodeSelectorRequirement{
 				{
-					Weight: preemptibleAffinityWeight,
-					Preference: v1.NodeSelectorTerm{
-						MatchExpressions: []v1.NodeSelectorRequirement{
-							{
-								Key:      preemptibleAffinityKey,
-								Operator: v1.NodeSelectorOpIn,
-								Values:   []string{"true"},
-							},
-						},
-					},
+					Key:      operatingSystemAffinityKey,
+					Operator: v1.NodeSelectorOpIn,
+					Values:   []string{operatingSystemAffinityValue},
 				},
 			},
-			RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
-				NodeSelectorTerms: []v1.NodeSelectorTerm{
-					{
-						MatchExpressions: []v1.NodeSelectorRequirement{
-							{
-								Key:      operatingSystemAffinityKey,
-								Operator: v1.NodeSelectorOpIn,
-								Values:   []string{operatingSystemAffinityValue},
-							},
-						},
-					},
-				},
-			},
-		},
+		})
 	}
+
+	return
 }
 
 func (c *client) getCiBuilderJobResources(ctx context.Context, ciBuilderParams CiBuilderParams) (resources v1.ResourceRequirements) {
