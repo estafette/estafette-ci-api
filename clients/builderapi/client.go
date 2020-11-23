@@ -961,13 +961,10 @@ func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderP
 			},
 		})
 
-		volumes = append(volumes, v1.Volume{
-			Name: dockerSocketVolumeName,
-			VolumeSource: v1.VolumeSource{
-				HostPath: &v1.HostPathVolumeSource{
-					Path: dockerSocketVolumeHostPath,
-				},
-			},
+		dockerSocketVolumeMountPath := `\\.\pipe\docker_engine`
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      dockerSocketVolumeName,
+			MountPath: dockerSocketVolumeMountPath,
 		})
 
 		// in order not to have to install the docker cli into the ci-builder container it's mounted from the host as well
