@@ -78,14 +78,16 @@ type Client interface {
 	GetFirstPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error)
 	GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []contracts.Status, limit uint64, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error)
-	GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
+	GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
+	GetPipelineBuildLogsCount(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string) (count int, err error)
 	GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobresources JobResources, count int, err error)
 	GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (releases []*contracts.Release, err error)
 	GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error)
 	GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, id int) (release *contracts.Release, err error)
 	GetPipelineLastReleasesByName(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error)
-	GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, id int, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error)
-	GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error)
+	GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error)
+	GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, readLogFromDatabase bool, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error)
+	GetPipelineReleaseLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int) (count int, err error)
 	GetPipelineReleaseMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobresources JobResources, count int, err error)
 	GetBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
@@ -1928,16 +1930,24 @@ func (c *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner
 	return
 }
 
-func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error) {
+func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error) {
 
 	buildLogs = make([]*contracts.BuildLog, 0)
 
+	buildIDAsInt, err := strconv.Atoi(buildID)
+	if err != nil {
+		return nil, err
+	}
+
 	// generate query
-	query := c.selectBuildLogsQuery(true).
+	query := c.selectBuildLogsQuery(readLogFromDatabase).
+		Where(sq.Eq{"a.build_id": buildIDAsInt}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
-		OrderBy("a.id").
+		Where(sq.Eq{"a.repo_branch": repoBranch}).
+		Where(sq.Eq{"a.repo_revision": repoRevision}).
+		OrderBy("a.inserted_at DESC").
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
@@ -1979,6 +1989,33 @@ func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, re
 	}
 
 	return buildLogs, nil
+}
+
+func (c *client) GetPipelineBuildLogsCount(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string) (count int, err error) {
+
+	buildIDAsInt, err := strconv.Atoi(buildID)
+	if err != nil {
+		return 0, err
+	}
+
+	// generate query
+	query := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		Select("COUNT(*)").
+		Where(sq.Eq{"a.build_id": buildIDAsInt}).
+		Where(sq.Eq{"a.repo_source": repoSource}).
+		Where(sq.Eq{"a.repo_owner": repoOwner}).
+		Where(sq.Eq{"a.repo_name": repoName}).
+		Where(sq.Eq{"a.repo_branch": repoBranch}).
+		Where(sq.Eq{"a.repo_revision": repoRevision})
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&count); err != nil {
+
+		return
+	}
+
+	return
 }
 
 func (c *client) GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobResources JobResources, recordCount int, err error) {
@@ -2198,16 +2235,17 @@ func (c *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwn
 	return
 }
 
-func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber int, pageSize int) (releaseLogs []*contracts.ReleaseLog, err error) {
+func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, readLogFromDatabase bool, pageNumber int, pageSize int) (releaseLogs []*contracts.ReleaseLog, err error) {
 
 	releaseLogs = make([]*contracts.ReleaseLog, 0)
 
 	// generate query
-	query := c.selectReleaseLogsQuery(true).
+	query := c.selectReleaseLogsQuery(readLogFromDatabase).
+		Where(sq.Eq{"a.release_id": releaseID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
-		OrderBy("a.id").
+		OrderBy("a.inserted_at DESC").
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
@@ -2248,6 +2286,26 @@ func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, 
 	}
 
 	return releaseLogs, nil
+}
+
+func (c *client) GetPipelineReleaseLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int) (count int, err error) {
+
+	// generate query
+	query := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		Select("COUNT(*)").
+		Where(sq.Eq{"a.release_id": releaseID}).
+		Where(sq.Eq{"a.repo_source": repoSource}).
+		Where(sq.Eq{"a.repo_owner": repoOwner}).
+		Where(sq.Eq{"a.repo_name": repoName})
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&count); err != nil {
+
+		return
+	}
+
+	return
 }
 
 func (c *client) GetPipelineReleaseMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobResources JobResources, recordCount int, err error) {

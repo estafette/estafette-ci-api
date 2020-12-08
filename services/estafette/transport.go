@@ -15,7 +15,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"text/template"
 	"time"
 
@@ -423,14 +422,12 @@ func (h *Handler) GetPipelineBuildLogs(c *gin.Context) {
 	var build *contracts.Build
 	var err error
 	if len(revisionOrID) == 40 {
-
 		build, err = h.cockroachDBClient.GetPipelineBuild(c.Request.Context(), source, owner, repo, revisionOrID, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
 		}
 	} else {
-
 		id, err := strconv.Atoi(revisionOrID)
 		if err != nil {
 			log.Error().Err(err).
@@ -481,6 +478,74 @@ func (h *Handler) GetPipelineBuildLogs(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, buildLog.Steps)
+}
+
+func (h *Handler) GetPipelineBuildLogsPerPage(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	revisionOrID := c.Param("revisionOrId")
+
+	var build *contracts.Build
+	var err error
+	if len(revisionOrID) == 40 {
+		build, err = h.cockroachDBClient.GetPipelineBuild(c.Request.Context(), source, owner, repo, revisionOrID, false)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
+		}
+	} else {
+		id, err := strconv.Atoi(revisionOrID)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed reading id from path parameter for %v/%v/%v/builds/%v", source, owner, repo, revisionOrID)
+			c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+			return
+		}
+
+		build, err = h.cockroachDBClient.GetPipelineBuildByID(c.Request.Context(), source, owner, repo, id, false)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, id)
+		}
+	}
+
+	if build == nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline build not found"})
+		return
+	}
+
+	pageNumber, pageSize, _, _ := api.GetQueryParameters(c)
+
+	response, err := api.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			logs, err := h.cockroachDBClient.GetPipelineBuildLogsPerPage(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID, false, pageNumber, pageSize)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(logs))
+			for i := range logs {
+				items[i] = logs[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachDBClient.GetPipelineBuildLogsCount(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed retrieving build logs for %v/%v/%v with id %v from db", source, owner, repo, build.ID)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *Handler) TailPipelineBuildLogs(c *gin.Context) {
@@ -940,6 +1005,54 @@ func (h *Handler) GetPipelineReleaseLogs(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, releaseLog.Steps)
+}
+
+func (h *Handler) GetPipelineReleaseLogsPerPage(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	idValue := c.Param("id")
+
+	id, err := strconv.Atoi(idValue)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, idValue)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		return
+	}
+
+	pageNumber, pageSize, _, _ := api.GetQueryParameters(c)
+
+	response, err := api.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			logs, err := h.cockroachDBClient.GetPipelineReleaseLogsPerPage(c.Request.Context(), source, owner, repo, id, false, pageNumber, pageSize)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(logs))
+			for i := range logs {
+				items[i] = logs[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachDBClient.GetPipelineReleaseLogsCount(c.Request.Context(), source, owner, repo, id)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed retrieving release logs for %v/%v/%v with id %v from db", source, owner, repo, id)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+
 }
 
 func (h *Handler) TailPipelineReleaseLogs(c *gin.Context) {
@@ -1727,105 +1840,6 @@ func (h *Handler) PostCronEvent(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Hey Cron, here's a tock for your tick"})
-}
-
-func (h *Handler) CopyLogsToCloudStorage(c *gin.Context) {
-
-	// ensure the user has administrator role
-	if !api.RequestTokenHasRole(c, api.RoleLogMigrator) {
-		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have log-migrator role"})
-		return
-	}
-
-	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
-
-	searchValue := "builds"
-	if search, ok := filters[api.FilterSearch]; ok && len(search) > 0 && search[0] != "" {
-		searchValue = search[0]
-	}
-
-	source := c.Param("source")
-	owner := c.Param("owner")
-	repo := c.Param("repo")
-
-	if searchValue == "builds" {
-		buildLogs, err := h.cockroachDBClient.GetPipelineBuildLogsPerPage(c.Request.Context(), source, owner, repo, pageNumber, pageSize)
-		if err != nil {
-			log.Error().Err(err).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Failed retrieving build logs for %v/%v/%v", source, owner, repo)
-			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
-			return
-		}
-
-		errors := make(chan error, len(buildLogs))
-
-		var wg sync.WaitGroup
-		wg.Add(len(buildLogs))
-
-		for _, bl := range buildLogs {
-			go func(ctx context.Context, bl contracts.BuildLog) {
-				defer wg.Done()
-
-				err = h.cloudStorageClient.InsertBuildLog(c.Request.Context(), bl)
-				if err != nil {
-					errors <- err
-				}
-			}(c.Request.Context(), *bl)
-		}
-
-		// wait for all parallel runs to finish
-		wg.Wait()
-
-		// return error if any of them have been generated
-		close(errors)
-		for e := range errors {
-			log.Error().Err(err).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Failed inserting build logs for %v/%v/%v into cloud storage", source, owner, repo)
-			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": e})
-			return
-		}
-
-		c.String(http.StatusOK, strconv.Itoa(len(buildLogs)))
-		return
-
-	} else if searchValue == "releases" {
-		releaseLogs, err := h.cockroachDBClient.GetPipelineReleaseLogsPerPage(c.Request.Context(), source, owner, repo, pageNumber, pageSize)
-		if err != nil {
-			log.Error().Err(err).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Failed retrieving release logs for %v/%v/%v", source, owner, repo)
-			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": err})
-			return
-		}
-
-		errors := make(chan error, len(releaseLogs))
-
-		var wg sync.WaitGroup
-		wg.Add(len(releaseLogs))
-
-		for _, rl := range releaseLogs {
-			go func(ctx context.Context, rl contracts.ReleaseLog) {
-				defer wg.Done()
-
-				err = h.cloudStorageClient.InsertReleaseLog(c.Request.Context(), rl)
-				if err != nil {
-					errors <- err
-				}
-			}(c.Request.Context(), *rl)
-		}
-
-		// wait for all parallel runs to finish
-		wg.Wait()
-
-		// return error if any of them have been generated
-		close(errors)
-		for e := range errors {
-			log.Error().Err(err).Int("pageNumber", pageNumber).Int("pageSize", pageSize).Msgf("Failed inserting release logs for %v/%v/%v into cloud storage", source, owner, repo)
-			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "error": e})
-			return
-		}
-
-		c.String(http.StatusOK, strconv.Itoa(len(releaseLogs)))
-		return
-	}
-
-	c.String(http.StatusOK, "Aye aye!")
 }
 
 func (h *Handler) obfuscateSecrets(input string) (string, error) {
