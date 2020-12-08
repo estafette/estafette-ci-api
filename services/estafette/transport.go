@@ -520,7 +520,7 @@ func (h *Handler) GetPipelineBuildLogsPerPage(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			logs, err := h.cockroachDBClient.GetPipelineBuildLogsPerPage(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID, false, pageNumber, pageSize)
+			logs, err := h.cockroachDBClient.GetPipelineBuildLogsPerPage(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID, pageNumber, pageSize)
 			if err != nil {
 				return nil, err
 			}
@@ -1026,7 +1026,7 @@ func (h *Handler) GetPipelineReleaseLogsPerPage(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			logs, err := h.cockroachDBClient.GetPipelineReleaseLogsPerPage(c.Request.Context(), source, owner, repo, id, false, pageNumber, pageSize)
+			logs, err := h.cockroachDBClient.GetPipelineReleaseLogsPerPage(c.Request.Context(), source, owner, repo, id, pageNumber, pageSize)
 			if err != nil {
 				return nil, err
 			}

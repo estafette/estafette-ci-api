@@ -78,7 +78,7 @@ type Client interface {
 	GetFirstPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error)
 	GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []contracts.Status, limit uint64, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error)
-	GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
+	GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
 	GetPipelineBuildLogsCount(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string) (count int, err error)
 	GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobresources JobResources, count int, err error)
 	GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (releases []*contracts.Release, err error)
@@ -86,7 +86,7 @@ type Client interface {
 	GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, id int) (release *contracts.Release, err error)
 	GetPipelineLastReleasesByName(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error)
 	GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error)
-	GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, readLogFromDatabase bool, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error)
+	GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error)
 	GetPipelineReleaseLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int) (count int, err error)
 	GetPipelineReleaseMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobresources JobResources, count int, err error)
 	GetBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
@@ -1930,7 +1930,7 @@ func (c *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner
 	return
 }
 
-func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error) {
+func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error) {
 
 	buildLogs = make([]*contracts.BuildLog, 0)
 
@@ -1940,7 +1940,7 @@ func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, re
 	}
 
 	// generate query
-	query := c.selectBuildLogsQuery(readLogFromDatabase).
+	query := c.selectBuildLogsQuery(false).
 		Where(sq.Eq{"a.build_id": buildIDAsInt}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -1960,7 +1960,6 @@ func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, re
 	for rows.Next() {
 
 		buildLog := &contracts.BuildLog{}
-		var stepsData []uint8
 		var rowBuildID sql.NullInt64
 
 		// execute query
@@ -1971,16 +1970,10 @@ func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, re
 			&buildLog.RepoBranch,
 			&buildLog.RepoRevision,
 			&rowBuildID,
-			&stepsData,
 			&buildLog.InsertedAt); err != nil {
 			if err == sql.ErrNoRows {
 				return nil, nil
 			}
-
-			return
-		}
-
-		if err = json.Unmarshal(stepsData, &buildLog.Steps); err != nil {
 
 			return
 		}
@@ -2236,12 +2229,12 @@ func (c *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwn
 	return
 }
 
-func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, readLogFromDatabase bool, pageNumber int, pageSize int) (releaseLogs []*contracts.ReleaseLog, err error) {
+func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, pageNumber int, pageSize int) (releaseLogs []*contracts.ReleaseLog, err error) {
 
 	releaseLogs = make([]*contracts.ReleaseLog, 0)
 
 	// generate query
-	query := c.selectReleaseLogsQuery(readLogFromDatabase).
+	query := c.selectReleaseLogsQuery(false).
 		Where(sq.Eq{"a.release_id": releaseID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -2259,7 +2252,6 @@ func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, 
 	for rows.Next() {
 
 		releaseLog := &contracts.ReleaseLog{}
-		var stepsData []uint8
 		var releaseID int
 
 		if err = rows.Scan(&releaseLog.ID,
@@ -2267,7 +2259,6 @@ func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, 
 			&releaseLog.RepoOwner,
 			&releaseLog.RepoName,
 			&releaseID,
-			&stepsData,
 			&releaseLog.InsertedAt); err != nil {
 			if err == sql.ErrNoRows {
 				return nil, nil
@@ -2277,11 +2268,6 @@ func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, 
 		}
 
 		releaseLog.ReleaseID = strconv.Itoa(releaseID)
-
-		if err = json.Unmarshal(stepsData, &releaseLog.Steps); err != nil {
-
-			return
-		}
 
 		releaseLogs = append(releaseLogs, releaseLog)
 	}
