@@ -2001,6 +2001,7 @@ func (c *client) GetPipelineBuildLogsCount(ctx context.Context, repoSource, repo
 	// generate query
 	query := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 		Select("COUNT(*)").
+		From("build_logs a").
 		Where(sq.Eq{"a.build_id": buildIDAsInt}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -2293,6 +2294,7 @@ func (c *client) GetPipelineReleaseLogsCount(ctx context.Context, repoSource, re
 	// generate query
 	query := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 		Select("COUNT(*)").
+		From("release_logs a").
 		Where(sq.Eq{"a.release_id": releaseID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
