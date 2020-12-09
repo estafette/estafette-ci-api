@@ -223,6 +223,12 @@ func (c *loggingClient) GetPipelineBuildLogs(ctx context.Context, repoSource, re
 	return c.Client.GetPipelineBuildLogs(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, readLogFromDatabase)
 }
 
+func (c *loggingClient) GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error) {
+	defer func() { api.HandleLogError(c.prefix, "GetPipelineBuildLogsByID", err) }()
+
+	return c.Client.GetPipelineBuildLogsByID(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id, readLogFromDatabase)
+}
+
 func (c *loggingClient) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error) {
 	defer func() { api.HandleLogError(c.prefix, "GetPipelineBuildLogsPerPage", err) }()
 
@@ -269,6 +275,12 @@ func (c *loggingClient) GetPipelineReleaseLogs(ctx context.Context, repoSource, 
 	defer func() { api.HandleLogError(c.prefix, "GetPipelineReleaseLogs", err) }()
 
 	return c.Client.GetPipelineReleaseLogs(ctx, repoSource, repoOwner, repoName, releaseID, readLogFromDatabase)
+}
+
+func (c *loggingClient) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, id string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error) {
+	defer func() { api.HandleLogError(c.prefix, "GetPipelineReleaseLogsByID", err) }()
+
+	return c.Client.GetPipelineReleaseLogsByID(ctx, repoSource, repoOwner, repoName, releaseID, id, readLogFromDatabase)
 }
 
 func (c *loggingClient) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error) {

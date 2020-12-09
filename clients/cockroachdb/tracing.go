@@ -258,6 +258,13 @@ func (c *tracingClient) GetPipelineBuildLogs(ctx context.Context, repoSource, re
 	return c.Client.GetPipelineBuildLogs(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, readLogFromDatabase)
 }
 
+func (c *tracingClient) GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBuildLogsByID"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineBuildLogsByID(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id, readLogFromDatabase)
+}
+
 func (c *tracingClient) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBuildLogsPerPage"))
 	defer func() { api.FinishSpanWithError(span, err) }()
@@ -312,6 +319,13 @@ func (c *tracingClient) GetPipelineReleaseLogs(ctx context.Context, repoSource, 
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetPipelineReleaseLogs(ctx, repoSource, repoOwner, repoName, releaseID, readLogFromDatabase)
+}
+
+func (c *tracingClient) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, id string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineReleaseLogsByID"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineReleaseLogsByID(ctx, repoSource, repoOwner, repoName, releaseID, id, readLogFromDatabase)
 }
 
 func (c *tracingClient) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error) {

@@ -283,6 +283,14 @@ func (c *metricsClient) GetPipelineBuildLogs(ctx context.Context, repoSource, re
 	return c.Client.GetPipelineBuildLogs(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, readLogFromDatabase)
 }
 
+func (c *metricsClient) GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineBuildLogsByID", begin)
+	}(time.Now())
+
+	return c.Client.GetPipelineBuildLogsByID(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id, readLogFromDatabase)
+}
+
 func (c *metricsClient) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineBuildLogsPerPage", begin)
@@ -345,6 +353,14 @@ func (c *metricsClient) GetPipelineReleaseLogs(ctx context.Context, repoSource, 
 	}(time.Now())
 
 	return c.Client.GetPipelineReleaseLogs(ctx, repoSource, repoOwner, repoName, releaseID, readLogFromDatabase)
+}
+
+func (c *metricsClient) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, id string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineReleaseLogsByID", begin)
+	}(time.Now())
+
+	return c.Client.GetPipelineReleaseLogsByID(ctx, repoSource, repoOwner, repoName, releaseID, id, readLogFromDatabase)
 }
 
 func (c *metricsClient) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error) {

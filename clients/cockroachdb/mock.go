@@ -44,6 +44,7 @@ type MockClient struct {
 	GetFirstPipelineReleaseFunc                    func(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error)
 	GetPipelineBuildsByVersionFunc                 func(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []contracts.Status, limit uint64, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuildLogsFunc                       func(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error)
+	GetPipelineBuildLogsByIDFunc                   func(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error)
 	GetPipelineBuildLogsPerPageFunc                func(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
 	GetPipelineBuildLogsCountFunc                  func(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string) (count int, err error)
 	GetPipelineBuildMaxResourceUtilizationFunc     func(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobresources JobResources, count int, err error)
@@ -52,6 +53,7 @@ type MockClient struct {
 	GetPipelineReleaseFunc                         func(ctx context.Context, repoSource, repoOwner, repoName string, id int) (release *contracts.Release, err error)
 	GetPipelineLastReleasesByNameFunc              func(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error)
 	GetPipelineReleaseLogsFunc                     func(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error)
+	GetPipelineReleaseLogsByIDFunc                 func(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, id string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error)
 	GetPipelineReleaseLogsPerPageFunc              func(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error)
 	GetPipelineReleaseLogsCountFunc                func(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int) (count int, err error)
 	GetPipelineReleaseMaxResourceUtilizationFunc   func(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobresources JobResources, count int, err error)
@@ -379,6 +381,13 @@ func (c MockClient) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOw
 	return c.GetPipelineBuildLogsFunc(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, readLogFromDatabase)
 }
 
+func (c MockClient) GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error) {
+	if c.GetPipelineBuildLogsByIDFunc == nil {
+		return
+	}
+	return c.GetPipelineBuildLogsByIDFunc(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id, readLogFromDatabase)
+}
+
 func (c MockClient) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error) {
 	if c.GetPipelineBuildLogsPerPageFunc == nil {
 		return
@@ -433,6 +442,13 @@ func (c MockClient) GetPipelineReleaseLogs(ctx context.Context, repoSource, repo
 		return
 	}
 	return c.GetPipelineReleaseLogsFunc(ctx, repoSource, repoOwner, repoName, releaseID, readLogFromDatabase)
+}
+
+func (c MockClient) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, id string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error) {
+	if c.GetPipelineReleaseLogsByIDFunc == nil {
+		return
+	}
+	return c.GetPipelineReleaseLogsByIDFunc(ctx, repoSource, repoOwner, repoName, releaseID, id, readLogFromDatabase)
 }
 
 func (c MockClient) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error) {
