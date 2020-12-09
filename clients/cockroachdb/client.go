@@ -2025,7 +2025,7 @@ func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, re
 		Where(sq.Eq{"a.repo_name": repoName}).
 		Where(sq.Eq{"a.repo_branch": repoBranch}).
 		Where(sq.Eq{"a.repo_revision": repoRevision}).
-		OrderBy("a.inserted_at DESC").
+		OrderBy("a.inserted_at ASC").
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
@@ -2370,7 +2370,7 @@ func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, 
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
-		OrderBy("a.inserted_at DESC").
+		OrderBy("a.inserted_at ASC").
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
