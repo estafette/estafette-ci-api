@@ -59,6 +59,7 @@ func NewService(config *api.APIConfig, cockroachdbClient cockroachdb.Client, pro
 		githubJobVarsFunc:      githubJobVarsFunc,
 		bitbucketJobVarsFunc:   bitbucketJobVarsFunc,
 		cloudsourceJobVarsFunc: cloudsourceJobVarsFunc,
+		triggerConcurrency:     5,
 	}
 }
 
@@ -71,6 +72,7 @@ type service struct {
 	githubJobVarsFunc      func(context.Context, string, string, string) (string, string, error)
 	bitbucketJobVarsFunc   func(context.Context, string, string, string) (string, string, error)
 	cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)
+	triggerConcurrency     int
 }
 
 func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (createdBuild *contracts.Build, err error) {
@@ -480,6 +482,9 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 	triggerCount := 0
 	firedTriggerCount := 0
 
+	// http://jmoiron.net/blog/limiting-concurrency-in-go/
+	semaphore := make(chan bool, s.triggerConcurrency)
+
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
 		for _, t := range p.Triggers {
@@ -496,22 +501,35 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 
 				firedTriggerCount++
 
-				// create new build for t.Run
-				if t.BuildAction != nil {
-					log.Info().Msgf("[trigger:git(%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(ctx, *p, t, e)
-					if err != nil {
-						log.Error().Err(err).Msgf("[trigger:git(%v-%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
+				semaphore <- true
+
+				go func(ctx context.Context, p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
+					// lower semaphore once the routine's finished, making room for another one to start
+					defer func() { <-semaphore }()
+
+					// create new build for t.Run
+					if t.BuildAction != nil {
+						log.Info().Msgf("[trigger:git(%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						err := s.fireBuild(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:git(%v-%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						}
+					} else if t.ReleaseAction != nil {
+						log.Info().Msgf("[trigger:git(%v-%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						err := s.fireRelease(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:git(%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						}
 					}
-				} else if t.ReleaseAction != nil {
-					log.Info().Msgf("[trigger:git(%v-%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(ctx, *p, t, e)
-					if err != nil {
-						log.Error().Err(err).Msgf("[trigger:git(%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					}
-				}
+				}(ctx, p, t, e)
 			}
 		}
+	}
+
+	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
+	for i := 0; i < cap(semaphore); i++ {
+		semaphore <- true
 	}
 
 	log.Info().Msgf("[trigger:git(%v-%v:%v)] Fired %v out of %v triggers for %v pipelines", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
@@ -546,6 +564,9 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 	triggerCount := 0
 	firedTriggerCount := 0
 
+	// http://jmoiron.net/blog/limiting-concurrency-in-go/
+	semaphore := make(chan bool, s.triggerConcurrency)
+
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
 		for _, t := range p.Triggers {
@@ -562,22 +583,35 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 
 				firedTriggerCount++
 
-				// create new build for t.Run
-				if t.BuildAction != nil {
-					log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(ctx, *p, t, e)
-					if err != nil {
-						log.Error().Err(err).Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
+				semaphore <- true
+
+				go func(ctx context.Context, p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
+					// lower semaphore once the routine's finished, making room for another one to start
+					defer func() { <-semaphore }()
+
+					// create new build for t.Run
+					if t.BuildAction != nil {
+						log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						err := s.fireBuild(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						}
+					} else if t.ReleaseAction != nil {
+						log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						err := s.fireRelease(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						}
 					}
-				} else if t.ReleaseAction != nil {
-					log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(ctx, *p, t, e)
-					if err != nil {
-						log.Error().Err(err).Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					}
-				}
+				}(ctx, p, t, e)
 			}
 		}
+	}
+
+	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
+	for i := 0; i < cap(semaphore); i++ {
+		semaphore <- true
 	}
 
 	log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Fired %v out of %v triggers for %v pipelines", build.RepoSource, build.RepoOwner, build.RepoName, event, firedTriggerCount, triggerCount, len(pipelines))
@@ -611,6 +645,9 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 	triggerCount := 0
 	firedTriggerCount := 0
 
+	// http://jmoiron.net/blog/limiting-concurrency-in-go/
+	semaphore := make(chan bool, s.triggerConcurrency)
+
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
 		for _, t := range p.Triggers {
@@ -627,21 +664,34 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 
 				firedTriggerCount++
 
-				if t.BuildAction != nil {
-					log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(ctx, *p, t, e)
-					if err != nil {
-						log.Error().Err(err).Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting build action '%v/%v/%v', branch '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
+				semaphore <- true
+
+				go func(ctx context.Context, p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
+					// lower semaphore once the routine's finished, making room for another one to start
+					defer func() { <-semaphore }()
+
+					if t.BuildAction != nil {
+						log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						err := s.fireBuild(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting build action '%v/%v/%v', branch '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						}
+					} else if t.ReleaseAction != nil {
+						log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						err := s.fireRelease(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						}
 					}
-				} else if t.ReleaseAction != nil {
-					log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(ctx, *p, t, e)
-					if err != nil {
-						log.Error().Err(err).Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					}
-				}
+				}(ctx, p, t, e)
 			}
 		}
+	}
+
+	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
+	for i := 0; i < cap(semaphore); i++ {
+		semaphore <- true
 	}
 
 	log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v] Fired %v out of %v triggers for %v pipelines", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, firedTriggerCount, triggerCount, len(pipelines))
@@ -666,6 +716,9 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 	triggerCount := 0
 	firedTriggerCount := 0
 
+	// http://jmoiron.net/blog/limiting-concurrency-in-go/
+	semaphore := make(chan bool, s.triggerConcurrency)
+
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
 		for _, t := range p.Triggers {
@@ -682,22 +735,35 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 
 				firedTriggerCount++
 
-				// create new build for t.Run
-				if t.BuildAction != nil {
-					log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Firing build action '%v/%v/%v', branch '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(ctx, *p, t, e)
-					if err != nil {
-						log.Error().Err(err).Msgf("[trigger:pubsub(projects/%v/topics/%v)] Failed starting build action'%v/%v/%v', branch '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
+				semaphore <- true
+
+				go func(ctx context.Context, p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
+					// lower semaphore once the routine's finished, making room for another one to start
+					defer func() { <-semaphore }()
+
+					// create new build for t.Run
+					if t.BuildAction != nil {
+						log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Firing build action '%v/%v/%v', branch '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						err := s.fireBuild(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:pubsub(projects/%v/topics/%v)] Failed starting build action'%v/%v/%v', branch '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						}
+					} else if t.ReleaseAction != nil {
+						log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						err := s.fireRelease(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:pubsub(projects/%v/topics/%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						}
 					}
-				} else if t.ReleaseAction != nil {
-					log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(ctx, *p, t, e)
-					if err != nil {
-						log.Error().Err(err).Msgf("[trigger:pubsub(projects/%v/topics/%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					}
-				}
+				}(ctx, p, t, e)
 			}
 		}
+	}
+
+	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
+	for i := 0; i < cap(semaphore); i++ {
+		semaphore <- true
 	}
 
 	log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Fired %v out of %v triggers for %v pipelines", pubsubEvent.Project, pubsubEvent.Topic, firedTriggerCount, triggerCount, len(pipelines))
@@ -725,6 +791,10 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 	triggerCount := 0
 	firedTriggerCount := 0
 
+	// http://jmoiron.net/blog/limiting-concurrency-in-go/
+
+	semaphore := make(chan bool, s.triggerConcurrency)
+
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
 		for _, t := range p.Triggers {
@@ -741,22 +811,35 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 
 				firedTriggerCount++
 
-				// create new build for t.Run
-				if t.BuildAction != nil {
-					log.Info().Msgf("[trigger:cron(%v)] Firing build action '%v/%v/%v', branch '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
-					err := s.fireBuild(ctx, *p, t, e)
-					if err != nil {
-						log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting build action'%v/%v/%v', branch '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
+				semaphore <- true
+
+				go func(ctx context.Context, p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
+					// lower semaphore once the routine's finished, making room for another one to start
+					defer func() { <-semaphore }()
+
+					// create new build for t.Run
+					if t.BuildAction != nil {
+						log.Info().Msgf("[trigger:cron(%v)] Firing build action '%v/%v/%v', branch '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						err := s.fireBuild(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting build action'%v/%v/%v', branch '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						}
+					} else if t.ReleaseAction != nil {
+						log.Info().Msgf("[trigger:cron(%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						err := s.fireRelease(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						}
 					}
-				} else if t.ReleaseAction != nil {
-					log.Info().Msgf("[trigger:cron(%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					err := s.fireRelease(ctx, *p, t, e)
-					if err != nil {
-						log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
-					}
-				}
+				}(ctx, p, t, e)
 			}
 		}
+	}
+
+	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
+	for i := 0; i < cap(semaphore); i++ {
+		semaphore <- true
 	}
 
 	log.Info().Msgf("[trigger:cron(%v)] Fired %v out of %v triggers for %v pipelines", ce.Time, firedTriggerCount, triggerCount, len(pipelines))
