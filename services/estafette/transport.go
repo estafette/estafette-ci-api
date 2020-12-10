@@ -1255,6 +1255,74 @@ func (h *Handler) PostPipelineReleaseLogs(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
+func (h *Handler) GetAllPipelineBuilds(c *gin.Context) {
+
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
+
+	response, err := api.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			builds, err := h.cockroachDBClient.GetAllPipelineBuilds(c.Request.Context(), pageNumber, pageSize, filters, sortings, true)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(builds))
+			for i := range builds {
+				items[i] = builds[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachDBClient.GetAllPipelineBuildsCount(c.Request.Context(), filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving all builds from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) GetAllPipelineReleases(c *gin.Context) {
+
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
+
+	response, err := api.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			releases, err := h.cockroachDBClient.GetAllPipelineReleases(c.Request.Context(), pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(releases))
+			for i := range releases {
+				items[i] = releases[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachDBClient.GetAllPipelineReleasesCount(c.Request.Context(), filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving all releases from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 func (h *Handler) GetFrequentLabels(c *gin.Context) {
 
 	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)

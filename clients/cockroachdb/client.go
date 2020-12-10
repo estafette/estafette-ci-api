@@ -103,6 +103,11 @@ type Client interface {
 	GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
 	GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
 
+	GetAllPipelineBuilds(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error)
+	GetAllPipelineBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetAllPipelineReleases(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (releases []*contracts.Release, err error)
+	GetAllPipelineReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+
 	GetLabelValues(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error)
 	GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error)
 	GetFrequentLabelsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
@@ -2995,6 +3000,130 @@ func (c *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context,
 			"action":         releaseAction,
 			"memoryMaxUsage": memoryMaxUsage,
 		})
+	}
+
+	return
+}
+
+func (c *client) GetAllPipelineBuilds(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error) {
+
+	// generate query
+	query := c.selectBuildsQuery().
+		Limit(uint64(pageSize)).
+		Offset(uint64((pageNumber - 1) * pageSize))
+
+	// dynamically set order by clause
+	query, err = orderByClauseGeneratorForSortings(query, "a", "a.inserted_at DESC", sortings)
+	if err != nil {
+
+		return
+	}
+
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
+	if err != nil {
+
+		return
+	}
+
+	// execute query
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+
+		return
+	}
+
+	// read rows
+	if builds, err = c.scanBuilds(rows, optimized); err != nil {
+
+		return
+	}
+
+	return
+}
+
+func (c *client) GetAllPipelineBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("COUNT(*)").
+			From("builds a")
+
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
+	if err != nil {
+
+		return
+	}
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&totalCount); err != nil {
+
+		return
+	}
+
+	return
+}
+
+func (c *client) GetAllPipelineReleases(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (releases []*contracts.Release, err error) {
+
+	// generate query
+	query := c.selectReleasesQuery().
+		Limit(uint64(pageSize)).
+		Offset(uint64((pageNumber - 1) * pageSize))
+
+		// dynamically set order by clause
+	query, err = orderByClauseGeneratorForSortings(query, "a", "a.inserted_at DESC", sortings)
+	if err != nil {
+
+		return
+	}
+
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
+	if err != nil {
+
+		return
+	}
+
+	// execute query
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+
+		return
+	}
+
+	// read rows
+	if releases, err = c.scanReleases(rows); err != nil {
+
+		return
+	}
+
+	return
+}
+
+func (c *client) GetAllPipelineReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("COUNT(*)").
+			From("releases a")
+
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
+	if err != nil {
+
+		return
+	}
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&totalCount); err != nil {
+
+		return
 	}
 
 	return

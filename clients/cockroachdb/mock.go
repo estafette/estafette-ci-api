@@ -140,6 +140,11 @@ type MockClient struct {
 	GetCatalogEntityValuesCountFunc       func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetCatalogEntityLabelsFunc            func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error)
 	GetCatalogEntityLabelsCountFunc       func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+
+	GetAllPipelineBuildsFunc        func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error)
+	GetAllPipelineBuildsCountFunc   func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetAllPipelineReleasesFunc      func(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (releases []*contracts.Release, err error)
+	GetAllPipelineReleasesCountFunc func(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 }
 
 func (c MockClient) Connect(ctx context.Context) (err error) {
@@ -1009,4 +1014,32 @@ func (c MockClient) GetCatalogEntityLabelsCount(ctx context.Context, filters map
 		return
 	}
 	return c.GetCatalogEntityLabelsCountFunc(ctx, filters)
+}
+
+func (c MockClient) GetAllPipelineBuilds(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error) {
+	if c.GetAllPipelineBuildsFunc == nil {
+		return
+	}
+	return c.GetAllPipelineBuildsFunc(ctx, pageNumber, pageSize, filters, sortings, optimized)
+}
+
+func (c MockClient) GetAllPipelineBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	if c.GetAllPipelineBuildsCountFunc == nil {
+		return
+	}
+	return c.GetAllPipelineBuildsCountFunc(ctx, filters)
+}
+
+func (c MockClient) GetAllPipelineReleases(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (releases []*contracts.Release, err error) {
+	if c.GetAllPipelineReleasesFunc == nil {
+		return
+	}
+	return c.GetAllPipelineReleasesFunc(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c MockClient) GetAllPipelineReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	if c.GetAllPipelineReleasesCountFunc == nil {
+		return
+	}
+	return c.GetAllPipelineReleasesCountFunc(ctx, filters)
 }

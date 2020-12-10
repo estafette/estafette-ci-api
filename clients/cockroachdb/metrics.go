@@ -996,3 +996,35 @@ func (c *metricsClient) GetCatalogEntityLabelsCount(ctx context.Context, filters
 
 	return c.Client.GetCatalogEntityLabelsCount(ctx, filters)
 }
+
+func (c *metricsClient) GetAllPipelineBuilds(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAllPipelineBuilds", begin)
+	}(time.Now())
+
+	return c.Client.GetAllPipelineBuilds(ctx, pageNumber, pageSize, filters, sortings, optimized)
+}
+
+func (c *metricsClient) GetAllPipelineBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAllPipelineBuildsCount", begin)
+	}(time.Now())
+
+	return c.Client.GetAllPipelineBuildsCount(ctx, filters)
+}
+
+func (c *metricsClient) GetAllPipelineReleases(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (releases []*contracts.Release, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAllPipelineReleases", begin)
+	}(time.Now())
+
+	return c.Client.GetAllPipelineReleases(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *metricsClient) GetAllPipelineReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAllPipelineReleasesCount", begin)
+	}(time.Now())
+
+	return c.Client.GetAllPipelineReleasesCount(ctx, filters)
+}
