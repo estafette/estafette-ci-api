@@ -1549,10 +1549,13 @@ func (h *Handler) BatchUpdateClients(c *gin.Context) {
 	}
 
 	var body struct {
-		Clients       []string  `json:"clients"`
-		Role          *string   `json:"role"`
-		RolesToAdd    []*string `json:"rolesToAdd"`
-		RolesToRemove []*string `json:"rolesToRemove"`
+		Clients               []string                  `json:"clients"`
+		Role                  *string                   `json:"role"`
+		RolesToAdd            []*string                 `json:"rolesToAdd"`
+		RolesToRemove         []*string                 `json:"rolesToRemove"`
+		Organization          *contracts.Organization   `json:"organization"`
+		OrganizationsToAdd    []*contracts.Organization `json:"organizationsToAdd"`
+		OrganizationsToRemove []*contracts.Organization `json:"organizationsToRemove"`
 	}
 
 	err := c.BindJSON(&body)
@@ -1626,6 +1629,43 @@ func (h *Handler) BatchUpdateClients(c *gin.Context) {
 					}
 				}
 				client.Roles = newRoles
+			}
+
+			// add organization if not present
+			if body.Organization != nil {
+				hasOrganization := false
+				for _, o := range client.Organizations {
+					if o != nil && o.Name == body.Organization.Name && o.ID == body.Organization.ID {
+						hasOrganization = true
+					}
+				}
+				if !hasOrganization {
+					client.Organizations = append(client.Organizations, body.Organization)
+				}
+			}
+
+			// add organization if not present
+			for _, organizationToAdd := range body.OrganizationsToAdd {
+				hasOrganization := false
+				for _, o := range client.Organizations {
+					if o != nil && o.Name == organizationToAdd.Name && o.ID == organizationToAdd.ID {
+						hasOrganization = true
+					}
+				}
+				if !hasOrganization {
+					client.Organizations = append(client.Organizations, organizationToAdd)
+				}
+			}
+
+			// remove organization if present
+			for _, organizationToRemove := range body.OrganizationsToRemove {
+				newOrganizations := []*contracts.Organization{}
+				for _, o := range client.Organizations {
+					if o == nil || o.Name != organizationToRemove.Name || o.ID != organizationToRemove.ID {
+						newOrganizations = append(newOrganizations, o)
+					}
+				}
+				client.Organizations = newOrganizations
 			}
 
 			err = h.service.UpdateClient(ctx, *client)
