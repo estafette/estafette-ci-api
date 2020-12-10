@@ -762,3 +762,27 @@ func (c *loggingClient) GetCatalogEntityLabelsCount(ctx context.Context, filters
 
 	return c.Client.GetCatalogEntityLabelsCount(ctx, filters)
 }
+
+func (c *loggingClient) GetAllPipelineBuilds(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error) {
+	defer func() { api.HandleLogError(c.prefix, "GetAllPipelineBuilds", err) }()
+
+	return c.Client.GetAllPipelineBuilds(ctx, pageNumber, pageSize, filters, sortings, optimized)
+}
+
+func (c *loggingClient) GetAllPipelineBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	defer func() { api.HandleLogError(c.prefix, "GetAllPipelineBuildsCount", err) }()
+
+	return c.Client.GetAllPipelineBuildsCount(ctx, filters)
+}
+
+func (c *loggingClient) GetAllPipelineReleases(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (releases []*contracts.Release, err error) {
+	defer func() { api.HandleLogError(c.prefix, "GetAllPipelineReleases", err) }()
+
+	return c.Client.GetAllPipelineReleases(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *loggingClient) GetAllPipelineReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	defer func() { api.HandleLogError(c.prefix, "GetAllPipelineReleasesCount", err) }()
+
+	return c.Client.GetAllPipelineReleasesCount(ctx, filters)
+}

@@ -887,3 +887,31 @@ func (c *tracingClient) GetCatalogEntityLabelsCount(ctx context.Context, filters
 
 	return c.Client.GetCatalogEntityLabelsCount(ctx, filters)
 }
+
+func (c *tracingClient) GetAllPipelineBuilds(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAllPipelineBuilds"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetAllPipelineBuilds(ctx, pageNumber, pageSize, filters, sortings, optimized)
+}
+
+func (c *tracingClient) GetAllPipelineBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAllPipelineBuildsCount"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetAllPipelineBuildsCount(ctx, filters)
+}
+
+func (c *tracingClient) GetAllPipelineReleases(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (releases []*contracts.Release, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAllPipelineReleases"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetAllPipelineReleases(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *tracingClient) GetAllPipelineReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAllPipelineReleasesCount"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetAllPipelineReleasesCount(ctx, filters)
+}
