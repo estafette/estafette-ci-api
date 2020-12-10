@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -146,6 +147,7 @@ func (m *authMiddlewareImpl) GinJWTMiddlewareForClientLogin(authenticator func(c
 
 			return jwt.MapClaims{
 				jwt.IdentityKey: client.ID,
+				"email":         fmt.Sprintf("%v@client.estafette.io", client.Name),
 				"clientID":      client.ClientID,
 				"roles":         client.Roles,
 				"organizations": organizations,
