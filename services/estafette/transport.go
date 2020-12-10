@@ -338,6 +338,8 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
 func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 
+	log.Debug().Msg("CancelPipelineBuild")
+
 	if !api.RequestTokenIsValid(c) {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
@@ -933,6 +935,8 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 }
 
 func (h *Handler) CancelPipelineRelease(c *gin.Context) {
+
+	log.Debug().Msg("CancelPipelineRelease")
 
 	if !api.RequestTokenIsValid(c) {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
