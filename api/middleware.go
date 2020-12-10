@@ -135,12 +135,20 @@ func (m *authMiddlewareImpl) GinJWTMiddlewareForClientLogin(authenticator func(c
 
 	// set some client properties as claims
 	middleware.PayloadFunc = func(data interface{}) jwt.MapClaims {
+
 		// add client properties as claims
 		if client, ok := data.(*contracts.Client); ok {
+
+			organizations := []string{}
+			for _, o := range client.Organizations {
+				organizations = append(organizations, o.Name)
+			}
+
 			return jwt.MapClaims{
 				jwt.IdentityKey: client.ID,
 				"clientID":      client.ClientID,
 				"roles":         client.Roles,
+				"organizations": organizations,
 			}
 		}
 		return jwt.MapClaims{}
