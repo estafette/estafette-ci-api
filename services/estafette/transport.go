@@ -351,6 +351,8 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 	repo := c.Param("repo")
 	revisionOrID := c.Param("revisionOrId")
 
+	log.Debug().Msgf("Canceling pipeline build %v/%v/%v with id %v...", source, owner, repo, revisionOrID)
+
 	id, err := strconv.Atoi(revisionOrID)
 	if err != nil {
 		log.Error().Err(err).
@@ -397,6 +399,8 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline build status to canceling"})
 		return
 	}
+
+	log.Debug().Msgf("Updated build status for canceling pipeline build %v/%v/%v with id %v...", source, owner, repo, revisionOrID)
 
 	// canceling the job failed because it no longer existed we should set canceled status right after having set it to canceling
 	if errors.Is(cancelErr, builderapi.ErrJobNotFound) && build.BuildStatus == contracts.StatusRunning {
@@ -943,6 +947,8 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 	repo := c.Param("repo")
 	idValue := c.Param("id")
 
+	log.Debug().Msgf("Canceling pipeline release %v/%v/%v with id %v...", source, owner, repo, idValue)
+
 	id, err := strconv.Atoi(idValue)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, idValue)
@@ -986,6 +992,8 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline release status to canceling"})
 		return
 	}
+
+	log.Debug().Msgf("Updated build status for canceling pipeline release %v/%v/%v with id %v...", source, owner, repo, idValue)
 
 	// canceling the job failed because it no longer existed we should set canceled status right after having set it to canceling
 	if errors.Is(cancelErr, builderapi.ErrJobNotFound) && release.ReleaseStatus == contracts.StatusRunning {
