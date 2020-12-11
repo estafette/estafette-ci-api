@@ -417,6 +417,7 @@ const (
 	FilterStatus FilterType = iota
 	FilterSince
 	FilterLabels
+	FilterReleaseTarget
 	FilterSearch
 	FilterBranch
 	FilterRecentCommitter
@@ -436,6 +437,7 @@ var filters = []string{
 	"status",
 	"since",
 	"labels",
+	"target",
 	"search",
 	"branch",
 	"recent-committer",

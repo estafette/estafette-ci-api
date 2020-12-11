@@ -470,6 +470,7 @@ func GetFilters(c *gin.Context) map[FilterType][]string {
 	filters[FilterStatus] = GetStatusFilter(c)
 	filters[FilterSince] = GetSinceFilter(c)
 	filters[FilterLabels] = GetLabelsFilter(c)
+	filters[FilterReleaseTarget] = GetGenericFilter(c, FilterReleaseTarget)
 	filters[FilterSearch] = GetGenericFilter(c, FilterSearch)
 	filters[FilterRecentCommitter] = GetGenericFilter(c, FilterRecentCommitter)
 	filters[FilterRecentReleaser] = GetGenericFilter(c, FilterRecentReleaser)

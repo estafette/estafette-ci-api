@@ -3544,6 +3544,10 @@ func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, alias, sin
 	if err != nil {
 		return query, err
 	}
+	query, err = whereClauseGeneratorForReleaseTargetFilter(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
 	query, err = whereClauseGeneratorForSinceFilter(query, alias, sinceColumn, filters)
 	if err != nil {
 		return query, err
@@ -3610,6 +3614,15 @@ func whereClauseGeneratorForReleaseStatusFilter(query sq.SelectBuilder, alias st
 
 	if statuses, ok := filters[api.FilterStatus]; ok && len(statuses) > 0 && statuses[0] != "all" {
 		query = query.Where(sq.Eq{fmt.Sprintf("%v.release_status", alias): statuses})
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForReleaseTargetFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+
+	if targets, ok := filters[api.FilterReleaseTarget]; ok && len(targets) > 0 && targets[0] != "all" {
+		query = query.Where(sq.Eq{fmt.Sprintf("%v.release", alias): targets})
 	}
 
 	return query, nil
