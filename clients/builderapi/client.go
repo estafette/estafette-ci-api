@@ -128,6 +128,8 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 		"jobType":   ciBuilderParams.JobType,
 	}
 
+	terminationGracePeriodSeconds := int64(120)
+
 	job = &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      jobName,
@@ -143,6 +145,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 					Labels: labels,
 				},
 				Spec: v1.PodSpec{
+					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 					Containers: []v1.Container{
 						{
 							Name:            "estafette-ci-builder",
