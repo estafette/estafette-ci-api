@@ -143,6 +143,9 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,
+					Annotations: map[string]string{
+						"cluster-autoscaler.kubernetes.io/safe-to-evict": "false",
+					},
 				},
 				Spec: v1.PodSpec{
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
