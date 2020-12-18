@@ -135,7 +135,6 @@ releases:
             ESTAFETTE_LOG_FORMAT: v3
           cpu:
             request: 158m
-            limit: 316m
           memory:
             request: 483Mi
             limit: 976Mi
@@ -147,7 +146,6 @@ releases:
         - type: openresty
           cpu:
             request: 43m
-            limit: 85m
           memory:
             request: 34Mi
             limit: 68Mi
