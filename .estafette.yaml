@@ -180,7 +180,6 @@ releases:
               cpu: 50m
               memory: 100Mi
             limits:
-              cpu: 100m
               memory: 200Mi
           volumeMounts:
           - name: app-configs
