@@ -40,11 +40,11 @@ type APIConfig struct {
 
 // APIServerConfig represents configuration for the api server
 type APIServerConfig struct {
-	BaseURL      string              `yaml:"baseURL"`
-	ServiceURL   string              `yaml:"serviceURL"`
-	LogWriters   []string            `yaml:"logWriters"`
-	LogReader    string              `yaml:"logReader"`
-	InjectStages *InjectStagesConfig `yaml:"injectStages,omitempty"`
+	BaseURL                        string                        `yaml:"baseURL"`
+	ServiceURL                     string                        `yaml:"serviceURL"`
+	LogWriters                     []string                      `yaml:"logWriters"`
+	LogReader                      string                        `yaml:"logReader"`
+	InjectStagesPerOperatingSystem map[string]InjectStagesConfig `yaml:"injectStagesPerOperatingSystem,omitempty"`
 }
 
 type InjectStagesConfig struct {

@@ -156,10 +156,16 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "database", apiServerConfig.LogWriters[0])
 		assert.Equal(t, "cloudstorage", apiServerConfig.LogWriters[1])
 		assert.Equal(t, "database", apiServerConfig.LogReader)
-		assert.Equal(t, "envvars", apiServerConfig.InjectStages.Build.Before[0].Name)
-		assert.Equal(t, "extensions/envvars:stable", apiServerConfig.InjectStages.Build.Before[0].ContainerImage)
-		assert.Equal(t, "envvars", apiServerConfig.InjectStages.Release.After[0].Name)
-		assert.Equal(t, "extensions/envvars:dev", apiServerConfig.InjectStages.Release.After[0].ContainerImage)
+
+		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem["linux"].Build.Before[0].Name)
+		assert.Equal(t, "extensions/envvars:stable", apiServerConfig.InjectStagesPerOperatingSystem["linux"].Build.Before[0].ContainerImage)
+		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem["linux"].Release.After[0].Name)
+		assert.Equal(t, "extensions/envvars:dev", apiServerConfig.InjectStagesPerOperatingSystem["linux"].Release.After[0].ContainerImage)
+
+		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem["windows"].Build.Before[0].Name)
+		assert.Equal(t, "extensions/envvars:windowsservercore-ltsc2019", apiServerConfig.InjectStagesPerOperatingSystem["windows"].Build.Before[0].ContainerImage)
+		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem["windows"].Release.After[0].Name)
+		assert.Equal(t, "extensions/envvars:windowsservercore-ltsc2019", apiServerConfig.InjectStagesPerOperatingSystem["windows"].Release.After[0].ContainerImage)
 	})
 
 	t.Run("ReturnsAuthConfig", func(t *testing.T) {

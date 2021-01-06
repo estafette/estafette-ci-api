@@ -62,17 +62,29 @@ apiServer:
   - database
   - cloudstorage
   logReader: database
-  injectStages:
-    build:
-      before:
-      - name: envvars
-        image: extensions/envvars:stable
-      after: []
-    release:
-      before: []
-      after:
-      - name: envvars
-        image: extensions/envvars:dev
+  injectStagesPerOperatingSystem:
+    linux:
+      build:
+        before:
+        - name: envvars
+          image: extensions/envvars:stable
+        after: []
+      release:
+        before: []
+        after:
+        - name: envvars
+          image: extensions/envvars:dev
+    windows:
+      build:
+        before:
+        - name: envvars
+          image: extensions/envvars:windowsservercore-ltsc2019
+        after: []
+      release:
+        before: []
+        after:
+        - name: envvars
+          image: extensions/envvars:windowsservercore-ltsc2019
 
 auth:
   jwt:

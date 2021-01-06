@@ -9,18 +9,6 @@ import (
 // InjectStages injects some mandatory and configured stages
 func InjectStages(config *APIConfig, mft manifest.EstafetteManifest, builderTrack, gitSource, gitBranch string, supportsBuildStatus bool) (injectedManifest manifest.EstafetteManifest, err error) {
 
-	injectedManifest = mft
-
-	// inject build stages
-	injectedManifest.Stages = injectBuildStagesBefore(config, injectedManifest, builderTrack, gitSource, supportsBuildStatus)
-	injectedManifest.Stages = injectBuildStagesAfter(config, injectedManifest, builderTrack, gitSource, supportsBuildStatus)
-
-	// inject release stages
-	for _, r := range injectedManifest.Releases {
-		r.Stages = injectReleaseStagesBefore(config, *r, builderTrack, gitSource, supportsBuildStatus)
-		r.Stages = injectReleaseStagesAfter(config, *r, builderTrack, gitSource, supportsBuildStatus)
-	}
-
 	// get preferences for defaults
 	var preferences *manifest.EstafetteManifestPreferences
 	if config != nil && config.ManifestPreferences != nil {
@@ -33,6 +21,20 @@ func InjectStages(config *APIConfig, mft manifest.EstafetteManifest, builderTrac
 	// todo figure out the default branch if a non-default branch is built
 	if gitBranch == "main" {
 		preferences.DefaultBranch = "main"
+	}
+
+	operatingSystem := getOperatingSystem(mft, *preferences)
+
+	injectedManifest = mft
+
+	// inject build stages
+	injectedManifest.Stages = injectBuildStagesBefore(config, operatingSystem, injectedManifest, builderTrack, gitSource, supportsBuildStatus)
+	injectedManifest.Stages = injectBuildStagesAfter(config, operatingSystem, injectedManifest, builderTrack, gitSource, supportsBuildStatus)
+
+	// inject release stages
+	for _, r := range injectedManifest.Releases {
+		r.Stages = injectReleaseStagesBefore(config, operatingSystem, *r, builderTrack, gitSource, supportsBuildStatus)
+		r.Stages = injectReleaseStagesAfter(config, operatingSystem, *r, builderTrack, gitSource, supportsBuildStatus)
 	}
 
 	// ensure all injected stages have defaults for shell and working directory matching the target operating system
@@ -63,7 +65,7 @@ func injectIfNotExists(stages, parallelStages []*manifest.EstafetteStage, stageT
 	return parallelStages
 }
 
-func injectBuildStagesBefore(config *APIConfig, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
+func injectBuildStagesBefore(config *APIConfig, operatingSystem string, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
 
 	stages = mft.Stages
 
@@ -89,9 +91,11 @@ func injectBuildStagesBefore(config *APIConfig, mft manifest.EstafetteManifest, 
 	}
 
 	// add any configured injected stages
-	if config != nil && config.APIServer != nil && config.APIServer.InjectStages != nil && config.APIServer.InjectStages.Build != nil && config.APIServer.InjectStages.Build.Before != nil {
-		for _, s := range config.APIServer.InjectStages.Build.Before {
-			injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
+	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
+		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Build != nil && injectedStages.Build.Before != nil {
+			for _, s := range injectedStages.Build.Before {
+				injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
+			}
 		}
 	}
 
@@ -105,7 +109,7 @@ func injectBuildStagesBefore(config *APIConfig, mft manifest.EstafetteManifest, 
 	return stages
 }
 
-func injectBuildStagesAfter(config *APIConfig, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
+func injectBuildStagesAfter(config *APIConfig, operatingSystem string, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
 
 	stages = mft.Stages
 
@@ -125,9 +129,11 @@ func injectBuildStagesAfter(config *APIConfig, mft manifest.EstafetteManifest, b
 	}
 
 	// add any configured injected stages
-	if config != nil && config.APIServer != nil && config.APIServer.InjectStages != nil && config.APIServer.InjectStages.Build != nil && config.APIServer.InjectStages.Build.After != nil {
-		for _, s := range config.APIServer.InjectStages.Build.After {
-			injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
+	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
+		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Build != nil && injectedStages.Build.After != nil {
+			for _, s := range injectedStages.Build.After {
+				injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
+			}
 		}
 	}
 
@@ -141,7 +147,7 @@ func injectBuildStagesAfter(config *APIConfig, mft manifest.EstafetteManifest, b
 	return stages
 }
 
-func injectReleaseStagesBefore(config *APIConfig, release manifest.EstafetteRelease, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
+func injectReleaseStagesBefore(config *APIConfig, operatingSystem string, release manifest.EstafetteRelease, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
 
 	stages = release.Stages
 
@@ -159,9 +165,11 @@ func injectReleaseStagesBefore(config *APIConfig, release manifest.EstafetteRele
 	}
 
 	// add any configured injected stages
-	if config != nil && config.APIServer != nil && config.APIServer.InjectStages != nil && config.APIServer.InjectStages.Build != nil && config.APIServer.InjectStages.Build.Before != nil {
-		for _, s := range config.APIServer.InjectStages.Build.Before {
-			injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
+	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
+		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Release != nil && injectedStages.Release.Before != nil {
+			for _, s := range injectedStages.Release.Before {
+				injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
+			}
 		}
 	}
 
@@ -175,7 +183,7 @@ func injectReleaseStagesBefore(config *APIConfig, release manifest.EstafetteRele
 	return stages
 }
 
-func injectReleaseStagesAfter(config *APIConfig, release manifest.EstafetteRelease, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
+func injectReleaseStagesAfter(config *APIConfig, operatingSystem string, release manifest.EstafetteRelease, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
 
 	stages = release.Stages
 
@@ -187,9 +195,11 @@ func injectReleaseStagesAfter(config *APIConfig, release manifest.EstafetteRelea
 	}
 
 	// add any configured injected stages
-	if config != nil && config.APIServer != nil && config.APIServer.InjectStages != nil && config.APIServer.InjectStages.Release != nil && config.APIServer.InjectStages.Release.After != nil {
-		for _, s := range config.APIServer.InjectStages.Release.After {
-			injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
+	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
+		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Release != nil && injectedStages.Release.After != nil {
+			for _, s := range injectedStages.Release.After {
+				injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
+			}
 		}
 	}
 
@@ -210,4 +220,13 @@ func stageExists(stages []*manifest.EstafetteStage, stageName string) bool {
 		}
 	}
 	return false
+}
+
+func getOperatingSystem(mft manifest.EstafetteManifest, preferences manifest.EstafetteManifestPreferences) string {
+
+	if mft.Builder.OperatingSystem == "" {
+		return preferences.BuilderOperatingSystems[0]
+	}
+
+	return mft.Builder.OperatingSystem
 }
