@@ -33,8 +33,13 @@ func InjectStages(config *APIConfig, mft manifest.EstafetteManifest, builderTrac
 
 	// inject release stages
 	for _, r := range injectedManifest.Releases {
-		r.Stages = injectReleaseStagesBefore(config, operatingSystem, *r, builderTrack, gitSource, supportsBuildStatus)
-		r.Stages = injectReleaseStagesAfter(config, operatingSystem, *r, builderTrack, gitSource, supportsBuildStatus)
+		releaseOperatingSystem := operatingSystem
+		if r.Builder != nil && r.Builder.OperatingSystem != "" {
+			releaseOperatingSystem = r.Builder.OperatingSystem
+		}
+
+		r.Stages = injectReleaseStagesBefore(config, releaseOperatingSystem, *r, builderTrack, gitSource, supportsBuildStatus)
+		r.Stages = injectReleaseStagesAfter(config, releaseOperatingSystem, *r, builderTrack, gitSource, supportsBuildStatus)
 	}
 
 	// ensure all injected stages have defaults for shell and working directory matching the target operating system
