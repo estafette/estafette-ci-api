@@ -14,6 +14,7 @@ import (
 	"time"
 
 	jwtgo "github.com/dgrijalva/jwt-go"
+	"github.com/gavv/deepcopy"
 	"github.com/pkg/errors"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
@@ -1027,11 +1028,13 @@ func (c *client) getCiBuilderJobAffinity(ctx context.Context, ciBuilderParams Ci
 	switch ciBuilderParams.JobType {
 	case "build":
 		if c.config.Jobs.BuildAffinityAndTolerations != nil && c.config.Jobs.BuildAffinityAndTolerations.Affinity != nil {
-			affinity = c.config.Jobs.BuildAffinityAndTolerations.Affinity
+			deepcopyAffinity := deepcopy.DeepCopy(*c.config.Jobs.BuildAffinityAndTolerations.Affinity).(v1.Affinity)
+			affinity = &deepcopyAffinity
 		}
 	case "release":
-		if c.config.Jobs.ReleaseAffinityAndTolerations != nil && c.config.Jobs.ReleaseAffinityAndTolerations.Tolerations != nil && len(c.config.Jobs.ReleaseAffinityAndTolerations.Tolerations) > 0 {
-			affinity = c.config.Jobs.ReleaseAffinityAndTolerations.Affinity
+		if c.config.Jobs.ReleaseAffinityAndTolerations != nil && c.config.Jobs.ReleaseAffinityAndTolerations.Affinity != nil {
+			deepcopyAffinity := deepcopy.DeepCopy(*c.config.Jobs.ReleaseAffinityAndTolerations.Affinity).(v1.Affinity)
+			affinity = &deepcopyAffinity
 		}
 	}
 
