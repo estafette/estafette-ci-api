@@ -162,7 +162,7 @@ func injectReleaseStagesBefore(config *APIConfig, operatingSystem string, releas
 		AutoInjected:   true,
 	}
 
-	if release.CloneRepository {
+	if release.CloneRepository != nil && *release.CloneRepository {
 		injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
 			Name:           "git-clone",
 			ContainerImage: fmt.Sprintf("extensions/git-clone:%v", builderTrack),

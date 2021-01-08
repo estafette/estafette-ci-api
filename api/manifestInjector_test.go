@@ -263,6 +263,10 @@ func TestInjectStages(t *testing.T) {
 }
 
 func getManifestWithoutBuildStatusSteps() manifest.EstafetteManifest {
+
+	trueValue := true
+	falseValue := false
+
 	return manifest.EstafetteManifest{
 		Builder: manifest.EstafetteBuilder{
 			Track: "stable",
@@ -288,7 +292,7 @@ func getManifestWithoutBuildStatusSteps() manifest.EstafetteManifest {
 		Releases: []*manifest.EstafetteRelease{
 			{
 				Name:            "staging",
-				CloneRepository: false,
+				CloneRepository: &falseValue,
 				Stages: []*manifest.EstafetteStage{
 					{
 						Name:           "deploy",
@@ -298,7 +302,7 @@ func getManifestWithoutBuildStatusSteps() manifest.EstafetteManifest {
 			},
 			{
 				Name:            "production",
-				CloneRepository: true,
+				CloneRepository: &trueValue,
 				Stages: []*manifest.EstafetteStage{
 					{
 						Name:           "deploy",
@@ -313,6 +317,10 @@ func getManifestWithoutBuildStatusSteps() manifest.EstafetteManifest {
 }
 
 func getManifestWithoutBuildStatusStepsAndWithGitClone() manifest.EstafetteManifest {
+
+	trueValue := true
+	falseValue := false
+
 	return manifest.EstafetteManifest{
 		Builder: manifest.EstafetteBuilder{
 			Track: "stable",
@@ -344,7 +352,7 @@ func getManifestWithoutBuildStatusStepsAndWithGitClone() manifest.EstafetteManif
 		Releases: []*manifest.EstafetteRelease{
 			{
 				Name:            "staging",
-				CloneRepository: false,
+				CloneRepository: &falseValue,
 				Stages: []*manifest.EstafetteStage{
 					{
 						Name:           "deploy",
@@ -354,7 +362,7 @@ func getManifestWithoutBuildStatusStepsAndWithGitClone() manifest.EstafetteManif
 			},
 			{
 				Name:            "production",
-				CloneRepository: true,
+				CloneRepository: &trueValue,
 				Stages: []*manifest.EstafetteStage{
 					{
 						Name:           "deploy",
@@ -369,6 +377,9 @@ func getManifestWithoutBuildStatusStepsAndWithGitClone() manifest.EstafetteManif
 }
 
 func getManifestWithBuildStatusSteps() manifest.EstafetteManifest {
+
+	trueValue := true
+
 	return manifest.EstafetteManifest{
 		Builder: manifest.EstafetteBuilder{
 			Track: "stable",
@@ -413,7 +424,7 @@ func getManifestWithBuildStatusSteps() manifest.EstafetteManifest {
 		Releases: []*manifest.EstafetteRelease{
 			{
 				Name:            "production",
-				CloneRepository: true,
+				CloneRepository: &trueValue,
 				Stages: []*manifest.EstafetteStage{
 					{
 						Name:           "git-clone",
@@ -434,6 +445,9 @@ func getManifestWithBuildStatusSteps() manifest.EstafetteManifest {
 }
 
 func getManifestWithAllSteps() manifest.EstafetteManifest {
+
+	trueValue := true
+
 	return manifest.EstafetteManifest{
 		Builder: manifest.EstafetteBuilder{
 			Track: "stable",
@@ -490,7 +504,7 @@ func getManifestWithAllSteps() manifest.EstafetteManifest {
 		Releases: []*manifest.EstafetteRelease{
 			{
 				Name:            "production",
-				CloneRepository: true,
+				CloneRepository: &trueValue,
 				Stages: []*manifest.EstafetteStage{
 					{
 						Name:           "git-clone",
@@ -511,6 +525,10 @@ func getManifestWithAllSteps() manifest.EstafetteManifest {
 }
 
 func getManifestWithoutInjectedStepsButWithInjectedBeforeStage() manifest.EstafetteManifest {
+
+	trueValue := true
+	falseValue := false
+
 	return manifest.EstafetteManifest{
 		Builder: manifest.EstafetteBuilder{
 			Track: "stable",
@@ -539,7 +557,7 @@ func getManifestWithoutInjectedStepsButWithInjectedBeforeStage() manifest.Estafe
 		Releases: []*manifest.EstafetteRelease{
 			{
 				Name:            "staging",
-				CloneRepository: false,
+				CloneRepository: &falseValue,
 				Stages: []*manifest.EstafetteStage{
 					{
 						Name:           "deploy",
@@ -549,7 +567,7 @@ func getManifestWithoutInjectedStepsButWithInjectedBeforeStage() manifest.Estafe
 			},
 			{
 				Name:            "production",
-				CloneRepository: true,
+				CloneRepository: &trueValue,
 				Stages: []*manifest.EstafetteStage{
 					{
 						Name:           "deploy",
