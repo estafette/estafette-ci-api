@@ -294,6 +294,9 @@ func (s *service) FinishBuild(ctx context.Context, repoSource, repoOwner, repoNa
 
 func (s *service) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (createdRelease *contracts.Release, err error) {
 
+	// create deep copy to ensure no properties are shared through a pointer
+	mft = mft.DeepCopy()
+
 	// set builder track
 	builderTrack := mft.Builder.Track
 	builderOperatingSystem := mft.Builder.OperatingSystem
@@ -937,7 +940,7 @@ func (s *service) fireRelease(ctx context.Context, p contracts.Pipeline, t manif
 		RepoName:       p.RepoName,
 		ReleaseVersion: versionToRelease,
 		Events:         []manifest.EstafetteEvent{e},
-	}, p.ManifestObject.DeepCopy(), repoBranch, repoRevision, true)
+	}, *p.ManifestObject, repoBranch, repoRevision, true)
 	if err != nil {
 		return err
 	}
