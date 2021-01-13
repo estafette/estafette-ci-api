@@ -867,6 +867,7 @@ func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuil
 
 	if ciBuilderParams.OperatingSystem == "windows" {
 		workingDirectoryVolumeName := "working-directory"
+		tempDirectoryVolumeName := "temp-directory"
 
 		// docker in kubernetes on windows is still at 18.09.7, which has api version 1.39
 		// todo - use auto detect for the docker api version
@@ -899,6 +900,15 @@ func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuil
 			v1.EnvVar{
 				Name:  estafetteWorkdirName,
 				Value: estafetteWorkdirValue,
+			},
+		)
+
+		tempWorkdirName := "ESTAFETTE_TEMPDIR"
+		tempWorkdirValue := "c:/var/lib/kubelet/pods/$(POD_UID)/volumes/kubernetes.io~empty-dir/" + tempDirectoryVolumeName
+		environmentVariables = append(environmentVariables,
+			v1.EnvVar{
+				Name:  tempWorkdirName,
+				Value: tempWorkdirValue,
 			},
 		)
 	}
@@ -954,6 +964,21 @@ func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderP
 		volumeMounts = append(volumeMounts, v1.VolumeMount{
 			Name:      workingDirectoryVolumeName,
 			MountPath: workingDirectoryVolumeMountPath,
+		})
+
+		// use emptydir volume in order to be able to have docker daemon on host mount path into internal container
+		tempDirectoryVolumeName := "temp-directory"
+		volumes = append(volumes, v1.Volume{
+			Name: tempDirectoryVolumeName,
+			VolumeSource: v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{},
+			},
+		})
+
+		tempDirectoryVolumeMountPath := "C:/windows/temp"
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      tempDirectoryVolumeName,
+			MountPath: tempDirectoryVolumeMountPath,
 		})
 
 		// windows builds uses docker-outside-docker, for which the hosts docker socket needs to be mounted into the ci-builder container
