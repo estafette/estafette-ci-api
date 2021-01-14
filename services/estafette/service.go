@@ -920,8 +920,9 @@ func (s *service) fireRelease(ctx context.Context, p contracts.Pipeline, t manif
 	// get repobranch and reporevision for actually released build if it's not the most recent build that gets released
 	repoBranch := p.RepoBranch
 	repoRevision := p.RepoRevision
+	mft := p.ManifestObject
 	if versionToRelease != p.BuildVersion {
-		succeededBuilds, err := s.cockroachdbClient.GetPipelineBuildsByVersion(ctx, p.RepoSource, p.RepoOwner, p.RepoName, versionToRelease, []contracts.Status{contracts.StatusSucceeded}, 1, true)
+		succeededBuilds, err := s.cockroachdbClient.GetPipelineBuildsByVersion(ctx, p.RepoSource, p.RepoOwner, p.RepoName, versionToRelease, []contracts.Status{contracts.StatusSucceeded}, 1, false)
 		if err != nil {
 			return err
 		}
@@ -930,6 +931,7 @@ func (s *service) fireRelease(ctx context.Context, p contracts.Pipeline, t manif
 		}
 		repoBranch = succeededBuilds[0].RepoBranch
 		repoRevision = succeededBuilds[0].RepoRevision
+		mft = succeededBuilds[0].ManifestObject
 	}
 
 	_, err := s.CreateRelease(ctx, contracts.Release{
@@ -940,7 +942,7 @@ func (s *service) fireRelease(ctx context.Context, p contracts.Pipeline, t manif
 		RepoName:       p.RepoName,
 		ReleaseVersion: versionToRelease,
 		Events:         []manifest.EstafetteEvent{e},
-	}, *p.ManifestObject, repoBranch, repoRevision, true)
+	}, *mft, repoBranch, repoRevision, true)
 	if err != nil {
 		return err
 	}
