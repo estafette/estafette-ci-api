@@ -1844,13 +1844,11 @@ func (c *client) GetPipelineBuildsByVersion(ctx context.Context, repoSource, rep
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-
 		return
 	}
 
 	// read rows
 	if builds, err = c.scanBuilds(rows, optimized); err != nil {
-
 		return
 	}
 
