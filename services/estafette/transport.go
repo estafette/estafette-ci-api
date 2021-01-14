@@ -2072,7 +2072,7 @@ func (h *Handler) Commands(c *gin.Context) {
 
 	log.Debug().Msgf("Read body for /api/commands for job %v", eventJobname)
 
-	switch eventType {
+	switch strings.ToLower(eventType) {
 	case
 		"builder:nomanifest",
 		"builder:running",
