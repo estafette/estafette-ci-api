@@ -951,13 +951,19 @@ func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderP
 	}
 
 	if ciBuilderParams.OperatingSystem == "windows" {
+
+		storageMedium := v1.StorageMediumDefault
+		if ciBuilderParams.Manifest.Builder.StorageMedium == manifest.StorageMediumMemory {
+			storageMedium = v1.StorageMediumMemory
+		}
+
 		// use emptydir volume in order to be able to have docker daemon on host mount path into internal container
 		workingDirectoryVolumeName := "working-directory"
 		volumes = append(volumes, v1.Volume{
 			Name: workingDirectoryVolumeName,
 			VolumeSource: v1.VolumeSource{
 				EmptyDir: &v1.EmptyDirVolumeSource{
-					Medium: v1.StorageMediumMemory,
+					Medium: storageMedium,
 				},
 			},
 		})
@@ -974,7 +980,7 @@ func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderP
 			Name: tempDirectoryVolumeName,
 			VolumeSource: v1.VolumeSource{
 				EmptyDir: &v1.EmptyDirVolumeSource{
-					Medium: v1.StorageMediumMemory,
+					Medium: storageMedium,
 				},
 			},
 		})
@@ -1019,6 +1025,24 @@ func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderP
 		volumeMounts = append(volumeMounts, v1.VolumeMount{
 			Name:      dockerCLIVolumeName,
 			MountPath: dockerCLIVolumeMountPath,
+		})
+	} else if ciBuilderParams.Manifest.Builder.StorageMedium == manifest.StorageMediumMemory {
+
+		// use emptydir volume in order to be able to have docker daemon on host mount path into internal container
+		workingDirectoryVolumeName := "working-directory"
+		volumes = append(volumes, v1.Volume{
+			Name: workingDirectoryVolumeName,
+			VolumeSource: v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{
+					Medium: v1.StorageMediumMemory,
+				},
+			},
+		})
+
+		workingDirectoryVolumeMountPath := "/estafette-work"
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      workingDirectoryVolumeName,
+			MountPath: workingDirectoryVolumeMountPath,
 		})
 	}
 
