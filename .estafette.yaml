@@ -1,5 +1,6 @@
 builder:
   track: dev
+  medium: memory
 
 labels:
   type: service
