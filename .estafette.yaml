@@ -23,7 +23,7 @@ triggers:
 
 stages:
   build:
-    image: golang:1.15.6-alpine3.12
+    image: golang:1.15.7-alpine3.13
     env:
       CGO_ENABLED: 0
       GOOS: linux
@@ -36,7 +36,7 @@ stages:
     services:
     - name: cockroachdb
       multiStage: true
-      image: cockroachdb/cockroach:v20.2.3
+      image: cockroachdb/cockroach:v20.2.4
       shell: /bin/bash
       env:
         COCKROACH_SKIP_ENABLING_DIAGNOSTIC_REPORTING: "true"
@@ -53,7 +53,7 @@ stages:
       ESTAFETTE_LOG_FORMAT: console
 
   integration-tests:
-    image: golang:1.15.6-alpine3.12
+    image: golang:1.15.7-alpine3.13
     env:
       CGO_ENABLED: 0
       GOOS: linux
