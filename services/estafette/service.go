@@ -176,6 +176,11 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 		return
 	}
 
+	triggeredByEvents, err := s.getEventsForJobEnvvars(ctx, build.Triggers, build.Events)
+	if err != nil {
+		return
+	}
+
 	// define ci builder params
 	ciBuilderParams := builderapi.CiBuilderParams{
 		JobType:                 "build",
@@ -194,7 +199,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 		VersionNumber:           build.BuildVersion,
 		Manifest:                mft,
 		BuildID:                 buildID,
-		TriggeredByEvents:       build.Events,
+		TriggeredByEvents:       triggeredByEvents,
 		JobResources:            jobResources,
 	}
 
@@ -375,6 +380,8 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	maxCounter := currentCounter
 	maxCounterCurrentBranch := currentCounter
 
+	triggeredByEvents := release.Events
+
 	// retrieve pipeline if already exists to get counter value
 	pipeline, _ := s.cockroachdbClient.GetPipeline(ctx, release.RepoSource, release.RepoOwner, release.RepoName, map[api.FilterType][]string{}, false)
 	if pipeline != nil {
@@ -391,6 +398,12 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 			if mc > maxCounterCurrentBranch {
 				maxCounterCurrentBranch = mc
 			}
+		}
+
+		// get events and add non-firing triggers as events
+		triggeredByEvents, err = s.getEventsForJobEnvvars(ctx, pipeline.Triggers, release.Events)
+		if err != nil {
+			return
 		}
 	}
 
@@ -415,7 +428,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 		ReleaseName:             release.Name,
 		ReleaseAction:           release.Action,
 		ReleaseTriggeredBy:      triggeredBy,
-		TriggeredByEvents:       release.Events,
+		TriggeredByEvents:       triggeredByEvents,
 		JobResources:            jobResources,
 	}
 
@@ -1420,4 +1433,94 @@ func (s *service) supportsBuildStatus(repoSource string) bool {
 	}
 
 	return false
+}
+
+func (s *service) getEventsForJobEnvvars(ctx context.Context, triggers []manifest.EstafetteTrigger, events []manifest.EstafetteEvent) (triggersAsEvents []manifest.EstafetteEvent, err error) {
+
+	triggersAsEvents = events
+
+	for _, t := range triggers {
+		if t.Name != "" && t.Pipeline != nil && t.Pipeline.Event == "finished" {
+			// get last green build for pipeline matching the trigger and set as event
+			pipelineNameParts := strings.Split(t.Pipeline.Name, "/")
+			if len(pipelineNameParts) == 3 {
+				filters := map[api.FilterType][]string{
+					api.FilterStatus: {
+						string(contracts.StatusSucceeded),
+					},
+				}
+
+				if t.Pipeline.Branch != "" {
+					branches := strings.Split(t.Pipeline.Branch, "|")
+					if len(branches) > 0 {
+						filters[api.FilterBranch] = branches
+					}
+				}
+
+				lastBuilds, innerErr := s.cockroachdbClient.GetPipelineBuilds(ctx, pipelineNameParts[0], pipelineNameParts[1], pipelineNameParts[2], 1, 1, filters, []api.OrderField{}, false)
+				if innerErr != nil {
+					return
+				}
+				if lastBuilds == nil || len(lastBuilds) == 0 {
+					return triggersAsEvents, fmt.Errorf("Can't get a successful build for named trigger '%v' linking to pipeline '%v'", t.Name, t.Pipeline.Name)
+				}
+
+				lastSuccessfulBuild := lastBuilds[0]
+
+				triggersAsEvents = append(triggersAsEvents, manifest.EstafetteEvent{
+					Name: t.Name,
+					Pipeline: &manifest.EstafettePipelineEvent{
+						BuildVersion: lastSuccessfulBuild.BuildVersion,
+						RepoSource:   lastSuccessfulBuild.RepoSource,
+						RepoOwner:    lastSuccessfulBuild.RepoOwner,
+						RepoName:     lastSuccessfulBuild.RepoName,
+						Branch:       lastSuccessfulBuild.RepoBranch,
+						Status:       string(lastSuccessfulBuild.BuildStatus),
+						Event:        t.Pipeline.Event,
+					},
+				})
+			}
+		}
+
+		if t.Name != "" && t.Release != nil && t.Release.Event == "finished" {
+
+			// get last green build for pipeline matching the trigger and set as event
+			pipelineNameParts := strings.Split(t.Release.Name, "/")
+			if len(pipelineNameParts) == 3 {
+				filters := map[api.FilterType][]string{
+					api.FilterStatus: {
+						string(contracts.StatusSucceeded),
+					},
+				}
+
+				if t.Release.Target != "" {
+					filters[api.FilterReleaseTarget] = []string{t.Release.Target}
+				}
+
+				lastReleases, innerErr := s.cockroachdbClient.GetPipelineReleases(ctx, pipelineNameParts[0], pipelineNameParts[1], pipelineNameParts[2], 1, 1, filters, []api.OrderField{})
+				if innerErr != nil {
+					return
+				}
+				if lastReleases == nil || len(lastReleases) == 0 {
+					return triggersAsEvents, fmt.Errorf("Can't get a successful release for named trigger '%v' linking to pipeline '%v' and target '%v'", t.Name, t.Release.Name, t.Release.Target)
+				}
+
+				lastSuccessfulRelease := lastReleases[0]
+
+				triggersAsEvents = append(triggersAsEvents, manifest.EstafetteEvent{
+					Name: t.Name,
+					Release: &manifest.EstafetteReleaseEvent{
+						ReleaseVersion: lastSuccessfulRelease.ReleaseVersion,
+						RepoSource:     lastSuccessfulRelease.RepoSource,
+						RepoOwner:      lastSuccessfulRelease.RepoOwner,
+						RepoName:       lastSuccessfulRelease.RepoName,
+						Status:         string(lastSuccessfulRelease.ReleaseStatus),
+						Event:          t.Release.Event,
+					},
+				})
+			}
+		}
+	}
+
+	return triggersAsEvents, nil
 }
