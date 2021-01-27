@@ -203,6 +203,7 @@ func (h *Handler) Handle(c *gin.Context) {
 
 						Events: []manifest.EstafetteEvent{
 							{
+								Fired: true,
 								Manual: &manifest.EstafetteManualEvent{
 									UserID: profile.Email,
 								},

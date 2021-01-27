@@ -317,7 +317,8 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 
 	// set trigger event to manual
 	failedBuild.Events = []manifest.EstafetteEvent{
-		manifest.EstafetteEvent{
+		{
+			Fired: true,
 			Manual: &manifest.EstafetteManualEvent{
 				UserID: email,
 			},
@@ -915,6 +916,7 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 		// set trigger event to manual
 		Events: []manifest.EstafetteEvent{
 			{
+				Fired: true,
 				Manual: &manifest.EstafetteManualEvent{
 					UserID: email,
 				},

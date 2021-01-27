@@ -111,7 +111,8 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 		Organizations: organizations,
 		Events: []manifest.EstafetteEvent{
 			{
-				Git: &gitEvent,
+				Fired: true,
+				Git:   &gitEvent,
 			},
 		},
 	}, false)

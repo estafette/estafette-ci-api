@@ -559,6 +559,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		release := getRelease()
 		release.Events = []manifest.EstafetteEvent{
 			{
+				Fired: true,
 				Manual: &manifest.EstafetteManualEvent{
 					UserID: "me@estafette.io",
 				},

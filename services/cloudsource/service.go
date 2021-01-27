@@ -111,7 +111,8 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 		Organizations: organizations,
 		Events: []manifest.EstafetteEvent{
 			{
-				Git: &gitEvent,
+				Fired: true,
+				Git:   &gitEvent,
 			},
 		},
 	}, false)

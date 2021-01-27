@@ -114,7 +114,8 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 		Organizations: organizations,
 		Events: []manifest.EstafetteEvent{
 			{
-				Git: &gitEvent,
+				Fired: true,
+				Git:   &gitEvent,
 			},
 		},
 	}, false)

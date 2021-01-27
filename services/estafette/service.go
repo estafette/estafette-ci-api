@@ -492,7 +492,8 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 	}
 
 	e := manifest.EstafetteEvent{
-		Git: &gitEvent,
+		Fired: true,
+		Git:   &gitEvent,
 	}
 
 	triggerCount := 0
@@ -574,6 +575,7 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 		Event:        event,
 	}
 	e := manifest.EstafetteEvent{
+		Fired:    true,
 		Pipeline: &pe,
 	}
 
@@ -655,6 +657,7 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 		Event:          event,
 	}
 	e := manifest.EstafetteEvent{
+		Fired:   true,
 		Release: &re,
 	}
 
@@ -726,6 +729,7 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 	}
 
 	e := manifest.EstafetteEvent{
+		Fired:  true,
 		PubSub: &pubsubEvent,
 	}
 
@@ -794,7 +798,8 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 		Time: time.Now().UTC(),
 	}
 	e := manifest.EstafetteEvent{
-		Cron: &ce,
+		Fired: true,
+		Cron:  &ce,
 	}
 
 	log.Info().Msgf("[trigger:cron(%v)] Checking if triggers need to be fired...", ce.Time)
@@ -1468,7 +1473,8 @@ func (s *service) getEventsForJobEnvvars(ctx context.Context, triggers []manifes
 				lastSuccessfulBuild := lastBuilds[0]
 
 				triggersAsEvents = append(triggersAsEvents, manifest.EstafetteEvent{
-					Name: t.Name,
+					Name:  t.Name,
+					Fired: false,
 					Pipeline: &manifest.EstafettePipelineEvent{
 						BuildVersion: lastSuccessfulBuild.BuildVersion,
 						RepoSource:   lastSuccessfulBuild.RepoSource,
@@ -1508,7 +1514,8 @@ func (s *service) getEventsForJobEnvvars(ctx context.Context, triggers []manifes
 				lastSuccessfulRelease := lastReleases[0]
 
 				triggersAsEvents = append(triggersAsEvents, manifest.EstafetteEvent{
-					Name: t.Name,
+					Name:  t.Name,
+					Fired: false,
 					Release: &manifest.EstafetteReleaseEvent{
 						ReleaseVersion: lastSuccessfulRelease.ReleaseVersion,
 						RepoSource:     lastSuccessfulRelease.RepoSource,
