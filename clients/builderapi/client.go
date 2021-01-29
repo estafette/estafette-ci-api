@@ -115,10 +115,12 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 	tag := ciBuilderParams.Track
 	image := fmt.Sprintf("%v:%v", repository, tag)
 	imagePullPolicy := v1.PullAlways
-	digest, err := c.dockerHubClient.GetDigestCached(ctx, repository, tag)
-	if err == nil && digest.Digest != "" {
-		image = fmt.Sprintf("%v@%v", repository, digest.Digest)
-		imagePullPolicy = v1.PullIfNotPresent
+	if ciBuilderParams.OperatingSystem != "windows" {
+		digest, err := c.dockerHubClient.GetDigestCached(ctx, repository, tag)
+		if err == nil && digest.Digest != "" {
+			image = fmt.Sprintf("%v@%v", repository, digest.Digest)
+			imagePullPolicy = v1.PullIfNotPresent
+		}
 	}
 	privileged := true
 
