@@ -871,17 +871,6 @@ func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuil
 		workingDirectoryVolumeName := "working-directory"
 		tempDirectoryVolumeName := "temp-directory"
 
-		// docker in kubernetes on windows is still at 18.09.7, which has api version 1.39
-		// todo - use auto detect for the docker api version
-		dockerAPIVersionName := "DOCKER_API_VERSION"
-		dockerAPIVersionValue := "1.39"
-		environmentVariables = append(environmentVariables,
-			v1.EnvVar{
-				Name:  dockerAPIVersionName,
-				Value: dockerAPIVersionValue,
-			},
-		)
-
 		podUIDName := "POD_UID"
 		podUIDFieldPath := "metadata.uid"
 		environmentVariables = append(environmentVariables,
