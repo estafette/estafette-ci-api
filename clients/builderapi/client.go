@@ -976,7 +976,7 @@ func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderP
 			},
 		})
 
-		tempDirectoryVolumeMountPath := "C:/Users/ContainerAdministrator/AppData/Local/Temp"
+		tempDirectoryVolumeMountPath := "C:/Windows/TEMP"
 		volumeMounts = append(volumeMounts, v1.VolumeMount{
 			Name:      tempDirectoryVolumeName,
 			MountPath: tempDirectoryVolumeMountPath,
