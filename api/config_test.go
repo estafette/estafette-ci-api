@@ -5,6 +5,7 @@ import (
 	"math"
 	"testing"
 
+	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
@@ -166,6 +167,17 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "extensions/envvars:windowsservercore-ltsc2019", apiServerConfig.InjectStagesPerOperatingSystem["windows"].Build.Before[0].ContainerImage)
 		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem["windows"].Release.After[0].Name)
 		assert.Equal(t, "extensions/envvars:windowsservercore-ltsc2019", apiServerConfig.InjectStagesPerOperatingSystem["windows"].Release.After[0].ContainerImage)
+
+		assert.Equal(t, contracts.DockerRunTypeDinD, apiServerConfig.DockerConfigPerOperatingSystem["linux"].RunType)
+		assert.Equal(t, 1460, apiServerConfig.DockerConfigPerOperatingSystem["linux"].MTU)
+		assert.Equal(t, "192.168.1.1/24", apiServerConfig.DockerConfigPerOperatingSystem["linux"].BIP)
+		assert.Equal(t, "estafette", apiServerConfig.DockerConfigPerOperatingSystem["linux"].Networks[0].Name)
+		assert.Equal(t, "192.168.2.1/24", apiServerConfig.DockerConfigPerOperatingSystem["linux"].Networks[0].Subnet)
+		assert.Equal(t, "192.168.2.1", apiServerConfig.DockerConfigPerOperatingSystem["linux"].Networks[0].Gateway)
+		assert.Equal(t, "https://mirror.gcr.io", *apiServerConfig.DockerConfigPerOperatingSystem["linux"].RegistryMirror)
+
+		assert.Equal(t, contracts.DockerRunTypeDoD, apiServerConfig.DockerConfigPerOperatingSystem["windows"].RunType)
+		assert.Equal(t, 1410, apiServerConfig.DockerConfigPerOperatingSystem["windows"].MTU)
 	})
 
 	t.Run("ReturnsAuthConfig", func(t *testing.T) {

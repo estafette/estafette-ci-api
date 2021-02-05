@@ -85,6 +85,19 @@ apiServer:
         after:
         - name: envvars
           image: extensions/envvars:windowsservercore-ltsc2019
+  dockerConfigPerOperatingSystem:
+    linux:
+      runType: dind
+      mtu: 1460
+      bip: 192.168.1.1/24
+      networks:
+      - name: estafette
+        subnet: 192.168.2.1/24
+        gateway: 192.168.2.1
+      registryMirror: https://mirror.gcr.io
+    windows:
+      runType: dod
+      mtu: 1410
 
 auth:
   jwt:

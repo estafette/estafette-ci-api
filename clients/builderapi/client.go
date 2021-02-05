@@ -806,6 +806,13 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 		localBuilderConfig.Events = append(localBuilderConfig.Events, &e)
 	}
 
+	if c.config != nil && c.config.APIServer != nil && c.config.APIServer.DockerConfigPerOperatingSystem != nil {
+		if dc, ok := c.config.APIServer.DockerConfigPerOperatingSystem[ciBuilderParams.OperatingSystem]; ok {
+			copiedDockerConfig := deepcopy.DeepCopy(dc).(contracts.DockerConfig)
+			localBuilderConfig.DockerConfig = &copiedDockerConfig
+		}
+	}
+
 	return localBuilderConfig, nil
 }
 
