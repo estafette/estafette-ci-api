@@ -424,61 +424,6 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "cloudsource-api-token", trustedImagesConfig[7].InjectedCredentialTypes[2])
 	})
 
-	t.Run("ReturnsRegistryMirror", func(t *testing.T) {
-
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
-
-		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
-
-		registryMirrorConfig := config.RegistryMirror
-
-		assert.NotNil(t, registryMirrorConfig)
-		assert.Equal(t, "https://mirror.gcr.io", *registryMirrorConfig)
-	})
-
-	t.Run("ReturnsDockerDaemonMTU", func(t *testing.T) {
-
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
-
-		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
-
-		dockerDaemonMTUConfig := config.DockerDaemonMTU
-
-		assert.NotNil(t, dockerDaemonMTUConfig)
-		assert.Equal(t, "1360", *dockerDaemonMTUConfig)
-	})
-
-	t.Run("ReturnsDockerDaemonBIP", func(t *testing.T) {
-
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
-
-		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
-
-		dockerDaemonBIPConfig := config.DockerDaemonBIP
-
-		assert.NotNil(t, dockerDaemonBIPConfig)
-		assert.Equal(t, "192.168.1.1/24", *dockerDaemonBIPConfig)
-	})
-
-	t.Run("ReturnsDockerNetwork", func(t *testing.T) {
-
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
-
-		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
-
-		dockerNetworkConfig := config.DockerNetwork
-
-		if assert.NotNil(t, dockerNetworkConfig) {
-			assert.Equal(t, "estafette", dockerNetworkConfig.Name)
-			assert.Equal(t, "192.168.2.1/24", dockerNetworkConfig.Subnet)
-			assert.Equal(t, "192.168.2.1", dockerNetworkConfig.Gateway)
-		}
-	})
-
 	t.Run("AllowsCredentialConfigWithComplexAdditionalPropertiesToBeJSONMarshalled", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))

@@ -32,10 +32,6 @@ type APIConfig struct {
 	Catalog             *CatalogConfig                         `yaml:"catalog,omitempty"`
 	Credentials         []*contracts.CredentialConfig          `yaml:"credentials,omitempty" json:"credentials,omitempty"`
 	TrustedImages       []*contracts.TrustedImageConfig        `yaml:"trustedImages,omitempty" json:"trustedImages,omitempty"`
-	RegistryMirror      *string                                `yaml:"registryMirror,omitempty" json:"registryMirror,omitempty"`
-	DockerDaemonMTU     *string                                `yaml:"dindMtu,omitempty" json:"dindMtu,omitempty"`
-	DockerDaemonBIP     *string                                `yaml:"dindBip,omitempty" json:"dindBip,omitempty"`
-	DockerNetwork       *contracts.DockerNetworkConfig         `yaml:"dindNetwork,omitempty" json:"dindNetwork,omitempty"`
 }
 
 // APIServerConfig represents configuration for the api server

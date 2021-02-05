@@ -716,12 +716,8 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 	credentials = contracts.AddCredentialsIfNotPresent(credentials, contracts.FilterCredentialsByPipelinesAllowList(contracts.GetCredentialsByType(c.encryptedConfig.Credentials, "container-registry-pull"), ciBuilderParams.GetFullRepoPath()))
 
 	localBuilderConfig := contracts.BuilderConfig{
-		Credentials:     credentials,
-		TrustedImages:   trustedImages,
-		RegistryMirror:  c.config.RegistryMirror,
-		DockerDaemonMTU: c.config.DockerDaemonMTU,
-		DockerDaemonBIP: c.config.DockerDaemonBIP,
-		DockerNetwork:   c.config.DockerNetwork,
+		Credentials:   credentials,
+		TrustedImages: trustedImages,
 	}
 
 	localBuilderConfig.Action = &ciBuilderParams.JobType
