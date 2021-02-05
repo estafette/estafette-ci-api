@@ -174,7 +174,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "estafette", apiServerConfig.DockerConfigPerOperatingSystem["linux"].Networks[0].Name)
 		assert.Equal(t, "192.168.2.1/24", apiServerConfig.DockerConfigPerOperatingSystem["linux"].Networks[0].Subnet)
 		assert.Equal(t, "192.168.2.1", apiServerConfig.DockerConfigPerOperatingSystem["linux"].Networks[0].Gateway)
-		assert.Equal(t, "https://mirror.gcr.io", *apiServerConfig.DockerConfigPerOperatingSystem["linux"].RegistryMirror)
+		assert.Equal(t, "https://mirror.gcr.io", apiServerConfig.DockerConfigPerOperatingSystem["linux"].RegistryMirror)
 
 		assert.Equal(t, contracts.DockerRunTypeDoD, apiServerConfig.DockerConfigPerOperatingSystem["windows"].RunType)
 		assert.Equal(t, 1410, apiServerConfig.DockerConfigPerOperatingSystem["windows"].MTU)
