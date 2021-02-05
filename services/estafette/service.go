@@ -104,6 +104,9 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 		if err != nil {
 			return nil, errors.Wrapf(err, "Failed injecting build stages for pipeline %v/%v/%v and revision %v", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 		}
+
+		// inject any configured commands
+		mft = api.InjectCommands(s.config, mft)
 	}
 
 	// retrieve pipeline if already exists to get counter value
@@ -326,10 +329,12 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	// inject release stages
 	mft, err = api.InjectStages(s.config, mft, builderTrack, shortRepoSource, repoBranch, s.supportsBuildStatus(release.RepoSource))
 	if err != nil {
-		log.Error().Err(err).
-			Msgf("Failed injecting build stages for release to %v of pipeline %v/%v/%v version %v", release.Name, release.RepoSource, release.RepoOwner, release.RepoName, release.ReleaseVersion)
+		log.Error().Err(err).Msgf("Failed injecting build stages for release to %v of pipeline %v/%v/%v version %v", release.Name, release.RepoSource, release.RepoOwner, release.RepoName, release.ReleaseVersion)
 		return
 	}
+
+	// inject any configured commands
+	mft = api.InjectCommands(s.config, mft)
 
 	// get autoincrement from release version
 	currentCounter := s.getVersionCounter(ctx, release.ReleaseVersion, mft)

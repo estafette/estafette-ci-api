@@ -36,12 +36,13 @@ type APIConfig struct {
 
 // APIServerConfig represents configuration for the api server
 type APIServerConfig struct {
-	BaseURL                        string                            `yaml:"baseURL"`
-	ServiceURL                     string                            `yaml:"serviceURL"`
-	LogWriters                     []string                          `yaml:"logWriters"`
-	LogReader                      string                            `yaml:"logReader"`
-	InjectStagesPerOperatingSystem map[string]InjectStagesConfig     `yaml:"injectStagesPerOperatingSystem,omitempty"`
-	DockerConfigPerOperatingSystem map[string]contracts.DockerConfig `yaml:"dockerConfigPerOperatingSystem,omitempty" json:"dockerConfigPerOperatingSystem,omitempty"`
+	BaseURL                                  string                                     `yaml:"baseURL"`
+	ServiceURL                               string                                     `yaml:"serviceURL"`
+	LogWriters                               []string                                   `yaml:"logWriters"`
+	LogReader                                string                                     `yaml:"logReader"`
+	InjectStagesPerOperatingSystem           map[string]InjectStagesConfig              `yaml:"injectStagesPerOperatingSystem,omitempty"`
+	InjectCommandsPerOperatingSystemAndShell map[string]map[string]InjectCommandsConfig `yaml:"injectCommandsPerOperatingSystemAndShell,omitempty"`
+	DockerConfigPerOperatingSystem           map[string]contracts.DockerConfig          `yaml:"dockerConfigPerOperatingSystem,omitempty" json:"dockerConfigPerOperatingSystem,omitempty"`
 }
 
 type InjectStagesConfig struct {
@@ -52,6 +53,11 @@ type InjectStagesConfig struct {
 type InjectStagesTypeConfig struct {
 	Before []*manifest.EstafetteStage `yaml:"before,omitempty"`
 	After  []*manifest.EstafetteStage `yaml:"after,omitempty"`
+}
+
+type InjectCommandsConfig struct {
+	Before []string `yaml:"before,omitempty"`
+	After  []string `yaml:"after,omitempty"`
 }
 
 // WriteLogToDatabase indicates if database is in the logWriters config

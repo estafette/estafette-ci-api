@@ -580,3 +580,541 @@ func getManifestWithoutInjectedStepsButWithInjectedBeforeStage() manifest.Estafe
 		},
 	}
 }
+
+func TestInjectCommands(t *testing.T) {
+
+	t.Run("PrependsBeforeCommandsConfiguredForOperatingSystemAndShell", func(t *testing.T) {
+
+		mft := manifest.EstafetteManifest{
+			Builder: manifest.EstafetteBuilder{
+				OperatingSystem: "linux",
+			},
+			Stages: []*manifest.EstafetteStage{
+				{
+					Name:  "build",
+					Shell: "/bin/sh",
+					Commands: []string{
+						"build",
+					},
+					ParallelStages: []*manifest.EstafetteStage{
+						{
+							Name:  "parallel",
+							Shell: "/bin/sh",
+							Commands: []string{
+								"parallel",
+							},
+						},
+					},
+				},
+			},
+			Releases: []*manifest.EstafetteRelease{
+				{
+					Stages: []*manifest.EstafetteStage{
+						{
+							Name:  "release",
+							Shell: "/bin/sh",
+							Commands: []string{
+								"release",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+			APIServer: &APIServerConfig{
+				InjectCommandsPerOperatingSystemAndShell: map[string]map[string]InjectCommandsConfig{
+					"linux": {
+						"/bin/sh": {
+							Before: []string{
+								"echo first",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		// act
+		injectedManifest := InjectCommands(config, mft)
+
+		assert.Equal(t, 2, len(injectedManifest.Stages[0].Commands))
+		assert.Equal(t, "echo first", injectedManifest.Stages[0].Commands[0])
+		assert.Equal(t, "build", injectedManifest.Stages[0].Commands[1])
+
+		assert.Equal(t, 2, len(injectedManifest.Stages[0].ParallelStages[0].Commands))
+		assert.Equal(t, "echo first", injectedManifest.Stages[0].ParallelStages[0].Commands[0])
+		assert.Equal(t, "parallel", injectedManifest.Stages[0].ParallelStages[0].Commands[1])
+
+		assert.Equal(t, 2, len(injectedManifest.Releases[0].Stages[0].Commands))
+		assert.Equal(t, "echo first", injectedManifest.Releases[0].Stages[0].Commands[0])
+		assert.Equal(t, "release", injectedManifest.Releases[0].Stages[0].Commands[1])
+	})
+
+	t.Run("DoesNotPrependBeforeCommandsConfiguredForOperatingSystemAndShellIfStageHasNoCommands", func(t *testing.T) {
+
+		mft := manifest.EstafetteManifest{
+			Builder: manifest.EstafetteBuilder{
+				OperatingSystem: "linux",
+			},
+			Stages: []*manifest.EstafetteStage{
+				{
+					Name:     "build",
+					Shell:    "/bin/sh",
+					Commands: []string{},
+					ParallelStages: []*manifest.EstafetteStage{
+						{
+							Name:     "parallel",
+							Shell:    "/bin/sh",
+							Commands: []string{},
+						},
+					},
+				},
+			},
+			Releases: []*manifest.EstafetteRelease{
+				{
+					Stages: []*manifest.EstafetteStage{
+						{
+							Name:     "release",
+							Shell:    "/bin/sh",
+							Commands: []string{},
+						},
+					},
+				},
+			},
+		}
+
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+			APIServer: &APIServerConfig{
+				InjectCommandsPerOperatingSystemAndShell: map[string]map[string]InjectCommandsConfig{
+					"linux": {
+						"/bin/sh": {
+							Before: []string{
+								"echo first",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		// act
+		injectedManifest := InjectCommands(config, mft)
+
+		assert.Equal(t, 0, len(injectedManifest.Stages[0].Commands))
+		assert.Equal(t, 0, len(injectedManifest.Stages[0].ParallelStages[0].Commands))
+		assert.Equal(t, 0, len(injectedManifest.Releases[0].Stages[0].Commands))
+	})
+
+	t.Run("DoesNotPrependBeforeCommandsConfiguredForOperatingSystemAndShellIfNoneHaveBeenConfiguredBefore", func(t *testing.T) {
+
+		mft := manifest.EstafetteManifest{
+			Builder: manifest.EstafetteBuilder{
+				OperatingSystem: "linux",
+			},
+			Stages: []*manifest.EstafetteStage{
+				{
+					Name:  "build",
+					Shell: "/bin/sh",
+					Commands: []string{
+						"build",
+					},
+					ParallelStages: []*manifest.EstafetteStage{
+						{
+							Name:  "parallel",
+							Shell: "/bin/sh",
+							Commands: []string{
+								"parallel",
+							},
+						},
+					},
+				},
+			},
+			Releases: []*manifest.EstafetteRelease{
+				{
+					Stages: []*manifest.EstafetteStage{
+						{
+							Name:  "release",
+							Shell: "/bin/sh",
+							Commands: []string{
+								"release",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+			APIServer: &APIServerConfig{
+				InjectCommandsPerOperatingSystemAndShell: map[string]map[string]InjectCommandsConfig{
+					"linux": {
+						"/bin/sh": {
+							Before: []string{},
+						},
+					},
+				},
+			},
+		}
+
+		// act
+		injectedManifest := InjectCommands(config, mft)
+
+		assert.Equal(t, 1, len(injectedManifest.Stages[0].Commands))
+		assert.Equal(t, 1, len(injectedManifest.Stages[0].ParallelStages[0].Commands))
+		assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages[0].Commands))
+	})
+
+	t.Run("DoesNotAppendAfterCommandsConfiguredForOperatingSystemAndShellIfNoneHaveBeenConfiguredAfter", func(t *testing.T) {
+
+		mft := manifest.EstafetteManifest{
+			Builder: manifest.EstafetteBuilder{
+				OperatingSystem: "linux",
+			},
+			Stages: []*manifest.EstafetteStage{
+				{
+					Name:  "build",
+					Shell: "/bin/sh",
+					Commands: []string{
+						"build",
+					},
+					ParallelStages: []*manifest.EstafetteStage{
+						{
+							Name:  "parallel",
+							Shell: "/bin/sh",
+							Commands: []string{
+								"parallel",
+							},
+						},
+					},
+				},
+			},
+			Releases: []*manifest.EstafetteRelease{
+				{
+					Stages: []*manifest.EstafetteStage{
+						{
+							Name:  "release",
+							Shell: "/bin/sh",
+							Commands: []string{
+								"release",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+			APIServer: &APIServerConfig{
+				InjectCommandsPerOperatingSystemAndShell: map[string]map[string]InjectCommandsConfig{
+					"linux": {
+						"/bin/sh": {
+							After: []string{},
+						},
+					},
+				},
+			},
+		}
+
+		// act
+		injectedManifest := InjectCommands(config, mft)
+
+		assert.Equal(t, 1, len(injectedManifest.Stages[0].Commands))
+		assert.Equal(t, 1, len(injectedManifest.Stages[0].ParallelStages[0].Commands))
+		assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages[0].Commands))
+	})
+
+	t.Run("DoesNotPrependBeforeCommandsConfiguredForOperatingSystemAndShellIfNoneHaveBeenConfiguredForShell", func(t *testing.T) {
+
+		mft := manifest.EstafetteManifest{
+			Builder: manifest.EstafetteBuilder{
+				OperatingSystem: "linux",
+			},
+			Stages: []*manifest.EstafetteStage{
+				{
+					Name:  "build",
+					Shell: "/bin/sh",
+					Commands: []string{
+						"build",
+					},
+					ParallelStages: []*manifest.EstafetteStage{
+						{
+							Name:  "parallel",
+							Shell: "/bin/sh",
+							Commands: []string{
+								"parallel",
+							},
+						},
+					},
+				},
+			},
+			Releases: []*manifest.EstafetteRelease{
+				{
+					Stages: []*manifest.EstafetteStage{
+						{
+							Name:  "release",
+							Shell: "/bin/sh",
+							Commands: []string{
+								"release",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+			APIServer: &APIServerConfig{
+				InjectCommandsPerOperatingSystemAndShell: map[string]map[string]InjectCommandsConfig{
+					"linux": {},
+				},
+			},
+		}
+
+		// act
+		injectedManifest := InjectCommands(config, mft)
+
+		assert.Equal(t, 1, len(injectedManifest.Stages[0].Commands))
+		assert.Equal(t, 1, len(injectedManifest.Stages[0].ParallelStages[0].Commands))
+		assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages[0].Commands))
+	})
+
+	t.Run("DoesNotPrependBeforeCommandsConfiguredForOperatingSystemAndShellIfNoneHaveBeenConfiguredForOperatingSystem", func(t *testing.T) {
+
+		mft := manifest.EstafetteManifest{
+			Builder: manifest.EstafetteBuilder{
+				OperatingSystem: "linux",
+			},
+			Stages: []*manifest.EstafetteStage{
+				{
+					Name:  "build",
+					Shell: "/bin/sh",
+					Commands: []string{
+						"build",
+					},
+					ParallelStages: []*manifest.EstafetteStage{
+						{
+							Name:  "parallel",
+							Shell: "/bin/sh",
+							Commands: []string{
+								"parallel",
+							},
+						},
+					},
+				},
+			},
+			Releases: []*manifest.EstafetteRelease{
+				{
+					Stages: []*manifest.EstafetteStage{
+						{
+							Name:  "release",
+							Shell: "/bin/sh",
+							Commands: []string{
+								"release",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+			APIServer: &APIServerConfig{
+				InjectCommandsPerOperatingSystemAndShell: map[string]map[string]InjectCommandsConfig{},
+			},
+		}
+
+		// act
+		injectedManifest := InjectCommands(config, mft)
+
+		assert.Equal(t, 1, len(injectedManifest.Stages[0].Commands))
+		assert.Equal(t, 1, len(injectedManifest.Stages[0].ParallelStages[0].Commands))
+		assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages[0].Commands))
+	})
+
+	t.Run("DoesNotPrependBeforeCommandsConfiguredForOperatingSystemAndShellIfNoneHaveBeenConfiguredAtAll", func(t *testing.T) {
+
+		mft := manifest.EstafetteManifest{
+			Builder: manifest.EstafetteBuilder{
+				OperatingSystem: "linux",
+			},
+			Stages: []*manifest.EstafetteStage{
+				{
+					Name:  "build",
+					Shell: "/bin/sh",
+					Commands: []string{
+						"build",
+					},
+					ParallelStages: []*manifest.EstafetteStage{
+						{
+							Name:  "parallel",
+							Shell: "/bin/sh",
+							Commands: []string{
+								"parallel",
+							},
+						},
+					},
+				},
+			},
+			Releases: []*manifest.EstafetteRelease{
+				{
+					Stages: []*manifest.EstafetteStage{
+						{
+							Name:  "release",
+							Shell: "/bin/sh",
+							Commands: []string{
+								"release",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+		}
+
+		// act
+		injectedManifest := InjectCommands(config, mft)
+
+		assert.Equal(t, 1, len(injectedManifest.Stages[0].Commands))
+		assert.Equal(t, 1, len(injectedManifest.Stages[0].ParallelStages[0].Commands))
+		assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages[0].Commands))
+	})
+
+	t.Run("AppendsAfterCommandsConfiguredForOperatingSystemAndShell", func(t *testing.T) {
+
+		mft := manifest.EstafetteManifest{
+			Builder: manifest.EstafetteBuilder{
+				OperatingSystem: "linux",
+			},
+			Stages: []*manifest.EstafetteStage{
+				{
+					Name:  "build",
+					Shell: "/bin/sh",
+					Commands: []string{
+						"build",
+					},
+					ParallelStages: []*manifest.EstafetteStage{
+						{
+							Name:  "parallel",
+							Shell: "/bin/sh",
+							Commands: []string{
+								"parallel",
+							},
+						},
+					},
+				},
+			},
+			Releases: []*manifest.EstafetteRelease{
+				{
+					Stages: []*manifest.EstafetteStage{
+						{
+							Name:  "release",
+							Shell: "/bin/sh",
+							Commands: []string{
+								"release",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+			APIServer: &APIServerConfig{
+				InjectCommandsPerOperatingSystemAndShell: map[string]map[string]InjectCommandsConfig{
+					"linux": {
+						"/bin/sh": {
+							After: []string{
+								"echo last",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		// act
+		injectedManifest := InjectCommands(config, mft)
+
+		assert.Equal(t, 2, len(injectedManifest.Stages[0].Commands))
+		assert.Equal(t, "build", injectedManifest.Stages[0].Commands[0])
+		assert.Equal(t, "echo last", injectedManifest.Stages[0].Commands[1])
+
+		assert.Equal(t, 2, len(injectedManifest.Stages[0].ParallelStages[0].Commands))
+		assert.Equal(t, "parallel", injectedManifest.Stages[0].ParallelStages[0].Commands[0])
+		assert.Equal(t, "echo last", injectedManifest.Stages[0].ParallelStages[0].Commands[1])
+
+		assert.Equal(t, 2, len(injectedManifest.Releases[0].Stages[0].Commands))
+		assert.Equal(t, "release", injectedManifest.Releases[0].Stages[0].Commands[0])
+		assert.Equal(t, "echo last", injectedManifest.Releases[0].Stages[0].Commands[1])
+
+	})
+
+	t.Run("DoesNotAppendAfterCommandsConfiguredForOperatingSystemAndShellIfStageHasNoCommands", func(t *testing.T) {
+
+		mft := manifest.EstafetteManifest{
+			Builder: manifest.EstafetteBuilder{
+				OperatingSystem: "linux",
+			},
+			Stages: []*manifest.EstafetteStage{
+				{
+					Name:     "build",
+					Shell:    "/bin/sh",
+					Commands: []string{},
+					ParallelStages: []*manifest.EstafetteStage{
+						{
+							Name:     "parallel",
+							Shell:    "/bin/sh",
+							Commands: []string{},
+						},
+					},
+				},
+			},
+			Releases: []*manifest.EstafetteRelease{
+				{
+					Stages: []*manifest.EstafetteStage{
+						{
+							Name:     "release",
+							Shell:    "/bin/sh",
+							Commands: []string{},
+						},
+					},
+				},
+			},
+		}
+
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+			APIServer: &APIServerConfig{
+				InjectCommandsPerOperatingSystemAndShell: map[string]map[string]InjectCommandsConfig{
+					"linux": {
+						"/bin/sh": {
+							After: []string{
+								"echo last",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		// act
+		injectedManifest := InjectCommands(config, mft)
+
+		assert.Equal(t, 0, len(injectedManifest.Stages[0].Commands))
+		assert.Equal(t, 0, len(injectedManifest.Stages[0].ParallelStages[0].Commands))
+		assert.Equal(t, 0, len(injectedManifest.Releases[0].Stages[0].Commands))
+	})
+
+}

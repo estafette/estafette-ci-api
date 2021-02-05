@@ -168,6 +168,20 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem["windows"].Release.After[0].Name)
 		assert.Equal(t, "extensions/envvars:windowsservercore-ltsc2019", apiServerConfig.InjectStagesPerOperatingSystem["windows"].Release.After[0].ContainerImage)
 
+		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell["linux"]["/bin/sh"].Before))
+		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell["linux"]["/bin/sh"].After))
+
+		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell["linux"]["/bin/bash"].Before))
+		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell["linux"]["/bin/bash"].After))
+
+		assert.Equal(t, 1, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell["windows"]["cmd"].Before))
+		assert.Equal(t, "netsh interface ipv4 set subinterface 31 mtu=1410", apiServerConfig.InjectCommandsPerOperatingSystemAndShell["windows"]["cmd"].Before[0])
+		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell["windows"]["cmd"].After))
+
+		assert.Equal(t, 1, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell["windows"]["powershell"].Before))
+		assert.Equal(t, "Get-NetAdapter | Where-Object Name -like \"*Ethernet*\" | ForEach-Object { & netsh interface ipv4 set subinterface $_.InterfaceIndex mtu=1410 store=persistent }", apiServerConfig.InjectCommandsPerOperatingSystemAndShell["windows"]["powershell"].Before[0])
+		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell["windows"]["powershell"].After))
+
 		assert.Equal(t, contracts.DockerRunTypeDinD, apiServerConfig.DockerConfigPerOperatingSystem["linux"].RunType)
 		assert.Equal(t, 1460, apiServerConfig.DockerConfigPerOperatingSystem["linux"].MTU)
 		assert.Equal(t, "192.168.1.1/24", apiServerConfig.DockerConfigPerOperatingSystem["linux"].BIP)

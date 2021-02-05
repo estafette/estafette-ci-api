@@ -235,3 +235,74 @@ func getOperatingSystem(mft manifest.EstafetteManifest, preferences manifest.Est
 
 	return mft.Builder.OperatingSystem
 }
+
+// InjectCommands injects configured commands
+func InjectCommands(config *APIConfig, mft manifest.EstafetteManifest) (injectedManifest manifest.EstafetteManifest) {
+
+	injectedManifest = mft
+
+	if config == nil || config.APIServer == nil || config.APIServer.InjectCommandsPerOperatingSystemAndShell == nil {
+		return
+	}
+
+	// get preferences for defaults
+	var preferences *manifest.EstafetteManifestPreferences
+	if config != nil && config.ManifestPreferences != nil {
+		preferences = config.ManifestPreferences
+	} else {
+		preferences = manifest.GetDefaultManifestPreferences()
+	}
+
+	operatingSystem := getOperatingSystem(injectedManifest, *preferences)
+
+	// inject build stages
+	injectedManifest.Stages = injectCommandsIntoStages(injectedManifest.Stages, config.APIServer.InjectCommandsPerOperatingSystemAndShell, operatingSystem)
+
+	// inject release stages
+	for _, r := range injectedManifest.Releases {
+		releaseOperatingSystem := operatingSystem
+		if r.Builder != nil && r.Builder.OperatingSystem != "" {
+			releaseOperatingSystem = r.Builder.OperatingSystem
+		}
+
+		r.Stages = injectCommandsIntoStages(r.Stages, config.APIServer.InjectCommandsPerOperatingSystemAndShell, releaseOperatingSystem)
+	}
+
+	return
+}
+
+func injectCommandsIntoStages(stages []*manifest.EstafetteStage, commandsPerOperatingSystemAndShell map[string]map[string]InjectCommandsConfig, operatingSystem string) (injectedStages []*manifest.EstafetteStage) {
+
+	injectedStages = stages
+
+	for _, s := range injectedStages {
+		s = injectCommandsIntoStage(s, commandsPerOperatingSystemAndShell, operatingSystem)
+
+		for _, ps := range s.ParallelStages {
+			ps = injectCommandsIntoStage(ps, commandsPerOperatingSystemAndShell, operatingSystem)
+		}
+	}
+
+	return
+}
+
+func injectCommandsIntoStage(stage *manifest.EstafetteStage, commandsPerOperatingSystemAndShell map[string]map[string]InjectCommandsConfig, operatingSystem string) (injectedStage *manifest.EstafetteStage) {
+
+	injectedStage = stage
+
+	if len(injectedStage.Commands) > 0 {
+		// lookup if there's any before commands for os and shell
+		if osConfig, ok := commandsPerOperatingSystemAndShell[operatingSystem]; ok {
+			if shellConfig, ok := osConfig[injectedStage.Shell]; ok {
+				if len(shellConfig.Before) > 0 {
+					injectedStage.Commands = append(shellConfig.Before, injectedStage.Commands...)
+				}
+				if len(shellConfig.After) > 0 {
+					injectedStage.Commands = append(injectedStage.Commands, shellConfig.After...)
+				}
+			}
+		}
+	}
+
+	return
+}
