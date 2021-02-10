@@ -117,7 +117,10 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessTok
 	client.Backoff = pester.ExponentialJitterBackoff
 	client.KeepLog = true
 	client.Timeout = time.Second * 10
-	request, err := http.NewRequest("GET", fmt.Sprintf("https://api.bitbucket.org/2.0/repositories/%v/src/%v/.estafette.yaml", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash), nil)
+
+	manifestSourceAPIUrl := fmt.Sprintf("https://api.bitbucket.org/2.0/repositories/%v/src/%v/.estafette.yaml", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
+
+	request, err := http.NewRequest("GET", manifestSourceAPIUrl, nil)
 
 	if err != nil {
 		return
@@ -147,15 +150,22 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessTok
 		ht.Finish()
 	}
 
+	if response.StatusCode == http.StatusNotFound {
+		return
+	}
+
+	if response.StatusCode != http.StatusOK {
+		err = fmt.Errorf("Retrieving estafette manifest from %v failed with status code %v", manifestSourceAPIUrl, response.StatusCode)
+		return
+	}
+
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return
 	}
 
-	if response.StatusCode != http.StatusNotFound {
-		exists = true
-		manifest = string(body)
-	}
+	exists = true
+	manifest = string(body)
 
 	return
 }

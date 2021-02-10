@@ -145,12 +145,18 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accessToken AccessTok
 
 	// https://developer.github.com/v3/repos/contents/
 
-	statusCode, body, err := c.callGithubAPI(ctx, "GET", fmt.Sprintf("https://api.github.com/repos/%v/contents/.estafette.yaml?ref=%v", pushEvent.Repository.FullName, pushEvent.After), nil, "token", accessToken.Token)
+	manifestSourceAPIUrl := fmt.Sprintf("https://api.github.com/repos/%v/contents/.estafette.yaml?ref=%v", pushEvent.Repository.FullName, pushEvent.After)
+	statusCode, body, err := c.callGithubAPI(ctx, "GET", manifestSourceAPIUrl, nil, "token", accessToken.Token)
 	if err != nil {
 		return
 	}
 
 	if statusCode == http.StatusNotFound {
+		return
+	}
+
+	if statusCode != http.StatusOK {
+		err = fmt.Errorf("Retrieving estafette manifest from %v failed with status code %v", manifestSourceAPIUrl, statusCode)
 		return
 	}
 
