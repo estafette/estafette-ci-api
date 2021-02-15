@@ -50,6 +50,11 @@ func TestCreateBuild(t *testing.T) {
 				return
 			})
 
+		githubapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
+		bitbucketapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
+		cloudsourceapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
 		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
 		build := contracts.Build{
@@ -94,6 +99,9 @@ func TestCreateBuild(t *testing.T) {
 				callCount++
 				return
 			})
+
+		githubapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 

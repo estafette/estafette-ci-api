@@ -67,6 +67,8 @@ func TestCreateJobForGithubPush(t *testing.T) {
 				return
 			})
 
+		githubapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		pushEvent := githubapi.PushEvent{
@@ -101,6 +103,10 @@ func TestCreateJobForGithubPush(t *testing.T) {
 				getEstafetteManifestCallCount++
 				return true, "builder:\n  track: dev\n", nil
 			})
+
+		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any()).AnyTimes()
+		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
