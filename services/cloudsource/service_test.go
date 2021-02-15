@@ -69,6 +69,8 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 				return
 			})
 
+		cloudsourceapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		notification := cloudsourceapi.PubSubNotification{
@@ -116,6 +118,10 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 				getEstafetteManifestCallCount++
 				return true, "builder:\n  track: dev\n", nil
 			})
+
+		cloudsourceapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
+		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -172,6 +178,9 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 				createBuildCallCount++
 				return
 			})
+
+		cloudsourceapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
+		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -235,6 +244,10 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 			},
 		}
 
+		cloudsourceapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
+		cloudsourceapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
+
 		// act
 		_ = service.CreateJobForCloudSourcePush(context.Background(), notification)
 
@@ -280,6 +293,10 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 				wg.Done()
 				return
 			})
+
+		cloudsourceapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
+		cloudsourceapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
