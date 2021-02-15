@@ -136,11 +136,11 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 				maxCounterCurrentBranch = mc
 			}
 		}
-	}
 
-	build.Labels = s.getBuildLabels(build, hasValidManifest, mft, pipeline)
-	build.ReleaseTargets = s.getBuildReleaseTargets(build, hasValidManifest, mft, pipeline)
-	build.Triggers = s.getBuildTriggers(build, hasValidManifest, mft, pipeline)
+		build.Labels = s.getBuildLabels(build, hasValidManifest, mft, pipeline)
+		build.ReleaseTargets = s.getBuildReleaseTargets(build, hasValidManifest, mft, pipeline)
+		build.Triggers = s.getBuildTriggers(build, hasValidManifest, mft, pipeline)
+	}
 
 	// get authenticated url
 	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
