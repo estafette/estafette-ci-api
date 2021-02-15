@@ -167,6 +167,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 				getAccessTokenCallCount++
 				return
 			})
+		bitbucketapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -213,6 +214,9 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 				getEstafetteManifestCallCount++
 				return true, "builder:\n  track: dev\n", nil
 			})
+		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
+		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -270,6 +274,9 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 				createBuildCallCount++
 				return
 			})
+		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
+		bitbucketapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -315,6 +322,9 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		gitEventTopic := api.NewGitEventTopic("test topic")
 		defer gitEventTopic.Close()
 		subscriptionChannel := gitEventTopic.Subscribe("PublishesGitTriggersOnTopic")
+
+		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
+		bitbucketapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, gitEventTopic)
 
@@ -366,6 +376,9 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			DoAndReturn(func(ctx context.Context, accesstoken bitbucketapi.AccessToken, event bitbucketapi.RepositoryPushEvent) (valid bool, manifest string, err error) {
 				return true, "builder:\n  track: dev\n", nil
 			})
+		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
+		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
+		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 		var wg sync.WaitGroup
 		wg.Add(1)

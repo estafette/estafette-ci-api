@@ -57,6 +57,10 @@ func TestConfigureGinGonic(t *testing.T) {
 		pubsubapiclient := pubsubapi.NewMockClient(ctrl)
 		slackapiClient := slackapi.NewMockClient(ctrl)
 
+		githubapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
+		bitbucketapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
+		cloudsourceapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
+
 		bitbucketHandler := bitbucket.NewHandler(bitbucket.NewMockService(ctrl))
 		githubHandler := github.NewHandler(github.NewMockService(ctrl))
 		estafetteHandler := estafette.NewHandler("", "", config, config, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
