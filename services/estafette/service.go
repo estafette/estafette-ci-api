@@ -29,6 +29,7 @@ var (
 )
 
 // Service encapsulates build and release creation and re-triggering
+//go:generate mockgen -package=estafette -destination ./mock.go -source=service.go
 type Service interface {
 	CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error)
 	FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error)

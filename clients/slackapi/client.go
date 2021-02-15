@@ -15,6 +15,7 @@ import (
 )
 
 // Client is the interface for communicating with the Slack api
+//go:generate mockgen -package=slackapi -destination ./mock.go -source=client.go
 type Client interface {
 	GetUserProfile(ctx context.Context, userID string) (profile *UserProfile, err error)
 }

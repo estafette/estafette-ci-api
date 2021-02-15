@@ -40,6 +40,7 @@ var (
 )
 
 // Client is the interface for communicating with CockroachDB
+//go:generate mockgen -package=cockroachdb -destination ./mock.go -source=client.go
 type Client interface {
 	Connect(ctx context.Context) (err error)
 	ConnectWithDriverAndSource(ctx context.Context, driverName, dataSourceName string) (err error)

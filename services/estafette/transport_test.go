@@ -19,6 +19,7 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	"github.com/gin-gonic/gin"
+	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -89,6 +90,9 @@ func TestGetCatalogFilters(t *testing.T) {
 
 	t.Run("ReturnsUpdatedConfigAfterReload", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		configFilePath := "/configs/config.yaml"
 		templatesPath := "/templates"
 		cfg := &api.APIConfig{
@@ -100,11 +104,11 @@ func TestGetCatalogFilters(t *testing.T) {
 		}
 		encryptedConfig := cfg
 
-		cockroachdbClient := cockroachdb.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		buildService := MockService{}
+		buildService := NewMockService(ctrl)
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 		githubJobVarsFunc := func(context.Context, string, string, string) (string, string, error) {
@@ -150,23 +154,27 @@ func TestGetPipeline(t *testing.T) {
 
 	t.Run("ReturnsPipelineFromNewCockroachdbClientAfterReload", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		configFilePath := "/configs/config.yaml"
 		templatesPath := "/templates"
 		cfg := &api.APIConfig{}
 		encryptedConfig := cfg
 
-		var cockroachdbClient cockroachdb.Client
-		cockroachdbClient = &cockroachdb.MockClient{
-			GetPipelineFunc: func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		cockroachdbClient.
+			EXPECT().
+			GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
 				pipeline = &contracts.Pipeline{
 					BuildStatus: contracts.StatusSucceeded,
 				}
 				return
-			},
-		}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
-		buildService := MockService{}
+			})
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
+		buildService := NewMockService(ctrl)
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 		githubJobVarsFunc := func(context.Context, string, string, string) (string, string, error) {
@@ -193,14 +201,15 @@ func TestGetPipeline(t *testing.T) {
 		assert.Equal(t, "{\"id\":\"\",\"repoSource\":\"\",\"repoOwner\":\"\",\"repoName\":\"\",\"repoBranch\":\"\",\"repoRevision\":\"\",\"buildStatus\":\"succeeded\",\"insertedAt\":\"0001-01-01T00:00:00Z\",\"updatedAt\":\"0001-01-01T00:00:00Z\",\"duration\":0,\"lastUpdatedAt\":\"0001-01-01T00:00:00Z\"}\n", string(body))
 
 		// act
-		cockroachdbClient = cockroachdb.MockClient{
-			GetPipelineFunc: func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
+		cockroachdbClient.
+			EXPECT().
+			GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
 				pipeline = &contracts.Pipeline{
 					BuildStatus: contracts.StatusFailed,
 				}
 				return
-			},
-		}
+			})
 
 		recorder = httptest.NewRecorder()
 		c, _ = gin.CreateTestContext(recorder)
@@ -218,6 +227,9 @@ func TestGetPipeline(t *testing.T) {
 func TestGetManifestTemplates(t *testing.T) {
 	t.Run("ReturnsTemplatesCorrectly", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		content := []byte("track: stable")
 		templatesPath, err := ioutil.TempDir("", "templates")
 		assert.Nil(t, err)
@@ -232,11 +244,10 @@ func TestGetManifestTemplates(t *testing.T) {
 		cfg := &api.APIConfig{}
 		encryptedConfig := cfg
 
-		var cockroachdbClient cockroachdb.Client
-		cockroachdbClient = &cockroachdb.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
-		buildService := MockService{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
+		buildService := NewMockService(ctrl)
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 		githubJobVarsFunc := func(context.Context, string, string, string) (string, string, error) {
@@ -268,6 +279,9 @@ func TestGetManifestTemplates(t *testing.T) {
 func TestGenerateManifest(t *testing.T) {
 	t.Run("ReturnsManifestFromTemplate", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		content := []byte("track: stable\nteam: {{.TeamName}}")
 		templatesPath, err := ioutil.TempDir("", "templates")
 		assert.Nil(t, err)
@@ -282,11 +296,10 @@ func TestGenerateManifest(t *testing.T) {
 		cfg := &api.APIConfig{}
 		encryptedConfig := cfg
 
-		var cockroachdbClient cockroachdb.Client
-		cockroachdbClient = &cockroachdb.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
-		buildService := MockService{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
+		buildService := NewMockService(ctrl)
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 		githubJobVarsFunc := func(context.Context, string, string, string) (string, string, error) {

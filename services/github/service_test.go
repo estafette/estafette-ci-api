@@ -12,6 +12,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	contracts "github.com/estafette/estafette-ci-contracts"
+	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,14 +20,17 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 	t.Run("ReturnsErrNonCloneableEventIfPushEventHasNoRefsHeadsPrefix", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Github: &api.GithubConfig{},
 			},
 		}
-		githubapiClient := githubapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		githubapiClient := githubapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		pushEvent := githubapi.PushEvent{
@@ -42,20 +46,26 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 	t.Run("CallsGetInstallationTokenOnGithubapiClient", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Github: &api.GithubConfig{},
 			},
 		}
-		githubapiClient := githubapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		githubapiClient := githubapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 
 		getInstallationTokenCallCount := 0
-		githubapiClient.GetInstallationTokenFunc = func(ctx context.Context, installationID int) (token githubapi.AccessToken, err error) {
-			getInstallationTokenCallCount++
-			return
-		}
+		githubapiClient.
+			EXPECT().
+			GetInstallationToken(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, installationID int) (token githubapi.AccessToken, err error) {
+				getInstallationTokenCallCount++
+				return
+			})
 
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -71,20 +81,26 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 	t.Run("CallsGetEstafetteManifestOnGithubapiClient", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Github: &api.GithubConfig{},
 			},
 		}
-		githubapiClient := githubapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		githubapiClient := githubapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 
 		getEstafetteManifestCallCount := 0
-		githubapiClient.GetEstafetteManifestFunc = func(ctx context.Context, accesstoken githubapi.AccessToken, event githubapi.PushEvent) (valid bool, manifest string, err error) {
-			getEstafetteManifestCallCount++
-			return true, "builder:\n  track: dev\n", nil
-		}
+		githubapiClient.
+			EXPECT().
+			GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, accesstoken githubapi.AccessToken, event githubapi.PushEvent) (valid bool, manifest string, err error) {
+				getEstafetteManifestCallCount++
+				return true, "builder:\n  track: dev\n", nil
+			})
 
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -101,24 +117,33 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 	t.Run("CallsCreateBuildOnEstafetteService", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Github: &api.GithubConfig{},
 			},
 		}
-		githubapiClient := githubapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		githubapiClient := githubapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 
-		githubapiClient.GetEstafetteManifestFunc = func(ctx context.Context, accesstoken githubapi.AccessToken, event githubapi.PushEvent) (valid bool, manifest string, err error) {
-			return true, "builder:\n  track: dev\n", nil
-		}
+		githubapiClient.
+			EXPECT().
+			GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, accesstoken githubapi.AccessToken, event githubapi.PushEvent) (valid bool, manifest string, err error) {
+				return true, "builder:\n  track: dev\n", nil
+			})
 
 		createBuildCallCount := 0
-		estafetteService.CreateBuildFunc = func(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error) {
-			createBuildCallCount++
-			return
-		}
+		estafetteService.
+			EXPECT().
+			CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error) {
+				createBuildCallCount++
+				return
+			})
 
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -135,14 +160,17 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 	t.Run("PublishesGitTriggersOnTopic", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Github: &api.GithubConfig{},
 			},
 		}
-		githubapiClient := githubapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		githubapiClient := githubapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 
 		gitEventTopic := api.NewGitEventTopic("test topic")
 		defer gitEventTopic.Close()
@@ -169,27 +197,36 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 	t.Run("CallsSubscribeToPubsubTriggersOnPubsubAPIClient", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Github: &api.GithubConfig{},
 			},
 		}
-		githubapiClient := githubapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		githubapiClient := githubapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 
-		githubapiClient.GetEstafetteManifestFunc = func(ctx context.Context, accesstoken githubapi.AccessToken, event githubapi.PushEvent) (valid bool, manifest string, err error) {
-			return true, "builder:\n  track: dev\n", nil
-		}
+		githubapiClient.
+			EXPECT().
+			GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, accesstoken githubapi.AccessToken, event githubapi.PushEvent) (valid bool, manifest string, err error) {
+				return true, "builder:\n  track: dev\n", nil
+			})
 
 		var wg sync.WaitGroup
 		wg.Add(1)
 		subscribeToPubsubTriggersCallCount := 0
-		pubsubapiClient.SubscribeToPubsubTriggersFunc = func(ctx context.Context, manifestString string) (err error) {
-			subscribeToPubsubTriggersCallCount++
-			wg.Done()
-			return
-		}
+		pubsubapiClient.
+			EXPECT().
+			SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, manifestString string) (err error) {
+				subscribeToPubsubTriggersCallCount++
+				wg.Done()
+				return
+			})
 
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -211,6 +248,9 @@ func TestIsAllowedInstallation(t *testing.T) {
 
 	t.Run("ReturnsTrueIfAllowedInstallationsConfigIsEmpty", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Github: &api.GithubConfig{
@@ -218,9 +258,9 @@ func TestIsAllowedInstallation(t *testing.T) {
 				},
 			},
 		}
-		githubapiClient := githubapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		githubapiClient := githubapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		installation := githubapi.Installation{
@@ -235,6 +275,9 @@ func TestIsAllowedInstallation(t *testing.T) {
 
 	t.Run("ReturnsFalseIfInstallationIDIsNotInAllowedInstallationsConfig", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Github: &api.GithubConfig{
@@ -246,9 +289,9 @@ func TestIsAllowedInstallation(t *testing.T) {
 				},
 			},
 		}
-		githubapiClient := githubapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		githubapiClient := githubapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		installation := githubapi.Installation{
@@ -262,6 +305,9 @@ func TestIsAllowedInstallation(t *testing.T) {
 	})
 
 	t.Run("ReturnsTrueIfInstallationIDIsInAllowedInstallationsConfig", func(t *testing.T) {
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
@@ -277,9 +323,9 @@ func TestIsAllowedInstallation(t *testing.T) {
 				},
 			},
 		}
-		githubapiClient := githubapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		githubapiClient := githubapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		installation := githubapi.Installation{
@@ -297,6 +343,9 @@ func TestRename(t *testing.T) {
 
 	t.Run("CallsRenameOnEstafetteService", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Github: &api.GithubConfig{
@@ -305,15 +354,18 @@ func TestRename(t *testing.T) {
 			},
 		}
 
-		githubapiClient := githubapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		githubapiClient := githubapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 
 		renameCallCount := 0
-		estafetteService.RenameFunc = func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
-			renameCallCount++
-			return
-		}
+		estafetteService.
+			EXPECT().
+			Rename(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
+				renameCallCount++
+				return
+			})
 
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -329,6 +381,9 @@ func TestHasValidSignature(t *testing.T) {
 
 	t.Run("ReturnsFalseIfSignatureDoesNotMatchExpectedSignature", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Github: &api.GithubConfig{
@@ -337,9 +392,9 @@ func TestHasValidSignature(t *testing.T) {
 			},
 		}
 
-		githubapiClient := githubapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		githubapiClient := githubapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -355,6 +410,9 @@ func TestHasValidSignature(t *testing.T) {
 
 	t.Run("ReturnTrueIfSignatureMatchesExpectedSignature", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				Github: &api.GithubConfig{
@@ -363,9 +421,9 @@ func TestHasValidSignature(t *testing.T) {
 			},
 		}
 
-		githubapiClient := githubapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		githubapiClient := githubapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
