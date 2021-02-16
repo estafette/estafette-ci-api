@@ -800,7 +800,8 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 
 	localBuilderConfig.Events = make([]*manifest.EstafetteEvent, 0)
 	for _, e := range ciBuilderParams.TriggeredByEvents {
-		localBuilderConfig.Events = append(localBuilderConfig.Events, &e)
+		copiedEvent := e
+		localBuilderConfig.Events = append(localBuilderConfig.Events, &copiedEvent)
 	}
 
 	if c.config != nil && c.config.APIServer != nil && c.config.APIServer.DockerConfigPerOperatingSystem != nil {

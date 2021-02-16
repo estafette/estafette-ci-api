@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/estafette/estafette-ci-api/api"
+	contracts "github.com/estafette/estafette-ci-contracts"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 )
@@ -323,5 +325,72 @@ func TestGetCiBuilderJobTolerations(t *testing.T) {
 		assert.Equal(t, v1.TaintEffectNoSchedule, tolerations[1].Effect)
 		assert.Equal(t, "windows", tolerations[1].Value)
 		assert.Equal(t, v1.TolerationOpEqual, tolerations[1].Operator)
+	})
+}
+
+func TestGetBuilderConfig(t *testing.T) {
+
+	t.Run("ReturnsEventsForTriggeredEvents", func(t *testing.T) {
+
+		ciBuilderClient := &client{
+			encryptedConfig: &api.APIConfig{
+				TrustedImages: []*contracts.TrustedImageConfig{},
+				Credentials:   []*contracts.CredentialConfig{},
+			},
+			config: &api.APIConfig{
+				Auth: &api.AuthConfig{
+					JWT: &api.JWTConfig{
+						Key: "abcd",
+					},
+				},
+				APIServer: &api.APIServerConfig{
+					ServiceURL: "https://ci.estafette.api",
+				},
+			},
+		}
+		ciBuilderParams := CiBuilderParams{
+			JobType: "build",
+			TriggeredByEvents: []manifest.EstafetteEvent{
+				{
+					Name:  "trigger1",
+					Fired: false,
+					Pipeline: &manifest.EstafettePipelineEvent{
+						RepoSource:   "github.com",
+						RepoOwner:    "estafette",
+						RepoName:     "repo1",
+						Branch:       "main",
+						Event:        "finished",
+						Status:       "succeeded",
+						BuildVersion: "1.0.5",
+					},
+				},
+				{
+					Name:  "trigger2",
+					Fired: false,
+					Pipeline: &manifest.EstafettePipelineEvent{
+						RepoSource:   "github.com",
+						RepoOwner:    "estafette",
+						RepoName:     "repo2",
+						Branch:       "main",
+						Event:        "finished",
+						Status:       "succeeded",
+						BuildVersion: "6.4.3",
+					},
+				},
+			},
+		}
+		jobName := "build-estafette-estafette-ci-api-390605593734184965"
+
+		// act
+		builderConfig, err := ciBuilderClient.getBuilderConfig(context.Background(), ciBuilderParams, jobName)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(builderConfig.Events))
+		assert.Equal(t, "trigger1", builderConfig.Events[0].Name)
+		assert.Equal(t, "repo1", builderConfig.Events[0].Pipeline.RepoName)
+		assert.Equal(t, "1.0.5", builderConfig.Events[0].Pipeline.BuildVersion)
+		assert.Equal(t, "trigger2", builderConfig.Events[1].Name)
+		assert.Equal(t, "repo2", builderConfig.Events[1].Pipeline.RepoName)
+		assert.Equal(t, "6.4.3", builderConfig.Events[1].Pipeline.BuildVersion)
 	})
 }
