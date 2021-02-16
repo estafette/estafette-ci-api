@@ -810,6 +810,8 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 		}
 	}
 
+	log.Debug().Interface("triggeredByEvents", ciBuilderParams.TriggeredByEvents).Interface("events", localBuilderConfig.Events).Msg("Showing builder config events")
+
 	return localBuilderConfig, nil
 }
 
