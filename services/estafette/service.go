@@ -1451,13 +1451,8 @@ func (s *service) GetEventsForJobEnvvars(ctx context.Context, triggers []manifes
 
 	triggersAsEvents = events
 
-	hasNamedTriggers := false
-
 	for _, t := range triggers {
 		if t.Name != "" && t.Pipeline != nil && t.Pipeline.Event == "finished" {
-
-			hasNamedTriggers = true
-
 			// get last green build for pipeline matching the trigger and set as event
 			pipelineNameParts := strings.Split(t.Pipeline.Name, "/")
 			if len(pipelineNameParts) == 3 {
@@ -1501,9 +1496,6 @@ func (s *service) GetEventsForJobEnvvars(ctx context.Context, triggers []manifes
 		}
 
 		if t.Name != "" && t.Release != nil && t.Release.Event == "finished" {
-
-			hasNamedTriggers = true
-
 			// get last green build for pipeline matching the trigger and set as event
 			pipelineNameParts := strings.Split(t.Release.Name, "/")
 			if len(pipelineNameParts) == 3 {
@@ -1541,10 +1533,6 @@ func (s *service) GetEventsForJobEnvvars(ctx context.Context, triggers []manifes
 				})
 			}
 		}
-	}
-
-	if hasNamedTriggers {
-		log.Debug().Interface("triggers", triggers).Interface("events", events).Interface("triggersAsEvents", triggersAsEvents).Msg("Showing named triggers as events")
 	}
 
 	return triggersAsEvents, nil
