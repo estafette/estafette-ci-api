@@ -16,7 +16,6 @@ import (
 	manifest "github.com/estafette/estafette-ci-manifest"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	batchv1 "k8s.io/api/batch/v1"
 )
 
 func TestCreateBuild(t *testing.T) {
@@ -41,14 +40,10 @@ func TestCreateBuild(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
 		cloudsourceapiClient := cloudsourceapi.NewMockClient(ctrl)
 
-		callCount := 0
 		cockroachdbClient.
 			EXPECT().
 			GetAutoIncrement(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {
-				callCount++
-				return
-			})
+			Times(1)
 
 		githubapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
 		bitbucketapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
@@ -79,9 +74,6 @@ func TestCreateBuild(t *testing.T) {
 
 		// act
 		_, _ = service.CreateBuild(ctx, build, true)
-
-		// assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 
 	t.Run("CallsGetPipelineOnCockroachdbClientIfManifestIsInvalid", func(t *testing.T) {
@@ -101,14 +93,10 @@ func TestCreateBuild(t *testing.T) {
 		builderapiClient := builderapi.NewMockClient(ctrl)
 		githubapiClient := githubapi.NewMockClient(ctrl)
 
-		callCount := 0
 		cockroachdbClient.
 			EXPECT().
 			GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
-				callCount++
-				return
-			})
+			Times(1)
 
 		githubapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
 		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -137,8 +125,6 @@ func TestCreateBuild(t *testing.T) {
 
 		// act
 		_, _ = service.CreateBuild(ctx, build, true)
-
-		assert.Equal(t, 1, callCount)
 	})
 
 	t.Run("CallsGetPipelineBuildMaxResourceUtilizationOnCockroachdbClient", func(t *testing.T) {
@@ -157,14 +143,10 @@ func TestCreateBuild(t *testing.T) {
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		callCount := 0
 		cockroachdbClient.
 			EXPECT().
 			GetPipelineBuildMaxResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobresources cockroachdb.JobResources, count int, err error) {
-				callCount++
-				return
-			})
+			Times(1)
 		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
@@ -190,9 +172,6 @@ func TestCreateBuild(t *testing.T) {
 
 		// act
 		_, _ = service.CreateBuild(ctx, build, true)
-
-		// assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 
 	t.Run("CallsInsertBuildOnCockroachdbClient", func(t *testing.T) {
@@ -211,14 +190,10 @@ func TestCreateBuild(t *testing.T) {
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		callCount := 0
 		cockroachdbClient.
 			EXPECT().
 			InsertBuild(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, build contracts.Build, jobResources cockroachdb.JobResources) (b *contracts.Build, err error) {
-				callCount++
-				return
-			})
+			Times(1)
 		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
@@ -244,9 +219,6 @@ func TestCreateBuild(t *testing.T) {
 
 		// act
 		_, _ = service.CreateBuild(ctx, build, true)
-
-		// assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 
 	t.Run("CallsCreateCiBuilderJobOnBuilderapiClient", func(t *testing.T) {
@@ -273,14 +245,10 @@ func TestCreateBuild(t *testing.T) {
 				b.ID = "5"
 				return
 			})
-		callCount := 0
 		builderapiClient.
 			EXPECT().
 			CreateCiBuilderJob(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, params builderapi.CiBuilderParams) (job *batchv1.Job, err error) {
-				callCount++
-				return
-			})
+			Times(1)
 		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
@@ -309,7 +277,6 @@ func TestCreateBuild(t *testing.T) {
 		_, err := service.CreateBuild(ctx, build, true)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 
 	t.Run("CallsInsertBuildLogOnCockroachdbClientInsteadOfCreateCiBuilderJobOnBuilderapiClientIfManifestIsInvalid", func(t *testing.T) {
@@ -526,15 +493,10 @@ func TestFinishBuild(t *testing.T) {
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		callCount := 0
 		cockroachdbClient.
 			EXPECT().
 			UpdateBuildStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
-				callCount++
-				return
-			})
-
+			Times(1)
 		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
@@ -559,7 +521,6 @@ func TestFinishBuild(t *testing.T) {
 		err := service.FinishBuild(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 }
 
@@ -581,7 +542,6 @@ func TestCreateRelease(t *testing.T) {
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		// callCount := 0
 		cockroachdbClient.
 			EXPECT().
 			InsertRelease(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -704,14 +664,10 @@ func TestFinishRelease(t *testing.T) {
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		callCount := 0
 		cockroachdbClient.
 			EXPECT().
 			UpdateReleaseStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
-				callCount++
-				return
-			})
+			Times(1)
 
 		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
@@ -737,7 +693,6 @@ func TestFinishRelease(t *testing.T) {
 		err := service.FinishRelease(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 }
 
@@ -759,14 +714,10 @@ func TestRename(t *testing.T) {
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		renameOnCockroachdbClientCallCount := 0
 		cockroachdbClient.
 			EXPECT().
 			Rename(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName string) (err error) {
-				renameOnCockroachdbClientCallCount++
-				return
-			})
+			Times(1)
 
 		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
@@ -784,7 +735,6 @@ func TestRename(t *testing.T) {
 		err := service.Rename(ctx, "github.com", "estafette", "estafette-ci-contracts", "github.com", "estafette", "estafette-ci-protos")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, renameOnCockroachdbClientCallCount)
 	})
 
 	t.Run("CallsRenameOnCloudstorageClientIfLogWritersConfigContainsCloudstorage", func(t *testing.T) {
@@ -805,14 +755,10 @@ func TestRename(t *testing.T) {
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		renameOnCloudstorageClientCallCount := 0
 		cloudStorageClient.
 			EXPECT().
 			Rename(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
-				renameOnCloudstorageClientCallCount++
-				return
-			})
+			Times(1)
 
 		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
@@ -832,7 +778,6 @@ func TestRename(t *testing.T) {
 		err := service.Rename(ctx, "github.com", "estafette", "estafette-ci-contracts", "github.com", "estafette", "estafette-ci-protos")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, renameOnCloudstorageClientCallCount)
 	})
 }
 
@@ -853,14 +798,10 @@ func TestUpdateBuildStatus(t *testing.T) {
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		callCount := 0
 		cockroachdbClient.
 			EXPECT().
 			UpdateBuildStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
-				callCount++
-				return
-			})
+			Times(1)
 
 		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
@@ -886,7 +827,6 @@ func TestUpdateBuildStatus(t *testing.T) {
 		err := service.UpdateBuildStatus(ctx, event)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 
 	t.Run("CallsUpdateReleaseStatusOnCockroachdbClientIfReleaseIDIsNonEmpty", func(t *testing.T) {
@@ -905,14 +845,10 @@ func TestUpdateBuildStatus(t *testing.T) {
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		callCount := 0
 		cockroachdbClient.
 			EXPECT().
 			UpdateReleaseStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
-				callCount++
-				return
-			})
+			Times(1)
 
 		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
@@ -938,7 +874,6 @@ func TestUpdateBuildStatus(t *testing.T) {
 		err := service.UpdateBuildStatus(ctx, event)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 }
 
@@ -959,14 +894,10 @@ func TestUpdateJobResources(t *testing.T) {
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		callCount := 0
 		cockroachdbClient.
 			EXPECT().
 			UpdateBuildResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources cockroachdb.JobResources) (err error) {
-				callCount++
-				return
-			})
+			Times(1)
 
 		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
@@ -994,7 +925,6 @@ func TestUpdateJobResources(t *testing.T) {
 		err := service.UpdateJobResources(ctx, event)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 
 	t.Run("CallsUpdateReleaseResourceUtilizationOnCockroachdbClientIfReleaseIDIsNonEmpty", func(t *testing.T) {
@@ -1013,14 +943,10 @@ func TestUpdateJobResources(t *testing.T) {
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		callCount := 0
 		cockroachdbClient.
 			EXPECT().
 			UpdateReleaseResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources cockroachdb.JobResources) (err error) {
-				callCount++
-				return
-			})
+			Times(1)
 
 		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
@@ -1048,7 +974,6 @@ func TestUpdateJobResources(t *testing.T) {
 		err := service.UpdateJobResources(ctx, event)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 }
 
@@ -1069,14 +994,10 @@ func TestGetEventsForJobEnvvars(t *testing.T) {
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		callCount := 0
 		cockroachdbClient.
 			EXPECT().
 			UpdateBuildResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources cockroachdb.JobResources) (err error) {
-				callCount++
-				return
-			})
+			Times(1)
 
 		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
@@ -1104,6 +1025,5 @@ func TestGetEventsForJobEnvvars(t *testing.T) {
 		err := service.UpdateJobResources(ctx, event)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/services/estafette"
-	contracts "github.com/estafette/estafette-ci-contracts"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -58,14 +57,10 @@ func TestCreateJobForGithubPush(t *testing.T) {
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
 
-		getInstallationTokenCallCount := 0
 		githubapiClient.
 			EXPECT().
 			GetInstallationToken(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, installationID int) (token githubapi.AccessToken, err error) {
-				getInstallationTokenCallCount++
-				return
-			})
+			Times(1)
 
 		githubapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
@@ -77,8 +72,6 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 		// act
 		_ = service.CreateJobForGithubPush(context.Background(), pushEvent)
-
-		assert.Equal(t, 1, getInstallationTokenCallCount)
 	})
 
 	t.Run("CallsGetEstafetteManifestOnGithubapiClient", func(t *testing.T) {
@@ -95,14 +88,13 @@ func TestCreateJobForGithubPush(t *testing.T) {
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
 
-		getEstafetteManifestCallCount := 0
 		githubapiClient.
 			EXPECT().
 			GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, accesstoken githubapi.AccessToken, event githubapi.PushEvent) (valid bool, manifest string, err error) {
-				getEstafetteManifestCallCount++
 				return true, "builder:\n  track: dev\n", nil
-			})
+			}).
+			Times(1)
 
 		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any()).AnyTimes()
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -118,7 +110,6 @@ func TestCreateJobForGithubPush(t *testing.T) {
 		err := service.CreateJobForGithubPush(context.Background(), pushEvent)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, getEstafetteManifestCallCount)
 	})
 
 	t.Run("CallsCreateBuildOnEstafetteService", func(t *testing.T) {
@@ -142,14 +133,10 @@ func TestCreateJobForGithubPush(t *testing.T) {
 				return true, "builder:\n  track: dev\n", nil
 			})
 
-		createBuildCallCount := 0
 		estafetteService.
 			EXPECT().
 			CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error) {
-				createBuildCallCount++
-				return
-			})
+			Times(1)
 
 		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
@@ -164,7 +151,6 @@ func TestCreateJobForGithubPush(t *testing.T) {
 		err := service.CreateJobForGithubPush(context.Background(), pushEvent)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, createBuildCallCount)
 	})
 
 	t.Run("PublishesGitTriggersOnTopic", func(t *testing.T) {
@@ -230,15 +216,15 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 		var wg sync.WaitGroup
 		wg.Add(1)
-		subscribeToPubsubTriggersCallCount := 0
+		defer wg.Wait()
 		pubsubapiClient.
 			EXPECT().
 			SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, manifestString string) (err error) {
-				subscribeToPubsubTriggersCallCount++
 				wg.Done()
 				return
-			})
+			}).
+			Times(1)
 
 		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any()).AnyTimes()
 		githubapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -256,7 +242,6 @@ func TestCreateJobForGithubPush(t *testing.T) {
 		wg.Wait()
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, subscribeToPubsubTriggersCallCount)
 	})
 }
 
@@ -374,14 +359,10 @@ func TestRename(t *testing.T) {
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
 
-		renameCallCount := 0
 		estafetteService.
 			EXPECT().
 			Rename(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
-				renameCallCount++
-				return
-			})
+			Times(1)
 
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -389,7 +370,6 @@ func TestRename(t *testing.T) {
 		err := service.Rename(context.Background(), "github.com", "estafette", "estafette-ci-contracts", "github.com", "estafette", "estafette-ci-protos")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, renameCallCount)
 	})
 }
 

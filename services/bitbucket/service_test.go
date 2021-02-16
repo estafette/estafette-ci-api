@@ -11,7 +11,6 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/services/estafette"
-	contracts "github.com/estafette/estafette-ci-contracts"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -202,14 +201,13 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
 
-		getEstafetteManifestCallCount := 0
 		bitbucketapiClient.
 			EXPECT().
 			GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, accesstoken bitbucketapi.AccessToken, event bitbucketapi.RepositoryPushEvent) (valid bool, manifest string, err error) {
-				getEstafetteManifestCallCount++
 				return true, "builder:\n  track: dev\n", nil
-			})
+			}).Times(1)
+
 		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
@@ -238,7 +236,6 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		err := service.CreateJobForBitbucketPush(context.Background(), pushEvent)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, getEstafetteManifestCallCount)
 	})
 
 	t.Run("CallsCreateBuildOnEstafetteService", func(t *testing.T) {
@@ -262,14 +259,10 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 				return true, "builder:\n  track: dev\n", nil
 			})
 
-		createBuildCallCount := 0
 		estafetteService.
 			EXPECT().
 			CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error) {
-				createBuildCallCount++
-				return
-			})
+			Times(1)
 		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
 		bitbucketapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
@@ -298,7 +291,6 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		err := service.CreateJobForBitbucketPush(context.Background(), pushEvent)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, createBuildCallCount)
 	})
 
 	t.Run("PublishesGitTriggersOnTopic", func(t *testing.T) {
@@ -378,15 +370,15 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 		var wg sync.WaitGroup
 		wg.Add(1)
-		subscribeToPubsubTriggersCallCount := 0
+		defer wg.Wait()
 		pubsubapiClient.
 			EXPECT().
 			SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, manifestString string) (err error) {
-				subscribeToPubsubTriggersCallCount++
 				wg.Done()
 				return
-			})
+			}).
+			Times(1)
 
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -411,10 +403,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		// act
 		err := service.CreateJobForBitbucketPush(context.Background(), pushEvent)
 
-		wg.Wait()
-
 		assert.Nil(t, err)
-		assert.Equal(t, 1, subscribeToPubsubTriggersCallCount)
 	})
 }
 
@@ -535,15 +524,10 @@ func TestRename(t *testing.T) {
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
 
-		renameCallCount := 0
-
 		estafetteService.
 			EXPECT().
 			Rename(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
-				renameCallCount++
-				return
-			})
+			Times(1)
 
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -551,6 +535,5 @@ func TestRename(t *testing.T) {
 		err := service.Rename(context.Background(), "bitbucket.org", "estafette", "estafette-ci-contracts", "bitbucket.org", "estafette", "estafette-ci-protos")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, renameCallCount)
 	})
 }
