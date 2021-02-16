@@ -19,6 +19,7 @@ var (
 )
 
 // Service handles http events for Bitbucket integration
+//go:generate mockgen -package=bitbucket -destination ./mock.go -source=service.go
 type Service interface {
 	CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)

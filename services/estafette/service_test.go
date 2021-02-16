@@ -14,14 +14,17 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/prometheus"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
+	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	batchv1 "k8s.io/api/batch/v1"
 )
 
 func TestCreateBuild(t *testing.T) {
 
 	t.Run("CallsGetAutoIncrementOnCockroachdbClient", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		ctx := context.Background()
 
 		config := &api.APIConfig{
@@ -29,21 +32,37 @@ func TestCreateBuild(t *testing.T) {
 			APIServer: &api.APIServerConfig{},
 		}
 
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
+		githubapiClient := githubapi.NewMockClient(ctrl)
+		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
+		cloudsourceapiClient := cloudsourceapi.NewMockClient(ctrl)
 
-		callCount := 0
-		cockroachdbClient.GetAutoIncrementFunc = func(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {
-			callCount++
+		cockroachdbClient.
+			EXPECT().
+			GetAutoIncrement(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Times(1)
+
+		githubapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
+		bitbucketapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
+		cloudsourceapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cockroachdbClient.EXPECT().GetPipelineBuildMaxResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetAutoIncrement(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().InsertBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -54,35 +73,47 @@ func TestCreateBuild(t *testing.T) {
 		}
 
 		// act
-		_, _ = service.CreateBuild(context.Background(), build, true)
-
-		// assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
+		_, _ = service.CreateBuild(ctx, build, true)
 	})
 
 	t.Run("CallsGetPipelineOnCockroachdbClientIfManifestIsInvalid", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		ctx := context.Background()
 
 		config := &api.APIConfig{
 			Jobs:      &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
+		githubapiClient := githubapi.NewMockClient(ctrl)
 
-		callCount := 0
-		cockroachdbClient.GetPipelineFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
-			callCount++
+		cockroachdbClient.
+			EXPECT().
+			GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Times(1)
+
+		githubapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipelineBuildMaxResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cockroachdbClient.EXPECT().GetAutoIncrement(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().InsertBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -93,34 +124,43 @@ func TestCreateBuild(t *testing.T) {
 		}
 
 		// act
-		_, _ = service.CreateBuild(context.Background(), build, true)
-
-		assert.Equal(t, 1, callCount)
+		_, _ = service.CreateBuild(ctx, build, true)
 	})
 
 	t.Run("CallsGetPipelineBuildMaxResourceUtilizationOnCockroachdbClient", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		ctx := context.Background()
 
 		config := &api.APIConfig{
 			Jobs:      &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		callCount := 0
-		cockroachdbClient.GetPipelineBuildMaxResourceUtilizationFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobresources cockroachdb.JobResources, count int, err error) {
-			callCount++
+		cockroachdbClient.
+			EXPECT().
+			GetPipelineBuildMaxResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Times(1)
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetAutoIncrement(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().InsertBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -131,35 +171,43 @@ func TestCreateBuild(t *testing.T) {
 		}
 
 		// act
-		_, _ = service.CreateBuild(context.Background(), build, true)
-
-		// assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
+		_, _ = service.CreateBuild(ctx, build, true)
 	})
 
 	t.Run("CallsInsertBuildOnCockroachdbClient", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		ctx := context.Background()
 
 		config := &api.APIConfig{
 			Jobs:      &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		callCount := 0
-		cockroachdbClient.InsertBuildFunc = func(ctx context.Context, build contracts.Build, jobResources cockroachdb.JobResources) (b *contracts.Build, err error) {
-			callCount++
+		cockroachdbClient.
+			EXPECT().
+			InsertBuild(gomock.Any(), gomock.Any(), gomock.Any()).
+			Times(1)
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetAutoIncrement(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipelineBuildMaxResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -170,40 +218,52 @@ func TestCreateBuild(t *testing.T) {
 		}
 
 		// act
-		_, _ = service.CreateBuild(context.Background(), build, true)
-
-		// assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
+		_, _ = service.CreateBuild(ctx, build, true)
 	})
 
 	t.Run("CallsCreateCiBuilderJobOnBuilderapiClient", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		ctx := context.Background()
 
 		config := &api.APIConfig{
 			Jobs:      &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		cockroachdbClient.InsertBuildFunc = func(ctx context.Context, build contracts.Build, jobResources cockroachdb.JobResources) (b *contracts.Build, err error) {
-			b = &build
-			b.ID = "5"
+		cockroachdbClient.
+			EXPECT().
+			InsertBuild(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, build contracts.Build, jobResources cockroachdb.JobResources) (b *contracts.Build, err error) {
+				b = &build
+				b.ID = "5"
+				return
+			})
+		builderapiClient.
+			EXPECT().
+			CreateCiBuilderJob(gomock.Any(), gomock.Any()).
+			Times(1)
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
-		callCount := 0
-		builderapiClient.CreateCiBuilderJobFunc = func(ctx context.Context, params builderapi.CiBuilderParams) (job *batchv1.Job, err error) {
-			callCount++
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetAutoIncrement(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipelineBuildMaxResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipelineTriggers(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -214,13 +274,15 @@ func TestCreateBuild(t *testing.T) {
 		}
 
 		// act
-		_, err := service.CreateBuild(context.Background(), build, true)
+		_, err := service.CreateBuild(ctx, build, true)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 
 	t.Run("CallsInsertBuildLogOnCockroachdbClientInsteadOfCreateCiBuilderJobOnBuilderapiClientIfManifestIsInvalid", func(t *testing.T) {
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
 		ctx := context.Background()
 
@@ -228,32 +290,43 @@ func TestCreateBuild(t *testing.T) {
 			Jobs:      &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		cockroachdbClient.InsertBuildFunc = func(ctx context.Context, build contracts.Build, jobResources cockroachdb.JobResources) (b *contracts.Build, err error) {
-			b = &build
-			b.ID = "5"
+		cockroachdbClient.
+			EXPECT().
+			InsertBuild(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, build contracts.Build, jobResources cockroachdb.JobResources) (b *contracts.Build, err error) {
+				b = &build
+				b.ID = "5"
+				return
+			})
+		builderapiClient.
+			EXPECT().
+			CreateCiBuilderJob(gomock.Any(), gomock.Any()).
+			Times(0)
+
+		cockroachdbClient.
+			EXPECT().
+			InsertBuildLog(gomock.Any(), gomock.Any(), gomock.Any()).
+			Times(1)
+
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
-		createcibuilderjobCallCount := 0
-		builderapiClient.CreateCiBuilderJobFunc = func(ctx context.Context, params builderapi.CiBuilderParams) (job *batchv1.Job, err error) {
-			createcibuilderjobCallCount++
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
-
-		insertbuildlogCallCount := 0
-		cockroachdbClient.InsertBuildLogFunc = func(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (log contracts.BuildLog, err error) {
-			insertbuildlogCallCount++
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
+		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetAutoIncrement(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipelineBuildMaxResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -264,14 +337,15 @@ func TestCreateBuild(t *testing.T) {
 		}
 
 		// act
-		_, err := service.CreateBuild(context.Background(), build, true)
+		_, err := service.CreateBuild(ctx, build, true)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 0, createcibuilderjobCallCount)
-		assert.Equal(t, 1, insertbuildlogCallCount)
 	})
 
 	t.Run("CallsInsertBuildLogOnCloudstorageClientInsteadOfCreateCiBuilderJobOnBuilderapiClientIfManifestIsInvalidAndLogWritersConfigContainsCloudstorage", func(t *testing.T) {
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
 		ctx := context.Background()
 
@@ -281,32 +355,45 @@ func TestCreateBuild(t *testing.T) {
 				LogWriters: []string{"cloudstorage"},
 			},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		cockroachdbClient.InsertBuildFunc = func(ctx context.Context, build contracts.Build, jobResources cockroachdb.JobResources) (b *contracts.Build, err error) {
-			b = &build
-			b.ID = "5"
+		cockroachdbClient.
+			EXPECT().
+			InsertBuild(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, build contracts.Build, jobResources cockroachdb.JobResources) (b *contracts.Build, err error) {
+				b = &build
+				b.ID = "5"
+				return
+			})
+		builderapiClient.
+			EXPECT().
+			CreateCiBuilderJob(gomock.Any(), gomock.Any()).
+			Times(0)
+
+		cloudStorageClient.
+			EXPECT().
+			InsertBuildLog(gomock.Any(), gomock.Any()).
+			Times(1)
+
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
-		createcibuilderjobCallCount := 0
-		builderapiClient.CreateCiBuilderJobFunc = func(ctx context.Context, params builderapi.CiBuilderParams) (job *batchv1.Job, err error) {
-			createcibuilderjobCallCount++
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
 
-		insertbuildlogCallCount := 0
-		cloudStorageClient.InsertBuildLogFunc = func(ctx context.Context, buildLog contracts.BuildLog) (err error) {
-			insertbuildlogCallCount++
-			return
-		}
+		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetAutoIncrement(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipelineBuildMaxResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().InsertBuildLog(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -317,14 +404,15 @@ func TestCreateBuild(t *testing.T) {
 		}
 
 		// act
-		_, err := service.CreateBuild(context.Background(), build, true)
+		_, err := service.CreateBuild(ctx, build, true)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 0, createcibuilderjobCallCount)
-		assert.Equal(t, 1, insertbuildlogCallCount)
 	})
 
 	t.Run("CallsInsertBuildOnCockroachdbClientWithBuildVersionGeneratedFromAutoincrement", func(t *testing.T) {
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
 		ctx := context.Background()
 
@@ -332,27 +420,43 @@ func TestCreateBuild(t *testing.T) {
 			Jobs:      &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		cockroachdbClient.GetAutoIncrementFunc = func(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {
-			return 15, nil
-		}
+		cockroachdbClient.
+			EXPECT().
+			GetAutoIncrement(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {
+				return 15, nil
+			})
 
 		callCount := 0
-		cockroachdbClient.InsertBuildFunc = func(ctx context.Context, build contracts.Build, jobResources cockroachdb.JobResources) (b *contracts.Build, err error) {
-			if build.BuildVersion == "0.0.15" {
-				callCount++
-			}
+		cockroachdbClient.
+			EXPECT().
+			InsertBuild(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, build contracts.Build, jobResources cockroachdb.JobResources) (b *contracts.Build, err error) {
+				if build.BuildVersion == "0.0.15" {
+					callCount++
+				}
+				return
+			})
+
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetAutoIncrement(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipelineBuildMaxResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		build := contracts.Build{
 			RepoSource: "github.com",
@@ -363,7 +467,7 @@ func TestCreateBuild(t *testing.T) {
 		}
 
 		// act
-		_, _ = service.CreateBuild(context.Background(), build, true)
+		_, _ = service.CreateBuild(ctx, build, true)
 
 		// assert.Nil(t, err)
 		assert.Equal(t, 1, callCount)
@@ -375,27 +479,37 @@ func TestFinishBuild(t *testing.T) {
 
 	t.Run("CallsUpdateBuildStatusOnCockroachdbClient", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		ctx := context.Background()
 
 		config := &api.APIConfig{
 			Jobs:      &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		callCount := 0
-		cockroachdbClient.UpdateBuildStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
-			callCount++
+		cockroachdbClient.
+			EXPECT().
+			UpdateBuildStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Times(1)
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		cockroachdbClient.EXPECT().GetPipelineBuildByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		repoSource := "github.com"
 		repoOwner := "estafette"
@@ -404,16 +518,18 @@ func TestFinishBuild(t *testing.T) {
 		buildStatus := contracts.StatusSucceeded
 
 		// act
-		err := service.FinishBuild(context.Background(), repoSource, repoOwner, repoName, buildID, buildStatus)
+		err := service.FinishBuild(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 }
 
 func TestCreateRelease(t *testing.T) {
 
-	t.Run("CallsInsertBuildOnCockroachdbClient", func(t *testing.T) {
+	t.Run("CallsInsertReleaseOnCockroachdbClient", func(t *testing.T) {
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
 		ctx := context.Background()
 
@@ -421,21 +537,34 @@ func TestCreateRelease(t *testing.T) {
 			Jobs:      &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		callCount := 0
-		cockroachdbClient.InsertReleaseFunc = func(ctx context.Context, release contracts.Release, jobResources cockroachdb.JobResources) (r *contracts.Release, err error) {
-			callCount++
+		cockroachdbClient.
+			EXPECT().
+			InsertRelease(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&contracts.Release{ID: "15"}, nil).
+			Times(1)
+
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		cockroachdbClient.EXPECT().GetPipelineReleaseMaxResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		builderapiClient.EXPECT().CreateCiBuilderJob(gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetReleaseTriggers(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipelineBuildByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		release := contracts.Release{
 			RepoSource:     "github.com",
@@ -448,40 +577,57 @@ func TestCreateRelease(t *testing.T) {
 		revision := "f0677f01cc6d54a5b042224a9eb374e98f979985"
 
 		// act
-		_, _ = service.CreateRelease(context.Background(), release, mft, branch, revision, true)
+		_, err := service.CreateRelease(ctx, release, mft, branch, revision, true)
 
-		// assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
+		assert.Nil(t, err)
 	})
 
 	t.Run("CallsCreateCiBuilderJobOnBuilderapiClient", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		ctx := context.Background()
 
 		config := &api.APIConfig{
 			Jobs:      &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		cockroachdbClient.InsertReleaseFunc = func(ctx context.Context, release contracts.Release, jobResources cockroachdb.JobResources) (r *contracts.Release, err error) {
-			r = &release
-			r.ID = "5"
+		cockroachdbClient.
+			EXPECT().
+			InsertRelease(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, release contracts.Release, jobResources cockroachdb.JobResources) (r *contracts.Release, err error) {
+				r = &release
+				r.ID = "5"
+				return
+			})
+
+		builderapiClient.
+			EXPECT().
+			CreateCiBuilderJob(gomock.Any(), gomock.Any()).
+			Times(1)
+
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
-		callCount := 0
-		builderapiClient.CreateCiBuilderJobFunc = func(ctx context.Context, params builderapi.CiBuilderParams) (job *batchv1.Job, err error) {
-			callCount++
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		cockroachdbClient.EXPECT().GetPipelineReleaseMaxResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipelineBuildByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetReleaseTriggers(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		release := contracts.Release{
 			RepoSource:     "github.com",
@@ -494,10 +640,9 @@ func TestCreateRelease(t *testing.T) {
 		revision := "f0677f01cc6d54a5b042224a9eb374e98f979985"
 
 		// act
-		_, err := service.CreateRelease(context.Background(), release, mft, branch, revision, true)
+		_, err := service.CreateRelease(ctx, release, mft, branch, revision, true)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 }
 
@@ -505,27 +650,38 @@ func TestFinishRelease(t *testing.T) {
 
 	t.Run("CallsUpdateReleaseStatusOnCockroachdbClient", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		ctx := context.Background()
 
 		config := &api.APIConfig{
 			Jobs:      &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		callCount := 0
-		cockroachdbClient.UpdateReleaseStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
-			callCount++
+		cockroachdbClient.
+			EXPECT().
+			UpdateReleaseStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Times(1)
+
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		cockroachdbClient.EXPECT().GetPipelineRelease(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		repoSource := "github.com"
 		repoOwner := "estafette"
@@ -534,10 +690,9 @@ func TestFinishRelease(t *testing.T) {
 		buildStatus := contracts.StatusSucceeded
 
 		// act
-		err := service.FinishRelease(context.Background(), repoSource, repoOwner, repoName, buildID, buildStatus)
+		err := service.FinishRelease(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 }
 
@@ -545,37 +700,47 @@ func TestRename(t *testing.T) {
 
 	t.Run("CallsRenameOnCockroachdbClient", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		ctx := context.Background()
 
 		config := &api.APIConfig{
 			Jobs:      &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient.
+			EXPECT().
+			Rename(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Times(1)
 
-		renameOnCockroachdbClientCallCount := 0
-		cockroachdbClient.RenameFunc = func(ctx context.Context, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName string) (err error) {
-			renameOnCockroachdbClientCallCount++
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		// act
-		err := service.Rename(context.Background(), "github.com", "estafette", "estafette-ci-contracts", "github.com", "estafette", "estafette-ci-protos")
+		err := service.Rename(ctx, "github.com", "estafette", "estafette-ci-contracts", "github.com", "estafette", "estafette-ci-protos")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, renameOnCockroachdbClientCallCount)
 	})
 
 	t.Run("CallsRenameOnCloudstorageClientIfLogWritersConfigContainsCloudstorage", func(t *testing.T) {
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
 		ctx := context.Background()
 
@@ -585,33 +750,42 @@ func TestRename(t *testing.T) {
 				LogWriters: []string{"cloudstorage"},
 			},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cloudStorageClient.
+			EXPECT().
+			Rename(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Times(1)
 
-		renameOnCloudstorageClientCallCount := 0
-		cloudStorageClient.RenameFunc = func(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
-			renameOnCloudstorageClientCallCount++
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		cockroachdbClient.EXPECT().Rename(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		// act
-		err := service.Rename(context.Background(), "github.com", "estafette", "estafette-ci-contracts", "github.com", "estafette", "estafette-ci-protos")
+		err := service.Rename(ctx, "github.com", "estafette", "estafette-ci-contracts", "github.com", "estafette", "estafette-ci-protos")
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, renameOnCloudstorageClientCallCount)
 	})
 }
 
 func TestUpdateBuildStatus(t *testing.T) {
 	t.Run("CallsUpdateBuildStatusOnCockroachdbClientIfBuildIDIsNonEmpty", func(t *testing.T) {
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
 		ctx := context.Background()
 
@@ -619,22 +793,30 @@ func TestUpdateBuildStatus(t *testing.T) {
 			Jobs:      &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient.
+			EXPECT().
+			UpdateBuildStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Times(1)
 
-		callCount := 0
-		cockroachdbClient.UpdateBuildStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
-			callCount++
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		cockroachdbClient.EXPECT().GetPipelineBuildByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipelineRelease(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		event := builderapi.CiBuilderEvent{
 			BuildID:     "123456",
@@ -642,13 +824,15 @@ func TestUpdateBuildStatus(t *testing.T) {
 		}
 
 		// act
-		err := service.UpdateBuildStatus(context.Background(), event)
+		err := service.UpdateBuildStatus(ctx, event)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 
 	t.Run("CallsUpdateReleaseStatusOnCockroachdbClientIfReleaseIDIsNonEmpty", func(t *testing.T) {
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
 		ctx := context.Background()
 
@@ -656,22 +840,30 @@ func TestUpdateBuildStatus(t *testing.T) {
 			Jobs:      &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient.
+			EXPECT().
+			UpdateReleaseStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Times(1)
 
-		callCount := 0
-		cockroachdbClient.UpdateReleaseStatusFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
-			callCount++
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		cockroachdbClient.EXPECT().GetPipelineBuildByID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipelineRelease(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		event := builderapi.CiBuilderEvent{
 			ReleaseID:   "123456",
@@ -679,15 +871,17 @@ func TestUpdateBuildStatus(t *testing.T) {
 		}
 
 		// act
-		err := service.UpdateBuildStatus(context.Background(), event)
+		err := service.UpdateBuildStatus(ctx, event)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 }
 
 func TestUpdateJobResources(t *testing.T) {
 	t.Run("CallsUpdateBuildResourceUtilizationOnCockroachdbClientIfBuildIDIsNonEmpty", func(t *testing.T) {
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
 		ctx := context.Background()
 
@@ -695,22 +889,31 @@ func TestUpdateJobResources(t *testing.T) {
 			Jobs:      &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient.
+			EXPECT().
+			UpdateBuildResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Times(1)
 
-		callCount := 0
-		cockroachdbClient.UpdateBuildResourceUtilizationFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources cockroachdb.JobResources) (err error) {
-			callCount++
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		prometheusClient.EXPECT().AwaitScrapeInterval(gomock.Any()).AnyTimes()
+		prometheusClient.EXPECT().GetMaxCPUByPodName(gomock.Any(), gomock.Any()).AnyTimes()
+		prometheusClient.EXPECT().GetMaxMemoryByPodName(gomock.Any(), gomock.Any()).AnyTimes()
+
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		event := builderapi.CiBuilderEvent{
 			PodName:     "build-estafette-estafette-ci-api-123456-mhrzk",
@@ -719,13 +922,15 @@ func TestUpdateJobResources(t *testing.T) {
 		}
 
 		// act
-		err := service.UpdateJobResources(context.Background(), event)
+		err := service.UpdateJobResources(ctx, event)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
 
 	t.Run("CallsUpdateReleaseResourceUtilizationOnCockroachdbClientIfReleaseIDIsNonEmpty", func(t *testing.T) {
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
 		ctx := context.Background()
 
@@ -733,22 +938,31 @@ func TestUpdateJobResources(t *testing.T) {
 			Jobs:      &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{},
 		}
-		cockroachdbClient := cockroachdb.MockClient{}
-		prometheusClient := prometheus.MockClient{}
-		cloudStorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
+		cockroachdbClient.
+			EXPECT().
+			UpdateReleaseResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Times(1)
 
-		callCount := 0
-		cockroachdbClient.UpdateReleaseResourceUtilizationFunc = func(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources cockroachdb.JobResources) (err error) {
-			callCount++
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
 
-		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		prometheusClient.EXPECT().AwaitScrapeInterval(gomock.Any()).AnyTimes()
+		prometheusClient.EXPECT().GetMaxCPUByPodName(gomock.Any(), gomock.Any()).AnyTimes()
+		prometheusClient.EXPECT().GetMaxMemoryByPodName(gomock.Any(), gomock.Any()).AnyTimes()
+
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
 		event := builderapi.CiBuilderEvent{
 			PodName:     "release-estafette-estafette-ci-api-123456-mhrzk",
@@ -757,10 +971,106 @@ func TestUpdateJobResources(t *testing.T) {
 		}
 
 		// act
-		err := service.UpdateJobResources(context.Background(), event)
+		err := service.UpdateJobResources(ctx, event)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, callCount)
 	})
+}
 
+func TestGetEventsForJobEnvvars(t *testing.T) {
+	t.Run("ReturnsTriggerEventsForEveryNamedTriggerWithAtLeastOneGreenBuild", func(t *testing.T) {
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		ctx := context.Background()
+
+		config := &api.APIConfig{
+			Jobs:      &api.JobsConfig{},
+			APIServer: &api.APIServerConfig{},
+		}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		prometheusClient := prometheus.NewMockClient(ctrl)
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
+
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+			return
+		}
+
+		cockroachdbClient.EXPECT().GetPipelineBuilds(gomock.Any(), gomock.Eq("github.com"), gomock.Eq("estafette"), gomock.Eq("repo1"), gomock.Eq(1), gomock.Eq(1), gomock.Any(), gomock.Any(), gomock.Eq(false)).
+			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error) {
+				return []*contracts.Build{
+					{
+						BuildStatus:  contracts.StatusSucceeded,
+						BuildVersion: "1.0.5",
+						RepoSource:   "github.com",
+						RepoOwner:    "estafette",
+						RepoName:     "repo1",
+					},
+				}, nil
+			})
+
+		cockroachdbClient.EXPECT().GetPipelineBuilds(gomock.Any(), gomock.Eq("github.com"), gomock.Eq("estafette"), gomock.Eq("repo2"), gomock.Eq(1), gomock.Eq(1), gomock.Any(), gomock.Any(), gomock.Eq(false)).
+			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error) {
+				return []*contracts.Build{
+					{
+						BuildStatus:  contracts.StatusSucceeded,
+						BuildVersion: "6.4.3",
+						RepoSource:   "github.com",
+						RepoOwner:    "estafette",
+						RepoName:     "repo2",
+					},
+				}, nil
+			})
+
+		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
+
+		triggers := []manifest.EstafetteTrigger{
+			{
+				Name: "trigger1",
+				Pipeline: &manifest.EstafettePipelineTrigger{
+					Name:   "github.com/estafette/repo1",
+					Branch: "main",
+					Event:  "finished",
+					Status: "succeeded",
+				},
+				BuildAction: &manifest.EstafetteTriggerBuildAction{
+					Branch: "main",
+				},
+			},
+			{
+				Name: "trigger2",
+				Pipeline: &manifest.EstafettePipelineTrigger{
+					Name:   "github.com/estafette/repo2",
+					Branch: "main",
+					Event:  "finished",
+					Status: "succeeded",
+				},
+				BuildAction: &manifest.EstafetteTriggerBuildAction{
+					Branch: "main",
+				},
+			},
+		}
+
+		events := []manifest.EstafetteEvent{}
+
+		// act
+		triggersAsEvents, err := service.GetEventsForJobEnvvars(ctx, triggers, events)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(triggersAsEvents))
+		assert.Equal(t, "trigger1", triggersAsEvents[0].Name)
+		assert.Equal(t, false, triggersAsEvents[0].Fired)
+		assert.Equal(t, "1.0.5", triggersAsEvents[0].Pipeline.BuildVersion)
+		assert.Equal(t, "trigger2", triggersAsEvents[1].Name)
+		assert.Equal(t, false, triggersAsEvents[1].Fired)
+		assert.Equal(t, "6.4.3", triggersAsEvents[1].Pipeline.BuildVersion)
+	})
 }

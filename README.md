@@ -15,11 +15,13 @@ To start development run
 ```bash
 git clone git@github.com:estafette/estafette-ci-api.git
 cd estafette-ci-api
+go get github.com/golang/mock/mockgen
 ```
 
 Before committing your changes run
 
 ```bash
-go test ./...
+go generate ./...
+go test -short ./...
 go mod tidy
 ```

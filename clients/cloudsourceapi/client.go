@@ -15,6 +15,7 @@ import (
 )
 
 // Client is the interface for communicating with the Google Cloud Source Repository api
+//go:generate mockgen -package=cloudsourceapi -destination ./mock.go -source=client.go
 type Client interface {
 	GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error)
 	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error)

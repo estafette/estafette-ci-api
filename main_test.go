@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/estafette/estafette-ci-api/api"
+	"github.com/golang/mock/gomock"
 
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/builderapi"
@@ -30,6 +31,9 @@ import (
 func TestConfigureGinGonic(t *testing.T) {
 	t.Run("DoesNotPanic", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Auth: &api.AuthConfig{
 				JWT: &api.JWTConfig{
@@ -41,27 +45,31 @@ func TestConfigureGinGonic(t *testing.T) {
 
 		ctx := context.Background()
 
-		cockroachdbClient := cockroachdb.MockClient{}
-		cloudstorageClient := cloudstorage.MockClient{}
-		builderapiClient := builderapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		cloudstorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
-		githubapiClient := githubapi.MockClient{}
-		bitbucketapiClient := bitbucketapi.MockClient{}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
-		pubsubapiclient := pubsubapi.MockClient{}
-		slackapiClient := slackapi.MockClient{}
+		githubapiClient := githubapi.NewMockClient(ctrl)
+		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
+		cloudsourceapiClient := cloudsourceapi.NewMockClient(ctrl)
+		pubsubapiclient := pubsubapi.NewMockClient(ctrl)
+		slackapiClient := slackapi.NewMockClient(ctrl)
 
-		bitbucketHandler := bitbucket.NewHandler(bitbucket.MockService{})
-		githubHandler := github.NewHandler(github.MockService{})
+		githubapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
+		bitbucketapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
+		cloudsourceapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
+
+		bitbucketHandler := bitbucket.NewHandler(bitbucket.NewMockService(ctrl))
+		githubHandler := github.NewHandler(github.NewMockService(ctrl))
 		estafetteHandler := estafette.NewHandler("", "", config, config, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
 
-		rbacHandler := rbac.NewHandler(config, rbac.MockService{}, cockroachdbClient)
+		rbacHandler := rbac.NewHandler(config, rbac.NewMockService(ctrl), cockroachdbClient)
 		pubsubHandler := pubsub.NewHandler(pubsubapiclient, estafetteService)
 		slackHandler := slack.NewHandler(secretHelper, config, slackapiClient, cockroachdbClient, estafetteService, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
-		cloudsourceHandler := cloudsource.NewHandler(pubsubapiclient, cloudsource.MockService{})
-		catalogHandler := catalog.NewHandler(config, catalog.MockService{}, cockroachdbClient)
+		cloudsourceHandler := cloudsource.NewHandler(pubsubapiclient, cloudsource.NewMockService(ctrl))
+		catalogHandler := catalog.NewHandler(config, catalog.NewMockService(ctrl), cockroachdbClient)
 
 		// act
 		_ = configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler, catalogHandler)

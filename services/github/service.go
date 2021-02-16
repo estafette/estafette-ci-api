@@ -23,6 +23,7 @@ var (
 )
 
 // Service handles http events for Github integration
+//go:generate mockgen -package=github -destination ./mock.go -source=service.go
 type Service interface {
 	CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) (err error)
 	HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (validSignature bool, err error)

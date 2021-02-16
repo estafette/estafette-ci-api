@@ -14,6 +14,7 @@ import (
 )
 
 // Client communicates with docker hub api
+//go:generate mockgen -package=dockerhubapi -destination ./mock.go -source=client.go
 type Client interface {
 	GetToken(ctx context.Context, repository string) (token DockerHubToken, err error)
 	GetDigest(ctx context.Context, token DockerHubToken, repository string, tag string) (digest DockerImageDigest, err error)

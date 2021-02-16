@@ -19,6 +19,7 @@ import (
 )
 
 // Client is the interface for communicating with the bitbucket api
+//go:generate mockgen -package=bitbucketapi -destination ./mock.go -source=client.go
 type Client interface {
 	GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error)
 	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error)

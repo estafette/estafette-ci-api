@@ -17,6 +17,7 @@ import (
 )
 
 // Client is the interface for communicating with prometheus
+//go:generate mockgen -package=prometheus -destination ./mock.go -source=client.go
 type Client interface {
 	AwaitScrapeInterval(ctx context.Context)
 	GetMaxMemoryByPodName(ctx context.Context, podName string) (max float64, err error)

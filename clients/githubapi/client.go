@@ -21,6 +21,7 @@ import (
 )
 
 // Client is the interface for communicating with the github api
+//go:generate mockgen -package=githubapi -destination ./mock.go -source=client.go
 type Client interface {
 	GetGithubAppToken(ctx context.Context) (token string, err error)
 	GetInstallationID(ctx context.Context, repoOwner string) (installationID int, err error)

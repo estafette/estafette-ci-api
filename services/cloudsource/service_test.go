@@ -12,6 +12,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	contracts "github.com/estafette/estafette-ci-contracts"
+	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,14 +20,17 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 	t.Run("ReturnsErrNonCloneableEventIfNotificationHasNoRefUpdate", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				CloudSource: &api.CloudSourceConfig{},
 			},
 		}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		cloudsourceapiClient := cloudsourceapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		notification := cloudsourceapi.PubSubNotification{
@@ -44,20 +48,24 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 	t.Run("CallsGetAccessTokenOnCloudSourceAPIClient", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				CloudSource: &api.CloudSourceConfig{},
 			},
 		}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		cloudsourceapiClient := cloudsourceapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 
-		getAccessTokenCallCount := 0
-		cloudsourceapiClient.GetAccessTokenFunc = func(ctx context.Context) (accesstoken cloudsourceapi.AccessToken, err error) {
-			getAccessTokenCallCount++
-			return
-		}
+		cloudsourceapiClient.
+			EXPECT().
+			GetAccessToken(gomock.Any()).
+			Times(1)
+
+		cloudsourceapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -80,26 +88,33 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 		// act
 		_ = service.CreateJobForCloudSourcePush(context.Background(), notification)
-
-		assert.Equal(t, 1, getAccessTokenCallCount)
 	})
 
 	t.Run("CallsGetEstafetteManifestOnCloudSourceAPIClient", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				CloudSource: &api.CloudSourceConfig{},
 			},
 		}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		cloudsourceapiClient := cloudsourceapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 
-		getEstafetteManifestCallCount := 0
-		cloudsourceapiClient.GetEstafetteManifestFunc = func(ctx context.Context, accesstoken cloudsourceapi.AccessToken, event cloudsourceapi.PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error) {
-			getEstafetteManifestCallCount++
-			return true, "builder:\n  track: dev\n", nil
-		}
+		cloudsourceapiClient.
+			EXPECT().
+			GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, accesstoken cloudsourceapi.AccessToken, event cloudsourceapi.PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error) {
+				return true, "builder:\n  track: dev\n", nil
+			}).
+			Times(1)
+
+		cloudsourceapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
+		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -124,29 +139,39 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 		err := service.CreateJobForCloudSourcePush(context.Background(), notification)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, getEstafetteManifestCallCount)
 	})
 
 	t.Run("CallsCreateBuildOnEstafetteService", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				CloudSource: &api.CloudSourceConfig{},
 			},
 		}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		cloudsourceapiClient := cloudsourceapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 
-		cloudsourceapiClient.GetEstafetteManifestFunc = func(ctx context.Context, accesstoken cloudsourceapi.AccessToken, event cloudsourceapi.PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error) {
-			return true, "builder:\n  track: dev\n", nil
-		}
+		cloudsourceapiClient.
+			EXPECT().
+			GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, accesstoken cloudsourceapi.AccessToken, event cloudsourceapi.PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error) {
+				return true, "builder:\n  track: dev\n", nil
+			})
 
-		createBuildCallCount := 0
-		estafetteService.CreateBuildFunc = func(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error) {
-			createBuildCallCount++
-			return
-		}
+		estafetteService.
+			EXPECT().
+			CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error) {
+				return
+			}).
+			Times(1)
+
+		cloudsourceapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
+		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -171,19 +196,21 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 		err := service.CreateJobForCloudSourcePush(context.Background(), notification)
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, createBuildCallCount)
 	})
 
 	t.Run("PublishesGitTriggersOnTopic", func(t *testing.T) {
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				CloudSource: &api.CloudSourceConfig{},
 			},
 		}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		cloudsourceapiClient := cloudsourceapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 		gitEventTopic := api.NewGitEventTopic("test topic")
 		defer gitEventTopic.Close()
 		subscriptionChannel := gitEventTopic.Subscribe("PublishesGitTriggersOnTopic")
@@ -207,6 +234,10 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 			},
 		}
 
+		cloudsourceapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
+		cloudsourceapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
+
 		// act
 		_ = service.CreateJobForCloudSourcePush(context.Background(), notification)
 
@@ -222,27 +253,41 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 	t.Run("CallsSubscribeToPubsubTriggersOnPubsubAPIClient", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				CloudSource: &api.CloudSourceConfig{},
 			},
 		}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		cloudsourceapiClient := cloudsourceapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 
-		cloudsourceapiClient.GetEstafetteManifestFunc = func(ctx context.Context, accesstoken cloudsourceapi.AccessToken, event cloudsourceapi.PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error) {
-			return true, "builder:\n  track: dev\n", nil
-		}
+		cloudsourceapiClient.
+			EXPECT().
+			GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, accesstoken cloudsourceapi.AccessToken, event cloudsourceapi.PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error) {
+				return true, "builder:\n  track: dev\n", nil
+			})
 
 		var wg sync.WaitGroup
 		wg.Add(1)
-		subscribeToPubsubTriggersCallCount := 0
-		pubsubapiClient.SubscribeToPubsubTriggersFunc = func(ctx context.Context, manifestString string) (err error) {
-			subscribeToPubsubTriggersCallCount++
-			wg.Done()
-			return
-		}
+		defer wg.Wait()
+		pubsubapiClient.
+			EXPECT().
+			SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, manifestString string) (err error) {
+
+				wg.Done()
+				return
+			}).
+			Times(1)
+
+		cloudsourceapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
+		cloudsourceapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
@@ -266,16 +311,16 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 		// act
 		err := service.CreateJobForCloudSourcePush(context.Background(), notification)
 
-		wg.Wait()
-
 		assert.Nil(t, err)
-		assert.Equal(t, 1, subscribeToPubsubTriggersCallCount)
 	})
 }
 
 func TestIsAllowedProject(t *testing.T) {
 
 	t.Run("ReturnsTrueIfAllowedProjectsConfigIsEmpty", func(t *testing.T) {
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
@@ -284,9 +329,9 @@ func TestIsAllowedProject(t *testing.T) {
 				},
 			},
 		}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		cloudsourceapiClient := cloudsourceapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		notification := cloudsourceapi.PubSubNotification{
@@ -314,6 +359,9 @@ func TestIsAllowedProject(t *testing.T) {
 
 	t.Run("ReturnsFalseIfOwnerUsernameIsNotInAllowedProjectsConfig", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				CloudSource: &api.CloudSourceConfig{
@@ -325,9 +373,9 @@ func TestIsAllowedProject(t *testing.T) {
 				},
 			},
 		}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		cloudsourceapiClient := cloudsourceapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		notification := cloudsourceapi.PubSubNotification{
@@ -355,6 +403,9 @@ func TestIsAllowedProject(t *testing.T) {
 
 	t.Run("ReturnsTrueIfOwnerUsernameIsInAllowedProjectsConfig", func(t *testing.T) {
 
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
 				CloudSource: &api.CloudSourceConfig{
@@ -369,9 +420,9 @@ func TestIsAllowedProject(t *testing.T) {
 				},
 			},
 		}
-		cloudsourceapiClient := cloudsourceapi.MockClient{}
-		pubsubapiClient := pubsubapi.MockClient{}
-		estafetteService := estafette.MockService{}
+		cloudsourceapiClient := cloudsourceapi.NewMockClient(ctrl)
+		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
+		estafetteService := estafette.NewMockService(ctrl)
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
 
 		notification := cloudsourceapi.PubSubNotification{

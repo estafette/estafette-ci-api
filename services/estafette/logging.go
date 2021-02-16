@@ -106,3 +106,9 @@ func (s *loggingService) UpdateJobResources(ctx context.Context, event builderap
 func (s *loggingService) SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *api.GitEventTopic) {
 	s.Service.SubscribeToGitEventsTopic(ctx, gitEventTopic)
 }
+
+func (s *loggingService) GetEventsForJobEnvvars(ctx context.Context, triggers []manifest.EstafetteTrigger, events []manifest.EstafetteEvent) (triggersAsEvents []manifest.EstafetteEvent, err error) {
+	defer func() { api.HandleLogError(s.prefix, "GetEventsForJobEnvvars", err) }()
+
+	return s.Service.GetEventsForJobEnvvars(ctx, triggers, events)
+}
