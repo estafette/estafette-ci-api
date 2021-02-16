@@ -127,3 +127,11 @@ func (s *metricsService) SubscribeToGitEventsTopic(ctx context.Context, gitEvent
 
 	s.Service.SubscribeToGitEventsTopic(ctx, gitEventTopic)
 }
+
+func (s *metricsService) GetEventsForJobEnvvars(ctx context.Context, triggers []manifest.EstafetteTrigger, events []manifest.EstafetteEvent) (triggersAsEvents []manifest.EstafetteEvent, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(s.requestCount, s.requestLatency, "GetEventsForJobEnvvars", begin)
+	}(time.Now())
+
+	return s.Service.GetEventsForJobEnvvars(ctx, triggers, events)
+}

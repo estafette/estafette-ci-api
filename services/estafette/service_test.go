@@ -978,7 +978,7 @@ func TestUpdateJobResources(t *testing.T) {
 }
 
 func TestGetEventsForJobEnvvars(t *testing.T) {
-	t.Run("ReturnsTriggereEventsForEveryNamedTriggerWithAtLeastOneGreenBuild", func(t *testing.T) {
+	t.Run("ReturnsTriggerEventsForEveryNamedTriggerWithAtLeastOneGreenBuild", func(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -994,11 +994,6 @@ func TestGetEventsForJobEnvvars(t *testing.T) {
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		cockroachdbClient.
-			EXPECT().
-			UpdateBuildResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			Times(1)
-
 		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
 			return
 		}
@@ -1009,21 +1004,73 @@ func TestGetEventsForJobEnvvars(t *testing.T) {
 			return
 		}
 
-		prometheusClient.EXPECT().AwaitScrapeInterval(gomock.Any()).AnyTimes()
-		prometheusClient.EXPECT().GetMaxCPUByPodName(gomock.Any(), gomock.Any()).AnyTimes()
-		prometheusClient.EXPECT().GetMaxMemoryByPodName(gomock.Any(), gomock.Any()).AnyTimes()
+		cockroachdbClient.EXPECT().GetPipelineBuilds(gomock.Any(), gomock.Eq("github.com"), gomock.Eq("estafette"), gomock.Eq("repo1"), gomock.Eq(1), gomock.Eq(1), gomock.Any(), gomock.Any(), gomock.Eq(false)).
+			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error) {
+				return []*contracts.Build{
+					{
+						BuildStatus:  contracts.StatusSucceeded,
+						BuildVersion: "1.0.5",
+						RepoSource:   "github.com",
+						RepoOwner:    "estafette",
+						RepoName:     "repo1",
+					},
+				}, nil
+			})
+
+		cockroachdbClient.EXPECT().GetPipelineBuilds(gomock.Any(), gomock.Eq("github.com"), gomock.Eq("estafette"), gomock.Eq("repo2"), gomock.Eq(1), gomock.Eq(1), gomock.Any(), gomock.Any(), gomock.Eq(false)).
+			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error) {
+				return []*contracts.Build{
+					{
+						BuildStatus:  contracts.StatusSucceeded,
+						BuildVersion: "6.4.3",
+						RepoSource:   "github.com",
+						RepoOwner:    "estafette",
+						RepoName:     "repo2",
+					},
+				}, nil
+			})
 
 		service := NewService(config, cockroachdbClient, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
-		event := builderapi.CiBuilderEvent{
-			PodName:     "build-estafette-estafette-ci-api-123456-mhrzk",
-			BuildID:     "123456",
-			BuildStatus: "succeeeded",
+		triggers := []manifest.EstafetteTrigger{
+			{
+				Name: "trigger1",
+				Pipeline: &manifest.EstafettePipelineTrigger{
+					Name:   "github.com/estafette/repo1",
+					Branch: "main",
+					Event:  "finished",
+					Status: "succeeded",
+				},
+				BuildAction: &manifest.EstafetteTriggerBuildAction{
+					Branch: "main",
+				},
+			},
+			{
+				Name: "trigger2",
+				Pipeline: &manifest.EstafettePipelineTrigger{
+					Name:   "github.com/estafette/repo2",
+					Branch: "main",
+					Event:  "finished",
+					Status: "succeeded",
+				},
+				BuildAction: &manifest.EstafetteTriggerBuildAction{
+					Branch: "main",
+				},
+			},
 		}
 
+		events := []manifest.EstafetteEvent{}
+
 		// act
-		err := service.UpdateJobResources(ctx, event)
+		triggersAsEvents, err := service.GetEventsForJobEnvvars(ctx, triggers, events)
 
 		assert.Nil(t, err)
+		assert.Equal(t, 2, len(triggersAsEvents))
+		assert.Equal(t, "trigger1", triggersAsEvents[0].Name)
+		assert.Equal(t, false, triggersAsEvents[0].Fired)
+		assert.Equal(t, "1.0.5", triggersAsEvents[0].Pipeline.BuildVersion)
+		assert.Equal(t, "trigger2", triggersAsEvents[1].Name)
+		assert.Equal(t, false, triggersAsEvents[1].Fired)
+		assert.Equal(t, "6.4.3", triggersAsEvents[1].Pipeline.BuildVersion)
 	})
 }

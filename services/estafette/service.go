@@ -46,6 +46,7 @@ type Service interface {
 	UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 	UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 	SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *api.GitEventTopic)
+	GetEventsForJobEnvvars(ctx context.Context, triggers []manifest.EstafetteTrigger, events []manifest.EstafetteEvent) (triggersAsEvents []manifest.EstafetteEvent, err error)
 }
 
 // NewService returns a new estafette.Service
@@ -180,7 +181,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 		return
 	}
 
-	triggeredByEvents, err := s.getEventsForJobEnvvars(ctx, build.Triggers, build.Events)
+	triggeredByEvents, err := s.GetEventsForJobEnvvars(ctx, build.Triggers, build.Events)
 	if err != nil {
 		return
 	}
@@ -407,7 +408,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 		}
 
 		// get events and add non-firing triggers as events
-		triggeredByEvents, err = s.getEventsForJobEnvvars(ctx, pipeline.Triggers, release.Events)
+		triggeredByEvents, err = s.GetEventsForJobEnvvars(ctx, pipeline.Triggers, release.Events)
 		if err != nil {
 			return
 		}
@@ -1446,7 +1447,7 @@ func (s *service) supportsBuildStatus(repoSource string) bool {
 	return false
 }
 
-func (s *service) getEventsForJobEnvvars(ctx context.Context, triggers []manifest.EstafetteTrigger, events []manifest.EstafetteEvent) (triggersAsEvents []manifest.EstafetteEvent, err error) {
+func (s *service) GetEventsForJobEnvvars(ctx context.Context, triggers []manifest.EstafetteTrigger, events []manifest.EstafetteEvent) (triggersAsEvents []manifest.EstafetteEvent, err error) {
 
 	triggersAsEvents = events
 
