@@ -159,14 +159,11 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
 
-		getAccessTokenCallCount := 0
 		bitbucketapiClient.
 			EXPECT().
 			GetAccessToken(gomock.Any()).
-			DoAndReturn(func(ctx context.Context) (accesstoken bitbucketapi.AccessToken, err error) {
-				getAccessTokenCallCount++
-				return
-			})
+			Times(1)
+
 		bitbucketapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
@@ -189,8 +186,6 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 		// act
 		_ = service.CreateJobForBitbucketPush(context.Background(), pushEvent)
-
-		assert.Equal(t, 1, getAccessTokenCallCount)
 	})
 
 	t.Run("CallsGetEstafetteManifestOnBitbucketAPIClient", func(t *testing.T) {
