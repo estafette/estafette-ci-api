@@ -36,7 +36,7 @@ stages:
     services:
     - name: cockroachdb
       multiStage: true
-      image: cockroachdb/cockroach:v20.2.4
+      image: cockroachdb/cockroach:v20.2.5
       shell: /bin/bash
       env:
         COCKROACH_SKIP_ENABLING_DIAGNOSTIC_REPORTING: "true"
