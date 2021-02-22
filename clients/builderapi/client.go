@@ -81,7 +81,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 
 	// check # of found secrets
 	manifestBytes, err := json.Marshal(ciBuilderParams.Manifest)
-	if err != nil {
+	if err == nil {
 		c.inspectSecrets(string(manifestBytes), ciBuilderParams.GetFullRepoPath(), "manifest")
 	}
 
