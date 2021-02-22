@@ -82,7 +82,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 	// check # of found secrets
 	manifestBytes, err := json.Marshal(ciBuilderParams.Manifest)
 	if err == nil {
-		c.inspectSecrets(string(manifestBytes), ciBuilderParams.GetFullRepoPath(), "manifest")
+		c.inspectSecrets(c.secretHelper, string(manifestBytes), ciBuilderParams.GetFullRepoPath(), "manifest")
 	}
 
 	// extend builder config to parameterize the builder and replace all other envvars to improve security
@@ -97,7 +97,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 	builderConfigValue := string(builderConfigJSONBytes)
 
 	// check # of found secrets
-	c.inspectSecrets(builderConfigValue, ciBuilderParams.GetFullRepoPath(), "builderconfig before reencrypting")
+	c.inspectSecrets(c.secretHelper, builderConfigValue, ciBuilderParams.GetFullRepoPath(), "builderconfig before reencrypting")
 
 	builderConfigValue, newKey, err := c.secretHelper.ReencryptAllEnvelopes(builderConfigValue, ciBuilderParams.GetFullRepoPath(), false)
 	if err != nil {
@@ -105,7 +105,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 	}
 
 	// check # of found secrets
-	c.inspectSecrets(builderConfigValue, ciBuilderParams.GetFullRepoPath(), "builderconfig after reencrypting")
+	c.inspectSecrets(crypt.NewSecretHelper(newKey, false), builderConfigValue, ciBuilderParams.GetFullRepoPath(), "builderconfig after reencrypting")
 
 	// create configmap for builder config
 	err = c.createCiBuilderConfigMap(ctx, ciBuilderParams, jobName, builderConfigValue)
@@ -1163,8 +1163,8 @@ func (c *client) getCiBuilderJobName(ctx context.Context, ciBuilderParams CiBuil
 	return c.GetJobName(ctx, ciBuilderParams.JobType, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, id)
 }
 
-func (c *client) inspectSecrets(input, pipeline, when string) {
-	values, err := c.secretHelper.GetAllSecretValues(input, pipeline)
+func (c *client) inspectSecrets(secretHelper crypt.SecretHelper, input, pipeline, when string) {
+	values, err := secretHelper.GetAllSecretValues(input, pipeline)
 	if err == nil {
 		log.Debug().Msgf("[%v] Collected %v secrets for pipeline %v...", when, len(values), pipeline)
 	} else {
