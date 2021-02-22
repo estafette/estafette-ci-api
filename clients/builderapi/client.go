@@ -79,6 +79,12 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 
 	log.Info().Msgf("Creating job %v...", jobName)
 
+	// check # of found secrets
+	manifestBytes, err := json.Marshal(ciBuilderParams.Manifest)
+	if err != nil {
+		c.inspectSecrets(string(manifestBytes), ciBuilderParams.GetFullRepoPath(), "manifest")
+	}
+
 	// extend builder config to parameterize the builder and replace all other envvars to improve security
 	localBuilderConfig, err := c.getBuilderConfig(ctx, ciBuilderParams, jobName)
 	if err != nil {
@@ -89,10 +95,17 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 		return nil, errors.Wrapf(err, "Failed marshalling job %v builder config...", jobName)
 	}
 	builderConfigValue := string(builderConfigJSONBytes)
+
+	// check # of found secrets
+	c.inspectSecrets(builderConfigValue, ciBuilderParams.GetFullRepoPath(), "builderconfig before reencrypting")
+
 	builderConfigValue, newKey, err := c.secretHelper.ReencryptAllEnvelopes(builderConfigValue, ciBuilderParams.GetFullRepoPath(), false)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed re-encrypting job %v builder config secrets...", jobName)
 	}
+
+	// check # of found secrets
+	c.inspectSecrets(builderConfigValue, ciBuilderParams.GetFullRepoPath(), "builderconfig after reencrypting")
 
 	// create configmap for builder config
 	err = c.createCiBuilderConfigMap(ctx, ciBuilderParams, jobName, builderConfigValue)
@@ -1148,4 +1161,13 @@ func (c *client) getCiBuilderJobName(ctx context.Context, ciBuilderParams CiBuil
 	}
 
 	return c.GetJobName(ctx, ciBuilderParams.JobType, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, id)
+}
+
+func (c *client) inspectSecrets(input, pipeline, when string) {
+	values, err := c.secretHelper.GetAllSecretValues(input, pipeline)
+	if err == nil {
+		log.Debug().Msgf("[%v] Collected %v secrets for pipeline %v...", when, len(values), pipeline)
+	} else {
+		log.Debug().Err(err).Msgf("[%v] Failed collecting secrets for pipeline %v...", when, pipeline)
+	}
 }
