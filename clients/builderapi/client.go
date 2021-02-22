@@ -1168,6 +1168,6 @@ func (c *client) inspectSecrets(secretHelper crypt.SecretHelper, input, pipeline
 	if err == nil {
 		log.Debug().Msgf("[%v] Collected %v secrets for pipeline %v...", when, len(values), pipeline)
 	} else {
-		log.Debug().Err(err).Msgf("[%v] Failed collecting secrets for pipeline %v...", when, pipeline)
+		log.Debug().Err(err).Msgf("[%v] Failed collecting %v secrets for pipeline %v...", when, len(values), pipeline)
 	}
 }
