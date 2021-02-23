@@ -18,6 +18,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
 	"github.com/estafette/estafette-ci-api/clients/prometheus"
 	contracts "github.com/estafette/estafette-ci-contracts"
+	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -50,11 +51,12 @@ type Service interface {
 }
 
 // NewService returns a new estafette.Service
-func NewService(config *api.APIConfig, cockroachdbClient cockroachdb.Client, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
+func NewService(config *api.APIConfig, cockroachdbClient cockroachdb.Client, secretHelper crypt.SecretHelper, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
 
 	return &service{
 		config:                 config,
 		cockroachdbClient:      cockroachdbClient,
+		secretHelper:           secretHelper,
 		prometheusClient:       prometheusClient,
 		cloudStorageClient:     cloudStorageClient,
 		builderapiClient:       builderapiClient,
@@ -68,6 +70,7 @@ func NewService(config *api.APIConfig, cockroachdbClient cockroachdb.Client, pro
 type service struct {
 	config                 *api.APIConfig
 	cockroachdbClient      cockroachdb.Client
+	secretHelper           crypt.SecretHelper
 	prometheusClient       prometheus.Client
 	cloudStorageClient     cloudstorage.Client
 	builderapiClient       builderapi.Client
@@ -83,6 +86,13 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	mft, manifestError := manifest.ReadManifest(s.config.ManifestPreferences, build.Manifest, true)
 	hasValidManifest := manifestError == nil
 
+	// check if there's secrets restricted to other pipelines
+	var invalidSecrets []string
+	var invalidSecretsErr error
+	if hasValidManifest {
+		invalidSecrets, invalidSecretsErr = s.secretHelper.GetInvalidRestrictedSecrets(build.Manifest, build.GetFullRepoPath())
+	}
+
 	// set builder track
 	builderTrack := "stable"
 	builderOperatingSystem := "linux"
@@ -96,7 +106,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 
 	// set build status
 	buildStatus := contracts.StatusFailed
-	if hasValidManifest {
+	if hasValidManifest && invalidSecretsErr == nil {
 		buildStatus = contracts.StatusPending
 	}
 
@@ -209,7 +219,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	}
 
 	// create ci builder job
-	if hasValidManifest {
+	if hasValidManifest && invalidSecretsErr == nil {
 		log.Debug().Msgf("Pipeline %v/%v/%v revision %v has valid manifest, creating build job...", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 		// create ci builder job
 		if waitForJobToStart {
@@ -233,6 +243,55 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 				log.Error().Err(err).Msgf("Failed firing pipeline triggers for build %v/%v/%v revision %v", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 			}
 		}()
+	} else if invalidSecretsErr != nil {
+		log.Debug().Interface("invalidSecrets", invalidSecrets).Msgf("Pipeline %v/%v/%v revision %v with build id %v has invalid secrets, storing log...", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision, build.ID)
+		// store log with manifest unmarshalling error
+		buildLog := contracts.BuildLog{
+			BuildID:      createdBuild.ID,
+			RepoSource:   createdBuild.RepoSource,
+			RepoOwner:    createdBuild.RepoOwner,
+			RepoName:     createdBuild.RepoName,
+			RepoBranch:   createdBuild.RepoBranch,
+			RepoRevision: createdBuild.RepoRevision,
+			Steps: []*contracts.BuildLogStep{
+				&contracts.BuildLogStep{
+					Step:         "validate-secrets",
+					ExitCode:     1,
+					Status:       contracts.LogStatusFailed,
+					AutoInjected: true,
+					RunIndex:     0,
+					LogLines: []contracts.BuildLogLine{
+						contracts.BuildLogLine{
+							LineNumber: 1,
+							Timestamp:  time.Now().UTC(),
+							StreamType: "stderr",
+							Text:       "The manifest has secrets, restricted to other pipelines; please recreate the following secrets through the pipeline's secrets tab:",
+						},
+					},
+				},
+			},
+		}
+
+		for i, is := range invalidSecrets {
+			buildLog.Steps[0].LogLines = append(buildLog.Steps[0].LogLines, contracts.BuildLogLine{
+				LineNumber: i + 1,
+				Timestamp:  time.Now().UTC(),
+				StreamType: "stdout",
+				Text:       is,
+			})
+		}
+
+		insertedBuildLog, err := s.cockroachdbClient.InsertBuildLog(ctx, buildLog, s.config.APIServer.WriteLogToDatabase())
+		if err != nil {
+			log.Warn().Err(err).Msgf("Failed inserting build log for invalid manifest")
+		}
+
+		if s.config.APIServer.WriteLogToCloudStorage() {
+			err = s.cloudStorageClient.InsertBuildLog(ctx, insertedBuildLog)
+			if err != nil {
+				log.Warn().Err(err).Msgf("Failed inserting build log into cloud storage for invalid manifest")
+			}
+		}
 	} else if manifestError != nil {
 		log.Debug().Msgf("Pipeline %v/%v/%v revision %v with build id %v has invalid manifest, storing log...", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision, build.ID)
 		// store log with manifest unmarshalling error

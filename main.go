@@ -388,7 +388,7 @@ func getServices(ctx context.Context, config *api.APIConfig, encryptedConfig *ap
 	log.Debug().Msg("Creating services...")
 
 	// estafette service
-	estafetteService = estafette.NewService(config, cockroachdbClient, prometheusClient, cloudstorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
+	estafetteService = estafette.NewService(config, cockroachdbClient, secretHelper, prometheusClient, cloudstorageClient, builderapiClient, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
 	estafetteService = estafette.NewTracingService(estafetteService)
 	estafetteService = estafette.NewLoggingService(estafetteService)
 	estafetteService = estafette.NewMetricsService(estafetteService,
