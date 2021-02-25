@@ -22,6 +22,7 @@ import (
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var (
@@ -366,6 +367,10 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	// create deep copy to ensure no properties are shared through a pointer
 	mft = mft.DeepCopy()
 
+	// check if there's secrets restricted to other pipelines
+	manifestBytes, err := yaml.Marshal(mft)
+	invalidSecrets, invalidSecretsErr := s.secretHelper.GetInvalidRestrictedSecrets(string(manifestBytes), release.GetFullRepoPath())
+
 	// set builder track
 	builderTrack := mft.Builder.Track
 	builderOperatingSystem := mft.Builder.OperatingSystem
@@ -385,7 +390,10 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	shortRepoSource := s.getShortRepoSource(release.RepoSource)
 
 	// set release status
-	releaseStatus := contracts.StatusPending
+	releaseStatus := contracts.StatusFailed
+	if invalidSecretsErr == nil {
+		releaseStatus = contracts.StatusPending
+	}
 
 	// inject release stages
 	mft, err = api.InjectStages(s.config, mft, builderTrack, shortRepoSource, repoBranch, s.supportsBuildStatus(release.RepoSource))
@@ -498,19 +506,67 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 		JobResources:            jobResources,
 	}
 
-	// create ci release job
-	if waitForJobToStart {
-		_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
-		if err != nil {
-			return
-		}
-	} else {
-		go func(ciBuilderParams builderapi.CiBuilderParams) {
+	if invalidSecretsErr == nil {
+		// create ci release job
+		if waitForJobToStart {
 			_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
 			if err != nil {
-				log.Warn().Err(err).Msgf("Failed creating async release job")
+				return
 			}
-		}(ciBuilderParams)
+		} else {
+			go func(ciBuilderParams builderapi.CiBuilderParams) {
+				_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
+				if err != nil {
+					log.Warn().Err(err).Msgf("Failed creating async release job")
+				}
+			}(ciBuilderParams)
+		}
+	} else {
+		// store log with manifest unmarshalling error
+		releaseLog := contracts.ReleaseLog{
+			ReleaseID:  createdRelease.ID,
+			RepoSource: createdRelease.RepoSource,
+			RepoOwner:  createdRelease.RepoOwner,
+			RepoName:   createdRelease.RepoName,
+			Steps: []*contracts.BuildLogStep{
+				&contracts.BuildLogStep{
+					Step:         "validate-secrets",
+					ExitCode:     1,
+					Status:       contracts.LogStatusFailed,
+					AutoInjected: true,
+					RunIndex:     0,
+					LogLines: []contracts.BuildLogLine{
+						contracts.BuildLogLine{
+							LineNumber: 1,
+							Timestamp:  time.Now().UTC(),
+							StreamType: "stderr",
+							Text:       "The manifest has secrets, restricted to other pipelines; please recreate the following secrets through the pipeline's secrets tab:",
+						},
+					},
+				},
+			},
+		}
+
+		for i, is := range invalidSecrets {
+			releaseLog.Steps[0].LogLines = append(releaseLog.Steps[0].LogLines, contracts.BuildLogLine{
+				LineNumber: i + 1,
+				Timestamp:  time.Now().UTC(),
+				StreamType: "stdout",
+				Text:       is,
+			})
+		}
+
+		insertedReleaseLog, err := s.cockroachdbClient.InsertReleaseLog(ctx, releaseLog, s.config.APIServer.WriteLogToDatabase())
+		if err != nil {
+			log.Warn().Err(err).Msgf("Failed inserting release log for manifest with restricted secrets")
+		}
+
+		if s.config.APIServer.WriteLogToCloudStorage() {
+			err = s.cloudStorageClient.InsertReleaseLog(ctx, insertedReleaseLog)
+			if err != nil {
+				log.Warn().Err(err).Msgf("Failed inserting release log into cloud storage for manifest with restricted secrets")
+			}
+		}
 	}
 
 	// handle triggers
