@@ -22,18 +22,30 @@ type Client interface {
 
 // NewClient returns a new pubsub.Client
 func NewClient(config *api.APIConfig, pubsubClient *stdpubsub.Client) Client {
+	if config == nil || config.Integrations == nil || config.Integrations.Pubsub == nil || !config.Integrations.Pubsub.Enable {
+		return &client{
+			enabled: false,
+		}
+	}
+
 	return &client{
+		enabled:      true,
 		config:       config,
 		pubsubClient: pubsubClient,
 	}
 }
 
 type client struct {
+	enabled      bool
 	config       *api.APIConfig
 	pubsubClient *stdpubsub.Client
 }
 
 func (c *client) SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (*manifest.EstafettePubSubEvent, error) {
+
+	if !c.enabled {
+		return nil, nil
+	}
 
 	projectID := message.GetProject()
 	subscriptionName := message.GetSubscription()
@@ -62,6 +74,10 @@ func (c *client) SubscriptionForTopic(ctx context.Context, message PubSubPushMes
 }
 
 func (c *client) SubscribeToTopic(ctx context.Context, projectID, topicID string) error {
+
+	if !c.enabled {
+		return nil
+	}
 
 	// check if topic exists
 	topic := c.pubsubClient.TopicInProject(topicID, projectID)
@@ -116,6 +132,10 @@ func (c *client) getSubscriptionName(topicName string) string {
 }
 
 func (c *client) SubscribeToPubsubTriggers(ctx context.Context, manifestString string) error {
+
+	if !c.enabled {
+		return nil
+	}
 
 	mft, err := manifest.ReadManifest(c.config.ManifestPreferences, manifestString, false)
 	if err != nil {

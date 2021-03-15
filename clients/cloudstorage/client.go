@@ -36,22 +36,23 @@ type Client interface {
 
 // NewClient returns new cloudstorage.Client
 func NewClient(config *api.APIConfig, storageClient *storage.Client) Client {
-
-	if config == nil {
+	if config == nil || config.Integrations == nil || config.Integrations.CloudStorage == nil || !config.Integrations.CloudStorage.Enable {
 		return &client{
-			config: config,
+			enabled: false,
 		}
 	}
 
 	return &client{
-		client: storageClient,
-		config: config,
+		enabled: true,
+		client:  storageClient,
+		config:  config,
 	}
 }
 
 type client struct {
-	client *storage.Client
-	config *api.APIConfig
+	enabled bool
+	client  *storage.Client
+	config  *api.APIConfig
 }
 
 func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error) {

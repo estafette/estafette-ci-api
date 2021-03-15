@@ -29,18 +29,21 @@ type Client interface {
 
 // NewClient returns a new bitbucket.Client
 func NewClient(config *api.APIConfig) Client {
-
-	if config == nil || config.Integrations == nil || config.Integrations.Bitbucket == nil {
-		return nil
+	if config == nil || config.Integrations == nil || config.Integrations.Bitbucket == nil || !config.Integrations.Bitbucket.Enable {
+		return &client{
+			enabled: false,
+		}
 	}
 
 	return &client{
-		config: config,
+		enabled: true,
+		config:  config,
 	}
 }
 
 type client struct {
-	config *api.APIConfig
+	enabled bool
+	config  *api.APIConfig
 }
 
 // GetAccessToken returns an access token to access the Bitbucket api

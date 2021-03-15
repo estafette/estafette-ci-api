@@ -324,6 +324,7 @@ type APIConfigIntegrations struct {
 
 // GithubConfig is used to configure github integration
 type GithubConfig struct {
+	Enable                    bool                        `yaml:"enable"`
 	PrivateKeyPath            string                      `yaml:"privateKeyPath"`
 	AppID                     string                      `yaml:"appID"`
 	ClientID                  string                      `yaml:"clientID"`
@@ -341,6 +342,7 @@ type InstallationOrganizations struct {
 
 // BitbucketConfig is used to configure bitbucket integration
 type BitbucketConfig struct {
+	Enable             bool                 `yaml:"enable"`
 	APIKey             string               `yaml:"apiKey"`
 	AppOAuthKey        string               `yaml:"appOAuthKey"`
 	AppOAuthSecret     string               `yaml:"appOAuthSecret"`
@@ -356,6 +358,7 @@ type OwnerOrganizations struct {
 
 // SlackConfig is used to configure slack integration
 type SlackConfig struct {
+	Enable               bool   `yaml:"enable"`
 	ClientID             string `yaml:"clientID"`
 	ClientSecret         string `yaml:"clientSecret"`
 	AppVerificationToken string `yaml:"appVerificationToken"`
@@ -364,6 +367,7 @@ type SlackConfig struct {
 
 // PubsubConfig is used to be able to subscribe to pub/sub topics for triggering pipelines based on pub/sub events
 type PubsubConfig struct {
+	Enable                         bool   `yaml:"enable"`
 	DefaultProject                 string `yaml:"defaultProject"`
 	Endpoint                       string `yaml:"endpoint"`
 	Audience                       string `yaml:"audience"`
@@ -374,6 +378,7 @@ type PubsubConfig struct {
 
 // CloudStorageConfig is used to configure a google cloud storage bucket to be used to store logs
 type CloudStorageConfig struct {
+	Enable        bool   `yaml:"enable"`
 	ProjectID     string `yaml:"projectID"`
 	Bucket        string `yaml:"bucket"`
 	LogsDirectory string `yaml:"logsDir"`
@@ -381,6 +386,7 @@ type CloudStorageConfig struct {
 
 // PrometheusConfig configures where to find prometheus for retrieving max cpu and memory consumption of build and release jobs
 type PrometheusConfig struct {
+	Enable                bool   `yaml:"enable"`
 	ServerURL             string `yaml:"serverURL"`
 	ScrapeIntervalSeconds int    `yaml:"scrapeIntervalSeconds"`
 }
@@ -394,6 +400,7 @@ type BigQueryConfig struct {
 
 // CloudSourceConfig is used to configure cloudSource integration
 type CloudSourceConfig struct {
+	Enable               bool                   `yaml:"enable"`
 	AllowedProjects      []string               `yaml:"allowedProjects"`
 	ProjectOrganizations []ProjectOrganizations `yaml:"projectOrganizations"`
 }

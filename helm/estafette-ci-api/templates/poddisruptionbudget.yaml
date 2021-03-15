@@ -1,0 +1,11 @@
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "estafette-ci-api.fullname" . }}
+  labels:
+{{ include "estafette-ci-api.labels" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+{{ include "estafette-ci-api.selectorLabels" . | indent 6 }}
+  maxUnavailable: {{ .Values.pdb.maxUnavailable }}

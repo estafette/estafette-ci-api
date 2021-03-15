@@ -220,32 +220,42 @@ func getConfig(ctx context.Context) (*api.APIConfig, *api.APIConfig, crypt.Secre
 	return config, encryptedConfig, secretHelper
 }
 
-func getGoogleCloudClients(ctx context.Context, config *api.APIConfig) (*stdbigquery.Client, *stdpubsub.Client, *stdstorage.Client, oauth2.TokenSource, *stdsourcerepo.Service) {
+func getGoogleCloudClients(ctx context.Context, config *api.APIConfig) (bqClient *stdbigquery.Client, pubsubClient *stdpubsub.Client, gcsClient *stdstorage.Client, tokenSource oauth2.TokenSource, sourcerepoService *stdsourcerepo.Service) {
 
 	log.Debug().Msg("Creating Google Cloud clients...")
 
-	bqClient, err := stdbigquery.NewClient(ctx, config.Integrations.BigQuery.ProjectID)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating new BigQueryClient has failed")
+	var err error
+
+	if config != nil && config.Integrations != nil && config.Integrations.BigQuery != nil && config.Integrations.BigQuery.Enable {
+		bqClient, err = stdbigquery.NewClient(ctx, config.Integrations.BigQuery.ProjectID)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Creating new BigQueryClient has failed")
+		}
 	}
 
-	pubsubClient, err := stdpubsub.NewClient(ctx, config.Integrations.Pubsub.DefaultProject)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating google pubsub client has failed")
+	if config != nil && config.Integrations != nil && config.Integrations.Pubsub != nil && config.Integrations.Pubsub.Enable {
+		pubsubClient, err = stdpubsub.NewClient(ctx, config.Integrations.Pubsub.DefaultProject)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Creating google pubsub client has failed")
+		}
 	}
 
-	gcsClient, err := stdstorage.NewClient(ctx)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating google cloud storage client has failed")
+	if config != nil && config.Integrations != nil && config.Integrations.CloudStorage != nil && config.Integrations.CloudStorage.Enable {
+		gcsClient, err = stdstorage.NewClient(ctx)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Creating google cloud storage client has failed")
+		}
 	}
 
-	tokenSource, err := google.DefaultTokenSource(ctx, sourcerepo.CloudPlatformScope)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating google cloud token source has failed")
-	}
-	sourcerepoService, err := stdsourcerepo.New(oauth2.NewClient(ctx, tokenSource))
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating google cloud source repo service has failed")
+	if config != nil && config.Integrations != nil && config.Integrations.CloudSource != nil && config.Integrations.CloudSource.Enable {
+		tokenSource, err = google.DefaultTokenSource(ctx, sourcerepo.CloudPlatformScope)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Creating google cloud token source has failed")
+		}
+		sourcerepoService, err = stdsourcerepo.New(oauth2.NewClient(ctx, tokenSource))
+		if err != nil {
+			log.Fatal().Err(err).Msg("Creating google cloud source repo service has failed")
+		}
 	}
 
 	return bqClient, pubsubClient, gcsClient, tokenSource, sourcerepoService
@@ -369,10 +379,7 @@ func getClients(ctx context.Context, config *api.APIConfig, encryptedConfig *api
 	)
 
 	// cloudsourceapi client
-	cloudsourceClient, err = cloudsourceapi.NewClient(sourcerepoTokenSource, sourcerepoService)
-	if err != nil {
-		log.Error().Err(err).Msg("Creating new client for Cloud Source has failed")
-	}
+	cloudsourceClient = cloudsourceapi.NewClient(config, sourcerepoTokenSource, sourcerepoService)
 	cloudsourceClient = cloudsourceapi.NewTracingClient(cloudsourceClient)
 	cloudsourceClient = cloudsourceapi.NewLoggingClient(cloudsourceClient)
 	cloudsourceClient = cloudsourceapi.NewMetricsClient(cloudsourceClient,

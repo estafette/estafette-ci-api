@@ -1,0 +1,381 @@
+# Default values for estafette-ci.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+#
+# APPLICATION SETTINGS
+#
+
+config: |
+  integrations:
+    github:
+      enable: false
+      privateKeyPath: /secrets/private-key.pem
+      appID: 15
+      clientID: asdas2342
+      clientSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
+      webhookSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
+      whitelistedInstallations:
+      - 15
+      - 83
+      installationOrganizations:
+      - installation: 15
+        organizations:
+        - name: Estafette
+      - installation: 83
+        organizations:
+        - name: Estafette
+
+    bitbucket:
+      enable: false
+      apiKey: sd9ewiwuejkwejkewk
+      appOAuthKey: 2390w3e90jdsk
+      appOAuthSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
+      whitelistedOwners:
+      - estafette
+      ownerOrganizations:
+      - owner: estafette
+        organizations:
+        - name: Estafette
+
+    slack:
+      enable: false
+      clientID: d9ew90weoijewjke
+      clientSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
+      appVerificationToken: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
+      appOAuthAccessToken: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
+
+    pubsub:
+      enable: false
+      defaultProject: estafette
+      endpoint: https://ci-integrations.estafette.io/api/integrations/pubsub/events
+      audience: estafette-audience
+      serviceAccountEmail: estafette@estafette.iam.gserviceaccount.com
+      subscriptionNameSuffix: ~estafette-ci-pubsub-trigger
+      subscriptionIdleExpirationDays: 365
+
+    cloudsource:
+      enable: false
+      whitelistedProjects:
+      - estafette
+      projectOrganizations:
+      - project: estafette
+        organizations:
+        - name: Estafette
+
+    prometheus:
+      enable: false
+      serverURL: http://prometheus-server.monitoring.svc.cluster.local
+      scrapeIntervalSeconds: 10
+
+    bigquery:
+      enable: false
+      projectID: my-gcp-project
+      dataset: my-dataset
+
+    gcs:
+      enable: false
+      projectID: my-gcp-project
+      bucket: my-bucket
+      logsDir: logs
+
+  apiServer:
+    baseURL:
+    serviceURL:
+
+  jobs:
+    # the namespace in which build/release jobs are created
+    namespace: {{ .Release.Namespace }}-jobs
+    minCPUCores: 0.1
+    maxCPUCores: 7.0
+    cpuRequestRatio: 1.0
+    minMemoryBytes: 67108864
+    maxMemoryBytes: 21474836480
+    memoryRequestRatio: 1.25
+
+  auth:
+    iap:
+      enable:
+      audience:
+    apiKey:
+
+  database:
+    databaseName:
+    host:
+    insecure:
+    certificateDir:
+    port:
+    user:
+    password:
+
+  credentials:
+  - name:
+    type: 'container-registry'
+    repository:
+    private: false
+    username:
+    password:
+
+  trustedImages:
+  - path: extensions/git-clone
+    injectedCredentialTypes:
+    - bitbucket-api-token
+    - github-api-token
+  - path: extensions/git-trigger
+    injectedCredentialTypes:
+    - bitbucket-api-token
+    - github-api-token
+  - path: extensions/docker
+    runDocker: true
+    injectedCredentialTypes:
+    - container-registry
+  - path: extensions/prefetch
+    runDocker: true
+    injectedCredentialTypes:
+    - container-registry
+  - path: extensions/gke
+    injectedCredentialTypes:
+    - kubernetes-engine
+  - path: extensions/gcs
+    injectedCredentialTypes:
+    - kubernetes-engine
+  - path: extensions/cloud-function
+    injectedCredentialTypes:
+    - kubernetes-engine
+  - path: extensions/bitbucket-status
+    injectedCredentialTypes:
+    - bitbucket-api-token
+  - path: extensions/github-status
+    injectedCredentialTypes:
+    - github-api-token
+  - path: extensions/github-release
+    injectedCredentialTypes:
+    - github-api-token
+  - path: extensions/slack-build-status
+    injectedCredentialTypes:
+    - slack-webhook
+  - path: extensions/npm-audit
+    injectedCredentialTypes:
+    - slack-webhook
+  - path: extensions/dotnet
+    injectedCredentialTypes:
+    - nuget-server
+    - sonarqube-server
+  - path: estafette/estafette-ci-builder
+    runPrivileged: true
+    whitelistedPipelines: github.com/estafette/estafette-ci-builder
+  - path: extensions/cloudflare-purge
+    injectedCredentialTypes:
+    - cloudflare
+  - path: bsycorp/kind
+    runPrivileged: true
+
+  docker:
+    registryMirror: https://mirror.gcr.io
+    dindMtu: 1460
+    dindBip: 192.168.1.1/24
+    dindNetwork:
+      name: estafette
+      subnet: 192.168.2.1/24
+      gateway: 192.168.2.1
+
+secret:
+  # if set to true the values are already base64 encoded when provided, otherwise the template performs the base64 encoding
+  valuesAreBase64Encoded: false
+
+  # the aes-256 key to encrypt/decrypt estafette secrets
+  secretDecryptionKey:
+
+  # private key file for github app to communicate with the github api
+  githubPrivateKey:
+
+  # when using estafette-letsencrypt-certificate controller to fetch key files, set this to true and leave googleServiceAccountKeyfileJson empty
+  useLetsEncryptCertificateAnnotation: false
+
+  # pem file for certificate
+  certificatePemFile:
+
+  # private key file for certificate
+  certificateKeyFile:
+
+# for integration with any google cloud api a service account keyfile is required, which can be set with these values
+gcpServiceaccount:
+  enable: false
+  useEstafetteGcpServiceAccountAnnotation: false
+  valuesAreBase64Encoded: false
+  keyfile:
+
+# prometheus metrics settings
+metrics:
+  enable: true
+  path: /metrics
+  port: 9001
+  scheme: http
+
+# log format, can be one of plaintext, console, json or stackdriver
+logFormat: json
+
+jaeger:
+  # if enabled the jaeger tracing library sends traces into the jaeger backend, otherwise the NoopTracer is used
+  enable: false
+  # probabilistic, const or remote
+  samplerType: remote
+  # provides the probability if samplerType is probabilistic or remote (until remote config is received)
+  samplerParam: 0.001
+
+# list of hostnames the installation listens to
+hostnames:
+- ci.estafette.io
+
+# injects a sidecar to proxy traffic and emit metrics; not needed if you use a service mesh
+openresty:
+  enable: false
+  image:
+    repository: estafette/openresty-sidecar
+    tag: 6f4ddb92882349c8a3058b21fc2d75f246e7ce68a470c5533da3b205fd6381e4
+    tagIsSha256: true
+    pullPolicy: IfNotPresent
+  clientBodyBufferSize: 8k
+  clientBodyTimeout: 60s
+  clientHeaderTimeout: 60s
+  clientMaxBodySize: 128m
+  gracefulShutdownDelaySeconds: 15
+  proxyBuffersNumber: 4
+  proxyBuffersSize: 4k
+  proxyBufferSize: 4k
+  proxyConnectTimeout: 60s
+  proxyReadTimeout: 60s
+  proxySendTimeout: 60s
+  sendTimeout: 60s
+  resources: {}
+    # requests:
+    #   cpu: 50m
+    #   memory: 30Mi
+    # limits:
+    #   cpu: 75m
+    #   memory: 50Mi
+
+#
+# GENERIC SETTINGS
+#
+
+replicaCount: 1
+
+image:
+  repository: estafette/estafette-ci-api
+  # The tag can be set to override the appVersion getting used as the image tag
+  tag:
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+
+rbac:
+  # Specifies whether roles and bindings should be created
+  enable: true
+
+# specify extra containers as a string, interpreted with tpl; this allows use of helm values.
+# - name: {{ .Chart.Name }}-sidecar
+# image: registry/git-sync
+extraContainers: |
+
+# poddisruptionbudget settings
+pdb:
+  maxUnavailable: 1
+
+# horizontalpodautoscaler settings
+hpa:
+  enable: true
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+resources: {}
+  # requests:
+  #   cpu: 60m
+  #   memory: 236Mi
+  # limits:
+  #   cpu: 120m
+  #   memory: 472Mi
+
+podAnnotations: {}
+  # prometheus.io/scrape-nginx-sidecar: "true"
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enable: false
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths: []
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+nodeSelector: {}
+
+tolerations: []
+
+# set affinity rules as a string, interpreted by tpl
+affinity: |
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - {{ include "estafette-ci-api.name" . }}
+          - key: app.kubernetes.io/instance
+            operator: In
+            values:
+            - {{ .Release.Name }}
+        topologyKey: kubernetes.io/hostname
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 10
+      preference:
+        matchExpressions:
+        - key: cloud.google.com/gke-preemptible
+          operator: In
+          values:
+          - "true"
+
+# pass (additional) arguments to the container
+extraArgs: []
+
+# use to set extra environment variables
+extraEnv: {}
+
+# use to add extra labels
+extraLabels: {}
+
+# use to add extra labels to podspec for getting their values in prometheus
+extraPodLabels: {}

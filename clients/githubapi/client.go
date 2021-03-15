@@ -33,13 +33,21 @@ type Client interface {
 
 // NewClient creates an githubapi.Client to communicate with the Github api
 func NewClient(config *api.APIConfig) Client {
+	if config == nil || config.Integrations == nil || config.Integrations.Github == nil || !config.Integrations.Github.Enable {
+		return &client{
+			enabled: false,
+		}
+	}
+
 	return &client{
-		config: config,
+		enabled: true,
+		config:  config,
 	}
 }
 
 type client struct {
-	config *api.APIConfig
+	enabled bool
+	config  *api.APIConfig
 }
 
 // GetGithubAppToken returns a Github app token with which to retrieve an installation token

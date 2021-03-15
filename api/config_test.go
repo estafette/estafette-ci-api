@@ -32,6 +32,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		githubConfig := config.Integrations.Github
 
+		assert.True(t, githubConfig.Enable)
 		assert.Equal(t, "/github-app-key/private-key.pem", githubConfig.PrivateKeyPath)
 		assert.Equal(t, "15", githubConfig.AppID)
 		assert.Equal(t, "asdas2342", githubConfig.ClientID)
@@ -58,6 +59,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		bitbucketConfig := config.Integrations.Bitbucket
 
+		assert.True(t, bitbucketConfig.Enable)
 		assert.Equal(t, "sd9ewiwuejkwejkewk", bitbucketConfig.APIKey)
 		assert.Equal(t, "2390w3e90jdsk", bitbucketConfig.AppOAuthKey)
 		assert.Equal(t, "this is my secret", bitbucketConfig.AppOAuthSecret)
@@ -79,11 +81,30 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		cloudsourceConfig := config.Integrations.CloudSource
 
+		assert.True(t, cloudsourceConfig.Enable)
 		assert.Equal(t, "estafette", cloudsourceConfig.AllowedProjects[0])
 		assert.Equal(t, 1, len(cloudsourceConfig.ProjectOrganizations))
 		assert.Equal(t, "estafette", cloudsourceConfig.ProjectOrganizations[0].Project)
 		assert.Equal(t, 1, len(cloudsourceConfig.ProjectOrganizations[0].Organizations))
 		assert.Equal(t, "Estafette", cloudsourceConfig.ProjectOrganizations[0].Organizations[0].Name)
+	})
+
+	t.Run("ReturnsPubsubConfig", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
+
+		// act
+		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		pubsubConfig := config.Integrations.Pubsub
+
+		assert.True(t, pubsubConfig.Enable)
+		assert.Equal(t, "estafette", pubsubConfig.DefaultProject)
+		assert.Equal(t, "https://ci-integrations.estafette.io/api/integrations/pubsub/events", pubsubConfig.Endpoint)
+		assert.Equal(t, "estafette-audience", pubsubConfig.Audience)
+		assert.Equal(t, "estafette@estafette.iam.gserviceaccount.com", pubsubConfig.ServiceAccountEmail)
+		assert.Equal(t, "~estafette-ci-pubsub-trigger", pubsubConfig.SubscriptionNameSuffix)
+		assert.Equal(t, 365, pubsubConfig.SubscriptionIdleExpirationDays)
 	})
 
 	t.Run("ReturnsSlackConfig", func(t *testing.T) {
@@ -95,6 +116,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		slackConfig := config.Integrations.Slack
 
+		assert.True(t, slackConfig.Enable)
 		assert.Equal(t, "d9ew90weoijewjke", slackConfig.ClientID)
 		assert.Equal(t, "this is my secret", slackConfig.ClientSecret)
 		assert.Equal(t, "this is my secret", slackConfig.AppVerificationToken)
@@ -110,6 +132,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		prometheusConfig := config.Integrations.Prometheus
 
+		assert.True(t, prometheusConfig.Enable)
 		assert.Equal(t, "http://prometheus-server.monitoring.svc.cluster.local", prometheusConfig.ServerURL)
 		assert.Equal(t, 10, prometheusConfig.ScrapeIntervalSeconds)
 	})
@@ -123,7 +146,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		bigqueryConfig := config.Integrations.BigQuery
 
-		assert.Equal(t, true, bigqueryConfig.Enable)
+		assert.True(t, bigqueryConfig.Enable)
 		assert.Equal(t, "my-gcp-project", bigqueryConfig.ProjectID)
 		assert.Equal(t, "my-dataset", bigqueryConfig.Dataset)
 	})
@@ -137,6 +160,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		cloudStorageConfig := config.Integrations.CloudStorage
 
+		assert.True(t, cloudStorageConfig.Enable)
 		assert.Equal(t, "my-gcp-project", cloudStorageConfig.ProjectID)
 		assert.Equal(t, "my-bucket", cloudStorageConfig.Bucket)
 		assert.Equal(t, "logs", cloudStorageConfig.LogsDirectory)

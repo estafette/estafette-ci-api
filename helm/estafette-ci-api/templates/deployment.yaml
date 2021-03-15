@@ -1,0 +1,246 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "estafette-ci-api.fullname" . }}
+  labels:
+{{ include "estafette-ci-api.labels" . | indent 4 }}
+spec:
+  {{- if not .Values.hpa.enable }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+{{ include "estafette-ci-api.selectorLabels" . | indent 6 }}
+  template:
+    metadata:
+      labels:
+{{ include "estafette-ci-api.selectorLabels" . | indent 8 }}
+        {{- if .Chart.AppVersion }}
+        app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+        {{- end }}
+        {{- range $key, $value := .Values.extraPodLabels }}
+        {{ $key }}: {{ $value }}
+        {{- end }}
+      annotations:
+        {{- if .Values.metrics.enable }}
+        prometheus.io/scrape: {{ .Values.metrics.enable | quote }}
+        prometheus.io/path: {{ .Values.metrics.path | quote }}
+        prometheus.io/port: {{ .Values.metrics.port | quote }}
+        prometheus.io/scheme: {{ .Values.metrics.scheme | quote }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        checksum/secrets: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      serviceAccountName: {{ template "estafette-ci-api.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.extraArgs }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - containerPort: 5000
+              {{- if not .Values.openresty.enable }}
+              name: http
+              {{- else }}
+              name: web
+              {{- end }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              {{- if not .Values.openresty.enable }}
+              port: http
+              {{- else }}
+              port: web
+              {{- end }}
+              scheme: HTTP
+          {{- if not .Values.openresty.enable }}
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: http
+              scheme: HTTP
+          {{- end }}
+          env:
+            - name: ESTAFETTE_LOG_FORMAT
+              value: {{ .Values.logFormat }}
+            {{- if .Values.jaeger.enable }}
+            - name: JAEGER_AGENT_HOST
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.hostIP
+            - name: JAEGER_SAMPLER_MANAGER_HOST_PORT
+              value: http://$(JAEGER_AGENT_HOST):5778/sampling
+            - name: JAEGER_SAMPLER_TYPE
+              value: {{.Values.jaeger.samplerType}}
+            - name: JAEGER_SAMPLER_PARAM
+              value: "{{.Values.jaeger.samplerParam}}"
+            - name: JAEGER_SERVICE_NAME
+              value: {{ include "estafette-ci-api.fullname" . }}
+            {{- else }}
+            - name: JAEGER_DISABLED
+              value: 'true'
+            {{- end }}
+            {{- if .Values.gcpServiceaccount.enable -}}
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: '/gcp-service-account/service-account-key.json'
+            {{- end }}
+            {{- range $key, $value := .Values.extraEnv }}
+            - name: {{ $key }}
+              value: {{ $value }}
+            {{- end }}
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                - /bin/sleep
+                - 15s
+          resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+          - name: configs
+            mountPath: /configs
+          - name: secrets
+            mountPath: /secrets
+          {{- if .Values.gcpServiceaccount.enable -}}
+          - name: gcp-service-account
+            mountPath: /gcp-service-account
+          {{- end }}
+        {{- if .Values.openresty.enable }}
+        - name: {{ .Chart.Name }}-openresty
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.openresty.image.repository }}{{ if .Values.openresty.image.tagIsSha256 }}@sha256{{ end }}:{{.Values.openresty.image.tag}}"
+          imagePullPolicy: {{ .Values.openresty.image.pullPolicy }}
+          env:
+            - name: OFFLOAD_TO_HOST
+              value: 127.0.0.1
+            - name: OFFLOAD_TO_PORT
+              value: "5000"
+            - name: SERVICE_NAME
+              value: {{ include "estafette-ci-api.fullname" . }}
+            - name: NAMESPACE
+              value: {{ .Release.Namespace }}
+            - name: HEALT_CHECK_PATH
+              value: /readiness
+            - name: CLIENT_BODY_BUFFER_SIZE
+              value: {{.Values.openresty.clientBodyBufferSize | quote }}
+            - name: CLIENT_BODY_TIMEOUT
+              value: {{.Values.openresty.clientBodyTimeout | quote }}
+            - name: CLIENT_HEADER_TIMEOUT
+              value: {{.Values.openresty.clientHeaderTimeout | quote }}
+            - name: CLIENT_MAX_BODY_SIZE
+              value: {{.Values.openresty.clientMaxBodySize | quote }}
+            - name: GRACEFUL_SHUTDOWN_DELAY_SECONDS
+              value: {{.Values.openresty.gracefulShutdownDelaySeconds | quote }}
+            - name: PROXY_BUFFERS_NUMBER
+              value: {{.Values.openresty.proxyBuffersNumber | quote }}
+            - name: PROXY_BUFFERS_SIZE
+              value: {{.Values.openresty.proxyBuffersSize | quote }}
+            - name: PROXY_BUFFER_SIZE
+              value: {{.Values.openresty.proxyBufferSize | quote }}
+            - name: PROXY_CONNECT_TIMEOUT
+              value: {{.Values.openresty.proxyConnectTimeout | quote }}
+            - name: PROXY_READ_TIMEOUT
+              value: {{.Values.openresty.proxyReadTimeout | quote }}
+            - name: PROXY_SEND_TIMEOUT
+              value: {{.Values.openresty.proxySendTimeout | quote }}
+            - name: SEND_TIMEOUT
+              value: {{.Values.openresty.sendTimeout | quote }}
+            {{- if .Values.jaeger.enable }}
+            - name: JAEGER_AGENT_HOST
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.hostIP
+            - name: JAEGER_SAMPLER_MANAGER_HOST_PORT
+              value: http://$(JAEGER_AGENT_HOST):5778/sampling
+            - name: JAEGER_SAMPLER_TYPE
+              value: {{.Values.jaeger.samplerType}}
+            - name: JAEGER_SAMPLER_PARAM
+              value: "{{.Values.jaeger.samplerParam}}"
+            - name: JAEGER_SERVICE_NAME
+              value: {{ include "estafette-ci-api.fullname" . }}
+            {{- else }}
+            - name: JAEGER_DISABLED
+              value: 'true'
+            {{- end }}
+          ports:
+            - containerPort: 80
+              name: http
+              protocol: TCP
+            - containerPort: 443
+              name: https
+              protocol: TCP
+            - containerPort: 82
+              name: or-liveness
+              protocol: TCP
+            - containerPort: 81
+              name: or-readiness
+              protocol: TCP
+            - containerPort: 9101
+              name: or-metrics
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: or-liveness
+              scheme: HTTP
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: https
+              scheme: HTTPS
+          resources:
+            {{- toYaml .Values.openresty.resources | nindent 12 }}
+          volumeMounts:
+          - name: certificate
+            mountPath: /etc/ssl/private
+      {{- end }}
+      {{- with .Values.extraContainers }}
+      {{ tpl . $ | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: 300
+      volumes:
+      - name: configs
+        configMap:
+          name: {{ include "estafette-ci-api.fullname" . }}-configs
+      - name: secrets
+        secret:
+          secretName: {{ include "estafette-ci-api.fullname" . }}-secrets
+      {{- if .Values.openresty.enable }}
+      - name: certificate
+        secret:
+          secretName: {{ include "estafette-ci-api.fullname" . }}-letsencrypt-certificate
+      {{- end }}
+      {{- if .Values.gcpServiceaccount.enable -}}
+      - name: gcp-service-account
+        secret:
+          secretName: {{ include "estafette-ci-api.fullname" . }}-service-account
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- tpl . $ | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

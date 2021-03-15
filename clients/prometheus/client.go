@@ -26,13 +26,21 @@ type Client interface {
 
 // NewClient creates an prometheus.Client to communicate with Prometheus
 func NewClient(config *api.APIConfig) Client {
+	if config == nil || config.Integrations == nil || config.Integrations.Prometheus == nil || !config.Integrations.Prometheus.Enable {
+		return &client{
+			enabled: false,
+		}
+	}
+
 	return &client{
-		config: config,
+		enabled: true,
+		config:  config,
 	}
 }
 
 type client struct {
-	config *api.APIConfig
+	enabled bool
+	config  *api.APIConfig
 }
 
 func (c *client) AwaitScrapeInterval(ctx context.Context) {
