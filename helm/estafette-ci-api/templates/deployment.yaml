@@ -6,7 +6,7 @@ metadata:
 {{ include "estafette-ci-api.labels" . | indent 4 }}
 spec:
   {{- if not .Values.hpa.enable }}
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.deployment.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
@@ -18,21 +18,27 @@ spec:
         {{- if .Chart.AppVersion }}
         app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
         {{- end }}
-        {{- range $key, $value := .Values.extraPodLabels }}
+        {{- range $key, $value := .Values.deployment.extraPodLabels }}
         {{ $key }}: {{ $value }}
         {{- end }}
       annotations:
-        {{- if .Values.metrics.enable }}
-        prometheus.io/scrape: {{ .Values.metrics.enable | quote }}
-        prometheus.io/path: {{ .Values.metrics.path | quote }}
-        prometheus.io/port: {{ .Values.metrics.port | quote }}
-        prometheus.io/scheme: {{ .Values.metrics.scheme | quote }}
+        {{- if .Values.deployment.metrics.enable }}
+        prometheus.io/scrape: {{ .Values.deployment.metrics.enable | quote }}
+        prometheus.io/path: {{ .Values.deployment.metrics.path | quote }}
+        prometheus.io/port: {{ .Values.deployment.metrics.port | quote }}
+        prometheus.io/scheme: {{ .Values.deployment.metrics.scheme | quote }}
         {{- end }}
-        {{- with .Values.podAnnotations }}
+        {{- with .Values.deployment.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
         checksum/secrets: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
     spec:
+    {{- if .Values.image.credentials }}
+      imagePullSecrets:
+      {{- if .Values.image.credentials }}
+        - name: {{ template "cockroachdb.fullname" . }}.registry
+      {{- end }}
+    {{- end }}
     {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -43,10 +49,10 @@ spec:
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
+            {{- toYaml .Values.deployment.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- with .Values.extraArgs }}
+          {{- with .Values.deployment.extraArgs }}
           args:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -110,7 +116,7 @@ spec:
                 - /bin/sleep
                 - 15s
           resources:
-          {{- toYaml .Values.resources | nindent 12 }}
+          {{- toYaml .Values.deployment.resources | nindent 12 }}
           volumeMounts:
           - name: configs
             mountPath: /configs
@@ -211,7 +217,7 @@ spec:
           - name: certificate
             mountPath: /etc/ssl/private
       {{- end }}
-      {{- with .Values.extraContainers }}
+      {{- with .Values.deployment.extraContainers }}
       {{ tpl . $ | nindent 8 }}
       {{- end }}
       terminationGracePeriodSeconds: 300
@@ -232,15 +238,15 @@ spec:
         secret:
           secretName: {{ include "estafette-ci-api.fullname" . }}-service-account
       {{- end }}
-      {{- with .Values.nodeSelector }}
+      {{- with .Values.deployment.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- with .Values.deployment.affinity }}
       affinity:
         {{- tpl . $ | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with .Values.deployment.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

@@ -1,10 +1,93 @@
-# Default values for estafette-ci.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+image:
+  repository: estafette/estafette-ci-api
+  # The tag can be set to override the appVersion getting used as the image tag
+  # tag:
+  pullPolicy: IfNotPresent
+  credentials: {}
+    # registry: docker.io
+    # username: john_doe
+    # password: changeme
 
-#
-# APPLICATION SETTINGS
-#
+deployment:
+  replicaCount: 1
+
+  # prometheus metrics settings
+  metrics:
+    enable: true
+    path: /metrics
+    port: 9001
+    scheme: http
+
+  resources: {}
+    # requests:
+    #   cpu: 60m
+    #   memory: 236Mi
+    # limits:
+    #   cpu: 120m
+    #   memory: 472Mi
+
+  podAnnotations: {}
+    # prometheus.io/scrape-nginx-sidecar: "true"
+
+  # pass (additional) arguments to the container
+  extraArgs: []
+
+  # use to set extra environment variables
+  extraEnv: {}
+
+  # use to add extra labels
+  extraLabels: {}
+
+  # use to add extra labels to podspec for getting their values in prometheus
+  extraPodLabels: {}
+
+  # specify extra containers as a string, interpreted with tpl; this allows use of helm values.
+  # - name: {{ .Chart.Name }}-sidecar
+  # image: registry/git-sync
+  extraContainers: |
+
+  podSecurityContext: {}
+    # fsGroup: 2000
+
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  # set affinity rules as a string, interpreted by tpl
+  affinity: |
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+              - {{ include "estafette-ci-api.name" . }}
+            - key: app.kubernetes.io/instance
+              operator: In
+              values:
+              - {{ .Release.Name }}
+          topologyKey: kubernetes.io/hostname
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 10
+        preference:
+          matchExpressions:
+          - key: cloud.google.com/gke-preemptible
+            operator: In
+            values:
+            - "true"
+
 
 config: |
   integrations:
@@ -205,13 +288,6 @@ gcpServiceaccount:
   valuesAreBase64Encoded: false
   keyfile:
 
-# prometheus metrics settings
-metrics:
-  enable: true
-  path: /metrics
-  port: 9001
-  scheme: http
-
 # log format, can be one of plaintext, console, json or stackdriver
 logFormat: json
 
@@ -255,19 +331,6 @@ openresty:
     #   cpu: 75m
     #   memory: 50Mi
 
-#
-# GENERIC SETTINGS
-#
-
-replicaCount: 1
-
-image:
-  repository: estafette/estafette-ci-api
-  # The tag can be set to override the appVersion getting used as the image tag
-  tag:
-  pullPolicy: IfNotPresent
-
-imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
@@ -282,11 +345,6 @@ rbac:
   # Specifies whether roles and bindings should be created
   enable: true
 
-# specify extra containers as a string, interpreted with tpl; this allows use of helm values.
-# - name: {{ .Chart.Name }}-sidecar
-# image: registry/git-sync
-extraContainers: |
-
 # poddisruptionbudget settings
 pdb:
   maxUnavailable: 1
@@ -297,28 +355,6 @@ hpa:
   minReplicas: 1
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80
-
-podSecurityContext: {}
-  # fsGroup: 2000
-
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
-
-resources: {}
-  # requests:
-  #   cpu: 60m
-  #   memory: 236Mi
-  # limits:
-  #   cpu: 120m
-  #   memory: 472Mi
-
-podAnnotations: {}
-  # prometheus.io/scrape-nginx-sidecar: "true"
 
 service:
   type: ClusterIP
@@ -336,46 +372,3 @@ ingress:
   #  - secretName: chart-example-tls
   #    hosts:
   #      - chart-example.local
-
-nodeSelector: {}
-
-tolerations: []
-
-# set affinity rules as a string, interpreted by tpl
-affinity: |
-  podAntiAffinity:
-    preferredDuringSchedulingIgnoredDuringExecution:
-    - weight: 100
-      podAffinityTerm:
-        labelSelector:
-          matchExpressions:
-          - key: app.kubernetes.io/name
-            operator: In
-            values:
-            - {{ include "estafette-ci-api.name" . }}
-          - key: app.kubernetes.io/instance
-            operator: In
-            values:
-            - {{ .Release.Name }}
-        topologyKey: kubernetes.io/hostname
-  nodeAffinity:
-    preferredDuringSchedulingIgnoredDuringExecution:
-    - weight: 10
-      preference:
-        matchExpressions:
-        - key: cloud.google.com/gke-preemptible
-          operator: In
-          values:
-          - "true"
-
-# pass (additional) arguments to the container
-extraArgs: []
-
-# use to set extra environment variables
-extraEnv: {}
-
-# use to add extra labels
-extraLabels: {}
-
-# use to add extra labels to podspec for getting their values in prometheus
-extraPodLabels: {}
