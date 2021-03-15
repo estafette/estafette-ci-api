@@ -224,19 +224,19 @@ spec:
       volumes:
       - name: configs
         configMap:
-          name: {{ include "estafette-ci-api.fullname" . }}-configs
+          name: {{ include "estafette-ci-api.fullname" . }}
       - name: secrets
         secret:
-          secretName: {{ include "estafette-ci-api.fullname" . }}-secrets
+          secretName: {{ include "estafette-ci-api.fullname" . }}
       {{- if .Values.openresty.enable }}
       - name: certificate
         secret:
-          secretName: {{ include "estafette-ci-api.fullname" . }}-letsencrypt-certificate
+          secretName: {{ include "estafette-ci-api.fullname" . }}.tls
       {{- end }}
       {{- if .Values.gcpServiceaccount.enable -}}
       - name: gcp-service-account
         secret:
-          secretName: {{ include "estafette-ci-api.fullname" . }}-service-account
+          secretName: {{ include "estafette-ci-api.fullname" . }}.gcp
       {{- end }}
       {{- with .Values.deployment.nodeSelector }}
       nodeSelector:

@@ -263,9 +263,6 @@ config: |
       gateway: 192.168.2.1
 
 secret:
-  # if set to true the values are already base64 encoded when provided, otherwise the template performs the base64 encoding
-  valuesAreBase64Encoded: false
-
   # the aes-256 key to encrypt/decrypt estafette secrets
   secretDecryptionKey:
 
@@ -275,10 +272,14 @@ secret:
   # when using estafette-letsencrypt-certificate controller to fetch key files, set this to true and leave googleServiceAccountKeyfileJson empty
   useLetsEncryptCertificateAnnotation: false
 
-  # pem file for certificate
+  # list of hostnames to generate letsencrypt certificates for
+  letsEncryptHostnames:
+  - ci.estafette.io  
+
+  # pem file for certificate when useLetsEncryptCertificateAnnotation: false
   certificatePemFile:
 
-  # private key file for certificate
+  # private key file for certificate when useLetsEncryptCertificateAnnotation: false
   certificateKeyFile:
 
 # for integration with any google cloud api a service account keyfile is required, which can be set with these values
@@ -298,10 +299,6 @@ jaeger:
   samplerType: remote
   # provides the probability if samplerType is probabilistic or remote (until remote config is received)
   samplerParam: 0.001
-
-# list of hostnames the installation listens to
-hostnames:
-- ci.estafette.io
 
 # injects a sidecar to proxy traffic and emit metrics; not needed if you use a service mesh
 openresty:
