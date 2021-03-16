@@ -252,6 +252,7 @@ releases:
           repository: estafette
           env:
             ESTAFETTE_LOG_FORMAT: v3
+            CONFIG_FILE_PATH: /configs/git/config.yaml
           cpu:
             request: 158m
           memory:
