@@ -1,11 +1,13 @@
+{{- $fullName := include "estafette-ci-api.fullname" . -}}
+{{- $labels := include "estafette-ci-api.labels" . -}}
 {{- range .Values.extraConfigmaps -}}
 ---
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: {{ include "estafette-ci-api.fullname" . }}.{{ .key }}
+  name: {{ $fullName }}.{{ .key }}
   labels:
-    {{- include "estafette-ci-api.labels" . | nindent 4 }}
+    {{- $labels | nindent 4 }}
   {{- with .annotations }}
   annotations:
     {{- toYaml . | nindent 4 -}}
