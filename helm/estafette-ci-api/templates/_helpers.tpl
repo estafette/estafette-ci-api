@@ -1,4 +1,3 @@
-{{/* vim: set filetype=mustache: */}}
 {{/*
 Expand the name of the chart.
 */}}
@@ -41,6 +40,9 @@ helm.sh/chart: {{ include "estafette-ci-api.chart" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- with .Values.extraLabels }}
+{{- toYaml . }}
+{{- end }}
 {{- end }}
 
 {{/*
@@ -59,5 +61,16 @@ Create the name of the service account to use
 {{- default (include "estafette-ci-api.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create the namespace for build/release jobs
+*/}}
+{{- define "estafette-ci-api.jobNamespace" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.jobNamespaceOverride }}
+{{- else }}
+{{- .Release.Namespace }}-jobs
 {{- end }}
 {{- end }}

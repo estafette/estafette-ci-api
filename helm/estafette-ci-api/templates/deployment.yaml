@@ -3,240 +3,122 @@ kind: Deployment
 metadata:
   name: {{ include "estafette-ci-api.fullname" . }}
   labels:
-{{ include "estafette-ci-api.labels" . | indent 4 }}
+    {{- include "estafette-ci-api.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.hpa.enable }}
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.deployment.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-{{ include "estafette-ci-api.selectorLabels" . | indent 6 }}
+      {{- include "estafette-ci-api.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      {{- with .Values.deployment.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
-{{ include "estafette-ci-api.selectorLabels" . | indent 8 }}
-        {{- if .Chart.AppVersion }}
-        app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-        {{- end }}
+        {{- include "estafette-ci-api.selectorLabels" . | nindent 8 }}
         {{- range $key, $value := .Values.deployment.extraPodLabels }}
         {{ $key }}: {{ $value }}
         {{- end }}
-      annotations:
-        {{- if .Values.deployment.metrics.enable }}
-        prometheus.io/scrape: {{ .Values.deployment.metrics.enable | quote }}
-        prometheus.io/path: {{ .Values.deployment.metrics.path | quote }}
-        prometheus.io/port: {{ .Values.deployment.metrics.port | quote }}
-        prometheus.io/scheme: {{ .Values.deployment.metrics.scheme | quote }}
-        {{- end }}
-        {{- with .Values.deployment.podAnnotations }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
-        checksum/secrets: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
     spec:
-    {{- if .Values.image.credentials }}
+      {{- if or .Values.image.credentials .Values.imagePullSecrets }}
       imagePullSecrets:
       {{- if .Values.image.credentials }}
         - name: {{ template "cockroachdb.fullname" . }}.registry
       {{- end }}
-    {{- end }}
-    {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
+      {{- with .Values.imagePullSecrets }}
         {{- toYaml . | nindent 8 }}
-    {{- end }}
-      serviceAccountName: {{ template "estafette-ci-api.serviceAccountName" . }}
+      {{- end }}
+      {{- end }}
+      serviceAccountName: {{ include "estafette-ci-api.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.deployment.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
-            {{- toYaml .Values.deployment.securityContext | nindent 12 }}
+            {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- with .Values.deployment.extraArgs }}
-          args:
+          {{- with .Values.deployment.env }}
+          env:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - containerPort: 5000
-              {{- if not .Values.openresty.enable }}
-              name: http
-              {{- else }}
-              name: web
-              {{- end }}
+            - name: http
+              containerPort: 5000
               protocol: TCP
           livenessProbe:
             httpGet:
               path: /liveness
-              {{- if not .Values.openresty.enable }}
               port: http
-              {{- else }}
-              port: web
-              {{- end }}
-              scheme: HTTP
-          {{- if not .Values.openresty.enable }}
           readinessProbe:
             httpGet:
               path: /readiness
               port: http
-              scheme: HTTP
-          {{- end }}
-          env:
-            - name: ESTAFETTE_LOG_FORMAT
-              value: {{ .Values.logFormat }}
-            {{- if .Values.jaeger.enable }}
-            - name: JAEGER_AGENT_HOST
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: status.hostIP
-            - name: JAEGER_SAMPLER_MANAGER_HOST_PORT
-              value: http://$(JAEGER_AGENT_HOST):5778/sampling
-            - name: JAEGER_SAMPLER_TYPE
-              value: {{.Values.jaeger.samplerType}}
-            - name: JAEGER_SAMPLER_PARAM
-              value: "{{.Values.jaeger.samplerParam}}"
-            - name: JAEGER_SERVICE_NAME
-              value: {{ include "estafette-ci-api.fullname" . }}
-            {{- else }}
-            - name: JAEGER_DISABLED
-              value: 'true'
-            {{- end }}
-            {{- if .Values.gcpServiceaccount.enable -}}
-            - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: '/gcp-service-account/service-account-key.json'
-            {{- end }}
-            {{- range $key, $value := .Values.extraEnv }}
-            - name: {{ $key }}
-              value: {{ $value }}
-            {{- end }}
-          lifecycle:
-            preStop:
-              exec:
-                command:
-                - /bin/sleep
-                - 15s
           resources:
-          {{- toYaml .Values.deployment.resources | nindent 12 }}
+            {{- toYaml .Values.deployment.resources | nindent 12 }}
+          {{- if or .Values.config.enabled .Values.secret.enabled .Values.deployment.extraVolumeMounts .Values.extraConfigmaps .Values.extraSecrets }}
           volumeMounts:
+          {{- if .Values.config.enabled }}
           - name: configs
             mountPath: /configs
+          {{- end }}
+          {{- if .Values.secret.enabled }}
           - name: secrets
             mountPath: /secrets
-          {{- if .Values.gcpServiceaccount.enable -}}
-          - name: gcp-service-account
-            mountPath: /gcp-service-account
           {{- end }}
-        {{- if .Values.openresty.enable }}
-        - name: {{ .Chart.Name }}-openresty
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.openresty.image.repository }}{{ if .Values.openresty.image.tagIsSha256 }}@sha256{{ end }}:{{.Values.openresty.image.tag}}"
-          imagePullPolicy: {{ .Values.openresty.image.pullPolicy }}
-          env:
-            - name: OFFLOAD_TO_HOST
-              value: 127.0.0.1
-            - name: OFFLOAD_TO_PORT
-              value: "5000"
-            - name: SERVICE_NAME
-              value: {{ include "estafette-ci-api.fullname" . }}
-            - name: NAMESPACE
-              value: {{ .Release.Namespace }}
-            - name: HEALT_CHECK_PATH
-              value: /readiness
-            - name: CLIENT_BODY_BUFFER_SIZE
-              value: {{.Values.openresty.clientBodyBufferSize | quote }}
-            - name: CLIENT_BODY_TIMEOUT
-              value: {{.Values.openresty.clientBodyTimeout | quote }}
-            - name: CLIENT_HEADER_TIMEOUT
-              value: {{.Values.openresty.clientHeaderTimeout | quote }}
-            - name: CLIENT_MAX_BODY_SIZE
-              value: {{.Values.openresty.clientMaxBodySize | quote }}
-            - name: GRACEFUL_SHUTDOWN_DELAY_SECONDS
-              value: {{.Values.openresty.gracefulShutdownDelaySeconds | quote }}
-            - name: PROXY_BUFFERS_NUMBER
-              value: {{.Values.openresty.proxyBuffersNumber | quote }}
-            - name: PROXY_BUFFERS_SIZE
-              value: {{.Values.openresty.proxyBuffersSize | quote }}
-            - name: PROXY_BUFFER_SIZE
-              value: {{.Values.openresty.proxyBufferSize | quote }}
-            - name: PROXY_CONNECT_TIMEOUT
-              value: {{.Values.openresty.proxyConnectTimeout | quote }}
-            - name: PROXY_READ_TIMEOUT
-              value: {{.Values.openresty.proxyReadTimeout | quote }}
-            - name: PROXY_SEND_TIMEOUT
-              value: {{.Values.openresty.proxySendTimeout | quote }}
-            - name: SEND_TIMEOUT
-              value: {{.Values.openresty.sendTimeout | quote }}
-            {{- if .Values.jaeger.enable }}
-            - name: JAEGER_AGENT_HOST
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: status.hostIP
-            - name: JAEGER_SAMPLER_MANAGER_HOST_PORT
-              value: http://$(JAEGER_AGENT_HOST):5778/sampling
-            - name: JAEGER_SAMPLER_TYPE
-              value: {{.Values.jaeger.samplerType}}
-            - name: JAEGER_SAMPLER_PARAM
-              value: "{{.Values.jaeger.samplerParam}}"
-            - name: JAEGER_SERVICE_NAME
-              value: {{ include "estafette-ci-api.fullname" . }}
-            {{- else }}
-            - name: JAEGER_DISABLED
-              value: 'true'
-            {{- end }}
-          ports:
-            - containerPort: 80
-              name: http
-              protocol: TCP
-            - containerPort: 443
-              name: https
-              protocol: TCP
-            - containerPort: 82
-              name: or-liveness
-              protocol: TCP
-            - containerPort: 81
-              name: or-readiness
-              protocol: TCP
-            - containerPort: 9101
-              name: or-metrics
-              protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /liveness
-              port: or-liveness
-              scheme: HTTP
-          readinessProbe:
-            httpGet:
-              path: /readiness
-              port: https
-              scheme: HTTPS
-          resources:
-            {{- toYaml .Values.openresty.resources | nindent 12 }}
-          volumeMounts:
-          - name: certificate
-            mountPath: /etc/ssl/private
-      {{- end }}
-      {{- with .Values.deployment.extraContainers }}
-      {{ tpl . $ | nindent 8 }}
-      {{- end }}
+          {{- range .Values.extraConfigmaps }}
+          {{- if .mountPath }}
+          - name: configs.{{ .key }}
+            mountPath: {{ .mountPath }}
+          {{- end }}
+          {{- end }}
+          {{- range .Values.extraSecrets }}
+          {{- if .mountPath }}
+          - name: secrets.{{ .key }}
+            mountPath: {{ .mountPath }}
+          {{- end }}
+          {{- end }}
+          {{- with .Values.deployment.extraVolumeMounts }}
+          {{- tpl . $ | nindent 10 }}
+          {{- end }}
+          {{- end }}
+        {{- with .Values.deployment.extraContainers }}
+        {{- tpl . $ | nindent 8 }}
+        {{- end }}
       terminationGracePeriodSeconds: 300
+      {{- if or .Values.config.enabled .Values.secret.enabled .Values.deployment.extraVolumes .Values.extraConfigmaps .Values.extraSecrets }}
       volumes:
+      {{- if .Values.config.enabled }}
       - name: configs
         configMap:
           name: {{ include "estafette-ci-api.fullname" . }}
+      {{- end }}
+      {{- if .Values.secret.enabled }}
       - name: secrets
         secret:
           secretName: {{ include "estafette-ci-api.fullname" . }}
-      {{- if .Values.openresty.enable }}
-      - name: certificate
-        secret:
-          secretName: {{ include "estafette-ci-api.fullname" . }}.tls
       {{- end }}
-      {{- if .Values.gcpServiceaccount.enable -}}
-      - name: gcp-service-account
+
+      {{- range .Values.extraConfigmaps }}
+      {{- if .mountPath }}
+      - name: configs.{{ .key }}
+        configMap: 
+          name: {{ include "estafette-ci-api.fullname" . }}.{{ .key }}
+      {{- end }}
+      {{- end }}
+      {{- range .Values.extraSecrets }}
+      {{- if .mountPath }}
+      - name: secrets.{{ .key }}
         secret:
-          secretName: {{ include "estafette-ci-api.fullname" . }}.gcp
+          secretName: {{ include "estafette-ci-api.fullname" . }}.{{ .key }}
+      {{- end }}
+      {{- end }}
+      {{- with .Values.deployment.extraVolumes }}
+      {{- tpl . $ | nindent 6 }}
+      {{- end }}
       {{- end }}
       {{- with .Values.deployment.nodeSelector }}
       nodeSelector:
@@ -244,7 +126,7 @@ spec:
       {{- end }}
       {{- with .Values.deployment.affinity }}
       affinity:
-        {{- tpl . $ | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.deployment.tolerations }}
       tolerations:
