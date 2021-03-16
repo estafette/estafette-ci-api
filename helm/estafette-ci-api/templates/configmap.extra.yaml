@@ -19,3 +19,4 @@ data:
     {{- tpl $value $ | nindent 4 }}
   {{- end }}
 {{- end }}
+{{- end }}
