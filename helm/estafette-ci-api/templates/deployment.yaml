@@ -106,14 +106,14 @@ spec:
       {{- if .mountPath }}
       - name: configs.{{ .key }}
         configMap: 
-          name: {{ $fullname }}.{{ .key }}
+          name: {{ $fullName }}.{{ .key }}
       {{- end }}
       {{- end }}
       {{- range .Values.extraSecrets }}
       {{- if .mountPath }}
       - name: secrets.{{ .key }}
         secret:
-          secretName: {{ $fullname }}.{{ .key }}
+          secretName: {{ $fullName }}.{{ .key }}
       {{- end }}
       {{- end }}
       {{- with .Values.deployment.extraVolumes }}
