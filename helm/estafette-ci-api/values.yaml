@@ -80,7 +80,7 @@ extraConfigmaps: []
 # - key: templates
 #   annotations: {}
 #   mountPath: /templates
-#   data:
+#   data: |
 #     manifest-docker.tmpl: |
 #       labels:
 #         container: {{.ContainerName}}
