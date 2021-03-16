@@ -12,8 +12,10 @@ metadata:
   annotations:
     {{- toYaml . | nindent 4 -}}
   {{- end }}
-{{- with .data }}
+{{- if .data }}
 data:
-  {{- tpl . $ | nindent 2 }}
-{{- end }}
+  {{- range $key, $value := .data }}
+  {{ $key }}: |
+    {{- tpl $value $ | nindent 4 }}
+  {{- end }}
 {{- end }}
