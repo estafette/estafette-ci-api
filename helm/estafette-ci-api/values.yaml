@@ -196,14 +196,11 @@ config:
       integrations:
         github:
           enable: false
-          privateKeyPath: /secrets/private-key.pem
+          privateKeyPath: /github-app-key/private-key.pem
           appID: 15
           clientID: asdas2342
           clientSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
           webhookSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
-          whitelistedInstallations:
-          - 15
-          - 83
           installationOrganizations:
           - installation: 15
             organizations:
@@ -217,8 +214,6 @@ config:
           apiKey: sd9ewiwuejkwejkewk
           appOAuthKey: 2390w3e90jdsk
           appOAuthSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
-          whitelistedOwners:
-          - estafette
           ownerOrganizations:
           - owner: estafette
             organizations:
@@ -242,8 +237,6 @@ config:
 
         cloudsource:
           enable: false
-          whitelistedProjects:
-          - estafette
           projectOrganizations:
           - project: estafette
             organizations:
@@ -265,33 +258,160 @@ config:
           bucket: my-bucket
           logsDir: logs
 
+        cloudsource:
+          enable: false
+          projectOrganizations:
+          - project: estafette
+            organizations:
+            - name: Estafette
+
       apiServer:
-        baseURL:
-        serviceURL:
+        baseURL: https://ci.estafette.io
+        serviceURL: http://estafette-ci-api.estafette-ci.svc.cluster.local
+        logWriters:
+        - database
+        logReader: database
+        injectStages:
+          build:
+            before:
+            - name: envvars
+              image: extensions/envvars:stable
+            after: []
+          release:
+            before:
+            - name: envvars
+              image: extensions/envvars:stable
+            after: []
+        injectStagesPerOperatingSystem:
+          linux:
+            build:
+              before:
+              - name: envvars
+                image: extensions/envvars:stable
+              after: []
+            release:
+              before:
+              - name: envvars
+                image: extensions/envvars:stable
+              after: []
+          windows:
+            build:
+              before:
+              - name: envvars
+                image: extensions/envvars:nanoserver-1809-stable
+              after: []
+            release:
+              before:
+              - name: envvars
+                image: extensions/envvars:nanoserver-1809-stable
+              after: []
+        injectCommandsPerOperatingSystemAndShell:
+          linux:
+            /bin/sh:
+              before: []
+              after: []
+            /bin/bash:
+              before: []
+              after: []
+          windows:
+            cmd:
+              before:
+              - netsh interface ipv4 set subinterface 31 mtu=1410
+              after: []
+            powershell:
+              before:
+              - Get-NetAdapter | Where-Object Name -like "*Ethernet*" | ForEach-Object { & netsh interface ipv4 set subinterface $_.InterfaceIndex mtu=1410 store=persistent }
+              after: []
+        dockerConfigPerOperatingSystem:
+          linux:
+            runType: dind
+            mtu: 1460
+            bip: 192.168.1.1/24
+            networks:
+            - name: estafette
+              driver: default
+              subnet: 192.168.2.1/24
+              gateway: 192.168.2.1
+              durable: false
+            registryMirror: https://mirror.gcr.io
+          windows:
+            runType: dod
+            mtu: 1410
 
       jobs:
         # the namespace in which build/release jobs are created
         namespace: {{ .Release.Namespace }}-jobs
-        minCPUCores: 0.1
-        maxCPUCores: 7.0
+
+        defaultCPUCores: 2.0
+        minCPUCores: 0.2
+        maxCPUCores: 14.0
         cpuRequestRatio: 1.0
-        minMemoryBytes: 67108864
-        maxMemoryBytes: 21474836480
+        cpuLimitRatio: 3.0
+
+        defaultMemoryBytes: 8589934592
+        minMemoryBytes: 134217728
+        maxMemoryBytes: 53687091200
         memoryRequestRatio: 1.25
+        memoryLimitRatio: 1.0
+
+        build:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: role
+                    operator: In
+                    values:
+                    - privileged
+                  - key: cloud.google.com/gke-preemptible
+                    operator: DoesNotExist
+          tolerations:
+          - key: role
+            operator: Equal
+            value: privileged
+            effect: NoSchedule
+
+        release:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: role
+                    operator: In
+                    values:
+                    - privileged
+                  - key: cloud.google.com/gke-preemptible
+                    operator: DoesNotExist
+          tolerations:
+          - key: role
+            operator: Equal
+            value: privileged
+            effect: NoSchedule
 
       auth:
-        iap:
-          enable:
-          audience:
-        apiKey:
+        jwt:
+          domain:
+          realm:
+          key:
+        administrators:
+        - admin@estafette.io
+        organizations:
+        - name: Estafette
+          oauthProviders:
+          - name: google
+            clientID:
+            clientSecret:
+            allowedIdentitiesRegex:
 
       database:
-        databaseName:
-        host:
-        insecure:
-        certificateDir:
-        port:
-        user:
+        databaseName: estafette_ci_api
+        host: cockroachdb-public.estafette-ci.svc.cluster.local
+        insecure: false
+        certificateDir: /cockroach-certs
+        port: 26257
+        user: api
         password:
 
       credentials:

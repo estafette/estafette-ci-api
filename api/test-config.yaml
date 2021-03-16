@@ -6,9 +6,6 @@ integrations:
     clientID: asdas2342
     clientSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
     webhookSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
-    allowedInstallations:
-    - 15
-    - 83
     installationOrganizations:
     - installation: 15
       organizations:
@@ -22,13 +19,11 @@ integrations:
     apiKey: sd9ewiwuejkwejkewk
     appOAuthKey: 2390w3e90jdsk
     appOAuthSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
-    allowedOwners:
-    - estafette
     ownerOrganizations:
     - owner: estafette
       organizations:
       - name: Estafette
-  
+
   slack:
     enable: true
     clientID: d9ew90weoijewjke
@@ -47,8 +42,6 @@ integrations:
 
   cloudsource:
     enable: true
-    whitelistedProjects:
-    - estafette
     projectOrganizations:
     - project: estafette
       organizations:
@@ -71,8 +64,7 @@ integrations:
     logsDir: logs
 
   cloudsource:
-    allowedProjects:
-    - estafette
+    enable: true
     projectOrganizations:
     - project: estafette
       organizations:

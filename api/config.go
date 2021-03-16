@@ -324,13 +324,13 @@ type APIConfigIntegrations struct {
 
 // GithubConfig is used to configure github integration
 type GithubConfig struct {
-	Enable                    bool                        `yaml:"enable"`
-	PrivateKeyPath            string                      `yaml:"privateKeyPath"`
-	AppID                     string                      `yaml:"appID"`
-	ClientID                  string                      `yaml:"clientID"`
-	ClientSecret              string                      `yaml:"clientSecret"`
-	WebhookSecret             string                      `yaml:"webhookSecret"`
-	AllowedInstallations      []int                       `yaml:"allowedInstallations"`
+	Enable         bool   `yaml:"enable"`
+	PrivateKeyPath string `yaml:"privateKeyPath"`
+	AppID          string `yaml:"appID"`
+	ClientID       string `yaml:"clientID"`
+	ClientSecret   string `yaml:"clientSecret"`
+	WebhookSecret  string `yaml:"webhookSecret"`
+	// AllowedInstallations      []int                       `yaml:"allowedInstallations"`
 	InstallationOrganizations []InstallationOrganizations `yaml:"installationOrganizations"`
 }
 
@@ -342,11 +342,11 @@ type InstallationOrganizations struct {
 
 // BitbucketConfig is used to configure bitbucket integration
 type BitbucketConfig struct {
-	Enable             bool                 `yaml:"enable"`
-	APIKey             string               `yaml:"apiKey"`
-	AppOAuthKey        string               `yaml:"appOAuthKey"`
-	AppOAuthSecret     string               `yaml:"appOAuthSecret"`
-	AllowedOwners      []string             `yaml:"allowedOwners"`
+	Enable         bool   `yaml:"enable"`
+	APIKey         string `yaml:"apiKey"`
+	AppOAuthKey    string `yaml:"appOAuthKey"`
+	AppOAuthSecret string `yaml:"appOAuthSecret"`
+	// AllowedOwners      []string             `yaml:"allowedOwners"`
 	OwnerOrganizations []OwnerOrganizations `yaml:"ownerOrganizations"`
 }
 
@@ -401,7 +401,6 @@ type BigQueryConfig struct {
 // CloudSourceConfig is used to configure cloudSource integration
 type CloudSourceConfig struct {
 	Enable               bool                   `yaml:"enable"`
-	AllowedProjects      []string               `yaml:"allowedProjects"`
 	ProjectOrganizations []ProjectOrganizations `yaml:"projectOrganizations"`
 }
 

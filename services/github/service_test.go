@@ -349,9 +349,7 @@ func TestRename(t *testing.T) {
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
-				Github: &api.GithubConfig{
-					AllowedInstallations: []int{},
-				},
+				Github: &api.GithubConfig{},
 			},
 		}
 
