@@ -27,7 +27,7 @@ stages:
   build-lint-and-package:
     parallelStages:
       build:
-        image: golang:1.16.0-alpine
+        image: golang:1.16-alpine
         env:
           CGO_ENABLED: 0
           GOOS: linux
@@ -65,7 +65,7 @@ stages:
       ESTAFETTE_LOG_FORMAT: console
 
   integration-tests:
-    image: golang:1.16.0-alpine
+    image: golang:1.16-alpine
     env:
       CGO_ENABLED: 0
       GOOS: linux
