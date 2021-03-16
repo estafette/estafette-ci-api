@@ -40,8 +40,8 @@ helm.sh/chart: {{ include "estafette-ci-api.chart" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- with .Values.extraLabels }}
-{{- toYaml . }}
+{{- range $key, $value := .Values.extraLabels }}
+{{ $key }}: {{ $value }}
 {{- end }}
 {{- end }}
 
