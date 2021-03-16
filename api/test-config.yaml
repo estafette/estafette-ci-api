@@ -219,8 +219,6 @@ jobs:
       value: privileged
       effect: NoSchedule
 
-
-
 database:
   databaseName: estafette_ci_api
   host: cockroachdb-public.estafette.svc.cluster.local
