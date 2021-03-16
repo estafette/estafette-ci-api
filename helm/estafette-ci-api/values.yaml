@@ -67,6 +67,7 @@ fullnameOverride: ""
 jobNamespaceOverride: ""
 
 extraLabels: {}
+#   team: estafette
 
 extraSecrets: []
 # - key: gcp
@@ -130,14 +131,14 @@ ingress:
           service:
             name: estafette-ci-api
             port:
-              number: http
+              name: http
       - path: /
         pathType: Prefix
         backend:
           service:
             name: estafette-ci-web
             port:
-              number: http
+              name: http
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
@@ -158,35 +159,35 @@ ingressWebhooks:
           service:
             name: estafette-ci-api
             port:
-              number: http
+              name: http
       - path: /api/integrations/cloudsource
         pathType: Prefix
         backend:
           service:
             name: estafette-ci-api
             port:
-              number: http
+              name: http
       - path: /api/integrations/github
         pathType: Prefix
         backend:
           service:
             name: estafette-ci-api
             port:
-              number: http
+              name: http
       - path: /api/integrations/pubsub
         pathType: Prefix
         backend:
           service:
             name: estafette-ci-api
             port:
-              number: http
+              name: http
       - path: /api/integrations/slack
         pathType: Prefix
         backend:
           service:
             name: estafette-ci-api
             port:
-              number: http
+              name: http
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
