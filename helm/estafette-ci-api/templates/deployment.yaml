@@ -1,3 +1,4 @@
+{{- $fullName := include "estafette-ci-api.fullname" . -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -26,7 +27,7 @@ spec:
       {{- if or .Values.image.credentials .Values.imagePullSecrets }}
       imagePullSecrets:
       {{- if .Values.image.credentials }}
-        - name: {{ template "cockroachdb.fullname" . }}.registry
+        - name: {{ template "estafette-ci-api.fullname" . }}.registry
       {{- end }}
       {{- with .Values.imagePullSecrets }}
         {{- toYaml . | nindent 8 }}
@@ -101,19 +102,18 @@ spec:
         secret:
           secretName: {{ include "estafette-ci-api.fullname" . }}
       {{- end }}
-
       {{- range .Values.extraConfigmaps }}
       {{- if .mountPath }}
       - name: configs.{{ .key }}
         configMap: 
-          name: {{ include "estafette-ci-api.fullname" . }}.{{ .key }}
+          name: {{ $fullname }}.{{ .key }}
       {{- end }}
       {{- end }}
       {{- range .Values.extraSecrets }}
       {{- if .mountPath }}
       - name: secrets.{{ .key }}
         secret:
-          secretName: {{ include "estafette-ci-api.fullname" . }}.{{ .key }}
+          secretName: {{ $fullname }}.{{ .key }}
       {{- end }}
       {{- end }}
       {{- with .Values.deployment.extraVolumes }}
