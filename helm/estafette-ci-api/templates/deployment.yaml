@@ -72,13 +72,13 @@ spec:
           {{- end }}
           {{- range .Values.extraConfigmaps }}
           {{- if .mountPath }}
-          - name: configs.{{ .key }}
+          - name: configs-{{ .key }}
             mountPath: {{ .mountPath }}
           {{- end }}
           {{- end }}
           {{- range .Values.extraSecrets }}
           {{- if .mountPath }}
-          - name: secrets.{{ .key }}
+          - name: secrets-{{ .key }}
             mountPath: {{ .mountPath }}
           {{- end }}
           {{- end }}
@@ -104,14 +104,14 @@ spec:
       {{- end }}
       {{- range .Values.extraConfigmaps }}
       {{- if .mountPath }}
-      - name: configs.{{ .key }}
+      - name: configs-{{ .key }}
         configMap: 
           name: {{ $fullName }}.{{ .key }}
       {{- end }}
       {{- end }}
       {{- range .Values.extraSecrets }}
       {{- if .mountPath }}
-      - name: secrets.{{ .key }}
+      - name: secrets-{{ .key }}
         secret:
           secretName: {{ $fullName }}.{{ .key }}
       {{- end }}
