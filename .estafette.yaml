@@ -125,90 +125,52 @@ stages:
     image: extensions/helm:dev
     action: test
     values: |-
+      deployment:
+        env:
+        - name: JAEGER_DISABLED
+          value: 'true'
       secret:
-        secretDecryptionKey: 1PsvXVOMkhfAQuBIcIGCtzIdPXNV0NYG
+        files:
+          secretDecryptionKey: 1PsvXVOMkhfAQuBIcIGCtzIdPXNV0NYG
+      ingress:
+        enabled: true
+      ingressWebhooks:
+        enabled: true
 
-        # tls certificate generated with
-        # > openssl req -x509 -sha256 -nodes -days 1024 -newkey rsa:2048 -keyout certificate.key -out certificate.crt
-        # > cat certificate.crt certificate.key | base64
-        certificatePemFile: |
-          -----BEGIN CERTIFICATE-----
-          MIIDDDCCAfQCCQDPOxdKcxP9xjANBgkqhkiG9w0BAQsFADBIMQswCQYDVQQGEwJJ
-          TzESMBAGA1UECgwJRXN0YWZldHRlMQswCQYDVQQLDAJDSTEYMBYGA1UEAwwPY2ku
-          ZXN0YWZldHRlLmlvMB4XDTE5MTExMjE2MTUzOFoXDTIyMDkwMTE2MTUzOFowSDEL
-          MAkGA1UEBhMCSU8xEjAQBgNVBAoMCUVzdGFmZXR0ZTELMAkGA1UECwwCQ0kxGDAW
-          BgNVBAMMD2NpLmVzdGFmZXR0ZS5pbzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCC
-          AQoCggEBAKw2FPLy7bRfQhh0pA+0VC3Hjeg0zkf1haxd3F3vrPzT8/HyUEHW7OBW
-          iU/bgoGey3vWtO0fCcUmQ1/zvgIB/milFth2WrNe87QLPEPyyLgaQVVcaLMPkO9Y
-          f6NH+9Dom9hoTXElBOQV20kykPW+6vQJ5LJDM08gJIjrdRIspPts4LR/WR1dlC7Y
-          Tb8jNEpnTz8YKSBXpbsgJ4wP8QXKmrKEIVh1R70L3DpvkhzWtxUpd7TjumBEO7J0
-          rK7UHE+i01f3ZQoB+dP6aa2Eglh5hW1esjHOv+9r43MtGcUbIUTRXFTXAxW7eyQo
-          UXmyOO+8893pIVDd4PjgGe6gLoq2PikCAwEAATANBgkqhkiG9w0BAQsFAAOCAQEA
-          kZVfx38FDkPLF4/Vc0ouX2E3UL/FOsyQ6C/rwI17hB+vMF0fpi9q2rk1pOsMuLyo
-          ohU1QgtyL4G0WVLHwofhM/kNZ7fVGZoFb3ElVX80n+3Y0QfQ19CjX0Z51LZN667H
-          RQbBhL8VrSply9n7LfgjY/6JgegKHdBz05ip0TD6abhy1luE3QR6n/NnEVxgCuzu
-          jfvsJax9IFJskmV+5po9C9M6yx2yUgMev8xs8W0le6K8bFXn9pI7dMKjAU6VSAaB
-          Ecj/5bwM8q484hEx3/RdJA7U/iksvGpcSGeIZZKIuPoEGIymP7zknpM1EYnJW4Ms
-          capUuV75/Asf/eW6C3lS7A==
-          -----END CERTIFICATE-----
-          -----BEGIN PRIVATE KEY-----
-          MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCsNhTy8u20X0IY
-          dKQPtFQtx43oNM5H9YWsXdxd76z80/Px8lBB1uzgVolP24KBnst71rTtHwnFJkNf
-          874CAf5opRbYdlqzXvO0CzxD8si4GkFVXGizD5DvWH+jR/vQ6JvYaE1xJQTkFdtJ
-          MpD1vur0CeSyQzNPICSI63USLKT7bOC0f1kdXZQu2E2/IzRKZ08/GCkgV6W7ICeM
-          D/EFypqyhCFYdUe9C9w6b5Ic1rcVKXe047pgRDuydKyu1BxPotNX92UKAfnT+mmt
-          hIJYeYVtXrIxzr/va+NzLRnFGyFE0VxU1wMVu3skKFF5sjjvvPPd6SFQ3eD44Bnu
-          oC6Ktj4pAgMBAAECggEAbI4q5nr8HJdvsrrUMJIb/j+s1JN09Sdv/BeusghDo5x4
-          SivVK6uv5jqmlBBrVAolewr9QfwuzHgyQGoFfH6FQLHQlOMGictxFC2A79Q7ctIa
-          HRUDatyFIFtJGkRmGGqI0wHsz0Xmr2CXuqyFdGPE99DEuRpjXZ2FakoColJCLbqL
-          qg9kO8zTa8QP6kBvpZr1BMA/jHhaW+BxrVZjvTVSb6P9PGnczKZq1dODScGzJZuj
-          4pF5amgSAKBOIP0O5LAoZCqGrDP6/hvH9+UMVgTJdqPRVSjigru3fZ6wC9M0MT4L
-          rIBKfrLuhuVi4gUir/5aG542pHXColhN36SQmOMTgQKBgQDVrCqLBrRyNNUC0FsL
-          5QetgPdV1W4b8m6kPn6iGVAeKm1jdhoi9bEHEX44/n4J2S6CH9ZPxlSNQN5S/n21
-          CfpyzsVBCYDXF5232Gzd3tLB/10LyzbpcsLx8z/yDLX1T7+rK1vjAWF5gyxNZMzF
-          hS58KKy8m31bcMS9LkDm9HKd3wKBgQDOU1FYbgDiK9aBLVeQQ/6ACMEFlLp/8S2P
-          6JXDZnkzIaESjdaGmO8DMBd2rnoCdMyykb9QDiDhjNa0gBUQzeST94eJ+8dJsB/6
-          fCzVfB+HX9ha5L7BZUWiBjvLP8+oEB9kwLTinTETUL/fJxb+4remiwvlYs8gcx5v
-          Pi0CmIWU9wKBgAI4ZMTHEA7zv5bk5V1NRvQll+xbaGZ/8Whhgd1bV/rIRBS5gHIG
-          jY1eQCqFcnfVuub9P7PagrxpBSZloJbGAMU6otAXMjCJ/UiQxijUDOqZJbVeqjZo
-          y9/JwEtamHVxG7PCopTMSeACXe578qjGxoHhxlG7Z+UQWesBVQlRVvOPAoGAM+ur
-          kME936yAckliu58gsD+Ds0/WDtQ2TvyMk3t6DG/uBKlEzuI1Y2v6u5b0hSG3UUh0
-          CEVF6Px0G0AQDQaC+ulTZlnBsL1tjq8o6SAvHvXzkAv4JNrDRx6idWc9bmGARO5p
-          lo1QCDhN0G4Zz1JmPLbI65SN4vCVPBE9amXPV8kCgYBiD0jOTLwaSQLtlqit9WRJ
-          L+ZByYDbN4XOU4Jpx1Cy7GQ+OjNFukdeFWz3ANJ7/mz19g2ex60vr8Vy5iw8YB6V
-          zT9LCD3MoGlnP21F9KoOg09Qx3DarI7yKv8I29Po6OC4w2Xk5vHDy1mgE+uhQRdz
-          EpuAz9izJ7w7uYT9b8buIg==
-          -----END PRIVATE KEY-----
-        # > cat certificate.key | base64
-        certificateKeyFile: |
-          -----BEGIN PRIVATE KEY-----
-          MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCsNhTy8u20X0IY
-          dKQPtFQtx43oNM5H9YWsXdxd76z80/Px8lBB1uzgVolP24KBnst71rTtHwnFJkNf
-          874CAf5opRbYdlqzXvO0CzxD8si4GkFVXGizD5DvWH+jR/vQ6JvYaE1xJQTkFdtJ
-          MpD1vur0CeSyQzNPICSI63USLKT7bOC0f1kdXZQu2E2/IzRKZ08/GCkgV6W7ICeM
-          D/EFypqyhCFYdUe9C9w6b5Ic1rcVKXe047pgRDuydKyu1BxPotNX92UKAfnT+mmt
-          hIJYeYVtXrIxzr/va+NzLRnFGyFE0VxU1wMVu3skKFF5sjjvvPPd6SFQ3eD44Bnu
-          oC6Ktj4pAgMBAAECggEAbI4q5nr8HJdvsrrUMJIb/j+s1JN09Sdv/BeusghDo5x4
-          SivVK6uv5jqmlBBrVAolewr9QfwuzHgyQGoFfH6FQLHQlOMGictxFC2A79Q7ctIa
-          HRUDatyFIFtJGkRmGGqI0wHsz0Xmr2CXuqyFdGPE99DEuRpjXZ2FakoColJCLbqL
-          qg9kO8zTa8QP6kBvpZr1BMA/jHhaW+BxrVZjvTVSb6P9PGnczKZq1dODScGzJZuj
-          4pF5amgSAKBOIP0O5LAoZCqGrDP6/hvH9+UMVgTJdqPRVSjigru3fZ6wC9M0MT4L
-          rIBKfrLuhuVi4gUir/5aG542pHXColhN36SQmOMTgQKBgQDVrCqLBrRyNNUC0FsL
-          5QetgPdV1W4b8m6kPn6iGVAeKm1jdhoi9bEHEX44/n4J2S6CH9ZPxlSNQN5S/n21
-          CfpyzsVBCYDXF5232Gzd3tLB/10LyzbpcsLx8z/yDLX1T7+rK1vjAWF5gyxNZMzF
-          hS58KKy8m31bcMS9LkDm9HKd3wKBgQDOU1FYbgDiK9aBLVeQQ/6ACMEFlLp/8S2P
-          6JXDZnkzIaESjdaGmO8DMBd2rnoCdMyykb9QDiDhjNa0gBUQzeST94eJ+8dJsB/6
-          fCzVfB+HX9ha5L7BZUWiBjvLP8+oEB9kwLTinTETUL/fJxb+4remiwvlYs8gcx5v
-          Pi0CmIWU9wKBgAI4ZMTHEA7zv5bk5V1NRvQll+xbaGZ/8Whhgd1bV/rIRBS5gHIG
-          jY1eQCqFcnfVuub9P7PagrxpBSZloJbGAMU6otAXMjCJ/UiQxijUDOqZJbVeqjZo
-          y9/JwEtamHVxG7PCopTMSeACXe578qjGxoHhxlG7Z+UQWesBVQlRVvOPAoGAM+ur
-          kME936yAckliu58gsD+Ds0/WDtQ2TvyMk3t6DG/uBKlEzuI1Y2v6u5b0hSG3UUh0
-          CEVF6Px0G0AQDQaC+ulTZlnBsL1tjq8o6SAvHvXzkAv4JNrDRx6idWc9bmGARO5p
-          lo1QCDhN0G4Zz1JmPLbI65SN4vCVPBE9amXPV8kCgYBiD0jOTLwaSQLtlqit9WRJ
-          L+ZByYDbN4XOU4Jpx1Cy7GQ+OjNFukdeFWz3ANJ7/mz19g2ex60vr8Vy5iw8YB6V
-          zT9LCD3MoGlnP21F9KoOg09Qx3DarI7yKv8I29Po6OC4w2Xk5vHDy1mgE+uhQRdz
-          EpuAz9izJ7w7uYT9b8buIg==
-          -----END PRIVATE KEY-----
+      extraLabels:
+        team: estafette
+
+      extraSecrets:
+      - key: gcp
+        annotations: {}
+        mountPath: /gcp
+        data:
+          service-account-key.json: |
+            {}
+
+      extraConfigmaps:
+      - key: templates
+        annotations: {}
+        mountPath: /templates
+        data:
+          manifest-docker.tmpl: |
+            labels:
+              container: {{.ContainerName}}
+              team: {{.TeamName}}
+              language: docker
+
+            stages:
+              bake:
+                image: extensions/docker:stable
+                action: build
+                repositories:
+                - estafette
+
+              push-to-docker-registry:
+                image: extensions/docker:stable
+                action: push
+                repositories:
+                - estafette
 
   clone-charts-repo:
     image: extensions/git-clone:dev
@@ -391,9 +353,7 @@ releases:
           jobs:
             namespace: estafette-ci-jobs
           secret:
-            valuesAreBase64Encoded: true
-            decryptionKey: MVBzdlhWT01raGZBUXVCSWNJR0N0eklkUFhOVjBOWUcK
-            useLetsEncryptCertificateAnnotation: true
+            decryptionKey: 1PsvXVOMkhfAQuBIcIGCtzIdPXNV0NYG
           hostnames:
           - estafette.secret(z6C9Piz4EhMxWMc8.uxcITmg39HiLJuuqSyPRM06PTWNd6S1x1QxfYYeyGoBLcgkM)
           jaeger:

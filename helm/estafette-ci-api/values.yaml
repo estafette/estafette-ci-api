@@ -125,13 +125,19 @@ ingress:
     - host: ci.estafette.io
       paths:
       - path: /api/
+        pathType: Prefix
         backend:
-          serviceName: estafette-ci-api
-          servicePort: http
+          service:
+            name: estafette-ci-api
+            port:
+              number: http
       - path: /
+        pathType: Prefix
         backend:
-          serviceName: estafette-ci-web
-          servicePort: http
+          service:
+            name: estafette-ci-web
+            port:
+              number: http
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
@@ -147,25 +153,40 @@ ingressWebhooks:
     - host: ci-webhooks.estafette.io
       paths:
       - path: /api/integrations/bitbucket
+        pathType: Prefix
         backend:
-          serviceName: estafette-ci-api
-          servicePort: http
+          service:
+            name: estafette-ci-api
+            port:
+              number: http
       - path: /api/integrations/cloudsource
+        pathType: Prefix
         backend:
-          serviceName: estafette-ci-api
-          servicePort: http
+          service:
+            name: estafette-ci-api
+            port:
+              number: http
       - path: /api/integrations/github
+        pathType: Prefix
         backend:
-          serviceName: estafette-ci-api
-          servicePort: http
+          service:
+            name: estafette-ci-api
+            port:
+              number: http
       - path: /api/integrations/pubsub
+        pathType: Prefix
         backend:
-          serviceName: estafette-ci-api
-          servicePort: http
+          service:
+            name: estafette-ci-api
+            port:
+              number: http
       - path: /api/integrations/slack
+        pathType: Prefix
         backend:
-          serviceName: estafette-ci-api
-          servicePort: http
+          service:
+            name: estafette-ci-api
+            port:
+              number: http
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
