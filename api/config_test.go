@@ -28,10 +28,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		githubConfig := config.Integrations.Github
 
+		assert.Nil(t, err)
 		assert.True(t, githubConfig.Enable)
 		assert.Equal(t, "/github-app-key/private-key.pem", githubConfig.PrivateKeyPath)
 		assert.Equal(t, "15", githubConfig.AppID)
@@ -52,10 +53,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		bitbucketConfig := config.Integrations.Bitbucket
 
+		assert.Nil(t, err)
 		assert.True(t, bitbucketConfig.Enable)
 		assert.Equal(t, "sd9ewiwuejkwejkewk", bitbucketConfig.APIKey)
 		assert.Equal(t, "2390w3e90jdsk", bitbucketConfig.AppOAuthKey)
@@ -72,10 +74,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		cloudsourceConfig := config.Integrations.CloudSource
 
+		assert.Nil(t, err)
 		assert.True(t, cloudsourceConfig.Enable)
 		assert.Equal(t, 1, len(cloudsourceConfig.ProjectOrganizations))
 		assert.Equal(t, "estafette", cloudsourceConfig.ProjectOrganizations[0].Project)
@@ -88,10 +91,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		pubsubConfig := config.Integrations.Pubsub
 
+		assert.Nil(t, err)
 		assert.True(t, pubsubConfig.Enable)
 		assert.Equal(t, "estafette", pubsubConfig.DefaultProject)
 		assert.Equal(t, "https://ci-integrations.estafette.io/api/integrations/pubsub/events", pubsubConfig.Endpoint)
@@ -106,10 +110,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		slackConfig := config.Integrations.Slack
 
+		assert.Nil(t, err)
 		assert.True(t, slackConfig.Enable)
 		assert.Equal(t, "d9ew90weoijewjke", slackConfig.ClientID)
 		assert.Equal(t, "this is my secret", slackConfig.ClientSecret)
@@ -122,10 +127,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		prometheusConfig := config.Integrations.Prometheus
 
+		assert.Nil(t, err)
 		assert.True(t, prometheusConfig.Enable)
 		assert.Equal(t, "http://prometheus-server.monitoring.svc.cluster.local", prometheusConfig.ServerURL)
 		assert.Equal(t, 10, prometheusConfig.ScrapeIntervalSeconds)
@@ -136,10 +142,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		bigqueryConfig := config.Integrations.BigQuery
 
+		assert.Nil(t, err)
 		assert.True(t, bigqueryConfig.Enable)
 		assert.Equal(t, "my-gcp-project", bigqueryConfig.ProjectID)
 		assert.Equal(t, "my-dataset", bigqueryConfig.Dataset)
@@ -150,10 +157,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		cloudStorageConfig := config.Integrations.CloudStorage
 
+		assert.Nil(t, err)
 		assert.True(t, cloudStorageConfig.Enable)
 		assert.Equal(t, "my-gcp-project", cloudStorageConfig.ProjectID)
 		assert.Equal(t, "my-bucket", cloudStorageConfig.Bucket)
@@ -165,16 +173,17 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		apiServerConfig := config.APIServer
 
+		assert.Nil(t, err)
 		assert.Equal(t, "https://ci.estafette.io/", apiServerConfig.BaseURL)
 		assert.Equal(t, "http://estafette-ci-api.estafette.svc.cluster.local/", apiServerConfig.ServiceURL)
 		assert.Equal(t, 2, len(apiServerConfig.LogWriters))
-		assert.Equal(t, "database", apiServerConfig.LogWriters[0])
-		assert.Equal(t, "cloudstorage", apiServerConfig.LogWriters[1])
-		assert.Equal(t, "database", apiServerConfig.LogReader)
+		assert.Equal(t, LogTargetDatabase, apiServerConfig.LogWriters[0])
+		assert.Equal(t, LogTargetCloudStorage, apiServerConfig.LogWriters[1])
+		assert.Equal(t, LogTargetDatabase, apiServerConfig.LogReader)
 
 		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem["linux"].Build.Before[0].Name)
 		assert.Equal(t, "extensions/envvars:stable", apiServerConfig.InjectStagesPerOperatingSystem["linux"].Build.Before[0].ContainerImage)
@@ -217,10 +226,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		authConfig := config.Auth
 
+		assert.Nil(t, err)
 		assert.Equal(t, "ci.estafette.io", authConfig.JWT.Domain)
 		assert.Equal(t, "this is my secret", authConfig.JWT.Key)
 
@@ -248,10 +258,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		jobsConfig := config.Jobs
 
+		assert.Nil(t, err)
 		assert.Equal(t, "estafette-ci-jobs", jobsConfig.Namespace)
 		assert.Equal(t, 2.0, jobsConfig.DefaultCPUCores)
 		assert.Equal(t, 0.2, jobsConfig.MinCPUCores)
@@ -271,9 +282,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		jobsConfig := config.Jobs
+
+		assert.Nil(t, err)
 
 		// build affinity
 		assert.Equal(t, v1.Affinity{
@@ -363,10 +376,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		databaseConfig := config.Database
 
+		assert.Nil(t, err)
 		assert.Equal(t, "estafette_ci_api", databaseConfig.DatabaseName)
 		assert.Equal(t, "cockroachdb-public.estafette.svc.cluster.local", databaseConfig.Host)
 		assert.Equal(t, true, databaseConfig.Insecure)
@@ -406,10 +420,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		catalogConfig := config.Catalog
 
+		assert.Nil(t, err)
 		assert.Equal(t, 2, len(catalogConfig.Filters))
 		assert.Equal(t, "type", catalogConfig.Filters[0])
 		assert.Equal(t, "team", catalogConfig.Filters[1])
@@ -420,10 +435,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		credentialsConfig := config.Credentials
 
+		assert.Nil(t, err)
 		assert.Equal(t, 9, len(credentialsConfig))
 		assert.Equal(t, "container-registry-extensions", credentialsConfig[0].Name)
 		assert.Equal(t, "container-registry", credentialsConfig[0].Type)
@@ -438,10 +454,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		trustedImagesConfig := config.TrustedImages
 
+		assert.Nil(t, err)
 		assert.Equal(t, 8, len(trustedImagesConfig))
 		assert.Equal(t, "extensions/docker", trustedImagesConfig[0].ImagePath)
 		assert.True(t, trustedImagesConfig[0].RunDocker)
@@ -461,7 +478,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
 
 		// act
-		config, _ := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 
 		credentialsConfig := config.Credentials
 
@@ -477,7 +494,7 @@ func TestWriteLogToDatabase(t *testing.T) {
 	t.Run("ReturnsTrueIfLogWritersIsEmpty", func(t *testing.T) {
 
 		config := APIServerConfig{
-			LogWriters: []string{},
+			LogWriters: []LogTarget{},
 		}
 
 		// act
@@ -489,9 +506,9 @@ func TestWriteLogToDatabase(t *testing.T) {
 	t.Run("ReturnsTrueIfLogWritersContainsDatabase", func(t *testing.T) {
 
 		config := APIServerConfig{
-			LogWriters: []string{
-				"cloudstorage",
-				"database",
+			LogWriters: []LogTarget{
+				LogTargetCloudStorage,
+				LogTargetDatabase,
 			},
 		}
 
@@ -504,8 +521,8 @@ func TestWriteLogToDatabase(t *testing.T) {
 	t.Run("ReturnsFalseIfLogWritersDoesNotContainDatabase", func(t *testing.T) {
 
 		config := APIServerConfig{
-			LogWriters: []string{
-				"cloudstorage",
+			LogWriters: []LogTarget{
+				LogTargetCloudStorage,
 			},
 		}
 
@@ -521,7 +538,7 @@ func TestWriteLogToCloudStorage(t *testing.T) {
 	t.Run("ReturnsFalseIfLogWritersIsEmpty", func(t *testing.T) {
 
 		config := APIServerConfig{
-			LogWriters: []string{},
+			LogWriters: []LogTarget{},
 		}
 
 		// act
@@ -533,9 +550,9 @@ func TestWriteLogToCloudStorage(t *testing.T) {
 	t.Run("ReturnsTrueIfLogWritersContainsCloudStorage", func(t *testing.T) {
 
 		config := APIServerConfig{
-			LogWriters: []string{
-				"cloudstorage",
-				"database",
+			LogWriters: []LogTarget{
+				LogTargetCloudStorage,
+				LogTargetDatabase,
 			},
 		}
 
@@ -548,8 +565,8 @@ func TestWriteLogToCloudStorage(t *testing.T) {
 	t.Run("ReturnsFalseIfLogWritersDoesNotContainCloudStorage", func(t *testing.T) {
 
 		config := APIServerConfig{
-			LogWriters: []string{
-				"database",
+			LogWriters: []LogTarget{
+				LogTargetDatabase,
 			},
 		}
 
@@ -565,7 +582,7 @@ func TestReadLogFromDatabase(t *testing.T) {
 	t.Run("ReturnsTrueIfLogReaderIsEmpty", func(t *testing.T) {
 
 		config := APIServerConfig{
-			LogReader: "",
+			LogReader: LogTargetUnknown,
 		}
 
 		// act
@@ -577,7 +594,7 @@ func TestReadLogFromDatabase(t *testing.T) {
 	t.Run("ReturnsTrueIfLogReaderEqualsDatabase", func(t *testing.T) {
 
 		config := APIServerConfig{
-			LogReader: "database",
+			LogReader: LogTargetDatabase,
 		}
 
 		// act
@@ -589,7 +606,7 @@ func TestReadLogFromDatabase(t *testing.T) {
 	t.Run("ReturnsFalseIfLogReaderDoesNotEqualDatabase", func(t *testing.T) {
 
 		config := APIServerConfig{
-			LogReader: "cloudstorage",
+			LogReader: LogTargetCloudStorage,
 		}
 
 		// act
@@ -604,7 +621,7 @@ func TestReadLogFromCloudStorage(t *testing.T) {
 	t.Run("ReturnsFalseIfLogReaderIsEmpty", func(t *testing.T) {
 
 		config := APIServerConfig{
-			LogReader: "",
+			LogReader: LogTargetUnknown,
 		}
 
 		// act
@@ -616,7 +633,7 @@ func TestReadLogFromCloudStorage(t *testing.T) {
 	t.Run("ReturnsTrueIfLogReaderEqualsCloudStorage", func(t *testing.T) {
 
 		config := APIServerConfig{
-			LogReader: "cloudstorage",
+			LogReader: LogTargetCloudStorage,
 		}
 
 		// act
@@ -628,7 +645,7 @@ func TestReadLogFromCloudStorage(t *testing.T) {
 	t.Run("ReturnsFalseIfLogReaderDoesNotCloudStorage", func(t *testing.T) {
 
 		config := APIServerConfig{
-			LogReader: "database",
+			LogReader: LogTargetDatabase,
 		}
 
 		// act

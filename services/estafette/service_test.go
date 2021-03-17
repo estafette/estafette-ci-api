@@ -359,7 +359,7 @@ func TestCreateBuild(t *testing.T) {
 		config := &api.APIConfig{
 			Jobs: &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{
-				LogWriters: []string{"cloudstorage"},
+				LogWriters: []api.LogTarget{api.LogTargetCloudStorage},
 			},
 		}
 		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
@@ -761,7 +761,7 @@ func TestRename(t *testing.T) {
 		config := &api.APIConfig{
 			Jobs: &api.JobsConfig{},
 			APIServer: &api.APIServerConfig{
-				LogWriters: []string{"cloudstorage"},
+				LogWriters: []api.LogTarget{api.LogTargetCloudStorage},
 			},
 		}
 		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
