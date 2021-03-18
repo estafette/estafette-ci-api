@@ -550,7 +550,7 @@ func (c *JobsConfig) SetDefaults() {
 		// get current namespace
 		namespace, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 		if err == nil {
-			c.Namespace = fmt.Sprintf("%v-jobs", namespace)
+			c.Namespace = fmt.Sprintf("%v-jobs", string(namespace))
 		}
 	}
 
