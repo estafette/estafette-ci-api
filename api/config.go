@@ -654,7 +654,7 @@ func (c *DatabaseConfig) SetDefaults() {
 		c.DatabaseName = "estafette_ci_api"
 	}
 	if c.Host == "" {
-		c.Host = "estafette-ci-db-public.estafette-ci.svc.cluster.local"
+		c.Host = "estafette-ci-db-public"
 	}
 	if c.CertificateDir == "" {
 		c.CertificateDir = "/cockroach-certs"
