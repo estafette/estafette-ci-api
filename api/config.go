@@ -570,8 +570,8 @@ func (c *JobsConfig) SetDefaults() {
 		c.MinCPUCores = 0.05
 	}
 	if c.DefaultCPUCores <= 0 {
-		// 100m
-		c.DefaultCPUCores = 0.1
+		// 500m
+		c.DefaultCPUCores = 0.5
 	}
 	if c.MaxCPUCores <= 0 {
 		// 1000m
