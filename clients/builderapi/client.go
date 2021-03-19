@@ -1158,7 +1158,6 @@ func (c *client) getCiBuilderJobResources(ctx context.Context, ciBuilderParams C
 
 	// define resource request and limit values from job resources struct, so we can autotune later on
 	cpuRequest := fmt.Sprintf("%f", ciBuilderParams.JobResources.CPURequest)
-	cpuLimit := fmt.Sprintf("%f", ciBuilderParams.JobResources.CPULimit)
 	memoryRequest := fmt.Sprintf("%.0f", ciBuilderParams.JobResources.MemoryRequest)
 	memoryLimit := fmt.Sprintf("%.0f", ciBuilderParams.JobResources.MemoryLimit)
 
@@ -1168,7 +1167,6 @@ func (c *client) getCiBuilderJobResources(ctx context.Context, ciBuilderParams C
 			"memory": resource.MustParse(memoryRequest),
 		},
 		Limits: v1.ResourceList{
-			"cpu":    resource.MustParse(cpuLimit),
 			"memory": resource.MustParse(memoryLimit),
 		},
 	}
