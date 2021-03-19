@@ -224,6 +224,17 @@ func (c *APIServerConfig) SetDefaults() {
 	if c.LogReader == "" {
 		c.LogReader = LogTargetDatabase
 	}
+
+	if c.DockerConfigPerOperatingSystem == nil || len(c.DockerConfigPerOperatingSystem) == 0 {
+		c.DockerConfigPerOperatingSystem = map[string]contracts.DockerConfig{
+			"linux": contracts.DockerConfig{
+				RunType: contracts.DockerRunTypeDinD,
+			},
+			"windows": contracts.DockerConfig{
+				RunType: contracts.DockerRunTypeDoD,
+			},
+		}
+	}
 }
 
 func (c *APIServerConfig) Validate() (err error) {

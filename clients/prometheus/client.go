@@ -44,11 +44,18 @@ type client struct {
 }
 
 func (c *client) AwaitScrapeInterval(ctx context.Context) {
+	if !c.enabled {
+		return
+	}
+
 	log.Debug().Msgf("Waiting for %v seconds before querying Prometheus", c.config.Integrations.Prometheus.ScrapeIntervalSeconds)
 	time.Sleep(time.Duration(c.config.Integrations.Prometheus.ScrapeIntervalSeconds) * time.Second)
 }
 
 func (c *client) GetMaxMemoryByPodName(ctx context.Context, podName string) (maxMemory float64, err error) {
+	if !c.enabled {
+		return
+	}
 
 	query := fmt.Sprintf("max_over_time(container_memory_working_set_bytes{container=\"estafette-ci-builder\",pod=\"%v\"}[3h])", podName)
 
@@ -61,6 +68,9 @@ func (c *client) GetMaxMemoryByPodName(ctx context.Context, podName string) (max
 }
 
 func (c *client) GetMaxCPUByPodName(ctx context.Context, podName string) (maxCPU float64, err error) {
+	if !c.enabled {
+		return
+	}
 
 	query := fmt.Sprintf("max_over_time(container_cpu_usage_rate1m{container=\"estafette-ci-builder\",pod=\"%v\"}[3h])", podName)
 
