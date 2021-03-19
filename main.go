@@ -729,6 +729,11 @@ func initJaeger() io.Closer {
 		log.Fatal().Err(err).Msg("Generating Jaeger config from environment variables failed")
 	}
 
+	// disable jaeger if service name is empty
+	if cfg.ServiceName == "" {
+		cfg.Disabled = true
+	}
+
 	closer, err := cfg.InitGlobalTracer(cfg.ServiceName, jaegercfg.Logger(jaeger.StdLogger), jaegercfg.Metrics(jprom.New()))
 
 	if err != nil {

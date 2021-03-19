@@ -30,6 +30,7 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
+	foundation "github.com/estafette/estafette-foundation"
 	"github.com/rs/zerolog/log"
 )
 
@@ -828,6 +829,12 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 
 func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuilderParams CiBuilderParams) (environmentVariables []v1.EnvVar) {
 
+	// ensure a json log format is used by the ci-builder, so logs can be tailed
+	logFormat := os.Getenv("ESTAFETTE_LOG_FORMAT")
+	if logFormat != foundation.LogFormatJSON && logFormat != foundation.LogFormatV3 {
+		logFormat = foundation.LogFormatJSON
+	}
+
 	environmentVariables = []v1.EnvVar{
 		{
 			Name:  "BUILDER_CONFIG_PATH",
@@ -835,27 +842,7 @@ func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuil
 		},
 		{
 			Name:  "ESTAFETTE_LOG_FORMAT",
-			Value: os.Getenv("ESTAFETTE_LOG_FORMAT"),
-		},
-		{
-			Name:  "JAEGER_SERVICE_NAME",
-			Value: "estafette-ci-builder",
-		},
-		{
-			Name: "JAEGER_AGENT_HOST",
-			ValueFrom: &v1.EnvVarSource{
-				FieldRef: &v1.ObjectFieldSelector{
-					FieldPath: "status.hostIP",
-				},
-			},
-		},
-		{
-			Name:  "JAEGER_SAMPLER_TYPE",
-			Value: "const",
-		},
-		{
-			Name:  "JAEGER_SAMPLER_PARAM",
-			Value: "1",
+			Value: logFormat,
 		},
 		{
 			Name: "POD_NAME",
@@ -867,7 +854,42 @@ func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuil
 		},
 	}
 
-	// forward all envars prefixed with JAEGER_ to builder job
+	// configure jaeger for ci-builder
+	jaegerServiceName := os.Getenv("JAEGER_SERVICE_NAME")
+	jaegerDisabled := os.Getenv("JAEGER_DISABLED")
+
+	if jaegerServiceName != "" && jaegerDisabled != "true" {
+		environmentVariables = append(environmentVariables, []v1.EnvVar{
+			{
+				Name:  "JAEGER_SERVICE_NAME",
+				Value: "estafette-ci-builder",
+			},
+			{
+				Name: "JAEGER_AGENT_HOST",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						FieldPath: "status.hostIP",
+					},
+				},
+			},
+			{
+				Name:  "JAEGER_SAMPLER_TYPE",
+				Value: "const",
+			},
+			{
+				Name:  "JAEGER_SAMPLER_PARAM",
+				Value: "1",
+			},
+		}...)
+	} else {
+		environmentVariables = append(environmentVariables,
+			v1.EnvVar{
+				Name:  "JAEGER_DISABLED",
+				Value: "true",
+			})
+	}
+
+	// forward all envars prefixed with JAEGER_ to builder job except for the ones already set above
 	for _, e := range os.Environ() {
 		kvPair := strings.SplitN(e, "=", 2)
 
@@ -875,7 +897,7 @@ func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuil
 			envvarName := kvPair[0]
 			envvarValue := kvPair[1]
 
-			if strings.HasPrefix(envvarName, "JAEGER_") && envvarName != "JAEGER_SERVICE_NAME" && envvarName != "JAEGER_AGENT_HOST" && envvarName != "JAEGER_SAMPLER_TYPE" && envvarName != "JAEGER_SAMPLER_PARAM" && envvarValue != "" {
+			if strings.HasPrefix(envvarName, "JAEGER_") && envvarName != "JAEGER_SERVICE_NAME" && envvarName != "JAEGER_AGENT_HOST" && envvarName != "JAEGER_SAMPLER_TYPE" && envvarName != "JAEGER_SAMPLER_PARAM" && envvarName != "JAEGER_DISABLED" && envvarValue != "" {
 				environmentVariables = append(environmentVariables, v1.EnvVar{
 					Name:  envvarName,
 					Value: envvarValue,
