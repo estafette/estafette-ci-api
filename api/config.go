@@ -662,7 +662,7 @@ type DatabaseConfig struct {
 
 func (c *DatabaseConfig) SetDefaults() {
 	if c.DatabaseName == "" {
-		c.DatabaseName = "estafette_ci_api"
+		c.DatabaseName = "defaultdb"
 	}
 	if c.Host == "" {
 		c.Host = "estafette-ci-db-public"
@@ -674,7 +674,7 @@ func (c *DatabaseConfig) SetDefaults() {
 		c.Port = 26257
 	}
 	if c.User == "" {
-		c.User = "api"
+		c.User = "root"
 	}
 }
 
