@@ -1447,9 +1447,9 @@ func (s *service) getBuildJobResources(ctx context.Context, build contracts.Buil
 
 	jobResources := cockroachdb.JobResources{
 		CPURequest:    defaultCPUCores,
-		CPULimit:      defaultCPUCores,
+		CPULimit:      s.config.Jobs.MaxCPUCores,
 		MemoryRequest: defaultMemory,
-		MemoryLimit:   defaultMemory,
+		MemoryLimit:   s.config.Jobs.MaxMemoryBytes,
 	}
 
 	// get max usage from previous builds
