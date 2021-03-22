@@ -205,11 +205,16 @@ func (c *client) Connect(ctx context.Context) (err error) {
 
 	log.Debug().Msgf("Connecting to database %v on host %v...", c.config.Database.DatabaseName, c.config.Database.Host)
 
+	userAndPassword := c.config.Database.User
+	if c.config.Database.Password != "" {
+		userAndPassword += ":" + c.config.Database.Password
+	}
+
 	dataSourceName := ""
 	if c.config.Database.Insecure {
-		dataSourceName = fmt.Sprintf("postgresql://%v:%v@%v:%v/%v?sslmode=disable", c.config.Database.User, c.config.Database.Password, c.config.Database.Host, c.config.Database.Port, c.config.Database.DatabaseName)
+		dataSourceName = fmt.Sprintf("postgresql://%v@%v:%v/%v?sslmode=disable", userAndPassword, c.config.Database.Host, c.config.Database.Port, c.config.Database.DatabaseName)
 	} else {
-		dataSourceName = fmt.Sprintf("postgresql://%v@%v:%v/%v?sslmode=%v&sslrootcert=%v&sslcert=%v/cert&sslkey=%v/key", c.config.Database.User, c.config.Database.Host, c.config.Database.Port, c.config.Database.DatabaseName, "verify-full", "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt", "/cockroach-certs", "/cockroach-certs")
+		dataSourceName = fmt.Sprintf("postgresql://%v@%v:%v/%v?sslmode=%v&sslrootcert=%v&sslcert=%v/cert&sslkey=%v/key", userAndPassword, c.config.Database.Host, c.config.Database.Port, c.config.Database.DatabaseName, "verify-full", "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt", "/cockroach-certs", "/cockroach-certs")
 	}
 
 	return c.ConnectWithDriverAndSource(ctx, c.databaseDriver, dataSourceName)

@@ -61,7 +61,6 @@ stages:
 
     image: estafette/estafette-ci-db-migrator:0.1
     env:
-      COCKROACH_CONNECTION_STRING: postgresql://root@cockroachdb:26257/defaultdb?sslmode=disable
       ESTAFETTE_LOG_FORMAT: console
 
   integration-tests:
