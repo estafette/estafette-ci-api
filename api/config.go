@@ -101,12 +101,6 @@ func (c *APIConfig) SetDefaults() {
 			},
 		})
 		c.TrustedImages = append(c.TrustedImages, &contracts.TrustedImageConfig{
-			ImagePath: "extensions/github-pages",
-			InjectedCredentialTypes: []string{
-				"github-api-token",
-			},
-		})
-		c.TrustedImages = append(c.TrustedImages, &contracts.TrustedImageConfig{
 			ImagePath: "extensions/bitbucket-status",
 			InjectedCredentialTypes: []string{
 				"bitbucket-api-token",
