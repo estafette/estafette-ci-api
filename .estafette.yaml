@@ -46,7 +46,7 @@ stages:
 
   integration-tests-prepare:
     services:
-    - name: cockroachdb
+    - name: estafette-ci-db-public
       multiStage: true
       image: cockroachdb/cockroach:v20.2.6
       shell: /bin/bash
@@ -57,10 +57,11 @@ stages:
         port: 8080
         timeoutSeconds: 120
       commands:
-      - /cockroach/cockroach start-single-node --insecure --advertise-addr cockroachdb
+      - /cockroach/cockroach start-single-node --insecure --advertise-addr estafette-ci-db-public
 
     image: estafette/estafette-ci-db-migrator:0.1
     env:
+      COCKROACH_INSECURE: true
       ESTAFETTE_LOG_FORMAT: console
 
   integration-tests:

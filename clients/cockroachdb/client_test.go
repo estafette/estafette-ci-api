@@ -2624,7 +2624,7 @@ func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 	apiConfig := &api.APIConfig{
 		Database: &api.DatabaseConfig{
 			DatabaseName:   "defaultdb",
-			Host:           "cockroachdb",
+			Host:           "estafette-ci-db-public",
 			Insecure:       true,
 			CertificateDir: "",
 			Port:           26257,
@@ -2632,6 +2632,8 @@ func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 			Password:       "",
 		},
 	}
+
+	apiConfig.SetDefaults()
 
 	cockroachdbClient := NewClient(apiConfig)
 	err := cockroachdbClient.Connect(ctx)
