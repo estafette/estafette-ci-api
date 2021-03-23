@@ -17,7 +17,8 @@ version:
     releaseBranch: 1.0.0
 
 triggers:
-- pipeline:
+- name: migrator
+  pipeline:
     name: github.com/estafette/estafette-ci-db-migrator
     branch: main
   builds:
@@ -59,7 +60,7 @@ stages:
       commands:
       - /cockroach/cockroach start-single-node --insecure --advertise-addr estafette-ci-db-public
 
-    image: estafette/estafette-ci-db-migrator:0.1
+    image: estafette/estafette-ci-db-migrator:${ESTAFETTE_TRIGGER_MIGRATOR_BUILD_VERSION}
     env:
       COCKROACH_INSECURE: true
       ESTAFETTE_LOG_FORMAT: console
