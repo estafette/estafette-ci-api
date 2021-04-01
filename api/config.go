@@ -1050,7 +1050,7 @@ func (c *PrometheusConfig) SetDefaults() {
 	}
 
 	if c.ServerURL == "" {
-		c.ServerURL = "http://prometheus-server"
+		c.ServerURL = "http://estafette-ci-metrics-server"
 	}
 	if c.ScrapeIntervalSeconds <= 0 {
 		c.ScrapeIntervalSeconds = 10
