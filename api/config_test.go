@@ -132,7 +132,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		prometheusConfig := config.Integrations.Prometheus
 
 		assert.Nil(t, err)
-		assert.True(t, prometheusConfig.Enable)
+		assert.True(t, *prometheusConfig.Enable)
 		assert.Equal(t, "http://prometheus-server.monitoring.svc.cluster.local", prometheusConfig.ServerURL)
 		assert.Equal(t, 10, prometheusConfig.ScrapeIntervalSeconds)
 	})

@@ -1039,13 +1039,18 @@ func (c *CloudStorageConfig) Validate() (err error) {
 
 // PrometheusConfig configures where to find prometheus for retrieving max cpu and memory consumption of build and release jobs
 type PrometheusConfig struct {
-	Enable                bool   `yaml:"enable"`
+	Enable                *bool  `yaml:"enable"`
 	ServerURL             string `yaml:"serverURL"`
 	ScrapeIntervalSeconds int    `yaml:"scrapeIntervalSeconds"`
 }
 
 func (c *PrometheusConfig) SetDefaults() {
-	if !c.Enable {
+	if c.Enable == nil {
+		defaultValue := true
+		c.Enable = &defaultValue
+	}
+
+	if !*c.Enable {
 		return
 	}
 
@@ -1053,12 +1058,12 @@ func (c *PrometheusConfig) SetDefaults() {
 		c.ServerURL = "http://estafette-ci-metrics-server"
 	}
 	if c.ScrapeIntervalSeconds <= 0 {
-		c.ScrapeIntervalSeconds = 10
+		c.ScrapeIntervalSeconds = 5
 	}
 }
 
 func (c *PrometheusConfig) Validate() (err error) {
-	if !c.Enable {
+	if !*c.Enable {
 		return nil
 	}
 

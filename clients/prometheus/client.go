@@ -26,7 +26,7 @@ type Client interface {
 
 // NewClient creates an prometheus.Client to communicate with Prometheus
 func NewClient(config *api.APIConfig) Client {
-	if config == nil || config.Integrations == nil || config.Integrations.Prometheus == nil || !config.Integrations.Prometheus.Enable {
+	if config == nil || config.Integrations == nil || config.Integrations.Prometheus == nil || config.Integrations.Prometheus.Enable == nil || !*config.Integrations.Prometheus.Enable {
 		return &client{
 			enabled: false,
 		}
