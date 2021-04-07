@@ -136,8 +136,6 @@ github.com/franela/goblin v0.0.0-20200105215937-c9ffbefa60db/go.mod h1:7dvUGVsVB
 github.com/franela/goreq v0.0.0-20171204163338-bcd34c9993f8/go.mod h1:ZhphrRTfi2rbfLwlschooIH4+wKKDR4Pdxhh+TRoA20=
 github.com/fsnotify/fsnotify v1.4.7 h1:IXs+QLmnXW2CcXuY+8Mzv/fWEsPGWxqefPtCP5CnV9I=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
-github.com/gavv/deepcopy v0.0.0-20160510082458-5dc2cad7a351 h1:VyOmk4olvKW0j+BdnB2R4SbJ1VQvwHqIjtxt31UDMxQ=
-github.com/gavv/deepcopy v0.0.0-20160510082458-5dc2cad7a351/go.mod h1:s+hFzicWa70FjdLMS6OiNmsAi5jmI9OjwORqYHWxUY0=
 github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/gin-contrib/gzip v0.0.2-0.20190827144029-5602d8b438ea h1:7soSX7PBga0e76BwI+rkGt72L6tfp14kTWEVsj94zjs=

@@ -14,7 +14,7 @@ import (
 	"time"
 
 	jwtgo "github.com/dgrijalva/jwt-go"
-	"github.com/gavv/deepcopy"
+	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
@@ -819,7 +819,10 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 
 	if c.config != nil && c.config.APIServer != nil && c.config.APIServer.DockerConfigPerOperatingSystem != nil {
 		if dc, ok := c.config.APIServer.DockerConfigPerOperatingSystem[ciBuilderParams.OperatingSystem]; ok {
-			copiedDockerConfig := deepcopy.DeepCopy(dc).(contracts.DockerConfig)
+
+			var copiedDockerConfig contracts.DockerConfig
+			copier.CopyWithOption(&copiedDockerConfig, dc, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+
 			localBuilderConfig.DockerConfig = &copiedDockerConfig
 		}
 	}
@@ -1111,12 +1114,18 @@ func (c *client) getCiBuilderJobAffinity(ctx context.Context, ciBuilderParams Ci
 	switch ciBuilderParams.JobType {
 	case "build":
 		if c.config.Jobs.BuildAffinityAndTolerations != nil && c.config.Jobs.BuildAffinityAndTolerations.Affinity != nil {
-			deepcopyAffinity := deepcopy.DeepCopy(*c.config.Jobs.BuildAffinityAndTolerations.Affinity).(v1.Affinity)
+
+			var deepcopyAffinity v1.Affinity
+			copier.CopyWithOption(&deepcopyAffinity, *c.config.Jobs.BuildAffinityAndTolerations.Affinity, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+
 			affinity = &deepcopyAffinity
 		}
 	case "release":
 		if c.config.Jobs.ReleaseAffinityAndTolerations != nil && c.config.Jobs.ReleaseAffinityAndTolerations.Affinity != nil {
-			deepcopyAffinity := deepcopy.DeepCopy(*c.config.Jobs.ReleaseAffinityAndTolerations.Affinity).(v1.Affinity)
+
+			var deepcopyAffinity v1.Affinity
+			copier.CopyWithOption(&deepcopyAffinity, *c.config.Jobs.ReleaseAffinityAndTolerations.Affinity, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+
 			affinity = &deepcopyAffinity
 		}
 	}

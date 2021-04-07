@@ -15,12 +15,12 @@ require (
 	github.com/estafette/estafette-ci-manifest v0.1.180
 	github.com/estafette/estafette-foundation v0.0.54
 	github.com/fsnotify/fsnotify v1.4.7
-	github.com/gavv/deepcopy v0.0.0-20160510082458-5dc2cad7a351
 	github.com/gin-contrib/gzip v0.0.2-0.20190827144029-5602d8b438ea
 	github.com/gin-gonic/gin v1.5.0
 	github.com/go-kit/kit v0.10.0
 	github.com/golang/mock v1.4.4
 	github.com/google/uuid v1.1.1
+	github.com/jinzhu/copier v0.2.8
 	github.com/lib/pq v1.3.0
 	github.com/opentracing-contrib/go-stdlib v0.0.0-20190519235532-cf7a6c988dc9
 	github.com/opentracing/opentracing-go v1.1.0
