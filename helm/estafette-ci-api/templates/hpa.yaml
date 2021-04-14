@@ -1,5 +1,9 @@
 {{- if .Values.autoscaling.enabled }}
+{{- if $.Capabilities.APIVersions.Has "autoscaling/v2beta1" }}
 apiVersion: autoscaling/v2beta1
+{{- else -}}
+apiVersion: autoscaling/v1
+{{- end }}
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "estafette-ci-api.fullname" . }}
@@ -7,11 +11,21 @@ metadata:
     {{- include "estafette-ci-api.labels" . | nindent 4 }}
 spec:
   scaleTargetRef:
+    {{- if $.Capabilities.APIVersions.Has "apps/v1" }}
     apiVersion: apps/v1
+    {{- else if $.Capabilities.APIVersions.Has "apps/v1beta2" }}
+    apiVersion: apps/v1beta2
+    {{- else if $.Capabilities.APIVersions.Has "apps/v1beta1" }}
+    apiVersion: apps/v1beta1
+    {{- else -}}
+    apiVersion: extensions/v1beta1
+    {{- end }}
     kind: Deployment
     name: {{ include "estafette-ci-api.fullname" . }}
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  {{- if $.Capabilities.APIVersions.Has "autoscaling/v2beta1" }}
+  {{- if or .Values.autoscaling.targetCPUUtilizationPercentage .Values.autoscaling.targetMemoryUtilizationPercentage }}
   metrics:
     {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
     - type: Resource
@@ -25,4 +39,10 @@ spec:
         name: memory
         targetAverageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
     {{- end }}
+  {{- end }}
+  {{- else -}}
+  {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+  targetCPUUtilizationPercentage: .Values.autoscaling.targetCPUUtilizationPercentage
+  {{- end }}
+  {{- end }}
 {{- end }}

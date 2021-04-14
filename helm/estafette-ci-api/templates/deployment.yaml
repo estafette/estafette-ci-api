@@ -1,5 +1,13 @@
 {{- $fullName := include "estafette-ci-api.fullname" . -}}
+{{ if $.Capabilities.APIVersions.Has "apps/v1" }}
 apiVersion: apps/v1
+{{- else if $.Capabilities.APIVersions.Has "apps/v1beta2" }}
+apiVersion: apps/v1beta2
+{{- else if $.Capabilities.APIVersions.Has "apps/v1beta1" }}
+apiVersion: apps/v1beta1
+{{- else -}}
+apiVersion: extensions/v1beta1
+{{- end }}
 kind: Deployment
 metadata:
   name: {{ include "estafette-ci-api.fullname" . }}
