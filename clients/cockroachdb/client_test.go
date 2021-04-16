@@ -1083,7 +1083,7 @@ func TestIntegrationGetReleaseTargetsCount(t *testing.T) {
 		assert.Nil(t, err, "failed upserting computed pipeline for other build")
 
 		// act
-		count, err := cockroachdbClient.GetFrequentLabelsCount(ctx, filters)
+		count, err := cockroachdbClient.GetReleaseTargetsCount(ctx, filters)
 
 		assert.Nil(t, err, "failed getting frequent label count")
 		assert.Equal(t, 1, count)
