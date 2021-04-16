@@ -3535,7 +3535,7 @@ func (c *client) GetReleaseTargetsCount(ctx context.Context, filters map[api.Fil
 
 	query :=
 		psql.
-			Select("COUNT(key)").
+			Select("COUNT(name)").
 			FromSelect(groupByQuery, "d").
 			Where(sq.Gt{"pipelinesCount": 1})
 
