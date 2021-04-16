@@ -3380,25 +3380,25 @@ func (c *client) GetReleaseTargets(ctx context.Context, pageNumber, pageSize int
 	// for time being run following query, where the dynamic where clause is in the innermost select query:
 
 	// SELECT
-	// 		key, value, nr_computed_pipelines
+	// 		name, nr_computed_pipelines
 	// FROM
 	// 		(
 	// 				SELECT
-	// 						key, value, count(DISTINCT id) AS nr_computed_pipelines
+	// 						name, count(DISTINCT id) AS nr_computed_pipelines
 	// 				FROM
 	// 						(
 	// 								SELECT
-	// 										l->>'key' AS key, l->>'value' AS value, id
+	// 										l->>'name' AS name, id
 	// 								FROM
 	// 										(SELECT id, jsonb_array_elements(release_targets) AS l FROM computed_pipelines where jsonb_typeof(release_targets) = 'array')
 	// 						)
 	// 				GROUP BY
-	// 						key, value
+	// 						name
 	// 		)
 	// WHERE
 	// 		nr_computed_pipelines > 1
 	// ORDER BY
-	// 		nr_computed_pipelines DESC, key, value
+	// 		nr_computed_pipelines DESC, name
 	// LIMIT 10;
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
@@ -3435,21 +3435,21 @@ func (c *client) GetReleaseTargets(ctx context.Context, pageNumber, pageSize int
 
 	selectCountQuery :=
 		psql.
-			Select("l->>'key' AS key, l->>'value' AS value, id").
+			Select("l->>'name' AS name, id").
 			FromSelect(arrayElementsQuery, "b")
 
 	groupByQuery :=
 		psql.
-			Select("key, value, count(DISTINCT id) AS pipelinesCount").
+			Select("name, count(DISTINCT id) AS pipelinesCount").
 			FromSelect(selectCountQuery, "c").
-			GroupBy("key, value")
+			GroupBy("name")
 
 	query :=
 		psql.
-			Select("key, value, pipelinesCount").
+			Select("name, pipelinesCount").
 			FromSelect(groupByQuery, "d").
 			Where(sq.Gt{"pipelinesCount": 1}).
-			OrderBy("pipelinesCount DESC, key, value").
+			OrderBy("pipelinesCount DESC, name").
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
@@ -3469,25 +3469,25 @@ func (c *client) GetReleaseTargetsCount(ctx context.Context, filters map[api.Fil
 	// for time being run following query, where the dynamic where clause is in the innermost select query:
 
 	// SELECT
-	// 		key, value, nr_computed_pipelines
+	// 		name, nr_computed_pipelines
 	// FROM
 	// 		(
 	// 				SELECT
-	// 						key, value, count(DISTINCT id) AS nr_computed_pipelines
+	// 						name, count(DISTINCT id) AS nr_computed_pipelines
 	// 				FROM
 	// 						(
 	// 								SELECT
-	// 										l->>'key' AS key, l->>'value' AS value, id
+	// 										l->>'name' AS name, id
 	// 								FROM
 	// 										(SELECT id, jsonb_array_elements(release_targets) AS l FROM computed_pipelines where jsonb_typeof(release_targets) = 'array')
 	// 						)
 	// 				GROUP BY
-	// 						key, value
+	// 						name
 	// 		)
 	// WHERE
 	// 		nr_computed_pipelines > 1
 	// ORDER BY
-	// 		nr_computed_pipelines DESC, key, value
+	// 		nr_computed_pipelines DESC, name
 	// LIMIT 10;
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
@@ -3524,14 +3524,14 @@ func (c *client) GetReleaseTargetsCount(ctx context.Context, filters map[api.Fil
 
 	selectCountQuery :=
 		psql.
-			Select("l->>'key' AS key, l->>'value' AS value, id").
+			Select("l->>'name' AS name, id").
 			FromSelect(arrayElementsQuery, "b")
 
 	groupByQuery :=
 		psql.
-			Select("key, value, count(DISTINCT id) AS pipelinesCount").
+			Select("name, count(DISTINCT id) AS pipelinesCount").
 			FromSelect(selectCountQuery, "c").
-			GroupBy("key, value")
+			GroupBy("name")
 
 	query :=
 		psql.
