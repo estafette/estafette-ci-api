@@ -3411,25 +3411,21 @@ func (c *client) GetReleaseTargets(ctx context.Context, pageNumber, pageSize int
 
 	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
 	if err != nil {
-
 		return
 	}
 
 	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
-
 		return
 	}
 
 	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
-
 		return
 	}
 
 	arrayElementsQuery, err = whereClauseGeneratorForArchivedFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
-
 		return
 	}
 
@@ -3448,8 +3444,7 @@ func (c *client) GetReleaseTargets(ctx context.Context, pageNumber, pageSize int
 		psql.
 			Select("name, pipelinesCount").
 			FromSelect(groupByQuery, "d").
-			Where(sq.Gt{"pipelinesCount": 1}).
-			OrderBy("pipelinesCount DESC, name").
+			OrderBy("name").
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
@@ -3500,25 +3495,21 @@ func (c *client) GetReleaseTargetsCount(ctx context.Context, filters map[api.Fil
 
 	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
 	if err != nil {
-
 		return
 	}
 
 	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
-
 		return
 	}
 
 	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
-
 		return
 	}
 
 	arrayElementsQuery, err = whereClauseGeneratorForArchivedFilter(arrayElementsQuery, "a", filters)
 	if err != nil {
-
 		return
 	}
 
@@ -3536,8 +3527,7 @@ func (c *client) GetReleaseTargetsCount(ctx context.Context, filters map[api.Fil
 	query :=
 		psql.
 			Select("COUNT(name)").
-			FromSelect(groupByQuery, "d").
-			Where(sq.Gt{"pipelinesCount": 1})
+			FromSelect(groupByQuery, "d")
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
@@ -3635,13 +3625,11 @@ func (c *client) GetPipelinesWithMostReleasesCount(ctx context.Context, filters 
 
 	innerquery, err = whereClauseGeneratorForSinceFilter(innerquery, "a", "inserted_at", filters)
 	if err != nil {
-
 		return
 	}
 
 	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
 	if err != nil {
-
 		return
 	}
 
@@ -3653,7 +3641,6 @@ func (c *client) GetPipelinesWithMostReleasesCount(ctx context.Context, filters 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-
 		return
 	}
 
@@ -3715,6 +3702,10 @@ func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias, sinceColum
 	if err != nil {
 		return query, err
 	}
+	query, err = whereClauseGeneratorForReleaseTargetFilterOnPipelines(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
 
 	return query, nil
 }
@@ -3725,7 +3716,7 @@ func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, alias, sin
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForReleaseTargetFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForReleaseTargetFilterOnReleases(query, alias, filters)
 	if err != nil {
 		return query, err
 	}
@@ -3800,10 +3791,34 @@ func whereClauseGeneratorForReleaseStatusFilter(query sq.SelectBuilder, alias st
 	return query, nil
 }
 
-func whereClauseGeneratorForReleaseTargetFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForReleaseTargetFilterOnReleases(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if targets, ok := filters[api.FilterReleaseTarget]; ok && len(targets) > 0 && targets[0] != "all" {
 		query = query.Where(sq.Eq{fmt.Sprintf("%v.release", alias): targets})
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForReleaseTargetFilterOnPipelines(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+
+	if targets, ok := filters[api.FilterReleaseTarget]; ok && len(targets) > 0 {
+		targetsParam := []contracts.ReleaseTarget{}
+
+		for _, target := range targets {
+			targetsParam = append(targetsParam, contracts.ReleaseTarget{
+				Name: target,
+			})
+		}
+
+		if len(targetsParam) > 0 {
+			bytes, err := json.Marshal(targetsParam)
+			if err != nil {
+				return query, err
+			}
+
+			query = query.Where(fmt.Sprintf("%v.release_targets @> ?", alias), string(bytes))
+		}
 	}
 
 	return query, nil
