@@ -990,6 +990,106 @@ func TestIntegrationGetFrequentLabelsCount(t *testing.T) {
 	})
 }
 
+func TestIntegrationGetReleaseTargets(t *testing.T) {
+	t.Run("ReturnsReleaseTargetsForMatchingTargets", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		jobResources := getJobResources()
+		build := getBuild()
+		build.RepoName = "frequent-label-test-1"
+		build.ReleaseTargets = []contracts.ReleaseTarget{{
+			Name: "GetReleaseTargets",
+		}}
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err, "failed inserting first build record")
+
+		otherBuild := getBuild()
+		otherBuild.RepoName = "frequent-label-test-2"
+		otherBuild.ReleaseTargets = []contracts.ReleaseTarget{{
+			Name: "GetReleaseTargets",
+		}}
+		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
+		assert.Nil(t, err, "failed inserting other build record")
+
+		filters := map[api.FilterType][]string{
+			api.FilterReleaseTarget: {
+				"GetReleaseTargets",
+			},
+			api.FilterSince: {
+				"1d",
+			},
+		}
+
+		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline")
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline for other build")
+
+		// act
+		frequentLabels, err := cockroachdbClient.GetReleaseTargets(ctx, 1, 10, filters)
+
+		assert.Nil(t, err, "failed getting frequent label")
+		if !assert.Equal(t, 1, len(frequentLabels)) {
+			assert.Equal(t, "", frequentLabels)
+		}
+	})
+}
+
+func TestIntegrationGetReleaseTargetsCount(t *testing.T) {
+	t.Run("ReturnsReleaseTargetsCountForMatchingTargets", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		jobResources := getJobResources()
+		build := getBuild()
+		build.RepoName = "frequent-label-count-test-1"
+		build.ReleaseTargets = []contracts.ReleaseTarget{{
+			Name: "GetReleaseTargetsCount",
+		}}
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err, "failed inserting build record")
+
+		otherBuild := getBuild()
+		otherBuild.RepoName = "frequent-label-count-test-2"
+		otherBuild.ReleaseTargets = []contracts.ReleaseTarget{{
+			Name: "GetReleaseTargetsCount",
+		}}
+		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
+		assert.Nil(t, err, "failed inserting other build record")
+
+		filters := map[api.FilterType][]string{
+			api.FilterReleaseTarget: {
+				"GetReleaseTargetsCount",
+			},
+			api.FilterSince: {
+				"1d",
+			},
+		}
+
+		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline")
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline for other build")
+
+		// act
+		count, err := cockroachdbClient.GetFrequentLabelsCount(ctx, filters)
+
+		assert.Nil(t, err, "failed getting frequent label count")
+		assert.Equal(t, 1, count)
+	})
+}
+
 func TestIntegrationInsertUser(t *testing.T) {
 	t.Run("ReturnsInsertedUserWithID", func(t *testing.T) {
 

@@ -6,507 +6,933 @@ package cockroachdb
 
 import (
 	context "context"
+	reflect "reflect"
+	time "time"
+
 	api "github.com/estafette/estafette-ci-api/api"
 	estafette_ci_contracts "github.com/estafette/estafette-ci-contracts"
 	estafette_ci_manifest "github.com/estafette/estafette-ci-manifest"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
-	time "time"
 )
 
-// MockClient is a mock of Client interface
+// MockClient is a mock of Client interface.
 type MockClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockClientMockRecorder
 }
 
-// MockClientMockRecorder is the mock recorder for MockClient
+// MockClientMockRecorder is the mock recorder for MockClient.
 type MockClientMockRecorder struct {
 	mock *MockClient
 }
 
-// NewMockClient creates a new mock instance
+// NewMockClient creates a new mock instance.
 func NewMockClient(ctrl *gomock.Controller) *MockClient {
 	mock := &MockClient{ctrl: ctrl}
 	mock.recorder = &MockClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
-// Connect mocks base method
+// ArchiveComputedPipeline mocks base method.
+func (m *MockClient) ArchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ArchiveComputedPipeline", ctx, repoSource, repoOwner, repoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ArchiveComputedPipeline indicates an expected call of ArchiveComputedPipeline.
+func (mr *MockClientMockRecorder) ArchiveComputedPipeline(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ArchiveComputedPipeline", reflect.TypeOf((*MockClient)(nil).ArchiveComputedPipeline), ctx, repoSource, repoOwner, repoName)
+}
+
+// Connect mocks base method.
 func (m *MockClient) Connect(ctx context.Context) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Connect", ctx)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Connect indicates an expected call of Connect
+// Connect indicates an expected call of Connect.
 func (mr *MockClientMockRecorder) Connect(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Connect", reflect.TypeOf((*MockClient)(nil).Connect), ctx)
 }
 
-// ConnectWithDriverAndSource mocks base method
+// ConnectWithDriverAndSource mocks base method.
 func (m *MockClient) ConnectWithDriverAndSource(ctx context.Context, driverName, dataSourceName string) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ConnectWithDriverAndSource", ctx, driverName, dataSourceName)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// ConnectWithDriverAndSource indicates an expected call of ConnectWithDriverAndSource
+// ConnectWithDriverAndSource indicates an expected call of ConnectWithDriverAndSource.
 func (mr *MockClientMockRecorder) ConnectWithDriverAndSource(ctx, driverName, dataSourceName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConnectWithDriverAndSource", reflect.TypeOf((*MockClient)(nil).ConnectWithDriverAndSource), ctx, driverName, dataSourceName)
 }
 
-// GetAutoIncrement mocks base method
+// DeleteCatalogEntity mocks base method.
+func (m *MockClient) DeleteCatalogEntity(ctx context.Context, id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteCatalogEntity", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteCatalogEntity indicates an expected call of DeleteCatalogEntity.
+func (mr *MockClientMockRecorder) DeleteCatalogEntity(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCatalogEntity", reflect.TypeOf((*MockClient)(nil).DeleteCatalogEntity), ctx, id)
+}
+
+// DeleteClient mocks base method.
+func (m *MockClient) DeleteClient(ctx context.Context, client estafette_ci_contracts.Client) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteClient", ctx, client)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteClient indicates an expected call of DeleteClient.
+func (mr *MockClientMockRecorder) DeleteClient(ctx, client interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClient", reflect.TypeOf((*MockClient)(nil).DeleteClient), ctx, client)
+}
+
+// DeleteGroup mocks base method.
+func (m *MockClient) DeleteGroup(ctx context.Context, group estafette_ci_contracts.Group) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteGroup", ctx, group)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteGroup indicates an expected call of DeleteGroup.
+func (mr *MockClientMockRecorder) DeleteGroup(ctx, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteGroup", reflect.TypeOf((*MockClient)(nil).DeleteGroup), ctx, group)
+}
+
+// DeleteOrganization mocks base method.
+func (m *MockClient) DeleteOrganization(ctx context.Context, organization estafette_ci_contracts.Organization) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteOrganization", ctx, organization)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteOrganization indicates an expected call of DeleteOrganization.
+func (mr *MockClientMockRecorder) DeleteOrganization(ctx, organization interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteOrganization", reflect.TypeOf((*MockClient)(nil).DeleteOrganization), ctx, organization)
+}
+
+// DeleteUser mocks base method.
+func (m *MockClient) DeleteUser(ctx context.Context, user estafette_ci_contracts.User) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteUser", ctx, user)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteUser indicates an expected call of DeleteUser.
+func (mr *MockClientMockRecorder) DeleteUser(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockClient)(nil).DeleteUser), ctx, user)
+}
+
+// GetAllPipelineBuilds mocks base method.
+func (m *MockClient) GetAllPipelineBuilds(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) ([]*estafette_ci_contracts.Build, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllPipelineBuilds", ctx, pageNumber, pageSize, filters, sortings, optimized)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.Build)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllPipelineBuilds indicates an expected call of GetAllPipelineBuilds.
+func (mr *MockClientMockRecorder) GetAllPipelineBuilds(ctx, pageNumber, pageSize, filters, sortings, optimized interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllPipelineBuilds", reflect.TypeOf((*MockClient)(nil).GetAllPipelineBuilds), ctx, pageNumber, pageSize, filters, sortings, optimized)
+}
+
+// GetAllPipelineBuildsCount mocks base method.
+func (m *MockClient) GetAllPipelineBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllPipelineBuildsCount", ctx, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllPipelineBuildsCount indicates an expected call of GetAllPipelineBuildsCount.
+func (mr *MockClientMockRecorder) GetAllPipelineBuildsCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllPipelineBuildsCount", reflect.TypeOf((*MockClient)(nil).GetAllPipelineBuildsCount), ctx, filters)
+}
+
+// GetAllPipelineReleases mocks base method.
+func (m *MockClient) GetAllPipelineReleases(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]*estafette_ci_contracts.Release, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllPipelineReleases", ctx, pageNumber, pageSize, filters, sortings)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.Release)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllPipelineReleases indicates an expected call of GetAllPipelineReleases.
+func (mr *MockClientMockRecorder) GetAllPipelineReleases(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllPipelineReleases", reflect.TypeOf((*MockClient)(nil).GetAllPipelineReleases), ctx, pageNumber, pageSize, filters, sortings)
+}
+
+// GetAllPipelineReleasesCount mocks base method.
+func (m *MockClient) GetAllPipelineReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllPipelineReleasesCount", ctx, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllPipelineReleasesCount indicates an expected call of GetAllPipelineReleasesCount.
+func (mr *MockClientMockRecorder) GetAllPipelineReleasesCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllPipelineReleasesCount", reflect.TypeOf((*MockClient)(nil).GetAllPipelineReleasesCount), ctx, filters)
+}
+
+// GetAutoIncrement mocks base method.
 func (m *MockClient) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwner, repoName string) (int, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAutoIncrement", ctx, shortRepoSource, repoOwner, repoName)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetAutoIncrement indicates an expected call of GetAutoIncrement
+// GetAutoIncrement indicates an expected call of GetAutoIncrement.
 func (mr *MockClientMockRecorder) GetAutoIncrement(ctx, shortRepoSource, repoOwner, repoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAutoIncrement", reflect.TypeOf((*MockClient)(nil).GetAutoIncrement), ctx, shortRepoSource, repoOwner, repoName)
 }
 
-// InsertBuild mocks base method
-func (m *MockClient) InsertBuild(ctx context.Context, build estafette_ci_contracts.Build, jobResources JobResources) (*estafette_ci_contracts.Build, error) {
-	ret := m.ctrl.Call(m, "InsertBuild", ctx, build, jobResources)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Build)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// InsertBuild indicates an expected call of InsertBuild
-func (mr *MockClientMockRecorder) InsertBuild(ctx, build, jobResources interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertBuild", reflect.TypeOf((*MockClient)(nil).InsertBuild), ctx, build, jobResources)
-}
-
-// UpdateBuildStatus mocks base method
-func (m *MockClient) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus estafette_ci_contracts.Status) error {
-	ret := m.ctrl.Call(m, "UpdateBuildStatus", ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateBuildStatus indicates an expected call of UpdateBuildStatus
-func (mr *MockClientMockRecorder) UpdateBuildStatus(ctx, repoSource, repoOwner, repoName, buildID, buildStatus interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBuildStatus", reflect.TypeOf((*MockClient)(nil).UpdateBuildStatus), ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
-}
-
-// UpdateBuildResourceUtilization mocks base method
-func (m *MockClient) UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources JobResources) error {
-	ret := m.ctrl.Call(m, "UpdateBuildResourceUtilization", ctx, repoSource, repoOwner, repoName, buildID, jobResources)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateBuildResourceUtilization indicates an expected call of UpdateBuildResourceUtilization
-func (mr *MockClientMockRecorder) UpdateBuildResourceUtilization(ctx, repoSource, repoOwner, repoName, buildID, jobResources interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBuildResourceUtilization", reflect.TypeOf((*MockClient)(nil).UpdateBuildResourceUtilization), ctx, repoSource, repoOwner, repoName, buildID, jobResources)
-}
-
-// InsertRelease mocks base method
-func (m *MockClient) InsertRelease(ctx context.Context, release estafette_ci_contracts.Release, jobResources JobResources) (*estafette_ci_contracts.Release, error) {
-	ret := m.ctrl.Call(m, "InsertRelease", ctx, release, jobResources)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Release)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// InsertRelease indicates an expected call of InsertRelease
-func (mr *MockClientMockRecorder) InsertRelease(ctx, release, jobResources interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertRelease", reflect.TypeOf((*MockClient)(nil).InsertRelease), ctx, release, jobResources)
-}
-
-// UpdateReleaseStatus mocks base method
-func (m *MockClient) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus estafette_ci_contracts.Status) error {
-	ret := m.ctrl.Call(m, "UpdateReleaseStatus", ctx, repoSource, repoOwner, repoName, id, releaseStatus)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateReleaseStatus indicates an expected call of UpdateReleaseStatus
-func (mr *MockClientMockRecorder) UpdateReleaseStatus(ctx, repoSource, repoOwner, repoName, id, releaseStatus interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateReleaseStatus", reflect.TypeOf((*MockClient)(nil).UpdateReleaseStatus), ctx, repoSource, repoOwner, repoName, id, releaseStatus)
-}
-
-// UpdateReleaseResourceUtilization mocks base method
-func (m *MockClient) UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) error {
-	ret := m.ctrl.Call(m, "UpdateReleaseResourceUtilization", ctx, repoSource, repoOwner, repoName, id, jobResources)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateReleaseResourceUtilization indicates an expected call of UpdateReleaseResourceUtilization
-func (mr *MockClientMockRecorder) UpdateReleaseResourceUtilization(ctx, repoSource, repoOwner, repoName, id, jobResources interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateReleaseResourceUtilization", reflect.TypeOf((*MockClient)(nil).UpdateReleaseResourceUtilization), ctx, repoSource, repoOwner, repoName, id, jobResources)
-}
-
-// InsertBuildLog mocks base method
-func (m *MockClient) InsertBuildLog(ctx context.Context, buildLog estafette_ci_contracts.BuildLog, writeLogToDatabase bool) (estafette_ci_contracts.BuildLog, error) {
-	ret := m.ctrl.Call(m, "InsertBuildLog", ctx, buildLog, writeLogToDatabase)
-	ret0, _ := ret[0].(estafette_ci_contracts.BuildLog)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// InsertBuildLog indicates an expected call of InsertBuildLog
-func (mr *MockClientMockRecorder) InsertBuildLog(ctx, buildLog, writeLogToDatabase interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertBuildLog", reflect.TypeOf((*MockClient)(nil).InsertBuildLog), ctx, buildLog, writeLogToDatabase)
-}
-
-// InsertReleaseLog mocks base method
-func (m *MockClient) InsertReleaseLog(ctx context.Context, releaseLog estafette_ci_contracts.ReleaseLog, writeLogToDatabase bool) (estafette_ci_contracts.ReleaseLog, error) {
-	ret := m.ctrl.Call(m, "InsertReleaseLog", ctx, releaseLog, writeLogToDatabase)
-	ret0, _ := ret[0].(estafette_ci_contracts.ReleaseLog)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// InsertReleaseLog indicates an expected call of InsertReleaseLog
-func (mr *MockClientMockRecorder) InsertReleaseLog(ctx, releaseLog, writeLogToDatabase interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertReleaseLog", reflect.TypeOf((*MockClient)(nil).InsertReleaseLog), ctx, releaseLog, writeLogToDatabase)
-}
-
-// UpsertComputedPipeline mocks base method
-func (m *MockClient) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) error {
-	ret := m.ctrl.Call(m, "UpsertComputedPipeline", ctx, repoSource, repoOwner, repoName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpsertComputedPipeline indicates an expected call of UpsertComputedPipeline
-func (mr *MockClientMockRecorder) UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertComputedPipeline", reflect.TypeOf((*MockClient)(nil).UpsertComputedPipeline), ctx, repoSource, repoOwner, repoName)
-}
-
-// UpdateComputedPipelinePermissions mocks base method
-func (m *MockClient) UpdateComputedPipelinePermissions(ctx context.Context, pipeline estafette_ci_contracts.Pipeline) error {
-	ret := m.ctrl.Call(m, "UpdateComputedPipelinePermissions", ctx, pipeline)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateComputedPipelinePermissions indicates an expected call of UpdateComputedPipelinePermissions
-func (mr *MockClientMockRecorder) UpdateComputedPipelinePermissions(ctx, pipeline interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateComputedPipelinePermissions", reflect.TypeOf((*MockClient)(nil).UpdateComputedPipelinePermissions), ctx, pipeline)
-}
-
-// UpdateComputedPipelineFirstInsertedAt mocks base method
-func (m *MockClient) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName string) error {
-	ret := m.ctrl.Call(m, "UpdateComputedPipelineFirstInsertedAt", ctx, repoSource, repoOwner, repoName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateComputedPipelineFirstInsertedAt indicates an expected call of UpdateComputedPipelineFirstInsertedAt
-func (mr *MockClientMockRecorder) UpdateComputedPipelineFirstInsertedAt(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateComputedPipelineFirstInsertedAt", reflect.TypeOf((*MockClient)(nil).UpdateComputedPipelineFirstInsertedAt), ctx, repoSource, repoOwner, repoName)
-}
-
-// UpsertComputedRelease mocks base method
-func (m *MockClient) UpsertComputedRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) error {
-	ret := m.ctrl.Call(m, "UpsertComputedRelease", ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpsertComputedRelease indicates an expected call of UpsertComputedRelease
-func (mr *MockClientMockRecorder) UpsertComputedRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertComputedRelease", reflect.TypeOf((*MockClient)(nil).UpsertComputedRelease), ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
-}
-
-// UpdateComputedReleaseFirstInsertedAt mocks base method
-func (m *MockClient) UpdateComputedReleaseFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) error {
-	ret := m.ctrl.Call(m, "UpdateComputedReleaseFirstInsertedAt", ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateComputedReleaseFirstInsertedAt indicates an expected call of UpdateComputedReleaseFirstInsertedAt
-func (mr *MockClientMockRecorder) UpdateComputedReleaseFirstInsertedAt(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateComputedReleaseFirstInsertedAt", reflect.TypeOf((*MockClient)(nil).UpdateComputedReleaseFirstInsertedAt), ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
-}
-
-// ArchiveComputedPipeline mocks base method
-func (m *MockClient) ArchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) error {
-	ret := m.ctrl.Call(m, "ArchiveComputedPipeline", ctx, repoSource, repoOwner, repoName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ArchiveComputedPipeline indicates an expected call of ArchiveComputedPipeline
-func (mr *MockClientMockRecorder) ArchiveComputedPipeline(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ArchiveComputedPipeline", reflect.TypeOf((*MockClient)(nil).ArchiveComputedPipeline), ctx, repoSource, repoOwner, repoName)
-}
-
-// UnarchiveComputedPipeline mocks base method
-func (m *MockClient) UnarchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) error {
-	ret := m.ctrl.Call(m, "UnarchiveComputedPipeline", ctx, repoSource, repoOwner, repoName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UnarchiveComputedPipeline indicates an expected call of UnarchiveComputedPipeline
-func (mr *MockClientMockRecorder) UnarchiveComputedPipeline(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnarchiveComputedPipeline", reflect.TypeOf((*MockClient)(nil).UnarchiveComputedPipeline), ctx, repoSource, repoOwner, repoName)
-}
-
-// GetPipelines mocks base method
-func (m *MockClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) ([]*estafette_ci_contracts.Pipeline, error) {
-	ret := m.ctrl.Call(m, "GetPipelines", ctx, pageNumber, pageSize, filters, sortings, optimized)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.Pipeline)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPipelines indicates an expected call of GetPipelines
-func (mr *MockClientMockRecorder) GetPipelines(ctx, pageNumber, pageSize, filters, sortings, optimized interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelines", reflect.TypeOf((*MockClient)(nil).GetPipelines), ctx, pageNumber, pageSize, filters, sortings, optimized)
-}
-
-// GetPipelinesByRepoName mocks base method
-func (m *MockClient) GetPipelinesByRepoName(ctx context.Context, repoName string, optimized bool) ([]*estafette_ci_contracts.Pipeline, error) {
-	ret := m.ctrl.Call(m, "GetPipelinesByRepoName", ctx, repoName, optimized)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.Pipeline)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPipelinesByRepoName indicates an expected call of GetPipelinesByRepoName
-func (mr *MockClientMockRecorder) GetPipelinesByRepoName(ctx, repoName, optimized interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelinesByRepoName", reflect.TypeOf((*MockClient)(nil).GetPipelinesByRepoName), ctx, repoName, optimized)
-}
-
-// GetPipelinesCount mocks base method
-func (m *MockClient) GetPipelinesCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetPipelinesCount", ctx, filters)
+// GetBuildsCount mocks base method.
+func (m *MockClient) GetBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBuildsCount", ctx, filters)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelinesCount indicates an expected call of GetPipelinesCount
-func (mr *MockClientMockRecorder) GetPipelinesCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelinesCount", reflect.TypeOf((*MockClient)(nil).GetPipelinesCount), ctx, filters)
+// GetBuildsCount indicates an expected call of GetBuildsCount.
+func (mr *MockClientMockRecorder) GetBuildsCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBuildsCount", reflect.TypeOf((*MockClient)(nil).GetBuildsCount), ctx, filters)
 }
 
-// GetPipeline mocks base method
-func (m *MockClient) GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (*estafette_ci_contracts.Pipeline, error) {
-	ret := m.ctrl.Call(m, "GetPipeline", ctx, repoSource, repoOwner, repoName, filters, optimized)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Pipeline)
+// GetBuildsDuration mocks base method.
+func (m *MockClient) GetBuildsDuration(ctx context.Context, filters map[api.FilterType][]string) (time.Duration, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBuildsDuration", ctx, filters)
+	ret0, _ := ret[0].(time.Duration)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipeline indicates an expected call of GetPipeline
-func (mr *MockClientMockRecorder) GetPipeline(ctx, repoSource, repoOwner, repoName, filters, optimized interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipeline", reflect.TypeOf((*MockClient)(nil).GetPipeline), ctx, repoSource, repoOwner, repoName, filters, optimized)
+// GetBuildsDuration indicates an expected call of GetBuildsDuration.
+func (mr *MockClientMockRecorder) GetBuildsDuration(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBuildsDuration", reflect.TypeOf((*MockClient)(nil).GetBuildsDuration), ctx, filters)
 }
 
-// GetPipelineRecentBuilds mocks base method
-func (m *MockClient) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) ([]*estafette_ci_contracts.Build, error) {
-	ret := m.ctrl.Call(m, "GetPipelineRecentBuilds", ctx, repoSource, repoOwner, repoName, optimized)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.Build)
+// GetCatalogEntities mocks base method.
+func (m *MockClient) GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]*estafette_ci_contracts.CatalogEntity, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCatalogEntities", ctx, pageNumber, pageSize, filters, sortings)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.CatalogEntity)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineRecentBuilds indicates an expected call of GetPipelineRecentBuilds
-func (mr *MockClientMockRecorder) GetPipelineRecentBuilds(ctx, repoSource, repoOwner, repoName, optimized interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineRecentBuilds", reflect.TypeOf((*MockClient)(nil).GetPipelineRecentBuilds), ctx, repoSource, repoOwner, repoName, optimized)
+// GetCatalogEntities indicates an expected call of GetCatalogEntities.
+func (mr *MockClientMockRecorder) GetCatalogEntities(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntities", reflect.TypeOf((*MockClient)(nil).GetCatalogEntities), ctx, pageNumber, pageSize, filters, sortings)
 }
 
-// GetPipelineBuilds mocks base method
-func (m *MockClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) ([]*estafette_ci_contracts.Build, error) {
-	ret := m.ctrl.Call(m, "GetPipelineBuilds", ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings, optimized)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.Build)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPipelineBuilds indicates an expected call of GetPipelineBuilds
-func (mr *MockClientMockRecorder) GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings, optimized interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuilds", reflect.TypeOf((*MockClient)(nil).GetPipelineBuilds), ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings, optimized)
-}
-
-// GetPipelineBuildsCount mocks base method
-func (m *MockClient) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetPipelineBuildsCount", ctx, repoSource, repoOwner, repoName, filters)
+// GetCatalogEntitiesCount mocks base method.
+func (m *MockClient) GetCatalogEntitiesCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCatalogEntitiesCount", ctx, filters)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineBuildsCount indicates an expected call of GetPipelineBuildsCount
-func (mr *MockClientMockRecorder) GetPipelineBuildsCount(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildsCount", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildsCount), ctx, repoSource, repoOwner, repoName, filters)
+// GetCatalogEntitiesCount indicates an expected call of GetCatalogEntitiesCount.
+func (mr *MockClientMockRecorder) GetCatalogEntitiesCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntitiesCount", reflect.TypeOf((*MockClient)(nil).GetCatalogEntitiesCount), ctx, filters)
 }
 
-// GetPipelineBuild mocks base method
-func (m *MockClient) GetPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName, repoRevision string, optimized bool) (*estafette_ci_contracts.Build, error) {
-	ret := m.ctrl.Call(m, "GetPipelineBuild", ctx, repoSource, repoOwner, repoName, repoRevision, optimized)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Build)
+// GetCatalogEntityByID mocks base method.
+func (m *MockClient) GetCatalogEntityByID(ctx context.Context, id string) (*estafette_ci_contracts.CatalogEntity, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCatalogEntityByID", ctx, id)
+	ret0, _ := ret[0].(*estafette_ci_contracts.CatalogEntity)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineBuild indicates an expected call of GetPipelineBuild
-func (mr *MockClientMockRecorder) GetPipelineBuild(ctx, repoSource, repoOwner, repoName, repoRevision, optimized interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuild", reflect.TypeOf((*MockClient)(nil).GetPipelineBuild), ctx, repoSource, repoOwner, repoName, repoRevision, optimized)
+// GetCatalogEntityByID indicates an expected call of GetCatalogEntityByID.
+func (mr *MockClientMockRecorder) GetCatalogEntityByID(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityByID", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityByID), ctx, id)
 }
 
-// GetPipelineBuildByID mocks base method
-func (m *MockClient) GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, id int, optimized bool) (*estafette_ci_contracts.Build, error) {
-	ret := m.ctrl.Call(m, "GetPipelineBuildByID", ctx, repoSource, repoOwner, repoName, id, optimized)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Build)
+// GetCatalogEntityKeys mocks base method.
+func (m *MockClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCatalogEntityKeys", ctx, pageNumber, pageSize, filters, sortings)
+	ret0, _ := ret[0].([]map[string]interface{})
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineBuildByID indicates an expected call of GetPipelineBuildByID
-func (mr *MockClientMockRecorder) GetPipelineBuildByID(ctx, repoSource, repoOwner, repoName, id, optimized interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildByID", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildByID), ctx, repoSource, repoOwner, repoName, id, optimized)
+// GetCatalogEntityKeys indicates an expected call of GetCatalogEntityKeys.
+func (mr *MockClientMockRecorder) GetCatalogEntityKeys(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityKeys", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityKeys), ctx, pageNumber, pageSize, filters, sortings)
 }
 
-// GetLastPipelineBuild mocks base method
-func (m *MockClient) GetLastPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (*estafette_ci_contracts.Build, error) {
-	ret := m.ctrl.Call(m, "GetLastPipelineBuild", ctx, repoSource, repoOwner, repoName, optimized)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Build)
+// GetCatalogEntityKeysCount mocks base method.
+func (m *MockClient) GetCatalogEntityKeysCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCatalogEntityKeysCount", ctx, filters)
+	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetLastPipelineBuild indicates an expected call of GetLastPipelineBuild
-func (mr *MockClientMockRecorder) GetLastPipelineBuild(ctx, repoSource, repoOwner, repoName, optimized interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastPipelineBuild", reflect.TypeOf((*MockClient)(nil).GetLastPipelineBuild), ctx, repoSource, repoOwner, repoName, optimized)
+// GetCatalogEntityKeysCount indicates an expected call of GetCatalogEntityKeysCount.
+func (mr *MockClientMockRecorder) GetCatalogEntityKeysCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityKeysCount", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityKeysCount), ctx, filters)
 }
 
-// GetFirstPipelineBuild mocks base method
+// GetCatalogEntityLabels mocks base method.
+func (m *MockClient) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCatalogEntityLabels", ctx, pageNumber, pageSize, filters)
+	ret0, _ := ret[0].([]map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCatalogEntityLabels indicates an expected call of GetCatalogEntityLabels.
+func (mr *MockClientMockRecorder) GetCatalogEntityLabels(ctx, pageNumber, pageSize, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityLabels", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityLabels), ctx, pageNumber, pageSize, filters)
+}
+
+// GetCatalogEntityLabelsCount mocks base method.
+func (m *MockClient) GetCatalogEntityLabelsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCatalogEntityLabelsCount", ctx, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCatalogEntityLabelsCount indicates an expected call of GetCatalogEntityLabelsCount.
+func (mr *MockClientMockRecorder) GetCatalogEntityLabelsCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityLabelsCount", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityLabelsCount), ctx, filters)
+}
+
+// GetCatalogEntityParentKeys mocks base method.
+func (m *MockClient) GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCatalogEntityParentKeys", ctx, pageNumber, pageSize, filters, sortings)
+	ret0, _ := ret[0].([]map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCatalogEntityParentKeys indicates an expected call of GetCatalogEntityParentKeys.
+func (mr *MockClientMockRecorder) GetCatalogEntityParentKeys(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityParentKeys", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityParentKeys), ctx, pageNumber, pageSize, filters, sortings)
+}
+
+// GetCatalogEntityParentKeysCount mocks base method.
+func (m *MockClient) GetCatalogEntityParentKeysCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCatalogEntityParentKeysCount", ctx, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCatalogEntityParentKeysCount indicates an expected call of GetCatalogEntityParentKeysCount.
+func (mr *MockClientMockRecorder) GetCatalogEntityParentKeysCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityParentKeysCount", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityParentKeysCount), ctx, filters)
+}
+
+// GetCatalogEntityParentValues mocks base method.
+func (m *MockClient) GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCatalogEntityParentValues", ctx, pageNumber, pageSize, filters, sortings)
+	ret0, _ := ret[0].([]map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCatalogEntityParentValues indicates an expected call of GetCatalogEntityParentValues.
+func (mr *MockClientMockRecorder) GetCatalogEntityParentValues(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityParentValues", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityParentValues), ctx, pageNumber, pageSize, filters, sortings)
+}
+
+// GetCatalogEntityParentValuesCount mocks base method.
+func (m *MockClient) GetCatalogEntityParentValuesCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCatalogEntityParentValuesCount", ctx, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCatalogEntityParentValuesCount indicates an expected call of GetCatalogEntityParentValuesCount.
+func (mr *MockClientMockRecorder) GetCatalogEntityParentValuesCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityParentValuesCount", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityParentValuesCount), ctx, filters)
+}
+
+// GetCatalogEntityValues mocks base method.
+func (m *MockClient) GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCatalogEntityValues", ctx, pageNumber, pageSize, filters, sortings)
+	ret0, _ := ret[0].([]map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCatalogEntityValues indicates an expected call of GetCatalogEntityValues.
+func (mr *MockClientMockRecorder) GetCatalogEntityValues(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityValues", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityValues), ctx, pageNumber, pageSize, filters, sortings)
+}
+
+// GetCatalogEntityValuesCount mocks base method.
+func (m *MockClient) GetCatalogEntityValuesCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCatalogEntityValuesCount", ctx, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCatalogEntityValuesCount indicates an expected call of GetCatalogEntityValuesCount.
+func (mr *MockClientMockRecorder) GetCatalogEntityValuesCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityValuesCount", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityValuesCount), ctx, filters)
+}
+
+// GetClientByClientID mocks base method.
+func (m *MockClient) GetClientByClientID(ctx context.Context, clientID string) (*estafette_ci_contracts.Client, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClientByClientID", ctx, clientID)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Client)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClientByClientID indicates an expected call of GetClientByClientID.
+func (mr *MockClientMockRecorder) GetClientByClientID(ctx, clientID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClientByClientID", reflect.TypeOf((*MockClient)(nil).GetClientByClientID), ctx, clientID)
+}
+
+// GetClientByID mocks base method.
+func (m *MockClient) GetClientByID(ctx context.Context, id string) (*estafette_ci_contracts.Client, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClientByID", ctx, id)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Client)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClientByID indicates an expected call of GetClientByID.
+func (mr *MockClientMockRecorder) GetClientByID(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClientByID", reflect.TypeOf((*MockClient)(nil).GetClientByID), ctx, id)
+}
+
+// GetClients mocks base method.
+func (m *MockClient) GetClients(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]*estafette_ci_contracts.Client, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClients", ctx, pageNumber, pageSize, filters, sortings)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.Client)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClients indicates an expected call of GetClients.
+func (mr *MockClientMockRecorder) GetClients(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClients", reflect.TypeOf((*MockClient)(nil).GetClients), ctx, pageNumber, pageSize, filters, sortings)
+}
+
+// GetClientsCount mocks base method.
+func (m *MockClient) GetClientsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClientsCount", ctx, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClientsCount indicates an expected call of GetClientsCount.
+func (mr *MockClientMockRecorder) GetClientsCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClientsCount", reflect.TypeOf((*MockClient)(nil).GetClientsCount), ctx, filters)
+}
+
+// GetCronTriggers mocks base method.
+func (m *MockClient) GetCronTriggers(ctx context.Context) ([]*estafette_ci_contracts.Pipeline, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCronTriggers", ctx)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.Pipeline)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCronTriggers indicates an expected call of GetCronTriggers.
+func (mr *MockClientMockRecorder) GetCronTriggers(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCronTriggers", reflect.TypeOf((*MockClient)(nil).GetCronTriggers), ctx)
+}
+
+// GetFirstBuildTimes mocks base method.
+func (m *MockClient) GetFirstBuildTimes(ctx context.Context) ([]time.Time, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFirstBuildTimes", ctx)
+	ret0, _ := ret[0].([]time.Time)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFirstBuildTimes indicates an expected call of GetFirstBuildTimes.
+func (mr *MockClientMockRecorder) GetFirstBuildTimes(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFirstBuildTimes", reflect.TypeOf((*MockClient)(nil).GetFirstBuildTimes), ctx)
+}
+
+// GetFirstPipelineBuild mocks base method.
 func (m *MockClient) GetFirstPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (*estafette_ci_contracts.Build, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetFirstPipelineBuild", ctx, repoSource, repoOwner, repoName, optimized)
 	ret0, _ := ret[0].(*estafette_ci_contracts.Build)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetFirstPipelineBuild indicates an expected call of GetFirstPipelineBuild
+// GetFirstPipelineBuild indicates an expected call of GetFirstPipelineBuild.
 func (mr *MockClientMockRecorder) GetFirstPipelineBuild(ctx, repoSource, repoOwner, repoName, optimized interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFirstPipelineBuild", reflect.TypeOf((*MockClient)(nil).GetFirstPipelineBuild), ctx, repoSource, repoOwner, repoName, optimized)
 }
 
-// GetLastPipelineBuildForBranch mocks base method
-func (m *MockClient) GetLastPipelineBuildForBranch(ctx context.Context, repoSource, repoOwner, repoName, branch string) (*estafette_ci_contracts.Build, error) {
-	ret := m.ctrl.Call(m, "GetLastPipelineBuildForBranch", ctx, repoSource, repoOwner, repoName, branch)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Build)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetLastPipelineBuildForBranch indicates an expected call of GetLastPipelineBuildForBranch
-func (mr *MockClientMockRecorder) GetLastPipelineBuildForBranch(ctx, repoSource, repoOwner, repoName, branch interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastPipelineBuildForBranch", reflect.TypeOf((*MockClient)(nil).GetLastPipelineBuildForBranch), ctx, repoSource, repoOwner, repoName, branch)
-}
-
-// GetLastPipelineReleases mocks base method
-func (m *MockClient) GetLastPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string, pageSize int) ([]*estafette_ci_contracts.Release, error) {
-	ret := m.ctrl.Call(m, "GetLastPipelineReleases", ctx, repoSource, repoOwner, repoName, releaseName, releaseAction, pageSize)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.Release)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetLastPipelineReleases indicates an expected call of GetLastPipelineReleases
-func (mr *MockClientMockRecorder) GetLastPipelineReleases(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction, pageSize interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastPipelineReleases", reflect.TypeOf((*MockClient)(nil).GetLastPipelineReleases), ctx, repoSource, repoOwner, repoName, releaseName, releaseAction, pageSize)
-}
-
-// GetFirstPipelineRelease mocks base method
+// GetFirstPipelineRelease mocks base method.
 func (m *MockClient) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (*estafette_ci_contracts.Release, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetFirstPipelineRelease", ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 	ret0, _ := ret[0].(*estafette_ci_contracts.Release)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetFirstPipelineRelease indicates an expected call of GetFirstPipelineRelease
+// GetFirstPipelineRelease indicates an expected call of GetFirstPipelineRelease.
 func (mr *MockClientMockRecorder) GetFirstPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFirstPipelineRelease", reflect.TypeOf((*MockClient)(nil).GetFirstPipelineRelease), ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 }
 
-// GetPipelineBuildsByVersion mocks base method
-func (m *MockClient) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []estafette_ci_contracts.Status, limit uint64, optimized bool) ([]*estafette_ci_contracts.Build, error) {
-	ret := m.ctrl.Call(m, "GetPipelineBuildsByVersion", ctx, repoSource, repoOwner, repoName, buildVersion, statuses, limit, optimized)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.Build)
+// GetFirstReleaseTimes mocks base method.
+func (m *MockClient) GetFirstReleaseTimes(ctx context.Context) ([]time.Time, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFirstReleaseTimes", ctx)
+	ret0, _ := ret[0].([]time.Time)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineBuildsByVersion indicates an expected call of GetPipelineBuildsByVersion
-func (mr *MockClientMockRecorder) GetPipelineBuildsByVersion(ctx, repoSource, repoOwner, repoName, buildVersion, statuses, limit, optimized interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildsByVersion", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildsByVersion), ctx, repoSource, repoOwner, repoName, buildVersion, statuses, limit, optimized)
+// GetFirstReleaseTimes indicates an expected call of GetFirstReleaseTimes.
+func (mr *MockClientMockRecorder) GetFirstReleaseTimes(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFirstReleaseTimes", reflect.TypeOf((*MockClient)(nil).GetFirstReleaseTimes), ctx)
 }
 
-// GetPipelineBuildLogs mocks base method
+// GetFrequentLabels mocks base method.
+func (m *MockClient) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFrequentLabels", ctx, pageNumber, pageSize, filters)
+	ret0, _ := ret[0].([]map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFrequentLabels indicates an expected call of GetFrequentLabels.
+func (mr *MockClientMockRecorder) GetFrequentLabels(ctx, pageNumber, pageSize, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFrequentLabels", reflect.TypeOf((*MockClient)(nil).GetFrequentLabels), ctx, pageNumber, pageSize, filters)
+}
+
+// GetFrequentLabelsCount mocks base method.
+func (m *MockClient) GetFrequentLabelsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFrequentLabelsCount", ctx, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFrequentLabelsCount indicates an expected call of GetFrequentLabelsCount.
+func (mr *MockClientMockRecorder) GetFrequentLabelsCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFrequentLabelsCount", reflect.TypeOf((*MockClient)(nil).GetFrequentLabelsCount), ctx, filters)
+}
+
+// GetGitTriggers mocks base method.
+func (m *MockClient) GetGitTriggers(ctx context.Context, gitEvent estafette_ci_manifest.EstafetteGitEvent) ([]*estafette_ci_contracts.Pipeline, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGitTriggers", ctx, gitEvent)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.Pipeline)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetGitTriggers indicates an expected call of GetGitTriggers.
+func (mr *MockClientMockRecorder) GetGitTriggers(ctx, gitEvent interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGitTriggers", reflect.TypeOf((*MockClient)(nil).GetGitTriggers), ctx, gitEvent)
+}
+
+// GetGroupByID mocks base method.
+func (m *MockClient) GetGroupByID(ctx context.Context, id string, filters map[api.FilterType][]string) (*estafette_ci_contracts.Group, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGroupByID", ctx, id, filters)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Group)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetGroupByID indicates an expected call of GetGroupByID.
+func (mr *MockClientMockRecorder) GetGroupByID(ctx, id, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupByID", reflect.TypeOf((*MockClient)(nil).GetGroupByID), ctx, id, filters)
+}
+
+// GetGroupByIdentity mocks base method.
+func (m *MockClient) GetGroupByIdentity(ctx context.Context, identity estafette_ci_contracts.GroupIdentity) (*estafette_ci_contracts.Group, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGroupByIdentity", ctx, identity)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Group)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetGroupByIdentity indicates an expected call of GetGroupByIdentity.
+func (mr *MockClientMockRecorder) GetGroupByIdentity(ctx, identity interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupByIdentity", reflect.TypeOf((*MockClient)(nil).GetGroupByIdentity), ctx, identity)
+}
+
+// GetGroups mocks base method.
+func (m *MockClient) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]*estafette_ci_contracts.Group, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGroups", ctx, pageNumber, pageSize, filters, sortings)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.Group)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetGroups indicates an expected call of GetGroups.
+func (mr *MockClientMockRecorder) GetGroups(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroups", reflect.TypeOf((*MockClient)(nil).GetGroups), ctx, pageNumber, pageSize, filters, sortings)
+}
+
+// GetGroupsCount mocks base method.
+func (m *MockClient) GetGroupsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGroupsCount", ctx, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetGroupsCount indicates an expected call of GetGroupsCount.
+func (mr *MockClientMockRecorder) GetGroupsCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupsCount", reflect.TypeOf((*MockClient)(nil).GetGroupsCount), ctx, filters)
+}
+
+// GetLabelValues mocks base method.
+func (m *MockClient) GetLabelValues(ctx context.Context, labelKey string) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLabelValues", ctx, labelKey)
+	ret0, _ := ret[0].([]map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLabelValues indicates an expected call of GetLabelValues.
+func (mr *MockClientMockRecorder) GetLabelValues(ctx, labelKey interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLabelValues", reflect.TypeOf((*MockClient)(nil).GetLabelValues), ctx, labelKey)
+}
+
+// GetLastPipelineBuild mocks base method.
+func (m *MockClient) GetLastPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (*estafette_ci_contracts.Build, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLastPipelineBuild", ctx, repoSource, repoOwner, repoName, optimized)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Build)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLastPipelineBuild indicates an expected call of GetLastPipelineBuild.
+func (mr *MockClientMockRecorder) GetLastPipelineBuild(ctx, repoSource, repoOwner, repoName, optimized interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastPipelineBuild", reflect.TypeOf((*MockClient)(nil).GetLastPipelineBuild), ctx, repoSource, repoOwner, repoName, optimized)
+}
+
+// GetLastPipelineBuildForBranch mocks base method.
+func (m *MockClient) GetLastPipelineBuildForBranch(ctx context.Context, repoSource, repoOwner, repoName, branch string) (*estafette_ci_contracts.Build, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLastPipelineBuildForBranch", ctx, repoSource, repoOwner, repoName, branch)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Build)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLastPipelineBuildForBranch indicates an expected call of GetLastPipelineBuildForBranch.
+func (mr *MockClientMockRecorder) GetLastPipelineBuildForBranch(ctx, repoSource, repoOwner, repoName, branch interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastPipelineBuildForBranch", reflect.TypeOf((*MockClient)(nil).GetLastPipelineBuildForBranch), ctx, repoSource, repoOwner, repoName, branch)
+}
+
+// GetLastPipelineReleases mocks base method.
+func (m *MockClient) GetLastPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string, pageSize int) ([]*estafette_ci_contracts.Release, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLastPipelineReleases", ctx, repoSource, repoOwner, repoName, releaseName, releaseAction, pageSize)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.Release)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLastPipelineReleases indicates an expected call of GetLastPipelineReleases.
+func (mr *MockClientMockRecorder) GetLastPipelineReleases(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction, pageSize interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastPipelineReleases", reflect.TypeOf((*MockClient)(nil).GetLastPipelineReleases), ctx, repoSource, repoOwner, repoName, releaseName, releaseAction, pageSize)
+}
+
+// GetOrganizationByID mocks base method.
+func (m *MockClient) GetOrganizationByID(ctx context.Context, id string) (*estafette_ci_contracts.Organization, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOrganizationByID", ctx, id)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Organization)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOrganizationByID indicates an expected call of GetOrganizationByID.
+func (mr *MockClientMockRecorder) GetOrganizationByID(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrganizationByID", reflect.TypeOf((*MockClient)(nil).GetOrganizationByID), ctx, id)
+}
+
+// GetOrganizationByIdentity mocks base method.
+func (m *MockClient) GetOrganizationByIdentity(ctx context.Context, identity estafette_ci_contracts.OrganizationIdentity) (*estafette_ci_contracts.Organization, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOrganizationByIdentity", ctx, identity)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Organization)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOrganizationByIdentity indicates an expected call of GetOrganizationByIdentity.
+func (mr *MockClientMockRecorder) GetOrganizationByIdentity(ctx, identity interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrganizationByIdentity", reflect.TypeOf((*MockClient)(nil).GetOrganizationByIdentity), ctx, identity)
+}
+
+// GetOrganizationByName mocks base method.
+func (m *MockClient) GetOrganizationByName(ctx context.Context, name string) (*estafette_ci_contracts.Organization, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOrganizationByName", ctx, name)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Organization)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOrganizationByName indicates an expected call of GetOrganizationByName.
+func (mr *MockClientMockRecorder) GetOrganizationByName(ctx, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrganizationByName", reflect.TypeOf((*MockClient)(nil).GetOrganizationByName), ctx, name)
+}
+
+// GetOrganizations mocks base method.
+func (m *MockClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]*estafette_ci_contracts.Organization, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOrganizations", ctx, pageNumber, pageSize, filters, sortings)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.Organization)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOrganizations indicates an expected call of GetOrganizations.
+func (mr *MockClientMockRecorder) GetOrganizations(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrganizations", reflect.TypeOf((*MockClient)(nil).GetOrganizations), ctx, pageNumber, pageSize, filters, sortings)
+}
+
+// GetOrganizationsCount mocks base method.
+func (m *MockClient) GetOrganizationsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOrganizationsCount", ctx, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOrganizationsCount indicates an expected call of GetOrganizationsCount.
+func (mr *MockClientMockRecorder) GetOrganizationsCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrganizationsCount", reflect.TypeOf((*MockClient)(nil).GetOrganizationsCount), ctx, filters)
+}
+
+// GetPipeline mocks base method.
+func (m *MockClient) GetPipeline(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (*estafette_ci_contracts.Pipeline, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipeline", ctx, repoSource, repoOwner, repoName, filters, optimized)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Pipeline)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipeline indicates an expected call of GetPipeline.
+func (mr *MockClientMockRecorder) GetPipeline(ctx, repoSource, repoOwner, repoName, filters, optimized interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipeline", reflect.TypeOf((*MockClient)(nil).GetPipeline), ctx, repoSource, repoOwner, repoName, filters, optimized)
+}
+
+// GetPipelineBuild mocks base method.
+func (m *MockClient) GetPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName, repoRevision string, optimized bool) (*estafette_ci_contracts.Build, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineBuild", ctx, repoSource, repoOwner, repoName, repoRevision, optimized)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Build)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelineBuild indicates an expected call of GetPipelineBuild.
+func (mr *MockClientMockRecorder) GetPipelineBuild(ctx, repoSource, repoOwner, repoName, repoRevision, optimized interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuild", reflect.TypeOf((*MockClient)(nil).GetPipelineBuild), ctx, repoSource, repoOwner, repoName, repoRevision, optimized)
+}
+
+// GetPipelineBuildByID mocks base method.
+func (m *MockClient) GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, id int, optimized bool) (*estafette_ci_contracts.Build, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineBuildByID", ctx, repoSource, repoOwner, repoName, id, optimized)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Build)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelineBuildByID indicates an expected call of GetPipelineBuildByID.
+func (mr *MockClientMockRecorder) GetPipelineBuildByID(ctx, repoSource, repoOwner, repoName, id, optimized interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildByID", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildByID), ctx, repoSource, repoOwner, repoName, id, optimized)
+}
+
+// GetPipelineBuildLogs mocks base method.
 func (m *MockClient) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (*estafette_ci_contracts.BuildLog, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPipelineBuildLogs", ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, readLogFromDatabase)
 	ret0, _ := ret[0].(*estafette_ci_contracts.BuildLog)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineBuildLogs indicates an expected call of GetPipelineBuildLogs
+// GetPipelineBuildLogs indicates an expected call of GetPipelineBuildLogs.
 func (mr *MockClientMockRecorder) GetPipelineBuildLogs(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, readLogFromDatabase interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildLogs", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildLogs), ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, readLogFromDatabase)
 }
 
-// GetPipelineBuildLogsByID mocks base method
+// GetPipelineBuildLogsByID mocks base method.
 func (m *MockClient) GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id string, readLogFromDatabase bool) (*estafette_ci_contracts.BuildLog, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPipelineBuildLogsByID", ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id, readLogFromDatabase)
 	ret0, _ := ret[0].(*estafette_ci_contracts.BuildLog)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineBuildLogsByID indicates an expected call of GetPipelineBuildLogsByID
+// GetPipelineBuildLogsByID indicates an expected call of GetPipelineBuildLogsByID.
 func (mr *MockClientMockRecorder) GetPipelineBuildLogsByID(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id, readLogFromDatabase interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildLogsByID", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildLogsByID), ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id, readLogFromDatabase)
 }
 
-// GetPipelineBuildLogsPerPage mocks base method
-func (m *MockClient) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, pageNumber, pageSize int) ([]*estafette_ci_contracts.BuildLog, error) {
-	ret := m.ctrl.Call(m, "GetPipelineBuildLogsPerPage", ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, pageNumber, pageSize)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.BuildLog)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPipelineBuildLogsPerPage indicates an expected call of GetPipelineBuildLogsPerPage
-func (mr *MockClientMockRecorder) GetPipelineBuildLogsPerPage(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, pageNumber, pageSize interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildLogsPerPage", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildLogsPerPage), ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, pageNumber, pageSize)
-}
-
-// GetPipelineBuildLogsCount mocks base method
+// GetPipelineBuildLogsCount mocks base method.
 func (m *MockClient) GetPipelineBuildLogsCount(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string) (int, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPipelineBuildLogsCount", ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineBuildLogsCount indicates an expected call of GetPipelineBuildLogsCount
+// GetPipelineBuildLogsCount indicates an expected call of GetPipelineBuildLogsCount.
 func (mr *MockClientMockRecorder) GetPipelineBuildLogsCount(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildLogsCount", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildLogsCount), ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID)
 }
 
-// GetPipelineBuildMaxResourceUtilization mocks base method
+// GetPipelineBuildLogsPerPage mocks base method.
+func (m *MockClient) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, pageNumber, pageSize int) ([]*estafette_ci_contracts.BuildLog, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineBuildLogsPerPage", ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, pageNumber, pageSize)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.BuildLog)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelineBuildLogsPerPage indicates an expected call of GetPipelineBuildLogsPerPage.
+func (mr *MockClientMockRecorder) GetPipelineBuildLogsPerPage(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, pageNumber, pageSize interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildLogsPerPage", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildLogsPerPage), ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, pageNumber, pageSize)
+}
+
+// GetPipelineBuildMaxResourceUtilization mocks base method.
 func (m *MockClient) GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (JobResources, int, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPipelineBuildMaxResourceUtilization", ctx, repoSource, repoOwner, repoName, lastNRecords)
 	ret0, _ := ret[0].(JobResources)
 	ret1, _ := ret[1].(int)
@@ -514,117 +940,210 @@ func (m *MockClient) GetPipelineBuildMaxResourceUtilization(ctx context.Context,
 	return ret0, ret1, ret2
 }
 
-// GetPipelineBuildMaxResourceUtilization indicates an expected call of GetPipelineBuildMaxResourceUtilization
+// GetPipelineBuildMaxResourceUtilization indicates an expected call of GetPipelineBuildMaxResourceUtilization.
 func (mr *MockClientMockRecorder) GetPipelineBuildMaxResourceUtilization(ctx, repoSource, repoOwner, repoName, lastNRecords interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildMaxResourceUtilization", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildMaxResourceUtilization), ctx, repoSource, repoOwner, repoName, lastNRecords)
 }
 
-// GetPipelineReleases mocks base method
-func (m *MockClient) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]*estafette_ci_contracts.Release, error) {
-	ret := m.ctrl.Call(m, "GetPipelineReleases", ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.Release)
+// GetPipelineBuilds mocks base method.
+func (m *MockClient) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) ([]*estafette_ci_contracts.Build, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineBuilds", ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings, optimized)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.Build)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineReleases indicates an expected call of GetPipelineReleases
-func (mr *MockClientMockRecorder) GetPipelineReleases(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineReleases", reflect.TypeOf((*MockClient)(nil).GetPipelineReleases), ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings)
+// GetPipelineBuilds indicates an expected call of GetPipelineBuilds.
+func (mr *MockClientMockRecorder) GetPipelineBuilds(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings, optimized interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuilds", reflect.TypeOf((*MockClient)(nil).GetPipelineBuilds), ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings, optimized)
 }
 
-// GetPipelineReleasesCount mocks base method
-func (m *MockClient) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetPipelineReleasesCount", ctx, repoSource, repoOwner, repoName, filters)
+// GetPipelineBuildsByVersion mocks base method.
+func (m *MockClient) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []estafette_ci_contracts.Status, limit uint64, optimized bool) ([]*estafette_ci_contracts.Build, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineBuildsByVersion", ctx, repoSource, repoOwner, repoName, buildVersion, statuses, limit, optimized)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.Build)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelineBuildsByVersion indicates an expected call of GetPipelineBuildsByVersion.
+func (mr *MockClientMockRecorder) GetPipelineBuildsByVersion(ctx, repoSource, repoOwner, repoName, buildVersion, statuses, limit, optimized interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildsByVersion", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildsByVersion), ctx, repoSource, repoOwner, repoName, buildVersion, statuses, limit, optimized)
+}
+
+// GetPipelineBuildsCPUUsageMeasurements mocks base method.
+func (m *MockClient) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineBuildsCPUUsageMeasurements", ctx, repoSource, repoOwner, repoName, filters)
+	ret0, _ := ret[0].([]map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelineBuildsCPUUsageMeasurements indicates an expected call of GetPipelineBuildsCPUUsageMeasurements.
+func (mr *MockClientMockRecorder) GetPipelineBuildsCPUUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildsCPUUsageMeasurements", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildsCPUUsageMeasurements), ctx, repoSource, repoOwner, repoName, filters)
+}
+
+// GetPipelineBuildsCount mocks base method.
+func (m *MockClient) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineBuildsCount", ctx, repoSource, repoOwner, repoName, filters)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineReleasesCount indicates an expected call of GetPipelineReleasesCount
-func (mr *MockClientMockRecorder) GetPipelineReleasesCount(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineReleasesCount", reflect.TypeOf((*MockClient)(nil).GetPipelineReleasesCount), ctx, repoSource, repoOwner, repoName, filters)
+// GetPipelineBuildsCount indicates an expected call of GetPipelineBuildsCount.
+func (mr *MockClientMockRecorder) GetPipelineBuildsCount(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildsCount", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildsCount), ctx, repoSource, repoOwner, repoName, filters)
 }
 
-// GetPipelineRelease mocks base method
-func (m *MockClient) GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, id int) (*estafette_ci_contracts.Release, error) {
-	ret := m.ctrl.Call(m, "GetPipelineRelease", ctx, repoSource, repoOwner, repoName, id)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Release)
+// GetPipelineBuildsDurations mocks base method.
+func (m *MockClient) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineBuildsDurations", ctx, repoSource, repoOwner, repoName, filters)
+	ret0, _ := ret[0].([]map[string]interface{})
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineRelease indicates an expected call of GetPipelineRelease
-func (mr *MockClientMockRecorder) GetPipelineRelease(ctx, repoSource, repoOwner, repoName, id interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineRelease", reflect.TypeOf((*MockClient)(nil).GetPipelineRelease), ctx, repoSource, repoOwner, repoName, id)
+// GetPipelineBuildsDurations indicates an expected call of GetPipelineBuildsDurations.
+func (mr *MockClientMockRecorder) GetPipelineBuildsDurations(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildsDurations", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildsDurations), ctx, repoSource, repoOwner, repoName, filters)
 }
 
-// GetPipelineLastReleasesByName mocks base method
+// GetPipelineBuildsMemoryUsageMeasurements mocks base method.
+func (m *MockClient) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineBuildsMemoryUsageMeasurements", ctx, repoSource, repoOwner, repoName, filters)
+	ret0, _ := ret[0].([]map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelineBuildsMemoryUsageMeasurements indicates an expected call of GetPipelineBuildsMemoryUsageMeasurements.
+func (mr *MockClientMockRecorder) GetPipelineBuildsMemoryUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildsMemoryUsageMeasurements", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildsMemoryUsageMeasurements), ctx, repoSource, repoOwner, repoName, filters)
+}
+
+// GetPipelineLastReleasesByName mocks base method.
 func (m *MockClient) GetPipelineLastReleasesByName(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) ([]estafette_ci_contracts.Release, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPipelineLastReleasesByName", ctx, repoSource, repoOwner, repoName, releaseName, actions)
 	ret0, _ := ret[0].([]estafette_ci_contracts.Release)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineLastReleasesByName indicates an expected call of GetPipelineLastReleasesByName
+// GetPipelineLastReleasesByName indicates an expected call of GetPipelineLastReleasesByName.
 func (mr *MockClientMockRecorder) GetPipelineLastReleasesByName(ctx, repoSource, repoOwner, repoName, releaseName, actions interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineLastReleasesByName", reflect.TypeOf((*MockClient)(nil).GetPipelineLastReleasesByName), ctx, repoSource, repoOwner, repoName, releaseName, actions)
 }
 
-// GetPipelineReleaseLogs mocks base method
+// GetPipelineRecentBuilds mocks base method.
+func (m *MockClient) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) ([]*estafette_ci_contracts.Build, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineRecentBuilds", ctx, repoSource, repoOwner, repoName, optimized)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.Build)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelineRecentBuilds indicates an expected call of GetPipelineRecentBuilds.
+func (mr *MockClientMockRecorder) GetPipelineRecentBuilds(ctx, repoSource, repoOwner, repoName, optimized interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineRecentBuilds", reflect.TypeOf((*MockClient)(nil).GetPipelineRecentBuilds), ctx, repoSource, repoOwner, repoName, optimized)
+}
+
+// GetPipelineRelease mocks base method.
+func (m *MockClient) GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, id int) (*estafette_ci_contracts.Release, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineRelease", ctx, repoSource, repoOwner, repoName, id)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Release)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelineRelease indicates an expected call of GetPipelineRelease.
+func (mr *MockClientMockRecorder) GetPipelineRelease(ctx, repoSource, repoOwner, repoName, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineRelease", reflect.TypeOf((*MockClient)(nil).GetPipelineRelease), ctx, repoSource, repoOwner, repoName, id)
+}
+
+// GetPipelineReleaseLogs mocks base method.
 func (m *MockClient) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, readLogFromDatabase bool) (*estafette_ci_contracts.ReleaseLog, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPipelineReleaseLogs", ctx, repoSource, repoOwner, repoName, releaseID, readLogFromDatabase)
 	ret0, _ := ret[0].(*estafette_ci_contracts.ReleaseLog)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineReleaseLogs indicates an expected call of GetPipelineReleaseLogs
+// GetPipelineReleaseLogs indicates an expected call of GetPipelineReleaseLogs.
 func (mr *MockClientMockRecorder) GetPipelineReleaseLogs(ctx, repoSource, repoOwner, repoName, releaseID, readLogFromDatabase interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineReleaseLogs", reflect.TypeOf((*MockClient)(nil).GetPipelineReleaseLogs), ctx, repoSource, repoOwner, repoName, releaseID, readLogFromDatabase)
 }
 
-// GetPipelineReleaseLogsByID mocks base method
+// GetPipelineReleaseLogsByID mocks base method.
 func (m *MockClient) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, id string, readLogFromDatabase bool) (*estafette_ci_contracts.ReleaseLog, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPipelineReleaseLogsByID", ctx, repoSource, repoOwner, repoName, releaseID, id, readLogFromDatabase)
 	ret0, _ := ret[0].(*estafette_ci_contracts.ReleaseLog)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineReleaseLogsByID indicates an expected call of GetPipelineReleaseLogsByID
+// GetPipelineReleaseLogsByID indicates an expected call of GetPipelineReleaseLogsByID.
 func (mr *MockClientMockRecorder) GetPipelineReleaseLogsByID(ctx, repoSource, repoOwner, repoName, releaseID, id, readLogFromDatabase interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineReleaseLogsByID", reflect.TypeOf((*MockClient)(nil).GetPipelineReleaseLogsByID), ctx, repoSource, repoOwner, repoName, releaseID, id, readLogFromDatabase)
 }
 
-// GetPipelineReleaseLogsPerPage mocks base method
-func (m *MockClient) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID, pageNumber, pageSize int) ([]*estafette_ci_contracts.ReleaseLog, error) {
-	ret := m.ctrl.Call(m, "GetPipelineReleaseLogsPerPage", ctx, repoSource, repoOwner, repoName, releaseID, pageNumber, pageSize)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.ReleaseLog)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPipelineReleaseLogsPerPage indicates an expected call of GetPipelineReleaseLogsPerPage
-func (mr *MockClientMockRecorder) GetPipelineReleaseLogsPerPage(ctx, repoSource, repoOwner, repoName, releaseID, pageNumber, pageSize interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineReleaseLogsPerPage", reflect.TypeOf((*MockClient)(nil).GetPipelineReleaseLogsPerPage), ctx, repoSource, repoOwner, repoName, releaseID, pageNumber, pageSize)
-}
-
-// GetPipelineReleaseLogsCount mocks base method
+// GetPipelineReleaseLogsCount mocks base method.
 func (m *MockClient) GetPipelineReleaseLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int) (int, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPipelineReleaseLogsCount", ctx, repoSource, repoOwner, repoName, releaseID)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineReleaseLogsCount indicates an expected call of GetPipelineReleaseLogsCount
+// GetPipelineReleaseLogsCount indicates an expected call of GetPipelineReleaseLogsCount.
 func (mr *MockClientMockRecorder) GetPipelineReleaseLogsCount(ctx, repoSource, repoOwner, repoName, releaseID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineReleaseLogsCount", reflect.TypeOf((*MockClient)(nil).GetPipelineReleaseLogsCount), ctx, repoSource, repoOwner, repoName, releaseID)
 }
 
-// GetPipelineReleaseMaxResourceUtilization mocks base method
+// GetPipelineReleaseLogsPerPage mocks base method.
+func (m *MockClient) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID, pageNumber, pageSize int) ([]*estafette_ci_contracts.ReleaseLog, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineReleaseLogsPerPage", ctx, repoSource, repoOwner, repoName, releaseID, pageNumber, pageSize)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.ReleaseLog)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelineReleaseLogsPerPage indicates an expected call of GetPipelineReleaseLogsPerPage.
+func (mr *MockClientMockRecorder) GetPipelineReleaseLogsPerPage(ctx, repoSource, repoOwner, repoName, releaseID, pageNumber, pageSize interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineReleaseLogsPerPage", reflect.TypeOf((*MockClient)(nil).GetPipelineReleaseLogsPerPage), ctx, repoSource, repoOwner, repoName, releaseID, pageNumber, pageSize)
+}
+
+// GetPipelineReleaseMaxResourceUtilization mocks base method.
 func (m *MockClient) GetPipelineReleaseMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (JobResources, int, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPipelineReleaseMaxResourceUtilization", ctx, repoSource, repoOwner, repoName, targetName, lastNRecords)
 	ret0, _ := ret[0].(JobResources)
 	ret1, _ := ret[1].(int)
@@ -632,1042 +1151,810 @@ func (m *MockClient) GetPipelineReleaseMaxResourceUtilization(ctx context.Contex
 	return ret0, ret1, ret2
 }
 
-// GetPipelineReleaseMaxResourceUtilization indicates an expected call of GetPipelineReleaseMaxResourceUtilization
+// GetPipelineReleaseMaxResourceUtilization indicates an expected call of GetPipelineReleaseMaxResourceUtilization.
 func (mr *MockClientMockRecorder) GetPipelineReleaseMaxResourceUtilization(ctx, repoSource, repoOwner, repoName, targetName, lastNRecords interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineReleaseMaxResourceUtilization", reflect.TypeOf((*MockClient)(nil).GetPipelineReleaseMaxResourceUtilization), ctx, repoSource, repoOwner, repoName, targetName, lastNRecords)
 }
 
-// GetBuildsCount mocks base method
-func (m *MockClient) GetBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetBuildsCount", ctx, filters)
-	ret0, _ := ret[0].(int)
+// GetPipelineReleases mocks base method.
+func (m *MockClient) GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]*estafette_ci_contracts.Release, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineReleases", ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.Release)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetBuildsCount indicates an expected call of GetBuildsCount
-func (mr *MockClientMockRecorder) GetBuildsCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBuildsCount", reflect.TypeOf((*MockClient)(nil).GetBuildsCount), ctx, filters)
+// GetPipelineReleases indicates an expected call of GetPipelineReleases.
+func (mr *MockClientMockRecorder) GetPipelineReleases(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineReleases", reflect.TypeOf((*MockClient)(nil).GetPipelineReleases), ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings)
 }
 
-// GetReleasesCount mocks base method
-func (m *MockClient) GetReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetReleasesCount", ctx, filters)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetReleasesCount indicates an expected call of GetReleasesCount
-func (mr *MockClientMockRecorder) GetReleasesCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleasesCount", reflect.TypeOf((*MockClient)(nil).GetReleasesCount), ctx, filters)
-}
-
-// GetBuildsDuration mocks base method
-func (m *MockClient) GetBuildsDuration(ctx context.Context, filters map[api.FilterType][]string) (time.Duration, error) {
-	ret := m.ctrl.Call(m, "GetBuildsDuration", ctx, filters)
-	ret0, _ := ret[0].(time.Duration)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetBuildsDuration indicates an expected call of GetBuildsDuration
-func (mr *MockClientMockRecorder) GetBuildsDuration(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBuildsDuration", reflect.TypeOf((*MockClient)(nil).GetBuildsDuration), ctx, filters)
-}
-
-// GetFirstBuildTimes mocks base method
-func (m *MockClient) GetFirstBuildTimes(ctx context.Context) ([]time.Time, error) {
-	ret := m.ctrl.Call(m, "GetFirstBuildTimes", ctx)
-	ret0, _ := ret[0].([]time.Time)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetFirstBuildTimes indicates an expected call of GetFirstBuildTimes
-func (mr *MockClientMockRecorder) GetFirstBuildTimes(ctx interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFirstBuildTimes", reflect.TypeOf((*MockClient)(nil).GetFirstBuildTimes), ctx)
-}
-
-// GetFirstReleaseTimes mocks base method
-func (m *MockClient) GetFirstReleaseTimes(ctx context.Context) ([]time.Time, error) {
-	ret := m.ctrl.Call(m, "GetFirstReleaseTimes", ctx)
-	ret0, _ := ret[0].([]time.Time)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetFirstReleaseTimes indicates an expected call of GetFirstReleaseTimes
-func (mr *MockClientMockRecorder) GetFirstReleaseTimes(ctx interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFirstReleaseTimes", reflect.TypeOf((*MockClient)(nil).GetFirstReleaseTimes), ctx)
-}
-
-// GetPipelineBuildsDurations mocks base method
-func (m *MockClient) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
-	ret := m.ctrl.Call(m, "GetPipelineBuildsDurations", ctx, repoSource, repoOwner, repoName, filters)
-	ret0, _ := ret[0].([]map[string]interface{})
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPipelineBuildsDurations indicates an expected call of GetPipelineBuildsDurations
-func (mr *MockClientMockRecorder) GetPipelineBuildsDurations(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildsDurations", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildsDurations), ctx, repoSource, repoOwner, repoName, filters)
-}
-
-// GetPipelineReleasesDurations mocks base method
-func (m *MockClient) GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
-	ret := m.ctrl.Call(m, "GetPipelineReleasesDurations", ctx, repoSource, repoOwner, repoName, filters)
-	ret0, _ := ret[0].([]map[string]interface{})
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPipelineReleasesDurations indicates an expected call of GetPipelineReleasesDurations
-func (mr *MockClientMockRecorder) GetPipelineReleasesDurations(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineReleasesDurations", reflect.TypeOf((*MockClient)(nil).GetPipelineReleasesDurations), ctx, repoSource, repoOwner, repoName, filters)
-}
-
-// GetPipelineBuildsCPUUsageMeasurements mocks base method
-func (m *MockClient) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
-	ret := m.ctrl.Call(m, "GetPipelineBuildsCPUUsageMeasurements", ctx, repoSource, repoOwner, repoName, filters)
-	ret0, _ := ret[0].([]map[string]interface{})
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPipelineBuildsCPUUsageMeasurements indicates an expected call of GetPipelineBuildsCPUUsageMeasurements
-func (mr *MockClientMockRecorder) GetPipelineBuildsCPUUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildsCPUUsageMeasurements", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildsCPUUsageMeasurements), ctx, repoSource, repoOwner, repoName, filters)
-}
-
-// GetPipelineReleasesCPUUsageMeasurements mocks base method
+// GetPipelineReleasesCPUUsageMeasurements mocks base method.
 func (m *MockClient) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPipelineReleasesCPUUsageMeasurements", ctx, repoSource, repoOwner, repoName, filters)
 	ret0, _ := ret[0].([]map[string]interface{})
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineReleasesCPUUsageMeasurements indicates an expected call of GetPipelineReleasesCPUUsageMeasurements
+// GetPipelineReleasesCPUUsageMeasurements indicates an expected call of GetPipelineReleasesCPUUsageMeasurements.
 func (mr *MockClientMockRecorder) GetPipelineReleasesCPUUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineReleasesCPUUsageMeasurements", reflect.TypeOf((*MockClient)(nil).GetPipelineReleasesCPUUsageMeasurements), ctx, repoSource, repoOwner, repoName, filters)
 }
 
-// GetPipelineBuildsMemoryUsageMeasurements mocks base method
-func (m *MockClient) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
-	ret := m.ctrl.Call(m, "GetPipelineBuildsMemoryUsageMeasurements", ctx, repoSource, repoOwner, repoName, filters)
+// GetPipelineReleasesCount mocks base method.
+func (m *MockClient) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineReleasesCount", ctx, repoSource, repoOwner, repoName, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelineReleasesCount indicates an expected call of GetPipelineReleasesCount.
+func (mr *MockClientMockRecorder) GetPipelineReleasesCount(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineReleasesCount", reflect.TypeOf((*MockClient)(nil).GetPipelineReleasesCount), ctx, repoSource, repoOwner, repoName, filters)
+}
+
+// GetPipelineReleasesDurations mocks base method.
+func (m *MockClient) GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineReleasesDurations", ctx, repoSource, repoOwner, repoName, filters)
 	ret0, _ := ret[0].([]map[string]interface{})
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineBuildsMemoryUsageMeasurements indicates an expected call of GetPipelineBuildsMemoryUsageMeasurements
-func (mr *MockClientMockRecorder) GetPipelineBuildsMemoryUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildsMemoryUsageMeasurements", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildsMemoryUsageMeasurements), ctx, repoSource, repoOwner, repoName, filters)
+// GetPipelineReleasesDurations indicates an expected call of GetPipelineReleasesDurations.
+func (mr *MockClientMockRecorder) GetPipelineReleasesDurations(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineReleasesDurations", reflect.TypeOf((*MockClient)(nil).GetPipelineReleasesDurations), ctx, repoSource, repoOwner, repoName, filters)
 }
 
-// GetPipelineReleasesMemoryUsageMeasurements mocks base method
+// GetPipelineReleasesMemoryUsageMeasurements mocks base method.
 func (m *MockClient) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPipelineReleasesMemoryUsageMeasurements", ctx, repoSource, repoOwner, repoName, filters)
 	ret0, _ := ret[0].([]map[string]interface{})
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineReleasesMemoryUsageMeasurements indicates an expected call of GetPipelineReleasesMemoryUsageMeasurements
+// GetPipelineReleasesMemoryUsageMeasurements indicates an expected call of GetPipelineReleasesMemoryUsageMeasurements.
 func (mr *MockClientMockRecorder) GetPipelineReleasesMemoryUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineReleasesMemoryUsageMeasurements", reflect.TypeOf((*MockClient)(nil).GetPipelineReleasesMemoryUsageMeasurements), ctx, repoSource, repoOwner, repoName, filters)
 }
 
-// GetAllPipelineBuilds mocks base method
-func (m *MockClient) GetAllPipelineBuilds(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) ([]*estafette_ci_contracts.Build, error) {
-	ret := m.ctrl.Call(m, "GetAllPipelineBuilds", ctx, pageNumber, pageSize, filters, sortings, optimized)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.Build)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAllPipelineBuilds indicates an expected call of GetAllPipelineBuilds
-func (mr *MockClientMockRecorder) GetAllPipelineBuilds(ctx, pageNumber, pageSize, filters, sortings, optimized interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllPipelineBuilds", reflect.TypeOf((*MockClient)(nil).GetAllPipelineBuilds), ctx, pageNumber, pageSize, filters, sortings, optimized)
-}
-
-// GetAllPipelineBuildsCount mocks base method
-func (m *MockClient) GetAllPipelineBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetAllPipelineBuildsCount", ctx, filters)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAllPipelineBuildsCount indicates an expected call of GetAllPipelineBuildsCount
-func (mr *MockClientMockRecorder) GetAllPipelineBuildsCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllPipelineBuildsCount", reflect.TypeOf((*MockClient)(nil).GetAllPipelineBuildsCount), ctx, filters)
-}
-
-// GetAllPipelineReleases mocks base method
-func (m *MockClient) GetAllPipelineReleases(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]*estafette_ci_contracts.Release, error) {
-	ret := m.ctrl.Call(m, "GetAllPipelineReleases", ctx, pageNumber, pageSize, filters, sortings)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.Release)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAllPipelineReleases indicates an expected call of GetAllPipelineReleases
-func (mr *MockClientMockRecorder) GetAllPipelineReleases(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllPipelineReleases", reflect.TypeOf((*MockClient)(nil).GetAllPipelineReleases), ctx, pageNumber, pageSize, filters, sortings)
-}
-
-// GetAllPipelineReleasesCount mocks base method
-func (m *MockClient) GetAllPipelineReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetAllPipelineReleasesCount", ctx, filters)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAllPipelineReleasesCount indicates an expected call of GetAllPipelineReleasesCount
-func (mr *MockClientMockRecorder) GetAllPipelineReleasesCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllPipelineReleasesCount", reflect.TypeOf((*MockClient)(nil).GetAllPipelineReleasesCount), ctx, filters)
-}
-
-// GetLabelValues mocks base method
-func (m *MockClient) GetLabelValues(ctx context.Context, labelKey string) ([]map[string]interface{}, error) {
-	ret := m.ctrl.Call(m, "GetLabelValues", ctx, labelKey)
-	ret0, _ := ret[0].([]map[string]interface{})
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetLabelValues indicates an expected call of GetLabelValues
-func (mr *MockClientMockRecorder) GetLabelValues(ctx, labelKey interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLabelValues", reflect.TypeOf((*MockClient)(nil).GetLabelValues), ctx, labelKey)
-}
-
-// GetFrequentLabels mocks base method
-func (m *MockClient) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
-	ret := m.ctrl.Call(m, "GetFrequentLabels", ctx, pageNumber, pageSize, filters)
-	ret0, _ := ret[0].([]map[string]interface{})
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetFrequentLabels indicates an expected call of GetFrequentLabels
-func (mr *MockClientMockRecorder) GetFrequentLabels(ctx, pageNumber, pageSize, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFrequentLabels", reflect.TypeOf((*MockClient)(nil).GetFrequentLabels), ctx, pageNumber, pageSize, filters)
-}
-
-// GetFrequentLabelsCount mocks base method
-func (m *MockClient) GetFrequentLabelsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetFrequentLabelsCount", ctx, filters)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetFrequentLabelsCount indicates an expected call of GetFrequentLabelsCount
-func (mr *MockClientMockRecorder) GetFrequentLabelsCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFrequentLabelsCount", reflect.TypeOf((*MockClient)(nil).GetFrequentLabelsCount), ctx, filters)
-}
-
-// GetPipelinesWithMostBuilds mocks base method
-func (m *MockClient) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
-	ret := m.ctrl.Call(m, "GetPipelinesWithMostBuilds", ctx, pageNumber, pageSize, filters)
-	ret0, _ := ret[0].([]map[string]interface{})
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPipelinesWithMostBuilds indicates an expected call of GetPipelinesWithMostBuilds
-func (mr *MockClientMockRecorder) GetPipelinesWithMostBuilds(ctx, pageNumber, pageSize, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelinesWithMostBuilds", reflect.TypeOf((*MockClient)(nil).GetPipelinesWithMostBuilds), ctx, pageNumber, pageSize, filters)
-}
-
-// GetPipelinesWithMostBuildsCount mocks base method
-func (m *MockClient) GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetPipelinesWithMostBuildsCount", ctx, filters)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPipelinesWithMostBuildsCount indicates an expected call of GetPipelinesWithMostBuildsCount
-func (mr *MockClientMockRecorder) GetPipelinesWithMostBuildsCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelinesWithMostBuildsCount", reflect.TypeOf((*MockClient)(nil).GetPipelinesWithMostBuildsCount), ctx, filters)
-}
-
-// GetPipelinesWithMostReleases mocks base method
-func (m *MockClient) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
-	ret := m.ctrl.Call(m, "GetPipelinesWithMostReleases", ctx, pageNumber, pageSize, filters)
-	ret0, _ := ret[0].([]map[string]interface{})
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPipelinesWithMostReleases indicates an expected call of GetPipelinesWithMostReleases
-func (mr *MockClientMockRecorder) GetPipelinesWithMostReleases(ctx, pageNumber, pageSize, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelinesWithMostReleases", reflect.TypeOf((*MockClient)(nil).GetPipelinesWithMostReleases), ctx, pageNumber, pageSize, filters)
-}
-
-// GetPipelinesWithMostReleasesCount mocks base method
-func (m *MockClient) GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetPipelinesWithMostReleasesCount", ctx, filters)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPipelinesWithMostReleasesCount indicates an expected call of GetPipelinesWithMostReleasesCount
-func (mr *MockClientMockRecorder) GetPipelinesWithMostReleasesCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelinesWithMostReleasesCount", reflect.TypeOf((*MockClient)(nil).GetPipelinesWithMostReleasesCount), ctx, filters)
-}
-
-// GetTriggers mocks base method
-func (m *MockClient) GetTriggers(ctx context.Context, triggerType, identifier, event string) ([]*estafette_ci_contracts.Pipeline, error) {
-	ret := m.ctrl.Call(m, "GetTriggers", ctx, triggerType, identifier, event)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.Pipeline)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetTriggers indicates an expected call of GetTriggers
-func (mr *MockClientMockRecorder) GetTriggers(ctx, triggerType, identifier, event interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTriggers", reflect.TypeOf((*MockClient)(nil).GetTriggers), ctx, triggerType, identifier, event)
-}
-
-// GetGitTriggers mocks base method
-func (m *MockClient) GetGitTriggers(ctx context.Context, gitEvent estafette_ci_manifest.EstafetteGitEvent) ([]*estafette_ci_contracts.Pipeline, error) {
-	ret := m.ctrl.Call(m, "GetGitTriggers", ctx, gitEvent)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.Pipeline)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetGitTriggers indicates an expected call of GetGitTriggers
-func (mr *MockClientMockRecorder) GetGitTriggers(ctx, gitEvent interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGitTriggers", reflect.TypeOf((*MockClient)(nil).GetGitTriggers), ctx, gitEvent)
-}
-
-// GetPipelineTriggers mocks base method
+// GetPipelineTriggers mocks base method.
 func (m *MockClient) GetPipelineTriggers(ctx context.Context, build estafette_ci_contracts.Build, event string) ([]*estafette_ci_contracts.Pipeline, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPipelineTriggers", ctx, build, event)
 	ret0, _ := ret[0].([]*estafette_ci_contracts.Pipeline)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPipelineTriggers indicates an expected call of GetPipelineTriggers
+// GetPipelineTriggers indicates an expected call of GetPipelineTriggers.
 func (mr *MockClientMockRecorder) GetPipelineTriggers(ctx, build, event interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineTriggers", reflect.TypeOf((*MockClient)(nil).GetPipelineTriggers), ctx, build, event)
 }
 
-// GetReleaseTriggers mocks base method
-func (m *MockClient) GetReleaseTriggers(ctx context.Context, release estafette_ci_contracts.Release, event string) ([]*estafette_ci_contracts.Pipeline, error) {
-	ret := m.ctrl.Call(m, "GetReleaseTriggers", ctx, release, event)
+// GetPipelines mocks base method.
+func (m *MockClient) GetPipelines(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) ([]*estafette_ci_contracts.Pipeline, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelines", ctx, pageNumber, pageSize, filters, sortings, optimized)
 	ret0, _ := ret[0].([]*estafette_ci_contracts.Pipeline)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetReleaseTriggers indicates an expected call of GetReleaseTriggers
-func (mr *MockClientMockRecorder) GetReleaseTriggers(ctx, release, event interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseTriggers", reflect.TypeOf((*MockClient)(nil).GetReleaseTriggers), ctx, release, event)
+// GetPipelines indicates an expected call of GetPipelines.
+func (mr *MockClientMockRecorder) GetPipelines(ctx, pageNumber, pageSize, filters, sortings, optimized interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelines", reflect.TypeOf((*MockClient)(nil).GetPipelines), ctx, pageNumber, pageSize, filters, sortings, optimized)
 }
 
-// GetPubSubTriggers mocks base method
+// GetPipelinesByRepoName mocks base method.
+func (m *MockClient) GetPipelinesByRepoName(ctx context.Context, repoName string, optimized bool) ([]*estafette_ci_contracts.Pipeline, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelinesByRepoName", ctx, repoName, optimized)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.Pipeline)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelinesByRepoName indicates an expected call of GetPipelinesByRepoName.
+func (mr *MockClientMockRecorder) GetPipelinesByRepoName(ctx, repoName, optimized interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelinesByRepoName", reflect.TypeOf((*MockClient)(nil).GetPipelinesByRepoName), ctx, repoName, optimized)
+}
+
+// GetPipelinesCount mocks base method.
+func (m *MockClient) GetPipelinesCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelinesCount", ctx, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelinesCount indicates an expected call of GetPipelinesCount.
+func (mr *MockClientMockRecorder) GetPipelinesCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelinesCount", reflect.TypeOf((*MockClient)(nil).GetPipelinesCount), ctx, filters)
+}
+
+// GetPipelinesWithMostBuilds mocks base method.
+func (m *MockClient) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelinesWithMostBuilds", ctx, pageNumber, pageSize, filters)
+	ret0, _ := ret[0].([]map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelinesWithMostBuilds indicates an expected call of GetPipelinesWithMostBuilds.
+func (mr *MockClientMockRecorder) GetPipelinesWithMostBuilds(ctx, pageNumber, pageSize, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelinesWithMostBuilds", reflect.TypeOf((*MockClient)(nil).GetPipelinesWithMostBuilds), ctx, pageNumber, pageSize, filters)
+}
+
+// GetPipelinesWithMostBuildsCount mocks base method.
+func (m *MockClient) GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelinesWithMostBuildsCount", ctx, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelinesWithMostBuildsCount indicates an expected call of GetPipelinesWithMostBuildsCount.
+func (mr *MockClientMockRecorder) GetPipelinesWithMostBuildsCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelinesWithMostBuildsCount", reflect.TypeOf((*MockClient)(nil).GetPipelinesWithMostBuildsCount), ctx, filters)
+}
+
+// GetPipelinesWithMostReleases mocks base method.
+func (m *MockClient) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelinesWithMostReleases", ctx, pageNumber, pageSize, filters)
+	ret0, _ := ret[0].([]map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelinesWithMostReleases indicates an expected call of GetPipelinesWithMostReleases.
+func (mr *MockClientMockRecorder) GetPipelinesWithMostReleases(ctx, pageNumber, pageSize, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelinesWithMostReleases", reflect.TypeOf((*MockClient)(nil).GetPipelinesWithMostReleases), ctx, pageNumber, pageSize, filters)
+}
+
+// GetPipelinesWithMostReleasesCount mocks base method.
+func (m *MockClient) GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelinesWithMostReleasesCount", ctx, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelinesWithMostReleasesCount indicates an expected call of GetPipelinesWithMostReleasesCount.
+func (mr *MockClientMockRecorder) GetPipelinesWithMostReleasesCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelinesWithMostReleasesCount", reflect.TypeOf((*MockClient)(nil).GetPipelinesWithMostReleasesCount), ctx, filters)
+}
+
+// GetPubSubTriggers mocks base method.
 func (m *MockClient) GetPubSubTriggers(ctx context.Context, pubsubEvent estafette_ci_manifest.EstafettePubSubEvent) ([]*estafette_ci_contracts.Pipeline, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPubSubTriggers", ctx, pubsubEvent)
 	ret0, _ := ret[0].([]*estafette_ci_contracts.Pipeline)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetPubSubTriggers indicates an expected call of GetPubSubTriggers
+// GetPubSubTriggers indicates an expected call of GetPubSubTriggers.
 func (mr *MockClientMockRecorder) GetPubSubTriggers(ctx, pubsubEvent interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPubSubTriggers", reflect.TypeOf((*MockClient)(nil).GetPubSubTriggers), ctx, pubsubEvent)
 }
 
-// GetCronTriggers mocks base method
-func (m *MockClient) GetCronTriggers(ctx context.Context) ([]*estafette_ci_contracts.Pipeline, error) {
-	ret := m.ctrl.Call(m, "GetCronTriggers", ctx)
+// GetReleaseTargets mocks base method.
+func (m *MockClient) GetReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetReleaseTargets", ctx, pageNumber, pageSize, filters)
+	ret0, _ := ret[0].([]map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetReleaseTargets indicates an expected call of GetReleaseTargets.
+func (mr *MockClientMockRecorder) GetReleaseTargets(ctx, pageNumber, pageSize, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseTargets", reflect.TypeOf((*MockClient)(nil).GetReleaseTargets), ctx, pageNumber, pageSize, filters)
+}
+
+// GetReleaseTargetsCount mocks base method.
+func (m *MockClient) GetReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetReleaseTargetsCount", ctx, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetReleaseTargetsCount indicates an expected call of GetReleaseTargetsCount.
+func (mr *MockClientMockRecorder) GetReleaseTargetsCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseTargetsCount", reflect.TypeOf((*MockClient)(nil).GetReleaseTargetsCount), ctx, filters)
+}
+
+// GetReleaseTriggers mocks base method.
+func (m *MockClient) GetReleaseTriggers(ctx context.Context, release estafette_ci_contracts.Release, event string) ([]*estafette_ci_contracts.Pipeline, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetReleaseTriggers", ctx, release, event)
 	ret0, _ := ret[0].([]*estafette_ci_contracts.Pipeline)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetCronTriggers indicates an expected call of GetCronTriggers
-func (mr *MockClientMockRecorder) GetCronTriggers(ctx interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCronTriggers", reflect.TypeOf((*MockClient)(nil).GetCronTriggers), ctx)
+// GetReleaseTriggers indicates an expected call of GetReleaseTriggers.
+func (mr *MockClientMockRecorder) GetReleaseTriggers(ctx, release, event interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseTriggers", reflect.TypeOf((*MockClient)(nil).GetReleaseTriggers), ctx, release, event)
 }
 
-// Rename mocks base method
-func (m *MockClient) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName string) error {
-	ret := m.ctrl.Call(m, "Rename", ctx, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Rename indicates an expected call of Rename
-func (mr *MockClientMockRecorder) Rename(ctx, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rename", reflect.TypeOf((*MockClient)(nil).Rename), ctx, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName)
-}
-
-// RenameBuildVersion mocks base method
-func (m *MockClient) RenameBuildVersion(ctx context.Context, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName string) error {
-	ret := m.ctrl.Call(m, "RenameBuildVersion", ctx, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RenameBuildVersion indicates an expected call of RenameBuildVersion
-func (mr *MockClientMockRecorder) RenameBuildVersion(ctx, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameBuildVersion", reflect.TypeOf((*MockClient)(nil).RenameBuildVersion), ctx, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName)
-}
-
-// RenameBuilds mocks base method
-func (m *MockClient) RenameBuilds(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-	ret := m.ctrl.Call(m, "RenameBuilds", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RenameBuilds indicates an expected call of RenameBuilds
-func (mr *MockClientMockRecorder) RenameBuilds(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameBuilds", reflect.TypeOf((*MockClient)(nil).RenameBuilds), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-}
-
-// RenameBuildLogs mocks base method
-func (m *MockClient) RenameBuildLogs(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-	ret := m.ctrl.Call(m, "RenameBuildLogs", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RenameBuildLogs indicates an expected call of RenameBuildLogs
-func (mr *MockClientMockRecorder) RenameBuildLogs(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameBuildLogs", reflect.TypeOf((*MockClient)(nil).RenameBuildLogs), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-}
-
-// RenameReleases mocks base method
-func (m *MockClient) RenameReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-	ret := m.ctrl.Call(m, "RenameReleases", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RenameReleases indicates an expected call of RenameReleases
-func (mr *MockClientMockRecorder) RenameReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameReleases", reflect.TypeOf((*MockClient)(nil).RenameReleases), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-}
-
-// RenameReleaseLogs mocks base method
-func (m *MockClient) RenameReleaseLogs(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-	ret := m.ctrl.Call(m, "RenameReleaseLogs", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RenameReleaseLogs indicates an expected call of RenameReleaseLogs
-func (mr *MockClientMockRecorder) RenameReleaseLogs(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameReleaseLogs", reflect.TypeOf((*MockClient)(nil).RenameReleaseLogs), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-}
-
-// RenameComputedPipelines mocks base method
-func (m *MockClient) RenameComputedPipelines(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-	ret := m.ctrl.Call(m, "RenameComputedPipelines", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RenameComputedPipelines indicates an expected call of RenameComputedPipelines
-func (mr *MockClientMockRecorder) RenameComputedPipelines(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameComputedPipelines", reflect.TypeOf((*MockClient)(nil).RenameComputedPipelines), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-}
-
-// RenameComputedReleases mocks base method
-func (m *MockClient) RenameComputedReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-	ret := m.ctrl.Call(m, "RenameComputedReleases", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RenameComputedReleases indicates an expected call of RenameComputedReleases
-func (mr *MockClientMockRecorder) RenameComputedReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameComputedReleases", reflect.TypeOf((*MockClient)(nil).RenameComputedReleases), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-}
-
-// InsertUser mocks base method
-func (m *MockClient) InsertUser(ctx context.Context, user estafette_ci_contracts.User) (*estafette_ci_contracts.User, error) {
-	ret := m.ctrl.Call(m, "InsertUser", ctx, user)
-	ret0, _ := ret[0].(*estafette_ci_contracts.User)
+// GetReleasesCount mocks base method.
+func (m *MockClient) GetReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetReleasesCount", ctx, filters)
+	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// InsertUser indicates an expected call of InsertUser
-func (mr *MockClientMockRecorder) InsertUser(ctx, user interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertUser", reflect.TypeOf((*MockClient)(nil).InsertUser), ctx, user)
+// GetReleasesCount indicates an expected call of GetReleasesCount.
+func (mr *MockClientMockRecorder) GetReleasesCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleasesCount", reflect.TypeOf((*MockClient)(nil).GetReleasesCount), ctx, filters)
 }
 
-// UpdateUser mocks base method
-func (m *MockClient) UpdateUser(ctx context.Context, user estafette_ci_contracts.User) error {
-	ret := m.ctrl.Call(m, "UpdateUser", ctx, user)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateUser indicates an expected call of UpdateUser
-func (mr *MockClientMockRecorder) UpdateUser(ctx, user interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockClient)(nil).UpdateUser), ctx, user)
-}
-
-// DeleteUser mocks base method
-func (m *MockClient) DeleteUser(ctx context.Context, user estafette_ci_contracts.User) error {
-	ret := m.ctrl.Call(m, "DeleteUser", ctx, user)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteUser indicates an expected call of DeleteUser
-func (mr *MockClientMockRecorder) DeleteUser(ctx, user interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockClient)(nil).DeleteUser), ctx, user)
-}
-
-// GetUserByIdentity mocks base method
-func (m *MockClient) GetUserByIdentity(ctx context.Context, identity estafette_ci_contracts.UserIdentity) (*estafette_ci_contracts.User, error) {
-	ret := m.ctrl.Call(m, "GetUserByIdentity", ctx, identity)
-	ret0, _ := ret[0].(*estafette_ci_contracts.User)
+// GetTriggers mocks base method.
+func (m *MockClient) GetTriggers(ctx context.Context, triggerType, identifier, event string) ([]*estafette_ci_contracts.Pipeline, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTriggers", ctx, triggerType, identifier, event)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.Pipeline)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetUserByIdentity indicates an expected call of GetUserByIdentity
-func (mr *MockClientMockRecorder) GetUserByIdentity(ctx, identity interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByIdentity", reflect.TypeOf((*MockClient)(nil).GetUserByIdentity), ctx, identity)
+// GetTriggers indicates an expected call of GetTriggers.
+func (mr *MockClientMockRecorder) GetTriggers(ctx, triggerType, identifier, event interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTriggers", reflect.TypeOf((*MockClient)(nil).GetTriggers), ctx, triggerType, identifier, event)
 }
 
-// GetUserByID mocks base method
+// GetUserByID mocks base method.
 func (m *MockClient) GetUserByID(ctx context.Context, id string, filters map[api.FilterType][]string) (*estafette_ci_contracts.User, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserByID", ctx, id, filters)
 	ret0, _ := ret[0].(*estafette_ci_contracts.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetUserByID indicates an expected call of GetUserByID
+// GetUserByID indicates an expected call of GetUserByID.
 func (mr *MockClientMockRecorder) GetUserByID(ctx, id, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByID", reflect.TypeOf((*MockClient)(nil).GetUserByID), ctx, id, filters)
 }
 
-// GetUsers mocks base method
+// GetUserByIdentity mocks base method.
+func (m *MockClient) GetUserByIdentity(ctx context.Context, identity estafette_ci_contracts.UserIdentity) (*estafette_ci_contracts.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserByIdentity", ctx, identity)
+	ret0, _ := ret[0].(*estafette_ci_contracts.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserByIdentity indicates an expected call of GetUserByIdentity.
+func (mr *MockClientMockRecorder) GetUserByIdentity(ctx, identity interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByIdentity", reflect.TypeOf((*MockClient)(nil).GetUserByIdentity), ctx, identity)
+}
+
+// GetUsers mocks base method.
 func (m *MockClient) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]*estafette_ci_contracts.User, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUsers", ctx, pageNumber, pageSize, filters, sortings)
 	ret0, _ := ret[0].([]*estafette_ci_contracts.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetUsers indicates an expected call of GetUsers
+// GetUsers indicates an expected call of GetUsers.
 func (mr *MockClientMockRecorder) GetUsers(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsers", reflect.TypeOf((*MockClient)(nil).GetUsers), ctx, pageNumber, pageSize, filters, sortings)
 }
 
-// GetUsersCount mocks base method
+// GetUsersCount mocks base method.
 func (m *MockClient) GetUsersCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUsersCount", ctx, filters)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetUsersCount indicates an expected call of GetUsersCount
+// GetUsersCount indicates an expected call of GetUsersCount.
 func (mr *MockClientMockRecorder) GetUsersCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsersCount", reflect.TypeOf((*MockClient)(nil).GetUsersCount), ctx, filters)
 }
 
-// InsertGroup mocks base method
-func (m *MockClient) InsertGroup(ctx context.Context, group estafette_ci_contracts.Group) (*estafette_ci_contracts.Group, error) {
-	ret := m.ctrl.Call(m, "InsertGroup", ctx, group)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Group)
+// InsertBuild mocks base method.
+func (m *MockClient) InsertBuild(ctx context.Context, build estafette_ci_contracts.Build, jobResources JobResources) (*estafette_ci_contracts.Build, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InsertBuild", ctx, build, jobResources)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Build)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// InsertGroup indicates an expected call of InsertGroup
-func (mr *MockClientMockRecorder) InsertGroup(ctx, group interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertGroup", reflect.TypeOf((*MockClient)(nil).InsertGroup), ctx, group)
+// InsertBuild indicates an expected call of InsertBuild.
+func (mr *MockClientMockRecorder) InsertBuild(ctx, build, jobResources interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertBuild", reflect.TypeOf((*MockClient)(nil).InsertBuild), ctx, build, jobResources)
 }
 
-// UpdateGroup mocks base method
-func (m *MockClient) UpdateGroup(ctx context.Context, group estafette_ci_contracts.Group) error {
-	ret := m.ctrl.Call(m, "UpdateGroup", ctx, group)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateGroup indicates an expected call of UpdateGroup
-func (mr *MockClientMockRecorder) UpdateGroup(ctx, group interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGroup", reflect.TypeOf((*MockClient)(nil).UpdateGroup), ctx, group)
-}
-
-// DeleteGroup mocks base method
-func (m *MockClient) DeleteGroup(ctx context.Context, group estafette_ci_contracts.Group) error {
-	ret := m.ctrl.Call(m, "DeleteGroup", ctx, group)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteGroup indicates an expected call of DeleteGroup
-func (mr *MockClientMockRecorder) DeleteGroup(ctx, group interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteGroup", reflect.TypeOf((*MockClient)(nil).DeleteGroup), ctx, group)
-}
-
-// GetGroupByIdentity mocks base method
-func (m *MockClient) GetGroupByIdentity(ctx context.Context, identity estafette_ci_contracts.GroupIdentity) (*estafette_ci_contracts.Group, error) {
-	ret := m.ctrl.Call(m, "GetGroupByIdentity", ctx, identity)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Group)
+// InsertBuildLog mocks base method.
+func (m *MockClient) InsertBuildLog(ctx context.Context, buildLog estafette_ci_contracts.BuildLog, writeLogToDatabase bool) (estafette_ci_contracts.BuildLog, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InsertBuildLog", ctx, buildLog, writeLogToDatabase)
+	ret0, _ := ret[0].(estafette_ci_contracts.BuildLog)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetGroupByIdentity indicates an expected call of GetGroupByIdentity
-func (mr *MockClientMockRecorder) GetGroupByIdentity(ctx, identity interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupByIdentity", reflect.TypeOf((*MockClient)(nil).GetGroupByIdentity), ctx, identity)
+// InsertBuildLog indicates an expected call of InsertBuildLog.
+func (mr *MockClientMockRecorder) InsertBuildLog(ctx, buildLog, writeLogToDatabase interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertBuildLog", reflect.TypeOf((*MockClient)(nil).InsertBuildLog), ctx, buildLog, writeLogToDatabase)
 }
 
-// GetGroupByID mocks base method
-func (m *MockClient) GetGroupByID(ctx context.Context, id string, filters map[api.FilterType][]string) (*estafette_ci_contracts.Group, error) {
-	ret := m.ctrl.Call(m, "GetGroupByID", ctx, id, filters)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Group)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetGroupByID indicates an expected call of GetGroupByID
-func (mr *MockClientMockRecorder) GetGroupByID(ctx, id, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupByID", reflect.TypeOf((*MockClient)(nil).GetGroupByID), ctx, id, filters)
-}
-
-// GetGroups mocks base method
-func (m *MockClient) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]*estafette_ci_contracts.Group, error) {
-	ret := m.ctrl.Call(m, "GetGroups", ctx, pageNumber, pageSize, filters, sortings)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.Group)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetGroups indicates an expected call of GetGroups
-func (mr *MockClientMockRecorder) GetGroups(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroups", reflect.TypeOf((*MockClient)(nil).GetGroups), ctx, pageNumber, pageSize, filters, sortings)
-}
-
-// GetGroupsCount mocks base method
-func (m *MockClient) GetGroupsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetGroupsCount", ctx, filters)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetGroupsCount indicates an expected call of GetGroupsCount
-func (mr *MockClientMockRecorder) GetGroupsCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupsCount", reflect.TypeOf((*MockClient)(nil).GetGroupsCount), ctx, filters)
-}
-
-// InsertOrganization mocks base method
-func (m *MockClient) InsertOrganization(ctx context.Context, organization estafette_ci_contracts.Organization) (*estafette_ci_contracts.Organization, error) {
-	ret := m.ctrl.Call(m, "InsertOrganization", ctx, organization)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Organization)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// InsertOrganization indicates an expected call of InsertOrganization
-func (mr *MockClientMockRecorder) InsertOrganization(ctx, organization interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertOrganization", reflect.TypeOf((*MockClient)(nil).InsertOrganization), ctx, organization)
-}
-
-// UpdateOrganization mocks base method
-func (m *MockClient) UpdateOrganization(ctx context.Context, organization estafette_ci_contracts.Organization) error {
-	ret := m.ctrl.Call(m, "UpdateOrganization", ctx, organization)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateOrganization indicates an expected call of UpdateOrganization
-func (mr *MockClientMockRecorder) UpdateOrganization(ctx, organization interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateOrganization", reflect.TypeOf((*MockClient)(nil).UpdateOrganization), ctx, organization)
-}
-
-// DeleteOrganization mocks base method
-func (m *MockClient) DeleteOrganization(ctx context.Context, organization estafette_ci_contracts.Organization) error {
-	ret := m.ctrl.Call(m, "DeleteOrganization", ctx, organization)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteOrganization indicates an expected call of DeleteOrganization
-func (mr *MockClientMockRecorder) DeleteOrganization(ctx, organization interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteOrganization", reflect.TypeOf((*MockClient)(nil).DeleteOrganization), ctx, organization)
-}
-
-// GetOrganizationByIdentity mocks base method
-func (m *MockClient) GetOrganizationByIdentity(ctx context.Context, identity estafette_ci_contracts.OrganizationIdentity) (*estafette_ci_contracts.Organization, error) {
-	ret := m.ctrl.Call(m, "GetOrganizationByIdentity", ctx, identity)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Organization)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetOrganizationByIdentity indicates an expected call of GetOrganizationByIdentity
-func (mr *MockClientMockRecorder) GetOrganizationByIdentity(ctx, identity interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrganizationByIdentity", reflect.TypeOf((*MockClient)(nil).GetOrganizationByIdentity), ctx, identity)
-}
-
-// GetOrganizationByID mocks base method
-func (m *MockClient) GetOrganizationByID(ctx context.Context, id string) (*estafette_ci_contracts.Organization, error) {
-	ret := m.ctrl.Call(m, "GetOrganizationByID", ctx, id)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Organization)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetOrganizationByID indicates an expected call of GetOrganizationByID
-func (mr *MockClientMockRecorder) GetOrganizationByID(ctx, id interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrganizationByID", reflect.TypeOf((*MockClient)(nil).GetOrganizationByID), ctx, id)
-}
-
-// GetOrganizationByName mocks base method
-func (m *MockClient) GetOrganizationByName(ctx context.Context, name string) (*estafette_ci_contracts.Organization, error) {
-	ret := m.ctrl.Call(m, "GetOrganizationByName", ctx, name)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Organization)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetOrganizationByName indicates an expected call of GetOrganizationByName
-func (mr *MockClientMockRecorder) GetOrganizationByName(ctx, name interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrganizationByName", reflect.TypeOf((*MockClient)(nil).GetOrganizationByName), ctx, name)
-}
-
-// GetOrganizations mocks base method
-func (m *MockClient) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]*estafette_ci_contracts.Organization, error) {
-	ret := m.ctrl.Call(m, "GetOrganizations", ctx, pageNumber, pageSize, filters, sortings)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.Organization)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetOrganizations indicates an expected call of GetOrganizations
-func (mr *MockClientMockRecorder) GetOrganizations(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrganizations", reflect.TypeOf((*MockClient)(nil).GetOrganizations), ctx, pageNumber, pageSize, filters, sortings)
-}
-
-// GetOrganizationsCount mocks base method
-func (m *MockClient) GetOrganizationsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetOrganizationsCount", ctx, filters)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetOrganizationsCount indicates an expected call of GetOrganizationsCount
-func (mr *MockClientMockRecorder) GetOrganizationsCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrganizationsCount", reflect.TypeOf((*MockClient)(nil).GetOrganizationsCount), ctx, filters)
-}
-
-// InsertClient mocks base method
-func (m *MockClient) InsertClient(ctx context.Context, client estafette_ci_contracts.Client) (*estafette_ci_contracts.Client, error) {
-	ret := m.ctrl.Call(m, "InsertClient", ctx, client)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Client)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// InsertClient indicates an expected call of InsertClient
-func (mr *MockClientMockRecorder) InsertClient(ctx, client interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertClient", reflect.TypeOf((*MockClient)(nil).InsertClient), ctx, client)
-}
-
-// UpdateClient mocks base method
-func (m *MockClient) UpdateClient(ctx context.Context, client estafette_ci_contracts.Client) error {
-	ret := m.ctrl.Call(m, "UpdateClient", ctx, client)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateClient indicates an expected call of UpdateClient
-func (mr *MockClientMockRecorder) UpdateClient(ctx, client interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClient", reflect.TypeOf((*MockClient)(nil).UpdateClient), ctx, client)
-}
-
-// DeleteClient mocks base method
-func (m *MockClient) DeleteClient(ctx context.Context, client estafette_ci_contracts.Client) error {
-	ret := m.ctrl.Call(m, "DeleteClient", ctx, client)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteClient indicates an expected call of DeleteClient
-func (mr *MockClientMockRecorder) DeleteClient(ctx, client interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClient", reflect.TypeOf((*MockClient)(nil).DeleteClient), ctx, client)
-}
-
-// GetClientByClientID mocks base method
-func (m *MockClient) GetClientByClientID(ctx context.Context, clientID string) (*estafette_ci_contracts.Client, error) {
-	ret := m.ctrl.Call(m, "GetClientByClientID", ctx, clientID)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Client)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetClientByClientID indicates an expected call of GetClientByClientID
-func (mr *MockClientMockRecorder) GetClientByClientID(ctx, clientID interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClientByClientID", reflect.TypeOf((*MockClient)(nil).GetClientByClientID), ctx, clientID)
-}
-
-// GetClientByID mocks base method
-func (m *MockClient) GetClientByID(ctx context.Context, id string) (*estafette_ci_contracts.Client, error) {
-	ret := m.ctrl.Call(m, "GetClientByID", ctx, id)
-	ret0, _ := ret[0].(*estafette_ci_contracts.Client)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetClientByID indicates an expected call of GetClientByID
-func (mr *MockClientMockRecorder) GetClientByID(ctx, id interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClientByID", reflect.TypeOf((*MockClient)(nil).GetClientByID), ctx, id)
-}
-
-// GetClients mocks base method
-func (m *MockClient) GetClients(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]*estafette_ci_contracts.Client, error) {
-	ret := m.ctrl.Call(m, "GetClients", ctx, pageNumber, pageSize, filters, sortings)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.Client)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetClients indicates an expected call of GetClients
-func (mr *MockClientMockRecorder) GetClients(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClients", reflect.TypeOf((*MockClient)(nil).GetClients), ctx, pageNumber, pageSize, filters, sortings)
-}
-
-// GetClientsCount mocks base method
-func (m *MockClient) GetClientsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetClientsCount", ctx, filters)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetClientsCount indicates an expected call of GetClientsCount
-func (mr *MockClientMockRecorder) GetClientsCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClientsCount", reflect.TypeOf((*MockClient)(nil).GetClientsCount), ctx, filters)
-}
-
-// InsertCatalogEntity mocks base method
+// InsertCatalogEntity mocks base method.
 func (m *MockClient) InsertCatalogEntity(ctx context.Context, catalogEntity estafette_ci_contracts.CatalogEntity) (*estafette_ci_contracts.CatalogEntity, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InsertCatalogEntity", ctx, catalogEntity)
 	ret0, _ := ret[0].(*estafette_ci_contracts.CatalogEntity)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// InsertCatalogEntity indicates an expected call of InsertCatalogEntity
+// InsertCatalogEntity indicates an expected call of InsertCatalogEntity.
 func (mr *MockClientMockRecorder) InsertCatalogEntity(ctx, catalogEntity interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertCatalogEntity", reflect.TypeOf((*MockClient)(nil).InsertCatalogEntity), ctx, catalogEntity)
 }
 
-// UpdateCatalogEntity mocks base method
+// InsertClient mocks base method.
+func (m *MockClient) InsertClient(ctx context.Context, client estafette_ci_contracts.Client) (*estafette_ci_contracts.Client, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InsertClient", ctx, client)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Client)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// InsertClient indicates an expected call of InsertClient.
+func (mr *MockClientMockRecorder) InsertClient(ctx, client interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertClient", reflect.TypeOf((*MockClient)(nil).InsertClient), ctx, client)
+}
+
+// InsertGroup mocks base method.
+func (m *MockClient) InsertGroup(ctx context.Context, group estafette_ci_contracts.Group) (*estafette_ci_contracts.Group, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InsertGroup", ctx, group)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Group)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// InsertGroup indicates an expected call of InsertGroup.
+func (mr *MockClientMockRecorder) InsertGroup(ctx, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertGroup", reflect.TypeOf((*MockClient)(nil).InsertGroup), ctx, group)
+}
+
+// InsertOrganization mocks base method.
+func (m *MockClient) InsertOrganization(ctx context.Context, organization estafette_ci_contracts.Organization) (*estafette_ci_contracts.Organization, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InsertOrganization", ctx, organization)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Organization)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// InsertOrganization indicates an expected call of InsertOrganization.
+func (mr *MockClientMockRecorder) InsertOrganization(ctx, organization interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertOrganization", reflect.TypeOf((*MockClient)(nil).InsertOrganization), ctx, organization)
+}
+
+// InsertRelease mocks base method.
+func (m *MockClient) InsertRelease(ctx context.Context, release estafette_ci_contracts.Release, jobResources JobResources) (*estafette_ci_contracts.Release, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InsertRelease", ctx, release, jobResources)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Release)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// InsertRelease indicates an expected call of InsertRelease.
+func (mr *MockClientMockRecorder) InsertRelease(ctx, release, jobResources interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertRelease", reflect.TypeOf((*MockClient)(nil).InsertRelease), ctx, release, jobResources)
+}
+
+// InsertReleaseLog mocks base method.
+func (m *MockClient) InsertReleaseLog(ctx context.Context, releaseLog estafette_ci_contracts.ReleaseLog, writeLogToDatabase bool) (estafette_ci_contracts.ReleaseLog, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InsertReleaseLog", ctx, releaseLog, writeLogToDatabase)
+	ret0, _ := ret[0].(estafette_ci_contracts.ReleaseLog)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// InsertReleaseLog indicates an expected call of InsertReleaseLog.
+func (mr *MockClientMockRecorder) InsertReleaseLog(ctx, releaseLog, writeLogToDatabase interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertReleaseLog", reflect.TypeOf((*MockClient)(nil).InsertReleaseLog), ctx, releaseLog, writeLogToDatabase)
+}
+
+// InsertUser mocks base method.
+func (m *MockClient) InsertUser(ctx context.Context, user estafette_ci_contracts.User) (*estafette_ci_contracts.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InsertUser", ctx, user)
+	ret0, _ := ret[0].(*estafette_ci_contracts.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// InsertUser indicates an expected call of InsertUser.
+func (mr *MockClientMockRecorder) InsertUser(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertUser", reflect.TypeOf((*MockClient)(nil).InsertUser), ctx, user)
+}
+
+// Rename mocks base method.
+func (m *MockClient) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Rename", ctx, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Rename indicates an expected call of Rename.
+func (mr *MockClientMockRecorder) Rename(ctx, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rename", reflect.TypeOf((*MockClient)(nil).Rename), ctx, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName)
+}
+
+// RenameBuildLogs mocks base method.
+func (m *MockClient) RenameBuildLogs(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RenameBuildLogs", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RenameBuildLogs indicates an expected call of RenameBuildLogs.
+func (mr *MockClientMockRecorder) RenameBuildLogs(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameBuildLogs", reflect.TypeOf((*MockClient)(nil).RenameBuildLogs), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+// RenameBuildVersion mocks base method.
+func (m *MockClient) RenameBuildVersion(ctx context.Context, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RenameBuildVersion", ctx, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RenameBuildVersion indicates an expected call of RenameBuildVersion.
+func (mr *MockClientMockRecorder) RenameBuildVersion(ctx, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameBuildVersion", reflect.TypeOf((*MockClient)(nil).RenameBuildVersion), ctx, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName)
+}
+
+// RenameBuilds mocks base method.
+func (m *MockClient) RenameBuilds(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RenameBuilds", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RenameBuilds indicates an expected call of RenameBuilds.
+func (mr *MockClientMockRecorder) RenameBuilds(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameBuilds", reflect.TypeOf((*MockClient)(nil).RenameBuilds), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+// RenameComputedPipelines mocks base method.
+func (m *MockClient) RenameComputedPipelines(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RenameComputedPipelines", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RenameComputedPipelines indicates an expected call of RenameComputedPipelines.
+func (mr *MockClientMockRecorder) RenameComputedPipelines(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameComputedPipelines", reflect.TypeOf((*MockClient)(nil).RenameComputedPipelines), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+// RenameComputedReleases mocks base method.
+func (m *MockClient) RenameComputedReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RenameComputedReleases", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RenameComputedReleases indicates an expected call of RenameComputedReleases.
+func (mr *MockClientMockRecorder) RenameComputedReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameComputedReleases", reflect.TypeOf((*MockClient)(nil).RenameComputedReleases), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+// RenameReleaseLogs mocks base method.
+func (m *MockClient) RenameReleaseLogs(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RenameReleaseLogs", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RenameReleaseLogs indicates an expected call of RenameReleaseLogs.
+func (mr *MockClientMockRecorder) RenameReleaseLogs(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameReleaseLogs", reflect.TypeOf((*MockClient)(nil).RenameReleaseLogs), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+// RenameReleases mocks base method.
+func (m *MockClient) RenameReleases(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RenameReleases", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RenameReleases indicates an expected call of RenameReleases.
+func (mr *MockClientMockRecorder) RenameReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameReleases", reflect.TypeOf((*MockClient)(nil).RenameReleases), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+// UnarchiveComputedPipeline mocks base method.
+func (m *MockClient) UnarchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnarchiveComputedPipeline", ctx, repoSource, repoOwner, repoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UnarchiveComputedPipeline indicates an expected call of UnarchiveComputedPipeline.
+func (mr *MockClientMockRecorder) UnarchiveComputedPipeline(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnarchiveComputedPipeline", reflect.TypeOf((*MockClient)(nil).UnarchiveComputedPipeline), ctx, repoSource, repoOwner, repoName)
+}
+
+// UpdateBuildResourceUtilization mocks base method.
+func (m *MockClient) UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources JobResources) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateBuildResourceUtilization", ctx, repoSource, repoOwner, repoName, buildID, jobResources)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateBuildResourceUtilization indicates an expected call of UpdateBuildResourceUtilization.
+func (mr *MockClientMockRecorder) UpdateBuildResourceUtilization(ctx, repoSource, repoOwner, repoName, buildID, jobResources interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBuildResourceUtilization", reflect.TypeOf((*MockClient)(nil).UpdateBuildResourceUtilization), ctx, repoSource, repoOwner, repoName, buildID, jobResources)
+}
+
+// UpdateBuildStatus mocks base method.
+func (m *MockClient) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus estafette_ci_contracts.Status) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateBuildStatus", ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateBuildStatus indicates an expected call of UpdateBuildStatus.
+func (mr *MockClientMockRecorder) UpdateBuildStatus(ctx, repoSource, repoOwner, repoName, buildID, buildStatus interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBuildStatus", reflect.TypeOf((*MockClient)(nil).UpdateBuildStatus), ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
+}
+
+// UpdateCatalogEntity mocks base method.
 func (m *MockClient) UpdateCatalogEntity(ctx context.Context, catalogEntity estafette_ci_contracts.CatalogEntity) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateCatalogEntity", ctx, catalogEntity)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateCatalogEntity indicates an expected call of UpdateCatalogEntity
+// UpdateCatalogEntity indicates an expected call of UpdateCatalogEntity.
 func (mr *MockClientMockRecorder) UpdateCatalogEntity(ctx, catalogEntity interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCatalogEntity", reflect.TypeOf((*MockClient)(nil).UpdateCatalogEntity), ctx, catalogEntity)
 }
 
-// DeleteCatalogEntity mocks base method
-func (m *MockClient) DeleteCatalogEntity(ctx context.Context, id string) error {
-	ret := m.ctrl.Call(m, "DeleteCatalogEntity", ctx, id)
+// UpdateClient mocks base method.
+func (m *MockClient) UpdateClient(ctx context.Context, client estafette_ci_contracts.Client) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateClient", ctx, client)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// DeleteCatalogEntity indicates an expected call of DeleteCatalogEntity
-func (mr *MockClientMockRecorder) DeleteCatalogEntity(ctx, id interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCatalogEntity", reflect.TypeOf((*MockClient)(nil).DeleteCatalogEntity), ctx, id)
+// UpdateClient indicates an expected call of UpdateClient.
+func (mr *MockClientMockRecorder) UpdateClient(ctx, client interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClient", reflect.TypeOf((*MockClient)(nil).UpdateClient), ctx, client)
 }
 
-// GetCatalogEntityByID mocks base method
-func (m *MockClient) GetCatalogEntityByID(ctx context.Context, id string) (*estafette_ci_contracts.CatalogEntity, error) {
-	ret := m.ctrl.Call(m, "GetCatalogEntityByID", ctx, id)
-	ret0, _ := ret[0].(*estafette_ci_contracts.CatalogEntity)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+// UpdateComputedPipelineFirstInsertedAt mocks base method.
+func (m *MockClient) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateComputedPipelineFirstInsertedAt", ctx, repoSource, repoOwner, repoName)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// GetCatalogEntityByID indicates an expected call of GetCatalogEntityByID
-func (mr *MockClientMockRecorder) GetCatalogEntityByID(ctx, id interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityByID", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityByID), ctx, id)
+// UpdateComputedPipelineFirstInsertedAt indicates an expected call of UpdateComputedPipelineFirstInsertedAt.
+func (mr *MockClientMockRecorder) UpdateComputedPipelineFirstInsertedAt(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateComputedPipelineFirstInsertedAt", reflect.TypeOf((*MockClient)(nil).UpdateComputedPipelineFirstInsertedAt), ctx, repoSource, repoOwner, repoName)
 }
 
-// GetCatalogEntities mocks base method
-func (m *MockClient) GetCatalogEntities(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]*estafette_ci_contracts.CatalogEntity, error) {
-	ret := m.ctrl.Call(m, "GetCatalogEntities", ctx, pageNumber, pageSize, filters, sortings)
-	ret0, _ := ret[0].([]*estafette_ci_contracts.CatalogEntity)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+// UpdateComputedPipelinePermissions mocks base method.
+func (m *MockClient) UpdateComputedPipelinePermissions(ctx context.Context, pipeline estafette_ci_contracts.Pipeline) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateComputedPipelinePermissions", ctx, pipeline)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// GetCatalogEntities indicates an expected call of GetCatalogEntities
-func (mr *MockClientMockRecorder) GetCatalogEntities(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntities", reflect.TypeOf((*MockClient)(nil).GetCatalogEntities), ctx, pageNumber, pageSize, filters, sortings)
+// UpdateComputedPipelinePermissions indicates an expected call of UpdateComputedPipelinePermissions.
+func (mr *MockClientMockRecorder) UpdateComputedPipelinePermissions(ctx, pipeline interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateComputedPipelinePermissions", reflect.TypeOf((*MockClient)(nil).UpdateComputedPipelinePermissions), ctx, pipeline)
 }
 
-// GetCatalogEntitiesCount mocks base method
-func (m *MockClient) GetCatalogEntitiesCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetCatalogEntitiesCount", ctx, filters)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+// UpdateComputedReleaseFirstInsertedAt mocks base method.
+func (m *MockClient) UpdateComputedReleaseFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateComputedReleaseFirstInsertedAt", ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// GetCatalogEntitiesCount indicates an expected call of GetCatalogEntitiesCount
-func (mr *MockClientMockRecorder) GetCatalogEntitiesCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntitiesCount", reflect.TypeOf((*MockClient)(nil).GetCatalogEntitiesCount), ctx, filters)
+// UpdateComputedReleaseFirstInsertedAt indicates an expected call of UpdateComputedReleaseFirstInsertedAt.
+func (mr *MockClientMockRecorder) UpdateComputedReleaseFirstInsertedAt(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateComputedReleaseFirstInsertedAt", reflect.TypeOf((*MockClient)(nil).UpdateComputedReleaseFirstInsertedAt), ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 }
 
-// GetCatalogEntityParentKeys mocks base method
-func (m *MockClient) GetCatalogEntityParentKeys(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]map[string]interface{}, error) {
-	ret := m.ctrl.Call(m, "GetCatalogEntityParentKeys", ctx, pageNumber, pageSize, filters, sortings)
-	ret0, _ := ret[0].([]map[string]interface{})
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+// UpdateGroup mocks base method.
+func (m *MockClient) UpdateGroup(ctx context.Context, group estafette_ci_contracts.Group) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateGroup", ctx, group)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// GetCatalogEntityParentKeys indicates an expected call of GetCatalogEntityParentKeys
-func (mr *MockClientMockRecorder) GetCatalogEntityParentKeys(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityParentKeys", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityParentKeys), ctx, pageNumber, pageSize, filters, sortings)
+// UpdateGroup indicates an expected call of UpdateGroup.
+func (mr *MockClientMockRecorder) UpdateGroup(ctx, group interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGroup", reflect.TypeOf((*MockClient)(nil).UpdateGroup), ctx, group)
 }
 
-// GetCatalogEntityParentKeysCount mocks base method
-func (m *MockClient) GetCatalogEntityParentKeysCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetCatalogEntityParentKeysCount", ctx, filters)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+// UpdateOrganization mocks base method.
+func (m *MockClient) UpdateOrganization(ctx context.Context, organization estafette_ci_contracts.Organization) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateOrganization", ctx, organization)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// GetCatalogEntityParentKeysCount indicates an expected call of GetCatalogEntityParentKeysCount
-func (mr *MockClientMockRecorder) GetCatalogEntityParentKeysCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityParentKeysCount", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityParentKeysCount), ctx, filters)
+// UpdateOrganization indicates an expected call of UpdateOrganization.
+func (mr *MockClientMockRecorder) UpdateOrganization(ctx, organization interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateOrganization", reflect.TypeOf((*MockClient)(nil).UpdateOrganization), ctx, organization)
 }
 
-// GetCatalogEntityParentValues mocks base method
-func (m *MockClient) GetCatalogEntityParentValues(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]map[string]interface{}, error) {
-	ret := m.ctrl.Call(m, "GetCatalogEntityParentValues", ctx, pageNumber, pageSize, filters, sortings)
-	ret0, _ := ret[0].([]map[string]interface{})
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+// UpdateReleaseResourceUtilization mocks base method.
+func (m *MockClient) UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateReleaseResourceUtilization", ctx, repoSource, repoOwner, repoName, id, jobResources)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// GetCatalogEntityParentValues indicates an expected call of GetCatalogEntityParentValues
-func (mr *MockClientMockRecorder) GetCatalogEntityParentValues(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityParentValues", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityParentValues), ctx, pageNumber, pageSize, filters, sortings)
+// UpdateReleaseResourceUtilization indicates an expected call of UpdateReleaseResourceUtilization.
+func (mr *MockClientMockRecorder) UpdateReleaseResourceUtilization(ctx, repoSource, repoOwner, repoName, id, jobResources interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateReleaseResourceUtilization", reflect.TypeOf((*MockClient)(nil).UpdateReleaseResourceUtilization), ctx, repoSource, repoOwner, repoName, id, jobResources)
 }
 
-// GetCatalogEntityParentValuesCount mocks base method
-func (m *MockClient) GetCatalogEntityParentValuesCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetCatalogEntityParentValuesCount", ctx, filters)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+// UpdateReleaseStatus mocks base method.
+func (m *MockClient) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus estafette_ci_contracts.Status) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateReleaseStatus", ctx, repoSource, repoOwner, repoName, id, releaseStatus)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// GetCatalogEntityParentValuesCount indicates an expected call of GetCatalogEntityParentValuesCount
-func (mr *MockClientMockRecorder) GetCatalogEntityParentValuesCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityParentValuesCount", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityParentValuesCount), ctx, filters)
+// UpdateReleaseStatus indicates an expected call of UpdateReleaseStatus.
+func (mr *MockClientMockRecorder) UpdateReleaseStatus(ctx, repoSource, repoOwner, repoName, id, releaseStatus interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateReleaseStatus", reflect.TypeOf((*MockClient)(nil).UpdateReleaseStatus), ctx, repoSource, repoOwner, repoName, id, releaseStatus)
 }
 
-// GetCatalogEntityKeys mocks base method
-func (m *MockClient) GetCatalogEntityKeys(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]map[string]interface{}, error) {
-	ret := m.ctrl.Call(m, "GetCatalogEntityKeys", ctx, pageNumber, pageSize, filters, sortings)
-	ret0, _ := ret[0].([]map[string]interface{})
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+// UpdateUser mocks base method.
+func (m *MockClient) UpdateUser(ctx context.Context, user estafette_ci_contracts.User) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateUser", ctx, user)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// GetCatalogEntityKeys indicates an expected call of GetCatalogEntityKeys
-func (mr *MockClientMockRecorder) GetCatalogEntityKeys(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityKeys", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityKeys), ctx, pageNumber, pageSize, filters, sortings)
+// UpdateUser indicates an expected call of UpdateUser.
+func (mr *MockClientMockRecorder) UpdateUser(ctx, user interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockClient)(nil).UpdateUser), ctx, user)
 }
 
-// GetCatalogEntityKeysCount mocks base method
-func (m *MockClient) GetCatalogEntityKeysCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetCatalogEntityKeysCount", ctx, filters)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+// UpsertComputedPipeline mocks base method.
+func (m *MockClient) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpsertComputedPipeline", ctx, repoSource, repoOwner, repoName)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// GetCatalogEntityKeysCount indicates an expected call of GetCatalogEntityKeysCount
-func (mr *MockClientMockRecorder) GetCatalogEntityKeysCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityKeysCount", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityKeysCount), ctx, filters)
+// UpsertComputedPipeline indicates an expected call of UpsertComputedPipeline.
+func (mr *MockClientMockRecorder) UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertComputedPipeline", reflect.TypeOf((*MockClient)(nil).UpsertComputedPipeline), ctx, repoSource, repoOwner, repoName)
 }
 
-// GetCatalogEntityValues mocks base method
-func (m *MockClient) GetCatalogEntityValues(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]map[string]interface{}, error) {
-	ret := m.ctrl.Call(m, "GetCatalogEntityValues", ctx, pageNumber, pageSize, filters, sortings)
-	ret0, _ := ret[0].([]map[string]interface{})
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+// UpsertComputedRelease mocks base method.
+func (m *MockClient) UpsertComputedRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpsertComputedRelease", ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// GetCatalogEntityValues indicates an expected call of GetCatalogEntityValues
-func (mr *MockClientMockRecorder) GetCatalogEntityValues(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityValues", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityValues), ctx, pageNumber, pageSize, filters, sortings)
-}
-
-// GetCatalogEntityValuesCount mocks base method
-func (m *MockClient) GetCatalogEntityValuesCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetCatalogEntityValuesCount", ctx, filters)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCatalogEntityValuesCount indicates an expected call of GetCatalogEntityValuesCount
-func (mr *MockClientMockRecorder) GetCatalogEntityValuesCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityValuesCount", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityValuesCount), ctx, filters)
-}
-
-// GetCatalogEntityLabels mocks base method
-func (m *MockClient) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
-	ret := m.ctrl.Call(m, "GetCatalogEntityLabels", ctx, pageNumber, pageSize, filters)
-	ret0, _ := ret[0].([]map[string]interface{})
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCatalogEntityLabels indicates an expected call of GetCatalogEntityLabels
-func (mr *MockClientMockRecorder) GetCatalogEntityLabels(ctx, pageNumber, pageSize, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityLabels", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityLabels), ctx, pageNumber, pageSize, filters)
-}
-
-// GetCatalogEntityLabelsCount mocks base method
-func (m *MockClient) GetCatalogEntityLabelsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
-	ret := m.ctrl.Call(m, "GetCatalogEntityLabelsCount", ctx, filters)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCatalogEntityLabelsCount indicates an expected call of GetCatalogEntityLabelsCount
-func (mr *MockClientMockRecorder) GetCatalogEntityLabelsCount(ctx, filters interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCatalogEntityLabelsCount", reflect.TypeOf((*MockClient)(nil).GetCatalogEntityLabelsCount), ctx, filters)
+// UpsertComputedRelease indicates an expected call of UpsertComputedRelease.
+func (mr *MockClientMockRecorder) UpsertComputedRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertComputedRelease", reflect.TypeOf((*MockClient)(nil).UpsertComputedRelease), ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 }

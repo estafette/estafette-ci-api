@@ -112,6 +112,8 @@ type Client interface {
 	GetLabelValues(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error)
 	GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error)
 	GetFrequentLabelsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error)
+	GetReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
 	GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (pipelines []map[string]interface{}, err error)
 	GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
@@ -3320,6 +3322,181 @@ func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[api.Fil
 			Select("a.id, jsonb_array_elements(a.labels) AS l").
 			From("computed_pipelines a").
 			Where("jsonb_typeof(labels) = 'array'")
+
+	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
+	if err != nil {
+
+		return
+	}
+
+	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+
+		return
+	}
+
+	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+
+		return
+	}
+
+	arrayElementsQuery, err = whereClauseGeneratorForArchivedFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+
+		return
+	}
+
+	selectCountQuery :=
+		psql.
+			Select("l->>'key' AS key, l->>'value' AS value, id").
+			FromSelect(arrayElementsQuery, "b")
+
+	groupByQuery :=
+		psql.
+			Select("key, value, count(DISTINCT id) AS pipelinesCount").
+			FromSelect(selectCountQuery, "c").
+			GroupBy("key, value")
+
+	query :=
+		psql.
+			Select("COUNT(key)").
+			FromSelect(groupByQuery, "d").
+			Where(sq.Gt{"pipelinesCount": 1})
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&totalCount); err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *client) GetReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error) {
+
+	// see https://github.com/cockroachdb/cockroach/issues/35848
+
+	// for time being run following query, where the dynamic where clause is in the innermost select query:
+
+	// SELECT
+	// 		key, value, nr_computed_pipelines
+	// FROM
+	// 		(
+	// 				SELECT
+	// 						key, value, count(DISTINCT id) AS nr_computed_pipelines
+	// 				FROM
+	// 						(
+	// 								SELECT
+	// 										l->>'key' AS key, l->>'value' AS value, id
+	// 								FROM
+	// 										(SELECT id, jsonb_array_elements(release_targets) AS l FROM computed_pipelines where jsonb_typeof(release_targets) = 'array')
+	// 						)
+	// 				GROUP BY
+	// 						key, value
+	// 		)
+	// WHERE
+	// 		nr_computed_pipelines > 1
+	// ORDER BY
+	// 		nr_computed_pipelines DESC, key, value
+	// LIMIT 10;
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	arrayElementsQuery :=
+		psql.
+			Select("a.id, jsonb_array_elements(a.release_targets) AS l").
+			From("computed_pipelines a").
+			Where("jsonb_typeof(release_targets) = 'array'")
+
+	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
+	if err != nil {
+
+		return
+	}
+
+	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+
+		return
+	}
+
+	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+
+		return
+	}
+
+	arrayElementsQuery, err = whereClauseGeneratorForArchivedFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+
+		return
+	}
+
+	selectCountQuery :=
+		psql.
+			Select("l->>'key' AS key, l->>'value' AS value, id").
+			FromSelect(arrayElementsQuery, "b")
+
+	groupByQuery :=
+		psql.
+			Select("key, value, count(DISTINCT id) AS pipelinesCount").
+			FromSelect(selectCountQuery, "c").
+			GroupBy("key, value")
+
+	query :=
+		psql.
+			Select("key, value, pipelinesCount").
+			FromSelect(groupByQuery, "d").
+			Where(sq.Gt{"pipelinesCount": 1}).
+			OrderBy("pipelinesCount DESC, key, value").
+			Limit(uint64(pageSize)).
+			Offset(uint64((pageNumber - 1) * pageSize))
+
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	return c.scanItems(ctx, rows)
+}
+
+func (c *client) GetReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
+
+	// see https://github.com/cockroachdb/cockroach/issues/35848
+
+	// for time being run following query, where the dynamic where clause is in the innermost select query:
+
+	// SELECT
+	// 		key, value, nr_computed_pipelines
+	// FROM
+	// 		(
+	// 				SELECT
+	// 						key, value, count(DISTINCT id) AS nr_computed_pipelines
+	// 				FROM
+	// 						(
+	// 								SELECT
+	// 										l->>'key' AS key, l->>'value' AS value, id
+	// 								FROM
+	// 										(SELECT id, jsonb_array_elements(release_targets) AS l FROM computed_pipelines where jsonb_typeof(release_targets) = 'array')
+	// 						)
+	// 				GROUP BY
+	// 						key, value
+	// 		)
+	// WHERE
+	// 		nr_computed_pipelines > 1
+	// ORDER BY
+	// 		nr_computed_pipelines DESC, key, value
+	// LIMIT 10;
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	arrayElementsQuery :=
+		psql.
+			Select("a.id, jsonb_array_elements(a.release_targets) AS l").
+			From("computed_pipelines a").
+			Where("jsonb_typeof(release_targets) = 'array'")
 
 	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
 	if err != nil {
