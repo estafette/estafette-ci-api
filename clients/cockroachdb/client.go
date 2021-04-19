@@ -3444,7 +3444,7 @@ func (c *client) GetReleaseTargets(ctx context.Context, pageNumber, pageSize int
 		psql.
 			Select("name, pipelinesCount").
 			FromSelect(groupByQuery, "d").
-			OrderBy("name").
+			OrderBy("pipelinesCount DESC, name").
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
