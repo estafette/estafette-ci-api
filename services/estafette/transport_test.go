@@ -127,7 +127,7 @@ func TestGetCatalogFilters(t *testing.T) {
 		assert.Equal(t, http.StatusOK, recorder.Result().StatusCode)
 		body, err := ioutil.ReadAll(recorder.Result().Body)
 		assert.Nil(t, err)
-		assert.Equal(t, "[\"type\"]\n", string(body))
+		assert.Equal(t, "[\"type\"]", string(body))
 
 		// act
 		*cfg = *&api.APIConfig{
@@ -145,7 +145,7 @@ func TestGetCatalogFilters(t *testing.T) {
 		assert.Equal(t, http.StatusOK, recorder.Result().StatusCode)
 		body, err = ioutil.ReadAll(recorder.Result().Body)
 		assert.Nil(t, err)
-		assert.Equal(t, "[\"type\",\"language\"]\n", string(body))
+		assert.Equal(t, "[\"type\",\"language\"]", string(body))
 
 	})
 }
@@ -198,7 +198,7 @@ func TestGetPipeline(t *testing.T) {
 		assert.Equal(t, http.StatusOK, recorder.Result().StatusCode)
 		body, err := ioutil.ReadAll(recorder.Result().Body)
 		assert.Nil(t, err)
-		assert.Equal(t, "{\"id\":\"\",\"repoSource\":\"\",\"repoOwner\":\"\",\"repoName\":\"\",\"repoBranch\":\"\",\"repoRevision\":\"\",\"buildStatus\":\"succeeded\",\"insertedAt\":\"0001-01-01T00:00:00Z\",\"updatedAt\":\"0001-01-01T00:00:00Z\",\"duration\":0,\"lastUpdatedAt\":\"0001-01-01T00:00:00Z\"}\n", string(body))
+		assert.Equal(t, "{\"id\":\"\",\"repoSource\":\"\",\"repoOwner\":\"\",\"repoName\":\"\",\"repoBranch\":\"\",\"repoRevision\":\"\",\"buildStatus\":\"succeeded\",\"insertedAt\":\"0001-01-01T00:00:00Z\",\"updatedAt\":\"0001-01-01T00:00:00Z\",\"duration\":0,\"lastUpdatedAt\":\"0001-01-01T00:00:00Z\"}", string(body))
 
 		// act
 		cockroachdbClient.
@@ -220,7 +220,7 @@ func TestGetPipeline(t *testing.T) {
 		assert.Equal(t, http.StatusOK, recorder.Result().StatusCode)
 		body, err = ioutil.ReadAll(recorder.Result().Body)
 		assert.Nil(t, err)
-		// assert.Equal(t, "{\"id\":\"\",\"repoSource\":\"\",\"repoOwner\":\"\",\"repoName\":\"\",\"repoBranch\":\"\",\"repoRevision\":\"\",\"buildStatus\":\"failed\",\"insertedAt\":\"0001-01-01T00:00:00Z\",\"updatedAt\":\"0001-01-01T00:00:00Z\",\"duration\":0,\"lastUpdatedAt\":\"0001-01-01T00:00:00Z\"}\n", string(body))
+		// assert.Equal(t, "{\"id\":\"\",\"repoSource\":\"\",\"repoOwner\":\"\",\"repoName\":\"\",\"repoBranch\":\"\",\"repoRevision\":\"\",\"buildStatus\":\"failed\",\"insertedAt\":\"0001-01-01T00:00:00Z\",\"updatedAt\":\"0001-01-01T00:00:00Z\",\"duration\":0,\"lastUpdatedAt\":\"0001-01-01T00:00:00Z\"}", string(body))
 	})
 }
 
@@ -271,7 +271,7 @@ func TestGetManifestTemplates(t *testing.T) {
 		assert.Equal(t, http.StatusOK, recorder.Result().StatusCode)
 		body, err := ioutil.ReadAll(recorder.Result().Body)
 		assert.Nil(t, err)
-		assert.Equal(t, "{\"templates\":[{\"placeholders\":[],\"template\":\"docker\"}]}\n", string(body))
+		assert.Equal(t, "{\"templates\":[{\"placeholders\":[],\"template\":\"docker\"}]}", string(body))
 
 	})
 }
@@ -323,7 +323,7 @@ func TestGenerateManifest(t *testing.T) {
 		assert.Equal(t, http.StatusOK, recorder.Result().StatusCode)
 		body, err := ioutil.ReadAll(recorder.Result().Body)
 		assert.Nil(t, err)
-		assert.Equal(t, "{\"manifest\":\"track: stable\\nteam: estafette\"}\n", string(body))
+		assert.Equal(t, "{\"manifest\":\"track: stable\\nteam: estafette\"}", string(body))
 
 	})
 }

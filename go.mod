@@ -8,15 +8,15 @@ require (
 	cloud.google.com/go/storage v1.6.0
 	github.com/Masterminds/squirrel v1.2.0
 	github.com/alecthomas/kingpin v2.2.6+incompatible
-	github.com/appleboy/gin-jwt/v2 v2.6.3
+	github.com/appleboy/gin-jwt/v2 v2.6.4
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/estafette/estafette-ci-contracts v0.0.238
 	github.com/estafette/estafette-ci-crypt v0.0.42
 	github.com/estafette/estafette-ci-manifest v0.1.180
-	github.com/estafette/estafette-foundation v0.0.54
+	github.com/estafette/estafette-foundation v0.0.69
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gin-contrib/gzip v0.0.2-0.20190827144029-5602d8b438ea
-	github.com/gin-gonic/gin v1.5.0
+	github.com/gin-gonic/gin v1.6.3
 	github.com/go-kit/kit v0.10.0
 	github.com/golang/mock v1.4.4
 	github.com/google/uuid v1.1.1
@@ -27,7 +27,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.5.0
 	github.com/rs/zerolog v1.18.0
-	github.com/sethgrid/pester v0.0.0-20190127155807-68a33a018ad0
+	github.com/sethgrid/pester v1.1.0
 	github.com/sethvargo/go-password v0.1.3
 	github.com/stretchr/testify v1.6.1
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
