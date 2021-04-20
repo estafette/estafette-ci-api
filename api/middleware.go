@@ -66,7 +66,7 @@ func (m *authMiddlewareImpl) coreGinJWTMiddleware(authenticator func(c *gin.Cont
 		TokenLookup:   "header:Authorization, cookie:jwt",
 		Authenticator: authenticator,
 		Timeout:       time.Duration(3) * time.Hour,
-		TimeFunc:      time.Now().UTC,
+		TimeFunc:      time.Now,
 	})
 }
 
