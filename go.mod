@@ -16,7 +16,7 @@ require (
 	github.com/estafette/estafette-foundation v0.0.69
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gin-contrib/gzip v0.0.2-0.20190827144029-5602d8b438ea
-	github.com/gin-gonic/gin v1.6.3
+	github.com/gin-gonic/gin v1.7.1
 	github.com/go-kit/kit v0.10.0
 	github.com/golang/mock v1.4.4
 	github.com/google/uuid v1.1.1
