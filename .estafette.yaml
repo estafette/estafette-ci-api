@@ -121,7 +121,83 @@ stages:
     repositories:
     - estafette
 
-  test-helm-chart:
+  test-helm-chart-1.17:
+    services:
+    - name: kubernetes
+      image: bsycorp/kind:latest-1.17
+      readiness:
+        path: /kubernetes-ready
+        port: 10080
+        timeoutSeconds: 120
+    image: extensions/helm:dev
+    action: test
+    values: |-
+      deployment:
+        env:
+        - name: JAEGER_DISABLED
+          value: 'true'
+      secret:
+        files:
+          secretDecryptionKey: 1PsvXVOMkhfAQuBIcIGCtzIdPXNV0NYG
+      ingress:
+        enabled: true
+        hosts:
+        - host: ci.estafette.io
+          paths:
+          - path: /api/
+            backend:
+              serviceName: estafette-ci-api
+              servicePort: http
+          - path: /
+            backend:
+              serviceName: estafette-ci-web
+              servicePort: http
+      ingressWebhooks:
+        enabled: true
+        hosts:
+        - host: ci-webhook.estafette.io
+          paths:
+          - path: /api/integrations/github/
+            backend:
+              serviceName: estafette-ci-api
+              servicePort: http
+
+      extraLabels:
+        team: estafette
+
+      extraSecrets:
+      - key: gcp
+        annotations: {}
+        mountPath: /gcp
+        data:
+          service-account-key.json: |
+            {}
+
+      extraConfigmaps:
+      - key: templates
+        annotations: {}
+        mountPath: /templates
+        data: |
+          manifest-docker.tmpl: |
+            labels:
+              container: {{.ContainerName}}
+              team: {{.TeamName}}
+              language: docker
+
+            stages:
+              bake:
+                image: extensions/docker:stable
+                action: build
+                repositories:
+                - estafette
+
+              push-to-docker-registry:
+                image: extensions/docker:stable
+                action: push
+                repositories:
+                - estafette
+
+  test-helm-chart-1.19:
     services:
     - name: kubernetes
       image: bsycorp/kind:latest-1.19
@@ -141,8 +217,35 @@ stages:
           secretDecryptionKey: 1PsvXVOMkhfAQuBIcIGCtzIdPXNV0NYG
       ingress:
         enabled: true
+        hosts:
+        - host: ci.estafette.io
+          paths:
+          - path: /api/
+            pathType: Prefix
+            backend:
+              service:
+                name: estafette-ci-api
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: estafette-ci-web
+                port:
+                  name: http
       ingressWebhooks:
         enabled: true
+        hosts:
+        - host: ci-webhook.estafette.io
+          paths:
+          - path: /api/integrations/github/
+            pathType: Prefix
+            backend:
+              service:
+                name: estafette-ci-api
+                port:
+                  name: http
 
       extraLabels:
         team: estafette
