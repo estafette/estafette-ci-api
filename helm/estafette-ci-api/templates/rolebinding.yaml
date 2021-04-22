@@ -14,4 +14,7 @@ subjects:
 - kind: ServiceAccount
   name: {{ template "estafette-ci-api.serviceAccountName" . }}
   namespace: {{ .Release.Namespace }}
+- kind: ServiceAccount
+  name: estafette-ci-builder
+  namespace: {{ include "estafette-ci-api.jobNamespace" . }}
 {{- end }}
