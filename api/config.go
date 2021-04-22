@@ -195,13 +195,13 @@ func (c *APIConfig) Validate() (err error) {
 
 // APIServerConfig represents configuration for the api server
 type APIServerConfig struct {
-	BaseURL                                  string                                     `yaml:"baseURL"`
-	ServiceURL                               string                                     `yaml:"serviceURL"`
-	LogWriters                               []LogTarget                                `yaml:"logWriters"`
-	LogReader                                LogTarget                                  `yaml:"logReader"`
-	InjectStagesPerOperatingSystem           map[string]InjectStagesConfig              `yaml:"injectStagesPerOperatingSystem,omitempty"`
-	InjectCommandsPerOperatingSystemAndShell map[string]map[string]InjectCommandsConfig `yaml:"injectCommandsPerOperatingSystemAndShell,omitempty"`
-	DockerConfigPerOperatingSystem           map[string]contracts.DockerConfig          `yaml:"dockerConfigPerOperatingSystem,omitempty" json:"dockerConfigPerOperatingSystem,omitempty"`
+	BaseURL                                  string                                                       `yaml:"baseURL"`
+	ServiceURL                               string                                                       `yaml:"serviceURL"`
+	LogWriters                               []LogTarget                                                  `yaml:"logWriters"`
+	LogReader                                LogTarget                                                    `yaml:"logReader"`
+	InjectStagesPerOperatingSystem           map[manifest.OperatingSystem]InjectStagesConfig              `yaml:"injectStagesPerOperatingSystem,omitempty"`
+	InjectCommandsPerOperatingSystemAndShell map[manifest.OperatingSystem]map[string]InjectCommandsConfig `yaml:"injectCommandsPerOperatingSystemAndShell,omitempty"`
+	DockerConfigPerOperatingSystem           map[manifest.OperatingSystem]contracts.DockerConfig          `yaml:"dockerConfigPerOperatingSystem,omitempty" json:"dockerConfigPerOperatingSystem,omitempty"`
 }
 
 type LogTarget string
@@ -226,11 +226,11 @@ func (c *APIServerConfig) SetDefaults() {
 	}
 
 	if c.DockerConfigPerOperatingSystem == nil || len(c.DockerConfigPerOperatingSystem) == 0 {
-		c.DockerConfigPerOperatingSystem = map[string]contracts.DockerConfig{
-			"linux": contracts.DockerConfig{
+		c.DockerConfigPerOperatingSystem = map[manifest.OperatingSystem]contracts.DockerConfig{
+			manifest.OperatingSystemLinux: contracts.DockerConfig{
 				RunType: contracts.DockerRunTypeDinD,
 			},
-			"windows": contracts.DockerConfig{
+			manifest.OperatingSystemWindows: contracts.DockerConfig{
 				RunType: contracts.DockerRunTypeDoD,
 			},
 		}

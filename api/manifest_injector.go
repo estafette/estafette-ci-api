@@ -70,7 +70,7 @@ func injectIfNotExists(stages, parallelStages []*manifest.EstafetteStage, stageT
 	return parallelStages
 }
 
-func injectBuildStagesBefore(config *APIConfig, operatingSystem string, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
+func injectBuildStagesBefore(config *APIConfig, operatingSystem manifest.OperatingSystem, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
 
 	stages = mft.Stages
 
@@ -114,7 +114,7 @@ func injectBuildStagesBefore(config *APIConfig, operatingSystem string, mft mani
 	return stages
 }
 
-func injectBuildStagesAfter(config *APIConfig, operatingSystem string, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
+func injectBuildStagesAfter(config *APIConfig, operatingSystem manifest.OperatingSystem, mft manifest.EstafetteManifest, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
 
 	stages = mft.Stages
 
@@ -152,7 +152,7 @@ func injectBuildStagesAfter(config *APIConfig, operatingSystem string, mft manif
 	return stages
 }
 
-func injectReleaseStagesBefore(config *APIConfig, operatingSystem string, release manifest.EstafetteRelease, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
+func injectReleaseStagesBefore(config *APIConfig, operatingSystem manifest.OperatingSystem, release manifest.EstafetteRelease, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
 
 	stages = release.Stages
 
@@ -188,7 +188,7 @@ func injectReleaseStagesBefore(config *APIConfig, operatingSystem string, releas
 	return stages
 }
 
-func injectReleaseStagesAfter(config *APIConfig, operatingSystem string, release manifest.EstafetteRelease, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
+func injectReleaseStagesAfter(config *APIConfig, operatingSystem manifest.OperatingSystem, release manifest.EstafetteRelease, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
 
 	stages = release.Stages
 
@@ -227,7 +227,7 @@ func stageExists(stages []*manifest.EstafetteStage, stageName string) bool {
 	return false
 }
 
-func getOperatingSystem(mft manifest.EstafetteManifest, preferences manifest.EstafetteManifestPreferences) string {
+func getOperatingSystem(mft manifest.EstafetteManifest, preferences manifest.EstafetteManifestPreferences) manifest.OperatingSystem {
 
 	if mft.Builder.OperatingSystem == "" {
 		return preferences.BuilderOperatingSystems[0]
@@ -261,7 +261,7 @@ func InjectCommands(config *APIConfig, mft manifest.EstafetteManifest) (injected
 	// inject release stages
 	for _, r := range injectedManifest.Releases {
 		releaseOperatingSystem := operatingSystem
-		if r.Builder != nil && r.Builder.OperatingSystem != "" {
+		if r.Builder != nil && r.Builder.OperatingSystem != manifest.OperatingSystemUnknown {
 			releaseOperatingSystem = r.Builder.OperatingSystem
 		}
 
@@ -271,7 +271,7 @@ func InjectCommands(config *APIConfig, mft manifest.EstafetteManifest) (injected
 	return
 }
 
-func injectCommandsIntoStages(stages []*manifest.EstafetteStage, commandsPerOperatingSystemAndShell map[string]map[string]InjectCommandsConfig, operatingSystem string) (injectedStages []*manifest.EstafetteStage) {
+func injectCommandsIntoStages(stages []*manifest.EstafetteStage, commandsPerOperatingSystemAndShell map[manifest.OperatingSystem]map[string]InjectCommandsConfig, operatingSystem manifest.OperatingSystem) (injectedStages []*manifest.EstafetteStage) {
 
 	injectedStages = stages
 
@@ -286,7 +286,7 @@ func injectCommandsIntoStages(stages []*manifest.EstafetteStage, commandsPerOper
 	return
 }
 
-func injectCommandsIntoStage(stage *manifest.EstafetteStage, commandsPerOperatingSystemAndShell map[string]map[string]InjectCommandsConfig, operatingSystem string) (injectedStage *manifest.EstafetteStage) {
+func injectCommandsIntoStage(stage *manifest.EstafetteStage, commandsPerOperatingSystemAndShell map[manifest.OperatingSystem]map[string]InjectCommandsConfig, operatingSystem manifest.OperatingSystem) (injectedStage *manifest.EstafetteStage) {
 
 	injectedStage = stage
 

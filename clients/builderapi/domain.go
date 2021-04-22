@@ -8,9 +8,17 @@ import (
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
 
+type JobType string
+
+const (
+	JobTypeUnknown JobType = ""
+	JobTypeBuild   JobType = "build"
+	JobTypeRelease JobType = "release"
+)
+
 // CiBuilderParams contains the parameters required to create a ci builder job
 type CiBuilderParams struct {
-	JobType                 string
+	JobType                 JobType
 	RepoSource              string
 	RepoOwner               string
 	RepoName                string
@@ -19,7 +27,7 @@ type CiBuilderParams struct {
 	RepoRevision            string
 	EnvironmentVariables    map[string]string
 	Track                   string
-	OperatingSystem         string
+	OperatingSystem         manifest.OperatingSystem
 	CurrentCounter          int
 	MaxCounter              int
 	MaxCounterCurrentBranch int

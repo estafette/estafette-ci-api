@@ -18,7 +18,7 @@ func TestGetJobName(t *testing.T) {
 		ciBuilderClient := &client{}
 
 		// act
-		jobName := ciBuilderClient.GetJobName(context.Background(), "build", "estafette", "estafette-ci-api", "390605593734184965")
+		jobName := ciBuilderClient.GetJobName(context.Background(), JobTypeBuild, "estafette", "estafette-ci-api", "390605593734184965")
 
 		assert.Equal(t, "build-estafette-estafette-ci-api-390605593734184965", jobName)
 		assert.Equal(t, 51, len(jobName))
@@ -29,7 +29,7 @@ func TestGetJobName(t *testing.T) {
 		ciBuilderClient := &client{}
 
 		// act
-		jobName := ciBuilderClient.GetJobName(context.Background(), "build", "estafette", "estafette-extension-slack-build-status", "390605593734184965")
+		jobName := ciBuilderClient.GetJobName(context.Background(), JobTypeBuild, "estafette", "estafette-extension-slack-build-status", "390605593734184965")
 
 		assert.Equal(t, "build-estafette-estafette-extension-slack-bu-390605593734184965", jobName)
 		assert.Equal(t, 63, len(jobName))
@@ -40,7 +40,7 @@ func TestGetJobName(t *testing.T) {
 		ciBuilderClient := &client{}
 
 		// act
-		jobName := ciBuilderClient.GetJobName(context.Background(), "release", "estafette", "estafette-ci-api", "390605593734184965")
+		jobName := ciBuilderClient.GetJobName(context.Background(), JobTypeRelease, "estafette", "estafette-ci-api", "390605593734184965")
 
 		assert.Equal(t, "release-estafette-estafette-ci-api-390605593734184965", jobName)
 		assert.Equal(t, 53, len(jobName))
@@ -51,7 +51,7 @@ func TestGetJobName(t *testing.T) {
 		ciBuilderClient := &client{}
 
 		// act
-		jobName := ciBuilderClient.GetJobName(context.Background(), "release", "estafette", "estafette-extension-slack-build-status", "390605593734184965")
+		jobName := ciBuilderClient.GetJobName(context.Background(), JobTypeRelease, "estafette", "estafette-extension-slack-build-status", "390605593734184965")
 
 		assert.Equal(t, "release-estafette-estafette-extension-slack--390605593734184965", jobName)
 		assert.Equal(t, 63, len(jobName))
@@ -97,12 +97,14 @@ func TestGetCiBuilderJobAffinity(t *testing.T) {
 		}
 
 		ciBuilderParams := CiBuilderParams{
-			JobType:         "build",
-			OperatingSystem: "windows",
+			JobType:         JobTypeBuild,
+			OperatingSystem: manifest.OperatingSystemWindows,
 		}
 
+		builderConfig := contracts.BuilderConfig{}
+
 		// act
-		affinity := ciBuilderClient.getCiBuilderJobAffinity(context.Background(), ciBuilderParams)
+		affinity := ciBuilderClient.getCiBuilderJobAffinity(context.Background(), ciBuilderParams, builderConfig)
 
 		assert.Equal(t, 3, len(affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions))
 		assert.Equal(t, "kubernetes.io/os", affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[2].Key)
@@ -146,12 +148,14 @@ func TestGetCiBuilderJobAffinity(t *testing.T) {
 		}
 
 		ciBuilderParams := CiBuilderParams{
-			JobType:         "build",
-			OperatingSystem: "windows",
+			JobType:         JobTypeBuild,
+			OperatingSystem: manifest.OperatingSystemWindows,
 		}
 
+		builderConfig := contracts.BuilderConfig{}
+
 		// act
-		ciBuilderClient.getCiBuilderJobAffinity(context.Background(), ciBuilderParams)
+		ciBuilderClient.getCiBuilderJobAffinity(context.Background(), ciBuilderParams, builderConfig)
 
 		assert.Equal(t, 2, len(apiConfig.Jobs.BuildAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions))
 	})
@@ -193,12 +197,14 @@ func TestGetCiBuilderJobAffinity(t *testing.T) {
 		}
 
 		ciBuilderParams := CiBuilderParams{
-			JobType:         "release",
-			OperatingSystem: "windows",
+			JobType:         JobTypeRelease,
+			OperatingSystem: manifest.OperatingSystemWindows,
 		}
 
+		builderConfig := contracts.BuilderConfig{}
+
 		// act
-		affinity := ciBuilderClient.getCiBuilderJobAffinity(context.Background(), ciBuilderParams)
+		affinity := ciBuilderClient.getCiBuilderJobAffinity(context.Background(), ciBuilderParams, builderConfig)
 
 		assert.Equal(t, 3, len(affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions))
 		assert.Equal(t, "kubernetes.io/os", affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[2].Key)
@@ -242,12 +248,14 @@ func TestGetCiBuilderJobAffinity(t *testing.T) {
 		}
 
 		ciBuilderParams := CiBuilderParams{
-			JobType:         "release",
-			OperatingSystem: "windows",
+			JobType:         JobTypeRelease,
+			OperatingSystem: manifest.OperatingSystemWindows,
 		}
 
+		builderConfig := contracts.BuilderConfig{}
+
 		// act
-		ciBuilderClient.getCiBuilderJobAffinity(context.Background(), ciBuilderParams)
+		ciBuilderClient.getCiBuilderJobAffinity(context.Background(), ciBuilderParams, builderConfig)
 
 		assert.Equal(t, 2, len(apiConfig.Jobs.ReleaseAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions))
 	})
@@ -277,12 +285,14 @@ func TestGetCiBuilderJobTolerations(t *testing.T) {
 		}
 
 		ciBuilderParams := CiBuilderParams{
-			JobType:         "build",
-			OperatingSystem: "windows",
+			JobType:         JobTypeBuild,
+			OperatingSystem: manifest.OperatingSystemWindows,
 		}
 
+		builderConfig := contracts.BuilderConfig{}
+
 		// act
-		tolerations := ciBuilderClient.getCiBuilderJobTolerations(context.Background(), ciBuilderParams)
+		tolerations := ciBuilderClient.getCiBuilderJobTolerations(context.Background(), ciBuilderParams, builderConfig)
 
 		assert.Equal(t, 2, len(tolerations))
 		assert.Equal(t, "node.kubernetes.io/os", tolerations[1].Key)
@@ -313,12 +323,14 @@ func TestGetCiBuilderJobTolerations(t *testing.T) {
 		}
 
 		ciBuilderParams := CiBuilderParams{
-			JobType:         "release",
-			OperatingSystem: "windows",
+			JobType:         JobTypeRelease,
+			OperatingSystem: manifest.OperatingSystemWindows,
 		}
 
+		builderConfig := contracts.BuilderConfig{}
+
 		// act
-		tolerations := ciBuilderClient.getCiBuilderJobTolerations(context.Background(), ciBuilderParams)
+		tolerations := ciBuilderClient.getCiBuilderJobTolerations(context.Background(), ciBuilderParams, builderConfig)
 
 		assert.Equal(t, 2, len(tolerations))
 		assert.Equal(t, "node.kubernetes.io/os", tolerations[1].Key)
@@ -349,7 +361,7 @@ func TestGetBuilderConfig(t *testing.T) {
 			},
 		}
 		ciBuilderParams := CiBuilderParams{
-			JobType: "build",
+			JobType: JobTypeBuild,
 			TriggeredByEvents: []manifest.EstafetteEvent{
 				{
 					Name:  "trigger1",

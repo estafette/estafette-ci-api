@@ -6,36 +6,51 @@ package builderapi
 
 import (
 	context "context"
+	reflect "reflect"
+
 	estafette_ci_contracts "github.com/estafette/estafette-ci-contracts"
 	gomock "github.com/golang/mock/gomock"
 	v1 "k8s.io/api/batch/v1"
-	reflect "reflect"
 )
 
-// MockClient is a mock of Client interface
+// MockClient is a mock of Client interface.
 type MockClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockClientMockRecorder
 }
 
-// MockClientMockRecorder is the mock recorder for MockClient
+// MockClientMockRecorder is the mock recorder for MockClient.
 type MockClientMockRecorder struct {
 	mock *MockClient
 }
 
-// NewMockClient creates a new mock instance
+// NewMockClient creates a new mock instance.
 func NewMockClient(ctrl *gomock.Controller) *MockClient {
 	mock := &MockClient{ctrl: ctrl}
 	mock.recorder = &MockClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
-// CreateCiBuilderJob mocks base method
+// CancelCiBuilderJob mocks base method.
+func (m *MockClient) CancelCiBuilderJob(ctx context.Context, jobName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CancelCiBuilderJob", ctx, jobName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CancelCiBuilderJob indicates an expected call of CancelCiBuilderJob.
+func (mr *MockClientMockRecorder) CancelCiBuilderJob(ctx, jobName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelCiBuilderJob", reflect.TypeOf((*MockClient)(nil).CancelCiBuilderJob), ctx, jobName)
+}
+
+// CreateCiBuilderJob mocks base method.
 func (m *MockClient) CreateCiBuilderJob(ctx context.Context, params CiBuilderParams) (*v1.Job, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateCiBuilderJob", ctx, params)
@@ -44,41 +59,27 @@ func (m *MockClient) CreateCiBuilderJob(ctx context.Context, params CiBuilderPar
 	return ret0, ret1
 }
 
-// CreateCiBuilderJob indicates an expected call of CreateCiBuilderJob
+// CreateCiBuilderJob indicates an expected call of CreateCiBuilderJob.
 func (mr *MockClientMockRecorder) CreateCiBuilderJob(ctx, params interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCiBuilderJob", reflect.TypeOf((*MockClient)(nil).CreateCiBuilderJob), ctx, params)
 }
 
-// RemoveCiBuilderJob mocks base method
-func (m *MockClient) RemoveCiBuilderJob(ctx context.Context, jobName string) error {
+// GetJobName mocks base method.
+func (m *MockClient) GetJobName(ctx context.Context, jobType JobType, repoOwner, repoName, id string) string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveCiBuilderJob", ctx, jobName)
-	ret0, _ := ret[0].(error)
+	ret := m.ctrl.Call(m, "GetJobName", ctx, jobType, repoOwner, repoName, id)
+	ret0, _ := ret[0].(string)
 	return ret0
 }
 
-// RemoveCiBuilderJob indicates an expected call of RemoveCiBuilderJob
-func (mr *MockClientMockRecorder) RemoveCiBuilderJob(ctx, jobName interface{}) *gomock.Call {
+// GetJobName indicates an expected call of GetJobName.
+func (mr *MockClientMockRecorder) GetJobName(ctx, jobType, repoOwner, repoName, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveCiBuilderJob", reflect.TypeOf((*MockClient)(nil).RemoveCiBuilderJob), ctx, jobName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJobName", reflect.TypeOf((*MockClient)(nil).GetJobName), ctx, jobType, repoOwner, repoName, id)
 }
 
-// CancelCiBuilderJob mocks base method
-func (m *MockClient) CancelCiBuilderJob(ctx context.Context, jobName string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CancelCiBuilderJob", ctx, jobName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CancelCiBuilderJob indicates an expected call of CancelCiBuilderJob
-func (mr *MockClientMockRecorder) CancelCiBuilderJob(ctx, jobName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelCiBuilderJob", reflect.TypeOf((*MockClient)(nil).CancelCiBuilderJob), ctx, jobName)
-}
-
-// RemoveCiBuilderConfigMap mocks base method
+// RemoveCiBuilderConfigMap mocks base method.
 func (m *MockClient) RemoveCiBuilderConfigMap(ctx context.Context, configmapName string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RemoveCiBuilderConfigMap", ctx, configmapName)
@@ -86,27 +87,13 @@ func (m *MockClient) RemoveCiBuilderConfigMap(ctx context.Context, configmapName
 	return ret0
 }
 
-// RemoveCiBuilderConfigMap indicates an expected call of RemoveCiBuilderConfigMap
+// RemoveCiBuilderConfigMap indicates an expected call of RemoveCiBuilderConfigMap.
 func (mr *MockClientMockRecorder) RemoveCiBuilderConfigMap(ctx, configmapName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveCiBuilderConfigMap", reflect.TypeOf((*MockClient)(nil).RemoveCiBuilderConfigMap), ctx, configmapName)
 }
 
-// RemoveCiBuilderSecret mocks base method
-func (m *MockClient) RemoveCiBuilderSecret(ctx context.Context, secretName string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveCiBuilderSecret", ctx, secretName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RemoveCiBuilderSecret indicates an expected call of RemoveCiBuilderSecret
-func (mr *MockClientMockRecorder) RemoveCiBuilderSecret(ctx, secretName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveCiBuilderSecret", reflect.TypeOf((*MockClient)(nil).RemoveCiBuilderSecret), ctx, secretName)
-}
-
-// RemoveCiBuilderImagePullSecret mocks base method
+// RemoveCiBuilderImagePullSecret mocks base method.
 func (m *MockClient) RemoveCiBuilderImagePullSecret(ctx context.Context, secretName string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RemoveCiBuilderImagePullSecret", ctx, secretName)
@@ -114,13 +101,41 @@ func (m *MockClient) RemoveCiBuilderImagePullSecret(ctx context.Context, secretN
 	return ret0
 }
 
-// RemoveCiBuilderImagePullSecret indicates an expected call of RemoveCiBuilderImagePullSecret
+// RemoveCiBuilderImagePullSecret indicates an expected call of RemoveCiBuilderImagePullSecret.
 func (mr *MockClientMockRecorder) RemoveCiBuilderImagePullSecret(ctx, secretName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveCiBuilderImagePullSecret", reflect.TypeOf((*MockClient)(nil).RemoveCiBuilderImagePullSecret), ctx, secretName)
 }
 
-// TailCiBuilderJobLogs mocks base method
+// RemoveCiBuilderJob mocks base method.
+func (m *MockClient) RemoveCiBuilderJob(ctx context.Context, jobName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveCiBuilderJob", ctx, jobName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveCiBuilderJob indicates an expected call of RemoveCiBuilderJob.
+func (mr *MockClientMockRecorder) RemoveCiBuilderJob(ctx, jobName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveCiBuilderJob", reflect.TypeOf((*MockClient)(nil).RemoveCiBuilderJob), ctx, jobName)
+}
+
+// RemoveCiBuilderSecret mocks base method.
+func (m *MockClient) RemoveCiBuilderSecret(ctx context.Context, secretName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveCiBuilderSecret", ctx, secretName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveCiBuilderSecret indicates an expected call of RemoveCiBuilderSecret.
+func (mr *MockClientMockRecorder) RemoveCiBuilderSecret(ctx, secretName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveCiBuilderSecret", reflect.TypeOf((*MockClient)(nil).RemoveCiBuilderSecret), ctx, secretName)
+}
+
+// TailCiBuilderJobLogs mocks base method.
 func (m *MockClient) TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan estafette_ci_contracts.TailLogLine) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TailCiBuilderJobLogs", ctx, jobName, logChannel)
@@ -128,37 +143,8 @@ func (m *MockClient) TailCiBuilderJobLogs(ctx context.Context, jobName string, l
 	return ret0
 }
 
-// TailCiBuilderJobLogs indicates an expected call of TailCiBuilderJobLogs
+// TailCiBuilderJobLogs indicates an expected call of TailCiBuilderJobLogs.
 func (mr *MockClientMockRecorder) TailCiBuilderJobLogs(ctx, jobName, logChannel interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TailCiBuilderJobLogs", reflect.TypeOf((*MockClient)(nil).TailCiBuilderJobLogs), ctx, jobName, logChannel)
-}
-
-// GetJobName mocks base method
-func (m *MockClient) GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetJobName", ctx, jobType, repoOwner, repoName, id)
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// GetJobName indicates an expected call of GetJobName
-func (mr *MockClientMockRecorder) GetJobName(ctx, jobType, repoOwner, repoName, id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJobName", reflect.TypeOf((*MockClient)(nil).GetJobName), ctx, jobType, repoOwner, repoName, id)
-}
-
-// GetBuilderConfig mocks base method
-func (m *MockClient) GetBuilderConfig(ctx context.Context, ciBuilderParams CiBuilderParams, jobName string) (estafette_ci_contracts.BuilderConfig, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBuilderConfig", ctx, ciBuilderParams, jobName)
-	ret0, _ := ret[0].(estafette_ci_contracts.BuilderConfig)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetBuilderConfig indicates an expected call of GetBuilderConfig
-func (mr *MockClientMockRecorder) GetBuilderConfig(ctx, ciBuilderParams, jobName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBuilderConfig", reflect.TypeOf((*MockClient)(nil).GetBuilderConfig), ctx, ciBuilderParams, jobName)
 }

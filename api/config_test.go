@@ -7,6 +7,7 @@ import (
 
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 )
@@ -185,40 +186,40 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, LogTargetCloudStorage, apiServerConfig.LogWriters[1])
 		assert.Equal(t, LogTargetDatabase, apiServerConfig.LogReader)
 
-		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem["linux"].Build.Before[0].Name)
-		assert.Equal(t, "extensions/envvars:stable", apiServerConfig.InjectStagesPerOperatingSystem["linux"].Build.Before[0].ContainerImage)
-		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem["linux"].Release.After[0].Name)
-		assert.Equal(t, "extensions/envvars:dev", apiServerConfig.InjectStagesPerOperatingSystem["linux"].Release.After[0].ContainerImage)
+		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Build.Before[0].Name)
+		assert.Equal(t, "extensions/envvars:stable", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Build.Before[0].ContainerImage)
+		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Release.After[0].Name)
+		assert.Equal(t, "extensions/envvars:dev", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Release.After[0].ContainerImage)
 
-		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem["windows"].Build.Before[0].Name)
-		assert.Equal(t, "extensions/envvars:windowsservercore-ltsc2019", apiServerConfig.InjectStagesPerOperatingSystem["windows"].Build.Before[0].ContainerImage)
-		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem["windows"].Release.After[0].Name)
-		assert.Equal(t, "extensions/envvars:windowsservercore-ltsc2019", apiServerConfig.InjectStagesPerOperatingSystem["windows"].Release.After[0].ContainerImage)
+		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemWindows].Build.Before[0].Name)
+		assert.Equal(t, "extensions/envvars:windowsservercore-ltsc2019", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemWindows].Build.Before[0].ContainerImage)
+		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemWindows].Release.After[0].Name)
+		assert.Equal(t, "extensions/envvars:windowsservercore-ltsc2019", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemWindows].Release.After[0].ContainerImage)
 
-		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell["linux"]["/bin/sh"].Before))
-		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell["linux"]["/bin/sh"].After))
+		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell[manifest.OperatingSystemLinux]["/bin/sh"].Before))
+		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell[manifest.OperatingSystemLinux]["/bin/sh"].After))
 
-		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell["linux"]["/bin/bash"].Before))
-		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell["linux"]["/bin/bash"].After))
+		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell[manifest.OperatingSystemLinux]["/bin/bash"].Before))
+		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell[manifest.OperatingSystemLinux]["/bin/bash"].After))
 
-		assert.Equal(t, 1, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell["windows"]["cmd"].Before))
-		assert.Equal(t, "netsh interface ipv4 set subinterface 31 mtu=1410", apiServerConfig.InjectCommandsPerOperatingSystemAndShell["windows"]["cmd"].Before[0])
-		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell["windows"]["cmd"].After))
+		assert.Equal(t, 1, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell[manifest.OperatingSystemWindows]["cmd"].Before))
+		assert.Equal(t, "netsh interface ipv4 set subinterface 31 mtu=1410", apiServerConfig.InjectCommandsPerOperatingSystemAndShell[manifest.OperatingSystemWindows]["cmd"].Before[0])
+		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell[manifest.OperatingSystemWindows]["cmd"].After))
 
-		assert.Equal(t, 1, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell["windows"]["powershell"].Before))
-		assert.Equal(t, "Get-NetAdapter | Where-Object Name -like \"*Ethernet*\" | ForEach-Object { & netsh interface ipv4 set subinterface $_.InterfaceIndex mtu=1410 store=persistent }", apiServerConfig.InjectCommandsPerOperatingSystemAndShell["windows"]["powershell"].Before[0])
-		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell["windows"]["powershell"].After))
+		assert.Equal(t, 1, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell[manifest.OperatingSystemWindows]["powershell"].Before))
+		assert.Equal(t, "Get-NetAdapter | Where-Object Name -like \"*Ethernet*\" | ForEach-Object { & netsh interface ipv4 set subinterface $_.InterfaceIndex mtu=1410 store=persistent }", apiServerConfig.InjectCommandsPerOperatingSystemAndShell[manifest.OperatingSystemWindows]["powershell"].Before[0])
+		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell[manifest.OperatingSystemWindows]["powershell"].After))
 
-		assert.Equal(t, contracts.DockerRunTypeDinD, apiServerConfig.DockerConfigPerOperatingSystem["linux"].RunType)
-		assert.Equal(t, 1460, apiServerConfig.DockerConfigPerOperatingSystem["linux"].MTU)
-		assert.Equal(t, "192.168.1.1/24", apiServerConfig.DockerConfigPerOperatingSystem["linux"].BIP)
-		assert.Equal(t, "estafette", apiServerConfig.DockerConfigPerOperatingSystem["linux"].Networks[0].Name)
-		assert.Equal(t, "192.168.2.1/24", apiServerConfig.DockerConfigPerOperatingSystem["linux"].Networks[0].Subnet)
-		assert.Equal(t, "192.168.2.1", apiServerConfig.DockerConfigPerOperatingSystem["linux"].Networks[0].Gateway)
-		assert.Equal(t, "https://mirror.gcr.io", apiServerConfig.DockerConfigPerOperatingSystem["linux"].RegistryMirror)
+		assert.Equal(t, contracts.DockerRunTypeDinD, apiServerConfig.DockerConfigPerOperatingSystem[manifest.OperatingSystemLinux].RunType)
+		assert.Equal(t, 1460, apiServerConfig.DockerConfigPerOperatingSystem[manifest.OperatingSystemLinux].MTU)
+		assert.Equal(t, "192.168.1.1/24", apiServerConfig.DockerConfigPerOperatingSystem[manifest.OperatingSystemLinux].BIP)
+		assert.Equal(t, "estafette", apiServerConfig.DockerConfigPerOperatingSystem[manifest.OperatingSystemLinux].Networks[0].Name)
+		assert.Equal(t, "192.168.2.1/24", apiServerConfig.DockerConfigPerOperatingSystem[manifest.OperatingSystemLinux].Networks[0].Subnet)
+		assert.Equal(t, "192.168.2.1", apiServerConfig.DockerConfigPerOperatingSystem[manifest.OperatingSystemLinux].Networks[0].Gateway)
+		assert.Equal(t, "https://mirror.gcr.io", apiServerConfig.DockerConfigPerOperatingSystem[manifest.OperatingSystemLinux].RegistryMirror)
 
-		assert.Equal(t, contracts.DockerRunTypeDoD, apiServerConfig.DockerConfigPerOperatingSystem["windows"].RunType)
-		assert.Equal(t, 1410, apiServerConfig.DockerConfigPerOperatingSystem["windows"].MTU)
+		assert.Equal(t, contracts.DockerRunTypeDoD, apiServerConfig.DockerConfigPerOperatingSystem[manifest.OperatingSystemWindows].RunType)
+		assert.Equal(t, 1410, apiServerConfig.DockerConfigPerOperatingSystem[manifest.OperatingSystemWindows].MTU)
 	})
 
 	t.Run("ReturnsAuthConfig", func(t *testing.T) {
@@ -408,11 +409,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, 1, len(config.ManifestPreferences.LabelRegexes))
 		assert.Equal(t, "api|web|library|container", config.ManifestPreferences.LabelRegexes["type"])
 		assert.Equal(t, 2, len(config.ManifestPreferences.BuilderOperatingSystems))
-		assert.Equal(t, "linux", config.ManifestPreferences.BuilderOperatingSystems[0])
-		assert.Equal(t, "windows", config.ManifestPreferences.BuilderOperatingSystems[1])
+		assert.Equal(t, manifest.OperatingSystemLinux, config.ManifestPreferences.BuilderOperatingSystems[0])
+		assert.Equal(t, manifest.OperatingSystemWindows, config.ManifestPreferences.BuilderOperatingSystems[1])
 		assert.Equal(t, 2, len(config.ManifestPreferences.BuilderTracksPerOperatingSystem))
-		assert.Equal(t, 3, len(config.ManifestPreferences.BuilderTracksPerOperatingSystem["linux"]))
-		assert.Equal(t, 3, len(config.ManifestPreferences.BuilderTracksPerOperatingSystem["windows"]))
+		assert.Equal(t, 3, len(config.ManifestPreferences.BuilderTracksPerOperatingSystem[manifest.OperatingSystemLinux]))
+		assert.Equal(t, 3, len(config.ManifestPreferences.BuilderTracksPerOperatingSystem[manifest.OperatingSystemWindows]))
 	})
 
 	t.Run("ReturnsCatalogConfig", func(t *testing.T) {

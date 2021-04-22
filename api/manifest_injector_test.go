@@ -587,7 +587,7 @@ func TestInjectCommands(t *testing.T) {
 
 		mft := manifest.EstafetteManifest{
 			Builder: manifest.EstafetteBuilder{
-				OperatingSystem: "linux",
+				OperatingSystem: manifest.OperatingSystemLinux,
 			},
 			Stages: []*manifest.EstafetteStage{
 				{
@@ -625,8 +625,8 @@ func TestInjectCommands(t *testing.T) {
 		config := &APIConfig{
 			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
 			APIServer: &APIServerConfig{
-				InjectCommandsPerOperatingSystemAndShell: map[string]map[string]InjectCommandsConfig{
-					"linux": {
+				InjectCommandsPerOperatingSystemAndShell: map[manifest.OperatingSystem]map[string]InjectCommandsConfig{
+					manifest.OperatingSystemLinux: {
 						"/bin/sh": {
 							Before: []string{
 								"echo first",
@@ -657,7 +657,7 @@ func TestInjectCommands(t *testing.T) {
 
 		mft := manifest.EstafetteManifest{
 			Builder: manifest.EstafetteBuilder{
-				OperatingSystem: "linux",
+				OperatingSystem: manifest.OperatingSystemLinux,
 			},
 			Stages: []*manifest.EstafetteStage{
 				{
@@ -689,8 +689,8 @@ func TestInjectCommands(t *testing.T) {
 		config := &APIConfig{
 			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
 			APIServer: &APIServerConfig{
-				InjectCommandsPerOperatingSystemAndShell: map[string]map[string]InjectCommandsConfig{
-					"linux": {
+				InjectCommandsPerOperatingSystemAndShell: map[manifest.OperatingSystem]map[string]InjectCommandsConfig{
+					manifest.OperatingSystemLinux: {
 						"/bin/sh": {
 							Before: []string{
 								"echo first",
@@ -713,7 +713,7 @@ func TestInjectCommands(t *testing.T) {
 
 		mft := manifest.EstafetteManifest{
 			Builder: manifest.EstafetteBuilder{
-				OperatingSystem: "linux",
+				OperatingSystem: manifest.OperatingSystemLinux,
 			},
 			Stages: []*manifest.EstafetteStage{
 				{
@@ -751,8 +751,8 @@ func TestInjectCommands(t *testing.T) {
 		config := &APIConfig{
 			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
 			APIServer: &APIServerConfig{
-				InjectCommandsPerOperatingSystemAndShell: map[string]map[string]InjectCommandsConfig{
-					"linux": {
+				InjectCommandsPerOperatingSystemAndShell: map[manifest.OperatingSystem]map[string]InjectCommandsConfig{
+					manifest.OperatingSystemLinux: {
 						"/bin/sh": {
 							Before: []string{},
 						},
@@ -773,7 +773,7 @@ func TestInjectCommands(t *testing.T) {
 
 		mft := manifest.EstafetteManifest{
 			Builder: manifest.EstafetteBuilder{
-				OperatingSystem: "linux",
+				OperatingSystem: manifest.OperatingSystemLinux,
 			},
 			Stages: []*manifest.EstafetteStage{
 				{
@@ -811,8 +811,8 @@ func TestInjectCommands(t *testing.T) {
 		config := &APIConfig{
 			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
 			APIServer: &APIServerConfig{
-				InjectCommandsPerOperatingSystemAndShell: map[string]map[string]InjectCommandsConfig{
-					"linux": {
+				InjectCommandsPerOperatingSystemAndShell: map[manifest.OperatingSystem]map[string]InjectCommandsConfig{
+					manifest.OperatingSystemLinux: {
 						"/bin/sh": {
 							After: []string{},
 						},
@@ -833,7 +833,7 @@ func TestInjectCommands(t *testing.T) {
 
 		mft := manifest.EstafetteManifest{
 			Builder: manifest.EstafetteBuilder{
-				OperatingSystem: "linux",
+				OperatingSystem: manifest.OperatingSystemLinux,
 			},
 			Stages: []*manifest.EstafetteStage{
 				{
@@ -871,8 +871,8 @@ func TestInjectCommands(t *testing.T) {
 		config := &APIConfig{
 			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
 			APIServer: &APIServerConfig{
-				InjectCommandsPerOperatingSystemAndShell: map[string]map[string]InjectCommandsConfig{
-					"linux": {},
+				InjectCommandsPerOperatingSystemAndShell: map[manifest.OperatingSystem]map[string]InjectCommandsConfig{
+					manifest.OperatingSystemLinux: {},
 				},
 			},
 		}
@@ -889,7 +889,7 @@ func TestInjectCommands(t *testing.T) {
 
 		mft := manifest.EstafetteManifest{
 			Builder: manifest.EstafetteBuilder{
-				OperatingSystem: "linux",
+				OperatingSystem: manifest.OperatingSystemLinux,
 			},
 			Stages: []*manifest.EstafetteStage{
 				{
@@ -927,7 +927,7 @@ func TestInjectCommands(t *testing.T) {
 		config := &APIConfig{
 			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
 			APIServer: &APIServerConfig{
-				InjectCommandsPerOperatingSystemAndShell: map[string]map[string]InjectCommandsConfig{},
+				InjectCommandsPerOperatingSystemAndShell: map[manifest.OperatingSystem]map[string]InjectCommandsConfig{},
 			},
 		}
 
@@ -943,7 +943,7 @@ func TestInjectCommands(t *testing.T) {
 
 		mft := manifest.EstafetteManifest{
 			Builder: manifest.EstafetteBuilder{
-				OperatingSystem: "linux",
+				OperatingSystem: manifest.OperatingSystemLinux,
 			},
 			Stages: []*manifest.EstafetteStage{
 				{
@@ -994,7 +994,7 @@ func TestInjectCommands(t *testing.T) {
 
 		mft := manifest.EstafetteManifest{
 			Builder: manifest.EstafetteBuilder{
-				OperatingSystem: "linux",
+				OperatingSystem: manifest.OperatingSystemLinux,
 			},
 			Stages: []*manifest.EstafetteStage{
 				{
@@ -1032,8 +1032,8 @@ func TestInjectCommands(t *testing.T) {
 		config := &APIConfig{
 			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
 			APIServer: &APIServerConfig{
-				InjectCommandsPerOperatingSystemAndShell: map[string]map[string]InjectCommandsConfig{
-					"linux": {
+				InjectCommandsPerOperatingSystemAndShell: map[manifest.OperatingSystem]map[string]InjectCommandsConfig{
+					manifest.OperatingSystemLinux: {
 						"/bin/sh": {
 							After: []string{
 								"echo last",
@@ -1065,7 +1065,7 @@ func TestInjectCommands(t *testing.T) {
 
 		mft := manifest.EstafetteManifest{
 			Builder: manifest.EstafetteBuilder{
-				OperatingSystem: "linux",
+				OperatingSystem: manifest.OperatingSystemLinux,
 			},
 			Stages: []*manifest.EstafetteStage{
 				{
@@ -1097,8 +1097,8 @@ func TestInjectCommands(t *testing.T) {
 		config := &APIConfig{
 			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
 			APIServer: &APIServerConfig{
-				InjectCommandsPerOperatingSystemAndShell: map[string]map[string]InjectCommandsConfig{
-					"linux": {
+				InjectCommandsPerOperatingSystemAndShell: map[manifest.OperatingSystem]map[string]InjectCommandsConfig{
+					manifest.OperatingSystemLinux: {
 						"/bin/sh": {
 							After: []string{
 								"echo last",

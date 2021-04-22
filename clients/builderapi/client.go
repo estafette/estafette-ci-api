@@ -49,7 +49,7 @@ type Client interface {
 	RemoveCiBuilderSecret(ctx context.Context, secretName string) (err error)
 	RemoveCiBuilderImagePullSecret(ctx context.Context, secretName string) (err error)
 	TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error)
-	GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) (jobname string)
+	GetJobName(ctx context.Context, jobType JobType, repoOwner, repoName, id string) (jobname string)
 }
 
 // NewClient returns a new estafette.Client
@@ -129,7 +129,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 	tag := ciBuilderParams.Track
 	image := fmt.Sprintf("%v:%v", repository, tag)
 	imagePullPolicy := v1.PullAlways
-	if ciBuilderParams.OperatingSystem != "windows" {
+	if ciBuilderParams.OperatingSystem != manifest.OperatingSystemWindows {
 		digest, err := c.dockerHubClient.GetDigestCached(ctx, repository, tag)
 		if err == nil && digest.Digest != "" {
 			image = fmt.Sprintf("%v@%v", repository, digest.Digest)
@@ -138,11 +138,11 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 	}
 	privileged := true
 
-	volumes, volumeMounts := c.getCiBuilderJobVolumesAndMounts(ctx, ciBuilderParams, jobName)
+	volumes, volumeMounts := c.getCiBuilderJobVolumesAndMounts(ctx, ciBuilderParams, localBuilderConfig, jobName)
 
 	labels := map[string]string{
 		"createdBy": "estafette",
-		"jobType":   ciBuilderParams.JobType,
+		"jobType":   string(ciBuilderParams.JobType),
 	}
 
 	terminationGracePeriodSeconds := int64(120)
@@ -174,7 +174,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 							Args: []string{
 								"--run-as-job",
 							},
-							Env: c.getCiBuilderJobEnvironmentVariables(ctx, ciBuilderParams),
+							Env: c.getCiBuilderJobEnvironmentVariables(ctx, ciBuilderParams, localBuilderConfig),
 							SecurityContext: &v1.SecurityContext{
 								Privileged: &privileged,
 							},
@@ -184,8 +184,8 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 					},
 					RestartPolicy: v1.RestartPolicyNever,
 					Volumes:       volumes,
-					Affinity:      c.getCiBuilderJobAffinity(ctx, ciBuilderParams),
-					Tolerations:   c.getCiBuilderJobTolerations(ctx, ciBuilderParams),
+					Affinity:      c.getCiBuilderJobAffinity(ctx, ciBuilderParams, localBuilderConfig),
+					Tolerations:   c.getCiBuilderJobTolerations(ctx, ciBuilderParams, localBuilderConfig),
 				},
 			},
 		},
@@ -309,7 +309,7 @@ func (c *client) createCiBuilderConfigMap(ctx context.Context, ciBuilderParams C
 			Namespace: c.config.Jobs.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
-				"jobType":   ciBuilderParams.JobType,
+				"jobType":   string(ciBuilderParams.JobType),
 			},
 		},
 		Data: map[string]string{
@@ -335,7 +335,7 @@ func (c *client) createCiBuilderSecret(ctx context.Context, ciBuilderParams CiBu
 			Namespace: c.config.Jobs.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
-				"jobType":   ciBuilderParams.JobType,
+				"jobType":   string(ciBuilderParams.JobType),
 			},
 		},
 		Data: map[string][]byte{
@@ -387,7 +387,7 @@ func (c *client) createCiBuilderImagePullSecret(ctx context.Context, ciBuilderPa
 			Namespace: c.config.Jobs.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
-				"jobType":   ciBuilderParams.JobType,
+				"jobType":   string(ciBuilderParams.JobType),
 			},
 		},
 		Type: "kubernetes.io/dockerconfigjson",
@@ -625,7 +625,7 @@ func (c *client) followPodLogs(ctx context.Context, pod *v1.Pod, jobName string,
 }
 
 // GetJobName returns the job name for a build or release job
-func (c *client) GetJobName(ctx context.Context, jobType, repoOwner, repoName, id string) string {
+func (c *client) GetJobName(ctx context.Context, jobType JobType, repoOwner, repoName, id string) string {
 
 	// create job name of max 63 chars
 	maxJobNameLength := 63
@@ -653,7 +653,7 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 
 	// retrieve stages to filter trusted images and credentials
 	stages := ciBuilderParams.Manifest.Stages
-	if ciBuilderParams.JobType == "release" {
+	if ciBuilderParams.JobType == JobTypeRelease {
 
 		releaseExists := false
 		for _, r := range ciBuilderParams.Manifest.Releases {
@@ -734,7 +734,9 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 		TrustedImages: trustedImages,
 	}
 
-	localBuilderConfig.Action = &ciBuilderParams.JobType
+	action := string(ciBuilderParams.JobType)
+
+	localBuilderConfig.Action = &action
 	localBuilderConfig.Track = &ciBuilderParams.Track
 	localBuilderConfig.Git = &contracts.GitConfig{
 		RepoSource:   ciBuilderParams.RepoSource,
@@ -830,7 +832,7 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 	return localBuilderConfig, nil
 }
 
-func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuilderParams CiBuilderParams) (environmentVariables []v1.EnvVar) {
+func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuilderParams CiBuilderParams, builderConfig contracts.BuilderConfig) (environmentVariables []v1.EnvVar) {
 
 	// ensure a json log format is used by the ci-builder, so logs can be tailed
 	logFormat := os.Getenv("ESTAFETTE_LOG_FORMAT")
@@ -909,7 +911,7 @@ func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuil
 		}
 	}
 
-	if ciBuilderParams.OperatingSystem == "windows" {
+	if ciBuilderParams.OperatingSystem == manifest.OperatingSystemWindows {
 		workingDirectoryVolumeName := "working-directory"
 		tempDirectoryVolumeName := "temp-directory"
 
@@ -949,7 +951,7 @@ func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuil
 	return environmentVariables
 }
 
-func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderParams CiBuilderParams, jobName string) (volumes []v1.Volume, volumeMounts []v1.VolumeMount) {
+func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderParams CiBuilderParams, builderConfig contracts.BuilderConfig, jobName string) (volumes []v1.Volume, volumeMounts []v1.VolumeMount) {
 
 	volumes = []v1.Volume{
 		{
@@ -983,7 +985,7 @@ func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderP
 		},
 	}
 
-	if ciBuilderParams.OperatingSystem == "windows" {
+	if ciBuilderParams.OperatingSystem == manifest.OperatingSystemWindows {
 
 		storageMedium := v1.StorageMediumDefault
 		if ciBuilderParams.Manifest.Builder.StorageMedium == manifest.StorageMediumMemory {
@@ -1082,22 +1084,22 @@ func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderP
 	return volumes, volumeMounts
 }
 
-func (c *client) getCiBuilderJobTolerations(ctx context.Context, ciBuilderParams CiBuilderParams) (tolerations []v1.Toleration) {
+func (c *client) getCiBuilderJobTolerations(ctx context.Context, ciBuilderParams CiBuilderParams, builderConfig contracts.BuilderConfig) (tolerations []v1.Toleration) {
 	tolerations = []v1.Toleration{}
 
 	switch ciBuilderParams.JobType {
-	case "build":
+	case JobTypeBuild:
 		if c.config.Jobs.BuildAffinityAndTolerations != nil && c.config.Jobs.BuildAffinityAndTolerations.Tolerations != nil && len(c.config.Jobs.BuildAffinityAndTolerations.Tolerations) > 0 {
 			tolerations = append(tolerations, c.config.Jobs.BuildAffinityAndTolerations.Tolerations...)
 		}
-	case "release":
+	case JobTypeRelease:
 		if c.config.Jobs.ReleaseAffinityAndTolerations != nil && c.config.Jobs.ReleaseAffinityAndTolerations.Tolerations != nil && len(c.config.Jobs.ReleaseAffinityAndTolerations.Tolerations) > 0 {
 			tolerations = append(tolerations, c.config.Jobs.ReleaseAffinityAndTolerations.Tolerations...)
 		}
 	}
 
 	// ensure it runs on a windows node
-	if ciBuilderParams.OperatingSystem == "windows" {
+	if ciBuilderParams.OperatingSystem == manifest.OperatingSystemWindows {
 		tolerations = append(tolerations, v1.Toleration{
 			Effect:   v1.TaintEffectNoSchedule,
 			Key:      "node.kubernetes.io/os",
@@ -1109,10 +1111,10 @@ func (c *client) getCiBuilderJobTolerations(ctx context.Context, ciBuilderParams
 	return tolerations
 }
 
-func (c *client) getCiBuilderJobAffinity(ctx context.Context, ciBuilderParams CiBuilderParams) (affinity *v1.Affinity) {
+func (c *client) getCiBuilderJobAffinity(ctx context.Context, ciBuilderParams CiBuilderParams, builderConfig contracts.BuilderConfig) (affinity *v1.Affinity) {
 
 	switch ciBuilderParams.JobType {
-	case "build":
+	case JobTypeBuild:
 		if c.config.Jobs.BuildAffinityAndTolerations != nil && c.config.Jobs.BuildAffinityAndTolerations.Affinity != nil {
 
 			var deepcopyAffinity v1.Affinity
@@ -1120,7 +1122,7 @@ func (c *client) getCiBuilderJobAffinity(ctx context.Context, ciBuilderParams Ci
 
 			affinity = &deepcopyAffinity
 		}
-	case "release":
+	case JobTypeRelease:
 		if c.config.Jobs.ReleaseAffinityAndTolerations != nil && c.config.Jobs.ReleaseAffinityAndTolerations.Affinity != nil {
 
 			var deepcopyAffinity v1.Affinity
@@ -1130,7 +1132,7 @@ func (c *client) getCiBuilderJobAffinity(ctx context.Context, ciBuilderParams Ci
 		}
 	}
 
-	if ciBuilderParams.OperatingSystem == "windows" {
+	if ciBuilderParams.OperatingSystem == manifest.OperatingSystemWindows {
 		if affinity == nil {
 			affinity = &v1.Affinity{}
 		}
@@ -1156,7 +1158,7 @@ func (c *client) getCiBuilderJobAffinity(ctx context.Context, ciBuilderParams Ci
 		affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions = append(affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions, v1.NodeSelectorRequirement{
 			Key:      operatingSystemAffinityKey,
 			Operator: v1.NodeSelectorOpIn,
-			Values:   []string{operatingSystemAffinityValue},
+			Values:   []string{string(operatingSystemAffinityValue)},
 		})
 	}
 
@@ -1186,7 +1188,7 @@ func (c *client) getCiBuilderJobResources(ctx context.Context, ciBuilderParams C
 func (c *client) getCiBuilderJobName(ctx context.Context, ciBuilderParams CiBuilderParams) string {
 
 	id := strconv.Itoa(ciBuilderParams.BuildID)
-	if ciBuilderParams.JobType == "release" {
+	if ciBuilderParams.JobType == JobTypeRelease {
 		id = strconv.Itoa(ciBuilderParams.ReleaseID)
 	}
 

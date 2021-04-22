@@ -96,7 +96,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 
 	// set builder track
 	builderTrack := "stable"
-	builderOperatingSystem := "linux"
+	builderOperatingSystem := manifest.OperatingSystemLinux
 	if hasValidManifest {
 		builderTrack = mft.Builder.Track
 		builderOperatingSystem = mft.Builder.OperatingSystem
@@ -199,7 +199,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 
 	// define ci builder params
 	ciBuilderParams := builderapi.CiBuilderParams{
-		JobType:                 "build",
+		JobType:                 builderapi.JobTypeBuild,
 		RepoSource:              build.RepoSource,
 		RepoOwner:               build.RepoOwner,
 		RepoName:                build.RepoName,
@@ -483,7 +483,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 
 	// define ci builder params
 	ciBuilderParams := builderapi.CiBuilderParams{
-		JobType:                 "release",
+		JobType:                 builderapi.JobTypeRelease,
 		RepoSource:              release.RepoSource,
 		RepoOwner:               release.RepoOwner,
 		RepoName:                release.RepoName,
@@ -498,10 +498,11 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 		MaxCounterCurrentBranch: maxCounterCurrentBranch,
 		VersionNumber:           release.ReleaseVersion,
 		Manifest:                mft,
-		ReleaseID:               insertedReleaseID,
 		ReleaseName:             release.Name,
 		ReleaseAction:           release.Action,
+		ReleaseID:               insertedReleaseID,
 		ReleaseTriggeredBy:      triggeredBy,
+		BuildID:                 0,
 		TriggeredByEvents:       triggeredByEvents,
 		JobResources:            jobResources,
 	}

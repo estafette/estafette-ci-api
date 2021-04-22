@@ -375,7 +375,7 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 	}
 	if build.BuildStatus == contracts.StatusCanceling {
 		// apparently cancel was already clicked, but somehow the job didn't update the status to canceled
-		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "build", build.RepoOwner, build.RepoName, build.ID)
+		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), builderapi.JobTypeBuild, build.RepoOwner, build.RepoName, build.ID)
 		_ = h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 		_ = h.cockroachDBClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, id, contracts.StatusCanceled)
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", email)})
@@ -387,7 +387,7 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 	}
 
 	// this build can be canceled, set status 'canceling' and cancel the build job
-	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "build", build.RepoOwner, build.RepoName, build.ID)
+	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), builderapi.JobTypeBuild, build.RepoOwner, build.RepoName, build.ID)
 	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 	buildStatus := contracts.StatusCanceling
 	if build.BuildStatus == contracts.StatusPending {
@@ -628,7 +628,7 @@ func (h *Handler) TailPipelineBuildLogs(c *gin.Context) {
 	repo := c.Param("repo")
 	id := c.Param("revisionOrId")
 
-	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "build", owner, repo, id)
+	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), builderapi.JobTypeBuild, owner, repo, id)
 
 	logChannel := make(chan contracts.TailLogLine, 50)
 
