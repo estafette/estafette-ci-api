@@ -858,6 +858,22 @@ func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuil
 				},
 			},
 		},
+		{
+			Name: "POD_UID",
+			ValueFrom: &v1.EnvVarSource{
+				FieldRef: &v1.ObjectFieldSelector{
+					FieldPath: "metadata.uid",
+				},
+			},
+		},
+		{
+			Name: "POD_NAMESPACE",
+			ValueFrom: &v1.EnvVarSource{
+				FieldRef: &v1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
+		},
 	}
 
 	// configure jaeger for ci-builder
@@ -916,19 +932,6 @@ func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuil
 		workingDirectoryVolumeName := "working-directory"
 		tempDirectoryVolumeName := "temp-directory"
 
-		podUIDName := "POD_UID"
-		podUIDFieldPath := "metadata.uid"
-		environmentVariables = append(environmentVariables,
-			v1.EnvVar{
-				Name: podUIDName,
-				ValueFrom: &v1.EnvVarSource{
-					FieldRef: &v1.ObjectFieldSelector{
-						FieldPath: podUIDFieldPath,
-					},
-				},
-			},
-		)
-
 		// this is the path on the host mounted into any of the stage containers; with docker-outside-docker the daemon can't see paths inside the ci-builder container
 		estafetteWorkdirName := "ESTAFETTE_WORKDIR"
 		estafetteWorkdirValue := "/var/lib/kubelet/pods/$(POD_UID)/volumes/kubernetes.io~empty-dir/" + workingDirectoryVolumeName
@@ -960,6 +963,21 @@ func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuil
 
 func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderParams CiBuilderParams, builderConfig contracts.BuilderConfig, jobName string) (volumes []v1.Volume, volumeMounts []v1.VolumeMount) {
 
+	storageMedium := v1.StorageMediumDefault
+	if ciBuilderParams.Manifest.Builder.StorageMedium == manifest.StorageMediumMemory {
+		storageMedium = v1.StorageMediumMemory
+	}
+
+	workingDirectoryVolumeMountPath := "/estafette-work"
+	if ciBuilderParams.OperatingSystem == manifest.OperatingSystemWindows {
+		workingDirectoryVolumeMountPath = "c:" + workingDirectoryVolumeMountPath
+	}
+
+	tempDirectoryVolumeMountPath := "/tmp"
+	if ciBuilderParams.OperatingSystem == manifest.OperatingSystemWindows {
+		tempDirectoryVolumeMountPath = "C:/Windows/TEMP"
+	}
+
 	volumes = []v1.Volume{
 		{
 			Name: "app-configs",
@@ -979,6 +997,22 @@ func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderP
 				},
 			},
 		},
+		{
+			Name: "working-directory",
+			VolumeSource: v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{
+					Medium: storageMedium,
+				},
+			},
+		},
+		{
+			Name: "temp-directory",
+			VolumeSource: v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{
+					Medium: storageMedium,
+				},
+			},
+		},
 	}
 
 	volumeMounts = []v1.VolumeMount{
@@ -990,110 +1024,51 @@ func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderP
 			Name:      "app-secret",
 			MountPath: "/secrets",
 		},
+		{
+			Name:      "working-directory",
+			MountPath: workingDirectoryVolumeMountPath,
+		},
+		{
+			Name:      "temp-directory",
+			MountPath: tempDirectoryVolumeMountPath,
+		},
 	}
 
-	if ciBuilderParams.OperatingSystem == manifest.OperatingSystemWindows || ciBuilderParams.Manifest.Builder.BuilderType == manifest.BuilderTypeKubernetes {
-
-		storageMedium := v1.StorageMediumDefault
-		if ciBuilderParams.Manifest.Builder.StorageMedium == manifest.StorageMediumMemory {
-			storageMedium = v1.StorageMediumMemory
-		}
-
-		// use emptydir volume in order to be able to have docker daemon on host mount path into internal container
-		workingDirectoryVolumeName := "working-directory"
+	if ciBuilderParams.OperatingSystem == manifest.OperatingSystemWindows && ciBuilderParams.Manifest.Builder.BuilderType != manifest.BuilderTypeKubernetes {
+		// windows builds uses docker-outside-docker, for which the hosts docker socket needs to be mounted into the ci-builder container
+		dockerSocketVolumeName := "docker-socket"
+		dockerSocketVolumeHostPath := `\\.\pipe\docker_engine`
 		volumes = append(volumes, v1.Volume{
-			Name: workingDirectoryVolumeName,
+			Name: dockerSocketVolumeName,
 			VolumeSource: v1.VolumeSource{
-				EmptyDir: &v1.EmptyDirVolumeSource{
-					Medium: storageMedium,
+				HostPath: &v1.HostPathVolumeSource{
+					Path: dockerSocketVolumeHostPath,
 				},
 			},
 		})
 
-		workingDirectoryVolumeMountPath := "/estafette-work"
-		if ciBuilderParams.OperatingSystem == manifest.OperatingSystemWindows {
-			workingDirectoryVolumeMountPath = "c:" + workingDirectoryVolumeMountPath
-		}
+		dockerSocketVolumeMountPath := `\\.\pipe\docker_engine`
 		volumeMounts = append(volumeMounts, v1.VolumeMount{
-			Name:      workingDirectoryVolumeName,
-			MountPath: workingDirectoryVolumeMountPath,
+			Name:      dockerSocketVolumeName,
+			MountPath: dockerSocketVolumeMountPath,
 		})
 
-		// use emptydir volume in order to be able to have docker daemon on host mount path into internal container
-		tempDirectoryVolumeName := "temp-directory"
+		// in order not to have to install the docker cli into the ci-builder container it's mounted from the host as well
+		dockerCLIVolumeName := "docker-cli"
+		dockerCLIVolumeHostPath := `C:/Program Files/Docker`
 		volumes = append(volumes, v1.Volume{
-			Name: tempDirectoryVolumeName,
+			Name: dockerCLIVolumeName,
 			VolumeSource: v1.VolumeSource{
-				EmptyDir: &v1.EmptyDirVolumeSource{
-					Medium: storageMedium,
+				HostPath: &v1.HostPathVolumeSource{
+					Path: dockerCLIVolumeHostPath,
 				},
 			},
 		})
 
-		tempDirectoryVolumeMountPath := "/tmp"
-		if ciBuilderParams.OperatingSystem == manifest.OperatingSystemWindows {
-			tempDirectoryVolumeMountPath = "C:/Windows/TEMP"
-		}
-
+		dockerCLIVolumeMountPath := `C:/Program Files/Docker`
 		volumeMounts = append(volumeMounts, v1.VolumeMount{
-			Name:      tempDirectoryVolumeName,
-			MountPath: tempDirectoryVolumeMountPath,
-		})
-
-		if ciBuilderParams.OperatingSystem == manifest.OperatingSystemWindows && ciBuilderParams.Manifest.Builder.BuilderType != manifest.BuilderTypeKubernetes {
-			// windows builds uses docker-outside-docker, for which the hosts docker socket needs to be mounted into the ci-builder container
-			dockerSocketVolumeName := "docker-socket"
-			dockerSocketVolumeHostPath := `\\.\pipe\docker_engine`
-			volumes = append(volumes, v1.Volume{
-				Name: dockerSocketVolumeName,
-				VolumeSource: v1.VolumeSource{
-					HostPath: &v1.HostPathVolumeSource{
-						Path: dockerSocketVolumeHostPath,
-					},
-				},
-			})
-
-			dockerSocketVolumeMountPath := `\\.\pipe\docker_engine`
-			volumeMounts = append(volumeMounts, v1.VolumeMount{
-				Name:      dockerSocketVolumeName,
-				MountPath: dockerSocketVolumeMountPath,
-			})
-
-			// in order not to have to install the docker cli into the ci-builder container it's mounted from the host as well
-			dockerCLIVolumeName := "docker-cli"
-			dockerCLIVolumeHostPath := `C:/Program Files/Docker`
-			volumes = append(volumes, v1.Volume{
-				Name: dockerCLIVolumeName,
-				VolumeSource: v1.VolumeSource{
-					HostPath: &v1.HostPathVolumeSource{
-						Path: dockerCLIVolumeHostPath,
-					},
-				},
-			})
-
-			dockerCLIVolumeMountPath := `C:/Program Files/Docker`
-			volumeMounts = append(volumeMounts, v1.VolumeMount{
-				Name:      dockerCLIVolumeName,
-				MountPath: dockerCLIVolumeMountPath,
-			})
-		}
-	} else if ciBuilderParams.Manifest.Builder.StorageMedium == manifest.StorageMediumMemory {
-
-		// use emptydir volume in order to be able to have docker daemon on host mount path into internal container
-		workingDirectoryVolumeName := "working-directory"
-		volumes = append(volumes, v1.Volume{
-			Name: workingDirectoryVolumeName,
-			VolumeSource: v1.VolumeSource{
-				EmptyDir: &v1.EmptyDirVolumeSource{
-					Medium: v1.StorageMediumMemory,
-				},
-			},
-		})
-
-		workingDirectoryVolumeMountPath := "/estafette-work"
-		volumeMounts = append(volumeMounts, v1.VolumeMount{
-			Name:      workingDirectoryVolumeName,
-			MountPath: workingDirectoryVolumeMountPath,
+			Name:      dockerCLIVolumeName,
+			MountPath: dockerCLIVolumeMountPath,
 		})
 	}
 
