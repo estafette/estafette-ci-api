@@ -165,7 +165,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 					},
 				},
 				Spec: v1.PodSpec{
-					ServiceAccountName:            "estafette-ci-builder",
+					ServiceAccountName:            c.config.Jobs.ServiceAccountName,
 					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
 					Containers: []v1.Container{
 						{
