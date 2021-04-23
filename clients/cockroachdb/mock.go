@@ -1427,6 +1427,36 @@ func (mr *MockClientMockRecorder) GetReleaseReleaseTargetsCount(ctx, filters int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseReleaseTargetsCount", reflect.TypeOf((*MockClient)(nil).GetReleaseReleaseTargetsCount), ctx, filters)
 }
 
+// GetReleaseTargets mocks base method.
+func (m *MockClient) GetReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetReleaseTargets", ctx, pageNumber, pageSize, filters)
+	ret0, _ := ret[0].([]map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetReleaseTargets indicates an expected call of GetReleaseTargets.
+func (mr *MockClientMockRecorder) GetReleaseTargets(ctx, pageNumber, pageSize, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseTargets", reflect.TypeOf((*MockClient)(nil).GetReleaseTargets), ctx, pageNumber, pageSize, filters)
+}
+
+// GetReleaseTargetsCount mocks base method.
+func (m *MockClient) GetReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetReleaseTargetsCount", ctx, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetReleaseTargetsCount indicates an expected call of GetReleaseTargetsCount.
+func (mr *MockClientMockRecorder) GetReleaseTargetsCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseTargetsCount", reflect.TypeOf((*MockClient)(nil).GetReleaseTargetsCount), ctx, filters)
+}
+
 // GetReleaseTriggers mocks base method.
 func (m *MockClient) GetReleaseTriggers(ctx context.Context, release estafette_ci_contracts.Release, event string) ([]*estafette_ci_contracts.Pipeline, error) {
 	m.ctrl.T.Helper()

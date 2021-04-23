@@ -112,6 +112,8 @@ type Client interface {
 	GetLabelValues(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error)
 	GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error)
 	GetFrequentLabelsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error)
+	GetReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetPipelineReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error)
 	GetPipelineReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetReleaseReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error)
@@ -3375,7 +3377,7 @@ func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[api.Fil
 	return
 }
 
-func (c *client) GetPipelineReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error) {
+func (c *client) GetReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error) {
 
 	// see https://github.com/cockroachdb/cockroach/issues/35848
 
@@ -3456,6 +3458,150 @@ func (c *client) GetPipelineReleaseTargets(ctx context.Context, pageNumber, page
 	return c.scanItems(ctx, rows)
 }
 
+func (c *client) GetReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
+
+	// see https://github.com/cockroachdb/cockroach/issues/35848
+
+	// for time being run following query, where the dynamic where clause is in the innermost select query:
+
+	// SELECT
+	// 		COUNT(DISTINCT name)
+	// FROM
+	// 		(
+	// 				SELECT
+	// 						l->>'name' AS name, id
+	// 				FROM
+	// 						(SELECT id, jsonb_array_elements(release_targets) AS l FROM computed_pipelines where jsonb_typeof(release_targets) = 'array')
+	// 		);
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	arrayElementsQuery :=
+		psql.
+			Select("a.id, jsonb_array_elements(a.release_targets) AS l").
+			From("computed_pipelines a").
+			Where("jsonb_typeof(release_targets) = 'array'")
+
+	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
+	if err != nil {
+		return
+	}
+
+	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+		return
+	}
+
+	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+		return
+	}
+
+	arrayElementsQuery, err = whereClauseGeneratorForArchivedFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+		return
+	}
+
+	selectCountQuery :=
+		psql.
+			Select("l->>'name' AS name, id").
+			FromSelect(arrayElementsQuery, "b")
+
+	query :=
+		psql.
+			Select("COUNT(DISTINCT name)").
+			FromSelect(selectCountQuery, "c")
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&totalCount); err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *client) GetPipelineReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error) {
+
+	// see https://github.com/cockroachdb/cockroach/issues/35848
+
+	// for time being run following query, where the dynamic where clause is in the innermost select query:
+
+	// SELECT
+	// 		name, count
+	// FROM
+	// 		(
+	// 				SELECT
+	// 						name, count(DISTINCT id) AS count
+	// 				FROM
+	// 						(
+	// 								SELECT
+	// 										l->>'name' AS name, id
+	// 								FROM
+	// 										(SELECT id, jsonb_array_elements(release_targets) AS l FROM computed_pipelines where jsonb_typeof(release_targets) = 'array')
+	// 						)
+	// 				GROUP BY
+	// 						name
+	// 		)
+	// ORDER BY
+	// 		count DESC, name;
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	arrayElementsQuery :=
+		psql.
+			Select("a.id, jsonb_array_elements(a.release_targets) AS l").
+			From("computed_pipelines a").
+			Where("jsonb_typeof(release_targets) = 'array'")
+
+	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
+	if err != nil {
+		return
+	}
+
+	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+		return
+	}
+
+	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+		return
+	}
+
+	arrayElementsQuery, err = whereClauseGeneratorForArchivedFilter(arrayElementsQuery, "a", filters)
+	if err != nil {
+		return
+	}
+
+	selectCountQuery :=
+		psql.
+			Select("l->>'name' AS name, id").
+			FromSelect(arrayElementsQuery, "b")
+
+	groupByQuery :=
+		psql.
+			Select("name, count(DISTINCT id) AS count").
+			FromSelect(selectCountQuery, "c").
+			GroupBy("name")
+
+	query :=
+		psql.
+			Select("name, count").
+			FromSelect(groupByQuery, "d").
+			OrderBy("count DESC, name").
+			Limit(uint64(pageSize)).
+			Offset(uint64((pageNumber - 1) * pageSize))
+
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	return c.scanItems(ctx, rows)
+}
+
 func (c *client) GetPipelineReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
 
 	// see https://github.com/cockroachdb/cockroach/issues/35848
@@ -3522,7 +3668,7 @@ func (c *client) GetPipelineReleaseTargetsCount(ctx context.Context, filters map
 func (c *client) GetReleaseReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error) {
 
 	// SELECT
-	// 		release AS name, count(DISTINCT id) AS pipelinesCount
+	// 		release AS name, count(DISTINCT id) AS count
 	// FROM
 	// 		releases
 	// ORDER BY
@@ -3532,10 +3678,10 @@ func (c *client) GetReleaseReleaseTargets(ctx context.Context, pageNumber, pageS
 
 	query :=
 		psql.
-			Select("release AS name, count(DISTINCT id) AS pipelinesCount").
+			Select("release AS name, count(DISTINCT id) AS count").
 			From("releases a").
 			GroupBy("name").
-			OrderBy("pipelinesCount DESC, name").
+			OrderBy("count DESC, name").
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 

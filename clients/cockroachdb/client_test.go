@@ -1044,7 +1044,7 @@ func TestIntegrationGetPipelineReleaseTargets(t *testing.T) {
 			assert.Equal(t, "", releaseTargets)
 		}
 		assert.Equal(t, "GetPipelineReleaseTargets", releaseTargets[0]["name"])
-		assert.Equal(t, int64(2), releaseTargets[0]["pipelinescount"])
+		assert.Equal(t, int64(2), releaseTargets[0]["count"])
 	})
 }
 
@@ -1156,7 +1156,7 @@ func TestIntegrationGetReleaseReleaseTargets(t *testing.T) {
 			assert.Equal(t, "", releaseTargets)
 		}
 		assert.Equal(t, "GetReleaseReleaseTargets", releaseTargets[0]["name"])
-		assert.Equal(t, int64(2), releaseTargets[0]["pipelinescount"])
+		assert.Equal(t, int64(2), releaseTargets[0]["count"])
 	})
 }
 

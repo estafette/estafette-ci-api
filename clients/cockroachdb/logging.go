@@ -787,6 +787,18 @@ func (c *loggingClient) GetAllPipelineReleasesCount(ctx context.Context, filters
 	return c.Client.GetAllPipelineReleasesCount(ctx, filters)
 }
 
+func (c *loggingClient) GetReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error) {
+	defer func() { api.HandleLogError(c.prefix, "GetReleaseTargets", err) }()
+
+	return c.Client.GetReleaseTargets(ctx, pageNumber, pageSize, filters)
+}
+
+func (c *loggingClient) GetReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	defer func() { api.HandleLogError(c.prefix, "GetReleaseTargetsCount", err) }()
+
+	return c.Client.GetReleaseTargetsCount(ctx, filters)
+}
+
 func (c *loggingClient) GetPipelineReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error) {
 	defer func() { api.HandleLogError(c.prefix, "GetPipelineReleaseTargets", err) }()
 
