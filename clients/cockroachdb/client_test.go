@@ -990,7 +990,7 @@ func TestIntegrationGetFrequentLabelsCount(t *testing.T) {
 	})
 }
 
-func TestIntegrationGetReleaseTargets(t *testing.T) {
+func TestIntegrationGetPipelineReleaseTargets(t *testing.T) {
 	t.Run("ReturnsReleaseTargetsForMatchingTargets", func(t *testing.T) {
 
 		if testing.Short() {
@@ -1002,28 +1002,28 @@ func TestIntegrationGetReleaseTargets(t *testing.T) {
 		jobResources := getJobResources()
 		build := getBuild()
 		build.RepoName = "release-targets-test-1"
-		build.Labels = []contracts.Label{{Key: "release-targets-test", Value: "GetReleaseTargets"}}
+		build.Labels = []contracts.Label{{Key: "release-targets-test", Value: "GetPipelineReleaseTargets"}}
 		build.ReleaseTargets = []contracts.ReleaseTarget{{
-			Name: "GetReleaseTargets",
+			Name: "GetPipelineReleaseTargets",
 		}}
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting first build record")
 
 		otherBuild := getBuild()
 		otherBuild.RepoName = "release-targets-test-2"
-		otherBuild.Labels = []contracts.Label{{Key: "release-targets-test", Value: "GetReleaseTargets"}}
+		otherBuild.Labels = []contracts.Label{{Key: "release-targets-test", Value: "GetPipelineReleaseTargets"}}
 		otherBuild.ReleaseTargets = []contracts.ReleaseTarget{{
-			Name: "GetReleaseTargets",
+			Name: "GetPipelineReleaseTargets",
 		}}
 		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
 		filters := map[api.FilterType][]string{
 			api.FilterReleaseTarget: {
-				"GetReleaseTargets",
+				"GetPipelineReleaseTargets",
 			},
 			api.FilterLabels: {
-				"release-targets-test=GetReleaseTargets",
+				"release-targets-test=GetPipelineReleaseTargets",
 			},
 			api.FilterSince: {
 				"1d",
@@ -1037,18 +1037,18 @@ func TestIntegrationGetReleaseTargets(t *testing.T) {
 		assert.Nil(t, err, "failed upserting computed pipeline for other build")
 
 		// act
-		releaseTargets, err := cockroachdbClient.GetReleaseTargets(ctx, 1, 10, filters)
+		releaseTargets, err := cockroachdbClient.GetPipelineReleaseTargets(ctx, 1, 10, filters)
 
 		assert.Nil(t, err, "failed getting release targets")
 		if !assert.Equal(t, 1, len(releaseTargets)) {
 			assert.Equal(t, "", releaseTargets)
 		}
-		assert.Equal(t, "GetReleaseTargets", releaseTargets[0]["name"])
+		assert.Equal(t, "GetPipelineReleaseTargets", releaseTargets[0]["name"])
 		assert.Equal(t, int64(2), releaseTargets[0]["pipelinescount"])
 	})
 }
 
-func TestIntegrationGetReleaseTargetsCount(t *testing.T) {
+func TestIntegrationGetPipelineReleaseTargetsCount(t *testing.T) {
 	t.Run("ReturnsReleaseTargetsCountForMatchingTargets", func(t *testing.T) {
 
 		if testing.Short() {
@@ -1060,28 +1060,28 @@ func TestIntegrationGetReleaseTargetsCount(t *testing.T) {
 		jobResources := getJobResources()
 		build := getBuild()
 		build.RepoName = "release-targets-count-test-1"
-		build.Labels = []contracts.Label{{Key: "release-targets-count-test", Value: "GetReleaseTargetsCount"}}
+		build.Labels = []contracts.Label{{Key: "release-targets-count-test", Value: "GetPipelineReleaseTargetsCount"}}
 		build.ReleaseTargets = []contracts.ReleaseTarget{{
-			Name: "GetReleaseTargetsCount",
+			Name: "GetPipelineReleaseTargetsCount",
 		}}
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting build record")
 
 		otherBuild := getBuild()
 		otherBuild.RepoName = "release-targets-count-test-2"
-		otherBuild.Labels = []contracts.Label{{Key: "release-targets-count-test", Value: "GetReleaseTargetsCount"}}
+		otherBuild.Labels = []contracts.Label{{Key: "release-targets-count-test", Value: "GetPipelineReleaseTargetsCount"}}
 		otherBuild.ReleaseTargets = []contracts.ReleaseTarget{{
-			Name: "GetReleaseTargetsCount",
+			Name: "GetPipelineReleaseTargetsCount",
 		}}
 		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
 		filters := map[api.FilterType][]string{
 			api.FilterReleaseTarget: {
-				"GetReleaseTargetsCount",
+				"GetPipelineReleaseTargetsCount",
 			},
 			api.FilterLabels: {
-				"release-targets-count-test=GetReleaseTargetsCount",
+				"release-targets-count-test=GetPipelineReleaseTargetsCount",
 			},
 			api.FilterSince: {
 				"1d",
@@ -1095,7 +1095,119 @@ func TestIntegrationGetReleaseTargetsCount(t *testing.T) {
 		assert.Nil(t, err, "failed upserting computed pipeline for other build")
 
 		// act
-		count, err := cockroachdbClient.GetReleaseTargetsCount(ctx, filters)
+		count, err := cockroachdbClient.GetPipelineReleaseTargetsCount(ctx, filters)
+
+		assert.Nil(t, err, "failed getting release targets count")
+		assert.Equal(t, 1, count)
+	})
+}
+
+func TestIntegrationGetReleaseReleaseTargets(t *testing.T) {
+	t.Run("ReturnsReleaseTargetsForMatchingTargets", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		jobResources := getJobResources()
+		build := getBuild()
+		build.RepoName = "release-targets-test-1"
+		build.Labels = []contracts.Label{{Key: "release-targets-test", Value: "GetReleaseReleaseTargets"}}
+		build.ReleaseTargets = []contracts.ReleaseTarget{{
+			Name: "GetReleaseReleaseTargets",
+		}}
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err, "failed inserting first build record")
+
+		otherBuild := getBuild()
+		otherBuild.RepoName = "release-targets-test-2"
+		otherBuild.Labels = []contracts.Label{{Key: "release-targets-test", Value: "GetReleaseReleaseTargets"}}
+		otherBuild.ReleaseTargets = []contracts.ReleaseTarget{{
+			Name: "GetReleaseReleaseTargets",
+		}}
+		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
+		assert.Nil(t, err, "failed inserting other build record")
+
+		filters := map[api.FilterType][]string{
+			api.FilterReleaseTarget: {
+				"GetReleaseReleaseTargets",
+			},
+			api.FilterLabels: {
+				"release-targets-test=GetReleaseReleaseTargets",
+			},
+			api.FilterSince: {
+				"1d",
+			},
+		}
+
+		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline")
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline for other build")
+
+		// act
+		releaseTargets, err := cockroachdbClient.GetReleaseReleaseTargets(ctx, 1, 10, filters)
+
+		assert.Nil(t, err, "failed getting release targets")
+		if !assert.Equal(t, 1, len(releaseTargets)) {
+			assert.Equal(t, "", releaseTargets)
+		}
+		assert.Equal(t, "GetReleaseReleaseTargets", releaseTargets[0]["name"])
+		assert.Equal(t, int64(2), releaseTargets[0]["pipelinescount"])
+	})
+}
+
+func TestIntegrationGetReleaseReleaseTargetsCount(t *testing.T) {
+	t.Run("ReturnsReleaseTargetsCountForMatchingTargets", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		jobResources := getJobResources()
+		build := getBuild()
+		build.RepoName = "release-targets-count-test-1"
+		build.Labels = []contracts.Label{{Key: "release-targets-count-test", Value: "GetReleaseReleaseTargetsCount"}}
+		build.ReleaseTargets = []contracts.ReleaseTarget{{
+			Name: "GetReleaseReleaseTargetsCount",
+		}}
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err, "failed inserting build record")
+
+		otherBuild := getBuild()
+		otherBuild.RepoName = "release-targets-count-test-2"
+		otherBuild.Labels = []contracts.Label{{Key: "release-targets-count-test", Value: "GetReleaseReleaseTargetsCount"}}
+		otherBuild.ReleaseTargets = []contracts.ReleaseTarget{{
+			Name: "GetReleaseReleaseTargetsCount",
+		}}
+		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
+		assert.Nil(t, err, "failed inserting other build record")
+
+		filters := map[api.FilterType][]string{
+			api.FilterReleaseTarget: {
+				"GetReleaseReleaseTargetsCount",
+			},
+			api.FilterLabels: {
+				"release-targets-count-test=GetReleaseReleaseTargetsCount",
+			},
+			api.FilterSince: {
+				"1d",
+			},
+		}
+
+		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline")
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline for other build")
+
+		// act
+		count, err := cockroachdbClient.GetReleaseReleaseTargetsCount(ctx, filters)
 
 		assert.Nil(t, err, "failed getting release targets count")
 		assert.Equal(t, 1, count)

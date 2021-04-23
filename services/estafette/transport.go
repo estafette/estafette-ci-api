@@ -1333,7 +1333,7 @@ func (h *Handler) GetAllPipelineReleases(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *Handler) GetReleaseTargets(c *gin.Context) {
+func (h *Handler) GetPipelineReleaseTargets(c *gin.Context) {
 
 	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
 
@@ -1342,7 +1342,7 @@ func (h *Handler) GetReleaseTargets(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			releaseTargets, err := h.cockroachDBClient.GetReleaseTargets(c.Request.Context(), pageNumber, pageSize, filters)
+			releaseTargets, err := h.cockroachDBClient.GetPipelineReleaseTargets(c.Request.Context(), pageNumber, pageSize, filters)
 			if err != nil {
 				return nil, err
 			}
@@ -1356,13 +1356,50 @@ func (h *Handler) GetReleaseTargets(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetReleaseTargetsCount(c.Request.Context(), filters)
+			return h.cockroachDBClient.GetPipelineReleaseTargetsCount(c.Request.Context(), filters)
 		},
 		pageNumber,
 		pageSize)
 
 	if err != nil {
-		log.Error().Err(err).Msg("Failed retrieving release targets from db")
+		log.Error().Err(err).Msg("Failed retrieving pipeline release targets from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) GetReleaseReleaseTargets(c *gin.Context) {
+
+	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
+
+	// filter on organizations / groups
+	filters = api.SetPermissionsFilters(c, filters)
+
+	response, err := api.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			releaseTargets, err := h.cockroachDBClient.GetReleaseReleaseTargets(c.Request.Context(), pageNumber, pageSize, filters)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(releaseTargets))
+			for i := range releaseTargets {
+				items[i] = releaseTargets[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachDBClient.GetReleaseReleaseTargetsCount(c.Request.Context(), filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving release release targets from db")
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 		return
 	}

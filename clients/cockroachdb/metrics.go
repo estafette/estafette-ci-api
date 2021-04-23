@@ -1028,3 +1028,35 @@ func (c *metricsClient) GetAllPipelineReleasesCount(ctx context.Context, filters
 
 	return c.Client.GetAllPipelineReleasesCount(ctx, filters)
 }
+
+func (c *metricsClient) GetPipelineReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineReleaseTargets", begin)
+	}(time.Now())
+
+	return c.Client.GetPipelineReleaseTargets(ctx, pageNumber, pageSize, filters)
+}
+
+func (c *metricsClient) GetPipelineReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineReleaseTargetsCount", begin)
+	}(time.Now())
+
+	return c.Client.GetPipelineReleaseTargetsCount(ctx, filters)
+}
+
+func (c *metricsClient) GetReleaseReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetReleaseReleaseTargets", begin)
+	}(time.Now())
+
+	return c.Client.GetReleaseReleaseTargets(ctx, pageNumber, pageSize, filters)
+}
+
+func (c *metricsClient) GetReleaseReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetReleaseReleaseTargetsCount", begin)
+	}(time.Now())
+
+	return c.Client.GetReleaseReleaseTargetsCount(ctx, filters)
+}
