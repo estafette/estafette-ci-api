@@ -874,6 +874,14 @@ func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuil
 				},
 			},
 		},
+		{
+			Name: "POD_NODE_NAME",
+			ValueFrom: &v1.EnvVarSource{
+				FieldRef: &v1.ObjectFieldSelector{
+					FieldPath: "spec.nodeName",
+				},
+			},
+		},
 	}
 
 	// configure jaeger for ci-builder
