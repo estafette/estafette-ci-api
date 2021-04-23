@@ -160,6 +160,7 @@ auth:
 
 jobs:
   namespace: estafette-ci-jobs
+  serviceAccount: estafette-ci-builder
 
   defaultCPUCores: 2.0
   minCPUCores: 0.2

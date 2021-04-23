@@ -1,0 +1,17 @@
+{{- if .Values.serviceAccount.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "estafette-ci-api.fullname" . }}.builder
+  namespace: {{ include "estafette-ci-api.jobNamespace" . }}
+  labels:
+    {{- include "estafette-ci-api.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "estafette-ci-api.fullname" . }}.builder
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceAccount.builderServiceAccountName }}
+  namespace: {{ include "estafette-ci-api.jobNamespace" . }}
+{{- end }}

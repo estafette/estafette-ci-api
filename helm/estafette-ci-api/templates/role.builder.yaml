@@ -2,23 +2,13 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: {{ include "estafette-ci-api.fullname" . }}
+  name: {{ include "estafette-ci-api.fullname" . }}.builder
   namespace: {{ include "estafette-ci-api.jobNamespace" . }}
   labels:
     {{- include "estafette-ci-api.labels" . | nindent 4 }}
 rules:
-- apiGroups: ["batch"] # "" indicates the core API group
-  resources:
-  - jobs
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups: [""] # "" indicates the core API group
+- apiGroups:
+  - ""
   resources:
   - pods
   - pods/log
@@ -30,9 +20,11 @@ rules:
   - update
   - patch
   - delete
-- apiGroups: [""] # "" indicates the core API group
+- apiGroups:
+  - ""
   resources:
   - configmaps
+  - secrets
   verbs:
   - get
   - list

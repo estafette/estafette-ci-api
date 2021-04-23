@@ -537,7 +537,8 @@ func (c *JWTConfig) Validate() (err error) {
 
 // JobsConfig configures the lower and upper bounds for automatically setting resources for build/release jobs
 type JobsConfig struct {
-	Namespace string `yaml:"namespace"`
+	Namespace          string `yaml:"namespace"`
+	ServiceAccountName string `yaml:"serviceAccount"`
 
 	MinCPUCores     float64 `yaml:"minCPUCores"`
 	DefaultCPUCores float64 `yaml:"defaultCPUCores"`
@@ -563,6 +564,10 @@ func (c *JobsConfig) SetDefaults() {
 		if err == nil {
 			c.Namespace = fmt.Sprintf("%v-jobs", string(namespace))
 		}
+	}
+
+	if c.ServiceAccountName == "" {
+		c.ServiceAccountName = "estafette-ci-builder"
 	}
 
 	if c.MinCPUCores <= 0 {
@@ -607,6 +612,9 @@ func (c *JobsConfig) SetDefaults() {
 func (c *JobsConfig) Validate() (err error) {
 	if c.Namespace == "" {
 		return errors.New("Configuration item 'jobs.namespace' is required; please set it to the namespace where you want your build/release jobs to run")
+	}
+	if c.ServiceAccountName == "" {
+		return errors.New("Configuration item 'jobs.serviceAccount' is required; please set it to the same value as 'serviceAccount.builderServiceAccountName' in the helm chart")
 	}
 
 	if c.MinCPUCores <= 0 {
