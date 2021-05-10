@@ -31,7 +31,7 @@ func (h *Handler) Handle(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body from Bitbucket webhook failed")
-		c.String(http.StatusInternalServerError, "Reading body from Bitbucket webhook failed")
+		c.Status(http.StatusInternalServerError)
 		return
 	}
 
@@ -40,6 +40,7 @@ func (h *Handler) Handle(c *gin.Context) {
 	err = json.Unmarshal(body, &anyEvent)
 	if err != nil {
 		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to BitbucketAnyEvent failed")
+		c.Status(http.StatusBadRequest)
 		return
 	}
 
@@ -52,21 +53,21 @@ func (h *Handler) Handle(c *gin.Context) {
 
 	switch eventType {
 	case "repo:push":
-
 		// unmarshal json body
 		var pushEvent bitbucketapi.RepositoryPushEvent
 		err := json.Unmarshal(body, &pushEvent)
 		if err != nil {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to BitbucketRepositoryPushEvent failed")
+			c.Status(http.StatusInternalServerError)
 			return
 		}
 
 		err = h.service.CreateJobForBitbucketPush(c.Request.Context(), pushEvent)
-
 		if err != nil && !errors.Is(err, ErrNonCloneableEvent) && !errors.Is(err, ErrNoManifest) {
-			c.String(http.StatusInternalServerError, "Oops, something went wrong!")
+			c.Status(http.StatusInternalServerError)
 			return
 		}
+
 	case
 		"repo:fork",
 		"repo:transfer",
@@ -95,6 +96,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		err := json.Unmarshal(body, &repoUpdatedEvent)
 		if err != nil {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to BitbucketRepoUpdatedEvent failed")
+			c.Status(http.StatusInternalServerError)
 			return
 		}
 
@@ -103,6 +105,7 @@ func (h *Handler) Handle(c *gin.Context) {
 			err = h.service.Rename(c.Request.Context(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetOldRepoOwner(), repoUpdatedEvent.GetOldRepoName(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetNewRepoOwner(), repoUpdatedEvent.GetNewRepoName())
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed renaming repository from %v/%v/%v to %v/%v/%v", repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetOldRepoOwner(), repoUpdatedEvent.GetOldRepoName(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetNewRepoOwner(), repoUpdatedEvent.GetNewRepoName())
+				c.Status(http.StatusInternalServerError)
 				return
 			}
 		}
@@ -114,6 +117,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		err := json.Unmarshal(body, &repoDeletedEvent)
 		if err != nil {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to BitbucketRepoDeletedEvent failed")
+			c.Status(http.StatusInternalServerError)
 			return
 		}
 
@@ -121,6 +125,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		err = h.service.Archive(c.Request.Context(), repoDeletedEvent.GetRepoSource(), repoDeletedEvent.GetRepoOwner(), repoDeletedEvent.GetRepoName())
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed archiving repository %v/%v/%v", repoDeletedEvent.GetRepoSource(), repoDeletedEvent.GetRepoOwner(), repoDeletedEvent.GetRepoName())
+			c.Status(http.StatusInternalServerError)
 			return
 		}
 
@@ -128,5 +133,5 @@ func (h *Handler) Handle(c *gin.Context) {
 		log.Warn().Str("event", eventType).Msgf("Unsupported Bitbucket webhook event of type '%v'", eventType)
 	}
 
-	c.String(http.StatusOK, "Aye aye!")
+	c.Status(http.StatusOK)
 }

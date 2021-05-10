@@ -30,7 +30,7 @@ func (h *Handler) Handle(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body from Github webhook failed")
-		c.String(http.StatusInternalServerError, "Reading body from Github webhook failed")
+		c.Status(http.StatusInternalServerError)
 		return
 	}
 
@@ -38,12 +38,12 @@ func (h *Handler) Handle(c *gin.Context) {
 	hasValidSignature, err := h.service.HasValidSignature(c.Request.Context(), body, c.GetHeader("X-Hub-Signature"))
 	if err != nil {
 		log.Error().Err(err).Msg("Verifying signature from Github webhook failed")
-		c.String(http.StatusInternalServerError, "Verifying signature from Github webhook failed")
+		c.Status(http.StatusInternalServerError)
 		return
 	}
 	if !hasValidSignature {
-		log.Warn().Msg("Signature from Github webhook is invalid")
-		c.String(http.StatusBadRequest, "Signature from Github webhook is invalid")
+		log.Error().Msg("Signature from Github webhook is invalid")
+		c.Status(http.StatusBadRequest)
 		return
 	}
 
@@ -52,6 +52,7 @@ func (h *Handler) Handle(c *gin.Context) {
 	err = json.Unmarshal(body, &anyEvent)
 	if err != nil {
 		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubAnyEvent failed")
+		c.Status(http.StatusBadRequest)
 		return
 	}
 
@@ -64,19 +65,19 @@ func (h *Handler) Handle(c *gin.Context) {
 
 	switch eventType {
 	case "push": // Any Git push to a Repository, including editing tags or branches. Commits via API actions that update references are also counted. This is the default event.
-
 		// unmarshal json body
 		var pushEvent githubapi.PushEvent
 		err := json.Unmarshal(body, &pushEvent)
 		if err != nil {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubPushEvent failed")
+			c.Status(http.StatusBadRequest)
 			return
 		}
 
 		err = h.service.CreateJobForGithubPush(c.Request.Context(), pushEvent)
-
 		if err != nil && !errors.Is(err, ErrNonCloneableEvent) && !errors.Is(err, ErrNoManifest) {
-			c.String(http.StatusInternalServerError, "Oops, something went wrong!")
+			log.Error().Err(err).Msg("Creating build job for github push failed")
+			c.Status(http.StatusInternalServerError)
 			return
 		}
 
@@ -122,6 +123,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		err := json.Unmarshal(body, &repositoryEvent)
 		if err != nil {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubRepositoryEvent failed")
+			c.Status(http.StatusBadRequest)
 			return
 		}
 
@@ -132,6 +134,7 @@ func (h *Handler) Handle(c *gin.Context) {
 				err = h.service.Rename(c.Request.Context(), repositoryEvent.GetRepoSource(), repositoryEvent.GetOldRepoOwner(), repositoryEvent.GetOldRepoName(), repositoryEvent.GetRepoSource(), repositoryEvent.GetNewRepoOwner(), repositoryEvent.GetNewRepoName())
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed renaming repository from %v/%v/%v to %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetOldRepoOwner(), repositoryEvent.GetOldRepoName(), repositoryEvent.GetRepoSource(), repositoryEvent.GetNewRepoOwner(), repositoryEvent.GetNewRepoName())
+					c.Status(http.StatusInternalServerError)
 					return
 				}
 			}
@@ -142,6 +145,7 @@ func (h *Handler) Handle(c *gin.Context) {
 			err = h.service.Archive(c.Request.Context(), repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed archiving repository %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
+				c.Status(http.StatusInternalServerError)
 				return
 			}
 
@@ -150,6 +154,7 @@ func (h *Handler) Handle(c *gin.Context) {
 			err = h.service.Unarchive(c.Request.Context(), repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed unarchiving repository %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
+				c.Status(http.StatusInternalServerError)
 				return
 			}
 
@@ -159,12 +164,11 @@ func (h *Handler) Handle(c *gin.Context) {
 			"transferred",
 			"publicized",
 			"privatized":
-
 		}
 
 	default:
 		log.Warn().Str("event", eventType).Msgf("Unsupported Github webhook event of type '%v'", eventType)
 	}
 
-	c.String(http.StatusOK, "Aye aye!")
+	c.Status(http.StatusOK)
 }
