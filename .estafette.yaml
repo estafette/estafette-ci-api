@@ -378,6 +378,9 @@ releases:
             mountPath: /configs
           - name: app-secrets
             mountPath: /secrets
+        vpa:
+          enabled: true
+          updateMode: "Off"
         request:
           timeout: 120s
           maxbodysize: 128M
