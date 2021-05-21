@@ -326,10 +326,10 @@ releases:
             ESTAFETTE_LOG_FORMAT: v3
             CONFIG_FILE_PATH: /configs/git/config.yaml
           cpu:
-            request: 158m
+            request: 50m
           memory:
-            request: 483Mi
-            limit: 976Mi
+            request: 283Mi
+            limit: 283Mi
           metrics:
             port: 9001
           lifecycle:
@@ -337,10 +337,10 @@ releases:
         sidecars:
         - type: openresty
           cpu:
-            request: 43m
+            request: 23m
           memory:
-            request: 34Mi
-            limit: 68Mi
+            request: 83Mi
+            limit: 83Mi
         customsidecars:
         - name: estafette-ci-api-git-sync
           image: k8s.gcr.io/git-sync:v3.1.5
@@ -369,10 +369,10 @@ releases:
             runAsUser: 65534 # git-sync user
           resources:
             requests:
-              cpu: 50m
-              memory: 100Mi
+              cpu: 11m
+              memory: 83Mi
             limits:
-              memory: 200Mi
+              memory: 83Mi
           volumeMounts:
           - name: app-configs
             mountPath: /configs
