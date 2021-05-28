@@ -14,6 +14,7 @@ const (
 	JobTypeUnknown JobType = ""
 	JobTypeBuild   JobType = "build"
 	JobTypeRelease JobType = "release"
+	JobTypeBot     JobType = "bot"
 )
 
 // CiBuilderParams contains the parameters required to create a ci builder job
@@ -38,9 +39,14 @@ type CiBuilderParams struct {
 	ReleaseAction      string
 	ReleaseID          int
 	ReleaseTriggeredBy string
-	BuildID            int
-	TriggeredByEvents  []manifest.EstafetteEvent
-	JobResources       cockroachdb.JobResources
+
+	BotName        string
+	BotID          int
+	BotTriggeredBy string
+
+	BuildID           int
+	TriggeredByEvents []manifest.EstafetteEvent
+	JobResources      cockroachdb.JobResources
 }
 
 // GetFullRepoPath returns the full path of the pipeline / build / release repository with source, owner and name

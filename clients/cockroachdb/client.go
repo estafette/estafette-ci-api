@@ -52,8 +52,12 @@ type Client interface {
 	InsertRelease(ctx context.Context, release contracts.Release, jobResources JobResources) (r *contracts.Release, err error)
 	UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus contracts.Status) (err error)
 	UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) (err error)
+	InsertBot(ctx context.Context, bot contracts.Bot, jobResources JobResources) (r *contracts.Bot, err error)
+	UpdateBotStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, botStatus contracts.Status) (err error)
+	UpdateBotResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) (err error)
 	InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (log contracts.BuildLog, err error)
 	InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (log contracts.ReleaseLog, err error)
+	InsertBotLog(ctx context.Context, botLog contracts.BotLog, writeLogToDatabase bool) (log contracts.BotLog, err error)
 
 	UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpdateComputedPipelinePermissions(ctx context.Context, pipeline contracts.Pipeline) (err error)
@@ -92,8 +96,17 @@ type Client interface {
 	GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error)
 	GetPipelineReleaseLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int) (count int, err error)
 	GetPipelineReleaseMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobresources JobResources, count int, err error)
+	GetPipelineBots(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (bots []*contracts.Bot, err error)
+	GetPipelineBotsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error)
+	GetPipelineBot(ctx context.Context, repoSource, repoOwner, repoName string, id int) (bot *contracts.Bot, err error)
+	GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID int, readLogFromDatabase bool) (releaselog *contracts.BotLog, err error)
+	GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID int, id string, readLogFromDatabase bool) (releaselog *contracts.BotLog, err error)
+	GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, botID int, pageNumber int, pageSize int) (releaselogs []*contracts.BotLog, err error)
+	GetPipelineBotLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, botID int) (count int, err error)
+	GetPipelineBotMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobresources JobResources, count int, err error)
 	GetBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetBotsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetBuildsDuration(ctx context.Context, filters map[api.FilterType][]string) (duration time.Duration, err error)
 	GetFirstBuildTimes(ctx context.Context) (times []time.Time, err error)
 	GetFirstReleaseTimes(ctx context.Context) (times []time.Time, err error)
@@ -108,6 +121,8 @@ type Client interface {
 	GetAllPipelineBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetAllPipelineReleases(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (releases []*contracts.Release, err error)
 	GetAllPipelineReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetAllPipelineBots(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (bots []*contracts.Bot, err error)
+	GetAllPipelineBotsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
 	GetLabelValues(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error)
 	GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error)
@@ -123,6 +138,8 @@ type Client interface {
 	GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetPipelinesWithMostReleases(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (pipelines []map[string]interface{}, err error)
 	GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetPipelinesWithMostBots(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (pipelines []map[string]interface{}, err error)
+	GetPipelinesWithMostBotsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 
 	GetTriggers(ctx context.Context, triggerType, identifier, event string) (pipelines []*contracts.Pipeline, err error)
 	GetGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (pipelines []*contracts.Pipeline, err error)
@@ -689,6 +706,169 @@ func (c *client) UpdateReleaseResourceUtilization(ctx context.Context, repoSourc
 	return
 }
 
+func (c *client) InsertBot(ctx context.Context, bot contracts.Bot, jobResources JobResources) (insertedBot *contracts.Bot, err error) {
+
+	eventsBytes, err := json.Marshal(bot.Events)
+	if err != nil {
+		return
+	}
+	groupsBytes, err := json.Marshal(bot.Groups)
+	if err != nil {
+		return
+	}
+	organizationsBytes, err := json.Marshal(bot.Organizations)
+	if err != nil {
+		return
+	}
+
+	// insert logs
+	rows, err := c.databaseConnection.Query(
+		`
+		INSERT INTO
+			bots
+		(
+			repo_source,
+			repo_owner,
+			repo_name,
+			bot,
+			bot_status,
+			triggered_by_event,
+			cpu_request,
+			cpu_limit,
+			memory_request,
+			memory_limit,
+			groups,
+			organizations
+		)
+		VALUES
+		(
+			$1,
+			$2,
+			$3,
+			$4,
+			$5,
+			$6,
+			$7,
+			$8,
+			$9,
+			$10,
+			$11,
+			$12
+		)
+		RETURNING 
+			id
+		`,
+		bot.RepoSource,
+		bot.RepoOwner,
+		bot.RepoName,
+		bot.Name,
+		bot.BotStatus,
+		eventsBytes,
+		jobResources.CPURequest,
+		jobResources.CPULimit,
+		jobResources.MemoryRequest,
+		jobResources.MemoryLimit,
+		groupsBytes,
+		organizationsBytes,
+	)
+
+	if err != nil {
+		return insertedBot, err
+	}
+
+	defer rows.Close()
+	recordExists := rows.Next()
+
+	if !recordExists {
+		return
+	}
+
+	insertedBot = &bot
+	if err = rows.Scan(&insertedBot.ID); err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *client) UpdateBotStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, botStatus contracts.Status) (err error) {
+
+	allowedBotStatusesToTransitionFrom := []contracts.Status{}
+	switch botStatus {
+	case contracts.StatusRunning:
+		allowedBotStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending}
+		break
+	case contracts.StatusSucceeded,
+		contracts.StatusFailed,
+		contracts.StatusCanceling:
+		allowedBotStatusesToTransitionFrom = []contracts.Status{contracts.StatusRunning}
+		break
+	case contracts.StatusCanceled:
+		allowedBotStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending, contracts.StatusCanceling}
+		break
+	}
+
+	// turn into string array so query works as expected
+	allowedBotStatusesToTransitionFromAsStrings := []string{}
+	for _, as := range allowedBotStatusesToTransitionFrom {
+		allowedBotStatusesToTransitionFromAsStrings = append(allowedBotStatusesToTransitionFromAsStrings, string(as))
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("bots").
+		Set("bot_status", botStatus).
+		Set("updated_at", sq.Expr("now()")).
+		Where(sq.Eq{"id": id}).
+		Where(sq.Eq{"repo_source": repoSource}).
+		Where(sq.Eq{"repo_owner": repoOwner}).
+		Where(sq.Eq{"repo_name": repoName}).
+		Where(sq.Eq{"bot_status": allowedBotStatusesToTransitionFromAsStrings}).
+		Suffix("RETURNING id, repo_source, repo_owner, repo_name, bot, bot_status, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event, groups, organizations")
+
+	if botStatus == contracts.StatusRunning {
+		query = query.Set("started_at", sq.Expr("now()"))
+	}
+
+	// update bot status
+	_ = query.RunWith(c.databaseConnection).QueryRow()
+	// insertedBot, err := c.scanBot(row)
+	// if err != nil {
+	// 	if err == sql.ErrNoRows {
+	// 		log.Warn().Err(err).Msgf("Updating bot status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, id, allowedBotStatusesToTransitionFrom, botStatus)
+	// 		return nil
+	// 	}
+
+	// 	return err
+	// }
+
+	return
+}
+
+func (c *client) UpdateBotResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) (err error) {
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query := psql.
+		Update("bots").
+		Set("cpu_max_usage", jobResources.CPUMaxUsage).
+		Set("memory_max_usage", jobResources.MemoryMaxUsage).
+		Where(sq.Eq{"id": id}).
+		Where(sq.Eq{"repo_source": repoSource}).
+		Where(sq.Eq{"repo_owner": repoOwner}).
+		Where(sq.Eq{"repo_name": repoName})
+
+	// update bot resources
+	_, err = query.RunWith(c.databaseConnection).Exec()
+	if err != nil {
+
+		return
+	}
+
+	return
+}
+
 func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (insertedBuildLog contracts.BuildLog, err error) {
 
 	insertedBuildLog = buildLog
@@ -863,6 +1043,72 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 			nrLines += len(s.LogLines)
 		}
 		log.Error().Msgf("INSERT INTO build_logs: failed for %v/%v/%v/%v (%v steps, %v lines, %v bytes)", releaseLog.RepoSource, releaseLog.RepoOwner, releaseLog.RepoName, releaseLog.ReleaseID, len(releaseLog.Steps), nrLines, len(bytes))
+
+		return
+	}
+
+	return
+}
+
+func (c *client) InsertBotLog(ctx context.Context, botLog contracts.BotLog, writeLogToDatabase bool) (insertedBotLog contracts.BotLog, err error) {
+
+	insertedBotLog = botLog
+
+	var bytes []byte
+	if writeLogToDatabase {
+		bytes, err = json.Marshal(botLog.Steps)
+		if err != nil {
+
+			return
+		}
+	} else {
+		var steps []*contracts.BuildLogStep
+		bytes, err = json.Marshal(steps)
+	}
+
+	botID, err := strconv.Atoi(botLog.BotID)
+	if err != nil {
+
+		return insertedBotLog, err
+	}
+
+	// insert logs
+	row := c.databaseConnection.QueryRow(
+		`
+		INSERT INTO
+			bot_logs
+		(
+			repo_source,
+			repo_owner,
+			repo_name,
+			bot_id,
+			steps
+		)
+		VALUES
+		(
+			$1,
+			$2,
+			$3,
+			$4,
+			$5
+		)
+		RETURNING
+			id		
+		`,
+		botLog.RepoSource,
+		botLog.RepoOwner,
+		botLog.RepoName,
+		botID,
+		bytes,
+	)
+
+	if err = row.Scan(&insertedBotLog.ID); err != nil {
+		// log extra detail for filing a ticket regarding 'pq: command is too large: xxx bytes (max: 67108864)' issue
+		nrLines := 0
+		for _, s := range insertedBotLog.Steps {
+			nrLines += len(s.LogLines)
+		}
+		log.Error().Msgf("INSERT INTO build_logs: failed for %v/%v/%v/%v (%v steps, %v lines, %v bytes)", botLog.RepoSource, botLog.RepoOwner, botLog.RepoName, botLog.BotID, len(botLog.Steps), nrLines, len(bytes))
 
 		return
 	}
@@ -2472,6 +2718,305 @@ func (c *client) GetPipelineReleaseMaxResourceUtilization(ctx context.Context, r
 	return
 }
 
+func (c *client) GetPipelineBots(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (bots []*contracts.Bot, err error) {
+
+	// generate query
+	query := c.selectBotsQuery().
+		Where(sq.Eq{"a.repo_source": repoSource}).
+		Where(sq.Eq{"a.repo_owner": repoOwner}).
+		Where(sq.Eq{"a.repo_name": repoName}).
+		Limit(uint64(pageSize)).
+		Offset(uint64((pageNumber - 1) * pageSize))
+
+		// dynamically set order by clause
+	query, err = orderByClauseGeneratorForSortings(query, "a", "a.inserted_at DESC", sortings)
+	if err != nil {
+
+		return
+	}
+
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForAllBotFilters(query, "a", "inserted_at", filters)
+	if err != nil {
+
+		return
+	}
+
+	// execute query
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+
+		return
+	}
+
+	// read rows
+	if bots, err = c.scanBots(rows); err != nil {
+
+		return
+	}
+
+	return
+}
+
+func (c *client) GetPipelineBotsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (totalCount int, err error) {
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("COUNT(*)").
+			From("bots a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName})
+
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForAllBotFilters(query, "a", "inserted_at", filters)
+	if err != nil {
+
+		return
+	}
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&totalCount); err != nil {
+
+		return
+	}
+
+	return
+}
+
+func (c *client) GetPipelineBot(ctx context.Context, repoSource, repoOwner, repoName string, id int) (bot *contracts.Bot, err error) {
+
+	// generate query
+	query := c.selectBotsQuery().
+		Where(sq.Eq{"a.id": id}).
+		Where(sq.Eq{"a.repo_source": repoSource}).
+		Where(sq.Eq{"a.repo_owner": repoOwner}).
+		Where(sq.Eq{"a.repo_name": repoName}).
+		OrderBy("a.inserted_at DESC").
+		Limit(uint64(1))
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if bot, err = c.scanBot(row); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	return bot, nil
+}
+
+func (c *client) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID int, readLogFromDatabase bool) (botLog *contracts.BotLog, err error) {
+
+	// generate query
+	query := c.selectBotLogsQuery(readLogFromDatabase).
+		Where(sq.Eq{"a.bot_id": botID}).
+		Where(sq.Eq{"a.repo_source": repoSource}).
+		Where(sq.Eq{"a.repo_owner": repoOwner}).
+		Where(sq.Eq{"a.repo_name": repoName}).
+		OrderBy("a.inserted_at DESC").
+		Limit(uint64(1))
+
+	botLog = &contracts.BotLog{}
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if readLogFromDatabase {
+		var stepsData []uint8
+		if err = row.Scan(&botLog.ID,
+			&botLog.RepoSource,
+			&botLog.RepoOwner,
+			&botLog.RepoName,
+			&botID,
+			&stepsData,
+			&botLog.InsertedAt); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+
+			return
+		}
+
+		if err = json.Unmarshal(stepsData, &botLog.Steps); err != nil {
+
+			return
+		}
+	} else {
+		if err = row.Scan(&botLog.ID,
+			&botLog.RepoSource,
+			&botLog.RepoOwner,
+			&botLog.RepoName,
+			&botID,
+			&botLog.InsertedAt); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+
+			return
+		}
+	}
+
+	botLog.BotID = strconv.Itoa(botID)
+
+	return
+}
+
+func (c *client) GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID int, id string, readLogFromDatabase bool) (botLog *contracts.BotLog, err error) {
+
+	// generate query
+	query := c.selectBotLogsQuery(readLogFromDatabase).
+		Where(sq.Eq{"a.id": id}).
+		Where(sq.Eq{"a.bot_id": botID}).
+		Where(sq.Eq{"a.repo_source": repoSource}).
+		Where(sq.Eq{"a.repo_owner": repoOwner}).
+		Where(sq.Eq{"a.repo_name": repoName}).
+		Limit(uint64(1))
+
+	botLog = &contracts.BotLog{}
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if readLogFromDatabase {
+		var stepsData []uint8
+		if err = row.Scan(&botLog.ID,
+			&botLog.RepoSource,
+			&botLog.RepoOwner,
+			&botLog.RepoName,
+			&botID,
+			&stepsData,
+			&botLog.InsertedAt); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+
+			return
+		}
+
+		if err = json.Unmarshal(stepsData, &botLog.Steps); err != nil {
+
+			return
+		}
+	} else {
+		if err = row.Scan(&botLog.ID,
+			&botLog.RepoSource,
+			&botLog.RepoOwner,
+			&botLog.RepoName,
+			&botID,
+			&botLog.InsertedAt); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+
+			return
+		}
+	}
+
+	botLog.BotID = strconv.Itoa(botID)
+
+	return
+}
+
+func (c *client) GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, botID int, pageNumber int, pageSize int) (botLogs []*contracts.BotLog, err error) {
+
+	botLogs = make([]*contracts.BotLog, 0)
+
+	// generate query
+	query := c.selectBotLogsQuery(false).
+		Where(sq.Eq{"a.bot_id": botID}).
+		Where(sq.Eq{"a.repo_source": repoSource}).
+		Where(sq.Eq{"a.repo_owner": repoOwner}).
+		Where(sq.Eq{"a.repo_name": repoName}).
+		OrderBy("a.inserted_at ASC").
+		Limit(uint64(pageSize)).
+		Offset(uint64((pageNumber - 1) * pageSize))
+
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+		return botLogs, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		botLog := &contracts.BotLog{}
+		var botID int
+
+		if err = rows.Scan(&botLog.ID,
+			&botLog.RepoSource,
+			&botLog.RepoOwner,
+			&botLog.RepoName,
+			&botID,
+			&botLog.InsertedAt); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+
+			return
+		}
+
+		botLog.BotID = strconv.Itoa(botID)
+
+		botLogs = append(botLogs, botLog)
+	}
+
+	return botLogs, nil
+}
+
+func (c *client) GetPipelineBotLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, botID int) (count int, err error) {
+
+	// generate query
+	query := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		Select("COUNT(*)").
+		From("bot_logs a").
+		Where(sq.Eq{"a.bot_id": botID}).
+		Where(sq.Eq{"a.repo_source": repoSource}).
+		Where(sq.Eq{"a.repo_owner": repoOwner}).
+		Where(sq.Eq{"a.repo_name": repoName})
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&count); err != nil {
+
+		return
+	}
+
+	return
+}
+
+func (c *client) GetPipelineBotMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, botName string, lastNRecords int) (jobResources JobResources, recordCount int, err error) {
+
+	// generate query
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	innerquery := psql.
+		Select("cpu_max_usage, memory_max_usage").
+		From("bots").
+		Where(sq.Eq{"repo_source": repoSource}).
+		Where(sq.Eq{"repo_owner": repoOwner}).
+		Where(sq.Eq{"repo_name": repoName}).
+		Where(sq.Eq{"bot": botName}).
+		Where(sq.NotEq{"cpu_max_usage": nil}).
+		Where(sq.NotEq{"memory_max_usage": nil}).
+		OrderBy("inserted_at DESC").
+		Limit(uint64(lastNRecords))
+
+	query := psql.Select("COALESCE(MAX(a.cpu_max_usage),0) AS max_cpu_max_usage, COALESCE(MAX(a.memory_max_usage),0) AS max_memory_max_usage, COUNT(a.*) AS nr_records").
+		FromSelect(innerquery, "a")
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&jobResources.CPUMaxUsage, &jobResources.MemoryMaxUsage, &recordCount); err != nil {
+
+		return
+	}
+
+	return
+}
+
 func (c *client) GetBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
 
 	// generate query
@@ -2507,6 +3052,31 @@ func (c *client) GetReleasesCount(ctx context.Context, filters map[api.FilterTyp
 
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
+	if err != nil {
+
+		return
+	}
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&totalCount); err != nil {
+
+		return
+	}
+
+	return
+}
+
+func (c *client) GetBotsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("COUNT(*)").
+			From("bots a")
+
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForAllBotFilters(query, "a", "inserted_at", filters)
 	if err != nil {
 
 		return
@@ -3124,6 +3694,68 @@ func (c *client) GetAllPipelineReleasesCount(ctx context.Context, filters map[ap
 
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
+	if err != nil {
+
+		return
+	}
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&totalCount); err != nil {
+
+		return
+	}
+
+	return
+}
+
+func (c *client) GetAllPipelineBots(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (bots []*contracts.Bot, err error) {
+
+	// generate query
+	query := c.selectBotsQuery().
+		Limit(uint64(pageSize)).
+		Offset(uint64((pageNumber - 1) * pageSize))
+
+		// dynamically set order by clause
+	query, err = orderByClauseGeneratorForSortings(query, "a", "a.inserted_at DESC", sortings)
+	if err != nil {
+
+		return
+	}
+
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForAllBotFilters(query, "a", "inserted_at", filters)
+	if err != nil {
+
+		return
+	}
+
+	// execute query
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+
+		return
+	}
+
+	// read rows
+	if bots, err = c.scanBots(rows); err != nil {
+
+		return
+	}
+
+	return
+}
+
+func (c *client) GetAllPipelineBotsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("COUNT(*)").
+			From("bots a")
+
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForAllBotFilters(query, "a", "inserted_at", filters)
 	if err != nil {
 
 		return
@@ -3846,6 +4478,72 @@ func (c *client) GetPipelinesWithMostReleasesCount(ctx context.Context, filters 
 	return
 }
 
+func (c *client) GetPipelinesWithMostBots(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (pipelines []map[string]interface{}, err error) {
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("a.repo_source, a.repo_owner, a.repo_name, count(a.id) as nr_records").
+			From("bots a").
+			GroupBy("a.repo_source, a.repo_owner, a.repo_name").
+			OrderBy("nr_records DESC, a.repo_source, a.repo_owner, a.repo_name").
+			Limit(uint64(pageSize)).
+			Offset(uint64((pageNumber - 1) * pageSize))
+
+	query, err = whereClauseGeneratorForSinceFilter(query, "a", "inserted_at", filters)
+	if err != nil {
+
+		return
+	}
+
+	query, err = whereClauseGeneratorForBotStatusFilter(query, "a", filters)
+	if err != nil {
+
+		return
+	}
+
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	return c.scanItems(ctx, rows)
+}
+
+func (c *client) GetPipelinesWithMostBotsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
+
+	// generate query
+	innerquery :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("a.repo_source, a.repo_owner, a.repo_name").
+			From("bots a").
+			GroupBy("a.repo_source, a.repo_owner, a.repo_name")
+
+	innerquery, err = whereClauseGeneratorForSinceFilter(innerquery, "a", "inserted_at", filters)
+	if err != nil {
+		return
+	}
+
+	innerquery, err = whereClauseGeneratorForBotStatusFilter(innerquery, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("count(*)").
+			FromSelect(innerquery, "a")
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&totalCount); err != nil {
+		return
+	}
+
+	return
+}
+
 func orderByClauseGeneratorForSortings(query sq.SelectBuilder, alias, defaultOrderBy string, sortings []api.OrderField) (sq.SelectBuilder, error) {
 
 	if len(sortings) == 0 {
@@ -3916,6 +4614,20 @@ func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, alias, sin
 		return query, err
 	}
 	query, err = whereClauseGeneratorForReleaseTargetFilterOnReleases(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForSinceFilter(query, alias, sinceColumn, filters)
+	if err != nil {
+		return query, err
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForAllBotFilters(query sq.SelectBuilder, alias, sinceColumn string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+
+	query, err := whereClauseGeneratorForBotStatusFilter(query, alias, filters)
 	if err != nil {
 		return query, err
 	}
@@ -4018,6 +4730,15 @@ func whereClauseGeneratorForReleaseTargetFilterOnPipelines(query sq.SelectBuilde
 
 			query = query.Where(fmt.Sprintf("%v.release_targets @> ?", alias), string(bytes))
 		}
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForBotStatusFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+
+	if statuses, ok := filters[api.FilterStatus]; ok && len(statuses) > 0 && statuses[0] != "all" {
+		query = query.Where(sq.Eq{fmt.Sprintf("%v.bot_status", alias): statuses})
 	}
 
 	return query, nil
@@ -4722,6 +5443,94 @@ func (c *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, er
 		}
 
 		releases = append(releases, &release)
+	}
+
+	return
+}
+
+func (c *client) scanBot(row sq.RowScanner) (bot *contracts.Bot, err error) {
+
+	bot = &contracts.Bot{}
+	var durationPendingSeconds, durationRunningSeconds int
+	var id int
+	var triggeredByEventsData, groupsData, organizationsData []uint8
+
+	if err = row.Scan(
+		&id,
+		&bot.RepoSource,
+		&bot.RepoOwner,
+		&bot.RepoName,
+		&bot.Name,
+		&bot.BotStatus,
+		&bot.InsertedAt,
+		&bot.StartedAt,
+		&bot.UpdatedAt,
+		&durationPendingSeconds,
+		&durationRunningSeconds,
+		&triggeredByEventsData,
+		&groupsData,
+		&organizationsData); err != nil {
+		return nil, err
+	}
+
+	pendingDuration := time.Duration(durationPendingSeconds) * time.Second
+	runningDuration := time.Duration(durationRunningSeconds) * time.Second
+
+	bot.PendingDuration = &pendingDuration
+	bot.Duration = &runningDuration
+	bot.ID = strconv.Itoa(id)
+
+	err = c.setBotPropertiesFromJSONB(bot, triggeredByEventsData, groupsData, organizationsData)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *client) scanBots(rows *sql.Rows) (bots []*contracts.Bot, err error) {
+
+	bots = make([]*contracts.Bot, 0)
+
+	defer rows.Close()
+	for rows.Next() {
+
+		bot := contracts.Bot{}
+		var durationPendingSeconds, durationRunningSeconds int
+		var id int
+		var triggeredByEventsData, groupsData, organizationsData []uint8
+
+		if err = rows.Scan(
+			&id,
+			&bot.RepoSource,
+			&bot.RepoOwner,
+			&bot.RepoName,
+			&bot.Name,
+			&bot.BotStatus,
+			&bot.InsertedAt,
+			&bot.StartedAt,
+			&bot.UpdatedAt,
+			&durationPendingSeconds,
+			&durationRunningSeconds,
+			&triggeredByEventsData,
+			&groupsData,
+			&organizationsData); err != nil {
+			return
+		}
+
+		pendingDuration := time.Duration(durationPendingSeconds) * time.Second
+		runningDuration := time.Duration(durationRunningSeconds) * time.Second
+
+		bot.PendingDuration = &pendingDuration
+		bot.Duration = &runningDuration
+		bot.ID = strconv.Itoa(id)
+
+		err = c.setBotPropertiesFromJSONB(&bot, triggeredByEventsData, groupsData, organizationsData)
+		if err != nil {
+			return
+		}
+
+		bots = append(bots, &bot)
 	}
 
 	return
@@ -6603,6 +7412,14 @@ func (c *client) selectReleasesQuery() sq.SelectBuilder {
 		From("releases a")
 }
 
+func (c *client) selectBotsQuery() sq.SelectBuilder {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	return psql.
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.bot, a.bot_status, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event, a.groups, a.organizations").
+		From("bots a")
+}
+
 func (c *client) selectComputedReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -6637,6 +7454,20 @@ func (c *client) selectReleaseLogsQuery(readLogFromDatabase bool) sq.SelectBuild
 	return psql.
 		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release_id, a.inserted_at").
 		From("release_logs a")
+}
+
+func (c *client) selectBotLogsQuery(readLogFromDatabase bool) sq.SelectBuilder {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	if readLogFromDatabase {
+		return psql.
+			Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.bot_id, a.steps, a.inserted_at").
+			From("bot_logs a")
+	}
+
+	return psql.
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.bot_id, a.inserted_at").
+		From("bot_logs a")
 }
 
 func (c *client) selectPipelineTriggersQuery() sq.SelectBuilder {
@@ -6806,6 +7637,27 @@ func (c *client) setReleasePropertiesFromJSONB(release *contracts.Release, trigg
 	}
 	if len(organizationsData) > 0 {
 		if err = json.Unmarshal(organizationsData, &release.Organizations); err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+func (c *client) setBotPropertiesFromJSONB(bot *contracts.Bot, triggeredByEventsData, groupsData, organizationsData []uint8) (err error) {
+
+	if len(triggeredByEventsData) > 0 {
+		if err = json.Unmarshal(triggeredByEventsData, &bot.Events); err != nil {
+			return
+		}
+	}
+	if len(groupsData) > 0 {
+		if err = json.Unmarshal(groupsData, &bot.Groups); err != nil {
+			return
+		}
+	}
+	if len(organizationsData) > 0 {
+		if err = json.Unmarshal(organizationsData, &bot.Organizations); err != nil {
 			return
 		}
 	}

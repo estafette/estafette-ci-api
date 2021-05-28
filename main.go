@@ -645,6 +645,9 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/releases", estafetteHandler.GetPipelineReleases)
 		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:releaseId", estafetteHandler.GetPipelineRelease)
 		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:releaseId/alllogs", estafetteHandler.GetPipelineReleaseLogsPerPage)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/bots", estafetteHandler.GetPipelineBots)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/bots/:botId", estafetteHandler.GetPipelineBot)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/bots/:botId/alllogs", estafetteHandler.GetPipelineBotLogsPerPage)
 		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/stats/buildsdurations", estafetteHandler.GetPipelineStatsBuildsDurations)
 		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/stats/releasesdurations", estafetteHandler.GetPipelineStatsReleasesDurations)
 		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/stats/buildscpu", estafetteHandler.GetPipelineStatsBuildsCPUUsageMeasurements)
@@ -654,6 +657,7 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/warnings", estafetteHandler.GetPipelineWarnings)
 		jwtMiddlewareRoutes.GET("/api/builds", estafetteHandler.GetAllPipelineBuilds)
 		jwtMiddlewareRoutes.GET("/api/releases", estafetteHandler.GetAllPipelineReleases)
+		jwtMiddlewareRoutes.GET("/api/bots", estafetteHandler.GetAllPipelineBots)
 		jwtMiddlewareRoutes.GET("/api/releasetargets", estafetteHandler.GetReleaseTargets)
 		jwtMiddlewareRoutes.GET("/api/releasetargets/pipelines", estafetteHandler.GetPipelineReleaseTargets)
 		jwtMiddlewareRoutes.GET("/api/releasetargets/releases", estafetteHandler.GetReleaseReleaseTargets)
@@ -667,6 +671,7 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 		jwtMiddlewareRoutes.GET("/api/stats/releasesadoption", estafetteHandler.GetStatsReleasesAdoption)
 		jwtMiddlewareRoutes.GET("/api/stats/mostbuilds", estafetteHandler.GetStatsMostBuilds)
 		jwtMiddlewareRoutes.GET("/api/stats/mostreleases", estafetteHandler.GetStatsMostReleases)
+		jwtMiddlewareRoutes.GET("/api/stats/mostbots", estafetteHandler.GetStatsMostBots)
 		jwtMiddlewareRoutes.GET("/api/manifest/templates", estafetteHandler.GetManifestTemplates)
 		jwtMiddlewareRoutes.POST("/api/manifest/generate", estafetteHandler.GenerateManifest)
 		jwtMiddlewareRoutes.POST("/api/manifest/validate", estafetteHandler.ValidateManifest)
@@ -677,6 +682,7 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 		jwtMiddlewareRoutes.POST("/api/commands", estafetteHandler.Commands)
 		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteHandler.PostPipelineBuildLogs)
 		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/releases/:releaseId/logs", estafetteHandler.PostPipelineReleaseLogs)
+		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/bots/:botId/logs", estafetteHandler.PostPipelineBotLogs)
 
 		// communication from cron-event-sender to api
 		jwtMiddlewareRoutes.POST("/api/integrations/cron/events", estafetteHandler.PostCronEvent)
@@ -690,6 +696,10 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:releaseId/logs/tail", estafetteHandler.TailPipelineReleaseLogs)
 		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:releaseId/logsbyid/:id", estafetteHandler.GetPipelineReleaseLogsByID)
 		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/releases/:releaseId/logs.stream", estafetteHandler.TailPipelineReleaseLogs)
+		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/bots/:botId/logs", estafetteHandler.GetPipelineBotLogs)
+		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/bots/:botId/logs/tail", estafetteHandler.TailPipelineBotLogs)
+		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/bots/:botId/logsbyid/:id", estafetteHandler.GetPipelineBotLogsByID)
+		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/bots/:botId/logs.stream", estafetteHandler.TailPipelineBotLogs)
 	}
 
 	// default routes

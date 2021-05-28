@@ -6,38 +6,68 @@ package estafette
 
 import (
 	context "context"
+	reflect "reflect"
+
 	api "github.com/estafette/estafette-ci-api/api"
 	builderapi "github.com/estafette/estafette-ci-api/clients/builderapi"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
-// MockService is a mock of Service interface
+// MockService is a mock of Service interface.
 type MockService struct {
 	ctrl     *gomock.Controller
 	recorder *MockServiceMockRecorder
 }
 
-// MockServiceMockRecorder is the mock recorder for MockService
+// MockServiceMockRecorder is the mock recorder for MockService.
 type MockServiceMockRecorder struct {
 	mock *MockService
 }
 
-// NewMockService creates a new mock instance
+// NewMockService creates a new mock instance.
 func NewMockService(ctrl *gomock.Controller) *MockService {
 	mock := &MockService{ctrl: ctrl}
 	mock.recorder = &MockServiceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockService) EXPECT() *MockServiceMockRecorder {
 	return m.recorder
 }
 
-// CreateBuild mocks base method
+// Archive mocks base method.
+func (m *MockService) Archive(ctx context.Context, repoSource, repoOwner, repoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Archive", ctx, repoSource, repoOwner, repoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Archive indicates an expected call of Archive.
+func (mr *MockServiceMockRecorder) Archive(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Archive", reflect.TypeOf((*MockService)(nil).Archive), ctx, repoSource, repoOwner, repoName)
+}
+
+// CreateBot mocks base method.
+func (m *MockService) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (*contracts.Bot, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateBot", ctx, bot, mft, repoBranch, repoRevision, waitForJobToStart)
+	ret0, _ := ret[0].(*contracts.Bot)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateBot indicates an expected call of CreateBot.
+func (mr *MockServiceMockRecorder) CreateBot(ctx, bot, mft, repoBranch, repoRevision, waitForJobToStart interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBot", reflect.TypeOf((*MockService)(nil).CreateBot), ctx, bot, mft, repoBranch, repoRevision, waitForJobToStart)
+}
+
+// CreateBuild mocks base method.
 func (m *MockService) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (*contracts.Build, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateBuild", ctx, build, waitForJobToStart)
@@ -46,27 +76,13 @@ func (m *MockService) CreateBuild(ctx context.Context, build contracts.Build, wa
 	return ret0, ret1
 }
 
-// CreateBuild indicates an expected call of CreateBuild
+// CreateBuild indicates an expected call of CreateBuild.
 func (mr *MockServiceMockRecorder) CreateBuild(ctx, build, waitForJobToStart interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBuild", reflect.TypeOf((*MockService)(nil).CreateBuild), ctx, build, waitForJobToStart)
 }
 
-// FinishBuild mocks base method
-func (m *MockService) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FinishBuild", ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// FinishBuild indicates an expected call of FinishBuild
-func (mr *MockServiceMockRecorder) FinishBuild(ctx, repoSource, repoOwner, repoName, buildID, buildStatus interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinishBuild", reflect.TypeOf((*MockService)(nil).FinishBuild), ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
-}
-
-// CreateRelease mocks base method
+// CreateRelease mocks base method.
 func (m *MockService) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (*contracts.Release, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateRelease", ctx, release, mft, repoBranch, repoRevision, waitForJobToStart)
@@ -75,13 +91,41 @@ func (m *MockService) CreateRelease(ctx context.Context, release contracts.Relea
 	return ret0, ret1
 }
 
-// CreateRelease indicates an expected call of CreateRelease
+// CreateRelease indicates an expected call of CreateRelease.
 func (mr *MockServiceMockRecorder) CreateRelease(ctx, release, mft, repoBranch, repoRevision, waitForJobToStart interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRelease", reflect.TypeOf((*MockService)(nil).CreateRelease), ctx, release, mft, repoBranch, repoRevision, waitForJobToStart)
 }
 
-// FinishRelease mocks base method
+// FinishBot mocks base method.
+func (m *MockService) FinishBot(ctx context.Context, repoSource, repoOwner, repoName string, botID int, botStatus contracts.Status) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FinishBot", ctx, repoSource, repoOwner, repoName, botID, botStatus)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// FinishBot indicates an expected call of FinishBot.
+func (mr *MockServiceMockRecorder) FinishBot(ctx, repoSource, repoOwner, repoName, botID, botStatus interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinishBot", reflect.TypeOf((*MockService)(nil).FinishBot), ctx, repoSource, repoOwner, repoName, botID, botStatus)
+}
+
+// FinishBuild mocks base method.
+func (m *MockService) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FinishBuild", ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// FinishBuild indicates an expected call of FinishBuild.
+func (mr *MockServiceMockRecorder) FinishBuild(ctx, repoSource, repoOwner, repoName, buildID, buildStatus interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinishBuild", reflect.TypeOf((*MockService)(nil).FinishBuild), ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
+}
+
+// FinishRelease mocks base method.
 func (m *MockService) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FinishRelease", ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)
@@ -89,69 +133,13 @@ func (m *MockService) FinishRelease(ctx context.Context, repoSource, repoOwner, 
 	return ret0
 }
 
-// FinishRelease indicates an expected call of FinishRelease
+// FinishRelease indicates an expected call of FinishRelease.
 func (mr *MockServiceMockRecorder) FinishRelease(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinishRelease", reflect.TypeOf((*MockService)(nil).FinishRelease), ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)
 }
 
-// FireGitTriggers mocks base method
-func (m *MockService) FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FireGitTriggers", ctx, gitEvent)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// FireGitTriggers indicates an expected call of FireGitTriggers
-func (mr *MockServiceMockRecorder) FireGitTriggers(ctx, gitEvent interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FireGitTriggers", reflect.TypeOf((*MockService)(nil).FireGitTriggers), ctx, gitEvent)
-}
-
-// FirePipelineTriggers mocks base method
-func (m *MockService) FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FirePipelineTriggers", ctx, build, event)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// FirePipelineTriggers indicates an expected call of FirePipelineTriggers
-func (mr *MockServiceMockRecorder) FirePipelineTriggers(ctx, build, event interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FirePipelineTriggers", reflect.TypeOf((*MockService)(nil).FirePipelineTriggers), ctx, build, event)
-}
-
-// FireReleaseTriggers mocks base method
-func (m *MockService) FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FireReleaseTriggers", ctx, release, event)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// FireReleaseTriggers indicates an expected call of FireReleaseTriggers
-func (mr *MockServiceMockRecorder) FireReleaseTriggers(ctx, release, event interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FireReleaseTriggers", reflect.TypeOf((*MockService)(nil).FireReleaseTriggers), ctx, release, event)
-}
-
-// FirePubSubTriggers mocks base method
-func (m *MockService) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FirePubSubTriggers", ctx, pubsubEvent)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// FirePubSubTriggers indicates an expected call of FirePubSubTriggers
-func (mr *MockServiceMockRecorder) FirePubSubTriggers(ctx, pubsubEvent interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FirePubSubTriggers", reflect.TypeOf((*MockService)(nil).FirePubSubTriggers), ctx, pubsubEvent)
-}
-
-// FireCronTriggers mocks base method
+// FireCronTriggers mocks base method.
 func (m *MockService) FireCronTriggers(ctx context.Context) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FireCronTriggers", ctx)
@@ -159,95 +147,69 @@ func (m *MockService) FireCronTriggers(ctx context.Context) error {
 	return ret0
 }
 
-// FireCronTriggers indicates an expected call of FireCronTriggers
+// FireCronTriggers indicates an expected call of FireCronTriggers.
 func (mr *MockServiceMockRecorder) FireCronTriggers(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FireCronTriggers", reflect.TypeOf((*MockService)(nil).FireCronTriggers), ctx)
 }
 
-// Rename mocks base method
-func (m *MockService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+// FireGitTriggers mocks base method.
+func (m *MockService) FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Rename", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	ret := m.ctrl.Call(m, "FireGitTriggers", ctx, gitEvent)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Rename indicates an expected call of Rename
-func (mr *MockServiceMockRecorder) Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
+// FireGitTriggers indicates an expected call of FireGitTriggers.
+func (mr *MockServiceMockRecorder) FireGitTriggers(ctx, gitEvent interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rename", reflect.TypeOf((*MockService)(nil).Rename), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FireGitTriggers", reflect.TypeOf((*MockService)(nil).FireGitTriggers), ctx, gitEvent)
 }
 
-// Archive mocks base method
-func (m *MockService) Archive(ctx context.Context, repoSource, repoOwner, repoName string) error {
+// FirePipelineTriggers mocks base method.
+func (m *MockService) FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Archive", ctx, repoSource, repoOwner, repoName)
+	ret := m.ctrl.Call(m, "FirePipelineTriggers", ctx, build, event)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Archive indicates an expected call of Archive
-func (mr *MockServiceMockRecorder) Archive(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
+// FirePipelineTriggers indicates an expected call of FirePipelineTriggers.
+func (mr *MockServiceMockRecorder) FirePipelineTriggers(ctx, build, event interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Archive", reflect.TypeOf((*MockService)(nil).Archive), ctx, repoSource, repoOwner, repoName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FirePipelineTriggers", reflect.TypeOf((*MockService)(nil).FirePipelineTriggers), ctx, build, event)
 }
 
-// Unarchive mocks base method
-func (m *MockService) Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) error {
+// FirePubSubTriggers mocks base method.
+func (m *MockService) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Unarchive", ctx, repoSource, repoOwner, repoName)
+	ret := m.ctrl.Call(m, "FirePubSubTriggers", ctx, pubsubEvent)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Unarchive indicates an expected call of Unarchive
-func (mr *MockServiceMockRecorder) Unarchive(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
+// FirePubSubTriggers indicates an expected call of FirePubSubTriggers.
+func (mr *MockServiceMockRecorder) FirePubSubTriggers(ctx, pubsubEvent interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unarchive", reflect.TypeOf((*MockService)(nil).Unarchive), ctx, repoSource, repoOwner, repoName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FirePubSubTriggers", reflect.TypeOf((*MockService)(nil).FirePubSubTriggers), ctx, pubsubEvent)
 }
 
-// UpdateBuildStatus mocks base method
-func (m *MockService) UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) error {
+// FireReleaseTriggers mocks base method.
+func (m *MockService) FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateBuildStatus", ctx, event)
+	ret := m.ctrl.Call(m, "FireReleaseTriggers", ctx, release, event)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateBuildStatus indicates an expected call of UpdateBuildStatus
-func (mr *MockServiceMockRecorder) UpdateBuildStatus(ctx, event interface{}) *gomock.Call {
+// FireReleaseTriggers indicates an expected call of FireReleaseTriggers.
+func (mr *MockServiceMockRecorder) FireReleaseTriggers(ctx, release, event interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBuildStatus", reflect.TypeOf((*MockService)(nil).UpdateBuildStatus), ctx, event)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FireReleaseTriggers", reflect.TypeOf((*MockService)(nil).FireReleaseTriggers), ctx, release, event)
 }
 
-// UpdateJobResources mocks base method
-func (m *MockService) UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateJobResources", ctx, event)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateJobResources indicates an expected call of UpdateJobResources
-func (mr *MockServiceMockRecorder) UpdateJobResources(ctx, event interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateJobResources", reflect.TypeOf((*MockService)(nil).UpdateJobResources), ctx, event)
-}
-
-// SubscribeToGitEventsTopic mocks base method
-func (m *MockService) SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *api.GitEventTopic) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SubscribeToGitEventsTopic", ctx, gitEventTopic)
-}
-
-// SubscribeToGitEventsTopic indicates an expected call of SubscribeToGitEventsTopic
-func (mr *MockServiceMockRecorder) SubscribeToGitEventsTopic(ctx, gitEventTopic interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeToGitEventsTopic", reflect.TypeOf((*MockService)(nil).SubscribeToGitEventsTopic), ctx, gitEventTopic)
-}
-
-// GetEventsForJobEnvvars mocks base method
+// GetEventsForJobEnvvars mocks base method.
 func (m *MockService) GetEventsForJobEnvvars(ctx context.Context, triggers []manifest.EstafetteTrigger, events []manifest.EstafetteEvent) ([]manifest.EstafetteEvent, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetEventsForJobEnvvars", ctx, triggers, events)
@@ -256,8 +218,76 @@ func (m *MockService) GetEventsForJobEnvvars(ctx context.Context, triggers []man
 	return ret0, ret1
 }
 
-// GetEventsForJobEnvvars indicates an expected call of GetEventsForJobEnvvars
+// GetEventsForJobEnvvars indicates an expected call of GetEventsForJobEnvvars.
 func (mr *MockServiceMockRecorder) GetEventsForJobEnvvars(ctx, triggers, events interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEventsForJobEnvvars", reflect.TypeOf((*MockService)(nil).GetEventsForJobEnvvars), ctx, triggers, events)
+}
+
+// Rename mocks base method.
+func (m *MockService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Rename", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Rename indicates an expected call of Rename.
+func (mr *MockServiceMockRecorder) Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rename", reflect.TypeOf((*MockService)(nil).Rename), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+// SubscribeToGitEventsTopic mocks base method.
+func (m *MockService) SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *api.GitEventTopic) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SubscribeToGitEventsTopic", ctx, gitEventTopic)
+}
+
+// SubscribeToGitEventsTopic indicates an expected call of SubscribeToGitEventsTopic.
+func (mr *MockServiceMockRecorder) SubscribeToGitEventsTopic(ctx, gitEventTopic interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeToGitEventsTopic", reflect.TypeOf((*MockService)(nil).SubscribeToGitEventsTopic), ctx, gitEventTopic)
+}
+
+// Unarchive mocks base method.
+func (m *MockService) Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Unarchive", ctx, repoSource, repoOwner, repoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Unarchive indicates an expected call of Unarchive.
+func (mr *MockServiceMockRecorder) Unarchive(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unarchive", reflect.TypeOf((*MockService)(nil).Unarchive), ctx, repoSource, repoOwner, repoName)
+}
+
+// UpdateBuildStatus mocks base method.
+func (m *MockService) UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateBuildStatus", ctx, event)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateBuildStatus indicates an expected call of UpdateBuildStatus.
+func (mr *MockServiceMockRecorder) UpdateBuildStatus(ctx, event interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBuildStatus", reflect.TypeOf((*MockService)(nil).UpdateBuildStatus), ctx, event)
+}
+
+// UpdateJobResources mocks base method.
+func (m *MockService) UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateJobResources", ctx, event)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateJobResources indicates an expected call of UpdateJobResources.
+func (mr *MockServiceMockRecorder) UpdateJobResources(ctx, event interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateJobResources", reflect.TypeOf((*MockService)(nil).UpdateJobResources), ctx, event)
 }

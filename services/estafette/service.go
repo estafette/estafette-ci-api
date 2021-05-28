@@ -28,6 +28,7 @@ import (
 var (
 	ErrNoBuildCreated   = errors.New("No build is created")
 	ErrNoReleaseCreated = errors.New("No release is created")
+	ErrNoBotCreated     = errors.New("No bot is created")
 )
 
 // Service encapsulates build and release creation and re-triggering
@@ -37,6 +38,8 @@ type Service interface {
 	FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error)
 	CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (r *contracts.Release, err error)
 	FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) (err error)
+	CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (b *contracts.Bot, err error)
+	FinishBot(ctx context.Context, repoSource, repoOwner, repoName string, botID int, botStatus contracts.Status) (err error)
 	FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error)
 	FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) (err error)
 	FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) (err error)
@@ -600,6 +603,188 @@ func (s *service) FinishRelease(ctx context.Context, repoSource, repoOwner, repo
 			}
 		}
 	}()
+
+	return nil
+}
+
+func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (createdBot *contracts.Bot, err error) {
+
+	// create deep copy to ensure no properties are shared through a pointer
+	mft = mft.DeepCopy()
+
+	// check if there's secrets restricted to other pipelines
+	manifestBytes, err := yaml.Marshal(mft)
+	invalidSecrets, invalidSecretsErr := s.secretHelper.GetInvalidRestrictedSecrets(string(manifestBytes), bot.GetFullRepoPath())
+
+	// set builder track
+	builderTrack := mft.Builder.Track
+	builderOperatingSystem := mft.Builder.OperatingSystem
+
+	// get builder track override for release if exists
+	for _, r := range mft.Bots {
+		if r.Name == bot.Name {
+			if r.Builder != nil {
+				builderTrack = r.Builder.Track
+				builderOperatingSystem = r.Builder.OperatingSystem
+				break
+			}
+		}
+	}
+
+	// get short version of repo source
+	shortRepoSource := s.getShortRepoSource(bot.RepoSource)
+
+	// set bot status
+	botStatus := contracts.StatusFailed
+	if invalidSecretsErr == nil {
+		botStatus = contracts.StatusPending
+	}
+
+	// inject release stages
+	mft, err = api.InjectStages(s.config, mft, builderTrack, shortRepoSource, repoBranch, s.supportsBuildStatus(bot.RepoSource))
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed injecting build stages for bot to %v of pipeline %v/%v/%v", bot.Name, bot.RepoSource, bot.RepoOwner, bot.RepoName)
+		return
+	}
+
+	// inject any configured commands
+	mft = api.InjectCommands(s.config, mft)
+
+	// get authenticated url
+	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName)
+	if err != nil {
+		return
+	}
+
+	jobResources := s.getBotJobResources(ctx, bot)
+
+	// create release in database
+	createdBot, err = s.cockroachdbClient.InsertBot(ctx, contracts.Bot{
+		Name:          bot.Name,
+		RepoSource:    bot.RepoSource,
+		RepoOwner:     bot.RepoOwner,
+		RepoName:      bot.RepoName,
+		BotStatus:     botStatus,
+		Events:        bot.Events,
+		Groups:        bot.Groups,
+		Organizations: bot.Organizations,
+	}, jobResources)
+	if err != nil {
+		return
+	}
+	if createdBot == nil {
+		return nil, ErrNoBotCreated
+	}
+
+	insertedReleaseID, err := strconv.Atoi(createdBot.ID)
+	if err != nil {
+		return
+	}
+
+	// get triggered by from events
+	triggeredBy := ""
+	if len(bot.Events) > 0 {
+		for _, e := range bot.Events {
+			if e.Manual != nil {
+				triggeredBy = e.Manual.UserID
+			}
+		}
+	}
+
+	triggeredByEvents := bot.Events
+
+	// define ci builder params
+	ciBuilderParams := builderapi.CiBuilderParams{
+		JobType:              builderapi.JobTypeBot,
+		RepoSource:           bot.RepoSource,
+		RepoOwner:            bot.RepoOwner,
+		RepoName:             bot.RepoName,
+		RepoURL:              authenticatedRepositoryURL,
+		RepoBranch:           repoBranch,
+		RepoRevision:         repoRevision,
+		EnvironmentVariables: environmentVariableWithToken,
+		Track:                builderTrack,
+		OperatingSystem:      builderOperatingSystem,
+		Manifest:             mft,
+		BotName:              bot.Name,
+		BotID:                insertedReleaseID,
+		BotTriggeredBy:       triggeredBy,
+		BuildID:              0,
+		TriggeredByEvents:    triggeredByEvents,
+		JobResources:         jobResources,
+	}
+
+	if invalidSecretsErr == nil {
+		// create ci release job
+		if waitForJobToStart {
+			_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
+			if err != nil {
+				return
+			}
+		} else {
+			go func(ciBuilderParams builderapi.CiBuilderParams) {
+				_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
+				if err != nil {
+					log.Warn().Err(err).Msgf("Failed creating async release job")
+				}
+			}(ciBuilderParams)
+		}
+	} else {
+		// store log with manifest unmarshalling error
+		botLog := contracts.BotLog{
+			BotID:      createdBot.ID,
+			RepoSource: createdBot.RepoSource,
+			RepoOwner:  createdBot.RepoOwner,
+			RepoName:   createdBot.RepoName,
+			Steps: []*contracts.BuildLogStep{
+				&contracts.BuildLogStep{
+					Step:         "validate-secrets",
+					ExitCode:     1,
+					Status:       contracts.LogStatusFailed,
+					AutoInjected: true,
+					RunIndex:     0,
+					LogLines: []contracts.BuildLogLine{
+						contracts.BuildLogLine{
+							LineNumber: 1,
+							Timestamp:  time.Now().UTC(),
+							StreamType: "stderr",
+							Text:       "The manifest has secrets, restricted to other pipelines; please recreate the following secrets through the pipeline's secrets tab:",
+						},
+					},
+				},
+			},
+		}
+
+		for i, is := range invalidSecrets {
+			botLog.Steps[0].LogLines = append(botLog.Steps[0].LogLines, contracts.BuildLogLine{
+				LineNumber: i + 1,
+				Timestamp:  time.Now().UTC(),
+				StreamType: "stdout",
+				Text:       is,
+			})
+		}
+
+		insertedBotLog, err := s.cockroachdbClient.InsertBotLog(ctx, botLog, s.config.APIServer.WriteLogToDatabase())
+		if err != nil {
+			log.Warn().Err(err).Msgf("Failed inserting bot log for manifest with restricted secrets")
+		}
+
+		if s.config.APIServer.WriteLogToCloudStorage() {
+			err = s.cloudStorageClient.InsertBotLog(ctx, insertedBotLog)
+			if err != nil {
+				log.Warn().Err(err).Msgf("Failed inserting bot log into cloud storage for manifest with restricted secrets")
+			}
+		}
+	}
+
+	return
+}
+
+func (s *service) FinishBot(ctx context.Context, repoSource, repoOwner, repoName string, botID int, botStatus contracts.Status) error {
+	err := s.cockroachdbClient.UpdateBotStatus(ctx, repoSource, repoOwner, repoName, botID, botStatus)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1521,6 +1706,50 @@ func (s *service) getReleaseJobResources(ctx context.Context, release contracts.
 		log.Info().Msgf("Retrieved max resource utilization for recent releases of %v/%v/%v target %v only has %v records, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, nrRecords)
 	} else {
 		log.Info().Msgf("Retrieved max resource utilization for recent releases of %v/%v/%v target %v, checking if they are within lower and upper bound...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
+
+		// only override cpu and memory request values if measured values are within min and max
+		if measuredResources.CPUMaxUsage > 0 {
+			if measuredResources.CPUMaxUsage*s.config.Jobs.CPURequestRatio <= s.config.Jobs.MinCPUCores {
+				jobResources.CPURequest = s.config.Jobs.MinCPUCores
+			} else if measuredResources.CPUMaxUsage*s.config.Jobs.CPURequestRatio >= s.config.Jobs.MaxCPUCores {
+				jobResources.CPURequest = s.config.Jobs.MaxCPUCores
+			} else {
+				jobResources.CPURequest = measuredResources.CPUMaxUsage * s.config.Jobs.CPURequestRatio
+			}
+		}
+
+		if measuredResources.MemoryMaxUsage > 0 {
+			if measuredResources.MemoryMaxUsage*s.config.Jobs.MemoryRequestRatio <= s.config.Jobs.MinMemoryBytes {
+				jobResources.MemoryRequest = s.config.Jobs.MinMemoryBytes
+			} else if measuredResources.MemoryMaxUsage*s.config.Jobs.MemoryRequestRatio >= s.config.Jobs.MaxMemoryBytes {
+				jobResources.MemoryRequest = s.config.Jobs.MaxMemoryBytes
+			} else {
+				jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.config.Jobs.MemoryRequestRatio
+			}
+		}
+	}
+
+	return jobResources
+}
+
+func (s *service) getBotJobResources(ctx context.Context, bot contracts.Bot) cockroachdb.JobResources {
+
+	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
+	jobResources := cockroachdb.JobResources{
+		CPURequest:    s.config.Jobs.MaxCPUCores,
+		CPULimit:      s.config.Jobs.MaxCPUCores,
+		MemoryRequest: s.config.Jobs.MaxMemoryBytes,
+		MemoryLimit:   s.config.Jobs.MaxMemoryBytes,
+	}
+
+	// get max usage from previous releases
+	measuredResources, nrRecords, err := s.cockroachdbClient.GetPipelineReleaseMaxResourceUtilization(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, bot.Name, 25)
+	if err != nil {
+		log.Warn().Err(err).Msgf("Failed retrieving max resource utilization for recent bots of %v/%v/%v target %v, using defaults...", bot.RepoSource, bot.RepoOwner, bot.RepoName, bot.Name)
+	} else if nrRecords < 5 {
+		log.Info().Msgf("Retrieved max resource utilization for recent bots of %v/%v/%v target %v only has %v records, using defaults...", bot.RepoSource, bot.RepoOwner, bot.RepoName, bot.Name, nrRecords)
+	} else {
+		log.Info().Msgf("Retrieved max resource utilization for recent bots of %v/%v/%v target %v, checking if they are within lower and upper bound...", bot.RepoSource, bot.RepoOwner, bot.RepoName, bot.Name)
 
 		// only override cpu and memory request values if measured values are within min and max
 		if measuredResources.CPUMaxUsage > 0 {
