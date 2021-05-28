@@ -65,7 +65,8 @@ stages:
       commands:
       - /cockroach/cockroach start-single-node --insecure --advertise-addr estafette-ci-db-public
 
-    image: estafette/estafette-ci-db-migrator:${ESTAFETTE_TRIGGER_MIGRATOR_BUILD_VERSION}
+    # image: estafette/estafette-ci-db-migrator:${ESTAFETTE_TRIGGER_MIGRATOR_BUILD_VERSION}
+    image: estafette/estafette-ci-db-migrator:1.0.0-bots-support-186
     env:
       COCKROACH_INSECURE: true
       ESTAFETTE_LOG_FORMAT: console
