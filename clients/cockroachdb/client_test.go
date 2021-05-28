@@ -3000,6 +3000,29 @@ func TestIntegrationGetPipelineBuilds(t *testing.T) {
 	})
 }
 
+func TestIntegrationGetPipelineBuildsCount(t *testing.T) {
+	t.Run("ReturnsBuilds", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+
+		// act
+		buildCount, err := cockroachdbClient.GetPipelineBuildsCount(ctx, build.RepoSource, build.RepoOwner, build.RepoName, map[api.FilterType][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, buildCount > 0)
+	})
+}
+
 func TestIntegrationGetPipelineReleases(t *testing.T) {
 	t.Run("ReturnsReleases", func(t *testing.T) {
 		if testing.Short() {
@@ -3021,6 +3044,27 @@ func TestIntegrationGetPipelineReleases(t *testing.T) {
 	})
 }
 
+func TestIntegrationGetPipelineReleasesCount(t *testing.T) {
+	t.Run("ReturnsReleases", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		release := getRelease()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		assert.Nil(t, err)
+
+		// act
+		releasesCount, err := cockroachdbClient.GetPipelineReleasesCount(ctx, release.RepoSource, release.RepoOwner, release.RepoName, map[api.FilterType][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, releasesCount > 0)
+	})
+}
+
 func TestIntegrationGetPipelineBots(t *testing.T) {
 	t.Run("ReturnsBots", func(t *testing.T) {
 		if testing.Short() {
@@ -3039,6 +3083,27 @@ func TestIntegrationGetPipelineBots(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.True(t, len(bots) > 0)
+	})
+}
+
+func TestIntegrationGetPipelineBotsCount(t *testing.T) {
+	t.Run("ReturnsBots", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		bot := getBot()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+		assert.Nil(t, err)
+
+		// act
+		botsCount, err := cockroachdbClient.GetPipelineBotsCount(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, map[api.FilterType][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, botsCount > 0)
 	})
 }
 
