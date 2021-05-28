@@ -112,6 +112,7 @@ type Client interface {
 	GetFirstReleaseTimes(ctx context.Context) (times []time.Time, err error)
 	GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error)
 	GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error)
+	GetPipelineBotsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error)
 	GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
 	GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
 	GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
@@ -3327,6 +3328,75 @@ func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, r
 			"insertedAt":      insertedAt,
 			"name":            releaseName,
 			"action":          releaseAction,
+			"pendingDuration": pendingDuration,
+			"duration":        runningDuration,
+		})
+	}
+
+	return
+}
+
+func (c *client) GetPipelineBotsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error) {
+
+	// generate query
+	innerquery :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("a.inserted_at, a.bot, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT as pending_duration, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT as duration").
+			From("bots a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName}).
+			OrderBy("a.inserted_at DESC")
+
+	innerquery, err = whereClauseGeneratorForBotStatusFilter(innerquery, "a", filters)
+	if err != nil {
+
+		return
+	}
+
+	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
+	if err != nil {
+
+		return
+	}
+
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("*").
+			FromSelect(innerquery, "a").
+			OrderBy("a.duration")
+
+	durations = make([]map[string]interface{}, 0)
+
+	rows, err := query.RunWith(c.databaseConnection).Query()
+
+	if err != nil {
+
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		var insertedAt time.Time
+		var botName string
+		var durationPendingSeconds, durationRunningSeconds int
+
+		if err = rows.Scan(
+			&insertedAt,
+			&botName,
+			&durationPendingSeconds,
+			&durationRunningSeconds); err != nil {
+
+			return
+		}
+
+		pendingDuration := time.Duration(durationPendingSeconds) * time.Second
+		runningDuration := time.Duration(durationRunningSeconds) * time.Second
+
+		durations = append(durations, map[string]interface{}{
+			"insertedAt":      insertedAt,
+			"name":            botName,
 			"pendingDuration": pendingDuration,
 			"duration":        runningDuration,
 		})

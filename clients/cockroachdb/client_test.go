@@ -2956,6 +2956,92 @@ func TestIntegrationGetPipelineReleasesDurations(t *testing.T) {
 	})
 }
 
+func TestIntegrationGetPipelineBotsDurations(t *testing.T) {
+	t.Run("ReturnsDurations", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		bot := getBot()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+		assert.Nil(t, err)
+
+		// act
+		durations, err := cockroachdbClient.GetPipelineBotsDurations(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, map[api.FilterType][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, len(durations) > 0)
+	})
+}
+
+func TestIntegrationGetPipelineBuilds(t *testing.T) {
+	t.Run("ReturnsBuilds", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+
+		// act
+		builds, err := cockroachdbClient.GetPipelineBuilds(ctx, build.RepoSource, build.RepoOwner, build.RepoName, 1, 10, map[api.FilterType][]string{}, []api.OrderField{}, false)
+
+		assert.Nil(t, err)
+		assert.True(t, len(builds) > 0)
+	})
+}
+
+func TestIntegrationGetPipelineReleases(t *testing.T) {
+	t.Run("ReturnsReleases", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		release := getRelease()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		assert.Nil(t, err)
+
+		// act
+		releases, err := cockroachdbClient.GetPipelineReleases(ctx, release.RepoSource, release.RepoOwner, release.RepoName, 1, 10, map[api.FilterType][]string{}, []api.OrderField{})
+
+		assert.Nil(t, err)
+		assert.True(t, len(releases) > 0)
+	})
+}
+
+func TestIntegrationGetPipelineBots(t *testing.T) {
+	t.Run("ReturnsBots", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		bot := getBot()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+		assert.Nil(t, err)
+
+		// act
+		bots, err := cockroachdbClient.GetPipelineBots(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, 1, 10, map[api.FilterType][]string{}, []api.OrderField{})
+
+		assert.Nil(t, err)
+		assert.True(t, len(bots) > 0)
+	})
+}
+
 func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 
 	apiConfig := &api.APIConfig{

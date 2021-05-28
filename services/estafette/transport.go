@@ -1932,6 +1932,30 @@ func (h *Handler) GetPipelineStatsReleasesDurations(c *gin.Context) {
 	})
 }
 
+func (h *Handler) GetPipelineStatsBotsDurations(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	// get filters (?filter[last]=100)
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
+	filters[api.FilterLast] = api.GetLastFilter(c, 100)
+
+	durations, err := h.cockroachDBClient.GetPipelineBotsDurations(c.Request.Context(), source, owner, repo, filters)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving bots durations from db for %v/%v/%v", source, owner, repo)
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"durations": durations,
+	})
+}
+
 func (h *Handler) GetPipelineStatsBuildsCPUUsageMeasurements(c *gin.Context) {
 
 	source := c.Param("source")
