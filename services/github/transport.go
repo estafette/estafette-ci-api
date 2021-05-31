@@ -175,6 +175,7 @@ func (h *Handler) Handle(c *gin.Context) {
 	h.service.PublishGithubEvent(c.Request.Context(), manifest.EstafetteGithubEvent{
 		Event:      eventType,
 		Repository: anyEvent.GetRepoFullName(),
+		EventBody:  string(body),
 	})
 
 	c.Status(http.StatusOK)
