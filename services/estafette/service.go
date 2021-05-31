@@ -678,7 +678,7 @@ func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest
 		return nil, ErrNoBotCreated
 	}
 
-	insertedReleaseID, err := strconv.Atoi(createdBot.ID)
+	insertedBotID, err := strconv.Atoi(createdBot.ID)
 	if err != nil {
 		return
 	}
@@ -708,7 +708,7 @@ func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest
 		OperatingSystem:      builderOperatingSystem,
 		Manifest:             mft,
 		BotName:              bot.Name,
-		BotID:                insertedReleaseID,
+		BotID:                insertedBotID,
 		BotTriggeredBy:       triggeredBy,
 		BuildID:              0,
 		TriggeredByEvents:    triggeredByEvents,

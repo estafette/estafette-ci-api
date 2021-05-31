@@ -654,8 +654,8 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 
 	// retrieve stages to filter trusted images and credentials
 	stages := ciBuilderParams.Manifest.Stages
-	if ciBuilderParams.JobType == JobTypeRelease {
-
+	switch ciBuilderParams.JobType {
+	case JobTypeRelease:
 		releaseExists := false
 		for _, r := range ciBuilderParams.Manifest.Releases {
 			if r.Name == ciBuilderParams.ReleaseName {
@@ -664,6 +664,18 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 			}
 		}
 		if !releaseExists {
+			stages = []*manifest.EstafetteStage{}
+		}
+
+	case JobTypeBot:
+		botExists := false
+		for _, b := range ciBuilderParams.Manifest.Bots {
+			if b.Name == ciBuilderParams.BotName {
+				botExists = true
+				stages = b.Stages
+			}
+		}
+		if !botExists {
 			stages = []*manifest.EstafetteStage{}
 		}
 	}
@@ -799,18 +811,27 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 	if ciBuilderParams.ReleaseID > 0 {
 		localBuilderConfig.CIServer.PostLogsURL = strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/releases/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.ReleaseID)
 	}
+	if ciBuilderParams.BotID > 0 {
+		localBuilderConfig.CIServer.PostLogsURL = strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/bots/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.BotID)
+	}
 
-	if *localBuilderConfig.Action == "build" {
+	if ciBuilderParams.JobType == JobTypeBuild {
 		localBuilderConfig.BuildParams = &contracts.BuildParamsConfig{
 			BuildID: ciBuilderParams.BuildID,
 		}
 	}
-	if *localBuilderConfig.Action == "release" {
+	if ciBuilderParams.JobType == JobTypeRelease {
 		localBuilderConfig.ReleaseParams = &contracts.ReleaseParamsConfig{
 			ReleaseName:   ciBuilderParams.ReleaseName,
 			ReleaseID:     ciBuilderParams.ReleaseID,
 			ReleaseAction: ciBuilderParams.ReleaseAction,
 			TriggeredBy:   ciBuilderParams.ReleaseTriggeredBy,
+		}
+	}
+	if ciBuilderParams.JobType == JobTypeBot {
+		localBuilderConfig.BotParams = &contracts.BotParamsConfig{
+			BotName: ciBuilderParams.BotName,
+			BotID:   ciBuilderParams.BotID,
 		}
 	}
 
