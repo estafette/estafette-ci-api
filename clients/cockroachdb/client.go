@@ -148,6 +148,8 @@ type Client interface {
 	GetReleaseTriggers(ctx context.Context, release contracts.Release, event string) (pipelines []*contracts.Pipeline, err error)
 	GetPubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) (pipelines []*contracts.Pipeline, err error)
 	GetCronTriggers(ctx context.Context) (pipelines []*contracts.Pipeline, err error)
+	GetGithubTriggers(ctx context.Context, githubEvent manifest.EstafetteGithubEvent) (pipelines []*contracts.Pipeline, err error)
+	GetBitbucketTriggers(ctx context.Context, bitbucketEvent manifest.EstafetteBitbucketEvent) (pipelines []*contracts.Pipeline, err error)
 
 	Rename(ctx context.Context, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	RenameBuildVersion(ctx context.Context, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName string) (err error)
@@ -5712,6 +5714,24 @@ func (c *client) GetTriggers(ctx context.Context, triggerType, identifier, event
 
 		break
 
+	case "github":
+
+		trigger.Github = &manifest.EstafetteGithubTrigger{
+			Events:     []string{event},
+			Repository: identifier,
+		}
+
+		break
+
+	case "bitbucket":
+
+		trigger.Bitbucket = &manifest.EstafetteBitbucketTrigger{
+			Events:     []string{event},
+			Repository: identifier,
+		}
+
+		break
+
 	default:
 
 		return pipelines, fmt.Errorf("Trigger type %v is not supported", triggerType)
@@ -5778,6 +5798,24 @@ func (c *client) GetCronTriggers(ctx context.Context) ([]*contracts.Pipeline, er
 	triggerType := "cron"
 
 	return c.GetTriggers(ctx, triggerType, "", "")
+}
+
+func (c *client) GetGithubTriggers(ctx context.Context, githubEvent manifest.EstafetteGithubEvent) (pipelines []*contracts.Pipeline, err error) {
+
+	triggerType := "github"
+	name := githubEvent.Repository
+	event := githubEvent.Event
+
+	return c.GetTriggers(ctx, triggerType, name, event)
+}
+
+func (c *client) GetBitbucketTriggers(ctx context.Context, bitbucketEvent manifest.EstafetteBitbucketEvent) (pipelines []*contracts.Pipeline, err error) {
+
+	triggerType := "bitbucket"
+	name := bitbucketEvent.Repository
+	event := bitbucketEvent.Event
+
+	return c.GetTriggers(ctx, triggerType, name, event)
 }
 
 func (c *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName string) error {

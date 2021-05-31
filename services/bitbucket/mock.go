@@ -6,92 +6,116 @@ package bitbucket
 
 import (
 	context "context"
-	bitbucketapi "github.com/estafette/estafette-ci-api/clients/bitbucketapi"
-	estafette_ci_contracts "github.com/estafette/estafette-ci-contracts"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	bitbucketapi "github.com/estafette/estafette-ci-api/clients/bitbucketapi"
+	contracts "github.com/estafette/estafette-ci-contracts"
+	manifest "github.com/estafette/estafette-ci-manifest"
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockService is a mock of Service interface
+// MockService is a mock of Service interface.
 type MockService struct {
 	ctrl     *gomock.Controller
 	recorder *MockServiceMockRecorder
 }
 
-// MockServiceMockRecorder is the mock recorder for MockService
+// MockServiceMockRecorder is the mock recorder for MockService.
 type MockServiceMockRecorder struct {
 	mock *MockService
 }
 
-// NewMockService creates a new mock instance
+// NewMockService creates a new mock instance.
 func NewMockService(ctrl *gomock.Controller) *MockService {
 	mock := &MockService{ctrl: ctrl}
 	mock.recorder = &MockServiceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockService) EXPECT() *MockServiceMockRecorder {
 	return m.recorder
 }
 
-// CreateJobForBitbucketPush mocks base method
-func (m *MockService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) error {
-	ret := m.ctrl.Call(m, "CreateJobForBitbucketPush", ctx, event)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateJobForBitbucketPush indicates an expected call of CreateJobForBitbucketPush
-func (mr *MockServiceMockRecorder) CreateJobForBitbucketPush(ctx, event interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateJobForBitbucketPush", reflect.TypeOf((*MockService)(nil).CreateJobForBitbucketPush), ctx, event)
-}
-
-// Rename mocks base method
-func (m *MockService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
-	ret := m.ctrl.Call(m, "Rename", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Rename indicates an expected call of Rename
-func (mr *MockServiceMockRecorder) Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rename", reflect.TypeOf((*MockService)(nil).Rename), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-}
-
-// Archive mocks base method
+// Archive mocks base method.
 func (m *MockService) Archive(ctx context.Context, repoSource, repoOwner, repoName string) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Archive", ctx, repoSource, repoOwner, repoName)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Archive indicates an expected call of Archive
+// Archive indicates an expected call of Archive.
 func (mr *MockServiceMockRecorder) Archive(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Archive", reflect.TypeOf((*MockService)(nil).Archive), ctx, repoSource, repoOwner, repoName)
 }
 
-// Unarchive mocks base method
+// CreateJobForBitbucketPush mocks base method.
+func (m *MockService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateJobForBitbucketPush", ctx, event)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateJobForBitbucketPush indicates an expected call of CreateJobForBitbucketPush.
+func (mr *MockServiceMockRecorder) CreateJobForBitbucketPush(ctx, event interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateJobForBitbucketPush", reflect.TypeOf((*MockService)(nil).CreateJobForBitbucketPush), ctx, event)
+}
+
+// IsAllowedOwner mocks base method.
+func (m *MockService) IsAllowedOwner(repository *bitbucketapi.Repository) (bool, []*contracts.Organization) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsAllowedOwner", repository)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].([]*contracts.Organization)
+	return ret0, ret1
+}
+
+// IsAllowedOwner indicates an expected call of IsAllowedOwner.
+func (mr *MockServiceMockRecorder) IsAllowedOwner(repository interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsAllowedOwner", reflect.TypeOf((*MockService)(nil).IsAllowedOwner), repository)
+}
+
+// PublishBitbucketEvent mocks base method.
+func (m *MockService) PublishBitbucketEvent(ctx context.Context, event manifest.EstafetteBitbucketEvent) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "PublishBitbucketEvent", ctx, event)
+}
+
+// PublishBitbucketEvent indicates an expected call of PublishBitbucketEvent.
+func (mr *MockServiceMockRecorder) PublishBitbucketEvent(ctx, event interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishBitbucketEvent", reflect.TypeOf((*MockService)(nil).PublishBitbucketEvent), ctx, event)
+}
+
+// Rename mocks base method.
+func (m *MockService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Rename", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Rename indicates an expected call of Rename.
+func (mr *MockServiceMockRecorder) Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rename", reflect.TypeOf((*MockService)(nil).Rename), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+// Unarchive mocks base method.
 func (m *MockService) Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Unarchive", ctx, repoSource, repoOwner, repoName)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Unarchive indicates an expected call of Unarchive
+// Unarchive indicates an expected call of Unarchive.
 func (mr *MockServiceMockRecorder) Unarchive(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unarchive", reflect.TypeOf((*MockService)(nil).Unarchive), ctx, repoSource, repoOwner, repoName)
-}
-
-// IsAllowedOwner mocks base method
-func (m *MockService) IsAllowedOwner(repository bitbucketapi.Repository) (bool, []*estafette_ci_contracts.Organization) {
-	ret := m.ctrl.Call(m, "IsAllowedOwner", repository)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].([]*estafette_ci_contracts.Organization)
-	return ret0, ret1
-}
-
-// IsAllowedOwner indicates an expected call of IsAllowedOwner
-func (mr *MockServiceMockRecorder) IsAllowedOwner(repository interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsAllowedOwner", reflect.TypeOf((*MockService)(nil).IsAllowedOwner), repository)
 }

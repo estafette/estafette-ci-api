@@ -19,7 +19,16 @@ type AccessToken struct {
 
 // AnyEvent represents any Bitbucket event to check for allowed owners
 type AnyEvent struct {
-	Repository Repository `json:"repository"`
+	Repository *Repository `json:"repository"`
+}
+
+// GetRepoFullName returns the repository owner and name
+func (ae *AnyEvent) GetRepoFullName() string {
+	if ae.Repository == nil {
+		return ""
+	}
+
+	return ae.Repository.FullName
 }
 
 // RepositoryPushEvent represents a Bitbucket push event

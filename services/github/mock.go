@@ -6,105 +6,131 @@ package github
 
 import (
 	context "context"
-	githubapi "github.com/estafette/estafette-ci-api/clients/githubapi"
-	estafette_ci_contracts "github.com/estafette/estafette-ci-contracts"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	githubapi "github.com/estafette/estafette-ci-api/clients/githubapi"
+	contracts "github.com/estafette/estafette-ci-contracts"
+	manifest "github.com/estafette/estafette-ci-manifest"
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockService is a mock of Service interface
+// MockService is a mock of Service interface.
 type MockService struct {
 	ctrl     *gomock.Controller
 	recorder *MockServiceMockRecorder
 }
 
-// MockServiceMockRecorder is the mock recorder for MockService
+// MockServiceMockRecorder is the mock recorder for MockService.
 type MockServiceMockRecorder struct {
 	mock *MockService
 }
 
-// NewMockService creates a new mock instance
+// NewMockService creates a new mock instance.
 func NewMockService(ctrl *gomock.Controller) *MockService {
 	mock := &MockService{ctrl: ctrl}
 	mock.recorder = &MockServiceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockService) EXPECT() *MockServiceMockRecorder {
 	return m.recorder
 }
 
-// CreateJobForGithubPush mocks base method
+// Archive mocks base method.
+func (m *MockService) Archive(ctx context.Context, repoSource, repoOwner, repoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Archive", ctx, repoSource, repoOwner, repoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Archive indicates an expected call of Archive.
+func (mr *MockServiceMockRecorder) Archive(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Archive", reflect.TypeOf((*MockService)(nil).Archive), ctx, repoSource, repoOwner, repoName)
+}
+
+// CreateJobForGithubPush mocks base method.
 func (m *MockService) CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateJobForGithubPush", ctx, event)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateJobForGithubPush indicates an expected call of CreateJobForGithubPush
+// CreateJobForGithubPush indicates an expected call of CreateJobForGithubPush.
 func (mr *MockServiceMockRecorder) CreateJobForGithubPush(ctx, event interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateJobForGithubPush", reflect.TypeOf((*MockService)(nil).CreateJobForGithubPush), ctx, event)
 }
 
-// HasValidSignature mocks base method
+// HasValidSignature mocks base method.
 func (m *MockService) HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (bool, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HasValidSignature", ctx, body, signatureHeader)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// HasValidSignature indicates an expected call of HasValidSignature
+// HasValidSignature indicates an expected call of HasValidSignature.
 func (mr *MockServiceMockRecorder) HasValidSignature(ctx, body, signatureHeader interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasValidSignature", reflect.TypeOf((*MockService)(nil).HasValidSignature), ctx, body, signatureHeader)
 }
 
-// Rename mocks base method
+// IsAllowedInstallation mocks base method.
+func (m *MockService) IsAllowedInstallation(ctx context.Context, installation githubapi.Installation) (bool, []*contracts.Organization) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsAllowedInstallation", ctx, installation)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].([]*contracts.Organization)
+	return ret0, ret1
+}
+
+// IsAllowedInstallation indicates an expected call of IsAllowedInstallation.
+func (mr *MockServiceMockRecorder) IsAllowedInstallation(ctx, installation interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsAllowedInstallation", reflect.TypeOf((*MockService)(nil).IsAllowedInstallation), ctx, installation)
+}
+
+// PublishGithubEvent mocks base method.
+func (m *MockService) PublishGithubEvent(ctx context.Context, event manifest.EstafetteGithubEvent) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "PublishGithubEvent", ctx, event)
+}
+
+// PublishGithubEvent indicates an expected call of PublishGithubEvent.
+func (mr *MockServiceMockRecorder) PublishGithubEvent(ctx, event interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishGithubEvent", reflect.TypeOf((*MockService)(nil).PublishGithubEvent), ctx, event)
+}
+
+// Rename mocks base method.
 func (m *MockService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Rename", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Rename indicates an expected call of Rename
+// Rename indicates an expected call of Rename.
 func (mr *MockServiceMockRecorder) Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rename", reflect.TypeOf((*MockService)(nil).Rename), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
-// Archive mocks base method
-func (m *MockService) Archive(ctx context.Context, repoSource, repoOwner, repoName string) error {
-	ret := m.ctrl.Call(m, "Archive", ctx, repoSource, repoOwner, repoName)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Archive indicates an expected call of Archive
-func (mr *MockServiceMockRecorder) Archive(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Archive", reflect.TypeOf((*MockService)(nil).Archive), ctx, repoSource, repoOwner, repoName)
-}
-
-// Unarchive mocks base method
+// Unarchive mocks base method.
 func (m *MockService) Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Unarchive", ctx, repoSource, repoOwner, repoName)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Unarchive indicates an expected call of Unarchive
+// Unarchive indicates an expected call of Unarchive.
 func (mr *MockServiceMockRecorder) Unarchive(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unarchive", reflect.TypeOf((*MockService)(nil).Unarchive), ctx, repoSource, repoOwner, repoName)
-}
-
-// IsAllowedInstallation mocks base method
-func (m *MockService) IsAllowedInstallation(ctx context.Context, installation githubapi.Installation) (bool, []*estafette_ci_contracts.Organization) {
-	ret := m.ctrl.Call(m, "IsAllowedInstallation", ctx, installation)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].([]*estafette_ci_contracts.Organization)
-	return ret0, ret1
-}
-
-// IsAllowedInstallation indicates an expected call of IsAllowedInstallation
-func (mr *MockServiceMockRecorder) IsAllowedInstallation(ctx, installation interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsAllowedInstallation", reflect.TypeOf((*MockService)(nil).IsAllowedInstallation), ctx, installation)
 }

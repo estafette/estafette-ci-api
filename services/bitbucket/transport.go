@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
@@ -132,6 +133,12 @@ func (h *Handler) Handle(c *gin.Context) {
 	default:
 		log.Warn().Str("event", eventType).Msgf("Unsupported Bitbucket webhook event of type '%v'", eventType)
 	}
+
+	// publish event for bots to run
+	h.service.PublishBitbucketEvent(c.Request.Context(), manifest.EstafetteBitbucketEvent{
+		Event:      eventType,
+		Repository: anyEvent.GetRepoFullName(),
+	})
 
 	c.Status(http.StatusOK)
 }

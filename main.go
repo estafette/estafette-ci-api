@@ -165,8 +165,8 @@ func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup)
 	return srv
 }
 
-func getTopics(ctx context.Context, stopChannel <-chan struct{}) (gitEventTopic *api.GitEventTopic) {
-	gitEventTopic = api.NewGitEventTopic("push events")
+func getTopics(ctx context.Context, stopChannel <-chan struct{}) (gitEventTopic *api.EventTopic) {
+	gitEventTopic = api.NewEventTopic("push events")
 
 	// close channels when stopChannel is signaled
 	go func(stopChannel <-chan struct{}) {
@@ -177,8 +177,8 @@ func getTopics(ctx context.Context, stopChannel <-chan struct{}) (gitEventTopic 
 	return
 }
 
-func subscribeToTopics(ctx context.Context, gitEventTopic *api.GitEventTopic, estafetteService estafette.Service) {
-	go estafetteService.SubscribeToGitEventsTopic(ctx, gitEventTopic)
+func subscribeToTopics(ctx context.Context, gitEventTopic *api.EventTopic, estafetteService estafette.Service) {
+	go estafetteService.SubscribeToEventTopic(ctx, gitEventTopic)
 }
 
 func getConfig(ctx context.Context) (*api.APIConfig, *api.APIConfig, crypt.SecretHelper) {
@@ -390,7 +390,7 @@ func getClients(ctx context.Context, config *api.APIConfig, encryptedConfig *api
 	return
 }
 
-func getServices(ctx context.Context, config *api.APIConfig, encryptedConfig *api.APIConfig, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client, gitEventTopic *api.GitEventTopic) (estafetteService estafette.Service, rbacService rbac.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service, catalogService catalog.Service) {
+func getServices(ctx context.Context, config *api.APIConfig, encryptedConfig *api.APIConfig, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client, gitEventTopic *api.EventTopic) (estafetteService estafette.Service, rbacService rbac.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service, catalogService catalog.Service) {
 
 	log.Debug().Msg("Creating services...")
 

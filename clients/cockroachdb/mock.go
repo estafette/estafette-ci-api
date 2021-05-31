@@ -255,6 +255,21 @@ func (mr *MockClientMockRecorder) GetAutoIncrement(ctx, shortRepoSource, repoOwn
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAutoIncrement", reflect.TypeOf((*MockClient)(nil).GetAutoIncrement), ctx, shortRepoSource, repoOwner, repoName)
 }
 
+// GetBitbucketTriggers mocks base method.
+func (m *MockClient) GetBitbucketTriggers(ctx context.Context, bitbucketEvent estafette_ci_manifest.EstafetteBitbucketEvent) ([]*estafette_ci_contracts.Pipeline, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBitbucketTriggers", ctx, bitbucketEvent)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.Pipeline)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBitbucketTriggers indicates an expected call of GetBitbucketTriggers.
+func (mr *MockClientMockRecorder) GetBitbucketTriggers(ctx, bitbucketEvent interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBitbucketTriggers", reflect.TypeOf((*MockClient)(nil).GetBitbucketTriggers), ctx, bitbucketEvent)
+}
+
 // GetBotsCount mocks base method.
 func (m *MockClient) GetBotsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
 	m.ctrl.T.Helper()
@@ -673,6 +688,21 @@ func (m *MockClient) GetGitTriggers(ctx context.Context, gitEvent estafette_ci_m
 func (mr *MockClientMockRecorder) GetGitTriggers(ctx, gitEvent interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGitTriggers", reflect.TypeOf((*MockClient)(nil).GetGitTriggers), ctx, gitEvent)
+}
+
+// GetGithubTriggers mocks base method.
+func (m *MockClient) GetGithubTriggers(ctx context.Context, githubEvent estafette_ci_manifest.EstafetteGithubEvent) ([]*estafette_ci_contracts.Pipeline, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGithubTriggers", ctx, githubEvent)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.Pipeline)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetGithubTriggers indicates an expected call of GetGithubTriggers.
+func (mr *MockClientMockRecorder) GetGithubTriggers(ctx, githubEvent interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGithubTriggers", reflect.TypeOf((*MockClient)(nil).GetGithubTriggers), ctx, githubEvent)
 }
 
 // GetGroupByID mocks base method.

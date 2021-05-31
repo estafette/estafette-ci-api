@@ -38,19 +38,21 @@ type Service interface {
 	FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error)
 	CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (r *contracts.Release, err error)
 	FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) (err error)
-	CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (b *contracts.Bot, err error)
+	CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch string, waitForJobToStart bool) (b *contracts.Bot, err error)
 	FinishBot(ctx context.Context, repoSource, repoOwner, repoName string, botID int, botStatus contracts.Status) (err error)
 	FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error)
 	FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) (err error)
 	FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) (err error)
 	FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) (err error)
 	FireCronTriggers(ctx context.Context) (err error)
+	FireGithubTriggers(ctx context.Context, githubEvent manifest.EstafetteGithubEvent) (err error)
+	FireBitbucketTriggers(ctx context.Context, bitbucketEvent manifest.EstafetteBitbucketEvent) (err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 	UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
-	SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *api.GitEventTopic)
+	SubscribeToEventTopic(ctx context.Context, gitEventTopic *api.EventTopic)
 	GetEventsForJobEnvvars(ctx context.Context, triggers []manifest.EstafetteTrigger, events []manifest.EstafetteEvent) (triggersAsEvents []manifest.EstafetteEvent, err error)
 }
 
@@ -607,7 +609,7 @@ func (s *service) FinishRelease(ctx context.Context, repoSource, repoOwner, repo
 	return nil
 }
 
-func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (createdBot *contracts.Bot, err error) {
+func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch string, waitForJobToStart bool) (createdBot *contracts.Bot, err error) {
 
 	// create deep copy to ensure no properties are shared through a pointer
 	mft = mft.DeepCopy()
@@ -701,7 +703,6 @@ func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest
 		RepoName:             bot.RepoName,
 		RepoURL:              authenticatedRepositoryURL,
 		RepoBranch:           repoBranch,
-		RepoRevision:         repoRevision,
 		EnvironmentVariables: environmentVariableWithToken,
 		Track:                builderTrack,
 		OperatingSystem:      builderOperatingSystem,
@@ -846,6 +847,13 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:git(%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
+					} else if t.BotAction != nil {
+						log.Info().Msgf("[trigger:git(%v-%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						err := s.fireBot(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:git(%v-%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						}
+
 					}
 				}(ctx, p, t, e)
 			}
@@ -858,6 +866,165 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 	}
 
 	log.Info().Msgf("[trigger:git(%v-%v:%v)] Fired %v out of %v triggers for %v pipelines", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
+
+	return nil
+}
+
+func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.EstafetteGithubEvent) (err error) {
+
+	log.Info().Msgf("[trigger:github(%v:%v)] Checking if triggers need to be fired...", githubEvent.Repository, githubEvent.Event)
+
+	// retrieve all pipeline triggers
+	pipelines, err := s.cockroachdbClient.GetGithubTriggers(ctx, githubEvent)
+	if err != nil {
+		return err
+	}
+
+	e := manifest.EstafetteEvent{
+		Fired:  true,
+		Github: &githubEvent,
+	}
+
+	triggerCount := 0
+	firedTriggerCount := 0
+
+	// http://jmoiron.net/blog/limiting-concurrency-in-go/
+	semaphore := make(chan bool, s.triggerConcurrency)
+
+	// check for each trigger whether it should fire
+	for _, p := range pipelines {
+		for _, t := range p.Triggers {
+
+			log.Debug().Interface("event", githubEvent).Interface("trigger", t).Msgf("[trigger:github(%v:%v)] Checking if pipeline '%v/%v/%v' trigger should fire...", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName)
+
+			if t.Github == nil {
+				continue
+			}
+
+			triggerCount++
+
+			if t.Github.Fires(&githubEvent) {
+
+				firedTriggerCount++
+
+				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
+				semaphore <- true
+
+				go func(ctx context.Context, p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
+					// lower semaphore once the routine's finished, making room for another one to start
+					defer func() { <-semaphore }()
+
+					// create new build for t.Run
+					if t.BuildAction != nil {
+						log.Info().Msgf("[trigger:github(%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						err := s.fireBuild(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:github(%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						}
+					} else if t.ReleaseAction != nil {
+						log.Info().Msgf("[trigger:github(%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						err := s.fireRelease(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:github(%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						}
+					} else if t.BotAction != nil {
+						log.Info().Msgf("[trigger:github(%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						err := s.fireBot(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:github(%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						}
+					}
+				}(ctx, p, t, e)
+			}
+		}
+	}
+
+	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
+	for i := 0; i < cap(semaphore); i++ {
+		semaphore <- true
+	}
+
+	log.Info().Msgf("[trigger:github(%v:%v)] Fired %v out of %v triggers for %v pipelines", githubEvent.Repository, githubEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
+
+	return nil
+}
+
+func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent manifest.EstafetteBitbucketEvent) (err error) {
+
+	log.Info().Msgf("[trigger:bitbucket(%v:%v)] Checking if triggers need to be fired...", bitbucketEvent.Repository, bitbucketEvent.Event)
+
+	// retrieve all pipeline triggers
+	pipelines, err := s.cockroachdbClient.GetBitbucketTriggers(ctx, bitbucketEvent)
+	if err != nil {
+		return err
+	}
+
+	e := manifest.EstafetteEvent{
+		Fired:     true,
+		Bitbucket: &bitbucketEvent,
+	}
+
+	triggerCount := 0
+	firedTriggerCount := 0
+
+	// http://jmoiron.net/blog/limiting-concurrency-in-go/
+	semaphore := make(chan bool, s.triggerConcurrency)
+
+	// check for each trigger whether it should fire
+	for _, p := range pipelines {
+		for _, t := range p.Triggers {
+
+			log.Debug().Interface("event", bitbucketEvent).Interface("trigger", t).Msgf("[trigger:bitbucket(%v:%v)] Checking if pipeline '%v/%v/%v' trigger should fire...", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName)
+
+			if t.Bitbucket == nil {
+				continue
+			}
+
+			triggerCount++
+
+			if t.Bitbucket.Fires(&bitbucketEvent) {
+
+				firedTriggerCount++
+
+				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
+				semaphore <- true
+
+				go func(ctx context.Context, p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
+					// lower semaphore once the routine's finished, making room for another one to start
+					defer func() { <-semaphore }()
+
+					// create new build for t.Run
+					if t.BuildAction != nil {
+						log.Info().Msgf("[trigger:bitbucket(%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						err := s.fireBuild(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:bitbucket(%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						}
+					} else if t.ReleaseAction != nil {
+						log.Info().Msgf("[trigger:bitbucket(%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						err := s.fireRelease(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:bitbucket(%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						}
+					} else if t.BotAction != nil {
+						log.Info().Msgf("[trigger:bitbucket(%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						err := s.fireBot(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:bitbucket(%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						}
+
+					}
+				}(ctx, p, t, e)
+			}
+		}
+	}
+
+	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
+	for i := 0; i < cap(semaphore); i++ {
+		semaphore <- true
+	}
+
+	log.Info().Msgf("[trigger:bitbucket(%v:%v)] Fired %v out of %v triggers for %v pipelines", bitbucketEvent.Repository, bitbucketEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
 
 	return nil
 }
@@ -929,6 +1096,13 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
+					} else if t.BotAction != nil {
+						log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						err := s.fireBot(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						}
+
 					}
 				}(ctx, p, t, e)
 			}
@@ -1010,6 +1184,13 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
+					} else if t.BotAction != nil {
+						log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						err := s.fireBot(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						}
+
 					}
 				}(ctx, p, t, e)
 			}
@@ -1083,6 +1264,13 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:pubsub(projects/%v/topics/%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
+					} else if t.BotAction != nil {
+						log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Firing bot action '%v/%v/%v', branch '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						err := s.fireBot(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:pubsub(projects/%v/topics/%v)] Failed starting bot action '%v/%v/%v', branch '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						}
+
 					}
 				}(ctx, p, t, e)
 			}
@@ -1160,6 +1348,13 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
+					} else if t.BotAction != nil {
+						log.Info().Msgf("[trigger:cron(%v)] Firing bot action '%v/%v/%v', branch '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						err := s.fireBot(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting bot action '%v/%v/%v', branch '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						}
+
 					}
 				}(ctx, p, t, e)
 			}
@@ -1269,6 +1464,24 @@ func (s *service) fireRelease(ctx context.Context, p contracts.Pipeline, t manif
 		ReleaseVersion: versionToRelease,
 		Events:         []manifest.EstafetteEvent{e},
 	}, *mft, repoBranch, repoRevision, true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *service) fireBot(ctx context.Context, p contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) error {
+	if t.BotAction == nil {
+		return fmt.Errorf("Trigger to fire does not have a 'runs' property, shouldn't get to here")
+	}
+
+	_, err := s.CreateBot(ctx, contracts.Bot{
+		Name:       t.BotAction.Bot,
+		RepoSource: p.RepoSource,
+		RepoOwner:  p.RepoOwner,
+		RepoName:   p.RepoName,
+		Events:     []manifest.EstafetteEvent{e},
+	}, *p.ManifestObject, p.RepoBranch, true)
 	if err != nil {
 		return err
 	}
@@ -1474,14 +1687,22 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent builder
 	return nil
 }
 
-func (s *service) SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *api.GitEventTopic) {
+func (s *service) SubscribeToEventTopic(ctx context.Context, gitEventTopic *api.EventTopic) {
 	eventChannel := gitEventTopic.Subscribe("estafette.Service")
 	for {
 		message, ok := <-eventChannel
 		if !ok {
 			break
 		}
-		s.FireGitTriggers(message.Ctx, message.Event)
+		if message.Event.Git != nil {
+			s.FireGitTriggers(message.Ctx, *message.Event.Git)
+		}
+		if message.Event.Github != nil {
+			s.FireGithubTriggers(message.Ctx, *message.Event.Github)
+		}
+		if message.Event.Bitbucket != nil {
+			s.FireBitbucketTriggers(message.Ctx, *message.Event.Bitbucket)
+		}
 	}
 }
 

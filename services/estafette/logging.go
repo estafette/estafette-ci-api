@@ -103,8 +103,8 @@ func (s *loggingService) UpdateJobResources(ctx context.Context, event builderap
 	return s.Service.UpdateJobResources(ctx, event)
 }
 
-func (s *loggingService) SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *api.GitEventTopic) {
-	s.Service.SubscribeToGitEventsTopic(ctx, gitEventTopic)
+func (s *loggingService) SubscribeToEventTopic(ctx context.Context, gitEventTopic *api.EventTopic) {
+	s.Service.SubscribeToEventTopic(ctx, gitEventTopic)
 }
 
 func (s *loggingService) GetEventsForJobEnvvars(ctx context.Context, triggers []manifest.EstafetteTrigger, events []manifest.EstafetteEvent) (triggersAsEvents []manifest.EstafetteEvent, err error) {

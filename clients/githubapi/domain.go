@@ -10,6 +10,16 @@ const repoSource = "github.com"
 // AnyEvent represents any of the Github webhook events, to check if installation is allowed
 type AnyEvent struct {
 	Installation Installation `json:"installation"`
+	Repository   *Repository  `json:"repository"`
+}
+
+// GetRepoFullName returns the repository owner and name
+func (ae *AnyEvent) GetRepoFullName() string {
+	if ae.Repository == nil {
+		return ""
+	}
+
+	return ae.Repository.FullName
 }
 
 // PushEvent represents a Github webhook push event
