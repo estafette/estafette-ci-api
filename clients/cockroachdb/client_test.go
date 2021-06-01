@@ -3107,7 +3107,7 @@ func TestIntegrationGetPipelineBotsCount(t *testing.T) {
 	})
 }
 
-func TestGetGitTriggers(t *testing.T) {
+func TestIntegrationGetGitTriggers(t *testing.T) {
 	t.Run("ReturnsPipelineIfTriggerEventAndRepositoryMatch", func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("skipping test in short mode.")
@@ -3193,7 +3193,7 @@ func TestGetGitTriggers(t *testing.T) {
 	})
 }
 
-func TestGetGithubTriggers(t *testing.T) {
+func TestIntegrationGetGithubTriggers(t *testing.T) {
 	t.Run("ReturnsPipelineIfOneTriggerEventMatches", func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("skipping test in short mode.")
@@ -3285,7 +3285,7 @@ func TestGetGithubTriggers(t *testing.T) {
 	})
 }
 
-func TestGetBitbucketTriggers(t *testing.T) {
+func TestIntegrationGetBitbucketTriggers(t *testing.T) {
 	t.Run("ReturnsPipelineIfOneTriggerEventMatches", func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("skipping test in short mode.")
