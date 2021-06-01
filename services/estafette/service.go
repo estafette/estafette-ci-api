@@ -1675,11 +1675,11 @@ func (s *service) SubscribeToEventTopic(ctx context.Context, gitEventTopic *api.
 			s.FireGitTriggers(message.Ctx, *message.Event.Git)
 		}
 		if message.Event.Github != nil {
-			log.Info().Msgf("Received subscribed github event '%v' for repository '%v' on topic...", message.Event.Git.Event, message.Event.Git.Repository)
+			log.Info().Msgf("Received subscribed github event '%v' for repository '%v' on topic...", message.Event.Github.Event, message.Event.Github.Repository)
 			s.FireGithubTriggers(message.Ctx, *message.Event.Github)
 		}
 		if message.Event.Bitbucket != nil {
-			log.Info().Msgf("Received subscribed bitbucket event '%v' for repository '%v' on topic...", message.Event.Git.Event, message.Event.Git.Repository)
+			log.Info().Msgf("Received subscribed bitbucket event '%v' for repository '%v' on topic...", message.Event.Bitbucket.Event, message.Event.Bitbucket.Repository)
 			s.FireBitbucketTriggers(message.Ctx, *message.Event.Bitbucket)
 		}
 	}
