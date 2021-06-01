@@ -458,3 +458,48 @@ releases:
           - estafette.secret(z6C9Piz4EhMxWMc8.uxcITmg39HiLJuuqSyPRM06PTWNd6S1x1QxfYYeyGoBLcgkM)
           jaeger:
             enable: true
+
+bots:
+  any-event-bot:
+    triggers:
+    - github:
+        events:
+        - commit_comment
+        - create
+        - delete
+        - deployment
+        - deployment_status
+        - fork
+        - gollum
+        - installation
+        - installation_repositories
+        - issue_comment
+        - issues
+        - label
+        - marketplace_purchase
+        - member
+        - membership
+        - milestone
+        - organization
+        - org_block
+        - page_build
+        - project_card
+        - project_column
+        - project
+        - public
+        - pull_request_review_comment
+        - pull_request_review
+        - pull_request
+        - push
+        - release
+        - repository
+        - status
+        - team
+        - team_add
+        - watch
+        - integration_installation_repositories
+    stages:
+      backup:
+        image: alpine:latest
+        commands:
+        - echo 'thanks for running me'
