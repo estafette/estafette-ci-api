@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
@@ -169,6 +170,13 @@ func (h *Handler) Handle(c *gin.Context) {
 	default:
 		log.Warn().Str("event", eventType).Msgf("Unsupported Github webhook event of type '%v'", eventType)
 	}
+
+	// publish event for bots to run
+	h.service.PublishGithubEvent(c.Request.Context(), manifest.EstafetteGithubEvent{
+		Event:      eventType,
+		Repository: anyEvent.GetRepoFullName(),
+		EventBody:  string(body),
+	})
 
 	c.Status(http.StatusOK)
 }

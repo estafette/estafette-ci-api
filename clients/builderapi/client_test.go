@@ -18,7 +18,7 @@ func TestGetJobName(t *testing.T) {
 		ciBuilderClient := &client{}
 
 		// act
-		jobName := ciBuilderClient.GetJobName(context.Background(), JobTypeBuild, "estafette", "estafette-ci-api", "390605593734184965")
+		jobName := ciBuilderClient.GetJobName(context.Background(), contracts.JobTypeBuild, "estafette", "estafette-ci-api", "390605593734184965")
 
 		assert.Equal(t, "build-estafette-estafette-ci-api-390605593734184965", jobName)
 		assert.Equal(t, 51, len(jobName))
@@ -29,7 +29,7 @@ func TestGetJobName(t *testing.T) {
 		ciBuilderClient := &client{}
 
 		// act
-		jobName := ciBuilderClient.GetJobName(context.Background(), JobTypeBuild, "estafette", "estafette-extension-slack-build-status", "390605593734184965")
+		jobName := ciBuilderClient.GetJobName(context.Background(), contracts.JobTypeBuild, "estafette", "estafette-extension-slack-build-status", "390605593734184965")
 
 		assert.Equal(t, "build-estafette-estafette-extension-slack-bu-390605593734184965", jobName)
 		assert.Equal(t, 63, len(jobName))
@@ -40,7 +40,7 @@ func TestGetJobName(t *testing.T) {
 		ciBuilderClient := &client{}
 
 		// act
-		jobName := ciBuilderClient.GetJobName(context.Background(), JobTypeRelease, "estafette", "estafette-ci-api", "390605593734184965")
+		jobName := ciBuilderClient.GetJobName(context.Background(), contracts.JobTypeRelease, "estafette", "estafette-ci-api", "390605593734184965")
 
 		assert.Equal(t, "release-estafette-estafette-ci-api-390605593734184965", jobName)
 		assert.Equal(t, 53, len(jobName))
@@ -51,7 +51,7 @@ func TestGetJobName(t *testing.T) {
 		ciBuilderClient := &client{}
 
 		// act
-		jobName := ciBuilderClient.GetJobName(context.Background(), JobTypeRelease, "estafette", "estafette-extension-slack-build-status", "390605593734184965")
+		jobName := ciBuilderClient.GetJobName(context.Background(), contracts.JobTypeRelease, "estafette", "estafette-extension-slack-build-status", "390605593734184965")
 
 		assert.Equal(t, "release-estafette-estafette-extension-slack--390605593734184965", jobName)
 		assert.Equal(t, 63, len(jobName))
@@ -97,7 +97,12 @@ func TestGetCiBuilderJobAffinity(t *testing.T) {
 		}
 
 		ciBuilderParams := CiBuilderParams{
-			JobType:         JobTypeBuild,
+			BuilderConfig: contracts.BuilderConfig{
+				JobType: contracts.JobTypeBuild,
+				Build: &contracts.Build{
+					ID: "390605593734184965",
+				},
+			},
 			OperatingSystem: manifest.OperatingSystemWindows,
 		}
 
@@ -148,7 +153,12 @@ func TestGetCiBuilderJobAffinity(t *testing.T) {
 		}
 
 		ciBuilderParams := CiBuilderParams{
-			JobType:         JobTypeBuild,
+			BuilderConfig: contracts.BuilderConfig{
+				JobType: contracts.JobTypeBuild,
+				Build: &contracts.Build{
+					ID: "390605593734184965",
+				},
+			},
 			OperatingSystem: manifest.OperatingSystemWindows,
 		}
 
@@ -197,7 +207,12 @@ func TestGetCiBuilderJobAffinity(t *testing.T) {
 		}
 
 		ciBuilderParams := CiBuilderParams{
-			JobType:         JobTypeRelease,
+			BuilderConfig: contracts.BuilderConfig{
+				JobType: contracts.JobTypeRelease,
+				Build: &contracts.Build{
+					ID: "390605593734184965",
+				},
+			},
 			OperatingSystem: manifest.OperatingSystemWindows,
 		}
 
@@ -248,7 +263,12 @@ func TestGetCiBuilderJobAffinity(t *testing.T) {
 		}
 
 		ciBuilderParams := CiBuilderParams{
-			JobType:         JobTypeRelease,
+			BuilderConfig: contracts.BuilderConfig{
+				JobType: contracts.JobTypeRelease,
+				Build: &contracts.Build{
+					ID: "390605593734184965",
+				},
+			},
 			OperatingSystem: manifest.OperatingSystemWindows,
 		}
 
@@ -285,7 +305,12 @@ func TestGetCiBuilderJobTolerations(t *testing.T) {
 		}
 
 		ciBuilderParams := CiBuilderParams{
-			JobType:         JobTypeBuild,
+			BuilderConfig: contracts.BuilderConfig{
+				JobType: contracts.JobTypeBuild,
+				Build: &contracts.Build{
+					ID: "390605593734184965",
+				},
+			},
 			OperatingSystem: manifest.OperatingSystemWindows,
 		}
 
@@ -323,7 +348,12 @@ func TestGetCiBuilderJobTolerations(t *testing.T) {
 		}
 
 		ciBuilderParams := CiBuilderParams{
-			JobType:         JobTypeRelease,
+			BuilderConfig: contracts.BuilderConfig{
+				JobType: contracts.JobTypeRelease,
+				Release: &contracts.Release{
+					ID: "390605593734184965",
+				},
+			},
 			OperatingSystem: manifest.OperatingSystemWindows,
 		}
 
@@ -361,32 +391,40 @@ func TestGetBuilderConfig(t *testing.T) {
 			},
 		}
 		ciBuilderParams := CiBuilderParams{
-			JobType: JobTypeBuild,
-			TriggeredByEvents: []manifest.EstafetteEvent{
-				{
-					Name:  "trigger1",
-					Fired: false,
-					Pipeline: &manifest.EstafettePipelineEvent{
-						RepoSource:   "github.com",
-						RepoOwner:    "estafette",
-						RepoName:     "repo1",
-						Branch:       "main",
-						Event:        "finished",
-						Status:       "succeeded",
-						BuildVersion: "1.0.5",
-					},
+			BuilderConfig: contracts.BuilderConfig{
+				JobType: contracts.JobTypeBuild,
+				Build: &contracts.Build{
+					ID: "390605593734184965",
 				},
-				{
-					Name:  "trigger2",
-					Fired: false,
-					Pipeline: &manifest.EstafettePipelineEvent{
-						RepoSource:   "github.com",
-						RepoOwner:    "estafette",
-						RepoName:     "repo2",
-						Branch:       "main",
-						Event:        "finished",
-						Status:       "succeeded",
-						BuildVersion: "6.4.3",
+				Git:      &contracts.GitConfig{},
+				Version:  &contracts.VersionConfig{},
+				Manifest: &manifest.EstafetteManifest{},
+				Events: []manifest.EstafetteEvent{
+					{
+						Name:  "trigger1",
+						Fired: false,
+						Pipeline: &manifest.EstafettePipelineEvent{
+							RepoSource:   "github.com",
+							RepoOwner:    "estafette",
+							RepoName:     "repo1",
+							Branch:       "main",
+							Event:        "finished",
+							Status:       "succeeded",
+							BuildVersion: "1.0.5",
+						},
+					},
+					{
+						Name:  "trigger2",
+						Fired: false,
+						Pipeline: &manifest.EstafettePipelineEvent{
+							RepoSource:   "github.com",
+							RepoOwner:    "estafette",
+							RepoName:     "repo2",
+							Branch:       "main",
+							Event:        "finished",
+							Status:       "succeeded",
+							BuildVersion: "6.4.3",
+						},
 					},
 				},
 			},

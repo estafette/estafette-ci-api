@@ -68,7 +68,7 @@ func (c *tracingClient) TailCiBuilderJobLogs(ctx context.Context, jobName string
 	return c.Client.TailCiBuilderJobLogs(ctx, jobName, logChannel)
 }
 
-func (c *tracingClient) GetJobName(ctx context.Context, jobType JobType, repoOwner, repoName, id string) string {
+func (c *tracingClient) GetJobName(ctx context.Context, jobType contracts.JobType, repoOwner, repoName, id string) string {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetJobName"))
 	defer func() { api.FinishSpan(span) }()
 

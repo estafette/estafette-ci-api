@@ -257,6 +257,7 @@ func (c *APIServerConfig) Validate() (err error) {
 type InjectStagesConfig struct {
 	Build   *InjectStagesTypeConfig `yaml:"build,omitempty"`
 	Release *InjectStagesTypeConfig `yaml:"release,omitempty"`
+	Bot     *InjectStagesTypeConfig `yaml:"bot,omitempty"`
 }
 
 type InjectStagesTypeConfig struct {
@@ -554,6 +555,7 @@ type JobsConfig struct {
 
 	BuildAffinityAndTolerations   *AffinityAndTolerationsConfig `yaml:"build"`
 	ReleaseAffinityAndTolerations *AffinityAndTolerationsConfig `yaml:"release"`
+	BotAffinityAndTolerations     *AffinityAndTolerationsConfig `yaml:"bot"`
 }
 
 func (c *JobsConfig) SetDefaults() {

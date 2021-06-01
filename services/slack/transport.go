@@ -18,7 +18,7 @@ import (
 )
 
 // NewHandler returns a pubsub.Handler
-func NewHandler(secretHelper crypt.SecretHelper, config *api.APIConfig, slackapiClient slackapi.Client, cockroachdbClient cockroachdb.Client, estafetteService estafette.Service, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
+func NewHandler(secretHelper crypt.SecretHelper, config *api.APIConfig, slackapiClient slackapi.Client, cockroachdbClient cockroachdb.Client, estafetteService estafette.Service, githubJobVarsFunc func(context.Context, string, string, string) (string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, error)) Handler {
 	return Handler{
 		config:               config,
 		secretHelper:         secretHelper,
@@ -36,8 +36,8 @@ type Handler struct {
 	slackapiClient       slackapi.Client
 	cockroachdbClient    cockroachdb.Client
 	estafetteService     estafette.Service
-	githubJobVarsFunc    func(context.Context, string, string, string) (string, string, error)
-	bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error)
+	githubJobVarsFunc    func(context.Context, string, string, string) (string, error)
+	bitbucketJobVarsFunc func(context.Context, string, string, string) (string, error)
 }
 
 func (h *Handler) Handle(c *gin.Context) {

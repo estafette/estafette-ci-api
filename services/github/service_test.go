@@ -30,7 +30,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 		githubapiClient := githubapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
 
 		pushEvent := githubapi.PushEvent{
 			Ref: "refs/noheads",
@@ -64,7 +64,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 		githubapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
 
 		pushEvent := githubapi.PushEvent{
 			Ref: "refs/heads/master",
@@ -100,7 +100,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
 
 		pushEvent := githubapi.PushEvent{
 			Ref: "refs/heads/master",
@@ -141,7 +141,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
 
 		pushEvent := githubapi.PushEvent{
 			Ref: "refs/heads/master",
@@ -167,7 +167,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
 
-		gitEventTopic := api.NewGitEventTopic("test topic")
+		gitEventTopic := api.NewEventTopic("test topic")
 		defer gitEventTopic.Close()
 		subscriptionChannel := gitEventTopic.Subscribe("PublishesGitTriggersOnTopic")
 
@@ -186,7 +186,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 		select {
 		case message, ok := <-subscriptionChannel:
 			assert.True(t, ok)
-			assert.Equal(t, "master", message.Event.Branch)
+			assert.Equal(t, "master", message.Event.Git.Branch)
 
 		case <-time.After(10 * time.Second):
 			assert.Fail(t, "subscription timed out after 10 seconds")
@@ -230,7 +230,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 		githubapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
 
 		pushEvent := githubapi.PushEvent{
 			Ref: "refs/heads/master",
@@ -262,7 +262,7 @@ func TestIsAllowedInstallation(t *testing.T) {
 		githubapiClient := githubapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
 
 		installation := githubapi.Installation{
 			ID: 513,
@@ -293,7 +293,7 @@ func TestIsAllowedInstallation(t *testing.T) {
 		githubapiClient := githubapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
 
 		installation := githubapi.Installation{
 			ID: 513,
@@ -327,7 +327,7 @@ func TestIsAllowedInstallation(t *testing.T) {
 		githubapiClient := githubapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
 
 		installation := githubapi.Installation{
 			ID: 513,
@@ -362,7 +362,7 @@ func TestRename(t *testing.T) {
 			Rename(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Times(1)
 
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
 
 		// act
 		err := service.Rename(context.Background(), "github.com", "estafette", "estafette-ci-contracts", "github.com", "estafette", "estafette-ci-protos")
@@ -390,7 +390,7 @@ func TestHasValidSignature(t *testing.T) {
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
 
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
 
 		body := []byte(`{"action": "opened","issue": {"url": "https://api.github.com/repos/octocat/Hello-World/issues/1347","number": 1347,...},"repository" : {"id": 1296269,"full_name": "octocat/Hello-World","owner": {"login": "octocat","id": 1,...},...},"sender": {"login": "octocat","id": 1,...}}`)
 		signatureHeader := "sha1=7d38cdd689735b008b3c702edd92eea23791c5f6"
@@ -419,7 +419,7 @@ func TestHasValidSignature(t *testing.T) {
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
 
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewGitEventTopic("test topic"))
+		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
 
 		body := []byte(`{"action": "opened","issue": {"url": "https://api.github.com/repos/octocat/Hello-World/issues/1347","number": 1347,...},"repository" : {"id": 1296269,"full_name": "octocat/Hello-World","owner": {"login": "octocat","id": 1,...},...},"sender": {"login": "octocat","id": 1,...}}`)
 		signatureHeader := "sha1=765539562e575982123574d8325a636e16e0efba"

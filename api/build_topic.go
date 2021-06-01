@@ -46,7 +46,7 @@ func (t *BuildTopic) Subscribe(name string) <-chan BuildTopicMessage {
 
 func (t *BuildTopic) Publish(publisher string, message BuildTopicMessage) {
 
-	span, ctx := opentracing.StartSpanFromContext(message.Ctx, GetSpanName("topics.GitEventTopic", "Publish"))
+	span, ctx := opentracing.StartSpanFromContext(message.Ctx, GetSpanName("topics.EventTopic", "Publish"))
 	message.Ctx = ctx
 	defer func() { FinishSpan(span) }()
 

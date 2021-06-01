@@ -34,18 +34,12 @@ func (c *loggingClient) GetInstallationToken(ctx context.Context, installationID
 	return c.Client.GetInstallationToken(ctx, installationID)
 }
 
-func (c *loggingClient) GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error) {
-	defer func() { api.HandleLogError(c.prefix, "GetAuthenticatedRepositoryURL", err) }()
-
-	return c.Client.GetAuthenticatedRepositoryURL(ctx, accesstoken, htmlURL)
-}
-
 func (c *loggingClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (valid bool, manifest string, err error) {
 	defer func() { api.HandleLogError(c.prefix, "GetEstafetteManifest", err) }()
 
 	return c.Client.GetEstafetteManifest(ctx, accesstoken, event)
 }
 
-func (c *loggingClient) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error) {
+func (c *loggingClient) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, error) {
 	return c.Client.JobVarsFunc(ctx)
 }

@@ -28,6 +28,7 @@ import (
 var (
 	ErrNoBuildCreated   = errors.New("No build is created")
 	ErrNoReleaseCreated = errors.New("No release is created")
+	ErrNoBotCreated     = errors.New("No bot is created")
 )
 
 // Service encapsulates build and release creation and re-triggering
@@ -37,22 +38,26 @@ type Service interface {
 	FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error)
 	CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (r *contracts.Release, err error)
 	FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) (err error)
+	CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch string, waitForJobToStart bool) (b *contracts.Bot, err error)
+	FinishBot(ctx context.Context, repoSource, repoOwner, repoName string, botID int, botStatus contracts.Status) (err error)
 	FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error)
 	FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) (err error)
 	FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) (err error)
 	FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) (err error)
 	FireCronTriggers(ctx context.Context) (err error)
+	FireGithubTriggers(ctx context.Context, githubEvent manifest.EstafetteGithubEvent) (err error)
+	FireBitbucketTriggers(ctx context.Context, bitbucketEvent manifest.EstafetteBitbucketEvent) (err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
 	UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
-	SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *api.GitEventTopic)
+	SubscribeToEventTopic(ctx context.Context, gitEventTopic *api.EventTopic)
 	GetEventsForJobEnvvars(ctx context.Context, triggers []manifest.EstafetteTrigger, events []manifest.EstafetteEvent) (triggersAsEvents []manifest.EstafetteEvent, err error)
 }
 
 // NewService returns a new estafette.Service
-func NewService(config *api.APIConfig, cockroachdbClient cockroachdb.Client, secretHelper crypt.SecretHelper, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
+func NewService(config *api.APIConfig, cockroachdbClient cockroachdb.Client, secretHelper crypt.SecretHelper, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, error)) Service {
 
 	return &service{
 		config:                 config,
@@ -75,9 +80,9 @@ type service struct {
 	prometheusClient       prometheus.Client
 	cloudStorageClient     cloudstorage.Client
 	builderapiClient       builderapi.Client
-	githubJobVarsFunc      func(context.Context, string, string, string) (string, string, error)
-	bitbucketJobVarsFunc   func(context.Context, string, string, string) (string, string, error)
-	cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)
+	githubJobVarsFunc      func(context.Context, string, string, string) (string, error)
+	bitbucketJobVarsFunc   func(context.Context, string, string, string) (string, error)
+	cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, error)
 	triggerConcurrency     int
 }
 
@@ -155,7 +160,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	build.Triggers = s.getBuildTriggers(build, hasValidManifest, mft, pipeline)
 
 	// get authenticated url
-	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+	environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 	if err != nil {
 		return
 	}
@@ -187,11 +192,6 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 		return nil, ErrNoBuildCreated
 	}
 
-	buildID, err := strconv.Atoi(createdBuild.ID)
-	if err != nil {
-		return
-	}
-
 	triggeredByEvents, err := s.GetEventsForJobEnvvars(ctx, build.Triggers, build.Events)
 	if err != nil {
 		return
@@ -199,24 +199,30 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 
 	// define ci builder params
 	ciBuilderParams := builderapi.CiBuilderParams{
-		JobType:                 builderapi.JobTypeBuild,
-		RepoSource:              build.RepoSource,
-		RepoOwner:               build.RepoOwner,
-		RepoName:                build.RepoName,
-		RepoURL:                 authenticatedRepositoryURL,
-		RepoBranch:              build.RepoBranch,
-		RepoRevision:            build.RepoRevision,
-		EnvironmentVariables:    environmentVariableWithToken,
-		Track:                   builderTrack,
-		OperatingSystem:         builderOperatingSystem,
-		CurrentCounter:          currentCounter,
-		MaxCounter:              maxCounter,
-		MaxCounterCurrentBranch: maxCounterCurrentBranch,
-		VersionNumber:           build.BuildVersion,
-		Manifest:                mft,
-		BuildID:                 buildID,
-		TriggeredByEvents:       triggeredByEvents,
-		JobResources:            jobResources,
+		BuilderConfig: contracts.BuilderConfig{
+			JobType: contracts.JobTypeBuild,
+			Git: &contracts.GitConfig{
+				RepoSource:   createdBuild.RepoSource,
+				RepoOwner:    createdBuild.RepoOwner,
+				RepoName:     createdBuild.RepoName,
+				RepoBranch:   createdBuild.RepoBranch,
+				RepoRevision: createdBuild.RepoRevision,
+			},
+			Track: &builderTrack,
+			Version: &contracts.VersionConfig{
+				Version:                 createdBuild.BuildVersion,
+				CurrentCounter:          currentCounter,
+				AutoIncrement:           &currentCounter,
+				MaxCounter:              maxCounter,
+				MaxCounterCurrentBranch: maxCounterCurrentBranch,
+			},
+			Manifest: &mft,
+			Build:    createdBuild,
+			Events:   triggeredByEvents,
+		},
+		EnvironmentVariables: environmentVariableWithToken,
+		OperatingSystem:      builderOperatingSystem,
+		JobResources:         jobResources,
 	}
 
 	// create ci builder job
@@ -409,7 +415,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	currentCounter := s.getVersionCounter(ctx, release.ReleaseVersion, mft)
 
 	// get authenticated url
-	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, release.RepoSource, release.RepoOwner, release.RepoName)
+	environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, release.RepoSource, release.RepoOwner, release.RepoName)
 	if err != nil {
 		return
 	}
@@ -434,21 +440,6 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	}
 	if createdRelease == nil {
 		return nil, ErrNoReleaseCreated
-	}
-
-	insertedReleaseID, err := strconv.Atoi(createdRelease.ID)
-	if err != nil {
-		return
-	}
-
-	// get triggered by from events
-	triggeredBy := ""
-	if len(release.Events) > 0 {
-		for _, e := range release.Events {
-			if e.Manual != nil {
-				triggeredBy = e.Manual.UserID
-			}
-		}
 	}
 
 	maxCounter := currentCounter
@@ -483,28 +474,30 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 
 	// define ci builder params
 	ciBuilderParams := builderapi.CiBuilderParams{
-		JobType:                 builderapi.JobTypeRelease,
-		RepoSource:              release.RepoSource,
-		RepoOwner:               release.RepoOwner,
-		RepoName:                release.RepoName,
-		RepoURL:                 authenticatedRepositoryURL,
-		RepoBranch:              repoBranch,
-		RepoRevision:            repoRevision,
-		EnvironmentVariables:    environmentVariableWithToken,
-		Track:                   builderTrack,
-		OperatingSystem:         builderOperatingSystem,
-		CurrentCounter:          currentCounter,
-		MaxCounter:              maxCounter,
-		MaxCounterCurrentBranch: maxCounterCurrentBranch,
-		VersionNumber:           release.ReleaseVersion,
-		Manifest:                mft,
-		ReleaseName:             release.Name,
-		ReleaseAction:           release.Action,
-		ReleaseID:               insertedReleaseID,
-		ReleaseTriggeredBy:      triggeredBy,
-		BuildID:                 0,
-		TriggeredByEvents:       triggeredByEvents,
-		JobResources:            jobResources,
+		BuilderConfig: contracts.BuilderConfig{
+			JobType: contracts.JobTypeRelease,
+			Git: &contracts.GitConfig{
+				RepoSource:   createdRelease.RepoSource,
+				RepoOwner:    createdRelease.RepoOwner,
+				RepoName:     createdRelease.RepoName,
+				RepoBranch:   repoBranch,
+				RepoRevision: repoRevision,
+			},
+			Track: &builderTrack,
+			Version: &contracts.VersionConfig{
+				Version:                 createdRelease.ReleaseVersion,
+				CurrentCounter:          currentCounter,
+				AutoIncrement:           &currentCounter,
+				MaxCounter:              maxCounter,
+				MaxCounterCurrentBranch: maxCounterCurrentBranch,
+			},
+			Manifest: &mft,
+			Release:  createdRelease,
+			Events:   triggeredByEvents,
+		},
+		EnvironmentVariables: environmentVariableWithToken,
+		OperatingSystem:      builderOperatingSystem,
+		JobResources:         jobResources,
 	}
 
 	if invalidSecretsErr == nil {
@@ -604,6 +597,171 @@ func (s *service) FinishRelease(ctx context.Context, repoSource, repoOwner, repo
 	return nil
 }
 
+func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch string, waitForJobToStart bool) (createdBot *contracts.Bot, err error) {
+
+	// create deep copy to ensure no properties are shared through a pointer
+	mft = mft.DeepCopy()
+
+	// check if there's secrets restricted to other pipelines
+	manifestBytes, err := yaml.Marshal(mft)
+	invalidSecrets, invalidSecretsErr := s.secretHelper.GetInvalidRestrictedSecrets(string(manifestBytes), bot.GetFullRepoPath())
+
+	// set builder track
+	builderTrack := mft.Builder.Track
+	builderOperatingSystem := mft.Builder.OperatingSystem
+
+	// get builder track override for release if exists
+	for _, r := range mft.Bots {
+		if r.Name == bot.Name {
+			if r.Builder != nil {
+				builderTrack = r.Builder.Track
+				builderOperatingSystem = r.Builder.OperatingSystem
+				break
+			}
+		}
+	}
+
+	// get short version of repo source
+	shortRepoSource := s.getShortRepoSource(bot.RepoSource)
+
+	// set bot status
+	botStatus := contracts.StatusFailed
+	if invalidSecretsErr == nil {
+		botStatus = contracts.StatusPending
+	}
+
+	// inject release stages
+	mft, err = api.InjectStages(s.config, mft, builderTrack, shortRepoSource, repoBranch, s.supportsBuildStatus(bot.RepoSource))
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed injecting build stages for bot to %v of pipeline %v/%v/%v", bot.Name, bot.RepoSource, bot.RepoOwner, bot.RepoName)
+		return
+	}
+
+	// inject any configured commands
+	mft = api.InjectCommands(s.config, mft)
+
+	// get authenticated url
+	environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName)
+	if err != nil {
+		return
+	}
+
+	jobResources := s.getBotJobResources(ctx, bot)
+
+	// create release in database
+	createdBot, err = s.cockroachdbClient.InsertBot(ctx, contracts.Bot{
+		Name:          bot.Name,
+		RepoSource:    bot.RepoSource,
+		RepoOwner:     bot.RepoOwner,
+		RepoName:      bot.RepoName,
+		BotStatus:     botStatus,
+		Events:        bot.Events,
+		Groups:        bot.Groups,
+		Organizations: bot.Organizations,
+	}, jobResources)
+	if err != nil {
+		return
+	}
+	if createdBot == nil {
+		return nil, ErrNoBotCreated
+	}
+
+	// define ci builder params
+	ciBuilderParams := builderapi.CiBuilderParams{
+		BuilderConfig: contracts.BuilderConfig{
+			JobType: contracts.JobTypeBot,
+			Git: &contracts.GitConfig{
+				RepoSource: createdBot.RepoSource,
+				RepoOwner:  createdBot.RepoOwner,
+				RepoName:   createdBot.RepoName,
+				RepoBranch: repoBranch,
+			},
+			Track:    &builderTrack,
+			Version:  &contracts.VersionConfig{},
+			Manifest: &mft,
+			Bot:      createdBot,
+			Events:   createdBot.Events,
+		},
+		EnvironmentVariables: environmentVariableWithToken,
+		OperatingSystem:      builderOperatingSystem,
+		JobResources:         jobResources,
+	}
+
+	if invalidSecretsErr == nil {
+		// create ci release job
+		if waitForJobToStart {
+			_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
+			if err != nil {
+				return
+			}
+		} else {
+			go func(ciBuilderParams builderapi.CiBuilderParams) {
+				_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
+				if err != nil {
+					log.Warn().Err(err).Msgf("Failed creating async release job")
+				}
+			}(ciBuilderParams)
+		}
+	} else {
+		// store log with manifest unmarshalling error
+		botLog := contracts.BotLog{
+			BotID:      createdBot.ID,
+			RepoSource: createdBot.RepoSource,
+			RepoOwner:  createdBot.RepoOwner,
+			RepoName:   createdBot.RepoName,
+			Steps: []*contracts.BuildLogStep{
+				&contracts.BuildLogStep{
+					Step:         "validate-secrets",
+					ExitCode:     1,
+					Status:       contracts.LogStatusFailed,
+					AutoInjected: true,
+					RunIndex:     0,
+					LogLines: []contracts.BuildLogLine{
+						contracts.BuildLogLine{
+							LineNumber: 1,
+							Timestamp:  time.Now().UTC(),
+							StreamType: "stderr",
+							Text:       "The manifest has secrets, restricted to other pipelines; please recreate the following secrets through the pipeline's secrets tab:",
+						},
+					},
+				},
+			},
+		}
+
+		for i, is := range invalidSecrets {
+			botLog.Steps[0].LogLines = append(botLog.Steps[0].LogLines, contracts.BuildLogLine{
+				LineNumber: i + 1,
+				Timestamp:  time.Now().UTC(),
+				StreamType: "stdout",
+				Text:       is,
+			})
+		}
+
+		insertedBotLog, err := s.cockroachdbClient.InsertBotLog(ctx, botLog, s.config.APIServer.WriteLogToDatabase())
+		if err != nil {
+			log.Warn().Err(err).Msgf("Failed inserting bot log for manifest with restricted secrets")
+		}
+
+		if s.config.APIServer.WriteLogToCloudStorage() {
+			err = s.cloudStorageClient.InsertBotLog(ctx, insertedBotLog)
+			if err != nil {
+				log.Warn().Err(err).Msgf("Failed inserting bot log into cloud storage for manifest with restricted secrets")
+			}
+		}
+	}
+
+	return
+}
+
+func (s *service) FinishBot(ctx context.Context, repoSource, repoOwner, repoName string, botID int, botStatus contracts.Status) error {
+	err := s.cockroachdbClient.UpdateBotStatus(ctx, repoSource, repoOwner, repoName, botID, botStatus)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) error {
 
 	log.Info().Msgf("[trigger:git(%v-%v:%v)] Checking if triggers need to be fired...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event)
@@ -661,6 +819,13 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:git(%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
+					} else if t.BotAction != nil {
+						log.Info().Msgf("[trigger:git(%v-%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						err := s.fireBot(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:git(%v-%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						}
+
 					}
 				}(ctx, p, t, e)
 			}
@@ -673,6 +838,165 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 	}
 
 	log.Info().Msgf("[trigger:git(%v-%v:%v)] Fired %v out of %v triggers for %v pipelines", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
+
+	return nil
+}
+
+func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.EstafetteGithubEvent) (err error) {
+
+	log.Info().Msgf("[trigger:github(%v:%v)] Checking if triggers need to be fired...", githubEvent.Repository, githubEvent.Event)
+
+	// retrieve all pipeline triggers
+	pipelines, err := s.cockroachdbClient.GetGithubTriggers(ctx, githubEvent)
+	if err != nil {
+		return err
+	}
+
+	e := manifest.EstafetteEvent{
+		Fired:  true,
+		Github: &githubEvent,
+	}
+
+	triggerCount := 0
+	firedTriggerCount := 0
+
+	// http://jmoiron.net/blog/limiting-concurrency-in-go/
+	semaphore := make(chan bool, s.triggerConcurrency)
+
+	// check for each trigger whether it should fire
+	for _, p := range pipelines {
+		for _, t := range p.Triggers {
+
+			log.Debug().Interface("event", githubEvent).Interface("trigger", t).Msgf("[trigger:github(%v:%v)] Checking if pipeline '%v/%v/%v' trigger should fire...", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName)
+
+			if t.Github == nil {
+				continue
+			}
+
+			triggerCount++
+
+			if t.Github.Fires(&githubEvent) {
+
+				firedTriggerCount++
+
+				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
+				semaphore <- true
+
+				go func(ctx context.Context, p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
+					// lower semaphore once the routine's finished, making room for another one to start
+					defer func() { <-semaphore }()
+
+					// create new build for t.Run
+					if t.BuildAction != nil {
+						log.Info().Msgf("[trigger:github(%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						err := s.fireBuild(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:github(%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						}
+					} else if t.ReleaseAction != nil {
+						log.Info().Msgf("[trigger:github(%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						err := s.fireRelease(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:github(%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						}
+					} else if t.BotAction != nil {
+						log.Info().Msgf("[trigger:github(%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						err := s.fireBot(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:github(%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						}
+					}
+				}(ctx, p, t, e)
+			}
+		}
+	}
+
+	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
+	for i := 0; i < cap(semaphore); i++ {
+		semaphore <- true
+	}
+
+	log.Info().Msgf("[trigger:github(%v:%v)] Fired %v out of %v triggers for %v pipelines", githubEvent.Repository, githubEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
+
+	return nil
+}
+
+func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent manifest.EstafetteBitbucketEvent) (err error) {
+
+	log.Info().Msgf("[trigger:bitbucket(%v:%v)] Checking if triggers need to be fired...", bitbucketEvent.Repository, bitbucketEvent.Event)
+
+	// retrieve all pipeline triggers
+	pipelines, err := s.cockroachdbClient.GetBitbucketTriggers(ctx, bitbucketEvent)
+	if err != nil {
+		return err
+	}
+
+	e := manifest.EstafetteEvent{
+		Fired:     true,
+		Bitbucket: &bitbucketEvent,
+	}
+
+	triggerCount := 0
+	firedTriggerCount := 0
+
+	// http://jmoiron.net/blog/limiting-concurrency-in-go/
+	semaphore := make(chan bool, s.triggerConcurrency)
+
+	// check for each trigger whether it should fire
+	for _, p := range pipelines {
+		for _, t := range p.Triggers {
+
+			log.Debug().Interface("event", bitbucketEvent).Interface("trigger", t).Msgf("[trigger:bitbucket(%v:%v)] Checking if pipeline '%v/%v/%v' trigger should fire...", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName)
+
+			if t.Bitbucket == nil {
+				continue
+			}
+
+			triggerCount++
+
+			if t.Bitbucket.Fires(&bitbucketEvent) {
+
+				firedTriggerCount++
+
+				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
+				semaphore <- true
+
+				go func(ctx context.Context, p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
+					// lower semaphore once the routine's finished, making room for another one to start
+					defer func() { <-semaphore }()
+
+					// create new build for t.Run
+					if t.BuildAction != nil {
+						log.Info().Msgf("[trigger:bitbucket(%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						err := s.fireBuild(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:bitbucket(%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						}
+					} else if t.ReleaseAction != nil {
+						log.Info().Msgf("[trigger:bitbucket(%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						err := s.fireRelease(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:bitbucket(%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						}
+					} else if t.BotAction != nil {
+						log.Info().Msgf("[trigger:bitbucket(%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						err := s.fireBot(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:bitbucket(%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						}
+
+					}
+				}(ctx, p, t, e)
+			}
+		}
+	}
+
+	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
+	for i := 0; i < cap(semaphore); i++ {
+		semaphore <- true
+	}
+
+	log.Info().Msgf("[trigger:bitbucket(%v:%v)] Fired %v out of %v triggers for %v pipelines", bitbucketEvent.Repository, bitbucketEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
 
 	return nil
 }
@@ -744,6 +1068,13 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
+					} else if t.BotAction != nil {
+						log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						err := s.fireBot(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						}
+
 					}
 				}(ctx, p, t, e)
 			}
@@ -825,6 +1156,13 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
+					} else if t.BotAction != nil {
+						log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						err := s.fireBot(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						}
+
 					}
 				}(ctx, p, t, e)
 			}
@@ -898,6 +1236,13 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:pubsub(projects/%v/topics/%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
+					} else if t.BotAction != nil {
+						log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Firing bot action '%v/%v/%v', branch '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						err := s.fireBot(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:pubsub(projects/%v/topics/%v)] Failed starting bot action '%v/%v/%v', branch '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						}
+
 					}
 				}(ctx, p, t, e)
 			}
@@ -975,6 +1320,13 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
+					} else if t.BotAction != nil {
+						log.Info().Msgf("[trigger:cron(%v)] Firing bot action '%v/%v/%v', branch '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						err := s.fireBot(ctx, *p, t, e)
+						if err != nil {
+							log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting bot action '%v/%v/%v', branch '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						}
+
 					}
 				}(ctx, p, t, e)
 			}
@@ -1090,6 +1442,24 @@ func (s *service) fireRelease(ctx context.Context, p contracts.Pipeline, t manif
 	return nil
 }
 
+func (s *service) fireBot(ctx context.Context, p contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) error {
+	if t.BotAction == nil {
+		return fmt.Errorf("Trigger to fire does not have a 'runs' property, shouldn't get to here")
+	}
+
+	_, err := s.CreateBot(ctx, contracts.Bot{
+		Name:       t.BotAction.Bot,
+		RepoSource: p.RepoSource,
+		RepoOwner:  p.RepoOwner,
+		RepoName:   p.RepoName,
+		Events:     []manifest.EstafetteEvent{e},
+	}, *p.ManifestObject, p.RepoBranch, true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *service) getShortRepoSource(repoSource string) string {
 
 	repoSourceArray := strings.Split(repoSource, ".")
@@ -1101,12 +1471,12 @@ func (s *service) getShortRepoSource(repoSource string) string {
 	return repoSourceArray[0]
 }
 
-func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource, repoOwner, repoName string) (authenticatedRepositoryURL string, environmentVariableWithToken map[string]string, err error) {
+func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource, repoOwner, repoName string) (environmentVariableWithToken map[string]string, err error) {
 
 	switch {
 	case githubapi.IsRepoSourceGithub(repoSource):
 		var accessToken string
-		accessToken, authenticatedRepositoryURL, err = s.githubJobVarsFunc(ctx, repoSource, repoOwner, repoName)
+		accessToken, err = s.githubJobVarsFunc(ctx, repoSource, repoOwner, repoName)
 		if err != nil {
 			return
 		}
@@ -1115,7 +1485,7 @@ func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource,
 
 	case bitbucketapi.IsRepoSourceBitbucket(repoSource):
 		var accessToken string
-		accessToken, authenticatedRepositoryURL, err = s.bitbucketJobVarsFunc(ctx, repoSource, repoOwner, repoName)
+		accessToken, err = s.bitbucketJobVarsFunc(ctx, repoSource, repoOwner, repoName)
 		if err != nil {
 			return
 		}
@@ -1124,7 +1494,7 @@ func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource,
 
 	case cloudsourceapi.IsRepoSourceCloudSource(repoSource):
 		var accessToken string
-		accessToken, authenticatedRepositoryURL, err = s.cloudsourceJobVarsFunc(ctx, repoSource, repoOwner, repoName)
+		accessToken, err = s.cloudsourceJobVarsFunc(ctx, repoSource, repoOwner, repoName)
 		if err != nil {
 			return
 		}
@@ -1132,7 +1502,7 @@ func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource,
 		return
 	}
 
-	return authenticatedRepositoryURL, environmentVariableWithToken, fmt.Errorf("Source %v not supported for generating authenticated repository url", repoSource)
+	return environmentVariableWithToken, fmt.Errorf("Source %v not supported for generating authenticated repository url", repoSource)
 }
 
 func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
@@ -1289,14 +1659,22 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent builder
 	return nil
 }
 
-func (s *service) SubscribeToGitEventsTopic(ctx context.Context, gitEventTopic *api.GitEventTopic) {
+func (s *service) SubscribeToEventTopic(ctx context.Context, gitEventTopic *api.EventTopic) {
 	eventChannel := gitEventTopic.Subscribe("estafette.Service")
 	for {
 		message, ok := <-eventChannel
 		if !ok {
 			break
 		}
-		s.FireGitTriggers(message.Ctx, message.Event)
+		if message.Event.Git != nil {
+			s.FireGitTriggers(message.Ctx, *message.Event.Git)
+		}
+		if message.Event.Github != nil {
+			s.FireGithubTriggers(message.Ctx, *message.Event.Github)
+		}
+		if message.Event.Bitbucket != nil {
+			s.FireBitbucketTriggers(message.Ctx, *message.Event.Bitbucket)
+		}
 	}
 }
 
@@ -1521,6 +1899,50 @@ func (s *service) getReleaseJobResources(ctx context.Context, release contracts.
 		log.Info().Msgf("Retrieved max resource utilization for recent releases of %v/%v/%v target %v only has %v records, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, nrRecords)
 	} else {
 		log.Info().Msgf("Retrieved max resource utilization for recent releases of %v/%v/%v target %v, checking if they are within lower and upper bound...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
+
+		// only override cpu and memory request values if measured values are within min and max
+		if measuredResources.CPUMaxUsage > 0 {
+			if measuredResources.CPUMaxUsage*s.config.Jobs.CPURequestRatio <= s.config.Jobs.MinCPUCores {
+				jobResources.CPURequest = s.config.Jobs.MinCPUCores
+			} else if measuredResources.CPUMaxUsage*s.config.Jobs.CPURequestRatio >= s.config.Jobs.MaxCPUCores {
+				jobResources.CPURequest = s.config.Jobs.MaxCPUCores
+			} else {
+				jobResources.CPURequest = measuredResources.CPUMaxUsage * s.config.Jobs.CPURequestRatio
+			}
+		}
+
+		if measuredResources.MemoryMaxUsage > 0 {
+			if measuredResources.MemoryMaxUsage*s.config.Jobs.MemoryRequestRatio <= s.config.Jobs.MinMemoryBytes {
+				jobResources.MemoryRequest = s.config.Jobs.MinMemoryBytes
+			} else if measuredResources.MemoryMaxUsage*s.config.Jobs.MemoryRequestRatio >= s.config.Jobs.MaxMemoryBytes {
+				jobResources.MemoryRequest = s.config.Jobs.MaxMemoryBytes
+			} else {
+				jobResources.MemoryRequest = measuredResources.MemoryMaxUsage * s.config.Jobs.MemoryRequestRatio
+			}
+		}
+	}
+
+	return jobResources
+}
+
+func (s *service) getBotJobResources(ctx context.Context, bot contracts.Bot) cockroachdb.JobResources {
+
+	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
+	jobResources := cockroachdb.JobResources{
+		CPURequest:    s.config.Jobs.MaxCPUCores,
+		CPULimit:      s.config.Jobs.MaxCPUCores,
+		MemoryRequest: s.config.Jobs.MaxMemoryBytes,
+		MemoryLimit:   s.config.Jobs.MaxMemoryBytes,
+	}
+
+	// get max usage from previous releases
+	measuredResources, nrRecords, err := s.cockroachdbClient.GetPipelineReleaseMaxResourceUtilization(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, bot.Name, 25)
+	if err != nil {
+		log.Warn().Err(err).Msgf("Failed retrieving max resource utilization for recent bots of %v/%v/%v target %v, using defaults...", bot.RepoSource, bot.RepoOwner, bot.RepoName, bot.Name)
+	} else if nrRecords < 5 {
+		log.Info().Msgf("Retrieved max resource utilization for recent bots of %v/%v/%v target %v only has %v records, using defaults...", bot.RepoSource, bot.RepoOwner, bot.RepoName, bot.Name, nrRecords)
+	} else {
+		log.Info().Msgf("Retrieved max resource utilization for recent bots of %v/%v/%v target %v, checking if they are within lower and upper bound...", bot.RepoSource, bot.RepoOwner, bot.RepoName, bot.Name)
 
 		// only override cpu and memory request values if measured values are within min and max
 		if measuredResources.CPUMaxUsage > 0 {

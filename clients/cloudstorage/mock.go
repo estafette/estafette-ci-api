@@ -6,91 +6,130 @@ package cloudstorage
 
 import (
 	context "context"
-	estafette_ci_contracts "github.com/estafette/estafette-ci-contracts"
-	gomock "github.com/golang/mock/gomock"
 	http "net/http"
 	reflect "reflect"
+
+	contracts "github.com/estafette/estafette-ci-contracts"
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockClient is a mock of Client interface
+// MockClient is a mock of Client interface.
 type MockClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockClientMockRecorder
 }
 
-// MockClientMockRecorder is the mock recorder for MockClient
+// MockClientMockRecorder is the mock recorder for MockClient.
 type MockClientMockRecorder struct {
 	mock *MockClient
 }
 
-// NewMockClient creates a new mock instance
+// NewMockClient creates a new mock instance.
 func NewMockClient(ctrl *gomock.Controller) *MockClient {
 	mock := &MockClient{ctrl: ctrl}
 	mock.recorder = &MockClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
-// InsertBuildLog mocks base method
-func (m *MockClient) InsertBuildLog(ctx context.Context, buildLog estafette_ci_contracts.BuildLog) error {
-	ret := m.ctrl.Call(m, "InsertBuildLog", ctx, buildLog)
+// GetPipelineBotLogs mocks base method.
+func (m *MockClient) GetPipelineBotLogs(ctx context.Context, botLog contracts.BotLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineBotLogs", ctx, botLog, acceptGzipEncoding, responseWriter)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// InsertBuildLog indicates an expected call of InsertBuildLog
-func (mr *MockClientMockRecorder) InsertBuildLog(ctx, buildLog interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertBuildLog", reflect.TypeOf((*MockClient)(nil).InsertBuildLog), ctx, buildLog)
+// GetPipelineBotLogs indicates an expected call of GetPipelineBotLogs.
+func (mr *MockClientMockRecorder) GetPipelineBotLogs(ctx, botLog, acceptGzipEncoding, responseWriter interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBotLogs", reflect.TypeOf((*MockClient)(nil).GetPipelineBotLogs), ctx, botLog, acceptGzipEncoding, responseWriter)
 }
 
-// InsertReleaseLog mocks base method
-func (m *MockClient) InsertReleaseLog(ctx context.Context, releaseLog estafette_ci_contracts.ReleaseLog) error {
-	ret := m.ctrl.Call(m, "InsertReleaseLog", ctx, releaseLog)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// InsertReleaseLog indicates an expected call of InsertReleaseLog
-func (mr *MockClientMockRecorder) InsertReleaseLog(ctx, releaseLog interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertReleaseLog", reflect.TypeOf((*MockClient)(nil).InsertReleaseLog), ctx, releaseLog)
-}
-
-// GetPipelineBuildLogs mocks base method
-func (m *MockClient) GetPipelineBuildLogs(ctx context.Context, buildLog estafette_ci_contracts.BuildLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) error {
+// GetPipelineBuildLogs mocks base method.
+func (m *MockClient) GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPipelineBuildLogs", ctx, buildLog, acceptGzipEncoding, responseWriter)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// GetPipelineBuildLogs indicates an expected call of GetPipelineBuildLogs
+// GetPipelineBuildLogs indicates an expected call of GetPipelineBuildLogs.
 func (mr *MockClientMockRecorder) GetPipelineBuildLogs(ctx, buildLog, acceptGzipEncoding, responseWriter interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBuildLogs", reflect.TypeOf((*MockClient)(nil).GetPipelineBuildLogs), ctx, buildLog, acceptGzipEncoding, responseWriter)
 }
 
-// GetPipelineReleaseLogs mocks base method
-func (m *MockClient) GetPipelineReleaseLogs(ctx context.Context, releaseLog estafette_ci_contracts.ReleaseLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) error {
+// GetPipelineReleaseLogs mocks base method.
+func (m *MockClient) GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPipelineReleaseLogs", ctx, releaseLog, acceptGzipEncoding, responseWriter)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// GetPipelineReleaseLogs indicates an expected call of GetPipelineReleaseLogs
+// GetPipelineReleaseLogs indicates an expected call of GetPipelineReleaseLogs.
 func (mr *MockClientMockRecorder) GetPipelineReleaseLogs(ctx, releaseLog, acceptGzipEncoding, responseWriter interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineReleaseLogs", reflect.TypeOf((*MockClient)(nil).GetPipelineReleaseLogs), ctx, releaseLog, acceptGzipEncoding, responseWriter)
 }
 
-// Rename mocks base method
+// InsertBotLog mocks base method.
+func (m *MockClient) InsertBotLog(ctx context.Context, botLog contracts.BotLog) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InsertBotLog", ctx, botLog)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// InsertBotLog indicates an expected call of InsertBotLog.
+func (mr *MockClientMockRecorder) InsertBotLog(ctx, botLog interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertBotLog", reflect.TypeOf((*MockClient)(nil).InsertBotLog), ctx, botLog)
+}
+
+// InsertBuildLog mocks base method.
+func (m *MockClient) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InsertBuildLog", ctx, buildLog)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// InsertBuildLog indicates an expected call of InsertBuildLog.
+func (mr *MockClientMockRecorder) InsertBuildLog(ctx, buildLog interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertBuildLog", reflect.TypeOf((*MockClient)(nil).InsertBuildLog), ctx, buildLog)
+}
+
+// InsertReleaseLog mocks base method.
+func (m *MockClient) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InsertReleaseLog", ctx, releaseLog)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// InsertReleaseLog indicates an expected call of InsertReleaseLog.
+func (mr *MockClientMockRecorder) InsertReleaseLog(ctx, releaseLog interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertReleaseLog", reflect.TypeOf((*MockClient)(nil).InsertReleaseLog), ctx, releaseLog)
+}
+
+// Rename mocks base method.
 func (m *MockClient) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Rename", ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Rename indicates an expected call of Rename
+// Rename indicates an expected call of Rename.
 func (mr *MockClientMockRecorder) Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rename", reflect.TypeOf((*MockClient)(nil).Rename), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }

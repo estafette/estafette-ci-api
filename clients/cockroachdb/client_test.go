@@ -285,6 +285,121 @@ func TestIntegrationUpdateReleaseResourceUtilization(t *testing.T) {
 	})
 }
 
+func TestIntegrationInsertBot(t *testing.T) {
+	t.Run("ReturnsInsertedBotWithID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		bot := getBot()
+		jobResources := getJobResources()
+
+		// act
+		insertedBot, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, insertedBot)
+		assert.True(t, insertedBot.ID != "")
+	})
+}
+
+func TestIntegrationUpdateBotStatus(t *testing.T) {
+	t.Run("UpdatesStatusForInsertedBot", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		bot := getBot()
+		jobResources := getJobResources()
+		insertedBot, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+		assert.Nil(t, err)
+		botID, err := strconv.Atoi(insertedBot.ID)
+		assert.Nil(t, err)
+
+		// act
+		err = cockroachdbClient.UpdateBotStatus(ctx, insertedBot.RepoSource, insertedBot.RepoOwner, insertedBot.RepoName, botID, contracts.StatusSucceeded)
+
+		assert.Nil(t, err)
+	})
+
+	t.Run("UpdatesStatusForNonExistingBot", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		bot := getBot()
+		botID := 15
+
+		// act
+		err := cockroachdbClient.UpdateBotStatus(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, botID, contracts.StatusSucceeded)
+
+		assert.Nil(t, err)
+	})
+}
+
+func TestIntegrationUpdateBotResourceUtilization(t *testing.T) {
+	t.Run("UpdatesJobResourceForInsertedBot", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		bot := getBot()
+		jobResources := getJobResources()
+		insertedBot, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+		assert.Nil(t, err)
+		botID, err := strconv.Atoi(insertedBot.ID)
+		assert.Nil(t, err)
+
+		newJobResources := JobResources{
+			CPURequest:    float64(0.3),
+			CPULimit:      float64(4.0),
+			MemoryRequest: float64(67108864),
+			MemoryLimit:   float64(21474836480),
+		}
+
+		// act
+		err = cockroachdbClient.UpdateBotResourceUtilization(ctx, insertedBot.RepoSource, insertedBot.RepoOwner, insertedBot.RepoName, botID, newJobResources)
+
+		assert.Nil(t, err)
+	})
+
+	t.Run("UpdatesJobResourcesForNonExistingBot", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		bot := getBot()
+		botID := 15
+
+		newJobResources := JobResources{
+			CPURequest:    float64(0.3),
+			CPULimit:      float64(4.0),
+			MemoryRequest: float64(67108864),
+			MemoryLimit:   float64(21474836480),
+		}
+
+		// act
+		err := cockroachdbClient.UpdateBotResourceUtilization(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, botID, newJobResources)
+
+		assert.Nil(t, err)
+	})
+}
+
 func TestIntegrationInsertBuildLog(t *testing.T) {
 	t.Run("ReturnsInsertedBuildLogWithIDWhenWriteLogToDatabaseIsTrue", func(t *testing.T) {
 
@@ -358,6 +473,44 @@ func TestIntegrationInsertReleaseLog(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedReleaseLog)
 		assert.True(t, insertedReleaseLog.ID != "")
+	})
+}
+
+func TestIntegrationInsertBotLog(t *testing.T) {
+	t.Run("ReturnsInsertedBotLogWithIDWhenWriteLogToDatabaseIsTrue", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		botLog := getBotLog()
+
+		// act
+		insertedBotLog, err := cockroachdbClient.InsertBotLog(ctx, botLog, true)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, insertedBotLog)
+		assert.True(t, insertedBotLog.ID != "")
+	})
+
+	t.Run("ReturnsInsertedBotLogWithIDWhenWriteLogToDatabaseIsFalse", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		botLog := getBotLog()
+
+		// act
+		insertedBotLog, err := cockroachdbClient.InsertBotLog(ctx, botLog, false)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, insertedBotLog)
+		assert.True(t, insertedBotLog.ID != "")
 	})
 }
 
@@ -731,6 +884,7 @@ func TestIngrationUpdateComputedPipelinePermissions(t *testing.T) {
 		assert.Nil(t, err)
 	})
 }
+
 func TestIngrationUpsertComputedRelease(t *testing.T) {
 	t.Run("ReturnsNoError", func(t *testing.T) {
 
@@ -1944,6 +2098,7 @@ func TestIntegrationGetOrganizationByName(t *testing.T) {
 		assert.Equal(t, retrievedOrganization.Name, insertedOrganization.Name)
 	})
 }
+
 func TestIntegrationGetOrganizations(t *testing.T) {
 	t.Run("ReturnsInsertedOrganizations", func(t *testing.T) {
 
@@ -2801,6 +2956,157 @@ func TestIntegrationGetPipelineReleasesDurations(t *testing.T) {
 	})
 }
 
+func TestIntegrationGetPipelineBotsDurations(t *testing.T) {
+	t.Run("ReturnsDurations", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		bot := getBot()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+		assert.Nil(t, err)
+
+		// act
+		durations, err := cockroachdbClient.GetPipelineBotsDurations(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, map[api.FilterType][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, len(durations) > 0)
+	})
+}
+
+func TestIntegrationGetPipelineBuilds(t *testing.T) {
+	t.Run("ReturnsBuilds", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+
+		// act
+		builds, err := cockroachdbClient.GetPipelineBuilds(ctx, build.RepoSource, build.RepoOwner, build.RepoName, 1, 10, map[api.FilterType][]string{}, []api.OrderField{}, false)
+
+		assert.Nil(t, err)
+		assert.True(t, len(builds) > 0)
+	})
+}
+
+func TestIntegrationGetPipelineBuildsCount(t *testing.T) {
+	t.Run("ReturnsBuilds", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err)
+
+		// act
+		buildCount, err := cockroachdbClient.GetPipelineBuildsCount(ctx, build.RepoSource, build.RepoOwner, build.RepoName, map[api.FilterType][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, buildCount > 0)
+	})
+}
+
+func TestIntegrationGetPipelineReleases(t *testing.T) {
+	t.Run("ReturnsReleases", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		release := getRelease()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		assert.Nil(t, err)
+
+		// act
+		releases, err := cockroachdbClient.GetPipelineReleases(ctx, release.RepoSource, release.RepoOwner, release.RepoName, 1, 10, map[api.FilterType][]string{}, []api.OrderField{})
+
+		assert.Nil(t, err)
+		assert.True(t, len(releases) > 0)
+	})
+}
+
+func TestIntegrationGetPipelineReleasesCount(t *testing.T) {
+	t.Run("ReturnsReleases", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		release := getRelease()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		assert.Nil(t, err)
+
+		// act
+		releasesCount, err := cockroachdbClient.GetPipelineReleasesCount(ctx, release.RepoSource, release.RepoOwner, release.RepoName, map[api.FilterType][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, releasesCount > 0)
+	})
+}
+
+func TestIntegrationGetPipelineBots(t *testing.T) {
+	t.Run("ReturnsBots", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		bot := getBot()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+		assert.Nil(t, err)
+
+		// act
+		bots, err := cockroachdbClient.GetPipelineBots(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, 1, 10, map[api.FilterType][]string{}, []api.OrderField{})
+
+		assert.Nil(t, err)
+		assert.True(t, len(bots) > 0)
+	})
+}
+
+func TestIntegrationGetPipelineBotsCount(t *testing.T) {
+	t.Run("ReturnsBots", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		bot := getBot()
+		jobResources := getJobResources()
+		_, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+		assert.Nil(t, err)
+
+		// act
+		botsCount, err := cockroachdbClient.GetPipelineBotsCount(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, map[api.FilterType][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, botsCount > 0)
+	})
+}
+
 func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 
 	apiConfig := &api.APIConfig{
@@ -2863,6 +3169,16 @@ func getRelease() contracts.Release {
 	}
 }
 
+func getBot() contracts.Bot {
+	return contracts.Bot{
+		RepoSource: "github.com",
+		RepoOwner:  "estafette",
+		RepoName:   "estafette-ci-api",
+		BotStatus:  contracts.StatusPending,
+		Events:     []manifest.EstafetteEvent{},
+	}
+}
+
 func getJobResources() JobResources {
 	return JobResources{
 		CPURequest:    float64(0.1),
@@ -2908,6 +3224,34 @@ func getReleaseLog() contracts.ReleaseLog {
 		RepoOwner:  "estafette",
 		RepoName:   "estafette-ci-api",
 		ReleaseID:  "15",
+		Steps: []*contracts.BuildLogStep{
+			{
+				Step: "stage-1",
+				Image: &contracts.BuildLogStepDockerImage{
+					Name: "golang",
+					Tag:  "1.14.2-alpine3.11",
+				},
+				Duration: time.Duration(1234567),
+				Status:   contracts.LogStatusSucceeded,
+				LogLines: []contracts.BuildLogLine{
+					{
+						LineNumber: 1,
+						Timestamp:  time.Now().UTC(),
+						StreamType: "stdout",
+						Text:       "ok",
+					},
+				},
+			},
+		},
+	}
+}
+
+func getBotLog() contracts.BotLog {
+	return contracts.BotLog{
+		RepoSource: "github.com",
+		RepoOwner:  "estafette",
+		RepoName:   "estafette-ci-api",
+		BotID:      "15",
 		Steps: []*contracts.BuildLogStep{
 			{
 				Step: "stage-1",

@@ -43,14 +43,6 @@ func (c *metricsClient) GetInstallationToken(ctx context.Context, installationID
 	return c.Client.GetInstallationToken(ctx, installationID)
 }
 
-func (c *metricsClient) GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error) {
-	defer func(begin time.Time) {
-		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAuthenticatedRepositoryURL", begin)
-	}(time.Now())
-
-	return c.Client.GetAuthenticatedRepositoryURL(ctx, accesstoken, htmlURL)
-}
-
 func (c *metricsClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (valid bool, manifest string, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetEstafetteManifest", begin)
@@ -59,7 +51,7 @@ func (c *metricsClient) GetEstafetteManifest(ctx context.Context, accesstoken Ac
 	return c.Client.GetEstafetteManifest(ctx, accesstoken, event)
 }
 
-func (c *metricsClient) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error) {
+func (c *metricsClient) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, error) {
 	defer func(begin time.Time) { api.UpdateMetrics(c.requestCount, c.requestLatency, "JobVarsFunc", begin) }(time.Now())
 
 	return c.Client.JobVarsFunc(ctx)

@@ -32,7 +32,7 @@ import (
 )
 
 // NewHandler returns a new estafette.Handler
-func NewHandler(configFilePath string, templatesPath string, config *api.APIConfig, encryptedConfig *api.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper api.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
+func NewHandler(configFilePath string, templatesPath string, config *api.APIConfig, encryptedConfig *api.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper api.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, error)) Handler {
 
 	return Handler{
 		configFilePath:         configFilePath,
@@ -62,9 +62,9 @@ type Handler struct {
 	buildService           Service
 	warningHelper          api.WarningHelper
 	secretHelper           crypt.SecretHelper
-	githubJobVarsFunc      func(context.Context, string, string, string) (string, string, error)
-	bitbucketJobVarsFunc   func(context.Context, string, string, string) (string, string, error)
-	cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)
+	githubJobVarsFunc      func(context.Context, string, string, string) (string, error)
+	bitbucketJobVarsFunc   func(context.Context, string, string, string) (string, error)
+	cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, error)
 }
 
 func (h *Handler) GetPipelines(c *gin.Context) {
@@ -375,7 +375,7 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 	}
 	if build.BuildStatus == contracts.StatusCanceling {
 		// apparently cancel was already clicked, but somehow the job didn't update the status to canceled
-		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), builderapi.JobTypeBuild, build.RepoOwner, build.RepoName, build.ID)
+		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeBuild, build.RepoOwner, build.RepoName, build.ID)
 		_ = h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 		_ = h.cockroachDBClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, id, contracts.StatusCanceled)
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", email)})
@@ -387,7 +387,7 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 	}
 
 	// this build can be canceled, set status 'canceling' and cancel the build job
-	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), builderapi.JobTypeBuild, build.RepoOwner, build.RepoName, build.ID)
+	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeBuild, build.RepoOwner, build.RepoName, build.ID)
 	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 	buildStatus := contracts.StatusCanceling
 	if build.BuildStatus == contracts.StatusPending {
@@ -628,7 +628,7 @@ func (h *Handler) TailPipelineBuildLogs(c *gin.Context) {
 	repo := c.Param("repo")
 	id := c.Param("revisionOrId")
 
-	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), builderapi.JobTypeBuild, owner, repo, id)
+	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeBuild, owner, repo, id)
 
 	logChannel := make(chan contracts.TailLogLine, 50)
 
@@ -969,7 +969,7 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 		return
 	}
 	if release.ReleaseStatus == contracts.StatusCanceling {
-		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "release", release.RepoOwner, release.RepoName, release.ID)
+		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeRelease, release.RepoOwner, release.RepoName, release.ID)
 		_ = h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 		_ = h.cockroachDBClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, id, contracts.StatusCanceled)
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", email)})
@@ -981,7 +981,7 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 	}
 
 	// this release can be canceled, set status 'canceling' and cancel the release job
-	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "release", release.RepoOwner, release.RepoName, release.ID)
+	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeRelease, release.RepoOwner, release.RepoName, release.ID)
 	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 	releaseStatus := contracts.StatusCanceling
 	if release.ReleaseStatus == contracts.StatusPending {
@@ -1188,7 +1188,7 @@ func (h *Handler) TailPipelineReleaseLogs(c *gin.Context) {
 	repo := c.Param("repo")
 	releaseID := c.Param("releaseId")
 
-	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), "release", owner, repo, releaseID)
+	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeRelease, owner, repo, releaseID)
 
 	logChannel := make(chan contracts.TailLogLine, 50)
 
@@ -1265,6 +1265,375 @@ func (h *Handler) PostPipelineReleaseLogs(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
+func (h *Handler) GetPipelineBots(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
+
+	response, err := api.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			bots, err := h.cockroachDBClient.GetPipelineBots(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(bots))
+			for i := range bots {
+				items[i] = bots[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachDBClient.GetPipelineBotsCount(c.Request.Context(), source, owner, repo, filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed retrieving bots for %v/%v/%v from db", source, owner, repo)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) CancelPipelineBot(c *gin.Context) {
+
+	if !api.RequestTokenIsValid(c) {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
+		return
+	}
+
+	claims := jwt.ExtractClaims(c)
+	email := claims["email"].(string)
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	idValue := c.Param("id")
+
+	log.Debug().Msgf("Canceling pipeline bot %v/%v/%v with id %v...", source, owner, repo, idValue)
+
+	id, err := strconv.Atoi(idValue)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, idValue)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		return
+	}
+
+	bot, err := h.cockroachDBClient.GetPipelineBot(c.Request.Context(), source, owner, repo, id)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed retrieving bot for %v/%v/%v/%v from db", source, owner, repo, id)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Retrieving pipeline bot failed"})
+		return
+	}
+	if bot == nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline bot not found"})
+		return
+	}
+	if bot.BotStatus == contracts.StatusCanceling {
+		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeBot, bot.RepoOwner, bot.RepoName, bot.ID)
+		_ = h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
+		_ = h.cockroachDBClient.UpdateBotStatus(c.Request.Context(), bot.RepoSource, bot.RepoOwner, bot.RepoName, id, contracts.StatusCanceled)
+		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled bot by user %v", email)})
+		return
+	}
+	if bot.BotStatus != contracts.StatusPending && bot.BotStatus != contracts.StatusRunning {
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": fmt.Sprintf("Bot with status %v cannot be canceled", bot.BotStatus)})
+		return
+	}
+
+	// this bot can be canceled, set status 'canceling' and cancel the bot job
+	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeBot, bot.RepoOwner, bot.RepoName, bot.ID)
+	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
+	botStatus := contracts.StatusCanceling
+	if bot.BotStatus == contracts.StatusPending {
+		// job might not have created a builder yet, so set status to canceled straightaway
+		botStatus = contracts.StatusCanceled
+	}
+	err = h.cockroachDBClient.UpdateBotStatus(c.Request.Context(), bot.RepoSource, bot.RepoOwner, bot.RepoName, id, botStatus)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed updating bot status for %v/%v/%v/builds/%v in db", source, owner, repo, id)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline bot status to canceling"})
+		return
+	}
+
+	log.Debug().Msgf("Updated build status for canceling pipeline bot %v/%v/%v with id %v...", source, owner, repo, idValue)
+
+	// canceling the job failed because it no longer existed we should set canceled status right after having set it to canceling
+	if errors.Is(cancelErr, builderapi.ErrJobNotFound) && bot.BotStatus == contracts.StatusRunning {
+		botStatus = contracts.StatusCanceled
+		err = h.cockroachDBClient.UpdateBotStatus(c.Request.Context(), bot.RepoSource, bot.RepoOwner, bot.RepoName, id, botStatus)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed updating bot status to canceled after setting it to canceling for %v/%v/%v/builds/%v in db", source, owner, repo, id)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline bot status to canceled"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled bot by user %v", email)})
+}
+
+func (h *Handler) GetPipelineBot(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	botIDValue := c.Param("botId")
+
+	botID, err := strconv.Atoi(botIDValue)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, botIDValue)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		return
+	}
+
+	bot, err := h.cockroachDBClient.GetPipelineBot(c.Request.Context(), source, owner, repo, botID)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed retrieving bot for %v/%v/%v/%v from db", source, owner, repo, botID)
+	}
+	if bot == nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline bot not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, bot)
+}
+
+func (h *Handler) GetPipelineBotLogs(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	botIDValue := c.Param("botId")
+
+	botID, err := strconv.Atoi(botIDValue)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, botID)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		return
+	}
+
+	botLog, err := h.cockroachDBClient.GetPipelineBotLogs(c.Request.Context(), source, owner, repo, botID, h.config.APIServer.ReadLogFromDatabase())
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed retrieving bot logs for %v/%v/%v/%v from db", source, owner, repo, botID)
+	}
+	if botLog == nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline bot log not found"})
+		return
+	}
+
+	if h.config.APIServer.ReadLogFromCloudStorage() {
+		err := h.cloudStorageClient.GetPipelineBotLogs(c.Request.Context(), *botLog, strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip"), c.Writer)
+		if err != nil {
+
+			if errors.Is(err, cloudstorage.ErrLogNotExist) {
+				log.Warn().Err(err).
+					Msgf("Failed retrieving bot logs for %v/%v/%v/%v from cloud storage", source, owner, repo, botID)
+				c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
+			}
+
+			log.Error().Err(err).
+				Msgf("Failed retrieving bot logs for %v/%v/%v/%v from cloud storage", source, owner, repo, botID)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+			return
+		}
+		c.Writer.Flush()
+		return
+	}
+
+	c.JSON(http.StatusOK, botLog.Steps)
+}
+
+func (h *Handler) GetPipelineBotLogsByID(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	botIDValue := c.Param("botId")
+	id := c.Param("id")
+
+	botID, err := strconv.Atoi(botIDValue)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, botID)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		return
+	}
+
+	botLog, err := h.cockroachDBClient.GetPipelineBotLogsByID(c.Request.Context(), source, owner, repo, botID, id, h.config.APIServer.ReadLogFromDatabase())
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed retrieving bot logs for %v/%v/%v/%v from db", source, owner, repo, botID)
+	}
+	if botLog == nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline bot log not found"})
+		return
+	}
+
+	if h.config.APIServer.ReadLogFromCloudStorage() {
+		err := h.cloudStorageClient.GetPipelineBotLogs(c.Request.Context(), *botLog, strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip"), c.Writer)
+		if err != nil {
+
+			if errors.Is(err, cloudstorage.ErrLogNotExist) {
+				log.Warn().Err(err).
+					Msgf("Failed retrieving bot logs for %v/%v/%v/%v from cloud storage", source, owner, repo, botID)
+				c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
+			}
+
+			log.Error().Err(err).
+				Msgf("Failed retrieving bot logs for %v/%v/%v/%v from cloud storage", source, owner, repo, botID)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+			return
+		}
+		c.Writer.Flush()
+		return
+	}
+
+	c.JSON(http.StatusOK, botLog.Steps)
+}
+
+func (h *Handler) GetPipelineBotLogsPerPage(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	botIDValue := c.Param("botId")
+
+	botID, err := strconv.Atoi(botIDValue)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, botIDValue)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		return
+	}
+
+	pageNumber, pageSize, _, _ := api.GetQueryParameters(c)
+
+	response, err := api.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			logs, err := h.cockroachDBClient.GetPipelineBotLogsPerPage(c.Request.Context(), source, owner, repo, botID, pageNumber, pageSize)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(logs))
+			for i := range logs {
+				items[i] = logs[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachDBClient.GetPipelineBotLogsCount(c.Request.Context(), source, owner, repo, botID)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed retrieving bot logs for %v/%v/%v with id %v from db", source, owner, repo, botID)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+
+}
+
+func (h *Handler) TailPipelineBotLogs(c *gin.Context) {
+
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	botID := c.Param("botId")
+
+	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeBot, owner, repo, botID)
+
+	logChannel := make(chan contracts.TailLogLine, 50)
+
+	go h.ciBuilderClient.TailCiBuilderJobLogs(c.Request.Context(), jobName, logChannel)
+
+	ticker := time.NewTicker(5 * time.Second)
+
+	// ensure openresty doesn't buffer this response but sends the chunks rightaway
+	c.Writer.Header().Set("X-Accel-Buffering", "no")
+
+	c.Stream(func(w io.Writer) bool {
+		select {
+		case ll, ok := <-logChannel:
+			if !ok {
+				c.SSEvent("close", true)
+				return false
+			}
+			c.SSEvent("log", ll)
+		case <-ticker.C:
+			c.SSEvent("ping", true)
+		}
+		return true
+	})
+}
+
+func (h *Handler) PostPipelineBotLogs(c *gin.Context) {
+
+	// ensure the request has the correct claims
+	claims := jwt.ExtractClaims(c)
+	job := claims["job"].(string)
+	if job == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid or has invalid claim"})
+		return
+	}
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	botIDValue := c.Param("botId")
+
+	botID, err := strconv.Atoi(botIDValue)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed reading id from path parameter for %v/%v/%v/%v", source, owner, repo, botIDValue)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "Path parameter id is not of type integer"})
+		return
+	}
+
+	var botLog contracts.BotLog
+	err = c.Bind(&botLog)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed binding bot logs for %v/%v/%v/%v", source, owner, repo, botID)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": "INTERNAL_SERVER_ERROR", "message": "Failed binding bot logs from body"})
+		return
+	}
+
+	insertedBotLog, err := h.cockroachDBClient.InsertBotLog(c.Request.Context(), botLog, h.config.APIServer.WriteLogToDatabase())
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("Failed inserting bot logs for %v/%v/%v/%v", source, owner, repo, botID)
+		c.String(http.StatusInternalServerError, "Oops, something went wrong")
+		return
+	}
+
+	if h.config.APIServer.WriteLogToCloudStorage() {
+		err = h.cloudStorageClient.InsertBotLog(c.Request.Context(), insertedBotLog)
+		if err != nil {
+			log.Error().Err(err).
+				Msgf("Failed inserting bot logs into cloud storage for %v/%v/%v/%v", source, owner, repo, botID)
+		}
+	}
+
+	c.String(http.StatusOK, "Aye aye!")
+}
+
 func (h *Handler) GetAllPipelineBuilds(c *gin.Context) {
 
 	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
@@ -1326,6 +1695,40 @@ func (h *Handler) GetAllPipelineReleases(c *gin.Context) {
 
 	if err != nil {
 		log.Error().Err(err).Msg("Failed retrieving all releases from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) GetAllPipelineBots(c *gin.Context) {
+
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
+
+	response, err := api.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			bots, err := h.cockroachDBClient.GetAllPipelineBots(c.Request.Context(), pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(bots))
+			for i := range bots {
+				items[i] = bots[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachDBClient.GetAllPipelineBotsCount(c.Request.Context(), filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving all bots from db")
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
@@ -1519,6 +1922,30 @@ func (h *Handler) GetPipelineStatsReleasesDurations(c *gin.Context) {
 	durations, err := h.cockroachDBClient.GetPipelineReleasesDurations(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving releases durations from db for %v/%v/%v", source, owner, repo)
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"durations": durations,
+	})
+}
+
+func (h *Handler) GetPipelineStatsBotsDurations(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	// get filters (?filter[last]=100)
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
+	filters[api.FilterLast] = api.GetLastFilter(c, 100)
+
+	durations, err := h.cockroachDBClient.GetPipelineBotsDurations(c.Request.Context(), source, owner, repo, filters)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving bots durations from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		return
@@ -1821,6 +2248,42 @@ func (h *Handler) GetStatsMostReleases(c *gin.Context) {
 		return
 	}
 	pipelinesCount, err := h.cockroachDBClient.GetPipelinesWithMostReleasesCount(c.Request.Context(), filters)
+	if err != nil {
+		errorMessage := "Failed retrieving pipelines count from db"
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+
+	response := contracts.ListResponse{
+		Pagination: contracts.Pagination{
+			Page:       pageNumber,
+			Size:       pageSize,
+			TotalItems: pipelinesCount,
+			TotalPages: int(math.Ceil(float64(pipelinesCount) / float64(pageSize))),
+		},
+	}
+
+	response.Items = make([]interface{}, len(pipelines))
+	for i := range pipelines {
+		response.Items[i] = pipelines[i]
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) GetStatsMostBots(c *gin.Context) {
+
+	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
+
+	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostBots(c.Request.Context(), pageNumber, pageSize, filters)
+	if err != nil {
+		errorMessage := "Failed retrieving pipelines with most bots from db"
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+	pipelinesCount, err := h.cockroachDBClient.GetPipelinesWithMostBotsCount(c.Request.Context(), filters)
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines count from db"
 		log.Error().Err(err).Msg(errorMessage)

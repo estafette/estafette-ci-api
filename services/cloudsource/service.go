@@ -26,7 +26,7 @@ type Service interface {
 }
 
 // NewService returns a new bitbucket.Service
-func NewService(config *api.APIConfig, cloudsourceapiClient cloudsourceapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, gitEventTopic *api.GitEventTopic) Service {
+func NewService(config *api.APIConfig, cloudsourceapiClient cloudsourceapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, gitEventTopic *api.EventTopic) Service {
 	return &service{
 		config:               config,
 		cloudsourceapiClient: cloudsourceapiClient,
@@ -41,7 +41,7 @@ type service struct {
 	cloudsourceapiClient cloudsourceapi.Client
 	pubsubapiClient      pubsubapi.Client
 	estafetteService     estafette.Service
-	gitEventTopic        *api.GitEventTopic
+	gitEventTopic        *api.EventTopic
 }
 
 func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error) {
@@ -75,7 +75,7 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 	}
 
 	// handle git triggers
-	s.gitEventTopic.Publish("cloudsource.Service", api.GitEventTopicMessage{Ctx: ctx, Event: gitEvent})
+	s.gitEventTopic.Publish("cloudsource.Service", api.EventTopicMessage{Ctx: ctx, Event: manifest.EstafetteEvent{Git: &gitEvent}})
 
 	// get access token
 	accessToken, err := s.cloudsourceapiClient.GetAccessToken(ctx)

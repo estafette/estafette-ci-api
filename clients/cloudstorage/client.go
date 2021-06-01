@@ -29,8 +29,10 @@ var (
 type Client interface {
 	InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error)
 	InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) (err error)
+	InsertBotLog(ctx context.Context, botLog contracts.BotLog) (err error)
 	GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error)
 	GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error)
+	GetPipelineBotLogs(ctx context.Context, botLog contracts.BotLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 }
 
@@ -70,6 +72,15 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 
 	return foundation.Retry(func() error {
 		return c.insertLog(ctx, logPath, releaseLog.Steps)
+	})
+}
+
+func (c *client) InsertBotLog(ctx context.Context, botLog contracts.BotLog) (err error) {
+
+	logPath := c.getBotLogPath(botLog)
+
+	return foundation.Retry(func() error {
+		return c.insertLog(ctx, logPath, botLog.Steps)
 	})
 }
 
@@ -141,6 +152,13 @@ func (c *client) GetPipelineReleaseLogs(ctx context.Context, releaseLog contract
 	return c.getLog(ctx, logPath, acceptGzipEncoding, responseWriter)
 }
 
+func (c *client) GetPipelineBotLogs(ctx context.Context, botLog contracts.BotLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
+
+	logPath := c.getBotLogPath(botLog)
+
+	return c.getLog(ctx, logPath, acceptGzipEncoding, responseWriter)
+}
+
 func (c *client) getLog(ctx context.Context, path string, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
 
 	bucket := c.client.Bucket(c.config.Integrations.CloudStorage.Bucket)
@@ -197,6 +215,15 @@ func (c *client) getReleaseLogPath(releaseLog contracts.ReleaseLog) (logPath str
 	logDirectory := c.getLogDirectory(releaseLog.RepoSource, releaseLog.RepoOwner, releaseLog.RepoName, "releases")
 
 	logPath = path.Join(logDirectory, fmt.Sprintf("%v.log", releaseLog.ID))
+
+	return logPath
+}
+
+func (c *client) getBotLogPath(botLog contracts.BotLog) (logPath string) {
+
+	logDirectory := c.getLogDirectory(botLog.RepoSource, botLog.RepoOwner, botLog.RepoName, "bots")
+
+	logPath = path.Join(logDirectory, fmt.Sprintf("%v.log", botLog.ID))
 
 	return logPath
 }

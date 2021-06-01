@@ -27,14 +27,6 @@ func (c *metricsClient) GetAccessToken(ctx context.Context) (accesstoken AccessT
 	return c.Client.GetAccessToken(ctx)
 }
 
-func (c *metricsClient) GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error) {
-	defer func(begin time.Time) {
-		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAuthenticatedRepositoryURL", begin)
-	}(time.Now())
-
-	return c.Client.GetAuthenticatedRepositoryURL(ctx, accesstoken, htmlURL)
-}
-
 func (c *metricsClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetEstafetteManifest", begin)
@@ -43,7 +35,7 @@ func (c *metricsClient) GetEstafetteManifest(ctx context.Context, accesstoken Ac
 	return c.Client.GetEstafetteManifest(ctx, accesstoken, event)
 }
 
-func (c *metricsClient) JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+func (c *metricsClient) JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 	defer func(begin time.Time) { api.UpdateMetrics(c.requestCount, c.requestLatency, "JobVarsFunc", begin) }(time.Now())
 
 	return c.Client.JobVarsFunc(ctx)

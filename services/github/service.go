@@ -26,6 +26,7 @@ var (
 //go:generate mockgen -package=github -destination ./mock.go -source=service.go
 type Service interface {
 	CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) (err error)
+	PublishGithubEvent(ctx context.Context, event manifest.EstafetteGithubEvent)
 	HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (validSignature bool, err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
@@ -34,7 +35,7 @@ type Service interface {
 }
 
 // NewService returns a github.Service to handle incoming webhook events
-func NewService(config *api.APIConfig, githubapiClient githubapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, gitEventTopic *api.GitEventTopic) Service {
+func NewService(config *api.APIConfig, githubapiClient githubapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, gitEventTopic *api.EventTopic) Service {
 	return &service{
 		githubapiClient:  githubapiClient,
 		pubsubapiClient:  pubsubapiClient,
@@ -49,7 +50,7 @@ type service struct {
 	pubsubapiClient  pubsubapi.Client
 	estafetteService estafette.Service
 	config           *api.APIConfig
-	gitEventTopic    *api.GitEventTopic
+	gitEventTopic    *api.EventTopic
 }
 
 func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubapi.PushEvent) (err error) {
@@ -66,7 +67,7 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 	}
 
 	// handle git triggers
-	s.gitEventTopic.Publish("github.Service", api.GitEventTopicMessage{Ctx: ctx, Event: gitEvent})
+	s.gitEventTopic.Publish("github.Service", api.EventTopicMessage{Ctx: ctx, Event: manifest.EstafetteEvent{Git: &gitEvent}})
 
 	// get access token
 	accessToken, err := s.githubapiClient.GetInstallationToken(ctx, pushEvent.Installation.ID)
@@ -136,6 +137,10 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 	}()
 
 	return nil
+}
+
+func (s *service) PublishGithubEvent(ctx context.Context, event manifest.EstafetteGithubEvent) {
+	s.gitEventTopic.Publish("github.Service", api.EventTopicMessage{Ctx: ctx, Event: manifest.EstafetteEvent{Github: &event}})
 }
 
 func (s *service) HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (bool, error) {

@@ -22,14 +22,15 @@ var (
 //go:generate mockgen -package=bitbucket -destination ./mock.go -source=service.go
 type Service interface {
 	CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error)
+	PublishBitbucketEvent(ctx context.Context, event manifest.EstafetteBitbucketEvent)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
-	IsAllowedOwner(repository bitbucketapi.Repository) (isAllowed bool, organizations []*contracts.Organization)
+	IsAllowedOwner(repository *bitbucketapi.Repository) (isAllowed bool, organizations []*contracts.Organization)
 }
 
 // NewService returns a new bitbucket.Service
-func NewService(config *api.APIConfig, bitbucketapiClient bitbucketapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, gitEventTopic *api.GitEventTopic) Service {
+func NewService(config *api.APIConfig, bitbucketapiClient bitbucketapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, gitEventTopic *api.EventTopic) Service {
 	return &service{
 		config:             config,
 		bitbucketapiClient: bitbucketapiClient,
@@ -44,7 +45,7 @@ type service struct {
 	bitbucketapiClient bitbucketapi.Client
 	pubsubapiClient    pubsubapi.Client
 	estafetteService   estafette.Service
-	gitEventTopic      *api.GitEventTopic
+	gitEventTopic      *api.EventTopic
 }
 
 func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbucketapi.RepositoryPushEvent) (err error) {
@@ -61,7 +62,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	}
 
 	// handle git triggers
-	s.gitEventTopic.Publish("bitbucket.Service", api.GitEventTopicMessage{Ctx: ctx, Event: gitEvent})
+	s.gitEventTopic.Publish("bitbucket.Service", api.EventTopicMessage{Ctx: ctx, Event: manifest.EstafetteEvent{Git: &gitEvent}})
 
 	// get access token
 	accessToken, err := s.bitbucketapiClient.GetAccessToken(ctx)
@@ -98,7 +99,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	}
 
 	// get organizations linked to integration
-	_, organizations := s.IsAllowedOwner(pushEvent.Repository)
+	_, organizations := s.IsAllowedOwner(&pushEvent.Repository)
 
 	// create build object and hand off to build service
 	_, err = s.estafetteService.CreateBuild(ctx, contracts.Build{
@@ -134,6 +135,10 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	return nil
 }
 
+func (s *service) PublishBitbucketEvent(ctx context.Context, event manifest.EstafetteBitbucketEvent) {
+	s.gitEventTopic.Publish("bitbucket.Service", api.EventTopicMessage{Ctx: ctx, Event: manifest.EstafetteEvent{Bitbucket: &event}})
+}
+
 func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
 	return s.estafetteService.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
@@ -146,10 +151,13 @@ func (s *service) Unarchive(ctx context.Context, repoSource, repoOwner, repoName
 	return s.estafetteService.Unarchive(ctx, repoSource, repoOwner, repoName)
 }
 
-func (s *service) IsAllowedOwner(repository bitbucketapi.Repository) (isAllowed bool, organizations []*contracts.Organization) {
-
+func (s *service) IsAllowedOwner(repository *bitbucketapi.Repository) (isAllowed bool, organizations []*contracts.Organization) {
 	if len(s.config.Integrations.Bitbucket.OwnerOrganizations) == 0 {
 		return true, []*contracts.Organization{}
+	}
+
+	if repository == nil {
+		return false, []*contracts.Organization{}
 	}
 
 	for _, oo := range s.config.Integrations.Bitbucket.OwnerOrganizations {

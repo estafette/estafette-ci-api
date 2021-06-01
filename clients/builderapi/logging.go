@@ -60,6 +60,6 @@ func (c *loggingClient) TailCiBuilderJobLogs(ctx context.Context, jobName string
 	return c.Client.TailCiBuilderJobLogs(ctx, jobName, logChannel)
 }
 
-func (c *loggingClient) GetJobName(ctx context.Context, jobType JobType, repoOwner, repoName, id string) string {
+func (c *loggingClient) GetJobName(ctx context.Context, jobType contracts.JobType, repoOwner, repoName, id string) string {
 	return c.Client.GetJobName(ctx, jobType, repoOwner, repoName, id)
 }

@@ -49,7 +49,7 @@ type Client interface {
 	RemoveCiBuilderSecret(ctx context.Context, secretName string) (err error)
 	RemoveCiBuilderImagePullSecret(ctx context.Context, secretName string) (err error)
 	TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error)
-	GetJobName(ctx context.Context, jobType JobType, repoOwner, repoName, id string) (jobname string)
+	GetJobName(ctx context.Context, jobType contracts.JobType, repoOwner, repoName, id string) (jobname string)
 }
 
 // NewClient returns a new estafette.Client
@@ -74,13 +74,17 @@ type client struct {
 // CreateCiBuilderJob creates an estafette-ci-builder job in Kubernetes to run the estafette build
 func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuilderParams) (job *batchv1.Job, err error) {
 
+	if err := ciBuilderParams.BuilderConfig.Validate(); err != nil {
+		return nil, err
+	}
+
 	// create job name of max 63 chars
 	jobName := c.getCiBuilderJobName(ctx, ciBuilderParams)
 
 	log.Info().Msgf("Creating job %v...", jobName)
 
 	// check # of found secrets
-	manifestBytes, err := json.Marshal(ciBuilderParams.Manifest)
+	manifestBytes, err := json.Marshal(ciBuilderParams.BuilderConfig.Manifest)
 	if err == nil {
 		c.inspectSecrets(c.secretHelper, string(manifestBytes), ciBuilderParams.GetFullRepoPath(), "manifest")
 	}
@@ -126,7 +130,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 
 	// other job config
 	repository := "estafette/estafette-ci-builder"
-	tag := ciBuilderParams.Track
+	tag := *ciBuilderParams.BuilderConfig.Track
 	image := fmt.Sprintf("%v:%v", repository, tag)
 	imagePullPolicy := v1.PullAlways
 	if ciBuilderParams.OperatingSystem != manifest.OperatingSystemWindows {
@@ -142,7 +146,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 
 	labels := map[string]string{
 		"createdBy": "estafette",
-		"jobType":   string(ciBuilderParams.JobType),
+		"jobType":   string(ciBuilderParams.BuilderConfig.JobType),
 	}
 
 	terminationGracePeriodSeconds := int64(120)
@@ -310,7 +314,7 @@ func (c *client) createCiBuilderConfigMap(ctx context.Context, ciBuilderParams C
 			Namespace: c.config.Jobs.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
-				"jobType":   string(ciBuilderParams.JobType),
+				"jobType":   string(ciBuilderParams.BuilderConfig.JobType),
 			},
 		},
 		Data: map[string]string{
@@ -336,7 +340,7 @@ func (c *client) createCiBuilderSecret(ctx context.Context, ciBuilderParams CiBu
 			Namespace: c.config.Jobs.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
-				"jobType":   string(ciBuilderParams.JobType),
+				"jobType":   string(ciBuilderParams.BuilderConfig.JobType),
 			},
 		},
 		Data: map[string][]byte{
@@ -388,7 +392,7 @@ func (c *client) createCiBuilderImagePullSecret(ctx context.Context, ciBuilderPa
 			Namespace: c.config.Jobs.Namespace,
 			Labels: map[string]string{
 				"createdBy": "estafette",
-				"jobType":   string(ciBuilderParams.JobType),
+				"jobType":   string(ciBuilderParams.BuilderConfig.JobType),
 			},
 		},
 		Type: "kubernetes.io/dockerconfigjson",
@@ -626,7 +630,7 @@ func (c *client) followPodLogs(ctx context.Context, pod *v1.Pod, jobName string,
 }
 
 // GetJobName returns the job name for a build or release job
-func (c *client) GetJobName(ctx context.Context, jobType JobType, repoOwner, repoName, id string) string {
+func (c *client) GetJobName(ctx context.Context, jobType contracts.JobType, repoOwner, repoName, id string) string {
 
 	// create job name of max 63 chars
 	maxJobNameLength := 63
@@ -652,20 +656,92 @@ func (c *client) getImagePullSecretName(jobName string) string {
 
 func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilderParams, jobName string) (contracts.BuilderConfig, error) {
 
-	// retrieve stages to filter trusted images and credentials
-	stages := ciBuilderParams.Manifest.Stages
-	if ciBuilderParams.JobType == JobTypeRelease {
+	localBuilderConfig := ciBuilderParams.BuilderConfig
 
+	if err := localBuilderConfig.Validate(); err != nil {
+		return localBuilderConfig, err
+	}
+
+	jwt, err := api.GenerateJWT(c.config, time.Duration(6)*time.Hour, jwtgo.MapClaims{
+		"job": jobName,
+	})
+	if err != nil {
+		return contracts.BuilderConfig{}, err
+	}
+
+	localBuilderConfig.JobName = &jobName
+	localBuilderConfig.CIServer = &contracts.CIServerConfig{
+		BaseURL:          c.config.APIServer.BaseURL,
+		BuilderEventsURL: strings.TrimRight(c.config.APIServer.ServiceURL, "/") + "/api/commands",
+		JWT:              jwt,
+	}
+
+	switch localBuilderConfig.JobType {
+	case contracts.JobTypeBuild:
+		localBuilderConfig.Stages = localBuilderConfig.Manifest.Stages
+
+		localBuilderConfig.CIServer.PostLogsURL = strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/builds/%v/logs", localBuilderConfig.Git.RepoSource, localBuilderConfig.Git.RepoOwner, localBuilderConfig.Git.RepoName, localBuilderConfig.Build.ID)
+
+		// deprecated
+		buildID, err := strconv.Atoi(localBuilderConfig.Build.ID)
+		if err != nil {
+			return localBuilderConfig, err
+		}
+		localBuilderConfig.BuildParams = &contracts.BuildParamsConfig{
+			BuildID: buildID,
+		}
+
+	case contracts.JobTypeRelease:
 		releaseExists := false
-		for _, r := range ciBuilderParams.Manifest.Releases {
-			if r.Name == ciBuilderParams.ReleaseName {
+		for _, r := range localBuilderConfig.Manifest.Releases {
+			if r.Name == localBuilderConfig.Release.Name {
 				releaseExists = true
-				stages = r.Stages
+				localBuilderConfig.Stages = r.Stages
 			}
 		}
 		if !releaseExists {
-			stages = []*manifest.EstafetteStage{}
+			localBuilderConfig.Stages = []*manifest.EstafetteStage{}
 		}
+
+		localBuilderConfig.CIServer.PostLogsURL = strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/releases/%v/logs", localBuilderConfig.Git.RepoSource, localBuilderConfig.Git.RepoOwner, localBuilderConfig.Git.RepoName, localBuilderConfig.Release.ID)
+
+		// get triggered by from events
+		triggeredBy := ""
+		if len(localBuilderConfig.Events) > 0 {
+			for _, e := range localBuilderConfig.Events {
+				if e.Manual != nil {
+					triggeredBy = e.Manual.UserID
+				}
+			}
+		}
+
+		// deprecated
+		releaseID, err := strconv.Atoi(localBuilderConfig.Release.ID)
+		if err != nil {
+			return localBuilderConfig, err
+		}
+		localBuilderConfig.ReleaseParams = &contracts.ReleaseParamsConfig{
+			ReleaseName:   localBuilderConfig.Release.Name,
+			ReleaseID:     releaseID,
+			ReleaseAction: localBuilderConfig.Release.Action,
+			TriggeredBy:   triggeredBy,
+		}
+		localBuilderConfig.ReleaseName = &localBuilderConfig.Release.Name
+
+	case contracts.JobTypeBot:
+		botExists := false
+		for _, b := range localBuilderConfig.Manifest.Bots {
+			if b.Name == localBuilderConfig.Bot.Name {
+				botExists = true
+				localBuilderConfig.Stages = b.Stages
+			}
+		}
+		if !botExists {
+			localBuilderConfig.Stages = []*manifest.EstafetteStage{}
+		}
+
+		localBuilderConfig.CIServer.PostLogsURL = strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/bots/%v/logs", localBuilderConfig.Git.RepoSource, localBuilderConfig.Git.RepoOwner, localBuilderConfig.Git.RepoName, localBuilderConfig.Bot.ID)
+
 	}
 
 	// get configured credentials
@@ -723,101 +799,29 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 	}
 
 	// filter to only what's needed by the build/release job
-	trustedImages := contracts.FilterTrustedImages(c.encryptedConfig.TrustedImages, stages, ciBuilderParams.GetFullRepoPath())
-	credentials = contracts.FilterCredentials(credentials, trustedImages, ciBuilderParams.GetFullRepoPath(), ciBuilderParams.RepoBranch)
+	trustedImages := contracts.FilterTrustedImages(c.encryptedConfig.TrustedImages, localBuilderConfig.Stages, ciBuilderParams.GetFullRepoPath())
+	credentials = contracts.FilterCredentials(credentials, trustedImages, ciBuilderParams.GetFullRepoPath(), localBuilderConfig.Git.RepoBranch)
 
 	// add container-registry credentials to allow private registry images to be used in stages
 	credentials = contracts.AddCredentialsIfNotPresent(credentials, contracts.FilterCredentialsByPipelinesAllowList(contracts.GetCredentialsByType(c.encryptedConfig.Credentials, "container-registry"), ciBuilderParams.GetFullRepoPath()))
 	credentials = contracts.AddCredentialsIfNotPresent(credentials, contracts.FilterCredentialsByPipelinesAllowList(contracts.GetCredentialsByType(c.encryptedConfig.Credentials, "container-registry-pull"), ciBuilderParams.GetFullRepoPath()))
 
-	localBuilderConfig := contracts.BuilderConfig{
-		Credentials:   credentials,
-		TrustedImages: trustedImages,
-	}
+	localBuilderConfig.Credentials = credentials
+	localBuilderConfig.TrustedImages = trustedImages
 
-	action := string(ciBuilderParams.JobType)
-
-	localBuilderConfig.Action = &action
-	localBuilderConfig.Track = &ciBuilderParams.Track
-	localBuilderConfig.Git = &contracts.GitConfig{
-		RepoSource:   ciBuilderParams.RepoSource,
-		RepoOwner:    ciBuilderParams.RepoOwner,
-		RepoName:     ciBuilderParams.RepoName,
-		RepoBranch:   ciBuilderParams.RepoBranch,
-		RepoRevision: ciBuilderParams.RepoRevision,
-	}
-	if ciBuilderParams.Manifest.Version.SemVer != nil {
+	if localBuilderConfig.Manifest.Version.SemVer != nil {
 		versionParams := manifest.EstafetteVersionParams{
-			AutoIncrement: ciBuilderParams.CurrentCounter,
-			Branch:        ciBuilderParams.RepoBranch,
-			Revision:      ciBuilderParams.RepoRevision,
+			AutoIncrement: localBuilderConfig.Version.CurrentCounter,
+			Branch:        localBuilderConfig.Git.RepoBranch,
+			Revision:      localBuilderConfig.Git.RepoRevision,
 		}
-		patchWithLabel := ciBuilderParams.Manifest.Version.SemVer.GetPatchWithLabel(versionParams)
-		label := ciBuilderParams.Manifest.Version.SemVer.GetLabel(versionParams)
-		localBuilderConfig.BuildVersion = &contracts.BuildVersionConfig{
-			Version:       ciBuilderParams.VersionNumber,
-			Major:         &ciBuilderParams.Manifest.Version.SemVer.Major,
-			Minor:         &ciBuilderParams.Manifest.Version.SemVer.Minor,
-			Patch:         &patchWithLabel,
-			Label:         &label,
-			AutoIncrement: &ciBuilderParams.CurrentCounter,
+		patchWithLabel := localBuilderConfig.Manifest.Version.SemVer.GetPatchWithLabel(versionParams)
+		label := localBuilderConfig.Manifest.Version.SemVer.GetLabel(versionParams)
 
-			// set counters to enable release locking for older revisions
-			CurrentCounter:          ciBuilderParams.CurrentCounter,
-			MaxCounter:              ciBuilderParams.MaxCounter,
-			MaxCounterCurrentBranch: ciBuilderParams.MaxCounterCurrentBranch,
-		}
-	} else {
-		localBuilderConfig.BuildVersion = &contracts.BuildVersionConfig{
-			Version:       ciBuilderParams.VersionNumber,
-			AutoIncrement: &ciBuilderParams.CurrentCounter,
-
-			// set counters to enable release locking for older revisions
-			CurrentCounter:          ciBuilderParams.CurrentCounter,
-			MaxCounter:              ciBuilderParams.MaxCounter,
-			MaxCounterCurrentBranch: ciBuilderParams.MaxCounterCurrentBranch,
-		}
-	}
-
-	localBuilderConfig.Manifest = &ciBuilderParams.Manifest
-
-	jwt, err := api.GenerateJWT(c.config, time.Duration(6)*time.Hour, jwtgo.MapClaims{
-		"job": jobName,
-	})
-	if err != nil {
-		return contracts.BuilderConfig{}, err
-	}
-
-	localBuilderConfig.JobName = &jobName
-	localBuilderConfig.CIServer = &contracts.CIServerConfig{
-		BaseURL:          c.config.APIServer.BaseURL,
-		BuilderEventsURL: strings.TrimRight(c.config.APIServer.ServiceURL, "/") + "/api/commands",
-		PostLogsURL:      strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/builds/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.BuildID),
-		JWT:              jwt,
-	}
-
-	if ciBuilderParams.ReleaseID > 0 {
-		localBuilderConfig.CIServer.PostLogsURL = strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/releases/%v/logs", ciBuilderParams.RepoSource, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, ciBuilderParams.ReleaseID)
-	}
-
-	if *localBuilderConfig.Action == "build" {
-		localBuilderConfig.BuildParams = &contracts.BuildParamsConfig{
-			BuildID: ciBuilderParams.BuildID,
-		}
-	}
-	if *localBuilderConfig.Action == "release" {
-		localBuilderConfig.ReleaseParams = &contracts.ReleaseParamsConfig{
-			ReleaseName:   ciBuilderParams.ReleaseName,
-			ReleaseID:     ciBuilderParams.ReleaseID,
-			ReleaseAction: ciBuilderParams.ReleaseAction,
-			TriggeredBy:   ciBuilderParams.ReleaseTriggeredBy,
-		}
-	}
-
-	localBuilderConfig.Events = make([]*manifest.EstafetteEvent, 0)
-	for _, e := range ciBuilderParams.TriggeredByEvents {
-		copiedEvent := e
-		localBuilderConfig.Events = append(localBuilderConfig.Events, &copiedEvent)
+		localBuilderConfig.Version.Major = &localBuilderConfig.Manifest.Version.SemVer.Major
+		localBuilderConfig.Version.Minor = &localBuilderConfig.Manifest.Version.SemVer.Minor
+		localBuilderConfig.Version.Patch = &patchWithLabel
+		localBuilderConfig.Version.Label = &label
 	}
 
 	if c.config != nil && c.config.APIServer != nil && c.config.APIServer.DockerConfigPerOperatingSystem != nil {
@@ -829,6 +833,11 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 			localBuilderConfig.DockerConfig = &copiedDockerConfig
 		}
 	}
+
+	// deprecated
+	action := string(ciBuilderParams.BuilderConfig.JobType)
+	localBuilderConfig.Action = &action
+	localBuilderConfig.BuildVersion = localBuilderConfig.Version
 
 	return localBuilderConfig, nil
 }
@@ -936,7 +945,7 @@ func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuil
 		}
 	}
 
-	if ciBuilderParams.OperatingSystem == manifest.OperatingSystemWindows || ciBuilderParams.Manifest.Builder.BuilderType == manifest.BuilderTypeKubernetes {
+	if ciBuilderParams.OperatingSystem == manifest.OperatingSystemWindows || ciBuilderParams.BuilderConfig.Manifest.Builder.BuilderType == manifest.BuilderTypeKubernetes {
 		workingDirectoryVolumeName := "working-directory"
 		tempDirectoryVolumeName := "temp-directory"
 
@@ -972,7 +981,7 @@ func (c *client) getCiBuilderJobEnvironmentVariables(ctx context.Context, ciBuil
 func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderParams CiBuilderParams, builderConfig contracts.BuilderConfig, jobName string) (volumes []v1.Volume, volumeMounts []v1.VolumeMount) {
 
 	storageMedium := v1.StorageMediumDefault
-	if ciBuilderParams.Manifest.Builder.StorageMedium == manifest.StorageMediumMemory {
+	if ciBuilderParams.BuilderConfig.Manifest.Builder.StorageMedium == manifest.StorageMediumMemory {
 		storageMedium = v1.StorageMediumMemory
 	}
 
@@ -1042,7 +1051,7 @@ func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderP
 		},
 	}
 
-	if ciBuilderParams.OperatingSystem == manifest.OperatingSystemWindows && ciBuilderParams.Manifest.Builder.BuilderType != manifest.BuilderTypeKubernetes {
+	if ciBuilderParams.OperatingSystem == manifest.OperatingSystemWindows && ciBuilderParams.BuilderConfig.Manifest.Builder.BuilderType != manifest.BuilderTypeKubernetes {
 		// windows builds uses docker-outside-docker, for which the hosts docker socket needs to be mounted into the ci-builder container
 		dockerSocketVolumeName := "docker-socket"
 		dockerSocketVolumeHostPath := `\\.\pipe\docker_engine`
@@ -1086,14 +1095,18 @@ func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderP
 func (c *client) getCiBuilderJobTolerations(ctx context.Context, ciBuilderParams CiBuilderParams, builderConfig contracts.BuilderConfig) (tolerations []v1.Toleration) {
 	tolerations = []v1.Toleration{}
 
-	switch ciBuilderParams.JobType {
-	case JobTypeBuild:
+	switch ciBuilderParams.BuilderConfig.JobType {
+	case contracts.JobTypeBuild:
 		if c.config.Jobs.BuildAffinityAndTolerations != nil && c.config.Jobs.BuildAffinityAndTolerations.Tolerations != nil && len(c.config.Jobs.BuildAffinityAndTolerations.Tolerations) > 0 {
 			tolerations = append(tolerations, c.config.Jobs.BuildAffinityAndTolerations.Tolerations...)
 		}
-	case JobTypeRelease:
+	case contracts.JobTypeRelease:
 		if c.config.Jobs.ReleaseAffinityAndTolerations != nil && c.config.Jobs.ReleaseAffinityAndTolerations.Tolerations != nil && len(c.config.Jobs.ReleaseAffinityAndTolerations.Tolerations) > 0 {
 			tolerations = append(tolerations, c.config.Jobs.ReleaseAffinityAndTolerations.Tolerations...)
+		}
+	case contracts.JobTypeBot:
+		if c.config.Jobs.BotAffinityAndTolerations != nil && c.config.Jobs.BotAffinityAndTolerations.Tolerations != nil && len(c.config.Jobs.BotAffinityAndTolerations.Tolerations) > 0 {
+			tolerations = append(tolerations, c.config.Jobs.BotAffinityAndTolerations.Tolerations...)
 		}
 	}
 
@@ -1112,8 +1125,8 @@ func (c *client) getCiBuilderJobTolerations(ctx context.Context, ciBuilderParams
 
 func (c *client) getCiBuilderJobAffinity(ctx context.Context, ciBuilderParams CiBuilderParams, builderConfig contracts.BuilderConfig) (affinity *v1.Affinity) {
 
-	switch ciBuilderParams.JobType {
-	case JobTypeBuild:
+	switch ciBuilderParams.BuilderConfig.JobType {
+	case contracts.JobTypeBuild:
 		if c.config.Jobs.BuildAffinityAndTolerations != nil && c.config.Jobs.BuildAffinityAndTolerations.Affinity != nil {
 
 			var deepcopyAffinity v1.Affinity
@@ -1121,11 +1134,19 @@ func (c *client) getCiBuilderJobAffinity(ctx context.Context, ciBuilderParams Ci
 
 			affinity = &deepcopyAffinity
 		}
-	case JobTypeRelease:
+	case contracts.JobTypeRelease:
 		if c.config.Jobs.ReleaseAffinityAndTolerations != nil && c.config.Jobs.ReleaseAffinityAndTolerations.Affinity != nil {
 
 			var deepcopyAffinity v1.Affinity
 			copier.CopyWithOption(&deepcopyAffinity, *c.config.Jobs.ReleaseAffinityAndTolerations.Affinity, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+
+			affinity = &deepcopyAffinity
+		}
+	case contracts.JobTypeBot:
+		if c.config.Jobs.BotAffinityAndTolerations != nil && c.config.Jobs.BotAffinityAndTolerations.Affinity != nil {
+
+			var deepcopyAffinity v1.Affinity
+			copier.CopyWithOption(&deepcopyAffinity, *c.config.Jobs.BotAffinityAndTolerations.Affinity, copier.Option{IgnoreEmpty: true, DeepCopy: true})
 
 			affinity = &deepcopyAffinity
 		}
@@ -1186,12 +1207,17 @@ func (c *client) getCiBuilderJobResources(ctx context.Context, ciBuilderParams C
 
 func (c *client) getCiBuilderJobName(ctx context.Context, ciBuilderParams CiBuilderParams) string {
 
-	id := strconv.Itoa(ciBuilderParams.BuildID)
-	if ciBuilderParams.JobType == JobTypeRelease {
-		id = strconv.Itoa(ciBuilderParams.ReleaseID)
+	var id string
+	switch ciBuilderParams.BuilderConfig.JobType {
+	case contracts.JobTypeBuild:
+		id = ciBuilderParams.BuilderConfig.Build.ID
+	case contracts.JobTypeRelease:
+		id = ciBuilderParams.BuilderConfig.Release.ID
+	case contracts.JobTypeBot:
+		id = ciBuilderParams.BuilderConfig.Bot.ID
 	}
 
-	return c.GetJobName(ctx, ciBuilderParams.JobType, ciBuilderParams.RepoOwner, ciBuilderParams.RepoName, id)
+	return c.GetJobName(ctx, ciBuilderParams.BuilderConfig.JobType, ciBuilderParams.BuilderConfig.Git.RepoOwner, ciBuilderParams.BuilderConfig.Git.RepoName, id)
 }
 
 func (c *client) inspectSecrets(secretHelper crypt.SecretHelper, input, pipeline, when string) {
