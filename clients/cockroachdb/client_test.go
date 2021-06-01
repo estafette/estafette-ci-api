@@ -3107,6 +3107,189 @@ func TestIntegrationGetPipelineBotsCount(t *testing.T) {
 	})
 }
 
+func TestGetGithubTriggers(t *testing.T) {
+	t.Run("ReturnsPipelineIfOneTriggerEventMatches", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		jobResources := getJobResources()
+		build := getBuild()
+		build.RepoName = "github-trigger-test-1"
+		build.Labels = []contracts.Label{{Key: "github-trigger-test", Value: "ReturnsPipelineIfOneTriggerEventMatches"}}
+
+		build.Triggers = []manifest.EstafetteTrigger{
+			{
+				Github: &manifest.EstafetteGithubTrigger{
+					Events: []string{
+						"commit_comment",
+						"create",
+						"delete",
+					},
+					Repository: "github.com/estafette/estafette-ci-api",
+				},
+			},
+		}
+
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err, "failed inserting first build record")
+
+		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline")
+
+		githubEvent := manifest.EstafetteGithubEvent{
+			Event:      "commit_comment",
+			Repository: "github.com/estafette/estafette-ci-api",
+			EventBody:  "{...}",
+		}
+
+		// act
+		pipelines, err := cockroachdbClient.GetGithubTriggers(ctx, githubEvent)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(pipelines))
+	})
+
+	t.Run("ReturnsNoPipelineIfNoTriggerEventMatches", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		jobResources := getJobResources()
+		build := getBuild()
+		build.RepoName = "github-trigger-test-2"
+		build.Labels = []contracts.Label{{Key: "github-trigger-test", Value: "ReturnsNoPipelineIfNoTriggerEventMatches"}}
+
+		build.Triggers = []manifest.EstafetteTrigger{
+			{
+				Github: &manifest.EstafetteGithubTrigger{
+					Events: []string{
+						"marketplace_purchase",
+						"member",
+						"membership",
+					},
+					Repository: "github.com/estafette/estafette-ci-api",
+				},
+			},
+		}
+
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err, "failed inserting first build record")
+
+		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline")
+
+		githubEvent := manifest.EstafetteGithubEvent{
+			Event:      "deployment_status",
+			Repository: "github.com/estafette/estafette-ci-api",
+			EventBody:  "{...}",
+		}
+
+		// act
+		pipelines, err := cockroachdbClient.GetGithubTriggers(ctx, githubEvent)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(pipelines))
+	})
+}
+
+func TestGetBitbucketTriggers(t *testing.T) {
+	t.Run("ReturnsPipelineIfOneTriggerEventMatches", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		jobResources := getJobResources()
+		build := getBuild()
+		build.RepoName = "github-trigger-test-1"
+		build.Labels = []contracts.Label{{Key: "github-trigger-test", Value: "ReturnsPipelineIfOneTriggerEventMatches"}}
+
+		build.Triggers = []manifest.EstafetteTrigger{
+			{
+				Bitbucket: &manifest.EstafetteBitbucketTrigger{
+					Events: []string{
+						"pullrequest:created",
+						"pullrequest:updated",
+						"pullrequest:approved",
+					},
+					Repository: "bitbucket.org/estafette/estafette-ci-api",
+				},
+			},
+		}
+
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err, "failed inserting first build record")
+
+		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline")
+
+		bitbucketEvent := manifest.EstafetteBitbucketEvent{
+			Event:      "pullrequest:updated",
+			Repository: "bitbucket.org/estafette/estafette-ci-api",
+			EventBody:  "{...}",
+		}
+
+		// act
+		pipelines, err := cockroachdbClient.GetBitbucketTriggers(ctx, bitbucketEvent)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(pipelines))
+	})
+
+	t.Run("ReturnsNoPipelineIfNoTriggerEventMatches", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		jobResources := getJobResources()
+		build := getBuild()
+		build.RepoName = "bitbucket-trigger-test-2"
+		build.Labels = []contracts.Label{{Key: "bitbucket-trigger-test", Value: "ReturnsNoPipelineIfNoTriggerEventMatches"}}
+		build.Triggers = []manifest.EstafetteTrigger{
+			{
+				Bitbucket: &manifest.EstafetteBitbucketTrigger{
+					Events: []string{
+						"repo:commit_comment_created",
+						"repo:commit_status_created",
+						"repo:commit_status_updated",
+					},
+					Repository: "bitbucket.org/estafette/estafette-ci-api",
+				},
+			},
+		}
+
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err, "failed inserting first build record")
+
+		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline")
+
+		bitbucketEvent := manifest.EstafetteBitbucketEvent{
+			Event:      "issue:created",
+			Repository: "bitbucket.org/estafette/estafette-ci-api",
+			EventBody:  "{...}",
+		}
+
+		// act
+		pipelines, err := cockroachdbClient.GetBitbucketTriggers(ctx, bitbucketEvent)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(pipelines))
+	})
+}
+
 func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 
 	apiConfig := &api.APIConfig{
