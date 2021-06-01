@@ -202,7 +202,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 		})
 	}
 
-	job, err = c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Create(job)
+	job, err = c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Create(ctx, job, metav1.CreateOptions{})
 	if err != nil {
 		return job, errors.Wrapf(err, "Failed creating job %v job...", jobName)
 	}
@@ -218,7 +218,7 @@ func (c *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err er
 	log.Info().Msgf("Removing job %v after completion...", jobName)
 
 	// check if job exists
-	job, err := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Get(jobName, metav1.GetOptions{})
+	job, err := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Get(ctx, jobName, metav1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(ErrJobNotFound, "Job %v does not exist: %v", jobName, err)
 	}
@@ -247,7 +247,7 @@ func (c *client) CancelCiBuilderJob(ctx context.Context, jobName string) (err er
 	log.Info().Msgf("Canceling job %v...", jobName)
 
 	// check if job exists
-	job, err := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Get(jobName, metav1.GetOptions{})
+	job, err := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Get(ctx, jobName, metav1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(ErrJobNotFound, "Job %v does not exist: %v", jobName, err)
 	}
@@ -272,7 +272,7 @@ func (c *client) awaitCiBuilderJob(ctx context.Context, job *batchv1.Job) (err e
 
 		// watch for job updates
 		timeoutSeconds := int64(300)
-		watcher, err := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Watch(metav1.ListOptions{
+		watcher, err := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Watch(ctx, metav1.ListOptions{
 			FieldSelector:  fields.OneTermEqualSelector("metadata.name", job.Name).String(),
 			TimeoutSeconds: &timeoutSeconds,
 		})
@@ -322,7 +322,7 @@ func (c *client) createCiBuilderConfigMap(ctx context.Context, ciBuilderParams C
 		},
 	}
 
-	_, err = c.kubeClientset.CoreV1().ConfigMaps(c.config.Jobs.Namespace).Create(configmap)
+	_, err = c.kubeClientset.CoreV1().ConfigMaps(c.config.Jobs.Namespace).Create(ctx, configmap, metav1.CreateOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "Creating configmap %v failed", builderConfigConfigmapName)
 	}
@@ -348,7 +348,7 @@ func (c *client) createCiBuilderSecret(ctx context.Context, ciBuilderParams CiBu
 		},
 	}
 
-	_, err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Create(secret)
+	_, err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Create(ctx, secret, metav1.CreateOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "Creating secret %v failed", decryptionKeySecretName)
 	}
@@ -401,7 +401,7 @@ func (c *client) createCiBuilderImagePullSecret(ctx context.Context, ciBuilderPa
 		},
 	}
 
-	_, err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Create(secret)
+	_, err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Create(ctx, secret, metav1.CreateOptions{})
 	if err != nil {
 		return false, errors.Wrapf(err, "Creating secret %v failed", imagePullSecretName)
 	}
@@ -416,14 +416,14 @@ func (c *client) RemoveCiBuilderConfigMap(ctx context.Context, jobName string) (
 	configmapName := jobName
 
 	// check if configmap exists
-	_, err = c.kubeClientset.CoreV1().ConfigMaps(c.config.Jobs.Namespace).Get(configmapName, metav1.GetOptions{})
+	_, err = c.kubeClientset.CoreV1().ConfigMaps(c.config.Jobs.Namespace).Get(ctx, configmapName, metav1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "Get call for configmap %v failed", configmapName)
 	}
 
 	// delete configmap
 	propagationPolicy := metav1.DeletePropagationForeground
-	err = c.kubeClientset.CoreV1().ConfigMaps(c.config.Jobs.Namespace).Delete(configmapName, &metav1.DeleteOptions{
+	err = c.kubeClientset.CoreV1().ConfigMaps(c.config.Jobs.Namespace).Delete(ctx, configmapName, metav1.DeleteOptions{
 		PropagationPolicy: &propagationPolicy,
 	})
 	if err != nil {
@@ -440,14 +440,14 @@ func (c *client) RemoveCiBuilderSecret(ctx context.Context, jobName string) (err
 	secretName := jobName
 
 	// check if secret exists
-	_, err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Get(secretName, metav1.GetOptions{})
+	_, err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Get(ctx, secretName, metav1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "Get call for secret %v failed", secretName)
 	}
 
 	// delete secret
 	propagationPolicy := metav1.DeletePropagationForeground
-	err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Delete(secretName, &metav1.DeleteOptions{
+	err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Delete(ctx, secretName, metav1.DeleteOptions{
 		PropagationPolicy: &propagationPolicy,
 	})
 	if err != nil {
@@ -464,14 +464,14 @@ func (c *client) RemoveCiBuilderImagePullSecret(ctx context.Context, jobName str
 	secretName := c.getImagePullSecretName(jobName)
 
 	// check if secret exists
-	_, err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Get(secretName, metav1.GetOptions{})
+	_, err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Get(ctx, secretName, metav1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "Get call for secret %v failed", secretName)
 	}
 
 	// delete secret
 	propagationPolicy := metav1.DeletePropagationForeground
-	err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Delete(secretName, &metav1.DeleteOptions{
+	err = c.kubeClientset.CoreV1().Secrets(c.config.Jobs.Namespace).Delete(ctx, secretName, metav1.DeleteOptions{
 		PropagationPolicy: &propagationPolicy,
 	})
 	if err != nil {
@@ -487,7 +487,7 @@ func (c *client) removeCiBuilderJobCore(ctx context.Context, job *batchv1.Job) (
 
 	// delete job
 	propagationPolicy := metav1.DeletePropagationForeground
-	removeJobErr := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Delete(job.Name, &metav1.DeleteOptions{
+	removeJobErr := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Delete(ctx, job.Name, metav1.DeleteOptions{
 		PropagationPolicy: &propagationPolicy,
 	})
 	removeConfigmapErr := c.RemoveCiBuilderConfigMap(ctx, job.Name)
@@ -524,7 +524,7 @@ func (c *client) TailCiBuilderJobLogs(ctx context.Context, jobName string, logCh
 	labelSelector := labels.Set{
 		"job-name": jobName,
 	}
-	pods, err := c.kubeClientset.CoreV1().Pods(c.config.Jobs.Namespace).List(metav1.ListOptions{
+	pods, err := c.kubeClientset.CoreV1().Pods(c.config.Jobs.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector.String(),
 	})
 
@@ -559,7 +559,7 @@ func (c *client) waitIfPodIsPending(ctx context.Context, labelSelector labels.Se
 
 		// watch for pod to go into Running state (or out of Pending state)
 		timeoutSeconds := int64(300)
-		watcher, err := c.kubeClientset.CoreV1().Pods(c.config.Jobs.Namespace).Watch(metav1.ListOptions{
+		watcher, err := c.kubeClientset.CoreV1().Pods(c.config.Jobs.Namespace).Watch(ctx, metav1.ListOptions{
 			LabelSelector:  labelSelector.String(),
 			TimeoutSeconds: &timeoutSeconds,
 		})
@@ -596,7 +596,7 @@ func (c *client) followPodLogs(ctx context.Context, pod *v1.Pod, jobName string,
 	req := c.kubeClientset.CoreV1().Pods(c.config.Jobs.Namespace).GetLogs(pod.Name, &v1.PodLogOptions{
 		Follow: true,
 	})
-	logsStream, err := req.Stream()
+	logsStream, err := req.Stream(ctx)
 	if err != nil {
 		return errors.Wrapf(err, "Failed opening logs stream for pod %v for job %v", pod.Name, jobName)
 	}
