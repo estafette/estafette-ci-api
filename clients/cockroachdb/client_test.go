@@ -3107,6 +3107,92 @@ func TestIntegrationGetPipelineBotsCount(t *testing.T) {
 	})
 }
 
+func TestGetGitTriggers(t *testing.T) {
+	t.Run("ReturnsPipelineIfTriggerEventAndRepositoryMatch", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		jobResources := getJobResources()
+		build := getBuild()
+		build.RepoName = "github-trigger-test-1"
+		build.Labels = []contracts.Label{{Key: "github-trigger-test", Value: "ReturnsPipelineIfOneTriggerEventMatches"}}
+
+		build.Triggers = []manifest.EstafetteTrigger{
+			{
+				Git: &manifest.EstafetteGitTrigger{
+					Event:      "push",
+					Repository: "github.com/estafette/estafette-ci-api",
+					Branch:     "main",
+				},
+			},
+		}
+
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err, "failed inserting first build record")
+
+		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline")
+
+		gitEvent := manifest.EstafetteGitEvent{
+			Event:      "push",
+			Repository: "github.com/estafette/estafette-ci-api",
+			Branch:     "main",
+		}
+
+		// act
+		pipelines, err := cockroachdbClient.GetGitTriggers(ctx, gitEvent)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(pipelines))
+	})
+
+	t.Run("ReturnsNoPipelineIfTriggerEventDoesNotMatch", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		jobResources := getJobResources()
+		build := getBuild()
+		build.RepoName = "git-trigger-test-2"
+		build.Labels = []contracts.Label{{Key: "git-trigger-test", Value: "ReturnsNoPipelineIfNoTriggerEventMatches"}}
+
+		build.Triggers = []manifest.EstafetteTrigger{
+			{
+				Git: &manifest.EstafetteGitTrigger{
+					Event:      "push",
+					Repository: "github.com/estafette/estafette-ci-api",
+					Branch:     "main",
+				},
+			},
+		}
+
+		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err, "failed inserting first build record")
+
+		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
+		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		assert.Nil(t, err, "failed upserting computed pipeline")
+
+		gitEvent := manifest.EstafetteGitEvent{
+			Event:      "release",
+			Repository: "github.com/estafette/estafette-ci-api",
+			Branch:     "main",
+		}
+
+		// act
+		pipelines, err := cockroachdbClient.GetGitTriggers(ctx, gitEvent)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(pipelines))
+	})
+}
+
 func TestGetGithubTriggers(t *testing.T) {
 	t.Run("ReturnsPipelineIfOneTriggerEventMatches", func(t *testing.T) {
 		if testing.Short() {

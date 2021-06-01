@@ -5676,65 +5676,43 @@ func (c *client) GetTriggers(ctx context.Context, triggerType, identifier, event
 
 	switch triggerType {
 	case "pipeline":
-
 		trigger.Pipeline = &manifest.EstafettePipelineTrigger{
 			Event: event,
 			Name:  identifier,
 		}
 
-		break
-
 	case "release":
-
 		trigger.Release = &manifest.EstafetteReleaseTrigger{
 			Event: event,
 			Name:  identifier,
 		}
 
-		break
-
 	case "cron":
-
 		trigger.Cron = &manifest.EstafetteCronTrigger{}
 
-		break
-
 	case "git":
-
 		trigger.Git = &manifest.EstafetteGitTrigger{
 			Event:      event,
 			Repository: identifier,
 		}
 
-		break
-
 	case "pubsub":
-
 		trigger.PubSub = &manifest.EstafettePubSubTrigger{}
 
-		break
-
 	case "github":
-
 		trigger.Github = &manifest.EstafetteGithubTrigger{
 			Events:     []string{event},
 			Repository: identifier,
 		}
 
-		break
-
 	case "bitbucket":
-
 		trigger.Bitbucket = &manifest.EstafetteBitbucketTrigger{
 			Events:     []string{event},
 			Repository: identifier,
 		}
 
-		break
-
 	default:
-
-		return pipelines, fmt.Errorf("Trigger type %v is not supported", triggerType)
+		return pipelines, fmt.Errorf("trigger type %v is not supported", triggerType)
 	}
 
 	bytes, err := json.Marshal([]manifest.EstafetteTrigger{trigger})
