@@ -8,50 +8,20 @@ import (
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
 
-type JobType string
-
-const (
-	JobTypeUnknown JobType = ""
-	JobTypeBuild   JobType = "build"
-	JobTypeRelease JobType = "release"
-	JobTypeBot     JobType = "bot"
-)
-
 // CiBuilderParams contains the parameters required to create a ci builder job
 type CiBuilderParams struct {
-	JobType                 JobType
-	RepoSource              string
-	RepoOwner               string
-	RepoName                string
-	RepoURL                 string
-	RepoBranch              string
-	RepoRevision            string
-	EnvironmentVariables    map[string]string
-	Track                   string
-	OperatingSystem         manifest.OperatingSystem
-	CurrentCounter          int
-	MaxCounter              int
-	MaxCounterCurrentBranch int
-	VersionNumber           string
-	//HasValidManifest     bool
-	Manifest           manifest.EstafetteManifest
-	ReleaseName        string
-	ReleaseAction      string
-	ReleaseID          int
-	ReleaseTriggeredBy string
-
-	BotName        string
-	BotID          int
-	BotTriggeredBy string
-
-	BuildID           int
-	TriggeredByEvents []manifest.EstafetteEvent
-	JobResources      cockroachdb.JobResources
+	BuilderConfig        contracts.BuilderConfig
+	EnvironmentVariables map[string]string
+	OperatingSystem      manifest.OperatingSystem
+	JobResources         cockroachdb.JobResources
 }
 
 // GetFullRepoPath returns the full path of the pipeline / build / release repository with source, owner and name
 func (cbp *CiBuilderParams) GetFullRepoPath() string {
-	return fmt.Sprintf("%v/%v/%v", cbp.RepoSource, cbp.RepoOwner, cbp.RepoName)
+	if cbp.BuilderConfig.Git == nil {
+		return ""
+	}
+	return fmt.Sprintf("%v/%v/%v", cbp.BuilderConfig.Git.RepoSource, cbp.BuilderConfig.Git.RepoOwner, cbp.BuilderConfig.Git.RepoName)
 }
 
 type ZeroLogLine struct {

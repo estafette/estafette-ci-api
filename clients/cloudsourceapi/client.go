@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/estafette/estafette-ci-api/api"
 	"golang.org/x/oauth2"
@@ -19,9 +18,8 @@ import (
 //go:generate mockgen -package=cloudsourceapi -destination ./mock.go -source=client.go
 type Client interface {
 	GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error)
-	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, notification PubSubNotification, gitClone func(string, string, string) error) (valid bool, manifest string, err error)
-	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error)
+	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error)
 }
 
 // NewClient creates an cloudsource.Client to communicate with the Google Cloud Source Repository api
@@ -61,13 +59,6 @@ func (c *client) GetAccessToken(ctx context.Context) (accesstoken AccessToken, e
 		RefreshToken: token.RefreshToken,
 		TokenType:    token.TokenType,
 	}
-
-	return
-}
-
-func (c *client) GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error) {
-
-	url = strings.Replace(htmlURL, "https://source.developers.google.com", fmt.Sprintf("https://estafette:%v@source.developers.google.com", accesstoken.AccessToken), -1)
 
 	return
 }
@@ -122,20 +113,14 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessTok
 }
 
 // JobVarsFunc returns a function that can get an access token and authenticated url for a repository
-func (c *client) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error) {
-	return func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+func (c *client) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, error) {
+	return func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 		// get access token
 		accesstoken, err := c.GetAccessToken(ctx)
 		if err != nil {
 			return
 		}
 		token = accesstoken.AccessToken
-
-		// get authenticated url for the repository
-		url, err = c.GetAuthenticatedRepositoryURL(ctx, accesstoken, fmt.Sprintf("https://%v/p/%v/r/%v", repoSource, repoOwner, repoName))
-		if err != nil {
-			return
-		}
 
 		return
 	}

@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -26,9 +25,8 @@ type Client interface {
 	GetGithubAppToken(ctx context.Context) (token string, err error)
 	GetInstallationID(ctx context.Context, repoOwner string) (installationID int, err error)
 	GetInstallationToken(ctx context.Context, installationID int) (token AccessToken, err error)
-	GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (valid bool, manifest string, err error)
-	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error)
+	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error)
 }
 
 // NewClient creates an githubapi.Client to communicate with the Github api
@@ -142,14 +140,6 @@ func (c *client) GetInstallationToken(ctx context.Context, installationID int) (
 	return
 }
 
-// GetAuthenticatedRepositoryURL returns a repository url with a time-limited access token embedded
-func (c *client) GetAuthenticatedRepositoryURL(ctx context.Context, accessToken AccessToken, htmlURL string) (url string, err error) {
-
-	url = strings.Replace(htmlURL, "https://github.com", fmt.Sprintf("https://x-access-token:%v@github.com", accessToken.Token), -1)
-
-	return
-}
-
 func (c *client) GetEstafetteManifest(ctx context.Context, accessToken AccessToken, pushEvent PushEvent) (exists bool, manifest string, err error) {
 
 	// https://developer.github.com/v3/repos/contents/
@@ -192,27 +182,21 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accessToken AccessTok
 }
 
 // JobVarsFunc returns a function that can get an access token and authenticated url for a repository
-func (c *client) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error) {
-	return func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+func (c *client) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, error) {
+	return func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 		// get installation id with just the repo owner
 		installationID, err := c.GetInstallationID(ctx, repoOwner)
 		if err != nil {
-			return "", "", err
+			return "", err
 		}
 
 		// get access token
 		accessToken, err := c.GetInstallationToken(ctx, installationID)
 		if err != nil {
-			return "", "", err
+			return "", err
 		}
 
-		// get authenticated url for the repository
-		url, err = c.GetAuthenticatedRepositoryURL(ctx, accessToken, fmt.Sprintf("https://%v/%v/%v", repoSource, repoOwner, repoName))
-		if err != nil {
-			return "", "", err
-		}
-
-		return accessToken.Token, url, nil
+		return accessToken.Token, nil
 	}
 }
 

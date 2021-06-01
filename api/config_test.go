@@ -190,11 +190,15 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "extensions/envvars:stable", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Build.Before[0].ContainerImage)
 		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Release.After[0].Name)
 		assert.Equal(t, "extensions/envvars:dev", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Release.After[0].ContainerImage)
+		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Bot.After[0].Name)
+		assert.Equal(t, "extensions/envvars:dev", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Bot.After[0].ContainerImage)
 
 		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemWindows].Build.Before[0].Name)
 		assert.Equal(t, "extensions/envvars:windowsservercore-ltsc2019", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemWindows].Build.Before[0].ContainerImage)
 		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemWindows].Release.After[0].Name)
 		assert.Equal(t, "extensions/envvars:windowsservercore-ltsc2019", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemWindows].Release.After[0].ContainerImage)
+		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemWindows].Bot.After[0].Name)
+		assert.Equal(t, "extensions/envvars:windowsservercore-ltsc2019", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemWindows].Bot.After[0].ContainerImage)
 
 		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell[manifest.OperatingSystemLinux]["/bin/sh"].Before))
 		assert.Equal(t, 0, len(apiServerConfig.InjectCommandsPerOperatingSystemAndShell[manifest.OperatingSystemLinux]["/bin/sh"].After))
@@ -371,6 +375,39 @@ func TestReadConfigFromFile(t *testing.T) {
 				Effect:   v1.TaintEffectNoSchedule,
 			},
 		}, jobsConfig.ReleaseAffinityAndTolerations.Tolerations)
+
+		// bot affinity
+		assert.Equal(t, v1.Affinity{
+			NodeAffinity: &v1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+					NodeSelectorTerms: []v1.NodeSelectorTerm{
+						{
+							MatchExpressions: []v1.NodeSelectorRequirement{
+								{
+									Key:      "role",
+									Operator: v1.NodeSelectorOpIn,
+									Values:   []string{"privileged"},
+								},
+								{
+									Key:      "cloud.google.com/gke-preemptible",
+									Operator: v1.NodeSelectorOpDoesNotExist,
+								},
+							},
+						},
+					},
+				},
+			},
+		}, *jobsConfig.BotAffinityAndTolerations.Affinity)
+
+		// bot tolerations
+		assert.Equal(t, []v1.Toleration{
+			{
+				Key:      "role",
+				Operator: v1.TolerationOpEqual,
+				Value:    "privileged",
+				Effect:   v1.TaintEffectNoSchedule,
+			},
+		}, jobsConfig.BotAffinityAndTolerations.Tolerations)
 	})
 
 	t.Run("ReturnsDatabaseConfig", func(t *testing.T) {

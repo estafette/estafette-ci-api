@@ -66,7 +66,7 @@ func (mr *MockClientMockRecorder) CreateCiBuilderJob(ctx, params interface{}) *g
 }
 
 // GetJobName mocks base method.
-func (m *MockClient) GetJobName(ctx context.Context, jobType JobType, repoOwner, repoName, id string) string {
+func (m *MockClient) GetJobName(ctx context.Context, jobType estafette_ci_contracts.JobType, repoOwner, repoName, id string) string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetJobName", ctx, jobType, repoOwner, repoName, id)
 	ret0, _ := ret[0].(string)

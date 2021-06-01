@@ -24,13 +24,6 @@ func (c *tracingClient) GetAccessToken(ctx context.Context) (accesstoken AccessT
 	return c.Client.GetAccessToken(ctx)
 }
 
-func (c *tracingClient) GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (url string, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAuthenticatedRepositoryURL"))
-	defer func() { api.FinishSpanWithError(span, err) }()
-
-	return c.Client.GetAuthenticatedRepositoryURL(ctx, accesstoken, htmlURL)
-}
-
 func (c *tracingClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetEstafetteManifest"))
 	defer func() { api.FinishSpanWithError(span, err) }()
@@ -38,7 +31,7 @@ func (c *tracingClient) GetEstafetteManifest(ctx context.Context, accesstoken Ac
 	return c.Client.GetEstafetteManifest(ctx, accesstoken, event)
 }
 
-func (c *tracingClient) JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+func (c *tracingClient) JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "JobVarsFunc"))
 	defer func() { api.FinishSpan(span) }()
 

@@ -89,6 +89,11 @@ apiServer:
         after:
         - name: envvars
           image: extensions/envvars:dev
+      bot:
+        before: []
+        after:
+        - name: envvars
+          image: extensions/envvars:dev
     windows:
       build:
         before:
@@ -96,6 +101,11 @@ apiServer:
           image: extensions/envvars:windowsservercore-ltsc2019
         after: []
       release:
+        before: []
+        after:
+        - name: envvars
+          image: extensions/envvars:windowsservercore-ltsc2019
+      bot:
         before: []
         after:
         - name: envvars
@@ -203,6 +213,24 @@ jobs:
       effect: NoSchedule
 
   release:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: role
+              operator: In
+              values:
+              - privileged
+            - key: cloud.google.com/gke-preemptible
+              operator: DoesNotExist
+    tolerations:
+    - key: role
+      operator: Equal
+      value: privileged
+      effect: NoSchedule
+
+  bot:
     affinity:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:

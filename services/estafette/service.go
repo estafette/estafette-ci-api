@@ -57,7 +57,7 @@ type Service interface {
 }
 
 // NewService returns a new estafette.Service
-func NewService(config *api.APIConfig, cockroachdbClient cockroachdb.Client, secretHelper crypt.SecretHelper, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Service {
+func NewService(config *api.APIConfig, cockroachdbClient cockroachdb.Client, secretHelper crypt.SecretHelper, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, error)) Service {
 
 	return &service{
 		config:                 config,
@@ -80,9 +80,9 @@ type service struct {
 	prometheusClient       prometheus.Client
 	cloudStorageClient     cloudstorage.Client
 	builderapiClient       builderapi.Client
-	githubJobVarsFunc      func(context.Context, string, string, string) (string, string, error)
-	bitbucketJobVarsFunc   func(context.Context, string, string, string) (string, string, error)
-	cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)
+	githubJobVarsFunc      func(context.Context, string, string, string) (string, error)
+	bitbucketJobVarsFunc   func(context.Context, string, string, string) (string, error)
+	cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, error)
 	triggerConcurrency     int
 }
 
@@ -160,7 +160,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	build.Triggers = s.getBuildTriggers(build, hasValidManifest, mft, pipeline)
 
 	// get authenticated url
-	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+	environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 	if err != nil {
 		return
 	}
@@ -192,11 +192,6 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 		return nil, ErrNoBuildCreated
 	}
 
-	buildID, err := strconv.Atoi(createdBuild.ID)
-	if err != nil {
-		return
-	}
-
 	triggeredByEvents, err := s.GetEventsForJobEnvvars(ctx, build.Triggers, build.Events)
 	if err != nil {
 		return
@@ -204,24 +199,30 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 
 	// define ci builder params
 	ciBuilderParams := builderapi.CiBuilderParams{
-		JobType:                 builderapi.JobTypeBuild,
-		RepoSource:              build.RepoSource,
-		RepoOwner:               build.RepoOwner,
-		RepoName:                build.RepoName,
-		RepoURL:                 authenticatedRepositoryURL,
-		RepoBranch:              build.RepoBranch,
-		RepoRevision:            build.RepoRevision,
-		EnvironmentVariables:    environmentVariableWithToken,
-		Track:                   builderTrack,
-		OperatingSystem:         builderOperatingSystem,
-		CurrentCounter:          currentCounter,
-		MaxCounter:              maxCounter,
-		MaxCounterCurrentBranch: maxCounterCurrentBranch,
-		VersionNumber:           build.BuildVersion,
-		Manifest:                mft,
-		BuildID:                 buildID,
-		TriggeredByEvents:       triggeredByEvents,
-		JobResources:            jobResources,
+		BuilderConfig: contracts.BuilderConfig{
+			JobType: contracts.JobTypeBuild,
+			Git: &contracts.GitConfig{
+				RepoSource:   build.RepoSource,
+				RepoOwner:    build.RepoOwner,
+				RepoName:     build.RepoName,
+				RepoBranch:   build.RepoBranch,
+				RepoRevision: build.RepoRevision,
+			},
+			Track: &builderTrack,
+			Version: &contracts.VersionConfig{
+				Version:                 build.BuildVersion,
+				CurrentCounter:          currentCounter,
+				AutoIncrement:           &currentCounter,
+				MaxCounter:              maxCounter,
+				MaxCounterCurrentBranch: maxCounterCurrentBranch,
+			},
+			Manifest: &mft,
+			Build:    createdBuild,
+			Events:   triggeredByEvents,
+		},
+		EnvironmentVariables: environmentVariableWithToken,
+		OperatingSystem:      builderOperatingSystem,
+		JobResources:         jobResources,
 	}
 
 	// create ci builder job
@@ -414,7 +415,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	currentCounter := s.getVersionCounter(ctx, release.ReleaseVersion, mft)
 
 	// get authenticated url
-	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, release.RepoSource, release.RepoOwner, release.RepoName)
+	environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, release.RepoSource, release.RepoOwner, release.RepoName)
 	if err != nil {
 		return
 	}
@@ -439,21 +440,6 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	}
 	if createdRelease == nil {
 		return nil, ErrNoReleaseCreated
-	}
-
-	insertedReleaseID, err := strconv.Atoi(createdRelease.ID)
-	if err != nil {
-		return
-	}
-
-	// get triggered by from events
-	triggeredBy := ""
-	if len(release.Events) > 0 {
-		for _, e := range release.Events {
-			if e.Manual != nil {
-				triggeredBy = e.Manual.UserID
-			}
-		}
 	}
 
 	maxCounter := currentCounter
@@ -488,28 +474,30 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 
 	// define ci builder params
 	ciBuilderParams := builderapi.CiBuilderParams{
-		JobType:                 builderapi.JobTypeRelease,
-		RepoSource:              release.RepoSource,
-		RepoOwner:               release.RepoOwner,
-		RepoName:                release.RepoName,
-		RepoURL:                 authenticatedRepositoryURL,
-		RepoBranch:              repoBranch,
-		RepoRevision:            repoRevision,
-		EnvironmentVariables:    environmentVariableWithToken,
-		Track:                   builderTrack,
-		OperatingSystem:         builderOperatingSystem,
-		CurrentCounter:          currentCounter,
-		MaxCounter:              maxCounter,
-		MaxCounterCurrentBranch: maxCounterCurrentBranch,
-		VersionNumber:           release.ReleaseVersion,
-		Manifest:                mft,
-		ReleaseName:             release.Name,
-		ReleaseAction:           release.Action,
-		ReleaseID:               insertedReleaseID,
-		ReleaseTriggeredBy:      triggeredBy,
-		BuildID:                 0,
-		TriggeredByEvents:       triggeredByEvents,
-		JobResources:            jobResources,
+		BuilderConfig: contracts.BuilderConfig{
+			JobType: contracts.JobTypeRelease,
+			Git: &contracts.GitConfig{
+				RepoSource:   createdRelease.RepoSource,
+				RepoOwner:    createdRelease.RepoOwner,
+				RepoName:     createdRelease.RepoName,
+				RepoBranch:   repoBranch,
+				RepoRevision: repoRevision,
+			},
+			Track: &builderTrack,
+			Version: &contracts.VersionConfig{
+				Version:                 createdRelease.ReleaseVersion,
+				CurrentCounter:          currentCounter,
+				AutoIncrement:           &currentCounter,
+				MaxCounter:              maxCounter,
+				MaxCounterCurrentBranch: maxCounterCurrentBranch,
+			},
+			Manifest: &mft,
+			Release:  createdRelease,
+			Events:   triggeredByEvents,
+		},
+		EnvironmentVariables: environmentVariableWithToken,
+		OperatingSystem:      builderOperatingSystem,
+		JobResources:         jobResources,
 	}
 
 	if invalidSecretsErr == nil {
@@ -653,7 +641,7 @@ func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest
 	mft = api.InjectCommands(s.config, mft)
 
 	// get authenticated url
-	authenticatedRepositoryURL, environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName)
+	environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName)
 	if err != nil {
 		return
 	}
@@ -678,40 +666,24 @@ func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest
 		return nil, ErrNoBotCreated
 	}
 
-	insertedBotID, err := strconv.Atoi(createdBot.ID)
-	if err != nil {
-		return
-	}
-
-	// get triggered by from events
-	triggeredBy := ""
-	if len(bot.Events) > 0 {
-		for _, e := range bot.Events {
-			if e.Manual != nil {
-				triggeredBy = e.Manual.UserID
-			}
-		}
-	}
-
-	triggeredByEvents := bot.Events
-
 	// define ci builder params
 	ciBuilderParams := builderapi.CiBuilderParams{
-		JobType:              builderapi.JobTypeBot,
-		RepoSource:           bot.RepoSource,
-		RepoOwner:            bot.RepoOwner,
-		RepoName:             bot.RepoName,
-		RepoURL:              authenticatedRepositoryURL,
-		RepoBranch:           repoBranch,
+		BuilderConfig: contracts.BuilderConfig{
+			JobType: contracts.JobTypeBot,
+			Git: &contracts.GitConfig{
+				RepoSource: createdBot.RepoSource,
+				RepoOwner:  createdBot.RepoOwner,
+				RepoName:   createdBot.RepoName,
+				RepoBranch: repoBranch,
+			},
+			Track:    &builderTrack,
+			Version:  &contracts.VersionConfig{},
+			Manifest: &mft,
+			Bot:      createdBot,
+			Events:   createdBot.Events,
+		},
 		EnvironmentVariables: environmentVariableWithToken,
-		Track:                builderTrack,
 		OperatingSystem:      builderOperatingSystem,
-		Manifest:             mft,
-		BotName:              bot.Name,
-		BotID:                insertedBotID,
-		BotTriggeredBy:       triggeredBy,
-		BuildID:              0,
-		TriggeredByEvents:    triggeredByEvents,
 		JobResources:         jobResources,
 	}
 
@@ -1499,12 +1471,12 @@ func (s *service) getShortRepoSource(repoSource string) string {
 	return repoSourceArray[0]
 }
 
-func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource, repoOwner, repoName string) (authenticatedRepositoryURL string, environmentVariableWithToken map[string]string, err error) {
+func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource, repoOwner, repoName string) (environmentVariableWithToken map[string]string, err error) {
 
 	switch {
 	case githubapi.IsRepoSourceGithub(repoSource):
 		var accessToken string
-		accessToken, authenticatedRepositoryURL, err = s.githubJobVarsFunc(ctx, repoSource, repoOwner, repoName)
+		accessToken, err = s.githubJobVarsFunc(ctx, repoSource, repoOwner, repoName)
 		if err != nil {
 			return
 		}
@@ -1513,7 +1485,7 @@ func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource,
 
 	case bitbucketapi.IsRepoSourceBitbucket(repoSource):
 		var accessToken string
-		accessToken, authenticatedRepositoryURL, err = s.bitbucketJobVarsFunc(ctx, repoSource, repoOwner, repoName)
+		accessToken, err = s.bitbucketJobVarsFunc(ctx, repoSource, repoOwner, repoName)
 		if err != nil {
 			return
 		}
@@ -1522,7 +1494,7 @@ func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource,
 
 	case cloudsourceapi.IsRepoSourceCloudSource(repoSource):
 		var accessToken string
-		accessToken, authenticatedRepositoryURL, err = s.cloudsourceJobVarsFunc(ctx, repoSource, repoOwner, repoName)
+		accessToken, err = s.cloudsourceJobVarsFunc(ctx, repoSource, repoOwner, repoName)
 		if err != nil {
 			return
 		}
@@ -1530,7 +1502,7 @@ func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource,
 		return
 	}
 
-	return authenticatedRepositoryURL, environmentVariableWithToken, fmt.Errorf("Source %v not supported for generating authenticated repository url", repoSource)
+	return environmentVariableWithToken, fmt.Errorf("Source %v not supported for generating authenticated repository url", repoSource)
 }
 
 func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) error {

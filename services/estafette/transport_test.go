@@ -111,8 +111,8 @@ func TestGetCatalogFilters(t *testing.T) {
 		buildService := NewMockService(ctrl)
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
-		githubJobVarsFunc := func(context.Context, string, string, string) (string, string, error) {
-			return "", "", nil
+		githubJobVarsFunc := func(context.Context, string, string, string) (string, error) {
+			return "", nil
 		}
 		bitbucketJobVarsFunc := githubJobVarsFunc
 		cloudsourceJobVarsFunc := githubJobVarsFunc
@@ -177,8 +177,8 @@ func TestGetPipeline(t *testing.T) {
 		buildService := NewMockService(ctrl)
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
-		githubJobVarsFunc := func(context.Context, string, string, string) (string, string, error) {
-			return "", "", nil
+		githubJobVarsFunc := func(context.Context, string, string, string) (string, error) {
+			return "", nil
 		}
 		bitbucketJobVarsFunc := githubJobVarsFunc
 		cloudsourceJobVarsFunc := githubJobVarsFunc
@@ -250,8 +250,8 @@ func TestGetManifestTemplates(t *testing.T) {
 		buildService := NewMockService(ctrl)
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
-		githubJobVarsFunc := func(context.Context, string, string, string) (string, string, error) {
-			return "", "", nil
+		githubJobVarsFunc := func(context.Context, string, string, string) (string, error) {
+			return "", nil
 		}
 		bitbucketJobVarsFunc := githubJobVarsFunc
 		cloudsourceJobVarsFunc := githubJobVarsFunc
@@ -302,8 +302,8 @@ func TestGenerateManifest(t *testing.T) {
 		buildService := NewMockService(ctrl)
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
-		githubJobVarsFunc := func(context.Context, string, string, string) (string, string, error) {
-			return "", "", nil
+		githubJobVarsFunc := func(context.Context, string, string, string) (string, error) {
+			return "", nil
 		}
 		bitbucketJobVarsFunc := githubJobVarsFunc
 		cloudsourceJobVarsFunc := githubJobVarsFunc

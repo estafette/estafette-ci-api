@@ -51,13 +51,13 @@ func TestCreateBuild(t *testing.T) {
 		bitbucketapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
 		cloudsourceapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
 		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 		cockroachdbClient.EXPECT().GetPipelineBuildMaxResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -104,13 +104,13 @@ func TestCreateBuild(t *testing.T) {
 		githubapiClient.EXPECT().JobVarsFunc(gomock.Any()).AnyTimes()
 		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		cockroachdbClient.EXPECT().GetPipelineBuildMaxResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 		cockroachdbClient.EXPECT().GetAutoIncrement(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -151,13 +151,13 @@ func TestCreateBuild(t *testing.T) {
 			EXPECT().
 			GetPipelineBuildMaxResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Times(1)
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -199,13 +199,13 @@ func TestCreateBuild(t *testing.T) {
 			EXPECT().
 			InsertBuild(gomock.Any(), gomock.Any(), gomock.Any()).
 			Times(1)
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -255,13 +255,13 @@ func TestCreateBuild(t *testing.T) {
 			EXPECT().
 			CreateCiBuilderJob(gomock.Any(), gomock.Any()).
 			Times(1)
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -320,13 +320,13 @@ func TestCreateBuild(t *testing.T) {
 			InsertBuildLog(gomock.Any(), gomock.Any(), gomock.Any()).
 			Times(1)
 
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -386,13 +386,13 @@ func TestCreateBuild(t *testing.T) {
 			InsertBuildLog(gomock.Any(), gomock.Any()).
 			Times(1)
 
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 
@@ -452,13 +452,13 @@ func TestCreateBuild(t *testing.T) {
 				return
 			})
 
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 		cockroachdbClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -507,13 +507,13 @@ func TestFinishBuild(t *testing.T) {
 			EXPECT().
 			UpdateBuildStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Times(1)
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 
@@ -559,13 +559,13 @@ func TestCreateRelease(t *testing.T) {
 			Return(&contracts.Release{ID: "15"}, nil).
 			Times(1)
 
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 
@@ -624,13 +624,13 @@ func TestCreateRelease(t *testing.T) {
 			CreateCiBuilderJob(gomock.Any(), gomock.Any()).
 			Times(1)
 
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 
@@ -682,13 +682,13 @@ func TestFinishRelease(t *testing.T) {
 			UpdateReleaseStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Times(1)
 
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 
@@ -733,13 +733,13 @@ func TestRename(t *testing.T) {
 			Rename(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Times(1)
 
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 
@@ -775,13 +775,13 @@ func TestRename(t *testing.T) {
 			Rename(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Times(1)
 
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 
@@ -819,13 +819,13 @@ func TestUpdateBuildStatus(t *testing.T) {
 			UpdateBuildStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Times(1)
 
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 
@@ -867,13 +867,13 @@ func TestUpdateBuildStatus(t *testing.T) {
 			UpdateReleaseStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Times(1)
 
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 
@@ -917,13 +917,13 @@ func TestUpdateJobResources(t *testing.T) {
 			UpdateBuildResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Times(1)
 
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 
@@ -967,13 +967,13 @@ func TestUpdateJobResources(t *testing.T) {
 			UpdateReleaseResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Times(1)
 
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 
@@ -1014,13 +1014,13 @@ func TestGetEventsForJobEnvvars(t *testing.T) {
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 
-		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		bitbucketapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
-		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, url string, err error) {
+		cloudsourceapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 			return
 		}
 

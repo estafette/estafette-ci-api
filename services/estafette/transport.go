@@ -32,7 +32,7 @@ import (
 )
 
 // NewHandler returns a new estafette.Handler
-func NewHandler(configFilePath string, templatesPath string, config *api.APIConfig, encryptedConfig *api.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper api.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)) Handler {
+func NewHandler(configFilePath string, templatesPath string, config *api.APIConfig, encryptedConfig *api.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper api.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, error)) Handler {
 
 	return Handler{
 		configFilePath:         configFilePath,
@@ -62,9 +62,9 @@ type Handler struct {
 	buildService           Service
 	warningHelper          api.WarningHelper
 	secretHelper           crypt.SecretHelper
-	githubJobVarsFunc      func(context.Context, string, string, string) (string, string, error)
-	bitbucketJobVarsFunc   func(context.Context, string, string, string) (string, string, error)
-	cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, string, error)
+	githubJobVarsFunc      func(context.Context, string, string, string) (string, error)
+	bitbucketJobVarsFunc   func(context.Context, string, string, string) (string, error)
+	cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, error)
 }
 
 func (h *Handler) GetPipelines(c *gin.Context) {
@@ -375,7 +375,7 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 	}
 	if build.BuildStatus == contracts.StatusCanceling {
 		// apparently cancel was already clicked, but somehow the job didn't update the status to canceled
-		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), builderapi.JobTypeBuild, build.RepoOwner, build.RepoName, build.ID)
+		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeBuild, build.RepoOwner, build.RepoName, build.ID)
 		_ = h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 		_ = h.cockroachDBClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, id, contracts.StatusCanceled)
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", email)})
@@ -387,7 +387,7 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 	}
 
 	// this build can be canceled, set status 'canceling' and cancel the build job
-	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), builderapi.JobTypeBuild, build.RepoOwner, build.RepoName, build.ID)
+	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeBuild, build.RepoOwner, build.RepoName, build.ID)
 	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 	buildStatus := contracts.StatusCanceling
 	if build.BuildStatus == contracts.StatusPending {
@@ -628,7 +628,7 @@ func (h *Handler) TailPipelineBuildLogs(c *gin.Context) {
 	repo := c.Param("repo")
 	id := c.Param("revisionOrId")
 
-	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), builderapi.JobTypeBuild, owner, repo, id)
+	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeBuild, owner, repo, id)
 
 	logChannel := make(chan contracts.TailLogLine, 50)
 
@@ -969,7 +969,7 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 		return
 	}
 	if release.ReleaseStatus == contracts.StatusCanceling {
-		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), builderapi.JobTypeRelease, release.RepoOwner, release.RepoName, release.ID)
+		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeRelease, release.RepoOwner, release.RepoName, release.ID)
 		_ = h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 		_ = h.cockroachDBClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, id, contracts.StatusCanceled)
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", email)})
@@ -981,7 +981,7 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 	}
 
 	// this release can be canceled, set status 'canceling' and cancel the release job
-	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), builderapi.JobTypeRelease, release.RepoOwner, release.RepoName, release.ID)
+	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeRelease, release.RepoOwner, release.RepoName, release.ID)
 	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 	releaseStatus := contracts.StatusCanceling
 	if release.ReleaseStatus == contracts.StatusPending {
@@ -1188,7 +1188,7 @@ func (h *Handler) TailPipelineReleaseLogs(c *gin.Context) {
 	repo := c.Param("repo")
 	releaseID := c.Param("releaseId")
 
-	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), builderapi.JobTypeRelease, owner, repo, releaseID)
+	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeRelease, owner, repo, releaseID)
 
 	logChannel := make(chan contracts.TailLogLine, 50)
 
@@ -1338,7 +1338,7 @@ func (h *Handler) CancelPipelineBot(c *gin.Context) {
 		return
 	}
 	if bot.BotStatus == contracts.StatusCanceling {
-		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), builderapi.JobTypeBot, bot.RepoOwner, bot.RepoName, bot.ID)
+		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeBot, bot.RepoOwner, bot.RepoName, bot.ID)
 		_ = h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 		_ = h.cockroachDBClient.UpdateBotStatus(c.Request.Context(), bot.RepoSource, bot.RepoOwner, bot.RepoName, id, contracts.StatusCanceled)
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled bot by user %v", email)})
@@ -1350,7 +1350,7 @@ func (h *Handler) CancelPipelineBot(c *gin.Context) {
 	}
 
 	// this bot can be canceled, set status 'canceling' and cancel the bot job
-	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), builderapi.JobTypeBot, bot.RepoOwner, bot.RepoName, bot.ID)
+	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeBot, bot.RepoOwner, bot.RepoName, bot.ID)
 	cancelErr := h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
 	botStatus := contracts.StatusCanceling
 	if bot.BotStatus == contracts.StatusPending {
@@ -1557,7 +1557,7 @@ func (h *Handler) TailPipelineBotLogs(c *gin.Context) {
 	repo := c.Param("repo")
 	botID := c.Param("botId")
 
-	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), builderapi.JobTypeBot, owner, repo, botID)
+	jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeBot, owner, repo, botID)
 
 	logChannel := make(chan contracts.TailLogLine, 50)
 

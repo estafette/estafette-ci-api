@@ -6,87 +6,37 @@ package githubapi
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockClient is a mock of Client interface
+// MockClient is a mock of Client interface.
 type MockClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockClientMockRecorder
 }
 
-// MockClientMockRecorder is the mock recorder for MockClient
+// MockClientMockRecorder is the mock recorder for MockClient.
 type MockClientMockRecorder struct {
 	mock *MockClient
 }
 
-// NewMockClient creates a new mock instance
+// NewMockClient creates a new mock instance.
 func NewMockClient(ctrl *gomock.Controller) *MockClient {
 	mock := &MockClient{ctrl: ctrl}
 	mock.recorder = &MockClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
-// GetGithubAppToken mocks base method
-func (m *MockClient) GetGithubAppToken(ctx context.Context) (string, error) {
-	ret := m.ctrl.Call(m, "GetGithubAppToken", ctx)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetGithubAppToken indicates an expected call of GetGithubAppToken
-func (mr *MockClientMockRecorder) GetGithubAppToken(ctx interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGithubAppToken", reflect.TypeOf((*MockClient)(nil).GetGithubAppToken), ctx)
-}
-
-// GetInstallationID mocks base method
-func (m *MockClient) GetInstallationID(ctx context.Context, repoOwner string) (int, error) {
-	ret := m.ctrl.Call(m, "GetInstallationID", ctx, repoOwner)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetInstallationID indicates an expected call of GetInstallationID
-func (mr *MockClientMockRecorder) GetInstallationID(ctx, repoOwner interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallationID", reflect.TypeOf((*MockClient)(nil).GetInstallationID), ctx, repoOwner)
-}
-
-// GetInstallationToken mocks base method
-func (m *MockClient) GetInstallationToken(ctx context.Context, installationID int) (AccessToken, error) {
-	ret := m.ctrl.Call(m, "GetInstallationToken", ctx, installationID)
-	ret0, _ := ret[0].(AccessToken)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetInstallationToken indicates an expected call of GetInstallationToken
-func (mr *MockClientMockRecorder) GetInstallationToken(ctx, installationID interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallationToken", reflect.TypeOf((*MockClient)(nil).GetInstallationToken), ctx, installationID)
-}
-
-// GetAuthenticatedRepositoryURL mocks base method
-func (m *MockClient) GetAuthenticatedRepositoryURL(ctx context.Context, accesstoken AccessToken, htmlURL string) (string, error) {
-	ret := m.ctrl.Call(m, "GetAuthenticatedRepositoryURL", ctx, accesstoken, htmlURL)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAuthenticatedRepositoryURL indicates an expected call of GetAuthenticatedRepositoryURL
-func (mr *MockClientMockRecorder) GetAuthenticatedRepositoryURL(ctx, accesstoken, htmlURL interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthenticatedRepositoryURL", reflect.TypeOf((*MockClient)(nil).GetAuthenticatedRepositoryURL), ctx, accesstoken, htmlURL)
-}
-
-// GetEstafetteManifest mocks base method
+// GetEstafetteManifest mocks base method.
 func (m *MockClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (bool, string, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetEstafetteManifest", ctx, accesstoken, event)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(string)
@@ -94,19 +44,67 @@ func (m *MockClient) GetEstafetteManifest(ctx context.Context, accesstoken Acces
 	return ret0, ret1, ret2
 }
 
-// GetEstafetteManifest indicates an expected call of GetEstafetteManifest
+// GetEstafetteManifest indicates an expected call of GetEstafetteManifest.
 func (mr *MockClientMockRecorder) GetEstafetteManifest(ctx, accesstoken, event interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEstafetteManifest", reflect.TypeOf((*MockClient)(nil).GetEstafetteManifest), ctx, accesstoken, event)
 }
 
-// JobVarsFunc mocks base method
-func (m *MockClient) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, string, error) {
+// GetGithubAppToken mocks base method.
+func (m *MockClient) GetGithubAppToken(ctx context.Context) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGithubAppToken", ctx)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetGithubAppToken indicates an expected call of GetGithubAppToken.
+func (mr *MockClientMockRecorder) GetGithubAppToken(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGithubAppToken", reflect.TypeOf((*MockClient)(nil).GetGithubAppToken), ctx)
+}
+
+// GetInstallationID mocks base method.
+func (m *MockClient) GetInstallationID(ctx context.Context, repoOwner string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstallationID", ctx, repoOwner)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInstallationID indicates an expected call of GetInstallationID.
+func (mr *MockClientMockRecorder) GetInstallationID(ctx, repoOwner interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallationID", reflect.TypeOf((*MockClient)(nil).GetInstallationID), ctx, repoOwner)
+}
+
+// GetInstallationToken mocks base method.
+func (m *MockClient) GetInstallationToken(ctx context.Context, installationID int) (AccessToken, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstallationToken", ctx, installationID)
+	ret0, _ := ret[0].(AccessToken)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInstallationToken indicates an expected call of GetInstallationToken.
+func (mr *MockClientMockRecorder) GetInstallationToken(ctx, installationID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallationToken", reflect.TypeOf((*MockClient)(nil).GetInstallationToken), ctx, installationID)
+}
+
+// JobVarsFunc mocks base method.
+func (m *MockClient) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "JobVarsFunc", ctx)
-	ret0, _ := ret[0].(func(context.Context, string, string, string) (string, string, error))
+	ret0, _ := ret[0].(func(context.Context, string, string, string) (string, error))
 	return ret0
 }
 
-// JobVarsFunc indicates an expected call of JobVarsFunc
+// JobVarsFunc indicates an expected call of JobVarsFunc.
 func (mr *MockClientMockRecorder) JobVarsFunc(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "JobVarsFunc", reflect.TypeOf((*MockClient)(nil).JobVarsFunc), ctx)
 }
