@@ -202,15 +202,15 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 		BuilderConfig: contracts.BuilderConfig{
 			JobType: contracts.JobTypeBuild,
 			Git: &contracts.GitConfig{
-				RepoSource:   build.RepoSource,
-				RepoOwner:    build.RepoOwner,
-				RepoName:     build.RepoName,
-				RepoBranch:   build.RepoBranch,
-				RepoRevision: build.RepoRevision,
+				RepoSource:   createdBuild.RepoSource,
+				RepoOwner:    createdBuild.RepoOwner,
+				RepoName:     createdBuild.RepoName,
+				RepoBranch:   createdBuild.RepoBranch,
+				RepoRevision: createdBuild.RepoRevision,
 			},
 			Track: &builderTrack,
 			Version: &contracts.VersionConfig{
-				Version:                 build.BuildVersion,
+				Version:                 createdBuild.BuildVersion,
 				CurrentCounter:          currentCounter,
 				AutoIncrement:           &currentCounter,
 				MaxCounter:              maxCounter,
