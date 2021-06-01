@@ -136,6 +136,8 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 }
 
 func (s *service) PublishBitbucketEvent(ctx context.Context, event manifest.EstafetteBitbucketEvent) {
+	log.Info().Msgf("Publishing bitbucket event '%v' for repository '%v' to topic...", event.Event, event.Repository)
+
 	s.gitEventTopic.Publish("bitbucket.Service", api.EventTopicMessage{Ctx: ctx, Event: manifest.EstafetteEvent{Bitbucket: &event}})
 }
 

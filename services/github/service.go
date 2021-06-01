@@ -140,6 +140,8 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 }
 
 func (s *service) PublishGithubEvent(ctx context.Context, event manifest.EstafetteGithubEvent) {
+	log.Info().Msgf("Publishing github event '%v' for repository '%v' to topic...", event.Event, event.Repository)
+
 	s.gitEventTopic.Publish("github.Service", api.EventTopicMessage{Ctx: ctx, Event: manifest.EstafetteEvent{Github: &event}})
 }
 

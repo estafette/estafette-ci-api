@@ -852,6 +852,8 @@ func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.E
 		return err
 	}
 
+	log.Debug().Msgf("[trigger:github(%v:%v)] Retrieved %v pipelines...", githubEvent.Repository, githubEvent.Event, len(pipelines))
+
 	e := manifest.EstafetteEvent{
 		Fired:  true,
 		Github: &githubEvent,
@@ -930,6 +932,8 @@ func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent mani
 	if err != nil {
 		return err
 	}
+
+	log.Debug().Msgf("[trigger:bitbucket(%v:%v)] Retrieved %v pipelines...", bitbucketEvent.Repository, bitbucketEvent.Event, len(pipelines))
 
 	e := manifest.EstafetteEvent{
 		Fired:     true,
@@ -1667,12 +1671,15 @@ func (s *service) SubscribeToEventTopic(ctx context.Context, gitEventTopic *api.
 			break
 		}
 		if message.Event.Git != nil {
+			log.Info().Msgf("Received subscribed git event '%v' for repository '%v' on topic...", message.Event.Git.Event, message.Event.Git.Repository)
 			s.FireGitTriggers(message.Ctx, *message.Event.Git)
 		}
 		if message.Event.Github != nil {
+			log.Info().Msgf("Received subscribed github event '%v' for repository '%v' on topic...", message.Event.Git.Event, message.Event.Git.Repository)
 			s.FireGithubTriggers(message.Ctx, *message.Event.Github)
 		}
 		if message.Event.Bitbucket != nil {
+			log.Info().Msgf("Received subscribed bitbucket event '%v' for repository '%v' on topic...", message.Event.Git.Event, message.Event.Git.Repository)
 			s.FireBitbucketTriggers(message.Ctx, *message.Event.Bitbucket)
 		}
 	}
