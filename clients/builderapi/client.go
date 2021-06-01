@@ -74,6 +74,10 @@ type client struct {
 // CreateCiBuilderJob creates an estafette-ci-builder job in Kubernetes to run the estafette build
 func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuilderParams) (job *batchv1.Job, err error) {
 
+	if err := ciBuilderParams.BuilderConfig.Validate(); err != nil {
+		return nil, err
+	}
+
 	// create job name of max 63 chars
 	jobName := c.getCiBuilderJobName(ctx, ciBuilderParams)
 
