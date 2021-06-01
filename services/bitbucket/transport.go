@@ -135,7 +135,7 @@ func (h *Handler) Handle(c *gin.Context) {
 	}
 
 	// publish event for bots to run
-	h.service.PublishBitbucketEvent(c.Request.Context(), manifest.EstafetteBitbucketEvent{
+	go h.service.PublishBitbucketEvent(c.Request.Context(), manifest.EstafetteBitbucketEvent{
 		Event:      eventType,
 		Repository: anyEvent.GetRepoFullName(),
 		EventBody:  string(body),
