@@ -45,12 +45,12 @@ func (m *authMiddlewareImpl) GoogleJWTMiddlewareFunc() gin.HandlerFunc {
 		valid, err := isValidGoogleJWT(bearerTokenString)
 
 		if err != nil {
-			log.Warn().Err(err).Str("bearer", bearerTokenString).Msgf("Error when validating Google JWT")
+			log.Error().Err(err).Str("bearer", bearerTokenString).Msgf("Error when validating Google JWT")
 			return
 		}
 
 		if !valid {
-			log.Warn().Err(err).Str("bearer", bearerTokenString).Msgf("Google JWT is not valid")
+			log.Error().Err(err).Str("bearer", bearerTokenString).Msgf("Google JWT is not valid")
 			return
 		}
 

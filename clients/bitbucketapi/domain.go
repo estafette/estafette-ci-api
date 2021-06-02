@@ -22,13 +22,12 @@ type AnyEvent struct {
 	Repository *Repository `json:"repository"`
 }
 
-// GetRepoFullName returns the repository owner and name
-func (ae *AnyEvent) GetRepoFullName() string {
+func (ae *AnyEvent) GetRepository() string {
 	if ae.Repository == nil {
 		return ""
 	}
 
-	return ae.Repository.FullName
+	return fmt.Sprintf("%v/%v", repoSource, ae.Repository.FullName)
 }
 
 // RepositoryPushEvent represents a Bitbucket push event

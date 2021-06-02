@@ -95,7 +95,7 @@ func (c *client) CheckIfDatasetExists(ctx context.Context) bool {
 
 	md, err := ds.Metadata(context.Background())
 	if err != nil {
-		log.Warn().Err(err).Msgf("Error retrieving metadata for dataset %v", c.config.Integrations.BigQuery.Dataset)
+		log.Error().Err(err).Msgf("Error retrieving metadata for dataset %v", c.config.Integrations.BigQuery.Dataset)
 	}
 
 	return md != nil
@@ -113,7 +113,7 @@ func (c *client) CheckIfTableExists(ctx context.Context, table string) bool {
 
 	md, err := tbl.Metadata(context.Background())
 	if err != nil {
-		log.Warn().Err(err).Msgf("Error retrieving metadata for table %v in dataset %v", table, c.config.Integrations.BigQuery.Dataset)
+		log.Error().Err(err).Msgf("Error retrieving metadata for table %v in dataset %v", table, c.config.Integrations.BigQuery.Dataset)
 	}
 
 	return md != nil

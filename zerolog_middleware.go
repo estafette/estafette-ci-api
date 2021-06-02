@@ -40,7 +40,7 @@ func ZeroLogMiddleware() gin.HandlerFunc {
 
 		if statusCode >= 500 {
 
-			log.Warn().
+			log.Error().
 				Int("statusCode", statusCode).
 				Dur("latencyMs", latency).
 				Str("clientIP", clientIP).

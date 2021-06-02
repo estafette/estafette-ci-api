@@ -174,7 +174,7 @@ func (h *Handler) Handle(c *gin.Context) {
 	// publish event for bots to run
 	go h.service.PublishGithubEvent(c.Request.Context(), manifest.EstafetteGithubEvent{
 		Event:      eventType,
-		Repository: anyEvent.GetRepoFullName(),
+		Repository: anyEvent.GetRepository(),
 		EventBody:  string(body),
 	})
 
