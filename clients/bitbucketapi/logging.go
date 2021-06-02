@@ -17,13 +17,13 @@ type loggingClient struct {
 }
 
 func (c *loggingClient) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
-	defer func() { api.HandleLogError(c.prefix, "GetAccessToken", err) }()
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAccessToken", err) }()
 
 	return c.Client.GetAccessToken(ctx)
 }
 
 func (c *loggingClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error) {
-	defer func() { api.HandleLogError(c.prefix, "GetEstafetteManifest", err) }()
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetEstafetteManifest", err) }()
 
 	return c.Client.GetEstafetteManifest(ctx, accesstoken, event)
 }

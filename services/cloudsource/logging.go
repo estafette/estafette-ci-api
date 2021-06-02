@@ -19,7 +19,7 @@ type loggingService struct {
 
 func (s *loggingService) CreateJobForCloudSourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error) {
 	defer func() {
-		api.HandleLogError(s.prefix, "CreateJobForCloudSourcePush", err, ErrNonCloneableEvent, ErrNoManifest)
+		api.HandleLogError(s.prefix, "Service", "CreateJobForCloudSourcePush", err, ErrNonCloneableEvent, ErrNoManifest)
 	}()
 
 	return s.Service.CreateJobForCloudSourcePush(ctx, notification)

@@ -19,43 +19,43 @@ type loggingClient struct {
 }
 
 func (c *loggingClient) CreateCiBuilderJob(ctx context.Context, params CiBuilderParams) (job *batchv1.Job, err error) {
-	defer func() { api.HandleLogError(c.prefix, "CreateCiBuilderJob", err) }()
+	defer func() { api.HandleLogError(c.prefix, "Client", "CreateCiBuilderJob", err) }()
 
 	return c.Client.CreateCiBuilderJob(ctx, params)
 }
 
 func (c *loggingClient) RemoveCiBuilderJob(ctx context.Context, jobName string) (err error) {
-	defer func() { api.HandleLogError(c.prefix, "RemoveCiBuilderJob", err) }()
+	defer func() { api.HandleLogError(c.prefix, "Client", "RemoveCiBuilderJob", err) }()
 
 	return c.Client.RemoveCiBuilderJob(ctx, jobName)
 }
 
 func (c *loggingClient) CancelCiBuilderJob(ctx context.Context, jobName string) (err error) {
-	defer func() { api.HandleLogError(c.prefix, "CancelCiBuilderJob", err) }()
+	defer func() { api.HandleLogError(c.prefix, "Client", "CancelCiBuilderJob", err) }()
 
 	return c.Client.CancelCiBuilderJob(ctx, jobName)
 }
 
 func (c *loggingClient) RemoveCiBuilderConfigMap(ctx context.Context, configmapName string) (err error) {
-	defer func() { api.HandleLogError(c.prefix, "RemoveCiBuilderConfigMap", err) }()
+	defer func() { api.HandleLogError(c.prefix, "Client", "RemoveCiBuilderConfigMap", err) }()
 
 	return c.Client.RemoveCiBuilderConfigMap(ctx, configmapName)
 }
 
 func (c *loggingClient) RemoveCiBuilderSecret(ctx context.Context, secretName string) (err error) {
-	defer func() { api.HandleLogError(c.prefix, "RemoveCiBuilderSecret", err) }()
+	defer func() { api.HandleLogError(c.prefix, "Client", "RemoveCiBuilderSecret", err) }()
 
 	return c.Client.RemoveCiBuilderSecret(ctx, secretName)
 }
 
 func (c *loggingClient) RemoveCiBuilderImagePullSecret(ctx context.Context, secretName string) (err error) {
-	defer func() { api.HandleLogError(c.prefix, "RemoveCiBuilderImagePullSecret", err) }()
+	defer func() { api.HandleLogError(c.prefix, "Client", "RemoveCiBuilderImagePullSecret", err) }()
 
 	return c.Client.RemoveCiBuilderImagePullSecret(ctx, secretName)
 }
 
 func (c *loggingClient) TailCiBuilderJobLogs(ctx context.Context, jobName string, logChannel chan contracts.TailLogLine) (err error) {
-	defer func() { api.HandleLogError(c.prefix, "TailCiBuilderJobLogs", err) }()
+	defer func() { api.HandleLogError(c.prefix, "Client", "TailCiBuilderJobLogs", err) }()
 
 	return c.Client.TailCiBuilderJobLogs(ctx, jobName, logChannel)
 }

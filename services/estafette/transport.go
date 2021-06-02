@@ -2182,6 +2182,24 @@ func (h *Handler) GetStatsReleasesCount(c *gin.Context) {
 	})
 }
 
+func (h *Handler) GetStatsBotsCount(c *gin.Context) {
+
+	// get filters (?filter[status]=running,succeeded&filter[since]=1w
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c)
+	filters[api.FilterSince] = api.GetSinceFilter(c)
+
+	botsCount, err := h.cockroachDBClient.GetBotsCount(c.Request.Context(), filters)
+	if err != nil {
+		log.Error().Err(err).
+			Msg("Failed retrieving bots count from db")
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"count": botsCount,
+	})
+}
+
 func (h *Handler) GetStatsBuildsCount(c *gin.Context) {
 
 	// get filters (?filter[status]=running,succeeded&filter[since]=1w

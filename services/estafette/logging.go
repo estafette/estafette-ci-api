@@ -20,85 +20,85 @@ type loggingService struct {
 }
 
 func (s *loggingService) CreateBuild(ctx context.Context, build contracts.Build) (b *contracts.Build, err error) {
-	defer func() { api.HandleLogError(s.prefix, "CreateBuild", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "CreateBuild", err) }()
 
 	return s.Service.CreateBuild(ctx, build)
 }
 
 func (s *loggingService) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
-	defer func() { api.HandleLogError(s.prefix, "FinishBuild", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "FinishBuild", err) }()
 
 	return s.Service.FinishBuild(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
 }
 
 func (s *loggingService) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string) (r *contracts.Release, err error) {
-	defer func() { api.HandleLogError(s.prefix, "CreateRelease", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "CreateRelease", err) }()
 
 	return s.Service.CreateRelease(ctx, release, mft, repoBranch, repoRevision)
 }
 
 func (s *loggingService) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) (err error) {
-	defer func() { api.HandleLogError(s.prefix, "FinishRelease", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "FinishRelease", err) }()
 
 	return s.Service.FinishRelease(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)
 }
 
 func (s *loggingService) FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error) {
-	defer func() { api.HandleLogError(s.prefix, "FireGitTriggers", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "FireGitTriggers", err) }()
 
 	return s.Service.FireGitTriggers(ctx, gitEvent)
 }
 
 func (s *loggingService) FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) (err error) {
-	defer func() { api.HandleLogError(s.prefix, "FirePipelineTriggers", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "FirePipelineTriggers", err) }()
 
 	return s.Service.FirePipelineTriggers(ctx, build, event)
 }
 
 func (s *loggingService) FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) (err error) {
-	defer func() { api.HandleLogError(s.prefix, "FireReleaseTriggers", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "FireReleaseTriggers", err) }()
 
 	return s.Service.FireReleaseTriggers(ctx, release, event)
 }
 
 func (s *loggingService) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) (err error) {
-	defer func() { api.HandleLogError(s.prefix, "FirePubSubTriggers", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "FirePubSubTriggers", err) }()
 
 	return s.Service.FirePubSubTriggers(ctx, pubsubEvent)
 }
 
 func (s *loggingService) FireCronTriggers(ctx context.Context) (err error) {
-	defer func() { api.HandleLogError(s.prefix, "FireCronTriggers", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "FireCronTriggers", err) }()
 
 	return s.Service.FireCronTriggers(ctx)
 }
 
 func (s *loggingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
-	defer func() { api.HandleLogError(s.prefix, "Rename", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "Rename", err) }()
 
 	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
 
 func (s *loggingService) Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
-	defer func() { api.HandleLogError(s.prefix, "Archive", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "Archive", err) }()
 
 	return s.Service.Archive(ctx, repoSource, repoOwner, repoName)
 }
 
 func (s *loggingService) Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
-	defer func() { api.HandleLogError(s.prefix, "Unarchive", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "Unarchive", err) }()
 
 	return s.Service.Unarchive(ctx, repoSource, repoOwner, repoName)
 }
 
 func (s *loggingService) UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error) {
-	defer func() { api.HandleLogError(s.prefix, "UpdateBuildStatus", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "UpdateBuildStatus", err) }()
 
 	return s.Service.UpdateBuildStatus(ctx, event)
 }
 
 func (s *loggingService) UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) (err error) {
-	defer func() { api.HandleLogError(s.prefix, "UpdateJobResources", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "UpdateJobResources", err) }()
 
 	return s.Service.UpdateJobResources(ctx, event)
 }
@@ -108,7 +108,7 @@ func (s *loggingService) SubscribeToEventTopic(ctx context.Context, gitEventTopi
 }
 
 func (s *loggingService) GetEventsForJobEnvvars(ctx context.Context, triggers []manifest.EstafetteTrigger, events []manifest.EstafetteEvent) (triggersAsEvents []manifest.EstafetteEvent, err error) {
-	defer func() { api.HandleLogError(s.prefix, "GetEventsForJobEnvvars", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "GetEventsForJobEnvvars", err) }()
 
 	return s.Service.GetEventsForJobEnvvars(ctx, triggers, events)
 }

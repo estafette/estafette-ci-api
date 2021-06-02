@@ -17,7 +17,7 @@ type loggingClient struct {
 }
 
 func (c *loggingClient) GetUserProfile(ctx context.Context, userID string) (profile *UserProfile, err error) {
-	defer func() { api.HandleLogError(c.prefix, "GetUserProfile", err) }()
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetUserProfile", err) }()
 
 	return c.Client.GetUserProfile(ctx, userID)
 }

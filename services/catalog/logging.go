@@ -18,19 +18,19 @@ type loggingService struct {
 }
 
 func (s *loggingService) CreateCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (insertedCatalogEntity *contracts.CatalogEntity, err error) {
-	defer func() { api.HandleLogError(s.prefix, "CreateCatalogEntity", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "CreateCatalogEntity", err) }()
 
 	return s.Service.CreateCatalogEntity(ctx, catalogEntity)
 }
 
 func (s *loggingService) UpdateCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (err error) {
-	defer func() { api.HandleLogError(s.prefix, "UpdateCatalogEntity", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "UpdateCatalogEntity", err) }()
 
 	return s.Service.UpdateCatalogEntity(ctx, catalogEntity)
 }
 
 func (s *loggingService) DeleteCatalogEntity(ctx context.Context, id string) (err error) {
-	defer func() { api.HandleLogError(s.prefix, "DeleteCatalogEntity", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "DeleteCatalogEntity", err) }()
 
 	return s.Service.DeleteCatalogEntity(ctx, id)
 }

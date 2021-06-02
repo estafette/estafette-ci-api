@@ -6,12 +6,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func HandleLogError(client string, funcName string, err error, ignoredErrors ...error) {
+func HandleLogError(packageName, interfaceName, funcName string, err error, ignoredErrors ...error) {
 	if err != nil {
 		for _, e := range ignoredErrors {
 			errors.Is(err, e)
 			return
 		}
-		log.Error().Str("client", client).Str("func", funcName).Err(err).Msg("Logging decorator error")
+		log.Error().Err(err).Msgf("%v.%v.%v decorator intercepted error", packageName, interfaceName, funcName)
 	}
 }

@@ -21,13 +21,13 @@ func (c *loggingClient) AwaitScrapeInterval(ctx context.Context) {
 }
 
 func (c *loggingClient) GetMaxMemoryByPodName(ctx context.Context, podName string) (max float64, err error) {
-	defer func() { api.HandleLogError(c.prefix, "GetMaxMemoryByPodName", err) }()
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetMaxMemoryByPodName", err) }()
 
 	return c.Client.GetMaxMemoryByPodName(ctx, podName)
 }
 
 func (c *loggingClient) GetMaxCPUByPodName(ctx context.Context, podName string) (max float64, err error) {
-	defer func() { api.HandleLogError(c.prefix, "GetMaxCPUByPodName", err) }()
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetMaxCPUByPodName", err) }()
 
 	return c.Client.GetMaxCPUByPodName(ctx, podName)
 }

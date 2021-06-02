@@ -20,20 +20,20 @@ type loggingService struct {
 
 func (s *loggingService) CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) (err error) {
 	defer func() {
-		api.HandleLogError(s.prefix, "CreateJobForGithubPush", err, ErrNonCloneableEvent, ErrNoManifest)
+		api.HandleLogError(s.prefix, "Service", "CreateJobForGithubPush", err, ErrNonCloneableEvent, ErrNoManifest)
 	}()
 
 	return s.Service.CreateJobForGithubPush(ctx, event)
 }
 
 func (s *loggingService) HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (valid bool, err error) {
-	defer func() { api.HandleLogError(s.prefix, "HasValidSignature", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "HasValidSignature", err) }()
 
 	return s.Service.HasValidSignature(ctx, body, signatureHeader)
 }
 
 func (s *loggingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
-	defer func() { api.HandleLogError(s.prefix, "Rename", err) }()
+	defer func() { api.HandleLogError(s.prefix, "Service", "Rename", err) }()
 
 	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 }
