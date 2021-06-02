@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/estafette/estafette-ci-api/api"
-	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/opentracing/opentracing-go"
@@ -104,14 +103,14 @@ func (s *tracingService) Unarchive(ctx context.Context, repoSource, repoOwner, r
 	return s.Service.Unarchive(ctx, repoSource, repoOwner, repoName)
 }
 
-func (s *tracingService) UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error) {
+func (s *tracingService) UpdateBuildStatus(ctx context.Context, event contracts.EstafetteCiBuilderEvent) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "UpdateBuildStatus"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return s.Service.UpdateBuildStatus(ctx, event)
 }
 
-func (s *tracingService) UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) (err error) {
+func (s *tracingService) UpdateJobResources(ctx context.Context, event contracts.EstafetteCiBuilderEvent) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "UpdateJobResources"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 

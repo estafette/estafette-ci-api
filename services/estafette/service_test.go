@@ -834,7 +834,7 @@ func TestUpdateBuildStatus(t *testing.T) {
 
 		service := NewService(config, cockroachdbClient, secretHelper, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
-		event := builderapi.CiBuilderEvent{
+		event := contracts.EstafetteCiBuilderEvent{
 			BuildID:     "123456",
 			BuildStatus: "succeeeded",
 		}
@@ -882,7 +882,7 @@ func TestUpdateBuildStatus(t *testing.T) {
 
 		service := NewService(config, cockroachdbClient, secretHelper, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
-		event := builderapi.CiBuilderEvent{
+		event := contracts.EstafetteCiBuilderEvent{
 			ReleaseID:   "123456",
 			BuildStatus: "succeeeded",
 		}
@@ -933,7 +933,7 @@ func TestUpdateJobResources(t *testing.T) {
 
 		service := NewService(config, cockroachdbClient, secretHelper, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
-		event := builderapi.CiBuilderEvent{
+		event := contracts.EstafetteCiBuilderEvent{
 			PodName:     "build-estafette-estafette-ci-api-123456-mhrzk",
 			BuildID:     "123456",
 			BuildStatus: "succeeeded",
@@ -983,7 +983,7 @@ func TestUpdateJobResources(t *testing.T) {
 
 		service := NewService(config, cockroachdbClient, secretHelper, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 
-		event := builderapi.CiBuilderEvent{
+		event := contracts.EstafetteCiBuilderEvent{
 			PodName:     "release-estafette-estafette-ci-api-123456-mhrzk",
 			ReleaseID:   "123456",
 			BuildStatus: "succeeeded",

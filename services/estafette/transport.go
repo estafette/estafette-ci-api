@@ -2744,7 +2744,7 @@ func (h *Handler) Commands(c *gin.Context) {
 		"builder:canceled":
 
 		// unmarshal json body
-		var ciBuilderEvent builderapi.CiBuilderEvent
+		var ciBuilderEvent contracts.EstafetteCiBuilderEvent
 		err = json.Unmarshal(body, &ciBuilderEvent)
 		if err != nil {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to CiBuilderEvent failed")
@@ -2764,7 +2764,7 @@ func (h *Handler) Commands(c *gin.Context) {
 	case "builder:clean":
 
 		// unmarshal json body
-		var ciBuilderEvent builderapi.CiBuilderEvent
+		var ciBuilderEvent contracts.EstafetteCiBuilderEvent
 		err = json.Unmarshal(body, &ciBuilderEvent)
 		if err != nil {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to CiBuilderEvent failed")
@@ -2785,7 +2785,7 @@ func (h *Handler) Commands(c *gin.Context) {
 			log.Info().Msgf("Job %v is already removed by cancellation, no need to remove for event %v", eventJobname, eventType)
 		}
 
-		go func(ciBuilderEvent builderapi.CiBuilderEvent) {
+		go func(ciBuilderEvent contracts.EstafetteCiBuilderEvent) {
 			ctx := context.Background()
 			err = h.buildService.UpdateJobResources(ctx, ciBuilderEvent)
 			if err != nil {

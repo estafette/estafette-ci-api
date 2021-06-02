@@ -50,8 +50,8 @@ type Service interface {
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
-	UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
-	UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) (err error)
+	UpdateBuildStatus(ctx context.Context, event contracts.EstafetteCiBuilderEvent) (err error)
+	UpdateJobResources(ctx context.Context, event contracts.EstafetteCiBuilderEvent) (err error)
 	SubscribeToEventTopic(ctx context.Context, gitEventTopic *api.EventTopic)
 	GetEventsForJobEnvvars(ctx context.Context, triggers []manifest.EstafetteTrigger, events []manifest.EstafetteEvent) (triggersAsEvents []manifest.EstafetteEvent, err error)
 }
@@ -1547,7 +1547,7 @@ func (s *service) Unarchive(ctx context.Context, repoSource, repoOwner, repoName
 	return s.cockroachdbClient.UnarchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
 }
 
-func (s *service) UpdateBuildStatus(ctx context.Context, ciBuilderEvent builderapi.CiBuilderEvent) (err error) {
+func (s *service) UpdateBuildStatus(ctx context.Context, ciBuilderEvent contracts.EstafetteCiBuilderEvent) (err error) {
 
 	log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("UpdateBuildStatus executing...")
 
@@ -1591,7 +1591,7 @@ func (s *service) UpdateBuildStatus(ctx context.Context, ciBuilderEvent buildera
 	return fmt.Errorf("CiBuilderEvent has invalid state, not updating build status")
 }
 
-func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent builderapi.CiBuilderEvent) (err error) {
+func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent contracts.EstafetteCiBuilderEvent) (err error) {
 
 	log.Info().Msgf("Updating job resources for pod %v", ciBuilderEvent.PodName)
 

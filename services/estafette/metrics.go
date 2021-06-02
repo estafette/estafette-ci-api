@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/estafette/estafette-ci-api/api"
-	"github.com/estafette/estafette-ci-api/clients/builderapi"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/go-kit/kit/metrics"
@@ -104,7 +103,7 @@ func (s *metricsService) Unarchive(ctx context.Context, repoSource, repoOwner, r
 	return s.Service.Unarchive(ctx, repoSource, repoOwner, repoName)
 }
 
-func (s *metricsService) UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) (err error) {
+func (s *metricsService) UpdateBuildStatus(ctx context.Context, event contracts.EstafetteCiBuilderEvent) (err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(s.requestCount, s.requestLatency, "UpdateBuildStatus", begin)
 	}(time.Now())
@@ -112,7 +111,7 @@ func (s *metricsService) UpdateBuildStatus(ctx context.Context, event builderapi
 	return s.Service.UpdateBuildStatus(ctx, event)
 }
 
-func (s *metricsService) UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) (err error) {
+func (s *metricsService) UpdateJobResources(ctx context.Context, event contracts.EstafetteCiBuilderEvent) (err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(s.requestCount, s.requestLatency, "UpdateJobResources", begin)
 	}(time.Now())

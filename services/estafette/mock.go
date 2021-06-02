@@ -9,7 +9,6 @@ import (
 	reflect "reflect"
 
 	api "github.com/estafette/estafette-ci-api/api"
-	builderapi "github.com/estafette/estafette-ci-api/clients/builderapi"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	gomock "github.com/golang/mock/gomock"
@@ -293,7 +292,7 @@ func (mr *MockServiceMockRecorder) Unarchive(ctx, repoSource, repoOwner, repoNam
 }
 
 // UpdateBuildStatus mocks base method.
-func (m *MockService) UpdateBuildStatus(ctx context.Context, event builderapi.CiBuilderEvent) error {
+func (m *MockService) UpdateBuildStatus(ctx context.Context, event contracts.EstafetteCiBuilderEvent) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateBuildStatus", ctx, event)
 	ret0, _ := ret[0].(error)
@@ -307,7 +306,7 @@ func (mr *MockServiceMockRecorder) UpdateBuildStatus(ctx, event interface{}) *go
 }
 
 // UpdateJobResources mocks base method.
-func (m *MockService) UpdateJobResources(ctx context.Context, event builderapi.CiBuilderEvent) error {
+func (m *MockService) UpdateJobResources(ctx context.Context, event contracts.EstafetteCiBuilderEvent) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateJobResources", ctx, event)
 	ret0, _ := ret[0].(error)
