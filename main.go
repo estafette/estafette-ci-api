@@ -549,6 +549,7 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/releases", estafetteHandler.CreatePipelineRelease)
 		jwtMiddlewareRoutes.DELETE("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteHandler.CancelPipelineBuild)
 		jwtMiddlewareRoutes.DELETE("/api/pipelines/:source/:owner/:repo/releases/:id", estafetteHandler.CancelPipelineRelease)
+		jwtMiddlewareRoutes.DELETE("/api/pipelines/:source/:owner/:repo/bots/:id", estafetteHandler.CancelPipelineBot)
 
 		// to be removed after changing web frontend to use the /api/admin routes
 		jwtMiddlewareRoutes.GET("/api/roles", rbacHandler.GetRoles)
