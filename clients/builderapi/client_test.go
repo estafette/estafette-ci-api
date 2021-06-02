@@ -484,8 +484,8 @@ func TestGetBuilderConfig(t *testing.T) {
 		builderConfig, err := ciBuilderClient.getBuilderConfig(context.Background(), ciBuilderParams, jobName)
 
 		assert.Nil(t, err)
-		assert.Equal(t, "1.0.7456", builderConfig.BuildVersion.Version)
-		assert.Equal(t, 390605593734184965, builderConfig.BuildParams.BuildID)
-		assert.Equal(t, "build", *builderConfig.Action)
+		assert.Equal(t, "1.0.7456", builderConfig.Version.Version)
+		assert.Equal(t, "390605593734184965", builderConfig.Build.ID)
+		assert.Equal(t, contracts.JobTypeBuild, builderConfig.JobType)
 	})
 }

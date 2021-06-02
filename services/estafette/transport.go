@@ -417,6 +417,74 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", email)})
 }
 
+func (h *Handler) CreatePipelineBot(c *gin.Context) {
+
+	if !api.RequestTokenIsValid(c) {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
+		return
+	}
+
+	claims := jwt.ExtractClaims(c)
+	email := claims["email"].(string)
+
+	var botCommand contracts.Bot
+	err := c.BindJSON(&botCommand)
+	if err != nil {
+		errorMessage := fmt.Sprint("Binding CreatePipelineBot body failed")
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+
+	// match source, owner, repo with values in binded release
+	if botCommand.RepoSource != c.Param("source") {
+		errorMessage := fmt.Sprintf("RepoSource in path and post data do not match for pipeline %v/%v/%v for bot command issued by %v", botCommand.RepoSource, botCommand.RepoOwner, botCommand.RepoName, email)
+		log.Error().Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+	if botCommand.RepoOwner != c.Param("owner") {
+		errorMessage := fmt.Sprintf("RepoOwner in path and post data do not match for pipeline %v/%v/%v for bot command issued by %v", botCommand.RepoSource, botCommand.RepoOwner, botCommand.RepoName, email)
+		log.Error().Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+	if botCommand.RepoName != c.Param("repo") {
+		errorMessage := fmt.Sprintf("RepoName in path and post data do not match for pipeline %v/%v/%v for bot command issued by %v", botCommand.RepoSource, botCommand.RepoOwner, botCommand.RepoName, email)
+		log.Error().Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+
+	filters := api.GetPipelineFilters(c)
+
+	pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), botCommand.RepoSource, botCommand.RepoOwner, botCommand.RepoName, filters, false)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving pipeline %v/%v/%v for bot command", botCommand.RepoSource, botCommand.RepoOwner, botCommand.RepoName)
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+	if pipeline == nil {
+		errorMessage := fmt.Sprintf("No pipeline %v/%v/%v for bot command", botCommand.RepoSource, botCommand.RepoOwner, botCommand.RepoName)
+		log.Error().Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+
+	// hand off to build service
+	// todo check which branch to pass
+	createdBot, err := h.buildService.CreateBot(c.Request.Context(), botCommand, *pipeline.ManifestObject, pipeline.RepoBranch)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed creating bot %v/%v/%v name %v for bot command issued by %v", botCommand.RepoSource, botCommand.RepoOwner, botCommand.RepoName, botCommand.Name, email)
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+
+	c.JSON(http.StatusCreated, createdBot)
+}
+
 func (h *Handler) GetPipelineBuildLogs(c *gin.Context) {
 
 	source := c.Param("source")

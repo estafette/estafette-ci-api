@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -682,15 +681,6 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 
 		localBuilderConfig.CIServer.PostLogsURL = strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/builds/%v/logs", localBuilderConfig.Git.RepoSource, localBuilderConfig.Git.RepoOwner, localBuilderConfig.Git.RepoName, localBuilderConfig.Build.ID)
 
-		// deprecated
-		buildID, err := strconv.Atoi(localBuilderConfig.Build.ID)
-		if err != nil {
-			return localBuilderConfig, err
-		}
-		localBuilderConfig.BuildParams = &contracts.BuildParamsConfig{
-			BuildID: buildID,
-		}
-
 	case contracts.JobTypeRelease:
 		releaseExists := false
 		for _, r := range localBuilderConfig.Manifest.Releases {
@@ -704,29 +694,6 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 		}
 
 		localBuilderConfig.CIServer.PostLogsURL = strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/releases/%v/logs", localBuilderConfig.Git.RepoSource, localBuilderConfig.Git.RepoOwner, localBuilderConfig.Git.RepoName, localBuilderConfig.Release.ID)
-
-		// get triggered by from events
-		triggeredBy := ""
-		if len(localBuilderConfig.Events) > 0 {
-			for _, e := range localBuilderConfig.Events {
-				if e.Manual != nil {
-					triggeredBy = e.Manual.UserID
-				}
-			}
-		}
-
-		// deprecated
-		releaseID, err := strconv.Atoi(localBuilderConfig.Release.ID)
-		if err != nil {
-			return localBuilderConfig, err
-		}
-		localBuilderConfig.ReleaseParams = &contracts.ReleaseParamsConfig{
-			ReleaseName:   localBuilderConfig.Release.Name,
-			ReleaseID:     releaseID,
-			ReleaseAction: localBuilderConfig.Release.Action,
-			TriggeredBy:   triggeredBy,
-		}
-		localBuilderConfig.ReleaseName = &localBuilderConfig.Release.Name
 
 	case contracts.JobTypeBot:
 		botExists := false
@@ -833,11 +800,6 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 			localBuilderConfig.DockerConfig = &copiedDockerConfig
 		}
 	}
-
-	// deprecated
-	action := string(ciBuilderParams.BuilderConfig.JobType)
-	localBuilderConfig.Action = &action
-	localBuilderConfig.BuildVersion = localBuilderConfig.Version
 
 	return localBuilderConfig, nil
 }
