@@ -2688,11 +2688,13 @@ func (h *Handler) Commands(c *gin.Context) {
 		log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Unmarshaled body of /api/commands event %v for job %v", eventType, eventJobname)
 
 		if ciBuilderEvent.BuildStatus != contracts.StatusCanceled {
-			err = h.ciBuilderClient.RemoveCiBuilderJob(c.Request.Context(), eventJobname)
-			if err != nil {
-				log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Failed removing job %v for event %v", eventJobname, eventType)
-				return
-			}
+			go func(eventJobname string) {
+				ctx := context.Background()
+				err = h.ciBuilderClient.RemoveCiBuilderJob(ctx, eventJobname)
+				if err != nil {
+					log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Failed removing job %v for event %v", eventJobname, eventType)
+				}
+			}(eventJobname)
 		} else {
 			log.Info().Msgf("Job %v is already removed by cancellation, no need to remove for event %v", eventJobname, eventType)
 		}
