@@ -97,7 +97,7 @@ func (mr *MockServiceMockRecorder) CreateRelease(ctx, release, mft, repoBranch, 
 }
 
 // FinishBot mocks base method.
-func (m *MockService) FinishBot(ctx context.Context, repoSource, repoOwner, repoName string, botID int, botStatus contracts.Status) error {
+func (m *MockService) FinishBot(ctx context.Context, repoSource, repoOwner, repoName, botID string, botStatus contracts.Status) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FinishBot", ctx, repoSource, repoOwner, repoName, botID, botStatus)
 	ret0, _ := ret[0].(error)
@@ -111,7 +111,7 @@ func (mr *MockServiceMockRecorder) FinishBot(ctx, repoSource, repoOwner, repoNam
 }
 
 // FinishBuild mocks base method.
-func (m *MockService) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) error {
+func (m *MockService) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName, buildID string, buildStatus contracts.Status) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FinishBuild", ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
 	ret0, _ := ret[0].(error)
@@ -125,7 +125,7 @@ func (mr *MockServiceMockRecorder) FinishBuild(ctx, repoSource, repoOwner, repoN
 }
 
 // FinishRelease mocks base method.
-func (m *MockService) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) error {
+func (m *MockService) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseID string, releaseStatus contracts.Status) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FinishRelease", ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)
 	ret0, _ := ret[0].(error)

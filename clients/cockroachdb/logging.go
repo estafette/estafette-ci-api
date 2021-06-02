@@ -43,13 +43,13 @@ func (c *loggingClient) InsertBuild(ctx context.Context, build contracts.Build, 
 	return c.Client.InsertBuild(ctx, build, jobResources)
 }
 
-func (c *loggingClient) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
+func (c *loggingClient) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, buildStatus contracts.Status) (err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "UpdateBuildStatus", err) }()
 
 	return c.Client.UpdateBuildStatus(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
 }
 
-func (c *loggingClient) UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources JobResources) (err error) {
+func (c *loggingClient) UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, jobResources JobResources) (err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "UpdateBuildResourceUtilization", err) }()
 
 	return c.Client.UpdateBuildResourceUtilization(ctx, repoSource, repoOwner, repoName, buildID, jobResources)
@@ -61,16 +61,16 @@ func (c *loggingClient) InsertRelease(ctx context.Context, release contracts.Rel
 	return c.Client.InsertRelease(ctx, release, jobResources)
 }
 
-func (c *loggingClient) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus contracts.Status) (err error) {
+func (c *loggingClient) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, releaseStatus contracts.Status) (err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "UpdateReleaseStatus", err) }()
 
-	return c.Client.UpdateReleaseStatus(ctx, repoSource, repoOwner, repoName, id, releaseStatus)
+	return c.Client.UpdateReleaseStatus(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)
 }
 
-func (c *loggingClient) UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) (err error) {
+func (c *loggingClient) UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, jobResources JobResources) (err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "UpdateReleaseResourceUtilization", err) }()
 
-	return c.Client.UpdateReleaseResourceUtilization(ctx, repoSource, repoOwner, repoName, id, jobResources)
+	return c.Client.UpdateReleaseResourceUtilization(ctx, repoSource, repoOwner, repoName, releaseID, jobResources)
 }
 
 func (c *loggingClient) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (buildlog contracts.BuildLog, err error) {
@@ -175,10 +175,10 @@ func (c *loggingClient) GetPipelineBuild(ctx context.Context, repoSource, repoOw
 	return c.Client.GetPipelineBuild(ctx, repoSource, repoOwner, repoName, repoRevision, optimized)
 }
 
-func (c *loggingClient) GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, id int, optimized bool) (build *contracts.Build, err error) {
+func (c *loggingClient) GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, optimized bool) (build *contracts.Build, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBuildByID", err) }()
 
-	return c.Client.GetPipelineBuildByID(ctx, repoSource, repoOwner, repoName, id, optimized)
+	return c.Client.GetPipelineBuildByID(ctx, repoSource, repoOwner, repoName, buildID, optimized)
 }
 
 func (c *loggingClient) GetLastPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error) {
@@ -259,10 +259,10 @@ func (c *loggingClient) GetPipelineReleasesCount(ctx context.Context, repoSource
 	return c.Client.GetPipelineReleasesCount(ctx, repoSource, repoOwner, repoName, filters)
 }
 
-func (c *loggingClient) GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, id int) (release *contracts.Release, err error) {
+func (c *loggingClient) GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string) (release *contracts.Release, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineRelease", err) }()
 
-	return c.Client.GetPipelineRelease(ctx, repoSource, repoOwner, repoName, id)
+	return c.Client.GetPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseID)
 }
 
 func (c *loggingClient) GetPipelineLastReleasesByName(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error) {
@@ -271,25 +271,25 @@ func (c *loggingClient) GetPipelineLastReleasesByName(ctx context.Context, repoS
 	return c.Client.GetPipelineLastReleasesByName(ctx, repoSource, repoOwner, repoName, releaseName, actions)
 }
 
-func (c *loggingClient) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error) {
+func (c *loggingClient) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineReleaseLogs", err) }()
 
 	return c.Client.GetPipelineReleaseLogs(ctx, repoSource, repoOwner, repoName, releaseID, readLogFromDatabase)
 }
 
-func (c *loggingClient) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, id string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error) {
+func (c *loggingClient) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, id string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineReleaseLogsByID", err) }()
 
 	return c.Client.GetPipelineReleaseLogsByID(ctx, repoSource, repoOwner, repoName, releaseID, id, readLogFromDatabase)
 }
 
-func (c *loggingClient) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error) {
+func (c *loggingClient) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineReleaseLogsPerPage", err) }()
 
 	return c.Client.GetPipelineReleaseLogsPerPage(ctx, repoSource, repoOwner, repoName, releaseID, pageNumber, pageSize)
 }
 
-func (c *loggingClient) GetPipelineReleaseLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int) (count int, err error) {
+func (c *loggingClient) GetPipelineReleaseLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string) (count int, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineReleaseLogsCount", err) }()
 
 	return c.Client.GetPipelineReleaseLogsCount(ctx, repoSource, repoOwner, repoName, releaseID)

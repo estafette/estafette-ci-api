@@ -24,7 +24,7 @@ func (s *loggingService) CreateBuild(ctx context.Context, build contracts.Build)
 	return s.Service.CreateBuild(ctx, build)
 }
 
-func (s *loggingService) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
+func (s *loggingService) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, buildStatus contracts.Status) (err error) {
 	defer func() { api.HandleLogError(s.prefix, "Service", "FinishBuild", err) }()
 
 	return s.Service.FinishBuild(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
@@ -36,7 +36,7 @@ func (s *loggingService) CreateRelease(ctx context.Context, release contracts.Re
 	return s.Service.CreateRelease(ctx, release, mft, repoBranch, repoRevision)
 }
 
-func (s *loggingService) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) (err error) {
+func (s *loggingService) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, releaseStatus contracts.Status) (err error) {
 	defer func() { api.HandleLogError(s.prefix, "Service", "FinishRelease", err) }()
 
 	return s.Service.FinishRelease(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)

@@ -35,11 +35,11 @@ var (
 //go:generate mockgen -package=estafette -destination ./mock.go -source=service.go
 type Service interface {
 	CreateBuild(ctx context.Context, build contracts.Build) (b *contracts.Build, err error)
-	FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error)
+	FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, buildStatus contracts.Status) (err error)
 	CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string) (r *contracts.Release, err error)
-	FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) (err error)
+	FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, releaseStatus contracts.Status) (err error)
 	CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch string) (b *contracts.Bot, err error)
-	FinishBot(ctx context.Context, repoSource, repoOwner, repoName string, botID int, botStatus contracts.Status) (err error)
+	FinishBot(ctx context.Context, repoSource, repoOwner, repoName string, botID string, botStatus contracts.Status) (err error)
 	FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error)
 	FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) (err error)
 	FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) (err error)
@@ -335,7 +335,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build) (creat
 	return
 }
 
-func (s *service) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) error {
+func (s *service) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, buildStatus contracts.Status) error {
 
 	err := s.cockroachdbClient.UpdateBuildStatus(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
 	if err != nil {
@@ -558,7 +558,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	return
 }
 
-func (s *service) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) error {
+func (s *service) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, releaseStatus contracts.Status) error {
 	err := s.cockroachdbClient.UpdateReleaseStatus(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)
 	if err != nil {
 		return err
@@ -729,7 +729,7 @@ func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest
 	return
 }
 
-func (s *service) FinishBot(ctx context.Context, repoSource, repoOwner, repoName string, botID int, botStatus contracts.Status) error {
+func (s *service) FinishBot(ctx context.Context, repoSource, repoOwner, repoName string, botID string, botStatus contracts.Status) error {
 	err := s.cockroachdbClient.UpdateBotStatus(ctx, repoSource, repoOwner, repoName, botID, botStatus)
 	if err != nil {
 		return err
@@ -1549,51 +1549,58 @@ func (s *service) Unarchive(ctx context.Context, repoSource, repoOwner, repoName
 
 func (s *service) UpdateBuildStatus(ctx context.Context, ciBuilderEvent contracts.EstafetteCiBuilderEvent) (err error) {
 
-	log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("UpdateBuildStatus executing...")
+	log.Debug().Msgf("UpdateBuildStatus executing...")
 
-	if ciBuilderEvent.BuildStatus != "" && ciBuilderEvent.ReleaseID != "" {
-
-		releaseID, err := strconv.Atoi(ciBuilderEvent.ReleaseID)
-		if err != nil {
-			return err
-		}
-
-		log.Debug().Msgf("Converted release id %v", releaseID)
-
-		err = s.FinishRelease(ctx, ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, releaseID, ciBuilderEvent.BuildStatus)
-		if err != nil {
-			return err
-		}
-
-		log.Debug().Msgf("Updated release status for job %v to %v", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
-
-		return err
-
-	} else if ciBuilderEvent.BuildStatus != contracts.StatusUnknown && ciBuilderEvent.BuildID != "" {
-
-		buildID, err := strconv.Atoi(ciBuilderEvent.BuildID)
-		if err != nil {
-			return err
-		}
-
-		log.Debug().Msgf("Converted build id %v", buildID)
-
-		err = s.FinishBuild(ctx, ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, buildID, ciBuilderEvent.BuildStatus)
-		if err != nil {
-			return err
-		}
-
-		log.Debug().Msgf("Updated build status for job %v to %v", ciBuilderEvent.JobName, ciBuilderEvent.BuildStatus)
-
-		return err
+	err = ciBuilderEvent.Validate()
+	if err != nil {
+		return
 	}
 
-	return fmt.Errorf("CiBuilderEvent has invalid state, not updating build status")
+	switch ciBuilderEvent.JobType {
+	case contracts.JobTypeBuild:
+
+		err = s.FinishBuild(ctx, ciBuilderEvent.Git.RepoSource, ciBuilderEvent.Git.RepoOwner, ciBuilderEvent.Git.RepoName, ciBuilderEvent.Build.ID, ciBuilderEvent.Build.BuildStatus)
+		if err != nil {
+			return err
+		}
+
+		log.Debug().Msgf("Updated build status for job %v to %v", ciBuilderEvent.JobName, ciBuilderEvent.Build.BuildStatus)
+
+		return
+
+	case contracts.JobTypeRelease:
+
+		err = s.FinishRelease(ctx, ciBuilderEvent.Git.RepoSource, ciBuilderEvent.Git.RepoOwner, ciBuilderEvent.Git.RepoName, ciBuilderEvent.Release.ID, ciBuilderEvent.Release.ReleaseStatus)
+		if err != nil {
+			return err
+		}
+
+		log.Debug().Msgf("Updated release status for job %v to %v", ciBuilderEvent.JobName, ciBuilderEvent.Release.ReleaseStatus)
+		return
+
+	case contracts.JobTypeBot:
+
+		err = s.FinishBot(ctx, ciBuilderEvent.Git.RepoSource, ciBuilderEvent.Git.RepoOwner, ciBuilderEvent.Git.RepoName, ciBuilderEvent.Bot.ID, ciBuilderEvent.Bot.BotStatus)
+		if err != nil {
+			return err
+		}
+
+		log.Debug().Msgf("Updated bot status for job %v to %v", ciBuilderEvent.JobName, ciBuilderEvent.Bot.BotStatus)
+		return
+
+	}
+
+	return fmt.Errorf("CiBuilderEvent has invalid JobType %v, not updating status", ciBuilderEvent.JobType)
 }
 
 func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent contracts.EstafetteCiBuilderEvent) (err error) {
 
 	log.Info().Msgf("Updating job resources for pod %v", ciBuilderEvent.PodName)
+
+	err = ciBuilderEvent.Validate()
+	if err != nil {
+		return
+	}
 
 	if ciBuilderEvent.PodName != "" {
 
@@ -1618,28 +1625,28 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent contrac
 			MemoryMaxUsage: maxMemory,
 		}
 
-		if ciBuilderEvent.BuildStatus != "" && ciBuilderEvent.ReleaseID != "" {
+		switch ciBuilderEvent.JobType {
+		case contracts.JobTypeBuild:
 
-			releaseID, err := strconv.Atoi(ciBuilderEvent.ReleaseID)
+			err = s.cockroachdbClient.UpdateBuildResourceUtilization(ctx, ciBuilderEvent.Git.RepoSource, ciBuilderEvent.Git.RepoOwner, ciBuilderEvent.Git.RepoName, ciBuilderEvent.Build.ID, jobResources)
 			if err != nil {
 				return err
 			}
 
-			err = s.cockroachdbClient.UpdateReleaseResourceUtilization(ctx, ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, releaseID, jobResources)
-			if err != nil {
-				return err
-			}
-		} else if ciBuilderEvent.BuildStatus != "" && ciBuilderEvent.BuildID != "" {
+		case contracts.JobTypeRelease:
 
-			buildID, err := strconv.Atoi(ciBuilderEvent.BuildID)
+			err = s.cockroachdbClient.UpdateReleaseResourceUtilization(ctx, ciBuilderEvent.Git.RepoSource, ciBuilderEvent.Git.RepoOwner, ciBuilderEvent.Git.RepoName, ciBuilderEvent.Release.ID, jobResources)
 			if err != nil {
 				return err
 			}
 
-			err = s.cockroachdbClient.UpdateBuildResourceUtilization(ctx, ciBuilderEvent.RepoSource, ciBuilderEvent.RepoOwner, ciBuilderEvent.RepoName, buildID, jobResources)
+		case contracts.JobTypeBot:
+
+			err = s.cockroachdbClient.UpdateBotResourceUtilization(ctx, ciBuilderEvent.Git.RepoSource, ciBuilderEvent.Git.RepoOwner, ciBuilderEvent.Git.RepoName, ciBuilderEvent.Bot.ID, jobResources)
 			if err != nil {
 				return err
 			}
+
 		}
 	}
 

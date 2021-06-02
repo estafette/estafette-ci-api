@@ -27,7 +27,7 @@ func (s *metricsService) CreateBuild(ctx context.Context, build contracts.Build)
 	return s.Service.CreateBuild(ctx, build)
 }
 
-func (s *metricsService) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
+func (s *metricsService) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, buildStatus contracts.Status) (err error) {
 	defer func(begin time.Time) { api.UpdateMetrics(s.requestCount, s.requestLatency, "FinishBuild", begin) }(time.Now())
 
 	return s.Service.FinishBuild(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
@@ -39,7 +39,7 @@ func (s *metricsService) CreateRelease(ctx context.Context, release contracts.Re
 	return s.Service.CreateRelease(ctx, release, mft, repoBranch, repoRevision)
 }
 
-func (s *metricsService) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) (err error) {
+func (s *metricsService) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, releaseStatus contracts.Status) (err error) {
 	defer func(begin time.Time) { api.UpdateMetrics(s.requestCount, s.requestLatency, "FinishRelease", begin) }(time.Now())
 
 	return s.Service.FinishRelease(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)

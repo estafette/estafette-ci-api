@@ -3,7 +3,6 @@ package cockroachdb
 import (
 	"context"
 	"errors"
-	"strconv"
 	"testing"
 	"time"
 
@@ -88,11 +87,9 @@ func TestIntegrationUpdateBuildStatus(t *testing.T) {
 		jobResources := getJobResources()
 		insertedBuild, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		buildID, err := strconv.Atoi(insertedBuild.ID)
-		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpdateBuildStatus(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName, buildID, contracts.StatusSucceeded)
+		err = cockroachdbClient.UpdateBuildStatus(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName, insertedBuild.ID, contracts.StatusSucceeded)
 
 		assert.Nil(t, err)
 	})
@@ -106,7 +103,7 @@ func TestIntegrationUpdateBuildStatus(t *testing.T) {
 		ctx := context.Background()
 		cockroachdbClient := getCockroachdbClient(ctx, t)
 		build := getBuild()
-		buildID := 15
+		buildID := "15"
 
 		// act
 		err := cockroachdbClient.UpdateBuildStatus(ctx, build.RepoSource, build.RepoOwner, build.RepoName, buildID, contracts.StatusSucceeded)
@@ -128,8 +125,6 @@ func TestIntegrationUpdateBuildResourceUtilization(t *testing.T) {
 		jobResources := getJobResources()
 		insertedBuild, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		buildID, err := strconv.Atoi(insertedBuild.ID)
-		assert.Nil(t, err)
 
 		newJobResources := JobResources{
 			CPURequest:    float64(0.3),
@@ -139,7 +134,7 @@ func TestIntegrationUpdateBuildResourceUtilization(t *testing.T) {
 		}
 
 		// act
-		err = cockroachdbClient.UpdateBuildResourceUtilization(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName, buildID, newJobResources)
+		err = cockroachdbClient.UpdateBuildResourceUtilization(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName, insertedBuild.ID, newJobResources)
 
 		assert.Nil(t, err)
 	})
@@ -153,7 +148,7 @@ func TestIntegrationUpdateBuildResourceUtilization(t *testing.T) {
 		ctx := context.Background()
 		cockroachdbClient := getCockroachdbClient(ctx, t)
 		build := getBuild()
-		buildID := 15
+		buildID := "15"
 
 		newJobResources := JobResources{
 			CPURequest:    float64(0.3),
@@ -204,11 +199,9 @@ func TestIntegrationUpdateReleaseStatus(t *testing.T) {
 		jobResources := getJobResources()
 		insertedRelease, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
 		assert.Nil(t, err)
-		releaseID, err := strconv.Atoi(insertedRelease.ID)
-		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpdateReleaseStatus(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, releaseID, contracts.StatusRunning)
+		err = cockroachdbClient.UpdateReleaseStatus(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.ID, contracts.StatusRunning)
 
 		assert.Nil(t, err)
 	})
@@ -222,7 +215,7 @@ func TestIntegrationUpdateReleaseStatus(t *testing.T) {
 		ctx := context.Background()
 		cockroachdbClient := getCockroachdbClient(ctx, t)
 		release := getRelease()
-		releaseID := 15
+		releaseID := "15"
 
 		// act
 		err := cockroachdbClient.UpdateReleaseStatus(ctx, release.RepoSource, release.RepoOwner, release.RepoName, releaseID, contracts.StatusRunning)
@@ -244,8 +237,6 @@ func TestIntegrationUpdateReleaseResourceUtilization(t *testing.T) {
 		jobResources := getJobResources()
 		insertedRelease, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
 		assert.Nil(t, err)
-		releaseID, err := strconv.Atoi(insertedRelease.ID)
-		assert.Nil(t, err)
 
 		newJobResources := JobResources{
 			CPURequest:    float64(0.3),
@@ -255,7 +246,7 @@ func TestIntegrationUpdateReleaseResourceUtilization(t *testing.T) {
 		}
 
 		// act
-		err = cockroachdbClient.UpdateReleaseResourceUtilization(ctx, release.RepoSource, release.RepoOwner, release.RepoName, releaseID, newJobResources)
+		err = cockroachdbClient.UpdateReleaseResourceUtilization(ctx, release.RepoSource, release.RepoOwner, release.RepoName, insertedRelease.ID, newJobResources)
 
 		assert.Nil(t, err)
 	})
@@ -269,7 +260,7 @@ func TestIntegrationUpdateReleaseResourceUtilization(t *testing.T) {
 		ctx := context.Background()
 		cockroachdbClient := getCockroachdbClient(ctx, t)
 		release := getRelease()
-		releaseID := 15
+		releaseID := "15"
 
 		newJobResources := JobResources{
 			CPURequest:    float64(0.3),
@@ -319,11 +310,9 @@ func TestIntegrationUpdateBotStatus(t *testing.T) {
 		jobResources := getJobResources()
 		insertedBot, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
 		assert.Nil(t, err)
-		botID, err := strconv.Atoi(insertedBot.ID)
-		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpdateBotStatus(ctx, insertedBot.RepoSource, insertedBot.RepoOwner, insertedBot.RepoName, botID, contracts.StatusSucceeded)
+		err = cockroachdbClient.UpdateBotStatus(ctx, insertedBot.RepoSource, insertedBot.RepoOwner, insertedBot.RepoName, insertedBot.ID, contracts.StatusSucceeded)
 
 		assert.Nil(t, err)
 	})
@@ -337,7 +326,7 @@ func TestIntegrationUpdateBotStatus(t *testing.T) {
 		ctx := context.Background()
 		cockroachdbClient := getCockroachdbClient(ctx, t)
 		bot := getBot()
-		botID := 15
+		botID := "15"
 
 		// act
 		err := cockroachdbClient.UpdateBotStatus(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, botID, contracts.StatusSucceeded)
@@ -359,8 +348,6 @@ func TestIntegrationUpdateBotResourceUtilization(t *testing.T) {
 		jobResources := getJobResources()
 		insertedBot, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
 		assert.Nil(t, err)
-		botID, err := strconv.Atoi(insertedBot.ID)
-		assert.Nil(t, err)
 
 		newJobResources := JobResources{
 			CPURequest:    float64(0.3),
@@ -370,7 +357,7 @@ func TestIntegrationUpdateBotResourceUtilization(t *testing.T) {
 		}
 
 		// act
-		err = cockroachdbClient.UpdateBotResourceUtilization(ctx, insertedBot.RepoSource, insertedBot.RepoOwner, insertedBot.RepoName, botID, newJobResources)
+		err = cockroachdbClient.UpdateBotResourceUtilization(ctx, insertedBot.RepoSource, insertedBot.RepoOwner, insertedBot.RepoName, insertedBot.ID, newJobResources)
 
 		assert.Nil(t, err)
 	})
@@ -384,7 +371,7 @@ func TestIntegrationUpdateBotResourceUtilization(t *testing.T) {
 		ctx := context.Background()
 		cockroachdbClient := getCockroachdbClient(ctx, t)
 		bot := getBot()
-		botID := 15
+		botID := "15"
 
 		newJobResources := JobResources{
 			CPURequest:    float64(0.3),

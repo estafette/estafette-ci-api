@@ -47,14 +47,14 @@ type Client interface {
 
 	GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error)
 	InsertBuild(ctx context.Context, build contracts.Build, jobResources JobResources) (b *contracts.Build, err error)
-	UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error)
-	UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources JobResources) (err error)
+	UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, buildStatus contracts.Status) (err error)
+	UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, jobResources JobResources) (err error)
 	InsertRelease(ctx context.Context, release contracts.Release, jobResources JobResources) (r *contracts.Release, err error)
-	UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus contracts.Status) (err error)
-	UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) (err error)
+	UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, releaseStatus contracts.Status) (err error)
+	UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, jobResources JobResources) (err error)
 	InsertBot(ctx context.Context, bot contracts.Bot, jobResources JobResources) (r *contracts.Bot, err error)
-	UpdateBotStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, botStatus contracts.Status) (err error)
-	UpdateBotResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) (err error)
+	UpdateBotStatus(ctx context.Context, repoSource, repoOwner, repoName string, botID string, botStatus contracts.Status) (err error)
+	UpdateBotResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, botID string, jobResources JobResources) (err error)
 	InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (log contracts.BuildLog, err error)
 	InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (log contracts.ReleaseLog, err error)
 	InsertBotLog(ctx context.Context, botLog contracts.BotLog, writeLogToDatabase bool) (log contracts.BotLog, err error)
@@ -75,7 +75,7 @@ type Client interface {
 	GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error)
 	GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error)
 	GetPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName, repoRevision string, optimized bool) (build *contracts.Build, err error)
-	GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, id int, optimized bool) (build *contracts.Build, err error)
+	GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, optimized bool) (build *contracts.Build, err error)
 	GetLastPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error)
 	GetFirstPipelineBuild(ctx context.Context, repoSource, repoOwner, repoName string, optimized bool) (build *contracts.Build, err error)
 	GetLastPipelineBuildForBranch(ctx context.Context, repoSource, repoOwner, repoName, branch string) (build *contracts.Build, err error)
@@ -89,20 +89,20 @@ type Client interface {
 	GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobresources JobResources, count int, err error)
 	GetPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (releases []*contracts.Release, err error)
 	GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error)
-	GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, id int) (release *contracts.Release, err error)
+	GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string) (release *contracts.Release, err error)
 	GetPipelineLastReleasesByName(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error)
-	GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error)
-	GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, id string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error)
-	GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error)
-	GetPipelineReleaseLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int) (count int, err error)
+	GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error)
+	GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, id string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error)
+	GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error)
+	GetPipelineReleaseLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string) (count int, err error)
 	GetPipelineReleaseMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobresources JobResources, count int, err error)
 	GetPipelineBots(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (bots []*contracts.Bot, err error)
 	GetPipelineBotsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error)
-	GetPipelineBot(ctx context.Context, repoSource, repoOwner, repoName string, id int) (bot *contracts.Bot, err error)
-	GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID int, readLogFromDatabase bool) (releaselog *contracts.BotLog, err error)
-	GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID int, id string, readLogFromDatabase bool) (releaselog *contracts.BotLog, err error)
-	GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, botID int, pageNumber int, pageSize int) (releaselogs []*contracts.BotLog, err error)
-	GetPipelineBotLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, botID int) (count int, err error)
+	GetPipelineBot(ctx context.Context, repoSource, repoOwner, repoName string, botID string) (bot *contracts.Bot, err error)
+	GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID string, readLogFromDatabase bool) (releaselog *contracts.BotLog, err error)
+	GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID string, id string, readLogFromDatabase bool) (releaselog *contracts.BotLog, err error)
+	GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, botID string, pageNumber int, pageSize int) (releaselogs []*contracts.BotLog, err error)
+	GetPipelineBotLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, botID string) (count int, err error)
 	GetPipelineBotMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobresources JobResources, count int, err error)
 	GetBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
@@ -442,7 +442,7 @@ func (c *client) InsertBuild(ctx context.Context, build contracts.Build, jobReso
 	return
 }
 
-func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
+func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, buildStatus contracts.Status) (err error) {
 
 	allowedBuildStatusesToTransitionFrom := []contracts.Status{}
 	switch buildStatus {
@@ -501,7 +501,7 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 	return
 }
 
-func (c *client) UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, jobResources JobResources) (err error) {
+func (c *client) UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, jobResources JobResources) (err error) {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -621,7 +621,7 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 	return
 }
 
-func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, releaseStatus contracts.Status) (err error) {
+func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, releaseStatus contracts.Status) (err error) {
 
 	allowedReleaseStatusesToTransitionFrom := []contracts.Status{}
 	switch releaseStatus {
@@ -650,7 +650,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 		Update("releases").
 		Set("release_status", releaseStatus).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": id}).
+		Where(sq.Eq{"id": releaseID}).
 		Where(sq.Eq{"repo_source": repoSource}).
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
@@ -666,7 +666,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 	insertedRelease, err := c.scanRelease(row)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			log.Warn().Err(err).Msgf("Updating release status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, id, allowedReleaseStatusesToTransitionFrom, releaseStatus)
+			log.Warn().Err(err).Msgf("Updating release status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, releaseID, allowedReleaseStatusesToTransitionFrom, releaseStatus)
 			return nil
 		}
 
@@ -678,7 +678,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 		if insertedRelease != nil {
 			c.UpsertComputedRelease(ctx, repoSource, repoOwner, repoName, insertedRelease.Name, insertedRelease.Action)
 		} else {
-			log.Warn().Msgf("Cannot update computed tables after updating release status for %v/%v/%v id %v from %v to %v", repoSource, repoOwner, repoName, id, allowedReleaseStatusesToTransitionFrom, releaseStatus)
+			log.Warn().Msgf("Cannot update computed tables after updating release status for %v/%v/%v id %v from %v to %v", repoSource, repoOwner, repoName, releaseID, allowedReleaseStatusesToTransitionFrom, releaseStatus)
 		}
 		c.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
 	}(insertedRelease)
@@ -686,7 +686,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 	return
 }
 
-func (c *client) UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) (err error) {
+func (c *client) UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, jobResources JobResources) (err error) {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -694,7 +694,7 @@ func (c *client) UpdateReleaseResourceUtilization(ctx context.Context, repoSourc
 		Update("releases").
 		Set("cpu_max_usage", jobResources.CPUMaxUsage).
 		Set("memory_max_usage", jobResources.MemoryMaxUsage).
-		Where(sq.Eq{"id": id}).
+		Where(sq.Eq{"id": releaseID}).
 		Where(sq.Eq{"repo_source": repoSource}).
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName})
@@ -794,7 +794,7 @@ func (c *client) InsertBot(ctx context.Context, bot contracts.Bot, jobResources 
 	return
 }
 
-func (c *client) UpdateBotStatus(ctx context.Context, repoSource, repoOwner, repoName string, id int, botStatus contracts.Status) (err error) {
+func (c *client) UpdateBotStatus(ctx context.Context, repoSource, repoOwner, repoName string, botID string, botStatus contracts.Status) (err error) {
 
 	allowedBotStatusesToTransitionFrom := []contracts.Status{}
 	switch botStatus {
@@ -823,7 +823,7 @@ func (c *client) UpdateBotStatus(ctx context.Context, repoSource, repoOwner, rep
 		Update("bots").
 		Set("bot_status", botStatus).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": id}).
+		Where(sq.Eq{"id": botID}).
 		Where(sq.Eq{"repo_source": repoSource}).
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
@@ -849,7 +849,7 @@ func (c *client) UpdateBotStatus(ctx context.Context, repoSource, repoOwner, rep
 	return
 }
 
-func (c *client) UpdateBotResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, id int, jobResources JobResources) (err error) {
+func (c *client) UpdateBotResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, botID string, jobResources JobResources) (err error) {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -857,7 +857,7 @@ func (c *client) UpdateBotResourceUtilization(ctx context.Context, repoSource, r
 		Update("bots").
 		Set("cpu_max_usage", jobResources.CPUMaxUsage).
 		Set("memory_max_usage", jobResources.MemoryMaxUsage).
-		Where(sq.Eq{"id": id}).
+		Where(sq.Eq{"id": botID}).
 		Where(sq.Eq{"repo_source": repoSource}).
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName})
@@ -1961,11 +1961,11 @@ func (c *client) GetPipelineBuild(ctx context.Context, repoSource, repoOwner, re
 	return
 }
 
-func (c *client) GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, id int, optimized bool) (build *contracts.Build, err error) {
+func (c *client) GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, optimized bool) (build *contracts.Build, err error) {
 
 	// generate query
 	query := c.selectBuildsQuery().
-		Where(sq.Eq{"a.id": id}).
+		Where(sq.Eq{"a.id": buildID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -2451,11 +2451,11 @@ func (c *client) GetPipelineReleasesCount(ctx context.Context, repoSource, repoO
 	return
 }
 
-func (c *client) GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, id int) (release *contracts.Release, err error) {
+func (c *client) GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string) (release *contracts.Release, err error) {
 
 	// generate query
 	query := c.selectReleasesQuery().
-		Where(sq.Eq{"a.id": id}).
+		Where(sq.Eq{"a.id": releaseID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -2514,7 +2514,7 @@ func (c *client) GetPipelineLastReleasesByName(ctx context.Context, repoSource, 
 	return
 }
 
-func (c *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, readLogFromDatabase bool) (releaseLog *contracts.ReleaseLog, err error) {
+func (c *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, readLogFromDatabase bool) (releaseLog *contracts.ReleaseLog, err error) {
 
 	// generate query
 	query := c.selectReleaseLogsQuery(readLogFromDatabase).
@@ -2564,12 +2564,12 @@ func (c *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwn
 		}
 	}
 
-	releaseLog.ReleaseID = strconv.Itoa(releaseID)
+	releaseLog.ReleaseID = releaseID
 
 	return
 }
 
-func (c *client) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, id string, readLogFromDatabase bool) (releaseLog *contracts.ReleaseLog, err error) {
+func (c *client) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, id string, readLogFromDatabase bool) (releaseLog *contracts.ReleaseLog, err error) {
 
 	// generate query
 	query := c.selectReleaseLogsQuery(readLogFromDatabase).
@@ -2619,12 +2619,12 @@ func (c *client) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, rep
 		}
 	}
 
-	releaseLog.ReleaseID = strconv.Itoa(releaseID)
+	releaseLog.ReleaseID = releaseID
 
 	return
 }
 
-func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, pageNumber int, pageSize int) (releaseLogs []*contracts.ReleaseLog, err error) {
+func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, pageNumber int, pageSize int) (releaseLogs []*contracts.ReleaseLog, err error) {
 
 	releaseLogs = make([]*contracts.ReleaseLog, 0)
 
@@ -2647,7 +2647,7 @@ func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, 
 	for rows.Next() {
 
 		releaseLog := &contracts.ReleaseLog{}
-		var releaseID int
+		var releaseID string
 
 		if err = rows.Scan(&releaseLog.ID,
 			&releaseLog.RepoSource,
@@ -2662,7 +2662,7 @@ func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, 
 			return
 		}
 
-		releaseLog.ReleaseID = strconv.Itoa(releaseID)
+		releaseLog.ReleaseID = releaseID
 
 		releaseLogs = append(releaseLogs, releaseLog)
 	}
@@ -2670,7 +2670,7 @@ func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, 
 	return releaseLogs, nil
 }
 
-func (c *client) GetPipelineReleaseLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int) (count int, err error) {
+func (c *client) GetPipelineReleaseLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string) (count int, err error) {
 
 	// generate query
 	query := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
@@ -2789,11 +2789,11 @@ func (c *client) GetPipelineBotsCount(ctx context.Context, repoSource, repoOwner
 	return
 }
 
-func (c *client) GetPipelineBot(ctx context.Context, repoSource, repoOwner, repoName string, id int) (bot *contracts.Bot, err error) {
+func (c *client) GetPipelineBot(ctx context.Context, repoSource, repoOwner, repoName string, botID string) (bot *contracts.Bot, err error) {
 
 	// generate query
 	query := c.selectBotsQuery().
-		Where(sq.Eq{"a.id": id}).
+		Where(sq.Eq{"a.id": botID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -2813,7 +2813,7 @@ func (c *client) GetPipelineBot(ctx context.Context, repoSource, repoOwner, repo
 	return bot, nil
 }
 
-func (c *client) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID int, readLogFromDatabase bool) (botLog *contracts.BotLog, err error) {
+func (c *client) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID string, readLogFromDatabase bool) (botLog *contracts.BotLog, err error) {
 
 	// generate query
 	query := c.selectBotLogsQuery(readLogFromDatabase).
@@ -2863,12 +2863,12 @@ func (c *client) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, 
 		}
 	}
 
-	botLog.BotID = strconv.Itoa(botID)
+	botLog.BotID = botID
 
 	return
 }
 
-func (c *client) GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID int, id string, readLogFromDatabase bool) (botLog *contracts.BotLog, err error) {
+func (c *client) GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID string, id string, readLogFromDatabase bool) (botLog *contracts.BotLog, err error) {
 
 	// generate query
 	query := c.selectBotLogsQuery(readLogFromDatabase).
@@ -2918,12 +2918,12 @@ func (c *client) GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwn
 		}
 	}
 
-	botLog.BotID = strconv.Itoa(botID)
+	botLog.BotID = botID
 
 	return
 }
 
-func (c *client) GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, botID int, pageNumber int, pageSize int) (botLogs []*contracts.BotLog, err error) {
+func (c *client) GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, botID string, pageNumber int, pageSize int) (botLogs []*contracts.BotLog, err error) {
 
 	botLogs = make([]*contracts.BotLog, 0)
 
@@ -2946,7 +2946,7 @@ func (c *client) GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repo
 	for rows.Next() {
 
 		botLog := &contracts.BotLog{}
-		var botID int
+		var botID string
 
 		if err = rows.Scan(&botLog.ID,
 			&botLog.RepoSource,
@@ -2961,7 +2961,7 @@ func (c *client) GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repo
 			return
 		}
 
-		botLog.BotID = strconv.Itoa(botID)
+		botLog.BotID = botID
 
 		botLogs = append(botLogs, botLog)
 	}
@@ -2969,7 +2969,7 @@ func (c *client) GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repo
 	return botLogs, nil
 }
 
-func (c *client) GetPipelineBotLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, botID int) (count int, err error) {
+func (c *client) GetPipelineBotLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, botID string) (count int, err error) {
 
 	// generate query
 	query := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
