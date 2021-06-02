@@ -53,48 +53,48 @@ func (mr *MockServiceMockRecorder) Archive(ctx, repoSource, repoOwner, repoName 
 }
 
 // CreateBot mocks base method.
-func (m *MockService) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch string, waitForJobToStart bool) (*contracts.Bot, error) {
+func (m *MockService) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch string) (*contracts.Bot, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateBot", ctx, bot, mft, repoBranch, waitForJobToStart)
+	ret := m.ctrl.Call(m, "CreateBot", ctx, bot, mft, repoBranch)
 	ret0, _ := ret[0].(*contracts.Bot)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateBot indicates an expected call of CreateBot.
-func (mr *MockServiceMockRecorder) CreateBot(ctx, bot, mft, repoBranch, waitForJobToStart interface{}) *gomock.Call {
+func (mr *MockServiceMockRecorder) CreateBot(ctx, bot, mft, repoBranch interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBot", reflect.TypeOf((*MockService)(nil).CreateBot), ctx, bot, mft, repoBranch, waitForJobToStart)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBot", reflect.TypeOf((*MockService)(nil).CreateBot), ctx, bot, mft, repoBranch)
 }
 
 // CreateBuild mocks base method.
-func (m *MockService) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (*contracts.Build, error) {
+func (m *MockService) CreateBuild(ctx context.Context, build contracts.Build) (*contracts.Build, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateBuild", ctx, build, waitForJobToStart)
+	ret := m.ctrl.Call(m, "CreateBuild", ctx, build)
 	ret0, _ := ret[0].(*contracts.Build)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateBuild indicates an expected call of CreateBuild.
-func (mr *MockServiceMockRecorder) CreateBuild(ctx, build, waitForJobToStart interface{}) *gomock.Call {
+func (mr *MockServiceMockRecorder) CreateBuild(ctx, build interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBuild", reflect.TypeOf((*MockService)(nil).CreateBuild), ctx, build, waitForJobToStart)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBuild", reflect.TypeOf((*MockService)(nil).CreateBuild), ctx, build)
 }
 
 // CreateRelease mocks base method.
-func (m *MockService) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (*contracts.Release, error) {
+func (m *MockService) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string) (*contracts.Release, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateRelease", ctx, release, mft, repoBranch, repoRevision, waitForJobToStart)
+	ret := m.ctrl.Call(m, "CreateRelease", ctx, release, mft, repoBranch, repoRevision)
 	ret0, _ := ret[0].(*contracts.Release)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateRelease indicates an expected call of CreateRelease.
-func (mr *MockServiceMockRecorder) CreateRelease(ctx, release, mft, repoBranch, repoRevision, waitForJobToStart interface{}) *gomock.Call {
+func (mr *MockServiceMockRecorder) CreateRelease(ctx, release, mft, repoBranch, repoRevision interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRelease", reflect.TypeOf((*MockService)(nil).CreateRelease), ctx, release, mft, repoBranch, repoRevision, waitForJobToStart)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRelease", reflect.TypeOf((*MockService)(nil).CreateRelease), ctx, release, mft, repoBranch, repoRevision)
 }
 
 // FinishBot mocks base method.

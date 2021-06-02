@@ -117,7 +117,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 				Git:   &gitEvent,
 			},
 		},
-	}, false)
+	})
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed creating build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
 		return err

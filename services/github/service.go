@@ -120,7 +120,7 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 				Git:   &gitEvent,
 			},
 		},
-	}, false)
+	})
 
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed creating build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())

@@ -326,7 +326,7 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 	}
 
 	// hand off to build service
-	createdBuild, err := h.buildService.CreateBuild(c.Request.Context(), *failedBuild, false)
+	createdBuild, err := h.buildService.CreateBuild(c.Request.Context(), *failedBuild)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed creating build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, email)
 		log.Error().Err(err).Msg(errorMessage)
@@ -922,7 +922,7 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 				},
 			},
 		},
-	}, *build.ManifestObject, build.RepoBranch, build.RepoRevision, true)
+	}, *build.ManifestObject, build.RepoBranch, build.RepoRevision)
 
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed creating release %v for pipeline %v/%v/%v version %v for release command issued by %v", releaseCommand.Name, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion, email)
@@ -2697,12 +2697,13 @@ func (h *Handler) Commands(c *gin.Context) {
 			log.Info().Msgf("Job %v is already removed by cancellation, no need to remove for event %v", eventJobname, eventType)
 		}
 
-		go func(ctx context.Context, ciBuilderEvent builderapi.CiBuilderEvent) {
-			err = h.buildService.UpdateJobResources(c.Request.Context(), ciBuilderEvent)
+		go func(ciBuilderEvent builderapi.CiBuilderEvent) {
+			ctx := context.Background()
+			err = h.buildService.UpdateJobResources(ctx, ciBuilderEvent)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed updating max cpu and memory from prometheus for pod %v", ciBuilderEvent.PodName)
 			}
-		}(c.Request.Context(), ciBuilderEvent)
+		}(ciBuilderEvent)
 
 	default:
 		log.Warn().Str("event", eventType).Msgf("Unsupported Estafette event of type '%v'", eventType)

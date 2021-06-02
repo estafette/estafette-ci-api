@@ -97,7 +97,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 			Times(1)
 
 		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any()).AnyTimes()
-		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
@@ -135,7 +135,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 		estafetteService.
 			EXPECT().
-			CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).
+			CreateBuild(gomock.Any(), gomock.Any()).
 			Times(1)
 
 		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any()).AnyTimes()
@@ -228,7 +228,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any()).AnyTimes()
 		githubapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
 

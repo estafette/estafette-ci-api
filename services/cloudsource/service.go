@@ -116,7 +116,7 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 				Git:   &gitEvent,
 			},
 		},
-	}, false)
+	})
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed creating build for pipeline %v/%v/%v with revision %v", notification.GetRepoSource(), notification.GetRepoOwner(), notification.GetRepoName(), repoRevision)
 		return err

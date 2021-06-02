@@ -75,7 +75,7 @@ func TestCreateBuild(t *testing.T) {
 		}
 
 		// act
-		_, _ = service.CreateBuild(ctx, build, true)
+		_, _ = service.CreateBuild(ctx, build)
 	})
 
 	t.Run("CallsGetPipelineOnCockroachdbClientIfManifestIsInvalid", func(t *testing.T) {
@@ -127,7 +127,7 @@ func TestCreateBuild(t *testing.T) {
 		}
 
 		// act
-		_, _ = service.CreateBuild(ctx, build, true)
+		_, _ = service.CreateBuild(ctx, build)
 	})
 
 	t.Run("CallsGetPipelineBuildMaxResourceUtilizationOnCockroachdbClient", func(t *testing.T) {
@@ -175,7 +175,7 @@ func TestCreateBuild(t *testing.T) {
 		}
 
 		// act
-		_, _ = service.CreateBuild(ctx, build, true)
+		_, _ = service.CreateBuild(ctx, build)
 	})
 
 	t.Run("CallsInsertBuildOnCockroachdbClient", func(t *testing.T) {
@@ -223,7 +223,7 @@ func TestCreateBuild(t *testing.T) {
 		}
 
 		// act
-		_, _ = service.CreateBuild(ctx, build, true)
+		_, _ = service.CreateBuild(ctx, build)
 	})
 
 	t.Run("CallsCreateCiBuilderJobOnBuilderapiClient", func(t *testing.T) {
@@ -280,7 +280,7 @@ func TestCreateBuild(t *testing.T) {
 		}
 
 		// act
-		_, err := service.CreateBuild(ctx, build, true)
+		_, err := service.CreateBuild(ctx, build)
 
 		assert.Nil(t, err)
 	})
@@ -344,7 +344,7 @@ func TestCreateBuild(t *testing.T) {
 		}
 
 		// act
-		_, err := service.CreateBuild(ctx, build, true)
+		_, err := service.CreateBuild(ctx, build)
 
 		assert.Nil(t, err)
 	})
@@ -412,7 +412,7 @@ func TestCreateBuild(t *testing.T) {
 		}
 
 		// act
-		_, err := service.CreateBuild(ctx, build, true)
+		_, err := service.CreateBuild(ctx, build)
 
 		assert.Nil(t, err)
 	})
@@ -476,7 +476,7 @@ func TestCreateBuild(t *testing.T) {
 		}
 
 		// act
-		_, _ = service.CreateBuild(ctx, build, true)
+		_, _ = service.CreateBuild(ctx, build)
 
 		// assert.Nil(t, err)
 		assert.Equal(t, 1, callCount)
@@ -588,7 +588,7 @@ func TestCreateRelease(t *testing.T) {
 		revision := "f0677f01cc6d54a5b042224a9eb374e98f979985"
 
 		// act
-		_, err := service.CreateRelease(ctx, release, mft, branch, revision, true)
+		_, err := service.CreateRelease(ctx, release, mft, branch, revision)
 
 		assert.Nil(t, err)
 	})
@@ -652,7 +652,7 @@ func TestCreateRelease(t *testing.T) {
 		revision := "f0677f01cc6d54a5b042224a9eb374e98f979985"
 
 		// act
-		_, err := service.CreateRelease(ctx, release, mft, branch, revision, true)
+		_, err := service.CreateRelease(ctx, release, mft, branch, revision)
 
 		assert.Nil(t, err)
 	})

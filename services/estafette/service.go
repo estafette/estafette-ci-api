@@ -34,11 +34,11 @@ var (
 // Service encapsulates build and release creation and re-triggering
 //go:generate mockgen -package=estafette -destination ./mock.go -source=service.go
 type Service interface {
-	CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error)
+	CreateBuild(ctx context.Context, build contracts.Build) (b *contracts.Build, err error)
 	FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error)
-	CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (r *contracts.Release, err error)
+	CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string) (r *contracts.Release, err error)
 	FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) (err error)
-	CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch string, waitForJobToStart bool) (b *contracts.Bot, err error)
+	CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch string) (b *contracts.Bot, err error)
 	FinishBot(ctx context.Context, repoSource, repoOwner, repoName string, botID int, botStatus contracts.Status) (err error)
 	FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error)
 	FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) (err error)
@@ -86,7 +86,7 @@ type service struct {
 	triggerConcurrency     int
 }
 
-func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (createdBuild *contracts.Build, err error) {
+func (s *service) CreateBuild(ctx context.Context, build contracts.Build) (createdBuild *contracts.Build, err error) {
 
 	// validate manifest
 	mft, manifestError := manifest.ReadManifest(s.config.ManifestPreferences, build.Manifest, true)
@@ -229,23 +229,14 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 	if hasValidManifest && invalidSecretsErr == nil {
 		log.Debug().Msgf("Pipeline %v/%v/%v revision %v has valid manifest, creating build job...", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 		// create ci builder job
-		if waitForJobToStart {
-			_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
-			if err != nil {
-				return
-			}
-		} else {
-			go func(ciBuilderParams builderapi.CiBuilderParams) {
-				_, err = s.builderapiClient.CreateCiBuilderJob(context.Background(), ciBuilderParams)
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed creating async build job")
-				}
-			}(ciBuilderParams)
+		_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
+		if err != nil {
+			return
 		}
 
 		// handle triggers
 		go func() {
-			err := s.FirePipelineTriggers(ctx, build, "started")
+			err := s.FirePipelineTriggers(context.Background(), build, "started")
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed firing pipeline triggers for build %v/%v/%v revision %v", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 			}
@@ -353,6 +344,7 @@ func (s *service) FinishBuild(ctx context.Context, repoSource, repoOwner, repoNa
 
 	// handle triggers
 	go func() {
+		ctx := context.Background()
 		build, err := s.cockroachdbClient.GetPipelineBuildByID(ctx, repoSource, repoOwner, repoName, buildID, false)
 		if err != nil {
 			return
@@ -368,7 +360,7 @@ func (s *service) FinishBuild(ctx context.Context, repoSource, repoOwner, repoNa
 	return nil
 }
 
-func (s *service) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (createdRelease *contracts.Release, err error) {
+func (s *service) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string) (createdRelease *contracts.Release, err error) {
 
 	// create deep copy to ensure no properties are shared through a pointer
 	mft = mft.DeepCopy()
@@ -502,18 +494,9 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 
 	if invalidSecretsErr == nil {
 		// create ci release job
-		if waitForJobToStart {
-			_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
-			if err != nil {
-				return
-			}
-		} else {
-			go func(ciBuilderParams builderapi.CiBuilderParams) {
-				_, err = s.builderapiClient.CreateCiBuilderJob(context.Background(), ciBuilderParams)
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed creating async release job")
-				}
-			}(ciBuilderParams)
+		_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
+		if err != nil {
+			return
 		}
 	} else {
 		// store log with manifest unmarshalling error
@@ -565,6 +548,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 
 	// handle triggers
 	go func() {
+		ctx := context.Background()
 		err := s.FireReleaseTriggers(ctx, release, "started")
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed firing release triggers for %v/%v/%v to target %v", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
@@ -582,6 +566,7 @@ func (s *service) FinishRelease(ctx context.Context, repoSource, repoOwner, repo
 
 	// handle triggers
 	go func() {
+		ctx := context.Background()
 		release, err := s.cockroachdbClient.GetPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseID)
 		if err != nil {
 			return
@@ -597,7 +582,7 @@ func (s *service) FinishRelease(ctx context.Context, repoSource, repoOwner, repo
 	return nil
 }
 
-func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch string, waitForJobToStart bool) (createdBot *contracts.Bot, err error) {
+func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch string) (createdBot *contracts.Bot, err error) {
 
 	// create deep copy to ensure no properties are shared through a pointer
 	mft = mft.DeepCopy()
@@ -689,18 +674,9 @@ func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest
 
 	if invalidSecretsErr == nil {
 		// create ci release job
-		if waitForJobToStart {
-			_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
-			if err != nil {
-				return
-			}
-		} else {
-			go func(ciBuilderParams builderapi.CiBuilderParams) {
-				_, err = s.builderapiClient.CreateCiBuilderJob(context.Background(), ciBuilderParams)
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed creating async bot job")
-				}
-			}(ciBuilderParams)
+		_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
+		if err != nil {
+			return
 		}
 	} else {
 		// store log with manifest unmarshalling error
@@ -802,9 +778,10 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
 				semaphore <- true
 
-				go func(ctx context.Context, p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
+				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
 					// lower semaphore once the routine's finished, making room for another one to start
 					defer func() { <-semaphore }()
+					ctx := context.Background()
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
@@ -827,7 +804,7 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 						}
 
 					}
-				}(ctx, p, t, e)
+				}(p, t, e)
 			}
 		}
 	}
@@ -884,9 +861,10 @@ func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.E
 				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
 				semaphore <- true
 
-				go func(ctx context.Context, p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
+				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
 					// lower semaphore once the routine's finished, making room for another one to start
 					defer func() { <-semaphore }()
+					ctx := context.Background()
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
@@ -908,7 +886,7 @@ func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.E
 							log.Error().Err(err).Msgf("[trigger:github(%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						}
 					}
-				}(ctx, p, t, e)
+				}(p, t, e)
 			}
 		}
 	}
@@ -965,9 +943,10 @@ func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent mani
 				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
 				semaphore <- true
 
-				go func(ctx context.Context, p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
+				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
 					// lower semaphore once the routine's finished, making room for another one to start
 					defer func() { <-semaphore }()
+					ctx := context.Background()
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
@@ -990,7 +969,7 @@ func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent mani
 						}
 
 					}
-				}(ctx, p, t, e)
+				}(p, t, e)
 			}
 		}
 	}
@@ -1055,9 +1034,10 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
 				semaphore <- true
 
-				go func(ctx context.Context, p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
+				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
 					// lower semaphore once the routine's finished, making room for another one to start
 					defer func() { <-semaphore }()
+					ctx := context.Background()
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
@@ -1080,7 +1060,7 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 						}
 
 					}
-				}(ctx, p, t, e)
+				}(p, t, e)
 			}
 		}
 	}
@@ -1144,9 +1124,10 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
 				semaphore <- true
 
-				go func(ctx context.Context, p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
+				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
 					// lower semaphore once the routine's finished, making room for another one to start
 					defer func() { <-semaphore }()
+					ctx := context.Background()
 
 					if t.BuildAction != nil {
 						log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
@@ -1168,7 +1149,7 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 						}
 
 					}
-				}(ctx, p, t, e)
+				}(p, t, e)
 			}
 		}
 	}
@@ -1223,9 +1204,10 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
 				semaphore <- true
 
-				go func(ctx context.Context, p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
+				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
 					// lower semaphore once the routine's finished, making room for another one to start
 					defer func() { <-semaphore }()
+					ctx := context.Background()
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
@@ -1248,7 +1230,7 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 						}
 
 					}
-				}(ctx, p, t, e)
+				}(p, t, e)
 			}
 		}
 	}
@@ -1307,9 +1289,10 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
 				semaphore <- true
 
-				go func(ctx context.Context, p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
+				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
 					// lower semaphore once the routine's finished, making room for another one to start
 					defer func() { <-semaphore }()
+					ctx := context.Background()
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
@@ -1332,7 +1315,7 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 						}
 
 					}
-				}(ctx, p, t, e)
+				}(p, t, e)
 			}
 		}
 	}
@@ -1365,7 +1348,7 @@ func (s *service) fireBuild(ctx context.Context, p contracts.Pipeline, t manifes
 	// set event that triggers the build
 	lastBuildForBranch.Events = []manifest.EstafetteEvent{e}
 
-	_, err = s.CreateBuild(ctx, *lastBuildForBranch, true)
+	_, err = s.CreateBuild(ctx, *lastBuildForBranch)
 	if err != nil {
 		return err
 	}
@@ -1439,7 +1422,7 @@ func (s *service) fireRelease(ctx context.Context, p contracts.Pipeline, t manif
 		RepoName:       p.RepoName,
 		ReleaseVersion: versionToRelease,
 		Events:         []manifest.EstafetteEvent{e},
-	}, *mft, repoBranch, repoRevision, true)
+	}, *mft, repoBranch, repoRevision)
 	if err != nil {
 		return err
 	}
@@ -1457,7 +1440,7 @@ func (s *service) fireBot(ctx context.Context, p contracts.Pipeline, t manifest.
 		RepoOwner:  p.RepoOwner,
 		RepoName:   p.RepoName,
 		Events:     []manifest.EstafetteEvent{e},
-	}, *p.ManifestObject, p.RepoBranch, true)
+	}, *p.ManifestObject, p.RepoBranch)
 	if err != nil {
 		return err
 	}

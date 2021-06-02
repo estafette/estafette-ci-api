@@ -20,11 +20,11 @@ type tracingService struct {
 	prefix string
 }
 
-func (s *tracingService) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error) {
+func (s *tracingService) CreateBuild(ctx context.Context, build contracts.Build) (b *contracts.Build, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "CreateBuild"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return s.Service.CreateBuild(ctx, build, waitForJobToStart)
+	return s.Service.CreateBuild(ctx, build)
 }
 
 func (s *tracingService) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
@@ -34,11 +34,11 @@ func (s *tracingService) FinishBuild(ctx context.Context, repoSource, repoOwner,
 	return s.Service.FinishBuild(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
 }
 
-func (s *tracingService) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (r *contracts.Release, err error) {
+func (s *tracingService) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string) (r *contracts.Release, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "CreateRelease"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return s.Service.CreateRelease(ctx, release, mft, repoBranch, repoRevision, waitForJobToStart)
+	return s.Service.CreateRelease(ctx, release, mft, repoBranch, repoRevision)
 }
 
 func (s *tracingService) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) (err error) {

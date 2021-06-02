@@ -113,7 +113,7 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 			Times(1)
 
 		cloudsourceapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
-		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
@@ -164,8 +164,8 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 		estafetteService.
 			EXPECT().
-			CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error) {
+			CreateBuild(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, build contracts.Build) (b *contracts.Build, err error) {
 				return
 			}).
 			Times(1)
@@ -287,7 +287,7 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 		cloudsourceapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
 		cloudsourceapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
 

@@ -22,10 +22,10 @@ type metricsService struct {
 	requestLatency metrics.Histogram
 }
 
-func (s *metricsService) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error) {
+func (s *metricsService) CreateBuild(ctx context.Context, build contracts.Build) (b *contracts.Build, err error) {
 	defer func(begin time.Time) { api.UpdateMetrics(s.requestCount, s.requestLatency, "CreateBuild", begin) }(time.Now())
 
-	return s.Service.CreateBuild(ctx, build, waitForJobToStart)
+	return s.Service.CreateBuild(ctx, build)
 }
 
 func (s *metricsService) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
@@ -34,10 +34,10 @@ func (s *metricsService) FinishBuild(ctx context.Context, repoSource, repoOwner,
 	return s.Service.FinishBuild(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
 }
 
-func (s *metricsService) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (r *contracts.Release, err error) {
+func (s *metricsService) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string) (r *contracts.Release, err error) {
 	defer func(begin time.Time) { api.UpdateMetrics(s.requestCount, s.requestLatency, "CreateRelease", begin) }(time.Now())
 
-	return s.Service.CreateRelease(ctx, release, mft, repoBranch, repoRevision, waitForJobToStart)
+	return s.Service.CreateRelease(ctx, release, mft, repoBranch, repoRevision)
 }
 
 func (s *metricsService) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) (err error) {

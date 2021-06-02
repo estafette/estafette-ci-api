@@ -209,7 +209,7 @@ func (h *Handler) Handle(c *gin.Context) {
 								},
 							},
 						},
-					}, *build.ManifestObject, build.RepoBranch, build.RepoRevision, false)
+					}, *build.ManifestObject, build.RepoBranch, build.RepoRevision)
 
 					if err != nil {
 						errorMessage := fmt.Sprintf("Failed creating release %v for pipeline %v/%v/%v version %v for release command issued by %v", releaseName, build.RepoSource, build.RepoOwner, build.RepoName, buildVersion, profile.Email)

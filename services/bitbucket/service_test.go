@@ -209,7 +209,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			}).Times(1)
 
 		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
-		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
@@ -261,7 +261,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 		estafetteService.
 			EXPECT().
-			CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).
+			CreateBuild(gomock.Any(), gomock.Any()).
 			Times(1)
 		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
 		bitbucketapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -366,7 +366,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 				return true, "builder:\n  track: dev\n", nil
 			})
 		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
-		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
 
 		var wg sync.WaitGroup
 		wg.Add(1)

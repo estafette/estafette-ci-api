@@ -19,10 +19,10 @@ type loggingService struct {
 	prefix string
 }
 
-func (s *loggingService) CreateBuild(ctx context.Context, build contracts.Build, waitForJobToStart bool) (b *contracts.Build, err error) {
+func (s *loggingService) CreateBuild(ctx context.Context, build contracts.Build) (b *contracts.Build, err error) {
 	defer func() { api.HandleLogError(s.prefix, "CreateBuild", err) }()
 
-	return s.Service.CreateBuild(ctx, build, waitForJobToStart)
+	return s.Service.CreateBuild(ctx, build)
 }
 
 func (s *loggingService) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID int, buildStatus contracts.Status) (err error) {
@@ -31,10 +31,10 @@ func (s *loggingService) FinishBuild(ctx context.Context, repoSource, repoOwner,
 	return s.Service.FinishBuild(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
 }
 
-func (s *loggingService) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string, waitForJobToStart bool) (r *contracts.Release, err error) {
+func (s *loggingService) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string) (r *contracts.Release, err error) {
 	defer func() { api.HandleLogError(s.prefix, "CreateRelease", err) }()
 
-	return s.Service.CreateRelease(ctx, release, mft, repoBranch, repoRevision, waitForJobToStart)
+	return s.Service.CreateRelease(ctx, release, mft, repoBranch, repoRevision)
 }
 
 func (s *loggingService) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID int, releaseStatus contracts.Status) (err error) {
