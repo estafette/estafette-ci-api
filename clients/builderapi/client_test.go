@@ -443,4 +443,49 @@ func TestGetBuilderConfig(t *testing.T) {
 		assert.Equal(t, "repo2", builderConfig.Events[1].Pipeline.RepoName)
 		assert.Equal(t, "6.4.3", builderConfig.Events[1].Pipeline.BuildVersion)
 	})
+
+	t.Run("ReturnsLegacyFields", func(t *testing.T) {
+
+		ciBuilderClient := &client{
+			encryptedConfig: &api.APIConfig{
+				TrustedImages: []*contracts.TrustedImageConfig{},
+				Credentials:   []*contracts.CredentialConfig{},
+			},
+			config: &api.APIConfig{
+				Auth: &api.AuthConfig{
+					JWT: &api.JWTConfig{
+						Key: "abcd",
+					},
+				},
+				APIServer: &api.APIServerConfig{
+					ServiceURL: "https://ci.estafette.api",
+				},
+			},
+		}
+		ciBuilderParams := CiBuilderParams{
+			BuilderConfig: contracts.BuilderConfig{
+				JobType: contracts.JobTypeBuild,
+				Build: &contracts.Build{
+					ID: "390605593734184965",
+				},
+				Git: &contracts.GitConfig{},
+				Version: &contracts.VersionConfig{
+					Version:                 "1.0.7456",
+					CurrentCounter:          7456,
+					MaxCounter:              7456,
+					MaxCounterCurrentBranch: 7456,
+				},
+				Manifest: &manifest.EstafetteManifest{},
+			},
+		}
+		jobName := "build-estafette-estafette-ci-api-390605593734184965"
+
+		// act
+		builderConfig, err := ciBuilderClient.getBuilderConfig(context.Background(), ciBuilderParams, jobName)
+
+		assert.Nil(t, err)
+		assert.Equal(t, "1.0.7456", builderConfig.BuildVersion.Version)
+		assert.Equal(t, 390605593734184965, builderConfig.BuildParams.BuildID)
+		assert.Equal(t, "build", *builderConfig.Action)
+	})
 }

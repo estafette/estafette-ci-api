@@ -2628,6 +2628,7 @@ func (h *Handler) Commands(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	job := claims["job"].(string)
 	if job == "" {
+		log.Error().Msg("JWT is invalid or has invalid claim")
 		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid or has invalid claim"})
 		return
 	}
