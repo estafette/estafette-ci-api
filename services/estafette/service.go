@@ -236,9 +236,9 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build, waitFo
 			}
 		} else {
 			go func(ciBuilderParams builderapi.CiBuilderParams) {
-				_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
+				_, err = s.builderapiClient.CreateCiBuilderJob(context.Background(), ciBuilderParams)
 				if err != nil {
-					log.Warn().Err(err).Msgf("Failed creating async build job")
+					log.Error().Err(err).Msgf("Failed creating async build job")
 				}
 			}(ciBuilderParams)
 		}
@@ -509,9 +509,9 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 			}
 		} else {
 			go func(ciBuilderParams builderapi.CiBuilderParams) {
-				_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
+				_, err = s.builderapiClient.CreateCiBuilderJob(context.Background(), ciBuilderParams)
 				if err != nil {
-					log.Warn().Err(err).Msgf("Failed creating async release job")
+					log.Error().Err(err).Msgf("Failed creating async release job")
 				}
 			}(ciBuilderParams)
 		}
@@ -696,9 +696,9 @@ func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest
 			}
 		} else {
 			go func(ciBuilderParams builderapi.CiBuilderParams) {
-				_, err = s.builderapiClient.CreateCiBuilderJob(ctx, ciBuilderParams)
+				_, err = s.builderapiClient.CreateCiBuilderJob(context.Background(), ciBuilderParams)
 				if err != nil {
-					log.Warn().Err(err).Msgf("Failed creating async release job")
+					log.Error().Err(err).Msgf("Failed creating async bot job")
 				}
 			}(ciBuilderParams)
 		}
