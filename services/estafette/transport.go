@@ -2585,12 +2585,8 @@ func (h *Handler) Commands(c *gin.Context) {
 		return
 	}
 
-	eventType := c.GetHeader("X-Estafette-Event")
-	log.Debug().Msgf("X-Estafette-Event is set to %v", eventType)
-	// h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "estafette"}).Inc()
-
-	eventJobname := c.GetHeader("X-Estafette-Event-Job-Name")
-	log.Debug().Msgf("X-Estafette-Event-Job-Name is set to %v", eventJobname)
+	log.Debug().Msgf("X-Estafette-Event is set to %v", c.GetHeader("X-Estafette-Event"))
+	log.Debug().Msgf("X-Estafette-Event-Job-Name is set to %v", c.GetHeader("X-Estafette-Event-Job-Name"))
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -2599,68 +2595,47 @@ func (h *Handler) Commands(c *gin.Context) {
 		return
 	}
 
-	log.Debug().Msgf("Read body for /api/commands for job %v", eventJobname)
+	// unmarshal json body
+	var ciBuilderEvent contracts.EstafetteCiBuilderEvent
+	err = json.Unmarshal(body, &ciBuilderEvent)
+	if err != nil {
+		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to CiBuilderEvent failed")
+		return
+	}
 
-	switch strings.ToLower(eventType) {
-	case
-		"builder:nomanifest",
-		"builder:running",
-		"builder:succeeded",
-		"builder:failed",
-		"builder:canceled":
+	err = ciBuilderEvent.Validate()
+	if err != nil {
+		log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg("CiBuilderEvent is not valid")
+		return
+	}
 
-		// unmarshal json body
-		var ciBuilderEvent contracts.EstafetteCiBuilderEvent
-		err = json.Unmarshal(body, &ciBuilderEvent)
-		if err != nil {
-			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to CiBuilderEvent failed")
-			return
-		}
+	switch ciBuilderEvent.BuildEventType {
+	case contracts.BuildEventTypeUpdateStatus:
 
-		err = ciBuilderEvent.Validate()
-		if err != nil {
-			log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg("CiBuilderEvent is not valid")
-			return
-		}
-
-		log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Unmarshaled body of /api/commands event %v for job %v", eventType, eventJobname)
+		log.Debug().Msgf("Updating status for job %v and pod %v", ciBuilderEvent.JobName, ciBuilderEvent.PodName)
 
 		err := h.buildService.UpdateBuildStatus(c.Request.Context(), ciBuilderEvent)
 		if err != nil {
-			errorMessage := fmt.Sprintf("Failed updating build status for job %v to %v, not removing the job", eventJobname, ciBuilderEvent.Build.BuildStatus)
+			errorMessage := fmt.Sprintf("Failed updating build status for job %v and pod %v to %v, not removing the job", ciBuilderEvent.JobName, ciBuilderEvent.PodName, ciBuilderEvent.Build.BuildStatus)
 			log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg(errorMessage)
 			c.String(http.StatusInternalServerError, errorMessage)
 			return
 		}
 
-	case "builder:clean":
+	case contracts.BuildEventTypeClean:
 
-		// unmarshal json body
-		var ciBuilderEvent contracts.EstafetteCiBuilderEvent
-		err = json.Unmarshal(body, &ciBuilderEvent)
-		if err != nil {
-			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to CiBuilderEvent failed")
-			return
-		}
-
-		err = ciBuilderEvent.Validate()
-		if err != nil {
-			log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msg("CiBuilderEvent is not valid")
-			return
-		}
-
-		log.Debug().Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Unmarshaled body of /api/commands event %v for job %v", eventType, eventJobname)
+		log.Debug().Msgf("Cleaning resources for job %v and pod %v", ciBuilderEvent.JobName, ciBuilderEvent.PodName)
 
 		if ciBuilderEvent.GetStatus() != contracts.StatusCanceled {
 			go func(eventJobname string) {
 				ctx := context.Background()
 				err = h.ciBuilderClient.RemoveCiBuilderJob(ctx, eventJobname)
 				if err != nil {
-					log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Failed removing job %v for event %v", eventJobname, eventType)
+					log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Failed removing job %v and pod %v for event %v", ciBuilderEvent.JobName, ciBuilderEvent.PodName, ciBuilderEvent.BuildEventType)
 				}
-			}(eventJobname)
+			}(ciBuilderEvent.JobName)
 		} else {
-			log.Info().Msgf("Job %v is already removed by cancellation, no need to remove for event %v", eventJobname, eventType)
+			log.Info().Msgf("Job is already removed by cancellation, no need to remove job %v and pod %v for event %v", ciBuilderEvent.JobName, ciBuilderEvent.PodName, ciBuilderEvent.BuildEventType)
 		}
 
 		go func(ciBuilderEvent contracts.EstafetteCiBuilderEvent) {
@@ -2672,7 +2647,7 @@ func (h *Handler) Commands(c *gin.Context) {
 		}(ciBuilderEvent)
 
 	default:
-		log.Warn().Str("event", eventType).Msgf("Unsupported Estafette event of type '%v'", eventType)
+		log.Warn().Msgf("Unsupported Estafette build event type '%v'", ciBuilderEvent.BuildEventType)
 	}
 
 	c.String(http.StatusOK, "Aye aye!")
