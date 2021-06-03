@@ -42,6 +42,17 @@ func InjectStages(config *APIConfig, mft manifest.EstafetteManifest, builderTrac
 		r.Stages = injectReleaseStagesAfter(config, releaseOperatingSystem, *r, builderTrack, gitSource, supportsBuildStatus)
 	}
 
+	// inject bot stages
+	for _, b := range injectedManifest.Bots {
+		botOperatingSystem := operatingSystem
+		if b.Builder != nil && b.Builder.OperatingSystem != "" {
+			botOperatingSystem = b.Builder.OperatingSystem
+		}
+
+		b.Stages = injectBotStagesBefore(config, botOperatingSystem, *b, builderTrack, gitSource, supportsBuildStatus)
+		b.Stages = injectBotStagesAfter(config, botOperatingSystem, *b, builderTrack, gitSource, supportsBuildStatus)
+	}
+
 	// ensure all injected stages have defaults for shell and working directory matching the target operating system
 	injectedManifest.SetDefaults(*preferences)
 
@@ -203,6 +214,72 @@ func injectReleaseStagesAfter(config *APIConfig, operatingSystem manifest.Operat
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Release != nil && injectedStages.Release.After != nil {
 			for _, s := range injectedStages.Release.After {
+				injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
+			}
+		}
+	}
+
+	if len(injectedStage.ParallelStages) > 0 {
+		for _, ps := range injectedStage.ParallelStages {
+			ps.AutoInjected = true
+		}
+		stages = append(stages, injectedStage)
+	}
+
+	return stages
+}
+
+func injectBotStagesBefore(config *APIConfig, operatingSystem manifest.OperatingSystem, bot manifest.EstafetteBot, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
+
+	stages = bot.Stages
+
+	injectedStage := &manifest.EstafetteStage{
+		Name:           getInjectedStageName("injected-before", stages),
+		ParallelStages: []*manifest.EstafetteStage{},
+		AutoInjected:   true,
+	}
+
+	if bot.CloneRepository != nil && *bot.CloneRepository {
+		injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
+			Name:           "git-clone",
+			ContainerImage: fmt.Sprintf("extensions/git-clone:%v", builderTrack),
+		})
+	}
+
+	// add any configured injected stages
+	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
+		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Bot != nil && injectedStages.Bot.Before != nil {
+			for _, s := range injectedStages.Bot.Before {
+				injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
+			}
+		}
+	}
+
+	if len(injectedStage.ParallelStages) > 0 {
+		for _, ps := range injectedStage.ParallelStages {
+			ps.AutoInjected = true
+		}
+		stages = append([]*manifest.EstafetteStage{injectedStage}, stages...)
+	}
+
+	return stages
+}
+
+func injectBotStagesAfter(config *APIConfig, operatingSystem manifest.OperatingSystem, bot manifest.EstafetteBot, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
+
+	stages = bot.Stages
+
+	injectedStage := &manifest.EstafetteStage{
+		Name:           getInjectedStageName("injected-after", stages),
+		ParallelStages: []*manifest.EstafetteStage{},
+		AutoInjected:   true,
+		When:           "status == 'succeeded' || status == 'failed'",
+	}
+
+	// add any configured injected stages
+	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
+		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Bot != nil && injectedStages.Bot.After != nil {
+			for _, s := range injectedStages.Bot.After {
 				injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
 			}
 		}
