@@ -2585,7 +2585,6 @@ func (h *Handler) Commands(c *gin.Context) {
 		return
 	}
 
-	log.Debug().Msgf("X-Estafette-Event is set to %v", c.GetHeader("X-Estafette-Event"))
 	log.Debug().Msgf("X-Estafette-Event-Job-Name is set to %v", c.GetHeader("X-Estafette-Event-Job-Name"))
 
 	body, err := ioutil.ReadAll(c.Request.Body)
