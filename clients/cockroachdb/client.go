@@ -1740,14 +1740,14 @@ func (c *client) GetPipelines(ctx context.Context, pageNumber, pageSize int, fil
 		Offset(uint64((pageNumber - 1) * pageSize))
 
 	// dynamically set order by clause
-	query, err = orderByClauseGeneratorForSortings(query, "a", "a.repo_source,a.repo_owner,a.repo_name", sortings)
+	query, err = orderByClauseGeneratorForSortings(query, "a.repo_source,a.repo_owner,a.repo_name", sortings)
 	if err != nil {
 
 		return
 	}
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllFilters(query, "a", "last_updated_at", filters)
+	query, err = whereClauseGeneratorForPipelineFilters(query, filters)
 	if err != nil {
 
 		return
@@ -1800,7 +1800,7 @@ func (c *client) GetPipelinesCount(ctx context.Context, filters map[api.FilterTy
 			From("computed_pipelines a")
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllFilters(query, "a", "last_updated_at", filters)
+	query, err = whereClauseGeneratorForPipelineFilters(query, filters)
 	if err != nil {
 		return
 	}
@@ -1826,7 +1826,7 @@ func (c *client) GetPipeline(ctx context.Context, repoSource, repoOwner, repoNam
 		Limit(uint64(1))
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllFilters(query, "a", "last_updated_at", filters)
+	query, err = whereClauseGeneratorForPipelineFilters(query, filters)
 	if err != nil {
 		return
 	}
@@ -1889,14 +1889,14 @@ func (c *client) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, r
 		Offset(uint64((pageNumber - 1) * pageSize))
 
 	// dynamically set order by clause
-	query, err = orderByClauseGeneratorForSortings(query, "a", "a.inserted_at DESC", sortings)
+	query, err = orderByClauseGeneratorForSortings(query, "a.inserted_at DESC", sortings)
 	if err != nil {
 
 		return
 	}
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForBuildFilters(query, filters)
 	if err != nil {
 
 		return
@@ -1930,7 +1930,7 @@ func (c *client) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwn
 			Where(sq.Eq{"a.repo_name": repoName})
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForPipelineFilters(query, filters)
 	if err != nil {
 
 		return
@@ -2400,14 +2400,14 @@ func (c *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner,
 		Offset(uint64((pageNumber - 1) * pageSize))
 
 		// dynamically set order by clause
-	query, err = orderByClauseGeneratorForSortings(query, "a", "a.inserted_at DESC", sortings)
+	query, err = orderByClauseGeneratorForSortings(query, "a.inserted_at DESC", sortings)
 	if err != nil {
 
 		return
 	}
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForReleaseFilters(query, filters)
 	if err != nil {
 
 		return
@@ -2441,9 +2441,8 @@ func (c *client) GetPipelineReleasesCount(ctx context.Context, repoSource, repoO
 			Where(sq.Eq{"a.repo_name": repoName})
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForReleaseFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
@@ -2738,16 +2737,15 @@ func (c *client) GetPipelineBots(ctx context.Context, repoSource, repoOwner, rep
 		Offset(uint64((pageNumber - 1) * pageSize))
 
 		// dynamically set order by clause
-	query, err = orderByClauseGeneratorForSortings(query, "a", "a.inserted_at DESC", sortings)
+	query, err = orderByClauseGeneratorForSortings(query, "a", sortings)
 	if err != nil {
 
 		return
 	}
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllBotFilters(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForBotFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
@@ -2760,7 +2758,6 @@ func (c *client) GetPipelineBots(ctx context.Context, repoSource, repoOwner, rep
 
 	// read rows
 	if bots, err = c.scanBots(rows); err != nil {
-
 		return
 	}
 
@@ -2779,9 +2776,8 @@ func (c *client) GetPipelineBotsCount(ctx context.Context, repoSource, repoOwner
 			Where(sq.Eq{"a.repo_name": repoName})
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllBotFilters(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForBotFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
@@ -3035,7 +3031,7 @@ func (c *client) GetBuildsCount(ctx context.Context, filters map[api.FilterType]
 			From("builds a")
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForBuildFilters(query, filters)
 	if err != nil {
 
 		return
@@ -3060,7 +3056,7 @@ func (c *client) GetReleasesCount(ctx context.Context, filters map[api.FilterTyp
 			From("releases a")
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForReleaseFilters(query, filters)
 	if err != nil {
 
 		return
@@ -3085,7 +3081,7 @@ func (c *client) GetBotsCount(ctx context.Context, filters map[api.FilterType][]
 			From("bots a")
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllBotFilters(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForBotFilters(query, filters)
 	if err != nil {
 
 		return
@@ -3110,7 +3106,7 @@ func (c *client) GetBuildsDuration(ctx context.Context, filters map[api.FilterTy
 			From("builds a")
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForBuildFilters(query, filters)
 	if err != nil {
 
 		return
@@ -3219,15 +3215,13 @@ func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, rep
 			Where(sq.Eq{"a.repo_name": repoName}).
 			OrderBy("a.inserted_at DESC")
 
-	innerquery, err = whereClauseGeneratorForBuildStatusFilter(innerquery, "a", filters)
+	innerquery, err = whereClauseGeneratorForBuildFilters(innerquery, filters)
 	if err != nil {
-
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
-
 		return
 	}
 
@@ -3242,7 +3236,6 @@ func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, rep
 	rows, err := query.RunWith(c.databaseConnection).Query()
 
 	if err != nil {
-
 		return
 	}
 
@@ -3285,15 +3278,13 @@ func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, r
 			Where(sq.Eq{"a.repo_name": repoName}).
 			OrderBy("a.inserted_at DESC")
 
-	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
+	innerquery, err = whereClauseGeneratorForReleaseFilters(innerquery, filters)
 	if err != nil {
-
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
-
 		return
 	}
 
@@ -3308,7 +3299,6 @@ func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, r
 	rows, err := query.RunWith(c.databaseConnection).Query()
 
 	if err != nil {
-
 		return
 	}
 
@@ -3356,15 +3346,13 @@ func (c *client) GetPipelineBotsDurations(ctx context.Context, repoSource, repoO
 			Where(sq.Eq{"a.repo_name": repoName}).
 			OrderBy("a.inserted_at DESC")
 
-	innerquery, err = whereClauseGeneratorForBotStatusFilter(innerquery, "a", filters)
+	innerquery, err = whereClauseGeneratorForBotFilters(innerquery, filters)
 	if err != nil {
-
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
-
 		return
 	}
 
@@ -3377,9 +3365,7 @@ func (c *client) GetPipelineBotsDurations(ctx context.Context, repoSource, repoO
 	durations = make([]map[string]interface{}, 0)
 
 	rows, err := query.RunWith(c.databaseConnection).Query()
-
 	if err != nil {
-
 		return
 	}
 
@@ -3426,15 +3412,13 @@ func (c *client) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repo
 			Where(sq.NotEq{"a.cpu_max_usage": nil}).
 			OrderBy("a.inserted_at DESC")
 
-	innerquery, err = whereClauseGeneratorForBuildStatusFilter(innerquery, "a", filters)
+	innerquery, err = whereClauseGeneratorForBuildFilters(innerquery, filters)
 	if err != nil {
-
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
-
 		return
 	}
 
@@ -3487,15 +3471,13 @@ func (c *client) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, re
 			Where(sq.NotEq{"a.cpu_max_usage": nil}).
 			OrderBy("a.inserted_at DESC")
 
-	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
+	innerquery, err = whereClauseGeneratorForReleaseFilters(innerquery, filters)
 	if err != nil {
-
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
-
 		return
 	}
 
@@ -3508,9 +3490,7 @@ func (c *client) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, re
 	measurements = make([]map[string]interface{}, 0)
 
 	rows, err := query.RunWith(c.databaseConnection).Query()
-
 	if err != nil {
-
 		return
 	}
 
@@ -3551,15 +3531,13 @@ func (c *client) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, r
 			Where(sq.NotEq{"a.memory_max_usage": nil}).
 			OrderBy("a.inserted_at DESC")
 
-	innerquery, err = whereClauseGeneratorForBuildStatusFilter(innerquery, "a", filters)
+	innerquery, err = whereClauseGeneratorForBuildFilters(innerquery, filters)
 	if err != nil {
-
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
-
 		return
 	}
 
@@ -3572,9 +3550,7 @@ func (c *client) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, r
 	measurements = make([]map[string]interface{}, 0)
 
 	rows, err := query.RunWith(c.databaseConnection).Query()
-
 	if err != nil {
-
 		return
 	}
 
@@ -3612,15 +3588,13 @@ func (c *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context,
 			Where(sq.NotEq{"a.memory_max_usage": nil}).
 			OrderBy("a.inserted_at DESC")
 
-	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
+	innerquery, err = whereClauseGeneratorForReleaseFilters(innerquery, filters)
 	if err != nil {
-
 		return
 	}
 
 	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
 	if err != nil {
-
 		return
 	}
 
@@ -3633,9 +3607,7 @@ func (c *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context,
 	measurements = make([]map[string]interface{}, 0)
 
 	rows, err := query.RunWith(c.databaseConnection).Query()
-
 	if err != nil {
-
 		return
 	}
 
@@ -3671,29 +3643,26 @@ func (c *client) GetAllPipelineBuilds(ctx context.Context, pageNumber, pageSize 
 		Offset(uint64((pageNumber - 1) * pageSize))
 
 	// dynamically set order by clause
-	query, err = orderByClauseGeneratorForSortings(query, "a", "a.inserted_at DESC", sortings)
+	query, err = orderByClauseGeneratorForSortings(query, "a.inserted_at DESC", sortings)
 	if err != nil {
 
 		return
 	}
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForBuildFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-
 		return
 	}
 
 	// read rows
 	if builds, err = c.scanBuilds(rows, optimized); err != nil {
-
 		return
 	}
 
@@ -3709,16 +3678,14 @@ func (c *client) GetAllPipelineBuildsCount(ctx context.Context, filters map[api.
 			From("builds a")
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllFilters(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForBuildFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-
 		return
 	}
 
@@ -3733,23 +3700,20 @@ func (c *client) GetAllPipelineReleases(ctx context.Context, pageNumber, pageSiz
 		Offset(uint64((pageNumber - 1) * pageSize))
 
 		// dynamically set order by clause
-	query, err = orderByClauseGeneratorForSortings(query, "a", "a.inserted_at DESC", sortings)
+	query, err = orderByClauseGeneratorForSortings(query, "a.inserted_at DESC", sortings)
 	if err != nil {
-
 		return
 	}
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForReleaseFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-
 		return
 	}
 
@@ -3771,16 +3735,14 @@ func (c *client) GetAllPipelineReleasesCount(ctx context.Context, filters map[ap
 			From("releases a")
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllReleaseFilters(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForReleaseFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-
 		return
 	}
 
@@ -3794,30 +3756,26 @@ func (c *client) GetAllPipelineBots(ctx context.Context, pageNumber, pageSize in
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
-		// dynamically set order by clause
-	query, err = orderByClauseGeneratorForSortings(query, "a", "a.inserted_at DESC", sortings)
+	// dynamically set order by clause
+	query, err = orderByClauseGeneratorForSortings(query, "a.inserted_at DESC", sortings)
 	if err != nil {
-
 		return
 	}
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllBotFilters(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForBotFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-
 		return
 	}
 
 	// read rows
 	if bots, err = c.scanBots(rows); err != nil {
-
 		return
 	}
 
@@ -3833,16 +3791,14 @@ func (c *client) GetAllPipelineBotsCount(ctx context.Context, filters map[api.Fi
 			From("bots a")
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForAllBotFilters(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForBotFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-
 		return
 	}
 
@@ -3948,25 +3904,7 @@ func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int
 			From("computed_pipelines a").
 			Where("jsonb_typeof(labels) = 'array'")
 
-	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
-	if err != nil {
-
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
-	if err != nil {
-
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
-	if err != nil {
-
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForArchivedFilter(arrayElementsQuery, "a", filters)
+	arrayElementsQuery, err = whereClauseGeneratorForPipelineFilters(arrayElementsQuery, filters)
 	if err != nil {
 
 		return
@@ -4037,27 +3975,8 @@ func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[api.Fil
 			From("computed_pipelines a").
 			Where("jsonb_typeof(labels) = 'array'")
 
-	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
+	arrayElementsQuery, err = whereClauseGeneratorForPipelineFilters(arrayElementsQuery, filters)
 	if err != nil {
-
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
-	if err != nil {
-
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
-	if err != nil {
-
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForArchivedFilter(arrayElementsQuery, "a", filters)
-	if err != nil {
-
 		return
 	}
 
@@ -4120,22 +4039,7 @@ func (c *client) GetReleaseTargets(ctx context.Context, pageNumber, pageSize int
 			From("computed_pipelines a").
 			Where("jsonb_typeof(release_targets) = 'array'")
 
-	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
-	if err != nil {
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
-	if err != nil {
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
-	if err != nil {
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForArchivedFilter(arrayElementsQuery, "a", filters)
+	arrayElementsQuery, err = whereClauseGeneratorForPipelineFilters(arrayElementsQuery, filters)
 	if err != nil {
 		return
 	}
@@ -4192,22 +4096,7 @@ func (c *client) GetReleaseTargetsCount(ctx context.Context, filters map[api.Fil
 			From("computed_pipelines a").
 			Where("jsonb_typeof(release_targets) = 'array'")
 
-	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
-	if err != nil {
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
-	if err != nil {
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
-	if err != nil {
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForArchivedFilter(arrayElementsQuery, "a", filters)
+	arrayElementsQuery, err = whereClauseGeneratorForPipelineFilters(arrayElementsQuery, filters)
 	if err != nil {
 		return
 	}
@@ -4264,22 +4153,7 @@ func (c *client) GetAllPipelinesReleaseTargets(ctx context.Context, pageNumber, 
 			From("computed_pipelines a").
 			Where("jsonb_typeof(release_targets) = 'array'")
 
-	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
-	if err != nil {
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
-	if err != nil {
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
-	if err != nil {
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForArchivedFilter(arrayElementsQuery, "a", filters)
+	arrayElementsQuery, err = whereClauseGeneratorForPipelineFilters(arrayElementsQuery, filters)
 	if err != nil {
 		return
 	}
@@ -4336,22 +4210,7 @@ func (c *client) GetAllPipelinesReleaseTargetsCount(ctx context.Context, filters
 			From("computed_pipelines a").
 			Where("jsonb_typeof(release_targets) = 'array'")
 
-	arrayElementsQuery, err = whereClauseGeneratorForSinceFilter(arrayElementsQuery, "a", "last_updated_at", filters)
-	if err != nil {
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForBuildStatusFilter(arrayElementsQuery, "a", filters)
-	if err != nil {
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
-	if err != nil {
-		return
-	}
-
-	arrayElementsQuery, err = whereClauseGeneratorForArchivedFilter(arrayElementsQuery, "a", filters)
+	arrayElementsQuery, err = whereClauseGeneratorForPipelineFilters(arrayElementsQuery, filters)
 	if err != nil {
 		return
 	}
@@ -4395,12 +4254,7 @@ func (c *client) GetAllReleasesReleaseTargets(ctx context.Context, pageNumber, p
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
-	query, err = whereClauseGeneratorForSinceFilter(query, "a", "updated_at", filters)
-	if err != nil {
-		return
-	}
-
-	query, err = whereClauseGeneratorForReleaseStatusFilter(query, "a", filters)
+	query, err = whereClauseGeneratorForReleaseFilters(query, filters)
 	if err != nil {
 		return
 	}
@@ -4428,12 +4282,7 @@ func (c *client) GetAllReleasesReleaseTargetsCount(ctx context.Context, filters 
 			Select("count(DISTINCT release)").
 			From("releases a")
 
-	query, err = whereClauseGeneratorForSinceFilter(query, "a", "updated_at", filters)
-	if err != nil {
-		return
-	}
-
-	query, err = whereClauseGeneratorForReleaseStatusFilter(query, "a", filters)
+	query, err = whereClauseGeneratorForReleaseFilters(query, filters)
 	if err != nil {
 		return
 	}
@@ -4463,22 +4312,7 @@ func (c *client) GetPipelineBuildBranches(ctx context.Context, repoSource, repoO
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
-	query, err = whereClauseGeneratorForSinceFilter(query, "a", "updated_at", filters)
-	if err != nil {
-		return
-	}
-
-	query, err = whereClauseGeneratorForBuildStatusFilter(query, "a", filters)
-	if err != nil {
-		return
-	}
-
-	query, err = whereClauseGeneratorForLabelsFilter(query, "a", filters)
-	if err != nil {
-		return
-	}
-
-	query, err = whereClauseGeneratorForArchivedFilter(query, "a", filters)
+	query, err = whereClauseGeneratorForBuildFilters(query, filters)
 	if err != nil {
 		return
 	}
@@ -4504,22 +4338,7 @@ func (c *client) GetPipelineBuildBranchesCount(ctx context.Context, repoSource, 
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
 			Where(sq.Eq{"a.repo_name": repoName})
 
-	query, err = whereClauseGeneratorForSinceFilter(query, "a", "updated_at", filters)
-	if err != nil {
-		return
-	}
-
-	query, err = whereClauseGeneratorForBuildStatusFilter(query, "a", filters)
-	if err != nil {
-		return
-	}
-
-	query, err = whereClauseGeneratorForLabelsFilter(query, "a", filters)
-	if err != nil {
-		return
-	}
-
-	query, err = whereClauseGeneratorForArchivedFilter(query, "a", filters)
+	query, err = whereClauseGeneratorForBuildFilters(query, filters)
 	if err != nil {
 		return
 	}
@@ -4549,22 +4368,8 @@ func (c *client) GetPipelineBotNames(ctx context.Context, repoSource, repoOwner,
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
-	query, err = whereClauseGeneratorForSinceFilter(query, "a", "updated_at", filters)
-	if err != nil {
-		return
-	}
-
-	query, err = whereClauseGeneratorForBotStatusFilter(query, "a", filters)
-	if err != nil {
-		return
-	}
-
-	query, err = whereClauseGeneratorForLabelsFilter(query, "a", filters)
-	if err != nil {
-		return
-	}
-
-	query, err = whereClauseGeneratorForArchivedFilter(query, "a", filters)
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForBotFilters(query, filters)
 	if err != nil {
 		return
 	}
@@ -4590,22 +4395,8 @@ func (c *client) GetPipelineBotNamesCount(ctx context.Context, repoSource, repoO
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
 			Where(sq.Eq{"a.repo_name": repoName})
 
-	query, err = whereClauseGeneratorForSinceFilter(query, "a", "updated_at", filters)
-	if err != nil {
-		return
-	}
-
-	query, err = whereClauseGeneratorForBotStatusFilter(query, "a", filters)
-	if err != nil {
-		return
-	}
-
-	query, err = whereClauseGeneratorForLabelsFilter(query, "a", filters)
-	if err != nil {
-		return
-	}
-
-	query, err = whereClauseGeneratorForArchivedFilter(query, "a", filters)
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForBotFilters(query, filters)
 	if err != nil {
 		return
 	}
@@ -4631,21 +4422,8 @@ func (c *client) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pag
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
-	query, err = whereClauseGeneratorForSinceFilter(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForBuildFilters(query, filters)
 	if err != nil {
-
-		return
-	}
-
-	query, err = whereClauseGeneratorForBuildStatusFilter(query, "a", filters)
-	if err != nil {
-
-		return
-	}
-
-	query, err = whereClauseGeneratorForLabelsFilter(query, "a", filters)
-	if err != nil {
-
 		return
 	}
 
@@ -4674,15 +4452,8 @@ func (c *client) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, p
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
-	query, err = whereClauseGeneratorForSinceFilter(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForReleaseFilters(query, filters)
 	if err != nil {
-
-		return
-	}
-
-	query, err = whereClauseGeneratorForReleaseStatusFilter(query, "a", filters)
-	if err != nil {
-
 		return
 	}
 
@@ -4704,12 +4475,7 @@ func (c *client) GetPipelinesWithMostReleasesCount(ctx context.Context, filters 
 			From("releases a").
 			GroupBy("a.repo_source, a.repo_owner, a.repo_name")
 
-	innerquery, err = whereClauseGeneratorForSinceFilter(innerquery, "a", "inserted_at", filters)
-	if err != nil {
-		return
-	}
-
-	innerquery, err = whereClauseGeneratorForReleaseStatusFilter(innerquery, "a", filters)
+	innerquery, err = whereClauseGeneratorForReleaseFilters(innerquery, filters)
 	if err != nil {
 		return
 	}
@@ -4740,15 +4506,8 @@ func (c *client) GetPipelinesWithMostBots(ctx context.Context, pageNumber, pageS
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
-	query, err = whereClauseGeneratorForSinceFilter(query, "a", "inserted_at", filters)
+	query, err = whereClauseGeneratorForBotFilters(query, filters)
 	if err != nil {
-
-		return
-	}
-
-	query, err = whereClauseGeneratorForBotStatusFilter(query, "a", filters)
-	if err != nil {
-
 		return
 	}
 
@@ -4770,12 +4529,7 @@ func (c *client) GetPipelinesWithMostBotsCount(ctx context.Context, filters map[
 			From("bots a").
 			GroupBy("a.repo_source, a.repo_owner, a.repo_name")
 
-	innerquery, err = whereClauseGeneratorForSinceFilter(innerquery, "a", "inserted_at", filters)
-	if err != nil {
-		return
-	}
-
-	innerquery, err = whereClauseGeneratorForBotStatusFilter(innerquery, "a", filters)
+	innerquery, err = whereClauseGeneratorForBotFilters(innerquery, filters)
 	if err != nil {
 		return
 	}
@@ -4794,66 +4548,62 @@ func (c *client) GetPipelinesWithMostBotsCount(ctx context.Context, filters map[
 	return
 }
 
-func orderByClauseGeneratorForSortings(query sq.SelectBuilder, alias, defaultOrderBy string, sortings []api.OrderField) (sq.SelectBuilder, error) {
+func orderByClauseGeneratorForSortings(query sq.SelectBuilder, defaultOrderBy string, sortings []api.OrderField) (sq.SelectBuilder, error) {
 
 	if len(sortings) == 0 {
 		return query.OrderBy(defaultOrderBy), nil
 	}
 
 	for _, s := range sortings {
-		query = query.OrderBy(fmt.Sprintf("%v.%v %v", alias, foundation.ToLowerSnakeCase(s.FieldName), s.Direction))
+		query = query.OrderBy(fmt.Sprintf("a.%v %v", foundation.ToLowerSnakeCase(s.FieldName), s.Direction))
 	}
 
 	return query, nil
 }
 
-func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias, sinceColumn string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForPipelineFilters(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	query, err := whereClauseGeneratorForSinceFilter(query, alias, sinceColumn, filters)
+	query, err := whereClauseGeneratorForSinceFilter(query, "last_updated_at", filters)
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForBuildStatusFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForGenericFilter(query, filters, api.FilterStatus, "build_status")
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForBuildBranchFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForGenericFilter(query, filters, api.FilterBranch, "repo_branch")
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForLabelsFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForLabelsFilter(query, filters)
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForSearchFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForSearchFilter(query, filters)
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForRecentCommitterFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForRecentCommitterFilter(query, filters)
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForRecentReleaserFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForRecentReleaserFilter(query, filters)
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForGroupsFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForGroupsFilter(query, filters)
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForOrganizationsFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForOrganizationsFilter(query, filters)
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForArchivedFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForArchivedFilter(query, filters)
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForBranchFilter(query, alias, filters)
-	if err != nil {
-		return query, err
-	}
-	query, err = whereClauseGeneratorForReleaseTargetFilterOnPipelines(query, alias, filters)
+	query, err = whereClauseGeneratorForReleaseTargetFilterOnPipelines(query, filters)
 	if err != nil {
 		return query, err
 	}
@@ -4861,17 +4611,45 @@ func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias, sinceColum
 	return query, nil
 }
 
-func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, alias, sinceColumn string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForBuildFilters(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	query, err := whereClauseGeneratorForReleaseStatusFilter(query, alias, filters)
+	query, err := whereClauseGeneratorForSinceFilter(query, "inserted_at", filters)
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForReleaseTargetFilterOnReleases(query, alias, filters)
+	query, err = whereClauseGeneratorForGenericFilter(query, filters, api.FilterStatus, "build_status")
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForSinceFilter(query, alias, sinceColumn, filters)
+	query, err = whereClauseGeneratorForGenericFilter(query, filters, api.FilterBranch, "repo_branch")
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForLabelsFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForSearchFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForRecentCommitterFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForRecentReleaserFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForGroupsFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForOrganizationsFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForReleaseTargetFilterOnPipelines(query, filters)
 	if err != nil {
 		return query, err
 	}
@@ -4879,17 +4657,25 @@ func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, alias, sin
 	return query, nil
 }
 
-func whereClauseGeneratorForAllBotFilters(query sq.SelectBuilder, alias, sinceColumn string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForReleaseFilters(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	query, err := whereClauseGeneratorForBotStatusFilter(query, alias, filters)
+	query, err := whereClauseGeneratorForSinceFilter(query, "inserted_at", filters)
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForBotNameFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForGenericFilter(query, filters, api.FilterStatus, "release_status")
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForSinceFilter(query, alias, sinceColumn, filters)
+	query, err = whereClauseGeneratorForGenericFilter(query, filters, api.FilterReleaseTarget, "release")
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForGroupsFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForOrganizationsFilter(query, filters)
 	if err != nil {
 		return query, err
 	}
@@ -4897,88 +4683,78 @@ func whereClauseGeneratorForAllBotFilters(query sq.SelectBuilder, alias, sinceCo
 	return query, nil
 }
 
-func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, alias, sinceColumn string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForBotFilters(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+
+	query, err := whereClauseGeneratorForGenericFilter(query, filters, api.FilterStatus, "bot_status")
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForGenericFilter(query, filters, api.FilterBotName, "name")
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForSinceFilter(query, "inserted_at", filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForGroupsFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForOrganizationsFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForGenericFilter(query sq.SelectBuilder, filters map[api.FilterType][]string, filterType api.FilterType, fieldName string) (sq.SelectBuilder, error) {
+	if values, ok := filters[filterType]; ok && len(values) > 0 && values[0] != "" && values[0] != "all" {
+		value := values[0]
+		query = query.Where(sq.Eq{fmt.Sprintf("a.%v", fieldName): value})
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForSinceFilter(query sq.SelectBuilder, sinceColumn string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if since, ok := filters[api.FilterSince]; ok && len(since) > 0 && since[0] != "eternity" {
 		sinceValue := since[0]
 		switch sinceValue {
 		case "1h":
-			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.%v", alias, sinceColumn): time.Now().Add(time.Duration(-1) * time.Hour)})
+			query = query.Where(sq.GtOrEq{fmt.Sprintf("a.%v", sinceColumn): time.Now().Add(time.Duration(-1) * time.Hour)})
 		case "1d":
-			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.%v", alias, sinceColumn): time.Now().AddDate(0, 0, -1)})
+			query = query.Where(sq.GtOrEq{fmt.Sprintf("a.%v", sinceColumn): time.Now().AddDate(0, 0, -1)})
 		case "1w":
-			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.%v", alias, sinceColumn): time.Now().AddDate(0, 0, -7)})
+			query = query.Where(sq.GtOrEq{fmt.Sprintf("a.%v", sinceColumn): time.Now().AddDate(0, 0, -7)})
 		case "1m":
-			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.%v", alias, sinceColumn): time.Now().AddDate(0, -1, 0)})
+			query = query.Where(sq.GtOrEq{fmt.Sprintf("a.%v", sinceColumn): time.Now().AddDate(0, -1, 0)})
 		case "1y":
-			query = query.Where(sq.GtOrEq{fmt.Sprintf("%v.%v", alias, sinceColumn): time.Now().AddDate(-1, 0, 0)})
+			query = query.Where(sq.GtOrEq{fmt.Sprintf("a.%v", sinceColumn): time.Now().AddDate(-1, 0, 0)})
 		}
 	}
 
 	return query, nil
 }
 
-func whereClauseGeneratorForBranchFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
-	if branch, ok := filters[api.FilterBranch]; ok && len(branch) > 0 && branch[0] != "" {
-		branchValue := branch[0]
-		query = query.Where(sq.Eq{fmt.Sprintf("%v.repo_branch", alias): branchValue})
-	}
-
-	return query, nil
-}
-
-func whereClauseGeneratorForSearchFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForSearchFilter(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if search, ok := filters[api.FilterSearch]; ok && len(search) > 0 && search[0] != "" {
 		searchValue := search[0]
 		query = query.Where(
 			sq.Or{
-				sq.Like{fmt.Sprintf("%v.repo_source", alias): fmt.Sprint("%", searchValue, "%")},
-				sq.Like{fmt.Sprintf("%v.repo_owner", alias): fmt.Sprint("%", searchValue, "%")},
-				sq.Like{fmt.Sprintf("%v.repo_name", alias): fmt.Sprint("%", searchValue, "%")},
+				sq.Like{"a.repo_source": fmt.Sprint("%", searchValue, "%")},
+				sq.Like{"a.repo_owner": fmt.Sprint("%", searchValue, "%")},
+				sq.Like{"a.repo_name": fmt.Sprint("%", searchValue, "%")},
 			})
 	}
 
 	return query, nil
 }
 
-func whereClauseGeneratorForBuildStatusFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
-
-	if statuses, ok := filters[api.FilterStatus]; ok && len(statuses) > 0 && statuses[0] != "all" {
-		query = query.Where(sq.Eq{fmt.Sprintf("%v.build_status", alias): statuses})
-	}
-
-	return query, nil
-}
-
-func whereClauseGeneratorForBuildBranchFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
-
-	if statuses, ok := filters[api.FilterBuildBranch]; ok && len(statuses) > 0 && statuses[0] != "all" {
-		query = query.Where(sq.Eq{fmt.Sprintf("%v.repo_branch", alias): statuses})
-	}
-
-	return query, nil
-}
-
-func whereClauseGeneratorForReleaseStatusFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
-
-	if statuses, ok := filters[api.FilterStatus]; ok && len(statuses) > 0 && statuses[0] != "all" {
-		query = query.Where(sq.Eq{fmt.Sprintf("%v.release_status", alias): statuses})
-	}
-
-	return query, nil
-}
-
-func whereClauseGeneratorForReleaseTargetFilterOnReleases(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
-
-	if targets, ok := filters[api.FilterReleaseTarget]; ok && len(targets) > 0 && targets[0] != "all" {
-		query = query.Where(sq.Eq{fmt.Sprintf("%v.release", alias): targets})
-	}
-
-	return query, nil
-}
-
-func whereClauseGeneratorForReleaseTargetFilterOnPipelines(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForReleaseTargetFilterOnPipelines(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if targets, ok := filters[api.FilterReleaseTarget]; ok && len(targets) > 0 {
 		targetsParam := []contracts.ReleaseTarget{}
@@ -4995,32 +4771,14 @@ func whereClauseGeneratorForReleaseTargetFilterOnPipelines(query sq.SelectBuilde
 				return query, err
 			}
 
-			query = query.Where(fmt.Sprintf("%v.release_targets @> ?", alias), string(bytes))
+			query = query.Where("a.release_targets @> ?", string(bytes))
 		}
 	}
 
 	return query, nil
 }
 
-func whereClauseGeneratorForBotStatusFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
-
-	if statuses, ok := filters[api.FilterStatus]; ok && len(statuses) > 0 && statuses[0] != "all" {
-		query = query.Where(sq.Eq{fmt.Sprintf("%v.bot_status", alias): statuses})
-	}
-
-	return query, nil
-}
-
-func whereClauseGeneratorForBotNameFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
-
-	if statuses, ok := filters[api.FilterBotName]; ok && len(statuses) > 0 && statuses[0] != "all" {
-		query = query.Where(sq.Eq{fmt.Sprintf("%v.name", alias): statuses})
-	}
-
-	return query, nil
-}
-
-func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if labels, ok := filters[api.FilterLabels]; ok && len(labels) > 0 {
 
@@ -5043,14 +4801,14 @@ func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, alias string, f
 				return query, err
 			}
 
-			query = query.Where(fmt.Sprintf("%v.labels @> ?", alias), string(bytes))
+			query = query.Where("a.labels @> ?", string(bytes))
 		}
 	}
 
 	return query, nil
 }
 
-func whereClauseGeneratorForRecentCommitterFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForRecentCommitterFilter(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if user, ok := filters[api.FilterRecentCommitter]; ok && len(user) > 0 {
 
@@ -5061,13 +4819,13 @@ func whereClauseGeneratorForRecentCommitterFilter(query sq.SelectBuilder, alias 
 			return query, err
 		}
 
-		query = query.Where(fmt.Sprintf("%v.recent_committers @> ?", alias), string(bytes))
+		query = query.Where("a.recent_committers @> ?", string(bytes))
 	}
 
 	return query, nil
 }
 
-func whereClauseGeneratorForRecentReleaserFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForRecentReleaserFilter(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if user, ok := filters[api.FilterRecentReleaser]; ok && len(user) > 0 {
 
@@ -5078,13 +4836,13 @@ func whereClauseGeneratorForRecentReleaserFilter(query sq.SelectBuilder, alias s
 			return query, err
 		}
 
-		query = query.Where(fmt.Sprintf("%v.recent_releasers @> ?", alias), string(bytes))
+		query = query.Where("a.recent_releasers @> ?", string(bytes))
 	}
 
 	return query, nil
 }
 
-func whereClauseGeneratorForGroupsFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForGroupsFilter(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if groups, ok := filters[api.FilterGroups]; ok && len(groups) > 0 {
 
@@ -5101,7 +4859,7 @@ func whereClauseGeneratorForGroupsFilter(query sq.SelectBuilder, alias string, f
 				return query, err
 			}
 
-			expressions = append(expressions, sq.Expr(fmt.Sprintf("%v.groups @> ?", alias), string(bytes)))
+			expressions = append(expressions, sq.Expr("a.groups @> ?", string(bytes)))
 		}
 		query = query.Where(expressions)
 	}
@@ -5109,7 +4867,7 @@ func whereClauseGeneratorForGroupsFilter(query sq.SelectBuilder, alias string, f
 	return query, nil
 }
 
-func whereClauseGeneratorForOrganizationsFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForOrganizationsFilter(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if organizations, ok := filters[api.FilterOrganizations]; ok && len(organizations) > 0 {
 
@@ -5126,7 +4884,7 @@ func whereClauseGeneratorForOrganizationsFilter(query sq.SelectBuilder, alias st
 				return query, err
 			}
 
-			expressions = append(expressions, sq.Expr(fmt.Sprintf("%v.organizations @> ?", alias), string(bytes)))
+			expressions = append(expressions, sq.Expr("a.organizations @> ?", string(bytes)))
 		}
 		query = query.Where(expressions)
 	}
@@ -5134,7 +4892,7 @@ func whereClauseGeneratorForOrganizationsFilter(query sq.SelectBuilder, alias st
 	return query, nil
 }
 
-func whereClauseGeneratorForOrganizationsInUserDataFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForOrganizationsInUserDataFilter(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if organizations, ok := filters[api.FilterOrganizations]; ok && len(organizations) > 0 {
 
@@ -5153,7 +4911,7 @@ func whereClauseGeneratorForOrganizationsInUserDataFilter(query sq.SelectBuilder
 				return query, err
 			}
 
-			expressions = append(expressions, sq.Expr(fmt.Sprintf("%v.user_data @> ?", alias), string(bytes)))
+			expressions = append(expressions, sq.Expr("a.user_data @> ?", string(bytes)))
 		}
 		query = query.Where(expressions)
 	}
@@ -5161,7 +4919,7 @@ func whereClauseGeneratorForOrganizationsInUserDataFilter(query sq.SelectBuilder
 	return query, nil
 }
 
-func whereClauseGeneratorForOrganizationsInGroupDataFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForOrganizationsInGroupDataFilter(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if organizations, ok := filters[api.FilterOrganizations]; ok && len(organizations) > 0 {
 
@@ -5180,7 +4938,7 @@ func whereClauseGeneratorForOrganizationsInGroupDataFilter(query sq.SelectBuilde
 				return query, err
 			}
 
-			expressions = append(expressions, sq.Expr(fmt.Sprintf("%v.group_data @> ?", alias), string(bytes)))
+			expressions = append(expressions, sq.Expr("a.group_data @> ?", string(bytes)))
 		}
 		query = query.Where(expressions)
 	}
@@ -5188,7 +4946,7 @@ func whereClauseGeneratorForOrganizationsInGroupDataFilter(query sq.SelectBuilde
 	return query, nil
 }
 
-func whereClauseGeneratorForArchivedFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForArchivedFilter(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if archiveds, ok := filters[api.FilterArchived]; ok && len(archiveds) > 0 {
 
@@ -5213,19 +4971,19 @@ func whereClauseGeneratorForArchivedFilter(query sq.SelectBuilder, alias string,
 	return query, nil
 }
 
-func whereClauseGeneratorForUserFilters(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForUserFilters(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	query, err := whereClauseGeneratorForUserGroupFilters(query, alias, filters)
+	query, err := whereClauseGeneratorForUserGroupFilters(query, filters)
 	if err != nil {
 		return query, err
 	}
 
-	query, err = whereClauseGeneratorForUserOrganizationFilters(query, alias, filters)
+	query, err = whereClauseGeneratorForUserOrganizationFilters(query, filters)
 	if err != nil {
 		return query, err
 	}
 
-	query, err = whereClauseGeneratorForOrganizationsInUserDataFilter(query, "a", filters)
+	query, err = whereClauseGeneratorForOrganizationsInUserDataFilter(query, filters)
 	if err != nil {
 		return query, err
 	}
@@ -5233,7 +4991,7 @@ func whereClauseGeneratorForUserFilters(query sq.SelectBuilder, alias string, fi
 	return query, nil
 }
 
-func whereClauseGeneratorForUserGroupFilters(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForUserGroupFilters(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 	if groupIDs, ok := filters[api.FilterGroupID]; ok && len(groupIDs) > 0 {
 
 		groupID := groupIDs[0]
@@ -5258,13 +5016,13 @@ func whereClauseGeneratorForUserGroupFilters(query sq.SelectBuilder, alias strin
 		}
 
 		query = query.
-			Where(fmt.Sprintf("%v.user_data @> ?", alias), string(filterBytes))
+			Where("a.user_data @> ?", string(filterBytes))
 	}
 
 	return query, nil
 }
 
-func whereClauseGeneratorForUserOrganizationFilters(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForUserOrganizationFilters(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 	if organizationIDs, ok := filters[api.FilterOrganizationID]; ok && len(organizationIDs) > 0 {
 
 		organizationID := organizationIDs[0]
@@ -5289,30 +5047,30 @@ func whereClauseGeneratorForUserOrganizationFilters(query sq.SelectBuilder, alia
 		}
 
 		query = query.
-			Where(fmt.Sprintf("%v.user_data @> ?", alias), string(filterBytes))
+			Where("a.user_data @> ?", string(filterBytes))
 	}
 
 	return query, nil
 }
 
-func whereClauseGeneratorForCatalogEntityFilters(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForCatalogEntityFilters(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
-	query, err := whereClauseGeneratorForParentFilter(query, alias, filters)
+	query, err := whereClauseGeneratorForParentFilter(query, filters)
 	if err != nil {
 		return query, err
 	}
 
-	query, err = whereClauseGeneratorForEntityFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForEntityFilter(query, filters)
 	if err != nil {
 		return query, err
 	}
 
-	query, err = whereClauseGeneratorForLinkedPipelineFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForLinkedPipelineFilter(query, filters)
 	if err != nil {
 		return query, err
 	}
 
-	query, err = whereClauseGeneratorForLabelsFilter(query, alias, filters)
+	query, err = whereClauseGeneratorForLabelsFilter(query, filters)
 	if err != nil {
 		return query, err
 	}
@@ -5320,40 +5078,40 @@ func whereClauseGeneratorForCatalogEntityFilters(query sq.SelectBuilder, alias s
 	return query, nil
 }
 
-func whereClauseGeneratorForParentFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForParentFilter(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if parents, ok := filters[api.FilterParent]; ok && len(parents) == 1 {
 		keyValuePair := strings.Split(parents[0], "=")
 		if len(keyValuePair) > 0 {
-			query = query.Where(sq.Eq{fmt.Sprintf("%v.parent_key", alias): keyValuePair[0]})
+			query = query.Where(sq.Eq{"a.parent_key": keyValuePair[0]})
 		}
 		if len(keyValuePair) > 1 {
-			query = query.Where(sq.Eq{fmt.Sprintf("%v.parent_value", alias): keyValuePair[1]})
+			query = query.Where(sq.Eq{"a.parent_value": keyValuePair[1]})
 		}
 	}
 
 	return query, nil
 }
 
-func whereClauseGeneratorForEntityFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForEntityFilter(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if entities, ok := filters[api.FilterEntity]; ok && len(entities) == 1 {
 		keyValuePair := strings.Split(entities[0], "=")
 		if len(keyValuePair) > 0 {
-			query = query.Where(sq.Eq{fmt.Sprintf("%v.entity_key", alias): keyValuePair[0]})
+			query = query.Where(sq.Eq{"a.entity_key": keyValuePair[0]})
 		}
 		if len(keyValuePair) > 1 {
-			query = query.Where(sq.Eq{fmt.Sprintf("%v.entity_value", alias): keyValuePair[1]})
+			query = query.Where(sq.Eq{"a.entity_value": keyValuePair[1]})
 		}
 	}
 
 	return query, nil
 }
 
-func whereClauseGeneratorForLinkedPipelineFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+func whereClauseGeneratorForLinkedPipelineFilter(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if pipelines, ok := filters[api.FilterPipeline]; ok && len(pipelines) == 1 {
-		query = query.Where(sq.Eq{fmt.Sprintf("%v.linked_pipeline", alias): pipelines[0]})
+		query = query.Where(sq.Eq{"a.linked_pipeline": pipelines[0]})
 	}
 
 	return query, nil
@@ -6334,7 +6092,7 @@ func (c *client) GetUserByID(ctx context.Context, id string, filters map[api.Fil
 		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(1))
 
-	query, err = whereClauseGeneratorForOrganizationsInUserDataFilter(query, "a", filters)
+	query, err = whereClauseGeneratorForOrganizationsInUserDataFilter(query, filters)
 	if err != nil {
 		return nil, err
 	}
@@ -6429,7 +6187,7 @@ func (c *client) GetUsers(ctx context.Context, pageNumber, pageSize int, filters
 	// 	return
 	// }
 
-	query, err = whereClauseGeneratorForUserFilters(query, "a", filters)
+	query, err = whereClauseGeneratorForUserFilters(query, filters)
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
@@ -6599,7 +6357,7 @@ func (c *client) GetGroupByID(ctx context.Context, id string, filters map[api.Fi
 		Where(sq.Eq{"a.active": true}).
 		Limit(uint64(1))
 
-	query, err = whereClauseGeneratorForOrganizationsInGroupDataFilter(query, "a", filters)
+	query, err = whereClauseGeneratorForOrganizationsInGroupDataFilter(query, filters)
 	if err != nil {
 		return nil, err
 	}
@@ -6624,7 +6382,7 @@ func (c *client) GetGroups(ctx context.Context, pageNumber, pageSize int, filter
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
-	query, err = whereClauseGeneratorForOrganizationsInGroupDataFilter(query, "a", filters)
+	query, err = whereClauseGeneratorForOrganizationsInGroupDataFilter(query, filters)
 	if err != nil {
 		return groups, err
 	}
@@ -7154,8 +6912,8 @@ func (c *client) GetCatalogEntities(ctx context.Context, pageNumber, pageSize in
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
-	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
-	query, err = orderByClauseGeneratorForSortings(query, "a", "a.parent_key, a.parent_value, a.entity_key, a.entity_value", sortings)
+	query, err = whereClauseGeneratorForCatalogEntityFilters(query, filters)
+	query, err = orderByClauseGeneratorForSortings(query, "a.parent_key, a.parent_value, a.entity_key, a.entity_value", sortings)
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
@@ -7173,7 +6931,7 @@ func (c *client) GetCatalogEntitiesCount(ctx context.Context, filters map[api.Fi
 		Select("COUNT(a.id)").
 		From("catalog_entities a")
 
-	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
+	query, err = whereClauseGeneratorForCatalogEntityFilters(query, filters)
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
@@ -7229,7 +6987,7 @@ func (c *client) getCatalogEntityColumn(ctx context.Context, groupColumn, countC
 			Limit(uint64(pageSize)).
 			Offset(uint64((pageNumber - 1) * pageSize))
 
-	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
+	query, err = whereClauseGeneratorForCatalogEntityFilters(query, filters)
 
 	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
@@ -7250,7 +7008,7 @@ func (c *client) getCatalogEntityColumnCount(ctx context.Context, groupColumn st
 			From("catalog_entities a").
 			GroupBy(fmt.Sprintf("a.%v", groupColumn))
 
-	query, err = whereClauseGeneratorForCatalogEntityFilters(query, "a", filters)
+	query, err = whereClauseGeneratorForCatalogEntityFilters(query, filters)
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
@@ -7270,7 +7028,7 @@ func (c *client) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSiz
 			From("catalog_entities a").
 			Where("jsonb_typeof(labels) = 'array'")
 
-	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
+	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, filters)
 	if err != nil {
 		return
 	}
@@ -7313,7 +7071,7 @@ func (c *client) GetCatalogEntityLabelsCount(ctx context.Context, filters map[ap
 			From("catalog_entities a").
 			Where("jsonb_typeof(labels) = 'array'")
 
-	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, "a", filters)
+	arrayElementsQuery, err = whereClauseGeneratorForLabelsFilter(arrayElementsQuery, filters)
 	if err != nil {
 		return
 	}

@@ -1422,9 +1422,6 @@ func TestIntegrationGetPipelineBotNames(t *testing.T) {
 		assert.Nil(t, err, "failed inserting other bot record")
 
 		filters := map[api.FilterType][]string{
-			api.FilterLabels: {
-				"bot-names-test=GetPipelineBotNames",
-			},
 			api.FilterSince: {
 				"1d",
 			},
@@ -1465,9 +1462,6 @@ func TestIntegrationGetPipelineBotNamesCount(t *testing.T) {
 		assert.Nil(t, err, "failed inserting other bot record")
 
 		filters := map[api.FilterType][]string{
-			api.FilterLabels: {
-				"bot-names-count-test=GetPipelineBotNamesCount",
-			},
 			api.FilterSince: {
 				"1d",
 			},
