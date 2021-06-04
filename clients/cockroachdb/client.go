@@ -4358,7 +4358,7 @@ func (c *client) GetPipelineBotNames(ctx context.Context, repoSource, repoOwner,
 
 	query :=
 		psql.
-			Select("a.name, count(DISTINCT id) AS count").
+			Select("a.bot AS name, count(DISTINCT id) AS count").
 			From("bots a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -4689,7 +4689,7 @@ func whereClauseGeneratorForBotFilters(query sq.SelectBuilder, filters map[api.F
 	if err != nil {
 		return query, err
 	}
-	query, err = whereClauseGeneratorForGenericFilter(query, filters, api.FilterBotName, "name")
+	query, err = whereClauseGeneratorForGenericFilter(query, filters, api.FilterBotName, "bot")
 	if err != nil {
 		return query, err
 	}
@@ -6913,7 +6913,14 @@ func (c *client) GetCatalogEntities(ctx context.Context, pageNumber, pageSize in
 		Offset(uint64((pageNumber - 1) * pageSize))
 
 	query, err = whereClauseGeneratorForCatalogEntityFilters(query, filters)
+	if err != nil {
+		return nil, err
+	}
+
 	query, err = orderByClauseGeneratorForSortings(query, "a.parent_key, a.parent_value, a.entity_key, a.entity_value", sortings)
+	if err != nil {
+		return nil, err
+	}
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
