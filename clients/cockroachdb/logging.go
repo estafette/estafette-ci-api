@@ -801,26 +801,26 @@ func (c *loggingClient) GetReleaseTargetsCount(ctx context.Context, filters map[
 	return c.Client.GetReleaseTargetsCount(ctx, filters)
 }
 
-func (c *loggingClient) GetPipelineReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error) {
-	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineReleaseTargets", err) }()
+func (c *loggingClient) GetAllPipelinesReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAllPipelinesReleaseTargets", err) }()
 
-	return c.Client.GetPipelineReleaseTargets(ctx, pageNumber, pageSize, filters)
+	return c.Client.GetAllPipelinesReleaseTargets(ctx, pageNumber, pageSize, filters)
 }
 
-func (c *loggingClient) GetPipelineReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
-	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineReleaseTargetsCount", err) }()
+func (c *loggingClient) GetAllPipelinesReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAllPipelinesReleaseTargetsCount", err) }()
 
-	return c.Client.GetPipelineReleaseTargetsCount(ctx, filters)
+	return c.Client.GetAllPipelinesReleaseTargetsCount(ctx, filters)
 }
 
-func (c *loggingClient) GetReleaseReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error) {
-	defer func() { api.HandleLogError(c.prefix, "Client", "GetReleaseReleaseTargets", err) }()
+func (c *loggingClient) GetAllReleasesReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAllReleasesReleaseTargets", err) }()
 
-	return c.Client.GetReleaseReleaseTargets(ctx, pageNumber, pageSize, filters)
+	return c.Client.GetAllReleasesReleaseTargets(ctx, pageNumber, pageSize, filters)
 }
 
-func (c *loggingClient) GetReleaseReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
-	defer func() { api.HandleLogError(c.prefix, "Client", "GetReleaseReleaseTargetsCount", err) }()
+func (c *loggingClient) GetAllReleasesReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAllReleasesReleaseTargetsCount", err) }()
 
-	return c.Client.GetReleaseReleaseTargetsCount(ctx, filters)
+	return c.Client.GetAllReleasesReleaseTargetsCount(ctx, filters)
 }

@@ -930,30 +930,30 @@ func (c *tracingClient) GetReleaseTargetsCount(ctx context.Context, filters map[
 	return c.Client.GetReleaseTargetsCount(ctx, filters)
 }
 
-func (c *tracingClient) GetPipelineReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineReleaseTargets"))
+func (c *tracingClient) GetAllPipelinesReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAllPipelinesReleaseTargets"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetPipelineReleaseTargets(ctx, pageNumber, pageSize, filters)
+	return c.Client.GetAllPipelinesReleaseTargets(ctx, pageNumber, pageSize, filters)
 }
 
-func (c *tracingClient) GetPipelineReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineReleaseTargetsCount"))
+func (c *tracingClient) GetAllPipelinesReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAllPipelinesReleaseTargetsCount"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetPipelineReleaseTargetsCount(ctx, filters)
+	return c.Client.GetAllPipelinesReleaseTargetsCount(ctx, filters)
 }
 
-func (c *tracingClient) GetReleaseReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetReleaseReleaseTargets"))
+func (c *tracingClient) GetAllReleasesReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAllReleasesReleaseTargets"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetReleaseReleaseTargets(ctx, pageNumber, pageSize, filters)
+	return c.Client.GetAllReleasesReleaseTargets(ctx, pageNumber, pageSize, filters)
 }
 
-func (c *tracingClient) GetReleaseReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetReleaseReleaseTargetsCount"))
+func (c *tracingClient) GetAllReleasesReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAllReleasesReleaseTargetsCount"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetReleaseReleaseTargetsCount(ctx, filters)
+	return c.Client.GetAllReleasesReleaseTargetsCount(ctx, filters)
 }

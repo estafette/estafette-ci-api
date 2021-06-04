@@ -141,6 +141,47 @@ func (h *Handler) GetPipelineRecentBuilds(c *gin.Context) {
 	c.JSON(http.StatusOK, builds)
 }
 
+func (h *Handler) GetPipelineBuildBranches(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
+
+	// filter on organizations / groups
+	filters = api.SetPermissionsFilters(c, filters)
+
+	response, err := api.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			buildBranches, err := h.cockroachDBClient.GetPipelineBuildBranches(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(buildBranches))
+			for i := range buildBranches {
+				items[i] = buildBranches[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachDBClient.GetPipelineBuildBranchesCount(c.Request.Context(), source, owner, repo, filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving pipeline build branches from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 func (h *Handler) GetPipelineBuilds(c *gin.Context) {
 
 	source := c.Param("source")
@@ -1238,6 +1279,47 @@ func (h *Handler) PostPipelineReleaseLogs(c *gin.Context) {
 	c.String(http.StatusOK, "Aye aye!")
 }
 
+func (h *Handler) GetPipelineBotNames(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
+
+	// filter on organizations / groups
+	filters = api.SetPermissionsFilters(c, filters)
+
+	response, err := api.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			botNames, err := h.cockroachDBClient.GetPipelineBotNames(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(botNames))
+			for i := range botNames {
+				items[i] = botNames[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachDBClient.GetPipelineBotNamesCount(c.Request.Context(), source, owner, repo, filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving pipeline build branches from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 func (h *Handler) GetPipelineBots(c *gin.Context) {
 
 	source := c.Param("source")
@@ -1707,7 +1789,7 @@ func (h *Handler) GetReleaseTargets(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *Handler) GetPipelineReleaseTargets(c *gin.Context) {
+func (h *Handler) GetAllPipelinesReleaseTargets(c *gin.Context) {
 
 	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
 
@@ -1716,7 +1798,7 @@ func (h *Handler) GetPipelineReleaseTargets(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			releaseTargets, err := h.cockroachDBClient.GetPipelineReleaseTargets(c.Request.Context(), pageNumber, pageSize, filters)
+			releaseTargets, err := h.cockroachDBClient.GetAllPipelinesReleaseTargets(c.Request.Context(), pageNumber, pageSize, filters)
 			if err != nil {
 				return nil, err
 			}
@@ -1730,7 +1812,7 @@ func (h *Handler) GetPipelineReleaseTargets(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetPipelineReleaseTargetsCount(c.Request.Context(), filters)
+			return h.cockroachDBClient.GetAllPipelinesReleaseTargetsCount(c.Request.Context(), filters)
 		},
 		pageNumber,
 		pageSize)
@@ -1744,7 +1826,7 @@ func (h *Handler) GetPipelineReleaseTargets(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *Handler) GetReleaseReleaseTargets(c *gin.Context) {
+func (h *Handler) GetAllReleasesReleaseTargets(c *gin.Context) {
 
 	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
 
@@ -1753,7 +1835,7 @@ func (h *Handler) GetReleaseReleaseTargets(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			releaseTargets, err := h.cockroachDBClient.GetReleaseReleaseTargets(c.Request.Context(), pageNumber, pageSize, filters)
+			releaseTargets, err := h.cockroachDBClient.GetAllReleasesReleaseTargets(c.Request.Context(), pageNumber, pageSize, filters)
 			if err != nil {
 				return nil, err
 			}
@@ -1767,7 +1849,7 @@ func (h *Handler) GetReleaseReleaseTargets(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetReleaseReleaseTargetsCount(c.Request.Context(), filters)
+			return h.cockroachDBClient.GetAllReleasesReleaseTargetsCount(c.Request.Context(), filters)
 		},
 		pageNumber,
 		pageSize)

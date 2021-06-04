@@ -479,6 +479,8 @@ func GetFilters(c *gin.Context) map[FilterType][]string {
 	filters[FilterPipeline] = GetGenericFilter(c, FilterPipeline)
 	filters[FilterParent] = GetGenericFilter(c, FilterParent)
 	filters[FilterEntity] = GetGenericFilter(c, FilterEntity)
+	filters[FilterBuildBranch] = GetGenericFilter(c, FilterBuildBranch)
+	filters[FilterBotName] = GetGenericFilter(c, FilterBotName)
 
 	return filters
 }

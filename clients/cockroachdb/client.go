@@ -130,10 +130,16 @@ type Client interface {
 	GetFrequentLabelsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error)
 	GetReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
-	GetPipelineReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error)
-	GetPipelineReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
-	GetReleaseReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error)
-	GetReleaseReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+
+	GetAllPipelinesReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error)
+	GetAllPipelinesReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetAllReleasesReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error)
+	GetAllReleasesReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+
+	GetPipelineBuildBranches(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string) (buildBranches []map[string]interface{}, err error)
+	GetPipelineBuildBranchesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error)
+	GetPipelineBotNames(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string) (botNames []map[string]interface{}, err error)
+	GetPipelineBotNamesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error)
 
 	GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (pipelines []map[string]interface{}, err error)
 	GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
@@ -4225,7 +4231,7 @@ func (c *client) GetReleaseTargetsCount(ctx context.Context, filters map[api.Fil
 	return
 }
 
-func (c *client) GetPipelineReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error) {
+func (c *client) GetAllPipelinesReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error) {
 
 	// see https://github.com/cockroachdb/cockroach/issues/35848
 
@@ -4306,7 +4312,7 @@ func (c *client) GetPipelineReleaseTargets(ctx context.Context, pageNumber, page
 	return c.scanItems(ctx, rows)
 }
 
-func (c *client) GetPipelineReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
+func (c *client) GetAllPipelinesReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
 
 	// see https://github.com/cockroachdb/cockroach/issues/35848
 
@@ -4369,7 +4375,7 @@ func (c *client) GetPipelineReleaseTargetsCount(ctx context.Context, filters map
 	return
 }
 
-func (c *client) GetReleaseReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error) {
+func (c *client) GetAllReleasesReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error) {
 
 	// SELECT
 	// 		release AS name, count(DISTINCT id) AS count
@@ -4408,7 +4414,7 @@ func (c *client) GetReleaseReleaseTargets(ctx context.Context, pageNumber, pageS
 	return c.scanItems(ctx, rows)
 }
 
-func (c *client) GetReleaseReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
+func (c *client) GetAllReleasesReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
 
 	// SELECT
 	// 		COUNT(DISTINCT release)
@@ -4428,6 +4434,178 @@ func (c *client) GetReleaseReleaseTargetsCount(ctx context.Context, filters map[
 	}
 
 	query, err = whereClauseGeneratorForReleaseStatusFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&totalCount); err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *client) GetPipelineBuildBranches(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error) {
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("a.repo_branch AS name, count(DISTINCT id) AS count").
+			From("builds a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName}).
+			GroupBy("name").
+			OrderBy("count DESC, name").
+			Limit(uint64(pageSize)).
+			Offset(uint64((pageNumber - 1) * pageSize))
+
+	query, err = whereClauseGeneratorForSinceFilter(query, "a", "updated_at", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForBuildStatusFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForLabelsFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForArchivedFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	return c.scanItems(ctx, rows)
+}
+
+func (c *client) GetPipelineBuildBranchesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (totalCount int, err error) {
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("count (DISTINCT a.repo_branch) AS count").
+			From("builds a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName})
+
+	query, err = whereClauseGeneratorForSinceFilter(query, "a", "updated_at", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForBuildStatusFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForLabelsFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForArchivedFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRow()
+	if err = row.Scan(&totalCount); err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *client) GetPipelineBotNames(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error) {
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("a.name, count(DISTINCT id) AS count").
+			From("bots a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName}).
+			GroupBy("name").
+			OrderBy("count DESC, name").
+			Limit(uint64(pageSize)).
+			Offset(uint64((pageNumber - 1) * pageSize))
+
+	query, err = whereClauseGeneratorForSinceFilter(query, "a", "updated_at", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForBotStatusFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForLabelsFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForArchivedFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	return c.scanItems(ctx, rows)
+}
+
+func (c *client) GetPipelineBotNamesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (totalCount int, err error) {
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	query :=
+		psql.
+			Select("count (DISTINCT a.name) AS count").
+			From("bots a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName})
+
+	query, err = whereClauseGeneratorForSinceFilter(query, "a", "updated_at", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForBotStatusFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForLabelsFilter(query, "a", filters)
+	if err != nil {
+		return
+	}
+
+	query, err = whereClauseGeneratorForArchivedFilter(query, "a", filters)
 	if err != nil {
 		return
 	}
@@ -4639,6 +4817,10 @@ func whereClauseGeneratorForAllFilters(query sq.SelectBuilder, alias, sinceColum
 	if err != nil {
 		return query, err
 	}
+	query, err = whereClauseGeneratorForBuildBranchFilter(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
 	query, err = whereClauseGeneratorForLabelsFilter(query, alias, filters)
 	if err != nil {
 		return query, err
@@ -4700,6 +4882,10 @@ func whereClauseGeneratorForAllReleaseFilters(query sq.SelectBuilder, alias, sin
 func whereClauseGeneratorForAllBotFilters(query sq.SelectBuilder, alias, sinceColumn string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	query, err := whereClauseGeneratorForBotStatusFilter(query, alias, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForBotNameFilter(query, alias, filters)
 	if err != nil {
 		return query, err
 	}
@@ -4765,6 +4951,15 @@ func whereClauseGeneratorForBuildStatusFilter(query sq.SelectBuilder, alias stri
 	return query, nil
 }
 
+func whereClauseGeneratorForBuildBranchFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+
+	if statuses, ok := filters[api.FilterBuildBranch]; ok && len(statuses) > 0 && statuses[0] != "all" {
+		query = query.Where(sq.Eq{fmt.Sprintf("%v.repo_branch", alias): statuses})
+	}
+
+	return query, nil
+}
+
 func whereClauseGeneratorForReleaseStatusFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if statuses, ok := filters[api.FilterStatus]; ok && len(statuses) > 0 && statuses[0] != "all" {
@@ -4811,6 +5006,15 @@ func whereClauseGeneratorForBotStatusFilter(query sq.SelectBuilder, alias string
 
 	if statuses, ok := filters[api.FilterStatus]; ok && len(statuses) > 0 && statuses[0] != "all" {
 		query = query.Where(sq.Eq{fmt.Sprintf("%v.bot_status", alias): statuses})
+	}
+
+	return query, nil
+}
+
+func whereClauseGeneratorForBotNameFilter(query sq.SelectBuilder, alias string, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+
+	if statuses, ok := filters[api.FilterBotName]; ok && len(statuses) > 0 && statuses[0] != "all" {
+		query = query.Where(sq.Eq{fmt.Sprintf("%v.name", alias): statuses})
 	}
 
 	return query, nil
