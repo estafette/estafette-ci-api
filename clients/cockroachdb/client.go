@@ -4291,7 +4291,7 @@ func (c *client) GetPipelineBotNamesCount(ctx context.Context, repoSource, repoO
 
 	query :=
 		psql.
-			Select("count (DISTINCT a.name) AS count").
+			Select("count (DISTINCT a.bot) AS count").
 			From("bots a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
