@@ -2678,7 +2678,7 @@ func (c *client) GetPipelineBots(ctx context.Context, repoSource, repoOwner, rep
 		Offset(uint64((pageNumber - 1) * pageSize))
 
 	// dynamically set order by clause
-	query, err = orderByClauseGeneratorForSortings(query, "inserted_at", sortings)
+	query, err = orderByClauseGeneratorForSortings(query, "a.inserted_at DESC", sortings)
 	if err != nil {
 		return
 	}
