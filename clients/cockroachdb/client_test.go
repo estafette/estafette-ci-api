@@ -3236,7 +3236,7 @@ func TestIntegrationGetPipelineBots(t *testing.T) {
 }
 
 func TestIntegrationGetPipelineBotsCount(t *testing.T) {
-	t.Run("ReturnsBots", func(t *testing.T) {
+	t.Run("ReturnsBotsCount", func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("skipping test in short mode.")
 		}

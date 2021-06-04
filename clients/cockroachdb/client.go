@@ -24,19 +24,19 @@ import (
 
 var (
 	// ErrUserNotFound is returned if a query for a user returns no results
-	ErrUserNotFound = errors.New("The user can't be found")
+	ErrUserNotFound = errors.New("the user can't be found")
 
 	// ErrGroupNotFound is returned if a query for a group returns no results
-	ErrGroupNotFound = errors.New("The group can't be found")
+	ErrGroupNotFound = errors.New("the group can't be found")
 
 	// ErrOrganizationNotFound is returned if a query for a organization returns no results
-	ErrOrganizationNotFound = errors.New("The organization can't be found")
+	ErrOrganizationNotFound = errors.New("the organization can't be found")
 
 	// ErrClientNotFound is returned if a query for a client returns no results
-	ErrClientNotFound = errors.New("The client can't be found")
+	ErrClientNotFound = errors.New("the client can't be found")
 
 	// ErrCatalogEntityNotFound is returned if a query for a catalog entity returns no results
-	ErrCatalogEntityNotFound = errors.New("The catalog entity can't be found")
+	ErrCatalogEntityNotFound = errors.New("the catalog entity can't be found")
 )
 
 // Client is the interface for communicating with CockroachDB
@@ -295,7 +295,6 @@ func (c *client) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwne
 		repoFullName,
 	)
 	if err != nil {
-
 		return
 	}
 
@@ -314,14 +313,12 @@ func (c *client) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwne
 		repoFullName,
 	)
 	if err != nil {
-
 		return
 	}
 
 	defer rows.Close()
 	for rows.Next() {
 		if err = rows.Scan(&autoincrement); err != nil {
-
 			return
 		}
 	}
@@ -438,7 +435,6 @@ func (c *client) InsertBuild(ctx context.Context, build contracts.Build, jobReso
 	insertedBuild = &build
 
 	if err = row.Scan(&insertedBuild.ID); err != nil {
-
 		return
 	}
 
@@ -454,15 +450,12 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 	switch buildStatus {
 	case contracts.StatusRunning:
 		allowedBuildStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending}
-		break
 	case contracts.StatusSucceeded,
 		contracts.StatusFailed,
 		contracts.StatusCanceling:
 		allowedBuildStatusesToTransitionFrom = []contracts.Status{contracts.StatusRunning}
-		break
 	case contracts.StatusCanceled:
 		allowedBuildStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending, contracts.StatusCanceling}
-		break
 	}
 
 	// turn into string array so query works as expected
@@ -523,7 +516,6 @@ func (c *client) UpdateBuildResourceUtilization(ctx context.Context, repoSource,
 	// update build resources
 	_, err = query.RunWith(c.databaseConnection).Exec()
 	if err != nil {
-
 		return
 	}
 
@@ -633,15 +625,12 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 	switch releaseStatus {
 	case contracts.StatusRunning:
 		allowedReleaseStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending}
-		break
 	case contracts.StatusSucceeded,
 		contracts.StatusFailed,
 		contracts.StatusCanceling:
 		allowedReleaseStatusesToTransitionFrom = []contracts.Status{contracts.StatusRunning}
-		break
 	case contracts.StatusCanceled:
 		allowedReleaseStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending, contracts.StatusCanceling}
-		break
 	}
 
 	// turn into string array so query works as expected
@@ -708,7 +697,6 @@ func (c *client) UpdateReleaseResourceUtilization(ctx context.Context, repoSourc
 	// update release resources
 	_, err = query.RunWith(c.databaseConnection).Exec()
 	if err != nil {
-
 		return
 	}
 
@@ -806,15 +794,12 @@ func (c *client) UpdateBotStatus(ctx context.Context, repoSource, repoOwner, rep
 	switch botStatus {
 	case contracts.StatusRunning:
 		allowedBotStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending}
-		break
 	case contracts.StatusSucceeded,
 		contracts.StatusFailed,
 		contracts.StatusCanceling:
 		allowedBotStatusesToTransitionFrom = []contracts.Status{contracts.StatusRunning}
-		break
 	case contracts.StatusCanceled:
 		allowedBotStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending, contracts.StatusCanceling}
-		break
 	}
 
 	// turn into string array so query works as expected
@@ -842,15 +827,6 @@ func (c *client) UpdateBotStatus(ctx context.Context, repoSource, repoOwner, rep
 
 	// update bot status
 	_ = query.RunWith(c.databaseConnection).QueryRow()
-	// insertedBot, err := c.scanBot(row)
-	// if err != nil {
-	// 	if err == sql.ErrNoRows {
-	// 		log.Warn().Err(err).Msgf("Updating bot status for %v/%v/%v id %v from %v to %v is not allowed, no records have been updated", repoSource, repoOwner, repoName, id, allowedBotStatusesToTransitionFrom, botStatus)
-	// 		return nil
-	// 	}
-
-	// 	return err
-	// }
 
 	return
 }
@@ -871,7 +847,6 @@ func (c *client) UpdateBotResourceUtilization(ctx context.Context, repoSource, r
 	// update bot resources
 	_, err = query.RunWith(c.databaseConnection).Exec()
 	if err != nil {
-
 		return
 	}
 
@@ -886,12 +861,14 @@ func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog
 	if writeLogToDatabase {
 		bytes, err = json.Marshal(buildLog.Steps)
 		if err != nil {
-
 			return
 		}
 	} else {
 		var steps []*contracts.BuildLogStep
 		bytes, err = json.Marshal(steps)
+		if err != nil {
+			return
+		}
 	}
 
 	buildID, err := strconv.Atoi(buildLog.BuildID)
@@ -1001,17 +978,18 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 	if writeLogToDatabase {
 		bytes, err = json.Marshal(releaseLog.Steps)
 		if err != nil {
-
 			return
 		}
 	} else {
 		var steps []*contracts.BuildLogStep
 		bytes, err = json.Marshal(steps)
+		if err != nil {
+			return
+		}
 	}
 
 	releaseID, err := strconv.Atoi(releaseLog.ReleaseID)
 	if err != nil {
-
 		return insertedReleaseLog, err
 	}
 
@@ -1067,17 +1045,18 @@ func (c *client) InsertBotLog(ctx context.Context, botLog contracts.BotLog, writ
 	if writeLogToDatabase {
 		bytes, err = json.Marshal(botLog.Steps)
 		if err != nil {
-
 			return
 		}
 	} else {
 		var steps []*contracts.BuildLogStep
 		bytes, err = json.Marshal(steps)
+		if err != nil {
+			return
+		}
 	}
 
 	botID, err := strconv.Atoi(botLog.BotID)
 	if err != nil {
-
 		return insertedBotLog, err
 	}
 
@@ -1133,7 +1112,7 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 		log.Error().Err(err).Msgf("Failed getting last build for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
 		return
 	}
-	if lastBuilds == nil || len(lastBuilds) == 0 {
+	if len(lastBuilds) == 0 {
 		log.Error().Msgf("Failed getting last build for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
 		return
 	}
@@ -1202,13 +1181,11 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 		return
 	}
 
-	if lastReleases != nil {
-		// extract recent releasers from last releases
-		for _, r := range lastReleases {
-			for _, e := range r.Events {
-				if e.Manual != nil && e.Manual.UserID != "" && !foundation.StringArrayContains(upsertedPipeline.RecentReleasers, e.Manual.UserID) {
-					upsertedPipeline.RecentReleasers = append(upsertedPipeline.RecentReleasers, e.Manual.UserID)
-				}
+	// extract recent releasers from last releases
+	for _, r := range lastReleases {
+		for _, e := range r.Events {
+			if e.Manual != nil && e.Manual.UserID != "" && !foundation.StringArrayContains(upsertedPipeline.RecentReleasers, e.Manual.UserID) {
+				upsertedPipeline.RecentReleasers = append(upsertedPipeline.RecentReleasers, e.Manual.UserID)
 			}
 		}
 	}
@@ -1279,16 +1256,19 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 	extraInfoBytes, err := json.Marshal(upsertedPipeline.ExtraInfo)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
+
 		return
 	}
 	groupsBytes, err := json.Marshal(upsertedPipeline.Groups)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
+
 		return
 	}
 	organizationsBytes, err := json.Marshal(upsertedPipeline.Organizations)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", upsertedPipeline.RepoSource, upsertedPipeline.RepoOwner, upsertedPipeline.RepoName)
+
 		return
 	}
 
@@ -1451,7 +1431,6 @@ func (c *client) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repo
 	firstBuild, err := c.GetFirstPipelineBuild(ctx, repoSource, repoOwner, repoName, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting first build for updating computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
-
 		return
 	}
 	if firstBuild == nil {
@@ -1480,7 +1459,6 @@ func (c *client) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repo
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed updating computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
-
 		return
 	}
 
@@ -1493,10 +1471,9 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 	lastReleases, err := c.GetLastPipelineReleases(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction, 10)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last release for upserting computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
-
 		return
 	}
-	if lastReleases == nil || len(lastReleases) == 0 {
+	if len(lastReleases) == 0 {
 		log.Error().Msgf("Failed getting last release for upserting computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
 		return
 	}
@@ -1653,7 +1630,6 @@ func (c *client) UpdateComputedReleaseFirstInsertedAt(ctx context.Context, repoS
 	firstRelease, err := c.GetFirstPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting first release for updating computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
-
 		return
 	}
 	if firstRelease == nil {
@@ -1684,7 +1660,6 @@ func (c *client) UpdateComputedReleaseFirstInsertedAt(ctx context.Context, repoS
 	)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed updating computed release %v/%v/%v/%v/%v", repoSource, repoOwner, repoName, releaseName, releaseAction)
-
 		return
 	}
 
@@ -1742,27 +1717,23 @@ func (c *client) GetPipelines(ctx context.Context, pageNumber, pageSize int, fil
 	// dynamically set order by clause
 	query, err = orderByClauseGeneratorForSortings(query, "a.repo_source,a.repo_owner,a.repo_name", sortings)
 	if err != nil {
-
 		return
 	}
 
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForPipelineFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-
 		return
 	}
 
 	// read rows
 	if pipelines, err = c.scanPipelines(rows, optimized); err != nil {
-
 		return
 	}
 
@@ -1778,13 +1749,11 @@ func (c *client) GetPipelinesByRepoName(ctx context.Context, repoName string, op
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-
 		return
 	}
 
 	// read rows
 	if pipelines, err = c.scanPipelines(rows, optimized); err != nil {
-
 		return
 	}
 
@@ -1808,7 +1777,6 @@ func (c *client) GetPipelinesCount(ctx context.Context, filters map[api.FilterTy
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-
 		return
 	}
 
@@ -1834,7 +1802,6 @@ func (c *client) GetPipeline(ctx context.Context, repoSource, repoOwner, repoNam
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if pipeline, err = c.scanPipeline(row, optimized); err != nil {
-
 		return
 	}
 
@@ -1865,13 +1832,11 @@ func (c *client) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOw
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-
 		return
 	}
 
 	// read rows
 	if builds, err = c.scanBuilds(rows, optimized); err != nil {
-
 		return
 	}
 
@@ -1891,27 +1856,23 @@ func (c *client) GetPipelineBuilds(ctx context.Context, repoSource, repoOwner, r
 	// dynamically set order by clause
 	query, err = orderByClauseGeneratorForSortings(query, "a.inserted_at DESC", sortings)
 	if err != nil {
-
 		return
 	}
 
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForBuildFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-
 		return
 	}
 
 	// read rows
 	if builds, err = c.scanBuilds(rows, optimized); err != nil {
-
 		return
 	}
 
@@ -1932,14 +1893,12 @@ func (c *client) GetPipelineBuildsCount(ctx context.Context, repoSource, repoOwn
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForPipelineFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-
 		return
 	}
 
@@ -1960,7 +1919,6 @@ func (c *client) GetPipelineBuild(ctx context.Context, repoSource, repoOwner, re
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if build, err = c.scanBuild(ctx, row, optimized, true); err != nil {
-
 		return
 	}
 
@@ -1981,7 +1939,6 @@ func (c *client) GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if build, err = c.scanBuild(ctx, row, optimized, true); err != nil {
-
 		return
 	}
 
@@ -2001,7 +1958,6 @@ func (c *client) GetLastPipelineBuild(ctx context.Context, repoSource, repoOwner
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if build, err = c.scanBuild(ctx, row, optimized, false); err != nil {
-
 		return
 	}
 
@@ -2021,7 +1977,6 @@ func (c *client) GetFirstPipelineBuild(ctx context.Context, repoSource, repoOwne
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if build, err = c.scanBuild(ctx, row, optimized, false); err != nil {
-
 		return
 	}
 
@@ -2042,7 +1997,6 @@ func (c *client) GetLastPipelineBuildForBranch(ctx context.Context, repoSource, 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if build, err = c.scanBuild(ctx, row, false, false); err != nil {
-
 		return
 	}
 
@@ -2063,6 +2017,9 @@ func (c *client) GetLastPipelineReleases(ctx context.Context, repoSource, repoOw
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+		return
+	}
 	if releases, err = c.scanReleases(rows); err != nil {
 		return nil, err
 	}
@@ -2093,7 +2050,6 @@ func (c *client) GetFirstPipelineRelease(ctx context.Context, repoSource, repoOw
 	}
 
 	return release, nil
-
 }
 
 func (c *client) GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []contracts.Status, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
@@ -2126,7 +2082,6 @@ func (c *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner
 
 	buildIDAsInt, err := strconv.Atoi(buildID)
 	if err != nil {
-
 		return nil, err
 	}
 
@@ -2166,7 +2121,6 @@ func (c *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner
 		}
 
 		if err = json.Unmarshal(stepsData, &buildLog.Steps); err != nil {
-
 			return
 		}
 
@@ -2242,7 +2196,6 @@ func (c *client) GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoO
 		}
 
 		if err = json.Unmarshal(stepsData, &buildLog.Steps); err != nil {
-
 			return
 		}
 
@@ -2382,7 +2335,6 @@ func (c *client) GetPipelineBuildMaxResourceUtilization(ctx context.Context, rep
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&jobResources.CPUMaxUsage, &jobResources.MemoryMaxUsage, &recordCount); err != nil {
-
 		return
 	}
 
@@ -2402,27 +2354,23 @@ func (c *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner,
 		// dynamically set order by clause
 	query, err = orderByClauseGeneratorForSortings(query, "a.inserted_at DESC", sortings)
 	if err != nil {
-
 		return
 	}
 
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForReleaseFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-
 		return
 	}
 
 	// read rows
 	if releases, err = c.scanReleases(rows); err != nil {
-
 		return
 	}
 
@@ -2449,7 +2397,6 @@ func (c *client) GetPipelineReleasesCount(ctx context.Context, repoSource, repoO
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-
 		return
 	}
 
@@ -2499,14 +2446,12 @@ func (c *client) GetPipelineLastReleasesByName(ctx context.Context, repoSource, 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-
 		return
 	}
 
 	// read rows
-	releasesPointers := []*contracts.Release{}
+	var releasesPointers []*contracts.Release
 	if releasesPointers, err = c.scanPipelineReleases(rows); err != nil {
-
 		return releases, err
 	}
 
@@ -2551,7 +2496,6 @@ func (c *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwn
 		}
 
 		if err = json.Unmarshal(stepsData, &releaseLog.Steps); err != nil {
-
 			return
 		}
 	} else {
@@ -2606,7 +2550,6 @@ func (c *client) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, rep
 		}
 
 		if err = json.Unmarshal(stepsData, &releaseLog.Steps); err != nil {
-
 			return
 		}
 	} else {
@@ -2689,7 +2632,6 @@ func (c *client) GetPipelineReleaseLogsCount(ctx context.Context, repoSource, re
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&count); err != nil {
-
 		return
 	}
 
@@ -2719,7 +2661,6 @@ func (c *client) GetPipelineReleaseMaxResourceUtilization(ctx context.Context, r
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&jobResources.CPUMaxUsage, &jobResources.MemoryMaxUsage, &recordCount); err != nil {
-
 		return
 	}
 
@@ -2736,10 +2677,9 @@ func (c *client) GetPipelineBots(ctx context.Context, repoSource, repoOwner, rep
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
-		// dynamically set order by clause
-	query, err = orderByClauseGeneratorForSortings(query, "a", sortings)
+	// dynamically set order by clause
+	query, err = orderByClauseGeneratorForSortings(query, "inserted_at", sortings)
 	if err != nil {
-
 		return
 	}
 
@@ -2752,7 +2692,6 @@ func (c *client) GetPipelineBots(ctx context.Context, repoSource, repoOwner, rep
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
 	if err != nil {
-
 		return
 	}
 
@@ -2784,7 +2723,6 @@ func (c *client) GetPipelineBotsCount(ctx context.Context, repoSource, repoOwner
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-
 		return
 	}
 
@@ -2847,7 +2785,6 @@ func (c *client) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, 
 		}
 
 		if err = json.Unmarshal(stepsData, &botLog.Steps); err != nil {
-
 			return
 		}
 	} else {
@@ -2985,7 +2922,6 @@ func (c *client) GetPipelineBotLogsCount(ctx context.Context, repoSource, repoOw
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&count); err != nil {
-
 		return
 	}
 
@@ -3015,7 +2951,6 @@ func (c *client) GetPipelineBotMaxResourceUtilization(ctx context.Context, repoS
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&jobResources.CPUMaxUsage, &jobResources.MemoryMaxUsage, &recordCount); err != nil {
-
 		return
 	}
 
@@ -3033,14 +2968,12 @@ func (c *client) GetBuildsCount(ctx context.Context, filters map[api.FilterType]
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForBuildFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-
 		return
 	}
 
@@ -3058,14 +2991,12 @@ func (c *client) GetReleasesCount(ctx context.Context, filters map[api.FilterTyp
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForReleaseFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-
 		return
 	}
 
@@ -3083,14 +3014,12 @@ func (c *client) GetBotsCount(ctx context.Context, filters map[api.FilterType][]
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForBotFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
 	if err = row.Scan(&totalCount); err != nil {
-
 		return
 	}
 
@@ -3108,7 +3037,6 @@ func (c *client) GetBuildsDuration(ctx context.Context, filters map[api.FilterTy
 	// dynamically set where clauses for filtering
 	query, err = whereClauseGeneratorForBuildFilters(query, filters)
 	if err != nil {
-
 		return
 	}
 
@@ -3118,13 +3046,11 @@ func (c *client) GetBuildsDuration(ctx context.Context, filters map[api.FilterTy
 	var totalDurationAsString string
 
 	if err = row.Scan(&totalDurationAsString); err != nil {
-
 		return
 	}
 
 	totalDuration, err = time.ParseDuration(totalDurationAsString)
 	if err != nil {
-
 		return
 	}
 
@@ -3144,9 +3070,7 @@ func (c *client) GetFirstBuildTimes(ctx context.Context) (buildTimes []time.Time
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
-
 	if err != nil {
-
 		return
 	}
 
@@ -3155,9 +3079,7 @@ func (c *client) GetFirstBuildTimes(ctx context.Context) (buildTimes []time.Time
 
 		insertedAt := time.Time{}
 
-		if err = rows.Scan(
-			&insertedAt); err != nil {
-
+		if err = rows.Scan(&insertedAt); err != nil {
 			return
 		}
 
@@ -3180,9 +3102,7 @@ func (c *client) GetFirstReleaseTimes(ctx context.Context) (releaseTimes []time.
 	releaseTimes = make([]time.Time, 0)
 
 	rows, err := query.RunWith(c.databaseConnection).Query()
-
 	if err != nil {
-
 		return
 	}
 
@@ -3191,9 +3111,7 @@ func (c *client) GetFirstReleaseTimes(ctx context.Context) (releaseTimes []time.
 
 		insertedAt := time.Time{}
 
-		if err = rows.Scan(
-			&insertedAt); err != nil {
-
+		if err = rows.Scan(&insertedAt); err != nil {
 			return
 		}
 
@@ -3234,7 +3152,6 @@ func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, rep
 	durations = make([]map[string]interface{}, 0)
 
 	rows, err := query.RunWith(c.databaseConnection).Query()
-
 	if err != nil {
 		return
 	}
@@ -3297,7 +3214,6 @@ func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, r
 	durations = make([]map[string]interface{}, 0)
 
 	rows, err := query.RunWith(c.databaseConnection).Query()
-
 	if err != nil {
 		return
 	}
@@ -3315,7 +3231,6 @@ func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, r
 			&releaseAction,
 			&durationPendingSeconds,
 			&durationRunningSeconds); err != nil {
-
 			return
 		}
 
@@ -3381,7 +3296,6 @@ func (c *client) GetPipelineBotsDurations(ctx context.Context, repoSource, repoO
 			&botName,
 			&durationPendingSeconds,
 			&durationRunningSeconds); err != nil {
-
 			return
 		}
 
@@ -3431,9 +3345,7 @@ func (c *client) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repo
 	measurements = make([]map[string]interface{}, 0)
 
 	rows, err := query.RunWith(c.databaseConnection).Query()
-
 	if err != nil {
-
 		return
 	}
 
@@ -3445,7 +3357,6 @@ func (c *client) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repo
 
 		if err = rows.Scan(
 			&insertedAt, &cpuMaxUsage); err != nil {
-
 			return
 		}
 
@@ -3501,9 +3412,7 @@ func (c *client) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, re
 		var releaseName, releaseAction string
 		var cpuMaxUsage float64
 
-		if err = rows.Scan(
-			&insertedAt, &releaseName, &releaseAction, &cpuMaxUsage); err != nil {
-
+		if err = rows.Scan(&insertedAt, &releaseName, &releaseAction, &cpuMaxUsage); err != nil {
 			return
 		}
 
@@ -3560,9 +3469,7 @@ func (c *client) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, r
 		var insertedAt time.Time
 		var memoryMaxUsage float64
 
-		if err = rows.Scan(
-			&insertedAt, &memoryMaxUsage); err != nil {
-
+		if err = rows.Scan(&insertedAt, &memoryMaxUsage); err != nil {
 			return
 		}
 
@@ -3618,9 +3525,7 @@ func (c *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context,
 		var releaseName, releaseAction string
 		var memoryMaxUsage float64
 
-		if err = rows.Scan(
-			&insertedAt, &releaseName, &releaseAction, &memoryMaxUsage); err != nil {
-
+		if err = rows.Scan(&insertedAt, &releaseName, &releaseAction, &memoryMaxUsage); err != nil {
 			return
 		}
 
@@ -3645,7 +3550,6 @@ func (c *client) GetAllPipelineBuilds(ctx context.Context, pageNumber, pageSize 
 	// dynamically set order by clause
 	query, err = orderByClauseGeneratorForSortings(query, "a.inserted_at DESC", sortings)
 	if err != nil {
-
 		return
 	}
 
@@ -3719,7 +3623,6 @@ func (c *client) GetAllPipelineReleases(ctx context.Context, pageNumber, pageSiz
 
 	// read rows
 	if releases, err = c.scanReleases(rows); err != nil {
-
 		return
 	}
 
@@ -3906,7 +3809,6 @@ func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int
 
 	arrayElementsQuery, err = whereClauseGeneratorForPipelineFilters(arrayElementsQuery, filters)
 	if err != nil {
-
 		return
 	}
 
@@ -6188,6 +6090,9 @@ func (c *client) GetUsers(ctx context.Context, pageNumber, pageSize int, filters
 	// }
 
 	query, err = whereClauseGeneratorForUserFilters(query, filters)
+	if err != nil {
+		return
+	}
 
 	// execute query
 	rows, err := query.RunWith(c.databaseConnection).Query()
@@ -6271,6 +6176,9 @@ func (c *client) UpdateGroup(ctx context.Context, group contracts.Group) (err er
 		Limit(uint64(1))
 
 	_, err = query.RunWith(c.databaseConnection).Exec()
+	if err != nil {
+		return
+	}
 
 	return
 }
@@ -6939,6 +6847,9 @@ func (c *client) GetCatalogEntitiesCount(ctx context.Context, filters map[api.Fi
 		From("catalog_entities a")
 
 	query, err = whereClauseGeneratorForCatalogEntityFilters(query, filters)
+	if err != nil {
+		return
+	}
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
@@ -7016,6 +6927,9 @@ func (c *client) getCatalogEntityColumnCount(ctx context.Context, groupColumn st
 			GroupBy(fmt.Sprintf("a.%v", groupColumn))
 
 	query, err = whereClauseGeneratorForCatalogEntityFilters(query, filters)
+	if err != nil {
+		return
+	}
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRow()
@@ -7523,14 +7437,6 @@ func (c *client) selectBotLogsQuery(readLogFromDatabase bool) sq.SelectBuilder {
 	return psql.
 		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.bot_id, a.inserted_at").
 		From("bot_logs a")
-}
-
-func (c *client) selectPipelineTriggersQuery() sq.SelectBuilder {
-	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-
-	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.trigger_event, a.trigger_filter, a.trigger_run, a.inserted_at, a.started_at, a.updated_at").
-		From("pipeline_triggers a")
 }
 
 func (c *client) selectCatalogEntityQuery() sq.SelectBuilder {
