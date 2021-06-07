@@ -136,9 +136,12 @@ func (h *Handler) Handle(c *gin.Context) {
 
 	// publish event for bots to run
 	go h.service.PublishBitbucketEvent(c.Request.Context(), manifest.EstafetteBitbucketEvent{
-		Event:      eventType,
-		Repository: anyEvent.GetRepository(),
-		Payload:    string(body),
+		Event:         eventType,
+		Repository:    anyEvent.GetRepository(),
+		HookUUID:      c.GetHeader("X-Hook-UUID"),
+		RequestUUID:   c.GetHeader("X-Request-UUID"),
+		AttemptNumber: c.GetHeader("X-Attempt-Number"),
+		Payload:       string(body),
 	})
 
 	c.Status(http.StatusOK)

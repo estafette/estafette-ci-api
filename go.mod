@@ -12,7 +12,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/estafette/estafette-ci-contracts v0.0.260
 	github.com/estafette/estafette-ci-crypt v0.0.42
-	github.com/estafette/estafette-ci-manifest v0.1.191
+	github.com/estafette/estafette-ci-manifest v0.1.192
 	github.com/estafette/estafette-foundation v0.0.69
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gin-contrib/gzip v0.0.2-0.20190827144029-5602d8b438ea
