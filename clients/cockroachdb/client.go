@@ -3475,7 +3475,7 @@ func (c *client) GetPipelineBotsCPUUsageMeasurements(ctx context.Context, repoSo
 			Where(sq.NotEq{"a.cpu_max_usage": nil}).
 			OrderBy("a.inserted_at DESC")
 
-	innerquery, err = whereClauseGeneratorForReleaseFilters(innerquery, filters)
+	innerquery, err = whereClauseGeneratorForBotFilters(innerquery, filters)
 	if err != nil {
 		return
 	}
@@ -3645,7 +3645,7 @@ func (c *client) GetPipelineBotsMemoryUsageMeasurements(ctx context.Context, rep
 			Where(sq.NotEq{"a.memory_max_usage": nil}).
 			OrderBy("a.inserted_at DESC")
 
-	innerquery, err = whereClauseGeneratorForReleaseFilters(innerquery, filters)
+	innerquery, err = whereClauseGeneratorForBotFilters(innerquery, filters)
 	if err != nil {
 		return
 	}
