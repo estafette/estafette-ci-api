@@ -2390,6 +2390,21 @@ func (h *Handler) GetStatsReleasesAdoption(c *gin.Context) {
 	})
 }
 
+func (h *Handler) GetStatsBotsAdoption(c *gin.Context) {
+
+	releaseTimes, err := h.cockroachDBClient.GetFirstBotTimes(c.Request.Context())
+	if err != nil {
+		errorMessage := "Failed retrieving first bot times from db"
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"datetimes": releaseTimes,
+	})
+}
+
 func (h *Handler) GetConfig(c *gin.Context) {
 
 	configBytes, err := yaml.Marshal(h.encryptedConfig)

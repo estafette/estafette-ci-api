@@ -110,6 +110,7 @@ type Client interface {
 	GetBuildsDuration(ctx context.Context, filters map[api.FilterType][]string) (duration time.Duration, err error)
 	GetFirstBuildTimes(ctx context.Context) (times []time.Time, err error)
 	GetFirstReleaseTimes(ctx context.Context) (times []time.Time, err error)
+	GetFirstBotTimes(ctx context.Context) (times []time.Time, err error)
 	GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error)
 	GetPipelineReleasesDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error)
 	GetPipelineBotsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error)
@@ -3116,6 +3117,38 @@ func (c *client) GetFirstReleaseTimes(ctx context.Context) (releaseTimes []time.
 		}
 
 		releaseTimes = append(releaseTimes, insertedAt)
+	}
+
+	return
+}
+
+func (c *client) GetFirstBotTimes(ctx context.Context) (botTimes []time.Time, err error) {
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("MIN(a.inserted_at)").
+			From("bots a").
+			GroupBy("a.repo_source,a.repo_owner,a.repo_name").
+			OrderBy("MIN(a.inserted_at)")
+
+	botTimes = make([]time.Time, 0)
+
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		insertedAt := time.Time{}
+
+		if err = rows.Scan(&insertedAt); err != nil {
+			return
+		}
+
+		botTimes = append(botTimes, insertedAt)
 	}
 
 	return

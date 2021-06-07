@@ -645,6 +645,21 @@ func (mr *MockClientMockRecorder) GetCronTriggers(ctx interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCronTriggers", reflect.TypeOf((*MockClient)(nil).GetCronTriggers), ctx)
 }
 
+// GetFirstBotTimes mocks base method.
+func (m *MockClient) GetFirstBotTimes(ctx context.Context) ([]time.Time, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFirstBotTimes", ctx)
+	ret0, _ := ret[0].([]time.Time)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFirstBotTimes indicates an expected call of GetFirstBotTimes.
+func (mr *MockClientMockRecorder) GetFirstBotTimes(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFirstBotTimes", reflect.TypeOf((*MockClient)(nil).GetFirstBotTimes), ctx)
+}
+
 // GetFirstBuildTimes mocks base method.
 func (m *MockClient) GetFirstBuildTimes(ctx context.Context) ([]time.Time, error) {
 	m.ctrl.T.Helper()
