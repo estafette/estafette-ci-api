@@ -57,12 +57,12 @@ func (c *client) GetMaxMemoryByPodName(ctx context.Context, podName string) (max
 		return
 	}
 
-	query := fmt.Sprintf("max_over_time(container_memory_working_set_bytes{container=\"estafette-ci-builder\",pod=\"%v\"}[3h])", podName)
+	query := fmt.Sprintf("max_over_time(container_memory_working_set_bytes{container=\"estafette-ci-builder\",pod=\"%v\"}[6h])", podName)
 
 	err = foundation.Retry(func() error {
 		maxMemory, err = c.getQueryResult(query)
 		return err
-	}, foundation.DelayMillisecond(5000), foundation.Attempts(5))
+	}, foundation.DelayMillisecond(1000*c.config.Integrations.Prometheus.ScrapeIntervalSeconds), foundation.Attempts(10))
 
 	return
 }
@@ -72,12 +72,12 @@ func (c *client) GetMaxCPUByPodName(ctx context.Context, podName string) (maxCPU
 		return
 	}
 
-	query := fmt.Sprintf("max_over_time(container_cpu_usage_rate1m{container=\"estafette-ci-builder\",pod=\"%v\"}[3h])", podName)
+	query := fmt.Sprintf("max_over_time(container_cpu_usage_rate1m{container=\"estafette-ci-builder\",pod=\"%v\"}[6h])", podName)
 
 	err = foundation.Retry(func() error {
 		maxCPU, err = c.getQueryResult(query)
 		return err
-	}, foundation.DelayMillisecond(5000), foundation.Attempts(5))
+	}, foundation.DelayMillisecond(1000*c.config.Integrations.Prometheus.ScrapeIntervalSeconds), foundation.Attempts(10))
 
 	return
 }
@@ -87,35 +87,35 @@ func (c *client) getQueryResult(query string) (float64, error) {
 	prometheusQueryURL := fmt.Sprintf("%v/api/v1/query?query=%v", c.config.Integrations.Prometheus.ServerURL, url.QueryEscape(query))
 	resp, err := pester.Get(prometheusQueryURL)
 	if err != nil {
-		return 0, fmt.Errorf("Executing prometheus query for query %v failed", query)
+		return 0, fmt.Errorf("Executing prometheus query url %v failed", prometheusQueryURL)
 	}
 
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return 0, fmt.Errorf("Reading prometheus query response body for query %v failed", query)
+		return 0, fmt.Errorf("Reading prometheus query response body for query url %v failed", prometheusQueryURL)
 	}
 
 	var queryResponse PrometheusQueryResponse
 	if err = json.Unmarshal(body, &queryResponse); err != nil {
-		return 0, fmt.Errorf("Unmarshalling prometheus query response body for query %v failed", query)
+		return 0, fmt.Errorf("Unmarshalling prometheus query response body for query url %v failed", prometheusQueryURL)
 	}
 
 	if queryResponse.Status != "success" {
-		return 0, fmt.Errorf("Query response status %v for query %v not equal to 'success'", queryResponse.Status, query)
+		return 0, fmt.Errorf("Query response status %v for query url %v not equal to 'success'", queryResponse.Status, prometheusQueryURL)
 	}
 
 	if queryResponse.Data.ResultType != "vector" {
-		return 0, fmt.Errorf("Query response data result type %v for query %v not equal to 'vector'", queryResponse.Data.ResultType, query)
+		return 0, fmt.Errorf("Query response data result type %v for query url %v not equal to 'vector'", queryResponse.Data.ResultType, prometheusQueryURL)
 	}
 
 	if len(queryResponse.Data.Result) != 1 {
-		return 0, fmt.Errorf("Query response data vector length %v for query %v not equal to 1", len(queryResponse.Data.Result), query)
+		return 0, fmt.Errorf("Query response data vector length %v for query url %v not equal to 1", len(queryResponse.Data.Result), prometheusQueryURL)
 	}
 
 	if len(queryResponse.Data.Result[0].Value) != 2 {
-		return 0, fmt.Errorf("Query response data vector value length %v for query %v not equal to 2", len(queryResponse.Data.Result[0].Value), query)
+		return 0, fmt.Errorf("Query response data vector value length %v for query url %v not equal to 2", len(queryResponse.Data.Result[0].Value), prometheusQueryURL)
 	}
 
 	f, err := strconv.ParseFloat(queryResponse.Data.Result[0].Value[1].(string), 64)
