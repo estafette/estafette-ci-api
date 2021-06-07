@@ -26,6 +26,8 @@ func (h *Handler) Handle(c *gin.Context) {
 
 	// https://developer.github.com/webhooks/
 	eventType := c.GetHeader("X-Github-Event")
+	eventDeliveryID := c.GetHeader("X-GitHub-Delivery")
+
 	// h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "github"}).Inc()
 
 	body, err := ioutil.ReadAll(c.Request.Body)
@@ -175,7 +177,8 @@ func (h *Handler) Handle(c *gin.Context) {
 	go h.service.PublishGithubEvent(c.Request.Context(), manifest.EstafetteGithubEvent{
 		Event:      eventType,
 		Repository: anyEvent.GetRepository(),
-		EventBody:  string(body),
+		Delivery:   eventDeliveryID,
+		Payload:    string(body),
 	})
 
 	c.Status(http.StatusOK)

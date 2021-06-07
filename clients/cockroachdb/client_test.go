@@ -3378,7 +3378,7 @@ func TestIntegrationGetGithubTriggers(t *testing.T) {
 		githubEvent := manifest.EstafetteGithubEvent{
 			Event:      "commit_comment",
 			Repository: "github.com/estafette/estafette-ci-api",
-			EventBody:  "{...}",
+			Payload:    "{...}",
 		}
 
 		// act
@@ -3423,7 +3423,7 @@ func TestIntegrationGetGithubTriggers(t *testing.T) {
 		githubEvent := manifest.EstafetteGithubEvent{
 			Event:      "deployment_status",
 			Repository: "github.com/estafette/estafette-ci-api",
-			EventBody:  "{...}",
+			Payload:    "{...}",
 		}
 
 		// act
@@ -3470,7 +3470,7 @@ func TestIntegrationGetBitbucketTriggers(t *testing.T) {
 		bitbucketEvent := manifest.EstafetteBitbucketEvent{
 			Event:      "pullrequest:updated",
 			Repository: "bitbucket.org/estafette/estafette-ci-api",
-			EventBody:  "{...}",
+			Payload:    "{...}",
 		}
 
 		// act
@@ -3514,7 +3514,7 @@ func TestIntegrationGetBitbucketTriggers(t *testing.T) {
 		bitbucketEvent := manifest.EstafetteBitbucketEvent{
 			Event:      "issue:created",
 			Repository: "bitbucket.org/estafette/estafette-ci-api",
-			EventBody:  "{...}",
+			Payload:    "{...}",
 		}
 
 		// act

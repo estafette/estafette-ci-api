@@ -138,7 +138,7 @@ func (h *Handler) Handle(c *gin.Context) {
 	go h.service.PublishBitbucketEvent(c.Request.Context(), manifest.EstafetteBitbucketEvent{
 		Event:      eventType,
 		Repository: anyEvent.GetRepository(),
-		EventBody:  string(body),
+		Payload:    string(body),
 	})
 
 	c.Status(http.StatusOK)
