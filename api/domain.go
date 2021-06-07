@@ -431,7 +431,6 @@ const (
 	FilterOrganizations
 	FilterLast
 	FilterArchived
-	FilterBuildBranch
 	FilterBotName
 )
 
@@ -453,7 +452,6 @@ var filters = []string{
 	"organizations",
 	"last",
 	"archived",
-	"branch",
 	"bot",
 }
 
