@@ -1126,6 +1126,21 @@ func (mr *MockClientMockRecorder) GetPipelineBots(ctx, repoSource, repoOwner, re
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBots", reflect.TypeOf((*MockClient)(nil).GetPipelineBots), ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings)
 }
 
+// GetPipelineBotsCPUUsageMeasurements mocks base method.
+func (m *MockClient) GetPipelineBotsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineBotsCPUUsageMeasurements", ctx, repoSource, repoOwner, repoName, filters)
+	ret0, _ := ret[0].([]map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelineBotsCPUUsageMeasurements indicates an expected call of GetPipelineBotsCPUUsageMeasurements.
+func (mr *MockClientMockRecorder) GetPipelineBotsCPUUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBotsCPUUsageMeasurements", reflect.TypeOf((*MockClient)(nil).GetPipelineBotsCPUUsageMeasurements), ctx, repoSource, repoOwner, repoName, filters)
+}
+
 // GetPipelineBotsCount mocks base method.
 func (m *MockClient) GetPipelineBotsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (int, error) {
 	m.ctrl.T.Helper()
@@ -1154,6 +1169,21 @@ func (m *MockClient) GetPipelineBotsDurations(ctx context.Context, repoSource, r
 func (mr *MockClientMockRecorder) GetPipelineBotsDurations(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBotsDurations", reflect.TypeOf((*MockClient)(nil).GetPipelineBotsDurations), ctx, repoSource, repoOwner, repoName, filters)
+}
+
+// GetPipelineBotsMemoryUsageMeasurements mocks base method.
+func (m *MockClient) GetPipelineBotsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) ([]map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPipelineBotsMemoryUsageMeasurements", ctx, repoSource, repoOwner, repoName, filters)
+	ret0, _ := ret[0].([]map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPipelineBotsMemoryUsageMeasurements indicates an expected call of GetPipelineBotsMemoryUsageMeasurements.
+func (mr *MockClientMockRecorder) GetPipelineBotsMemoryUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelineBotsMemoryUsageMeasurements", reflect.TypeOf((*MockClient)(nil).GetPipelineBotsMemoryUsageMeasurements), ctx, repoSource, repoOwner, repoName, filters)
 }
 
 // GetPipelineBuild mocks base method.

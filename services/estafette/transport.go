@@ -2020,6 +2020,30 @@ func (h *Handler) GetPipelineStatsReleasesCPUUsageMeasurements(c *gin.Context) {
 	})
 }
 
+func (h *Handler) GetPipelineStatsBotsCPUUsageMeasurements(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	// get filters (?filter[last]=100)
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
+	filters[api.FilterLast] = api.GetLastFilter(c, 100)
+
+	measurements, err := h.cockroachDBClient.GetPipelineBotsCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving bots cpu usage measurements from db for %v/%v/%v", source, owner, repo)
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"measurements": measurements,
+	})
+}
+
 func (h *Handler) GetPipelineStatsBuildsMemoryUsageMeasurements(c *gin.Context) {
 
 	source := c.Param("source")
@@ -2058,6 +2082,30 @@ func (h *Handler) GetPipelineStatsReleasesMemoryUsageMeasurements(c *gin.Context
 	measurements, err := h.cockroachDBClient.GetPipelineReleasesMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving release memory usage measurements from db for %v/%v/%v", source, owner, repo)
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"measurements": measurements,
+	})
+}
+
+func (h *Handler) GetPipelineStatsBotsMemoryUsageMeasurements(c *gin.Context) {
+
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+
+	// get filters (?filter[last]=100)
+	filters := map[api.FilterType][]string{}
+	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
+	filters[api.FilterLast] = api.GetLastFilter(c, 100)
+
+	measurements, err := h.cockroachDBClient.GetPipelineBotsMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed retrieving bots memory usage measurements from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		return

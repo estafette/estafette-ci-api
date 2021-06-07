@@ -116,8 +116,10 @@ type Client interface {
 	GetPipelineBotsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error)
 	GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
 	GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
+	GetPipelineBotsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
 	GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
 	GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
+	GetPipelineBotsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error)
 
 	GetAllPipelineBuilds(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField, optimized bool) (builds []*contracts.Build, err error)
 	GetAllPipelineBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
@@ -3460,6 +3462,63 @@ func (c *client) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, re
 	return
 }
 
+func (c *client) GetPipelineBotsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
+
+	// generate query
+	innerquery :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("a.inserted_at, a.bot, a.cpu_max_usage").
+			From("bots a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName}).
+			Where(sq.NotEq{"a.cpu_max_usage": nil}).
+			OrderBy("a.inserted_at DESC")
+
+	innerquery, err = whereClauseGeneratorForReleaseFilters(innerquery, filters)
+	if err != nil {
+		return
+	}
+
+	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
+	if err != nil {
+		return
+	}
+
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("*").
+			FromSelect(innerquery, "a").
+			OrderBy("a.inserted_at")
+
+	measurements = make([]map[string]interface{}, 0)
+
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		var insertedAt time.Time
+		var botName string
+		var cpuMaxUsage float64
+
+		if err = rows.Scan(&insertedAt, &botName, &cpuMaxUsage); err != nil {
+			return
+		}
+
+		measurements = append(measurements, map[string]interface{}{
+			"insertedAt":  insertedAt,
+			"name":        botName,
+			"cpuMaxUsage": cpuMaxUsage,
+		})
+	}
+
+	return
+}
+
 func (c *client) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
 
 	// generate query
@@ -3566,6 +3625,63 @@ func (c *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context,
 			"insertedAt":     insertedAt,
 			"name":           releaseName,
 			"action":         releaseAction,
+			"memoryMaxUsage": memoryMaxUsage,
+		})
+	}
+
+	return
+}
+
+func (c *client) GetPipelineBotsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
+
+	// generate query
+	innerquery :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("a.inserted_at, a.bot, a.memory_max_usage").
+			From("bots a").
+			Where(sq.Eq{"a.repo_source": repoSource}).
+			Where(sq.Eq{"a.repo_owner": repoOwner}).
+			Where(sq.Eq{"a.repo_name": repoName}).
+			Where(sq.NotEq{"a.memory_max_usage": nil}).
+			OrderBy("a.inserted_at DESC")
+
+	innerquery, err = whereClauseGeneratorForReleaseFilters(innerquery, filters)
+	if err != nil {
+		return
+	}
+
+	innerquery, err = limitClauseGeneratorForLastFilter(innerquery, filters)
+	if err != nil {
+		return
+	}
+
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("*").
+			FromSelect(innerquery, "a").
+			OrderBy("a.inserted_at")
+
+	measurements = make([]map[string]interface{}, 0)
+
+	rows, err := query.RunWith(c.databaseConnection).Query()
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		var insertedAt time.Time
+		var botName string
+		var memoryMaxUsage float64
+
+		if err = rows.Scan(&insertedAt, &botName, &memoryMaxUsage); err != nil {
+			return
+		}
+
+		measurements = append(measurements, map[string]interface{}{
+			"insertedAt":     insertedAt,
+			"name":           botName,
 			"memoryMaxUsage": memoryMaxUsage,
 		})
 	}
