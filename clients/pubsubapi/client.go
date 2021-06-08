@@ -70,6 +70,7 @@ func (c *client) SubscriptionForTopic(ctx context.Context, message PubSubPushMes
 	return &manifest.EstafettePubSubEvent{
 		Project: projectID,
 		Topic:   subscriptionConfig.Topic.ID(),
+		Message: message.Message,
 	}, nil
 }
 
