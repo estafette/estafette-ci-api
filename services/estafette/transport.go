@@ -27,6 +27,7 @@ import (
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
+	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -2772,7 +2773,10 @@ func (h *Handler) Commands(c *gin.Context) {
 
 		if ciBuilderEvent.GetStatus() != contracts.StatusCanceled {
 			go func(eventJobname string) {
-				ctx := context.Background()
+				// create new context to avoid cancellation impacting execution
+				span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GoRoutineRemoveCiBuilderJob")
+				ctx := opentracing.ContextWithSpan(context.Background(), span)
+
 				err = h.ciBuilderClient.RemoveCiBuilderJob(ctx, eventJobname)
 				if err != nil {
 					log.Error().Err(err).Interface("ciBuilderEvent", ciBuilderEvent).Msgf("Failed removing job %v and pod %v for event %v", ciBuilderEvent.JobName, ciBuilderEvent.PodName, ciBuilderEvent.BuildEventType)
@@ -2783,7 +2787,10 @@ func (h *Handler) Commands(c *gin.Context) {
 		}
 
 		go func(ciBuilderEvent contracts.EstafetteCiBuilderEvent) {
-			ctx := context.Background()
+			// create new context to avoid cancellation impacting execution
+			span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GoRoutineUpdateJobResources")
+			ctx := opentracing.ContextWithSpan(context.Background(), span)
+
 			err = h.buildService.UpdateJobResources(ctx, ciBuilderEvent)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed updating max cpu and memory from prometheus for pod %v", ciBuilderEvent.PodName)

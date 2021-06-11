@@ -18,6 +18,7 @@ import (
 	manifest "github.com/estafette/estafette-ci-manifest"
 	foundation "github.com/estafette/estafette-foundation"
 	_ "github.com/lib/pq" // use postgres client library to connect to cockroachdb
+	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -620,6 +621,10 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 
 	// update computed tables
 	go func() {
+		// create new context to avoid cancellation impacting execution
+		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineUpsertComputedTables")
+		ctx := opentracing.ContextWithSpan(context.Background(), span)
+
 		c.UpsertComputedRelease(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.Name, insertedRelease.Action)
 		c.UpsertComputedPipeline(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName)
 	}()
@@ -681,6 +686,10 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 
 	// update computed tables
 	go func(insertedRelease *contracts.Release) {
+		// create new context to avoid cancellation impacting execution
+		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineUpsertComputedTables")
+		ctx := opentracing.ContextWithSpan(context.Background(), span)
+
 		if insertedRelease != nil {
 			c.UpsertComputedRelease(ctx, repoSource, repoOwner, repoName, insertedRelease.Name, insertedRelease.Action)
 		} else {

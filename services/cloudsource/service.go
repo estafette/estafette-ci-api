@@ -10,6 +10,7 @@ import (
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
+	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 )
 
@@ -125,6 +126,10 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 	log.Info().Msgf("Created build for pipeline %v/%v/%v with revision %v", notification.GetRepoSource(), notification.GetRepoOwner(), notification.GetRepoName(), repoRevision)
 
 	go func() {
+		// create new context to avoid cancellation impacting execution
+		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineSubscribeToPubsubTriggers")
+		ctx = opentracing.ContextWithSpan(context.Background(), span)
+
 		err := s.pubsubapiClient.SubscribeToPubsubTriggers(ctx, manifestString)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed subscribing to topics for pubsub triggers for build %v/%v/%v revision %v", notification.GetRepoSource(), notification.GetRepoOwner(), notification.GetRepoName(), repoRevision)
