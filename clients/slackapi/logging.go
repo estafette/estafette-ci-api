@@ -8,7 +8,7 @@ import (
 
 // NewLoggingClient returns a new instance of a logging Client.
 func NewLoggingClient(c Client) Client {
-	return &tracingClient{c, "slackapi"}
+	return &loggingClient{c, "slackapi"}
 }
 
 type loggingClient struct {

@@ -109,9 +109,7 @@ func injectBuildStagesBefore(config *APIConfig, operatingSystem manifest.Operati
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Build != nil && injectedStages.Build.Before != nil {
-			for _, s := range injectedStages.Build.Before {
-				injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
-			}
+			injectedStage.ParallelStages = append(injectedStage.ParallelStages, injectedStages.Build.Before...)
 		}
 	}
 
@@ -147,9 +145,7 @@ func injectBuildStagesAfter(config *APIConfig, operatingSystem manifest.Operatin
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Build != nil && injectedStages.Build.After != nil {
-			for _, s := range injectedStages.Build.After {
-				injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
-			}
+			injectedStage.ParallelStages = append(injectedStage.ParallelStages, injectedStages.Build.After...)
 		}
 	}
 
@@ -183,9 +179,7 @@ func injectReleaseStagesBefore(config *APIConfig, operatingSystem manifest.Opera
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Release != nil && injectedStages.Release.Before != nil {
-			for _, s := range injectedStages.Release.Before {
-				injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
-			}
+			injectedStage.ParallelStages = append(injectedStage.ParallelStages, injectedStages.Release.Before...)
 		}
 	}
 
@@ -213,9 +207,7 @@ func injectReleaseStagesAfter(config *APIConfig, operatingSystem manifest.Operat
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Release != nil && injectedStages.Release.After != nil {
-			for _, s := range injectedStages.Release.After {
-				injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
-			}
+			injectedStage.ParallelStages = append(injectedStage.ParallelStages, injectedStages.Release.After...)
 		}
 	}
 
@@ -249,9 +241,7 @@ func injectBotStagesBefore(config *APIConfig, operatingSystem manifest.Operating
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Bot != nil && injectedStages.Bot.Before != nil {
-			for _, s := range injectedStages.Bot.Before {
-				injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
-			}
+			injectedStage.ParallelStages = append(injectedStage.ParallelStages, injectedStages.Bot.Before...)
 		}
 	}
 
@@ -279,9 +269,7 @@ func injectBotStagesAfter(config *APIConfig, operatingSystem manifest.OperatingS
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Bot != nil && injectedStages.Bot.After != nil {
-			for _, s := range injectedStages.Bot.After {
-				injectedStage.ParallelStages = append(injectedStage.ParallelStages, s)
-			}
+			injectedStage.ParallelStages = append(injectedStage.ParallelStages, injectedStages.Bot.After...)
 		}
 	}
 

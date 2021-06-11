@@ -12,10 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	cdbClient = client{}
-)
-
 func TestIntegrationGetAutoIncrement(t *testing.T) {
 	t.Run("ReturnsAnIncrementingCountForUniqueRepo", func(t *testing.T) {
 

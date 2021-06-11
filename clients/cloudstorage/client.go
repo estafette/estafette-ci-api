@@ -257,7 +257,10 @@ func (c *client) renameFilesInDirectory(ctx context.Context, bucket *storage.Buc
 	query := &storage.Query{
 		Prefix: fromLogFileDirectory,
 	}
-	query.SetAttrSelection([]string{"Name"})
+	err = query.SetAttrSelection([]string{"Name"})
+	if err != nil {
+		return
+	}
 
 	it := bucket.Objects(ctx, query)
 

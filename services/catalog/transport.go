@@ -1,7 +1,6 @@
 package catalog
 
 import (
-	"fmt"
 	"net/http"
 	"sort"
 
@@ -311,7 +310,7 @@ func (h *Handler) CreateCatalogEntity(c *gin.Context) {
 	var catalogEntity contracts.CatalogEntity
 	err := c.BindJSON(&catalogEntity)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding CreateCatalogEntity body failed")
+		errorMessage := "Binding CreateCatalogEntity body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -340,7 +339,7 @@ func (h *Handler) UpdateCatalogEntity(c *gin.Context) {
 	var catalogEntity contracts.CatalogEntity
 	err := c.BindJSON(&catalogEntity)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding UpdateCatalogEntity body failed")
+		errorMessage := "Binding UpdateCatalogEntity body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return

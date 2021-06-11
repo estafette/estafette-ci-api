@@ -649,7 +649,7 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 			return
 		}
 
-		c.UpsertComputedPipeline(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName)
+		err = c.UpsertComputedPipeline(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed upserting computed pipeline %v", insertedRelease.GetFullRepoPath())
 			return
@@ -5303,7 +5303,10 @@ func (c *client) scanBuild(ctx context.Context, row sq.RowScanner, optimized, en
 	build.PendingDuration = &pendingDuration
 	build.Duration = runningDuration
 
-	c.setBuildPropertiesFromJSONB(build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, groupsData, organizationsData, optimized)
+	err = c.setBuildPropertiesFromJSONB(build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, groupsData, organizationsData, optimized)
+	if err != nil {
+		return
+	}
 
 	if enriched {
 		c.enrichBuild(ctx, build)
@@ -5360,7 +5363,10 @@ func (c *client) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contracts
 		build.PendingDuration = &pendingDuration
 		build.Duration = runningDuration
 
-		c.setBuildPropertiesFromJSONB(&build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, groupsData, organizationsData, optimized)
+		err = c.setBuildPropertiesFromJSONB(&build, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, groupsData, organizationsData, optimized)
+		if err != nil {
+			return
+		}
 
 		if optimized {
 			// clear some properties for reduced size and improved performance over the network
@@ -5417,7 +5423,10 @@ func (c *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *cont
 	pipeline.PendingDuration = &pendingDuration
 	pipeline.Duration = runningDuration
 
-	c.setPipelinePropertiesFromJSONB(pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, groupsData, organizationsData, optimized)
+	err = c.setPipelinePropertiesFromJSONB(pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, groupsData, organizationsData, optimized)
+	if err != nil {
+		return
+	}
 
 	if optimized {
 		// clear some properties for reduced size and improved performance over the network
@@ -5473,7 +5482,10 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 		pipeline.PendingDuration = &pendingDuration
 		pipeline.Duration = runningDuration
 
-		c.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, groupsData, organizationsData, optimized)
+		err = c.setPipelinePropertiesFromJSONB(&pipeline, labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, groupsData, organizationsData, optimized)
+		if err != nil {
+			return
+		}
 
 		if optimized {
 			// clear some properties for reduced size and improved performance over the network

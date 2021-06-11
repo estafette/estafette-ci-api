@@ -29,6 +29,7 @@ func TestGetDigest(t *testing.T) {
 
 		client := NewClient()
 		token, err := client.GetToken(context.Background(), "estafette/estafette-ci-builder")
+		assert.Nil(t, err)
 
 		// act
 		digest, err := client.GetDigest(context.Background(), token, "estafette/estafette-ci-builder", "0.0.245")
@@ -45,8 +46,10 @@ func TestGetDigestCached(t *testing.T) {
 		client := NewClient()
 
 		// act
+		_, err := client.GetDigestCached(context.Background(), "estafette/estafette-ci-builder", "0.0.245")
+		assert.Nil(t, err)
+
 		digest, err := client.GetDigestCached(context.Background(), "estafette/estafette-ci-builder", "0.0.245")
-		digest, err = client.GetDigestCached(context.Background(), "estafette/estafette-ci-builder", "0.0.245")
 
 		assert.Nil(t, err)
 		assert.Equal(t, "sha256:00758c7ba65441b93bd5ecb6fe0242587560af061045bcb7337cd6c618cffe5e", digest.Digest)

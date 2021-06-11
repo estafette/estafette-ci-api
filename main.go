@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"runtime"
 	"sync"
 	"time"
 
@@ -63,7 +62,6 @@ var (
 	branch    string
 	revision  string
 	buildDate string
-	goVersion = runtime.Version()
 )
 
 var (
