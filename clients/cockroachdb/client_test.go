@@ -39,10 +39,11 @@ func TestIntegrationGetAutoIncrement(t *testing.T) {
 		cockroachdbClient := getCockroachdbClient(ctx, t)
 
 		// act
-		autoincrement1, err := cockroachdbClient.GetAutoIncrement(ctx, "github", "estafette", "estafette-ci-api")
-		autoincrement2, err := cockroachdbClient.GetAutoIncrement(ctx, "github", "estafette", "estafette-ci-api")
+		autoincrement1, err1 := cockroachdbClient.GetAutoIncrement(ctx, "github", "estafette", "estafette-ci-api")
+		autoincrement2, err2 := cockroachdbClient.GetAutoIncrement(ctx, "github", "estafette", "estafette-ci-api")
 
-		assert.Nil(t, err)
+		assert.Nil(t, err1)
+		assert.Nil(t, err2)
 		assert.True(t, autoincrement1 > 0)
 		assert.True(t, autoincrement2 > 0)
 		assert.True(t, autoincrement2 > autoincrement1)

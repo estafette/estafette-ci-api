@@ -469,6 +469,9 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 		}
 
 		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return identity, err
+		}
 
 		var userInfo struct {
 			ID      string `json:"id,omitempty"`

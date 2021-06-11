@@ -148,7 +148,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build) (creat
 
 		// get max counter for same branch
 		lastBuildsForBranch, _ := s.cockroachdbClient.GetPipelineBuilds(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, 1, 10, map[api.FilterType][]string{api.FilterBranch: []string{pipeline.RepoBranch}}, []api.OrderField{}, false)
-		if lastBuildsForBranch != nil && len(lastBuildsForBranch) == 1 {
+		if len(lastBuildsForBranch) == 1 {
 			mc := s.getVersionCounter(ctx, lastBuildsForBranch[0].BuildVersion, mft)
 			if mc > maxCounterCurrentBranch {
 				maxCounterCurrentBranch = mc
@@ -375,6 +375,9 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 
 	// check if there's secrets restricted to other pipelines
 	manifestBytes, err := yaml.Marshal(mft)
+	if err != nil {
+		return
+	}
 	invalidSecrets, invalidSecretsErr := s.secretHelper.GetInvalidRestrictedSecrets(string(manifestBytes), release.GetFullRepoPath())
 
 	// set builder track
@@ -458,7 +461,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 
 		// get max counter for same branch
 		lastBuildsForBranch, _ := s.cockroachdbClient.GetPipelineBuilds(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, 1, 10, map[api.FilterType][]string{api.FilterBranch: []string{repoBranch}}, []api.OrderField{}, false)
-		if lastBuildsForBranch != nil && len(lastBuildsForBranch) == 1 {
+		if len(lastBuildsForBranch) == 1 {
 			mc := s.getVersionCounter(ctx, lastBuildsForBranch[0].BuildVersion, mft)
 			if mc > maxCounterCurrentBranch {
 				maxCounterCurrentBranch = mc
@@ -603,6 +606,9 @@ func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest
 
 	// check if there's secrets restricted to other pipelines
 	manifestBytes, err := yaml.Marshal(mft)
+	if err != nil {
+		return
+	}
 	invalidSecrets, invalidSecretsErr := s.secretHelper.GetInvalidRestrictedSecrets(string(manifestBytes), bot.GetFullRepoPath())
 
 	// set builder track
@@ -1351,6 +1357,9 @@ func (s *service) fireBuild(ctx context.Context, p contracts.Pipeline, t manifes
 
 	// get last build for branch defined in 'builds' section
 	lastBuildForBranch, err := s.cockroachdbClient.GetLastPipelineBuildForBranch(ctx, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+	if err != nil {
+		return err
+	}
 
 	if lastBuildForBranch == nil {
 		return fmt.Errorf("There's no build for pipeline '%v/%v/%v' branch '%v', cannot trigger one", p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
@@ -2031,7 +2040,7 @@ func (s *service) GetEventsForJobEnvvars(ctx context.Context, triggers []manifes
 				if innerErr != nil {
 					return
 				}
-				if lastBuilds == nil || len(lastBuilds) == 0 {
+				if len(lastBuilds) == 0 {
 					return triggersAsEvents, fmt.Errorf("Can't get a successful build for named trigger '%v' linking to pipeline '%v'", t.Name, t.Pipeline.Name)
 				}
 
@@ -2071,7 +2080,7 @@ func (s *service) GetEventsForJobEnvvars(ctx context.Context, triggers []manifes
 				if innerErr != nil {
 					return
 				}
-				if lastReleases == nil || len(lastReleases) == 0 {
+				if len(lastReleases) == 0 {
 					return triggersAsEvents, fmt.Errorf("Can't get a successful release for named trigger '%v' linking to pipeline '%v' and target '%v'", t.Name, t.Release.Name, t.Release.Target)
 				}
 

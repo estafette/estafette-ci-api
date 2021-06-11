@@ -284,7 +284,7 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 	var buildCommand contracts.Build
 	err := c.BindJSON(&buildCommand)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding CreatePipelineBuild body failed")
+		errorMessage := "Binding CreatePipelineBuild body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -456,7 +456,7 @@ func (h *Handler) CreatePipelineBot(c *gin.Context) {
 	var botCommand contracts.Bot
 	err := c.BindJSON(&botCommand)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding CreatePipelineBot body failed")
+		errorMessage := "Binding CreatePipelineBot body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -864,7 +864,7 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 	var releaseCommand contracts.Release
 	err := c.BindJSON(&releaseCommand)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding CreatePipelineRelease body failed")
+		errorMessage := "Binding CreatePipelineRelease body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -2602,7 +2602,7 @@ func (h *Handler) GenerateManifest(c *gin.Context) {
 
 	err := c.BindJSON(&aux)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding GenerateManifest body failed")
+		errorMessage := "Binding GenerateManifest body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -2642,7 +2642,7 @@ func (h *Handler) ValidateManifest(c *gin.Context) {
 
 	err := c.BindJSON(&aux)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding ValidateManifest body failed")
+		errorMessage := "Binding ValidateManifest body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -2670,7 +2670,7 @@ func (h *Handler) EncryptSecret(c *gin.Context) {
 
 	err := c.BindJSON(&aux)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding EncryptSecret body failed")
+		errorMessage := "Binding EncryptSecret body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return

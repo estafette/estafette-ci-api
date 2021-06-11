@@ -344,7 +344,7 @@ func injectCommandsIntoStages(stages []*manifest.EstafetteStage, commandsPerOper
 		s = injectCommandsIntoStage(s, commandsPerOperatingSystemAndShell, operatingSystem)
 
 		for _, ps := range s.ParallelStages {
-			ps = injectCommandsIntoStage(ps, commandsPerOperatingSystemAndShell, operatingSystem)
+			_ = injectCommandsIntoStage(ps, commandsPerOperatingSystemAndShell, operatingSystem)
 		}
 	}
 

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/option"
 	sourcerepo "google.golang.org/api/sourcerepo/v1"
 	stdsourcerepo "google.golang.org/api/sourcerepo/v1"
 )
@@ -91,6 +92,9 @@ func TestGetEstafetteManifest(t *testing.T) {
 
 			d1 := []byte("hello\ngo\n")
 			_, err = file.Write(d1)
+			if err != nil {
+				return err
+			}
 
 			return nil
 		}
@@ -110,7 +114,8 @@ func getTokenSourceAndService() (*api.APIConfig, oauth2.TokenSource, *sourcerepo
 	if err != nil {
 		log.Fatal("Creating google cloud token source has failed")
 	}
-	sourcerepoService, err := stdsourcerepo.New(oauth2.NewClient(ctx, tokenSource))
+
+	sourcerepoService, err := stdsourcerepo.NewService(ctx, option.WithHTTPClient(oauth2.NewClient(ctx, tokenSource)))
 	if err != nil {
 		log.Fatal("Creating google cloud source repo service has failed")
 	}

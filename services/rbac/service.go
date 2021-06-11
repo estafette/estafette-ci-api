@@ -442,9 +442,7 @@ func (s *service) GetInheritedOrganizationsForUser(ctx context.Context, user con
 	// get organizations from groups linked to user
 	for _, g := range user.Groups {
 		// get roles from organizations linked to groups
-		for _, o := range g.Organizations {
-			retrievedOrganizations = append(retrievedOrganizations, o)
-		}
+		retrievedOrganizations = append(retrievedOrganizations, g.Organizations...)
 	}
 
 	return s.dedupeOrganizations(retrievedOrganizations), nil

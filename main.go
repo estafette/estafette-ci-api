@@ -28,6 +28,7 @@ import (
 	jprom "github.com/uber/jaeger-lib/metrics/prometheus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/option"
 	"google.golang.org/api/sourcerepo/v1"
 	stdsourcerepo "google.golang.org/api/sourcerepo/v1"
 
@@ -250,7 +251,7 @@ func getGoogleCloudClients(ctx context.Context, config *api.APIConfig) (bqClient
 		if err != nil {
 			log.Fatal().Err(err).Msg("Creating google cloud token source has failed")
 		}
-		sourcerepoService, err = stdsourcerepo.New(oauth2.NewClient(ctx, tokenSource))
+		sourcerepoService, err = stdsourcerepo.NewService(ctx, option.WithHTTPClient(oauth2.NewClient(ctx, tokenSource)))
 		if err != nil {
 			log.Fatal().Err(err).Msg("Creating google cloud source repo service has failed")
 		}

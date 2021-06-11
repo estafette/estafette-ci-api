@@ -38,10 +38,8 @@ func GenerateJWT(config *APIConfig, validDuration time.Duration, optionalClaims 
 	claims["exp"] = expire.Unix()
 	claims["orig_iat"] = now.Unix()
 
-	if optionalClaims != nil {
-		for key, value := range optionalClaims {
-			claims[key] = value
-		}
+	for key, value := range optionalClaims {
+		claims[key] = value
 	}
 
 	// sign the token

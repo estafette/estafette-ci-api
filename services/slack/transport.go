@@ -63,9 +63,9 @@ func (h *Handler) Handle(c *gin.Context) {
 	if slashCommand.Command == "/estafette" {
 		if slashCommand.Text != "" {
 			splittedText := strings.Split(slashCommand.Text, " ")
-			if splittedText != nil && len(splittedText) > 0 {
+			if len(splittedText) > 0 {
 				command := splittedText[0]
-				arguments := splittedText[1:len(splittedText)]
+				arguments := splittedText[1:]
 				switch command {
 				case "encrypt":
 

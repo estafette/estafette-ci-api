@@ -795,7 +795,10 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 		if dc, ok := c.config.APIServer.DockerConfigPerOperatingSystem[ciBuilderParams.OperatingSystem]; ok {
 
 			var copiedDockerConfig contracts.DockerConfig
-			copier.CopyWithOption(&copiedDockerConfig, dc, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+			err = copier.CopyWithOption(&copiedDockerConfig, dc, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+			if err != nil {
+				return localBuilderConfig, err
+			}
 
 			localBuilderConfig.DockerConfig = &copiedDockerConfig
 		}
@@ -1092,7 +1095,10 @@ func (c *client) getCiBuilderJobAffinity(ctx context.Context, ciBuilderParams Ci
 		if c.config.Jobs.BuildAffinityAndTolerations != nil && c.config.Jobs.BuildAffinityAndTolerations.Affinity != nil {
 
 			var deepcopyAffinity v1.Affinity
-			copier.CopyWithOption(&deepcopyAffinity, *c.config.Jobs.BuildAffinityAndTolerations.Affinity, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+			err := copier.CopyWithOption(&deepcopyAffinity, *c.config.Jobs.BuildAffinityAndTolerations.Affinity, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+			if err != nil {
+				log.Warn().Err(err).Msgf("Failed creating deep copy of build job affinity")
+			}
 
 			affinity = &deepcopyAffinity
 		}
@@ -1100,7 +1106,10 @@ func (c *client) getCiBuilderJobAffinity(ctx context.Context, ciBuilderParams Ci
 		if c.config.Jobs.ReleaseAffinityAndTolerations != nil && c.config.Jobs.ReleaseAffinityAndTolerations.Affinity != nil {
 
 			var deepcopyAffinity v1.Affinity
-			copier.CopyWithOption(&deepcopyAffinity, *c.config.Jobs.ReleaseAffinityAndTolerations.Affinity, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+			err := copier.CopyWithOption(&deepcopyAffinity, *c.config.Jobs.ReleaseAffinityAndTolerations.Affinity, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+			if err != nil {
+				log.Warn().Err(err).Msgf("Failed creating deep copy of release job affinity")
+			}
 
 			affinity = &deepcopyAffinity
 		}
@@ -1108,7 +1117,10 @@ func (c *client) getCiBuilderJobAffinity(ctx context.Context, ciBuilderParams Ci
 		if c.config.Jobs.BotAffinityAndTolerations != nil && c.config.Jobs.BotAffinityAndTolerations.Affinity != nil {
 
 			var deepcopyAffinity v1.Affinity
-			copier.CopyWithOption(&deepcopyAffinity, *c.config.Jobs.BotAffinityAndTolerations.Affinity, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+			err := copier.CopyWithOption(&deepcopyAffinity, *c.config.Jobs.BotAffinityAndTolerations.Affinity, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+			if err != nil {
+				log.Warn().Err(err).Msgf("Failed creating deep copy of bot job affinity")
+			}
 
 			affinity = &deepcopyAffinity
 		}

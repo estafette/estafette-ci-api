@@ -518,6 +518,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		// act
 		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		assert.Nil(t, err)
 
 		credentialsConfig := config.Credentials
 

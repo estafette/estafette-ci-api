@@ -27,7 +27,7 @@ type BuildTopic struct {
 func NewBuildTopic(name string) *BuildTopic {
 	return &BuildTopic{
 		name:        name,
-		subscribers: make(map[string]chan BuildTopicMessage, 0),
+		subscribers: make(map[string]chan BuildTopicMessage),
 	}
 }
 

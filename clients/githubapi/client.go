@@ -101,6 +101,9 @@ func (c *client) GetInstallationID(ctx context.Context, repoOwner string) (insta
 	}
 
 	_, body, err := c.callGithubAPI(ctx, "GET", "https://api.github.com/app/installations", nil, "Bearer", githubAppToken)
+	if err != nil {
+		return
+	}
 
 	var installations []InstallationResponse
 
@@ -130,6 +133,9 @@ func (c *client) GetInstallationToken(ctx context.Context, installationID int) (
 	}
 
 	_, body, err := c.callGithubAPI(ctx, "POST", fmt.Sprintf("https://api.github.com/app/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
+	if err != nil {
+		return
+	}
 
 	// unmarshal json body
 	err = json.Unmarshal(body, &accessToken)
@@ -168,8 +174,6 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accessToken AccessTok
 	}
 
 	if content.Type == "file" && content.Encoding == "base64" {
-		manifest = content.Content
-
 		data, err := base64.StdEncoding.DecodeString(content.Content)
 		if err != nil {
 			return false, "", err

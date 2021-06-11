@@ -130,7 +130,7 @@ func TestGetCatalogFilters(t *testing.T) {
 		assert.Equal(t, "[\"type\"]", string(body))
 
 		// act
-		*cfg = *&api.APIConfig{
+		*cfg = api.APIConfig{
 			Catalog: &api.CatalogConfig{
 				Filters: []string{
 					"type",
@@ -218,7 +218,7 @@ func TestGetPipeline(t *testing.T) {
 		handler.GetPipeline(c)
 
 		assert.Equal(t, http.StatusOK, recorder.Result().StatusCode)
-		body, err = ioutil.ReadAll(recorder.Result().Body)
+		_, err = ioutil.ReadAll(recorder.Result().Body)
 		assert.Nil(t, err)
 		// assert.Equal(t, "{\"id\":\"\",\"repoSource\":\"\",\"repoOwner\":\"\",\"repoName\":\"\",\"repoBranch\":\"\",\"repoRevision\":\"\",\"buildStatus\":\"failed\",\"insertedAt\":\"0001-01-01T00:00:00Z\",\"updatedAt\":\"0001-01-01T00:00:00Z\",\"duration\":0,\"lastUpdatedAt\":\"0001-01-01T00:00:00Z\"}", string(body))
 	})

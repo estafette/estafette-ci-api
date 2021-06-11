@@ -439,7 +439,7 @@ func (h *Handler) CreateUser(c *gin.Context) {
 	var user contracts.User
 	err := c.BindJSON(&user)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding CreateUser body failed")
+		errorMessage := "Binding CreateUser body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -468,7 +468,7 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 	var user contracts.User
 	err := c.BindJSON(&user)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding UpdateUser body failed")
+		errorMessage := "Binding UpdateUser body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -593,7 +593,7 @@ func (h *Handler) CreateGroup(c *gin.Context) {
 	var group contracts.Group
 	err := c.BindJSON(&group)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding CreateGroup body failed")
+		errorMessage := "Binding CreateGroup body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -622,7 +622,7 @@ func (h *Handler) UpdateGroup(c *gin.Context) {
 	var group contracts.Group
 	err := c.BindJSON(&group)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding UpdateGroup body failed")
+		errorMessage := "Binding UpdateGroup body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -747,7 +747,7 @@ func (h *Handler) CreateOrganization(c *gin.Context) {
 	var organization contracts.Organization
 	err := c.BindJSON(&organization)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding CreateOrganization body failed")
+		errorMessage := "Binding CreateOrganization body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -776,7 +776,7 @@ func (h *Handler) UpdateOrganization(c *gin.Context) {
 	var organization contracts.Organization
 	err := c.BindJSON(&organization)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding UpdateOrganization body failed")
+		errorMessage := "Binding UpdateOrganization body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -904,7 +904,7 @@ func (h *Handler) CreateClient(c *gin.Context) {
 	var client contracts.Client
 	err := c.BindJSON(&client)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding CreateClient body failed")
+		errorMessage := "Binding CreateClient body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -933,7 +933,7 @@ func (h *Handler) UpdateClient(c *gin.Context) {
 	var client contracts.Client
 	err := c.BindJSON(&client)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding UpdateClient body failed")
+		errorMessage := "Binding UpdateClient body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -1054,7 +1054,7 @@ func (h *Handler) UpdatePipeline(c *gin.Context) {
 	var pipeline contracts.Pipeline
 	err := c.BindJSON(&pipeline)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding UpdatePipeline body failed")
+		errorMessage := "Binding UpdatePipeline body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -1104,7 +1104,7 @@ func (h *Handler) BatchUpdateUsers(c *gin.Context) {
 
 	err := c.BindJSON(&body)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding BatchUpdateUsers body failed")
+		errorMessage := "Binding BatchUpdateUsers body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -1296,7 +1296,7 @@ func (h *Handler) BatchUpdateGroups(c *gin.Context) {
 
 	err := c.BindJSON(&body)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding BatchUpdateGroups body failed")
+		errorMessage := "Binding BatchUpdateGroups body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -1448,7 +1448,7 @@ func (h *Handler) BatchUpdateOrganizations(c *gin.Context) {
 
 	err := c.BindJSON(&body)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding BatchUpdateOrganizations body failed")
+		errorMessage := "Binding BatchUpdateOrganizations body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -1566,7 +1566,7 @@ func (h *Handler) BatchUpdateClients(c *gin.Context) {
 
 	err := c.BindJSON(&body)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding BatchUpdateClients body failed")
+		errorMessage := "Binding BatchUpdateClients body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
@@ -1721,7 +1721,7 @@ func (h *Handler) BatchUpdatePipelines(c *gin.Context) {
 
 	err := c.BindJSON(&body)
 	if err != nil {
-		errorMessage := fmt.Sprint("Binding BatchUpdatePipelines body failed")
+		errorMessage := "Binding BatchUpdatePipelines body failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
