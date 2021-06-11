@@ -1,6 +1,7 @@
 package bitbucket
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -9,6 +10,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
+	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 )
 
@@ -135,14 +137,20 @@ func (h *Handler) Handle(c *gin.Context) {
 	}
 
 	// publish event for bots to run
-	go h.service.PublishBitbucketEvent(c.Request.Context(), manifest.EstafetteBitbucketEvent{
-		Event:         eventType,
-		Repository:    anyEvent.GetRepository(),
-		HookUUID:      c.GetHeader("X-Hook-UUID"),
-		RequestUUID:   c.GetHeader("X-Request-UUID"),
-		AttemptNumber: c.GetHeader("X-Attempt-Number"),
-		Payload:       string(body),
-	})
+	go func() {
+		// create new context to avoid cancellation impacting execution
+		span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GoRoutinePublishBitbucketEvent")
+		ctx := opentracing.ContextWithSpan(context.Background(), span)
+
+		h.service.PublishBitbucketEvent(ctx, manifest.EstafetteBitbucketEvent{
+			Event:         eventType,
+			Repository:    anyEvent.GetRepository(),
+			HookUUID:      c.GetHeader("X-Hook-UUID"),
+			RequestUUID:   c.GetHeader("X-Request-UUID"),
+			AttemptNumber: c.GetHeader("X-Attempt-Number"),
+			Payload:       string(body),
+		})
+	}()
 
 	c.Status(http.StatusOK)
 }

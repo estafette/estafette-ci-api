@@ -442,7 +442,16 @@ func (c *client) InsertBuild(ctx context.Context, build contracts.Build, jobReso
 	}
 
 	// update computed tables
-	go c.UpsertComputedPipeline(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName)
+	go func() {
+		// create new context to avoid cancellation impacting execution
+		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineUpsertComputedPipeline")
+		ctx = opentracing.ContextWithSpan(context.Background(), span)
+
+		err = c.UpsertComputedPipeline(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed upserting computed pipeline %v", insertedBuild.GetFullRepoPath())
+		}
+	}()
 
 	return
 }
@@ -501,7 +510,16 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 	}
 
 	// update computed tables
-	go c.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
+	go func() {
+		// create new context to avoid cancellation impacting execution
+		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineUpsertComputedPipeline")
+		ctx = opentracing.ContextWithSpan(context.Background(), span)
+
+		err = c.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
+		}
+	}()
 
 	return
 }
@@ -625,8 +643,17 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineUpsertComputedTables")
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 
-		c.UpsertComputedRelease(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.Name, insertedRelease.Action)
+		err = c.UpsertComputedRelease(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.Name, insertedRelease.Action)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed upserting computed release %v target %v action %v", insertedRelease.GetFullRepoPath(), insertedRelease.Name, insertedRelease.Action)
+			return
+		}
+
 		c.UpsertComputedPipeline(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed upserting computed pipeline %v", insertedRelease.GetFullRepoPath())
+			return
+		}
 	}()
 
 	return
@@ -691,11 +718,19 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 
 		if insertedRelease != nil {
-			c.UpsertComputedRelease(ctx, repoSource, repoOwner, repoName, insertedRelease.Name, insertedRelease.Action)
+			err = c.UpsertComputedRelease(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.Name, insertedRelease.Action)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed upserting computed release %v target %v action %v", insertedRelease.GetFullRepoPath(), insertedRelease.Name, insertedRelease.Action)
+				return
+			}
 		} else {
 			log.Warn().Msgf("Cannot update computed tables after updating release status for %v/%v/%v id %v from %v to %v", repoSource, repoOwner, repoName, releaseID, allowedReleaseStatusesToTransitionFrom, releaseStatus)
 		}
-		c.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
+		err = c.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed upserting computed pipeline %v", insertedRelease.GetFullRepoPath())
+			return
+		}
 	}(insertedRelease)
 
 	return
@@ -5888,13 +5923,15 @@ func (c *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource
 
 	close(errors)
 	for e := range errors {
+		log.Warn().Err(e).Msgf("Failed renaming pipeline from %v/%v/%v to %v/%v/%v", fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+	}
+	for e := range errors {
 		return e
 	}
 
 	// update computed tables
 	err := c.UpsertComputedPipeline(ctx, toRepoSource, toRepoOwner, toRepoName)
 	if err != nil {
-
 		return err
 	}
 

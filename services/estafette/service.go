@@ -20,6 +20,7 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
@@ -236,7 +237,11 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build) (creat
 
 		// handle triggers
 		go func() {
-			err := s.FirePipelineTriggers(context.Background(), build, "started")
+			// create new context to avoid cancellation impacting execution
+			span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFirePipelineTriggers")
+			ctx := opentracing.ContextWithSpan(context.Background(), span)
+
+			err := s.FirePipelineTriggers(ctx, build, "started")
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed firing pipeline triggers for build %v/%v/%v revision %v", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 			}
@@ -344,7 +349,10 @@ func (s *service) FinishBuild(ctx context.Context, repoSource, repoOwner, repoNa
 
 	// handle triggers
 	go func() {
-		ctx := context.Background()
+		// create new context to avoid cancellation impacting execution
+		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFirePipelineTriggers")
+		ctx := opentracing.ContextWithSpan(context.Background(), span)
+
 		build, err := s.cockroachdbClient.GetPipelineBuildByID(ctx, repoSource, repoOwner, repoName, buildID, false)
 		if err != nil {
 			return
@@ -548,7 +556,10 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 
 	// handle triggers
 	go func() {
-		ctx := context.Background()
+		// create new context to avoid cancellation impacting execution
+		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFireReleaseTriggers")
+		ctx := opentracing.ContextWithSpan(context.Background(), span)
+
 		err := s.FireReleaseTriggers(ctx, release, "started")
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed firing release triggers for %v/%v/%v to target %v", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
@@ -566,7 +577,10 @@ func (s *service) FinishRelease(ctx context.Context, repoSource, repoOwner, repo
 
 	// handle triggers
 	go func() {
-		ctx := context.Background()
+		// create new context to avoid cancellation impacting execution
+		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFireReleaseTriggers")
+		ctx := opentracing.ContextWithSpan(context.Background(), span)
+
 		release, err := s.cockroachdbClient.GetPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseID)
 		if err != nil {
 			return

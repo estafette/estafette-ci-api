@@ -702,7 +702,12 @@ func (h *Handler) TailPipelineBuildLogs(c *gin.Context) {
 
 	logChannel := make(chan contracts.TailLogLine, 50)
 
-	go h.ciBuilderClient.TailCiBuilderJobLogs(c.Request.Context(), jobName, logChannel)
+	go func() {
+		err := h.ciBuilderClient.TailCiBuilderJobLogs(c.Request.Context(), jobName, logChannel)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed tailing build job %v", jobName)
+		}
+	}()
 
 	ticker := time.NewTicker(5 * time.Second)
 
@@ -1215,7 +1220,12 @@ func (h *Handler) TailPipelineReleaseLogs(c *gin.Context) {
 
 	logChannel := make(chan contracts.TailLogLine, 50)
 
-	go h.ciBuilderClient.TailCiBuilderJobLogs(c.Request.Context(), jobName, logChannel)
+	go func() {
+		err := h.ciBuilderClient.TailCiBuilderJobLogs(c.Request.Context(), jobName, logChannel)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed tailing release job %v", jobName)
+		}
+	}()
 
 	ticker := time.NewTicker(5 * time.Second)
 
@@ -1578,7 +1588,12 @@ func (h *Handler) TailPipelineBotLogs(c *gin.Context) {
 
 	logChannel := make(chan contracts.TailLogLine, 50)
 
-	go h.ciBuilderClient.TailCiBuilderJobLogs(c.Request.Context(), jobName, logChannel)
+	go func() {
+		err := h.ciBuilderClient.TailCiBuilderJobLogs(c.Request.Context(), jobName, logChannel)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed tailing bot job %v", jobName)
+		}
+	}()
 
 	ticker := time.NewTicker(5 * time.Second)
 

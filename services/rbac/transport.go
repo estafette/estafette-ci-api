@@ -1,6 +1,7 @@
 package rbac
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
+	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 )
 
@@ -260,6 +262,10 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 		}
 
 		go func(user contracts.User) {
+			// create new context to avoid cancellation impacting execution
+			span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GoRoutineUpdateUser")
+			ctx := opentracing.ContextWithSpan(context.Background(), span)
+
 			err = h.service.UpdateUser(ctx, user)
 			if err != nil {
 				log.Warn().Err(err).Msg("Failed updating user in db")

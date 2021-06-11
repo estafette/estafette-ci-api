@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -9,6 +10,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/githubapi"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
+	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 )
 
@@ -172,12 +174,18 @@ func (h *Handler) Handle(c *gin.Context) {
 	}
 
 	// publish event for bots to run
-	go h.service.PublishGithubEvent(c.Request.Context(), manifest.EstafetteGithubEvent{
-		Event:      eventType,
-		Repository: anyEvent.GetRepository(),
-		Delivery:   c.GetHeader("X-GitHub-Delivery"),
-		Payload:    string(body),
-	})
+	go func() {
+		// create new context to avoid cancellation impacting execution
+		span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GoRoutinePublishGithubEvent")
+		ctx := opentracing.ContextWithSpan(context.Background(), span)
+
+		h.service.PublishGithubEvent(ctx, manifest.EstafetteGithubEvent{
+			Event:      eventType,
+			Repository: anyEvent.GetRepository(),
+			Delivery:   c.GetHeader("X-GitHub-Delivery"),
+			Payload:    string(body),
+		})
+	}()
 
 	c.Status(http.StatusOK)
 }
