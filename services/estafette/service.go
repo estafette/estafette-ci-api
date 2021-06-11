@@ -801,7 +801,10 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
 					// lower semaphore once the routine's finished, making room for another one to start
 					defer func() { <-semaphore }()
-					ctx := context.Background()
+
+					// create new context to avoid cancellation impacting execution
+					span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFireGitTriggersItem")
+					ctx = opentracing.ContextWithSpan(context.Background(), span)
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
@@ -884,7 +887,10 @@ func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.E
 				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
 					// lower semaphore once the routine's finished, making room for another one to start
 					defer func() { <-semaphore }()
-					ctx := context.Background()
+
+					// create new context to avoid cancellation impacting execution
+					span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFireGithubTriggersItem")
+					ctx = opentracing.ContextWithSpan(context.Background(), span)
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
@@ -966,7 +972,10 @@ func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent mani
 				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
 					// lower semaphore once the routine's finished, making room for another one to start
 					defer func() { <-semaphore }()
-					ctx := context.Background()
+
+					// create new context to avoid cancellation impacting execution
+					span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFireBitbucketTriggersItem")
+					ctx = opentracing.ContextWithSpan(context.Background(), span)
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
@@ -1057,7 +1066,10 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
 					// lower semaphore once the routine's finished, making room for another one to start
 					defer func() { <-semaphore }()
-					ctx := context.Background()
+
+					// create new context to avoid cancellation impacting execution
+					span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFirePipelineTriggerItem")
+					ctx = opentracing.ContextWithSpan(context.Background(), span)
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
@@ -1147,7 +1159,10 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
 					// lower semaphore once the routine's finished, making room for another one to start
 					defer func() { <-semaphore }()
-					ctx := context.Background()
+
+					// create new context to avoid cancellation impacting execution
+					span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFireReleaseTriggersItem")
+					ctx = opentracing.ContextWithSpan(context.Background(), span)
 
 					if t.BuildAction != nil {
 						log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
@@ -1227,7 +1242,10 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
 					// lower semaphore once the routine's finished, making room for another one to start
 					defer func() { <-semaphore }()
-					ctx := context.Background()
+
+					// create new context to avoid cancellation impacting execution
+					span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFirePubSubTriggersItem")
+					ctx = opentracing.ContextWithSpan(context.Background(), span)
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
@@ -1312,7 +1330,10 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
 					// lower semaphore once the routine's finished, making room for another one to start
 					defer func() { <-semaphore }()
-					ctx := context.Background()
+
+					// create new context to avoid cancellation impacting execution
+					span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFireCronTriggersItem")
+					ctx = opentracing.ContextWithSpan(context.Background(), span)
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
