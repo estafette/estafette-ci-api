@@ -93,7 +93,7 @@ func (c *client) CheckIfDatasetExists(ctx context.Context) bool {
 
 	ds := c.client.Dataset(c.config.Integrations.BigQuery.Dataset)
 
-	md, err := ds.Metadata(context.Background())
+	md, err := ds.Metadata(ctx)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error retrieving metadata for dataset %v", c.config.Integrations.BigQuery.Dataset)
 	}
@@ -111,7 +111,7 @@ func (c *client) CheckIfTableExists(ctx context.Context, table string) bool {
 
 	tbl := c.client.Dataset(c.config.Integrations.BigQuery.Dataset).Table(table)
 
-	md, err := tbl.Metadata(context.Background())
+	md, err := tbl.Metadata(ctx)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error retrieving metadata for table %v in dataset %v", table, c.config.Integrations.BigQuery.Dataset)
 	}
@@ -147,7 +147,7 @@ func (c *client) CreateTable(ctx context.Context, table string, typeForSchema in
 	}
 
 	// create the table
-	err = tbl.Create(context.Background(), tableMetadata)
+	err = tbl.Create(ctx, tableMetadata)
 	if err != nil {
 		return err
 	}
@@ -182,7 +182,7 @@ func (c *client) UpdateTableSchema(ctx context.Context, table string, typeForSch
 		return err
 	}
 
-	meta, err := tbl.Metadata(context.Background())
+	meta, err := tbl.Metadata(ctx)
 	if err != nil {
 		return err
 	}
@@ -190,7 +190,7 @@ func (c *client) UpdateTableSchema(ctx context.Context, table string, typeForSch
 	update := bigquery.TableMetadataToUpdate{
 		Schema: schema,
 	}
-	if _, err := tbl.Update(context.Background(), update, meta.ETag); err != nil {
+	if _, err := tbl.Update(ctx, update, meta.ETag); err != nil {
 		return err
 	}
 
@@ -207,7 +207,7 @@ func (c *client) InsertBuildEvent(ctx context.Context, event PipelineBuildEvent)
 
 	u := tbl.Uploader()
 
-	if err := u.Put(context.Background(), event); err != nil {
+	if err := u.Put(ctx, event); err != nil {
 		return err
 	}
 
@@ -224,7 +224,7 @@ func (c *client) InsertReleaseEvent(ctx context.Context, event PipelineReleaseEv
 
 	u := tbl.Uploader()
 
-	if err := u.Put(context.Background(), event); err != nil {
+	if err := u.Put(ctx, event); err != nil {
 		return err
 	}
 

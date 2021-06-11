@@ -62,7 +62,7 @@ func (c *client) SubscriptionForTopic(ctx context.Context, message PubSubPushMes
 		return nil, fmt.Errorf("Can't find subscription %v in project %v", subscriptionName, projectID)
 	}
 
-	subscriptionConfig, err := subscription.Config(context.Background())
+	subscriptionConfig, err := subscription.Config(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (c *client) SubscribeToTopic(ctx context.Context, projectID, topicID string
 
 	// check if topic exists
 	topic := c.pubsubClient.TopicInProject(topicID, projectID)
-	topicExists, err := topic.Exists(context.Background())
+	topicExists, err := topic.Exists(ctx)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (c *client) SubscribeToTopic(ctx context.Context, projectID, topicID string
 	subscriptionName := c.getSubscriptionName(topicID)
 	subscription := c.pubsubClient.SubscriptionInProject(subscriptionName, projectID)
 	log.Info().Msgf("Checking if subscription %v for topic %v in project %v exists...", subscriptionName, topicID, projectID)
-	subscriptionExists, err := subscription.Exists(context.Background())
+	subscriptionExists, err := subscription.Exists(ctx)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (c *client) SubscribeToTopic(ctx context.Context, projectID, topicID string
 
 	// create a subscription to the topic
 	log.Info().Msgf("Creating subscription %v for topic %v in project %v...", subscriptionName, topicID, projectID)
-	_, err = c.pubsubClient.CreateSubscription(context.Background(), subscriptionName, stdpubsub.SubscriptionConfig{
+	_, err = c.pubsubClient.CreateSubscription(ctx, subscriptionName, stdpubsub.SubscriptionConfig{
 		Topic: topic,
 		PushConfig: stdpubsub.PushConfig{
 			Endpoint: c.config.Integrations.Pubsub.Endpoint,

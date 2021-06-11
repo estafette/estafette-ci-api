@@ -88,11 +88,13 @@ func main() {
 	sigs, wg := foundation.InitGracefulShutdownHandling()
 	stop := make(chan struct{}) // channel to signal goroutines to stop
 
+	ctx := foundation.InitCancellationContext(context.Background())
+
 	// start prometheus
 	foundation.InitMetricsWithPort(9001)
 
 	// handle api requests
-	srv := initRequestHandlers(stop, wg)
+	srv := initRequestHandlers(ctx, stop, wg)
 
 	log.Debug().Msg("Handling requests...")
 
@@ -112,9 +114,7 @@ func main() {
 	})
 }
 
-func initRequestHandlers(stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *http.Server {
-
-	ctx := context.Background()
+func initRequestHandlers(ctx context.Context, stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *http.Server {
 
 	config, encryptedConfig, secretHelper := getConfig(ctx)
 	gitEventTopic := getTopics(ctx, stopChannel)
