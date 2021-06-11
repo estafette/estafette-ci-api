@@ -268,7 +268,6 @@ func (c *client) ConnectWithDriverAndSource(ctx context.Context, driverName, dat
 
 // GetAutoIncrement returns the autoincrement number for a pipeline
 func (c *client) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {
-
 	repoFullName := fmt.Sprintf("%v/%v", repoOwner, repoName)
 
 	// insert or increment if record for repo_source and repo_full_name combination already exists
@@ -448,6 +447,9 @@ func (c *client) InsertBuild(ctx context.Context, build contracts.Build, jobReso
 }
 
 func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, buildStatus contracts.Status) (err error) {
+	if buildID == "" {
+		return fmt.Errorf("UpdateBuildStatus argument buildID is empty")
+	}
 
 	allowedBuildStatusesToTransitionFrom := []contracts.Status{}
 	switch buildStatus {
@@ -504,6 +506,9 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 }
 
 func (c *client) UpdateBuildResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, jobResources JobResources) (err error) {
+	if buildID == "" {
+		return fmt.Errorf("UpdateBuildResourceUtilization argument buildID is empty")
+	}
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -623,6 +628,9 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 }
 
 func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, releaseStatus contracts.Status) (err error) {
+	if releaseID == "" {
+		return fmt.Errorf("UpdateReleaseStatus argument releaseID is empty")
+	}
 
 	allowedReleaseStatusesToTransitionFrom := []contracts.Status{}
 	switch releaseStatus {
@@ -685,6 +693,9 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 }
 
 func (c *client) UpdateReleaseResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, jobResources JobResources) (err error) {
+	if releaseID == "" {
+		return fmt.Errorf("UpdateReleaseResourceUtilization argument releaseID is empty")
+	}
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -792,6 +803,9 @@ func (c *client) InsertBot(ctx context.Context, bot contracts.Bot, jobResources 
 }
 
 func (c *client) UpdateBotStatus(ctx context.Context, repoSource, repoOwner, repoName string, botID string, botStatus contracts.Status) (err error) {
+	if botID == "" {
+		return fmt.Errorf("UpdateBotStatus argument botID is empty")
+	}
 
 	allowedBotStatusesToTransitionFrom := []contracts.Status{}
 	switch botStatus {
@@ -835,6 +849,9 @@ func (c *client) UpdateBotStatus(ctx context.Context, repoSource, repoOwner, rep
 }
 
 func (c *client) UpdateBotResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, botID string, jobResources JobResources) (err error) {
+	if botID == "" {
+		return fmt.Errorf("UpdateBotResourceUtilization argument botID is empty")
+	}
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -857,6 +874,9 @@ func (c *client) UpdateBotResourceUtilization(ctx context.Context, repoSource, r
 }
 
 func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (insertedBuildLog contracts.BuildLog, err error) {
+	if buildLog.BuildID == "" {
+		return insertedBuildLog, fmt.Errorf("InsertBuildLog argument buildLog.BuildID is empty")
+	}
 
 	insertedBuildLog = buildLog
 
@@ -872,55 +892,6 @@ func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog
 		if err != nil {
 			return
 		}
-	}
-
-	buildID, err := strconv.Atoi(buildLog.BuildID)
-	if err != nil {
-		// insert logs
-		row := c.databaseConnection.QueryRow(
-			`
-			INSERT INTO
-				build_logs
-			(
-				repo_source,
-				repo_owner,
-				repo_name,
-				repo_branch,
-				repo_revision,
-				steps
-			)
-			VALUES
-			(
-				$1,
-				$2,
-				$3,
-				$4,
-				$5,
-				$6
-			)
-			RETURNING
-				id
-			`,
-			buildLog.RepoSource,
-			buildLog.RepoOwner,
-			buildLog.RepoName,
-			buildLog.RepoBranch,
-			buildLog.RepoRevision,
-			bytes,
-		)
-
-		if err = row.Scan(&insertedBuildLog.ID); err != nil {
-			// log extra detail for filing a ticket regarding 'pq: command is too large: xxx bytes (max: 67108864)' issue
-			nrLines := 0
-			for _, s := range buildLog.Steps {
-				nrLines += len(s.LogLines)
-			}
-			log.Error().Msgf("INSERT INTO build_logs: failed for %v/%v/%v/%v (%v steps, %v lines, %v bytes)", buildLog.RepoSource, buildLog.RepoOwner, buildLog.RepoName, buildLog.RepoRevision, len(buildLog.Steps), nrLines, len(bytes))
-
-			return
-		}
-
-		return
 	}
 
 	// insert logs
@@ -955,7 +926,7 @@ func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog
 		buildLog.RepoName,
 		buildLog.RepoBranch,
 		buildLog.RepoRevision,
-		buildID,
+		buildLog.BuildID,
 		bytes,
 	)
 
@@ -974,6 +945,9 @@ func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog
 }
 
 func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (insertedReleaseLog contracts.ReleaseLog, err error) {
+	if releaseLog.ReleaseID == "" {
+		return insertedReleaseLog, fmt.Errorf("InsertReleaseLog argument releaseLog.ReleaseID is empty")
+	}
 
 	insertedReleaseLog = releaseLog
 
@@ -989,11 +963,6 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 		if err != nil {
 			return
 		}
-	}
-
-	releaseID, err := strconv.Atoi(releaseLog.ReleaseID)
-	if err != nil {
-		return insertedReleaseLog, err
 	}
 
 	// insert logs
@@ -1022,7 +991,7 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 		releaseLog.RepoSource,
 		releaseLog.RepoOwner,
 		releaseLog.RepoName,
-		releaseID,
+		releaseLog.ReleaseID,
 		bytes,
 	)
 
@@ -1041,6 +1010,9 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 }
 
 func (c *client) InsertBotLog(ctx context.Context, botLog contracts.BotLog, writeLogToDatabase bool) (insertedBotLog contracts.BotLog, err error) {
+	if botLog.BotID == "" {
+		return insertedBotLog, fmt.Errorf("InsertBotLog argument botLog.BotID is empty")
+	}
 
 	insertedBotLog = botLog
 
@@ -1056,11 +1028,6 @@ func (c *client) InsertBotLog(ctx context.Context, botLog contracts.BotLog, writ
 		if err != nil {
 			return
 		}
-	}
-
-	botID, err := strconv.Atoi(botLog.BotID)
-	if err != nil {
-		return insertedBotLog, err
 	}
 
 	// insert logs
@@ -1089,7 +1056,7 @@ func (c *client) InsertBotLog(ctx context.Context, botLog contracts.BotLog, writ
 		botLog.RepoSource,
 		botLog.RepoOwner,
 		botLog.RepoName,
-		botID,
+		botLog.BotID,
 		bytes,
 	)
 
@@ -1929,6 +1896,9 @@ func (c *client) GetPipelineBuild(ctx context.Context, repoSource, repoOwner, re
 }
 
 func (c *client) GetPipelineBuildByID(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, optimized bool) (build *contracts.Build, err error) {
+	if buildID == "" {
+		return nil, fmt.Errorf("GetPipelineBuildByID argument buildID is empty")
+	}
 
 	// generate query
 	query := c.selectBuildsQuery().
@@ -2082,15 +2052,13 @@ func (c *client) GetPipelineBuildsByVersion(ctx context.Context, repoSource, rep
 }
 
 func (c *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildLog *contracts.BuildLog, err error) {
-
-	buildIDAsInt, err := strconv.Atoi(buildID)
-	if err != nil {
-		return nil, err
+	if buildID == "" {
+		return nil, fmt.Errorf("GetPipelineBuildLogs argument buildID is empty")
 	}
 
 	// generate query
 	query := c.selectBuildLogsQuery(readLogFromDatabase).
-		Where(sq.Eq{"a.build_id": buildIDAsInt}).
+		Where(sq.Eq{"a.build_id": buildID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -2160,15 +2128,17 @@ func (c *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner
 }
 
 func (c *client) GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id string, readLogFromDatabase bool) (buildLog *contracts.BuildLog, err error) {
-	buildIDAsInt, err := strconv.Atoi(buildID)
-	if err != nil {
-		return nil, err
+	if buildID == "" {
+		return nil, fmt.Errorf("GetPipelineBuildLogsByID argument buildID is empty")
+	}
+	if id == "" {
+		return nil, fmt.Errorf("GetPipelineBuildLogsByID argument id is empty")
 	}
 
 	// generate query
 	query := c.selectBuildLogsQuery(readLogFromDatabase).
 		Where(sq.Eq{"a.id": id}).
-		Where(sq.Eq{"a.build_id": buildIDAsInt}).
+		Where(sq.Eq{"a.build_id": buildID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -2235,17 +2205,15 @@ func (c *client) GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoO
 }
 
 func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error) {
+	if buildID == "" {
+		return nil, fmt.Errorf("GetPipelineBuildLogsPerPage argument buildID is empty")
+	}
 
 	buildLogs = make([]*contracts.BuildLog, 0)
 
-	buildIDAsInt, err := strconv.Atoi(buildID)
-	if err != nil {
-		return nil, err
-	}
-
 	// generate query
 	query := c.selectBuildLogsQuery(false).
-		Where(sq.Eq{"a.build_id": buildIDAsInt}).
+		Where(sq.Eq{"a.build_id": buildID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -2289,17 +2257,15 @@ func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, re
 }
 
 func (c *client) GetPipelineBuildLogsCount(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string) (count int, err error) {
-
-	buildIDAsInt, err := strconv.Atoi(buildID)
-	if err != nil {
-		return 0, err
+	if buildID == "" {
+		return count, fmt.Errorf("GetPipelineBuildLogsCount argument buildID is empty")
 	}
 
 	// generate query
 	query := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 		Select("COUNT(*)").
 		From("build_logs a").
-		Where(sq.Eq{"a.build_id": buildIDAsInt}).
+		Where(sq.Eq{"a.build_id": buildID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
 		Where(sq.Eq{"a.repo_name": repoName}).
@@ -2407,6 +2373,9 @@ func (c *client) GetPipelineReleasesCount(ctx context.Context, repoSource, repoO
 }
 
 func (c *client) GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string) (release *contracts.Release, err error) {
+	if releaseID == "" {
+		return nil, fmt.Errorf("GetPipelineRelease argument releaseID is empty")
+	}
 
 	// generate query
 	query := c.selectReleasesQuery().
@@ -2468,6 +2437,9 @@ func (c *client) GetPipelineLastReleasesByName(ctx context.Context, repoSource, 
 }
 
 func (c *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, readLogFromDatabase bool) (releaseLog *contracts.ReleaseLog, err error) {
+	if releaseID == "" {
+		return nil, fmt.Errorf("GetPipelineReleaseLogs argument releaseID is empty")
+	}
 
 	// generate query
 	query := c.selectReleaseLogsQuery(readLogFromDatabase).
@@ -2522,6 +2494,12 @@ func (c *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwn
 }
 
 func (c *client) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, id string, readLogFromDatabase bool) (releaseLog *contracts.ReleaseLog, err error) {
+	if releaseID == "" {
+		return nil, fmt.Errorf("GetPipelineReleaseLogsByID argument releaseID is empty")
+	}
+	if id == "" {
+		return nil, fmt.Errorf("GetPipelineReleaseLogsByID argument id is empty")
+	}
 
 	// generate query
 	query := c.selectReleaseLogsQuery(readLogFromDatabase).
@@ -2576,6 +2554,9 @@ func (c *client) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, rep
 }
 
 func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, pageNumber int, pageSize int) (releaseLogs []*contracts.ReleaseLog, err error) {
+	if releaseID == "" {
+		return nil, fmt.Errorf("GetPipelineReleaseLogsPerPage argument releaseID is empty")
+	}
 
 	releaseLogs = make([]*contracts.ReleaseLog, 0)
 
@@ -2622,6 +2603,9 @@ func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, 
 }
 
 func (c *client) GetPipelineReleaseLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string) (count int, err error) {
+	if releaseID == "" {
+		return count, fmt.Errorf("GetPipelineReleaseLogsCount argument releaseID is empty")
+	}
 
 	// generate query
 	query := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
@@ -2733,6 +2717,9 @@ func (c *client) GetPipelineBotsCount(ctx context.Context, repoSource, repoOwner
 }
 
 func (c *client) GetPipelineBot(ctx context.Context, repoSource, repoOwner, repoName string, botID string) (bot *contracts.Bot, err error) {
+	if botID == "" {
+		return nil, fmt.Errorf("GetPipelineBot argument botID is empty")
+	}
 
 	// generate query
 	query := c.selectBotsQuery().
@@ -2757,6 +2744,9 @@ func (c *client) GetPipelineBot(ctx context.Context, repoSource, repoOwner, repo
 }
 
 func (c *client) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID string, readLogFromDatabase bool) (botLog *contracts.BotLog, err error) {
+	if botID == "" {
+		return nil, fmt.Errorf("GetPipelineBotLogs argument botID is empty")
+	}
 
 	// generate query
 	query := c.selectBotLogsQuery(readLogFromDatabase).
@@ -2811,6 +2801,12 @@ func (c *client) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, 
 }
 
 func (c *client) GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID string, id string, readLogFromDatabase bool) (botLog *contracts.BotLog, err error) {
+	if botID == "" {
+		return nil, fmt.Errorf("GetPipelineBotLogsByID argument botID is empty")
+	}
+	if id == "" {
+		return nil, fmt.Errorf("GetPipelineBotLogsByID argument id is empty")
+	}
 
 	// generate query
 	query := c.selectBotLogsQuery(readLogFromDatabase).
@@ -2866,6 +2862,9 @@ func (c *client) GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwn
 }
 
 func (c *client) GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, botID string, pageNumber int, pageSize int) (botLogs []*contracts.BotLog, err error) {
+	if botID == "" {
+		return nil, fmt.Errorf("GetPipelineBotLogsPerPage argument botID is empty")
+	}
 
 	botLogs = make([]*contracts.BotLog, 0)
 
@@ -2912,6 +2911,9 @@ func (c *client) GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repo
 }
 
 func (c *client) GetPipelineBotLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, botID string) (count int, err error) {
+	if botID == "" {
+		return count, fmt.Errorf("GetPipelineBotLogsCount argument botID is empty")
+	}
 
 	// generate query
 	query := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
@@ -6078,13 +6080,11 @@ func (c *client) InsertUser(ctx context.Context, user contracts.User) (u *contra
 }
 
 func (c *client) UpdateUser(ctx context.Context, user contracts.User) (err error) {
-
-	userBytes, err := json.Marshal(user)
-	if err != nil {
-		return
+	if user.ID == "" {
+		return fmt.Errorf("UpdateUser argument user.ID is empty")
 	}
 
-	userID, err := strconv.Atoi(user.ID)
+	userBytes, err := json.Marshal(user)
 	if err != nil {
 		return
 	}
@@ -6095,7 +6095,7 @@ func (c *client) UpdateUser(ctx context.Context, user contracts.User) (err error
 		Update("users").
 		Set("user_data", userBytes).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": userID}).
+		Where(sq.Eq{"id": user.ID}).
 		Limit(uint64(1))
 
 	_, err = query.RunWith(c.databaseConnection).Exec()
@@ -6104,16 +6104,14 @@ func (c *client) UpdateUser(ctx context.Context, user contracts.User) (err error
 }
 
 func (c *client) DeleteUser(ctx context.Context, user contracts.User) (err error) {
+	if user.ID == "" {
+		return fmt.Errorf("DeleteUser argument user.ID is empty")
+	}
 
 	// deactivate user
 	user.Active = false
 
 	userBytes, err := json.Marshal(user)
-	if err != nil {
-		return
-	}
-
-	userID, err := strconv.Atoi(user.ID)
 	if err != nil {
 		return
 	}
@@ -6125,14 +6123,18 @@ func (c *client) DeleteUser(ctx context.Context, user contracts.User) (err error
 		Set("user_data", userBytes).
 		Set("updated_at", sq.Expr("now()")).
 		Set("active", false).
-		Where(sq.Eq{"id": userID}).
+		Where(sq.Eq{"id": user.ID}).
 		Limit(uint64(1))
 
 	_, err = query.RunWith(c.databaseConnection).Exec()
 
 	return
 }
+
 func (c *client) GetUserByID(ctx context.Context, id string, filters map[api.FilterType][]string) (user *contracts.User, err error) {
+	if id == "" {
+		return nil, fmt.Errorf("GetUserByID argument id is empty")
+	}
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -6305,12 +6307,11 @@ func (c *client) InsertGroup(ctx context.Context, group contracts.Group) (g *con
 }
 
 func (c *client) UpdateGroup(ctx context.Context, group contracts.Group) (err error) {
-	groupBytes, err := json.Marshal(group)
-	if err != nil {
-		return
+	if group.ID == "" {
+		return fmt.Errorf("UpdateGroup argument group.ID is empty")
 	}
 
-	groupID, err := strconv.Atoi(group.ID)
+	groupBytes, err := json.Marshal(group)
 	if err != nil {
 		return
 	}
@@ -6321,7 +6322,7 @@ func (c *client) UpdateGroup(ctx context.Context, group contracts.Group) (err er
 		Update("groups").
 		Set("group_data", groupBytes).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": groupID}).
+		Where(sq.Eq{"id": group.ID}).
 		Limit(uint64(1))
 
 	_, err = query.RunWith(c.databaseConnection).Exec()
@@ -6333,16 +6334,14 @@ func (c *client) UpdateGroup(ctx context.Context, group contracts.Group) (err er
 }
 
 func (c *client) DeleteGroup(ctx context.Context, group contracts.Group) (err error) {
+	if group.ID == "" {
+		return fmt.Errorf("DeleteGroup argument group.ID is empty")
+	}
 
 	// deactivate group
 	group.Active = false
 
 	groupBytes, err := json.Marshal(group)
-	if err != nil {
-		return
-	}
-
-	groupID, err := strconv.Atoi(group.ID)
 	if err != nil {
 		return
 	}
@@ -6354,7 +6353,7 @@ func (c *client) DeleteGroup(ctx context.Context, group contracts.Group) (err er
 		Set("group_data", groupBytes).
 		Set("updated_at", sq.Expr("now()")).
 		Set("active", false).
-		Where(sq.Eq{"id": groupID}).
+		Where(sq.Eq{"id": group.ID}).
 		Limit(uint64(1))
 
 	_, err = query.RunWith(c.databaseConnection).Exec()
@@ -6405,6 +6404,10 @@ func (c *client) GetGroupByIdentity(ctx context.Context, identity contracts.Grou
 }
 
 func (c *client) GetGroupByID(ctx context.Context, id string, filters map[api.FilterType][]string) (group *contracts.Group, err error) {
+	if id == "" {
+		return nil, fmt.Errorf("GetGroupByID argument id is empty")
+	}
+
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -6505,12 +6508,11 @@ func (c *client) InsertOrganization(ctx context.Context, organization contracts.
 }
 
 func (c *client) UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error) {
-	organizationBytes, err := json.Marshal(organization)
-	if err != nil {
-		return
+	if organization.ID == "" {
+		return fmt.Errorf("UpdateOrganization argument organization.ID is empty")
 	}
 
-	organizationID, err := strconv.Atoi(organization.ID)
+	organizationBytes, err := json.Marshal(organization)
 	if err != nil {
 		return
 	}
@@ -6521,7 +6523,7 @@ func (c *client) UpdateOrganization(ctx context.Context, organization contracts.
 		Update("organizations").
 		Set("organization_data", organizationBytes).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": organizationID}).
+		Where(sq.Eq{"id": organization.ID}).
 		Limit(uint64(1))
 
 	_, err = query.RunWith(c.databaseConnection).Exec()
@@ -6530,16 +6532,14 @@ func (c *client) UpdateOrganization(ctx context.Context, organization contracts.
 }
 
 func (c *client) DeleteOrganization(ctx context.Context, organization contracts.Organization) (err error) {
+	if organization.ID == "" {
+		return fmt.Errorf("DeleteOrganization argument organization.ID is empty")
+	}
 
 	// deactivate organization
 	organization.Active = false
 
 	organizationBytes, err := json.Marshal(organization)
-	if err != nil {
-		return
-	}
-
-	organizationID, err := strconv.Atoi(organization.ID)
 	if err != nil {
 		return
 	}
@@ -6551,13 +6551,14 @@ func (c *client) DeleteOrganization(ctx context.Context, organization contracts.
 		Set("organization_data", organizationBytes).
 		Set("updated_at", sq.Expr("now()")).
 		Set("active", false).
-		Where(sq.Eq{"id": organizationID}).
+		Where(sq.Eq{"id": organization.ID}).
 		Limit(uint64(1))
 
 	_, err = query.RunWith(c.databaseConnection).Exec()
 
 	return
 }
+
 func (c *client) GetOrganizationByIdentity(ctx context.Context, identity contracts.OrganizationIdentity) (organization *contracts.Organization, err error) {
 	filter := struct {
 		Identities []struct {
@@ -6601,6 +6602,10 @@ func (c *client) GetOrganizationByIdentity(ctx context.Context, identity contrac
 }
 
 func (c *client) GetOrganizationByID(ctx context.Context, id string) (organization *contracts.Organization, err error) {
+	if id == "" {
+		return nil, fmt.Errorf("GetOrganizationByID argument id is empty")
+	}
+
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -6711,12 +6716,11 @@ func (c *client) InsertClient(ctx context.Context, client contracts.Client) (cl 
 }
 
 func (c *client) UpdateClient(ctx context.Context, client contracts.Client) (err error) {
-	clientBytes, err := json.Marshal(client)
-	if err != nil {
-		return
+	if client.ID == "" {
+		return fmt.Errorf("UpdateClient argument client.ID is empty")
 	}
 
-	clientID, err := strconv.Atoi(client.ID)
+	clientBytes, err := json.Marshal(client)
 	if err != nil {
 		return
 	}
@@ -6727,7 +6731,7 @@ func (c *client) UpdateClient(ctx context.Context, client contracts.Client) (err
 		Update("clients").
 		Set("client_data", clientBytes).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": clientID}).
+		Where(sq.Eq{"id": client.ID}).
 		Limit(uint64(1))
 
 	_, err = query.RunWith(c.databaseConnection).Exec()
@@ -6736,16 +6740,14 @@ func (c *client) UpdateClient(ctx context.Context, client contracts.Client) (err
 }
 
 func (c *client) DeleteClient(ctx context.Context, client contracts.Client) (err error) {
+	if client.ID == "" {
+		return fmt.Errorf("DeleteClient argument client.ID is empty")
+	}
 
 	// deactivate client
 	client.Active = false
 
 	clientBytes, err := json.Marshal(client)
-	if err != nil {
-		return
-	}
-
-	clientID, err := strconv.Atoi(client.ID)
 	if err != nil {
 		return
 	}
@@ -6757,7 +6759,7 @@ func (c *client) DeleteClient(ctx context.Context, client contracts.Client) (err
 		Set("client_data", clientBytes).
 		Set("updated_at", sq.Expr("now()")).
 		Set("active", false).
-		Where(sq.Eq{"id": clientID}).
+		Where(sq.Eq{"id": client.ID}).
 		Limit(uint64(1))
 
 	_, err = query.RunWith(c.databaseConnection).Exec()
@@ -6766,6 +6768,10 @@ func (c *client) DeleteClient(ctx context.Context, client contracts.Client) (err
 }
 
 func (c *client) GetClientByClientID(ctx context.Context, clientID string) (client *contracts.Client, err error) {
+	if clientID == "" {
+		return nil, fmt.Errorf("GetClientByClientID argument clientID is empty")
+	}
+
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -6786,6 +6792,10 @@ func (c *client) GetClientByClientID(ctx context.Context, clientID string) (clie
 }
 
 func (c *client) GetClientByID(ctx context.Context, id string) (client *contracts.Client, err error) {
+	if id == "" {
+		return nil, fmt.Errorf("GetClientByID argument id is empty")
+	}
+
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -6899,17 +6909,16 @@ func (c *client) InsertCatalogEntity(ctx context.Context, catalogEntity contract
 }
 
 func (c *client) UpdateCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (err error) {
+	if catalogEntity.ID == "" {
+		return fmt.Errorf("UpdateCatalogEntity argument catalogEntity.ID is empty")
+	}
+
 	labelBytes, err := json.Marshal(catalogEntity.Labels)
 	if err != nil {
 		return
 	}
 
 	metadataBytes, err := json.Marshal(catalogEntity.Metadata)
-	if err != nil {
-		return
-	}
-
-	entityID, err := strconv.Atoi(catalogEntity.ID)
 	if err != nil {
 		return
 	}
@@ -6922,7 +6931,7 @@ func (c *client) UpdateCatalogEntity(ctx context.Context, catalogEntity contract
 		Set("labels", labelBytes).
 		Set("entity_metadata", metadataBytes).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": entityID}).
+		Where(sq.Eq{"id": catalogEntity.ID}).
 		Limit(uint64(1))
 
 	_, err = query.RunWith(c.databaseConnection).Exec()
@@ -6931,6 +6940,9 @@ func (c *client) UpdateCatalogEntity(ctx context.Context, catalogEntity contract
 }
 
 func (c *client) DeleteCatalogEntity(ctx context.Context, id string) (err error) {
+	if id == "" {
+		return fmt.Errorf("DeleteCatalogEntity argument id is empty")
+	}
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -6948,6 +6960,9 @@ func (c *client) DeleteCatalogEntity(ctx context.Context, id string) (err error)
 }
 
 func (c *client) GetCatalogEntityByID(ctx context.Context, id string) (catalogEntity *contracts.CatalogEntity, err error) {
+	if id == "" {
+		return nil, fmt.Errorf("GetCatalogEntityByID argument id is empty")
+	}
 
 	query := c.selectCatalogEntityQuery().
 		Where(sq.Eq{"a.id": id}).

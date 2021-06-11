@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/bigquery v1.5.0
 	cloud.google.com/go/pubsub v1.3.0
 	cloud.google.com/go/storage v1.6.0
-	github.com/Masterminds/squirrel v1.2.0
+	github.com/Masterminds/squirrel v1.5.0
 	github.com/alecthomas/kingpin v2.2.6+incompatible
 	github.com/appleboy/gin-jwt/v2 v2.6.4
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible

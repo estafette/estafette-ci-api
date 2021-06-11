@@ -12,6 +12,6 @@ func HandleLogError(packageName, interfaceName, funcName string, err error, igno
 			errors.Is(err, e)
 			return
 		}
-		log.Error().Err(err).Msgf("%v.%v.%v decorator intercepted error", packageName, interfaceName, funcName)
+		log.Debug().Err(err).Msgf("%v.%v.%v decorator intercepted error", packageName, interfaceName, funcName)
 	}
 }
