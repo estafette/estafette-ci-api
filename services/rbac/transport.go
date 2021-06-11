@@ -265,6 +265,7 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 			// create new context to avoid cancellation impacting execution
 			span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GoRoutineUpdateUser")
 			ctx := opentracing.ContextWithSpan(context.Background(), span)
+			defer span.Finish()
 
 			err = h.service.UpdateUser(ctx, user)
 			if err != nil {

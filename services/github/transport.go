@@ -178,6 +178,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		// create new context to avoid cancellation impacting execution
 		span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GoRoutinePublishGithubEvent")
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
+		defer span.Finish()
 
 		h.service.PublishGithubEvent(ctx, manifest.EstafetteGithubEvent{
 			Event:      eventType,

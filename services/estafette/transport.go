@@ -2791,6 +2791,7 @@ func (h *Handler) Commands(c *gin.Context) {
 				// create new context to avoid cancellation impacting execution
 				span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GoRoutineRemoveCiBuilderJob")
 				ctx := opentracing.ContextWithSpan(context.Background(), span)
+				defer span.Finish()
 
 				err = h.ciBuilderClient.RemoveCiBuilderJob(ctx, eventJobname)
 				if err != nil {
@@ -2805,6 +2806,7 @@ func (h *Handler) Commands(c *gin.Context) {
 			// create new context to avoid cancellation impacting execution
 			span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GoRoutineUpdateJobResources")
 			ctx := opentracing.ContextWithSpan(context.Background(), span)
+			defer span.Finish()
 
 			err = h.buildService.UpdateJobResources(ctx, ciBuilderEvent)
 			if err != nil {

@@ -446,6 +446,7 @@ func (c *client) InsertBuild(ctx context.Context, build contracts.Build, jobReso
 		// create new context to avoid cancellation impacting execution
 		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineUpsertComputedPipeline")
 		ctx = opentracing.ContextWithSpan(context.Background(), span)
+		defer span.Finish()
 
 		err = c.UpsertComputedPipeline(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName)
 		if err != nil {
@@ -514,6 +515,7 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 		// create new context to avoid cancellation impacting execution
 		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineUpsertComputedPipeline")
 		ctx = opentracing.ContextWithSpan(context.Background(), span)
+		defer span.Finish()
 
 		err = c.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
 		if err != nil {
@@ -642,6 +644,7 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 		// create new context to avoid cancellation impacting execution
 		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineUpsertComputedTables")
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
+		defer span.Finish()
 
 		err = c.UpsertComputedRelease(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.Name, insertedRelease.Action)
 		if err != nil {
@@ -716,6 +719,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 		// create new context to avoid cancellation impacting execution
 		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineUpsertComputedTables")
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
+		defer span.Finish()
 
 		if insertedRelease != nil {
 			err = c.UpsertComputedRelease(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.Name, insertedRelease.Action)
