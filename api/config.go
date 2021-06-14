@@ -664,13 +664,16 @@ type AffinityAndTolerationsConfig struct {
 
 // DatabaseConfig contains config for the dabase connection
 type DatabaseConfig struct {
-	DatabaseName   string `yaml:"databaseName"`
-	Host           string `yaml:"host"`
-	Insecure       bool   `yaml:"insecure"`
-	CertificateDir string `yaml:"certificateDir"`
-	Port           int    `yaml:"port"`
-	User           string `yaml:"user"`
-	Password       string `yaml:"password"`
+	DatabaseName           string `yaml:"databaseName"`
+	Host                   string `yaml:"host"`
+	Insecure               bool   `yaml:"insecure"`
+	CertificateDir         string `yaml:"certificateDir"`
+	Port                   int    `yaml:"port"`
+	User                   string `yaml:"user"`
+	Password               string `yaml:"password"`
+	MaxOpenConns           int    `yaml:"maxOpenConnections"`
+	MaxIdleConns           int    `yaml:"maxIdleConnections"`
+	ConnMaxLifetimeMinutes int    `yaml:"connectionMaxLifetimeMinutes"`
 }
 
 func (c *DatabaseConfig) SetDefaults() {
@@ -689,6 +692,15 @@ func (c *DatabaseConfig) SetDefaults() {
 	if c.User == "" {
 		c.User = "root"
 	}
+	if c.MaxOpenConns < 0 {
+		c.MaxOpenConns = 0
+	}
+	if c.MaxIdleConns <= 0 {
+		c.MaxIdleConns = 2
+	}
+	if c.ConnMaxLifetimeMinutes < 0 {
+		c.ConnMaxLifetimeMinutes = 0
+	}
 }
 
 func (c *DatabaseConfig) Validate() (err error) {
@@ -706,6 +718,9 @@ func (c *DatabaseConfig) Validate() (err error) {
 	}
 	if c.User == "" {
 		return errors.New("Configuration item 'database.user' is required; please set it to the database user")
+	}
+	if c.MaxOpenConns > 0 && c.MaxIdleConns > c.MaxOpenConns {
+		return errors.New("Configuration item 'database.maxIdleConnections' needs to be less or equal to 'database.maxOpenConnections'; please set it to a valid number")
 	}
 
 	return nil
