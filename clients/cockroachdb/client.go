@@ -457,13 +457,13 @@ func (c *client) InsertBuild(ctx context.Context, build contracts.Build, jobReso
 	// update computed tables
 	go func() {
 		// create new context to avoid cancellation impacting execution
-		span, _ := opentracing.StartSpanFromContext(ctx, "cockroachdb:AsyncUpsertComputedPipeline")
+		span, _ := opentracing.StartSpanFromContext(ctx, "cockroachdb:AsyncUpdateComputedTables")
 		ctx = opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 
 		err = c.UpdateComputedTables(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed upserting computed pipeline %v", insertedBuild.GetFullRepoPath())
+			log.Error().Err(err).Msgf("Failed updating computed tables for pipeline %v", insertedBuild.GetFullRepoPath())
 		}
 	}()
 
