@@ -128,7 +128,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 
 	go func() {
 		// create new context to avoid cancellation impacting execution
-		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineSubscribeToPubsubTriggers")
+		span, _ := opentracing.StartSpanFromContext(ctx, "AsyncSubscribeToPubsubTriggers")
 		ctx = opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 

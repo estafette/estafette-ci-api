@@ -238,7 +238,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build) (creat
 		// handle triggers
 		go func() {
 			// create new context to avoid cancellation impacting execution
-			span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFirePipelineTriggers")
+			span, _ := opentracing.StartSpanFromContext(ctx, "AsyncFirePipelineTriggers")
 			ctx := opentracing.ContextWithSpan(context.Background(), span)
 			defer span.Finish()
 
@@ -351,7 +351,7 @@ func (s *service) FinishBuild(ctx context.Context, repoSource, repoOwner, repoNa
 	// handle triggers
 	go func() {
 		// create new context to avoid cancellation impacting execution
-		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFirePipelineTriggers")
+		span, _ := opentracing.StartSpanFromContext(ctx, "AsyncFirePipelineTriggers")
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 
@@ -562,7 +562,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	// handle triggers
 	go func() {
 		// create new context to avoid cancellation impacting execution
-		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFireReleaseTriggers")
+		span, _ := opentracing.StartSpanFromContext(ctx, "AsyncFireReleaseTriggers")
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 
@@ -584,7 +584,7 @@ func (s *service) FinishRelease(ctx context.Context, repoSource, repoOwner, repo
 	// handle triggers
 	go func() {
 		// create new context to avoid cancellation impacting execution
-		span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFireReleaseTriggers")
+		span, _ := opentracing.StartSpanFromContext(ctx, "AsyncFireReleaseTriggers")
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 
@@ -807,7 +807,7 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 					defer func() { <-semaphore }()
 
 					// create new context to avoid cancellation impacting execution
-					span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFireGitTriggersItem")
+					span, _ := opentracing.StartSpanFromContext(ctx, "AsyncFireGitTriggersItem")
 					ctx = opentracing.ContextWithSpan(context.Background(), span)
 					defer span.Finish()
 
@@ -894,7 +894,7 @@ func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.E
 					defer func() { <-semaphore }()
 
 					// create new context to avoid cancellation impacting execution
-					span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFireGithubTriggersItem")
+					span, _ := opentracing.StartSpanFromContext(ctx, "AsyncFireGithubTriggersItem")
 					ctx = opentracing.ContextWithSpan(context.Background(), span)
 					defer span.Finish()
 
@@ -980,7 +980,7 @@ func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent mani
 					defer func() { <-semaphore }()
 
 					// create new context to avoid cancellation impacting execution
-					span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFireBitbucketTriggersItem")
+					span, _ := opentracing.StartSpanFromContext(ctx, "AsyncFireBitbucketTriggersItem")
 					ctx = opentracing.ContextWithSpan(context.Background(), span)
 					defer span.Finish()
 
@@ -1075,7 +1075,7 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 					defer func() { <-semaphore }()
 
 					// create new context to avoid cancellation impacting execution
-					span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFirePipelineTriggerItem")
+					span, _ := opentracing.StartSpanFromContext(ctx, "AsyncFirePipelineTriggerItem")
 					ctx = opentracing.ContextWithSpan(context.Background(), span)
 					defer span.Finish()
 
@@ -1169,7 +1169,7 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 					defer func() { <-semaphore }()
 
 					// create new context to avoid cancellation impacting execution
-					span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFireReleaseTriggersItem")
+					span, _ := opentracing.StartSpanFromContext(ctx, "AsyncFireReleaseTriggersItem")
 					ctx = opentracing.ContextWithSpan(context.Background(), span)
 					defer span.Finish()
 
@@ -1253,7 +1253,7 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 					defer func() { <-semaphore }()
 
 					// create new context to avoid cancellation impacting execution
-					span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFirePubSubTriggersItem")
+					span, _ := opentracing.StartSpanFromContext(ctx, "AsyncFirePubSubTriggersItem")
 					ctx = opentracing.ContextWithSpan(context.Background(), span)
 					defer span.Finish()
 
@@ -1342,7 +1342,7 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 					defer func() { <-semaphore }()
 
 					// create new context to avoid cancellation impacting execution
-					span, _ := opentracing.StartSpanFromContext(ctx, "GoRoutineFireCronTriggersItem")
+					span, _ := opentracing.StartSpanFromContext(ctx, "AsyncFireCronTriggersItem")
 					ctx = opentracing.ContextWithSpan(context.Background(), span)
 					defer span.Finish()
 

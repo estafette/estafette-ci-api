@@ -139,7 +139,7 @@ func (h *Handler) Handle(c *gin.Context) {
 	// publish event for bots to run
 	go func() {
 		// create new context to avoid cancellation impacting execution
-		span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GoRoutinePublishBitbucketEvent")
+		span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "AsyncPublishBitbucketEvent")
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 

@@ -263,7 +263,7 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 
 		go func(user contracts.User) {
 			// create new context to avoid cancellation impacting execution
-			span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GoRoutineUpdateUser")
+			span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "AsyncUpdateUser")
 			ctx := opentracing.ContextWithSpan(context.Background(), span)
 			defer span.Finish()
 

@@ -176,7 +176,7 @@ func (h *Handler) Handle(c *gin.Context) {
 	// publish event for bots to run
 	go func() {
 		// create new context to avoid cancellation impacting execution
-		span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "GoRoutinePublishGithubEvent")
+		span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "AsyncPublishGithubEvent")
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 
