@@ -2325,6 +2325,20 @@ func (mr *MockClientMockRecorder) UpdateComputedReleaseFirstInsertedAt(ctx, repo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateComputedReleaseFirstInsertedAt", reflect.TypeOf((*MockClient)(nil).UpdateComputedReleaseFirstInsertedAt), ctx, repoSource, repoOwner, repoName, releaseName, releaseAction)
 }
 
+// UpdateComputedTables mocks base method.
+func (m *MockClient) UpdateComputedTables(ctx context.Context, repoSource, repoOwner, repoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateComputedTables", ctx, repoSource, repoOwner, repoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateComputedTables indicates an expected call of UpdateComputedTables.
+func (mr *MockClientMockRecorder) UpdateComputedTables(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateComputedTables", reflect.TypeOf((*MockClient)(nil).UpdateComputedTables), ctx, repoSource, repoOwner, repoName)
+}
+
 // UpdateGroup mocks base method.
 func (m *MockClient) UpdateGroup(ctx context.Context, group estafette_ci_contracts.Group) error {
 	m.ctrl.T.Helper()

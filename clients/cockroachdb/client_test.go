@@ -511,7 +511,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		// act
@@ -533,7 +533,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		sortings := []api.OrderField{
@@ -562,7 +562,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -588,7 +588,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -614,7 +614,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -640,7 +640,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -666,7 +666,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -706,7 +706,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		assert.Nil(t, err)
 		err = cockroachdbClient.UpsertComputedRelease(ctx, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, release.Action)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -732,7 +732,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 		pipeline := contracts.Pipeline{
 			RepoSource: build.RepoSource,
@@ -776,7 +776,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 		pipeline := contracts.Pipeline{
 			RepoSource: build.RepoSource,
@@ -824,7 +824,7 @@ func TestIngrationUpsertComputedPipeline(t *testing.T) {
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 
 		assert.Nil(t, err)
 	})
@@ -907,7 +907,7 @@ func TestIngrationArchiveComputedPipeline(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		// act
@@ -930,7 +930,7 @@ func TestIngrationArchiveComputedPipeline(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 		err = cockroachdbClient.ArchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
@@ -958,7 +958,7 @@ func TestIngrationUnarchiveComputedPipeline(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 		err = cockroachdbClient.ArchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
@@ -983,7 +983,7 @@ func TestIngrationUnarchiveComputedPipeline(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 		err = cockroachdbClient.ArchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
@@ -1021,9 +1021,9 @@ func TestIntegrationGetLabelValues(t *testing.T) {
 		assert.Nil(t, err, "failed inserting other build record")
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline for other build")
 
 		// act
@@ -1068,9 +1068,9 @@ func TestIntegrationGetFrequentLabels(t *testing.T) {
 		}
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline for other build")
 
 		// act
@@ -1115,9 +1115,9 @@ func TestIntegrationGetFrequentLabelsCount(t *testing.T) {
 		}
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline for other build")
 
 		// act
@@ -1169,9 +1169,9 @@ func TestIntegrationGetAllPipelinesReleaseTargets(t *testing.T) {
 		}
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline for other build")
 
 		// act
@@ -1227,9 +1227,9 @@ func TestIntegrationGetAllPipelinesReleaseTargetsCount(t *testing.T) {
 		}
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline for other build")
 
 		// act
@@ -3070,7 +3070,7 @@ func TestIntegrationGetPipelineBuildsDurations(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		// act
@@ -3135,7 +3135,7 @@ func TestIntegrationGetPipelineBuilds(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		// act
@@ -3158,7 +3158,7 @@ func TestIntegrationGetPipelineBuildsCount(t *testing.T) {
 		jobResources := getJobResources()
 		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		// act
@@ -3280,7 +3280,7 @@ func TestIntegrationGetGitTriggers(t *testing.T) {
 		assert.Nil(t, err, "failed inserting first build record")
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
 
 		gitEvent := manifest.EstafetteGitEvent{
@@ -3322,7 +3322,7 @@ func TestIntegrationGetGitTriggers(t *testing.T) {
 		assert.Nil(t, err, "failed inserting first build record")
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
 
 		gitEvent := manifest.EstafetteGitEvent{
@@ -3369,7 +3369,7 @@ func TestIntegrationGetGithubTriggers(t *testing.T) {
 		assert.Nil(t, err, "failed inserting first build record")
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
 
 		githubEvent := manifest.EstafetteGithubEvent{
@@ -3414,7 +3414,7 @@ func TestIntegrationGetGithubTriggers(t *testing.T) {
 		assert.Nil(t, err, "failed inserting first build record")
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
 
 		githubEvent := manifest.EstafetteGithubEvent{
@@ -3461,7 +3461,7 @@ func TestIntegrationGetBitbucketTriggers(t *testing.T) {
 		assert.Nil(t, err, "failed inserting first build record")
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
 
 		bitbucketEvent := manifest.EstafetteBitbucketEvent{
@@ -3505,7 +3505,7 @@ func TestIntegrationGetBitbucketTriggers(t *testing.T) {
 		assert.Nil(t, err, "failed inserting first build record")
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpsertComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
 
 		bitbucketEvent := manifest.EstafetteBitbucketEvent{

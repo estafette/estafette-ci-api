@@ -60,6 +60,7 @@ type Client interface {
 	InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (log contracts.ReleaseLog, err error)
 	InsertBotLog(ctx context.Context, botLog contracts.BotLog, writeLogToDatabase bool) (log contracts.BotLog, err error)
 
+	UpdateComputedTables(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpdateComputedPipelinePermissions(ctx context.Context, pipeline contracts.Pipeline) (err error)
 	UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
@@ -448,7 +449,7 @@ func (c *client) InsertBuild(ctx context.Context, build contracts.Build, jobReso
 		ctx = opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 
-		err = c.UpsertComputedPipeline(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName)
+		err = c.UpdateComputedTables(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed upserting computed pipeline %v", insertedBuild.GetFullRepoPath())
 		}
@@ -1120,6 +1121,32 @@ func (c *client) InsertBotLog(ctx context.Context, botLog contracts.BotLog, writ
 	}
 
 	return
+}
+
+func (c *client) UpdateComputedTables(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+
+	// get pipeline to update all release targets first
+	pipeline, err := c.GetPipeline(ctx, repoSource, repoOwner, repoName, make(map[api.FilterType][]string), false)
+	if err != nil {
+		return
+	}
+
+	// loop release targets
+	for _, rt := range pipeline.ReleaseTargets {
+		for _, ar := range rt.ActiveReleases {
+			err = c.UpsertComputedRelease(ctx, repoSource, repoOwner, repoName, ar.Name, ar.Action)
+			if err != nil {
+				return
+			}
+		}
+	}
+
+	err = c.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
+	if err != nil {
+		return
+	}
+
+	return nil
 }
 
 func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
