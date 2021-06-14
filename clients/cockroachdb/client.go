@@ -1131,12 +1131,14 @@ func (c *client) UpdateComputedTables(ctx context.Context, repoSource, repoOwner
 		return
 	}
 
-	// loop release targets
-	for _, rt := range pipeline.ReleaseTargets {
-		for _, ar := range rt.ActiveReleases {
-			err = c.UpsertComputedRelease(ctx, repoSource, repoOwner, repoName, ar.Name, ar.Action)
-			if err != nil {
-				return
+	if pipeline != nil {
+		// loop release targets
+		for _, rt := range pipeline.ReleaseTargets {
+			for _, ar := range rt.ActiveReleases {
+				err = c.UpsertComputedRelease(ctx, repoSource, repoOwner, repoName, ar.Name, ar.Action)
+				if err != nil {
+					return
+				}
 			}
 		}
 	}
