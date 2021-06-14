@@ -2789,7 +2789,7 @@ func (h *Handler) Commands(c *gin.Context) {
 		if ciBuilderEvent.GetStatus() != contracts.StatusCanceled {
 			go func(eventJobname string) {
 				// create new context to avoid cancellation impacting execution
-				span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "AsyncRemoveCiBuilderJob")
+				span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "estafette:AsyncRemoveCiBuilderJob")
 				ctx := opentracing.ContextWithSpan(context.Background(), span)
 				defer span.Finish()
 
@@ -2804,7 +2804,7 @@ func (h *Handler) Commands(c *gin.Context) {
 
 		go func(ciBuilderEvent contracts.EstafetteCiBuilderEvent) {
 			// create new context to avoid cancellation impacting execution
-			span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "AsyncUpdateJobResources")
+			span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "estafette:AsyncUpdateJobResources")
 			ctx := opentracing.ContextWithSpan(context.Background(), span)
 			defer span.Finish()
 

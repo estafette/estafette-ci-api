@@ -444,7 +444,7 @@ func (c *client) InsertBuild(ctx context.Context, build contracts.Build, jobReso
 	// update computed tables
 	go func() {
 		// create new context to avoid cancellation impacting execution
-		span, _ := opentracing.StartSpanFromContext(ctx, "AsyncUpsertComputedPipeline")
+		span, _ := opentracing.StartSpanFromContext(ctx, "cockroachdb:AsyncUpsertComputedPipeline")
 		ctx = opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 
@@ -513,7 +513,7 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 	// update computed tables
 	go func() {
 		// create new context to avoid cancellation impacting execution
-		span, _ := opentracing.StartSpanFromContext(ctx, "AsyncUpsertComputedPipeline")
+		span, _ := opentracing.StartSpanFromContext(ctx, "cockroachdb:AsyncUpsertComputedPipeline")
 		ctx = opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 
@@ -642,7 +642,7 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 	// update computed tables
 	go func() {
 		// create new context to avoid cancellation impacting execution
-		span, _ := opentracing.StartSpanFromContext(ctx, "AsyncUpsertComputedTables")
+		span, _ := opentracing.StartSpanFromContext(ctx, "cockroachdb:AsyncUpsertComputedTables")
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 
@@ -717,7 +717,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 	// update computed tables
 	go func(insertedRelease *contracts.Release) {
 		// create new context to avoid cancellation impacting execution
-		span, _ := opentracing.StartSpanFromContext(ctx, "AsyncUpsertComputedTables")
+		span, _ := opentracing.StartSpanFromContext(ctx, "cockroachdb:AsyncUpsertComputedTables")
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 

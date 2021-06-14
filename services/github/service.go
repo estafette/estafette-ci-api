@@ -132,7 +132,7 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 
 	go func() {
 		// create new context to avoid cancellation impacting execution
-		span, _ := opentracing.StartSpanFromContext(ctx, "AsyncSubscribeToPubsubTriggers")
+		span, _ := opentracing.StartSpanFromContext(ctx, "github:AsyncSubscribeToPubsubTriggers")
 		ctx = opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 

@@ -127,7 +127,7 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 
 	go func() {
 		// create new context to avoid cancellation impacting execution
-		span, _ := opentracing.StartSpanFromContext(ctx, "AsyncSubscribeToPubsubTriggers")
+		span, _ := opentracing.StartSpanFromContext(ctx, "cloudsource:AsyncSubscribeToPubsubTriggers")
 		ctx = opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 
