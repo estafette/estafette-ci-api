@@ -14,6 +14,7 @@ import (
 	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
 	contracts "github.com/estafette/estafette-ci-contracts"
+	foundation "github.com/estafette/estafette-foundation"
 	"github.com/gin-gonic/gin"
 	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
@@ -1119,19 +1120,16 @@ func (h *Handler) BatchUpdateUsers(c *gin.Context) {
 		return
 	}
 
-	// http://jmoiron.net/blog/limiting-concurrency-in-go/
-	concurrency := 10
-	semaphore := make(chan bool, concurrency)
+	// limit concurrency using a semaphore
+	semaphore := foundation.NewSemaphore(10)
 
 	resultChannel := make(chan error, len(body.Users))
 
 	for _, u := range body.Users {
-		// try to fill semaphore up to it's full size otherwise wait for a routine to finish
-		semaphore <- true
+		semaphore.Acquire()
 
 		go func(u string) {
-			// lower semaphore once the routine's finished, making room for another one to start
-			defer func() { <-semaphore }()
+			defer semaphore.Release()
 
 			user, err := h.cockroachdbClient.GetUserByID(ctx, u, map[api.FilterType][]string{})
 			if err != nil {
@@ -1260,10 +1258,8 @@ func (h *Handler) BatchUpdateUsers(c *gin.Context) {
 		}(u)
 	}
 
-	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
-	for i := 0; i < cap(semaphore); i++ {
-		semaphore <- true
-	}
+	// wait until all concurrent goroutines are done
+	semaphore.Wait()
 
 	close(resultChannel)
 	for err := range resultChannel {
@@ -1311,19 +1307,16 @@ func (h *Handler) BatchUpdateGroups(c *gin.Context) {
 		return
 	}
 
-	// http://jmoiron.net/blog/limiting-concurrency-in-go/
-	concurrency := 10
-	semaphore := make(chan bool, concurrency)
+	// limit concurrency using a semaphore
+	semaphore := foundation.NewSemaphore(10)
 
 	resultChannel := make(chan error, len(body.Groups))
 
 	for _, g := range body.Groups {
-		// try to fill semaphore up to it's full size otherwise wait for a routine to finish
-		semaphore <- true
+		semaphore.Acquire()
 
 		go func(g string) {
-			// lower semaphore once the routine's finished, making room for another one to start
-			defer func() { <-semaphore }()
+			defer semaphore.Release()
 
 			group, err := h.cockroachdbClient.GetGroupByID(ctx, g, map[api.FilterType][]string{})
 			if err != nil {
@@ -1415,10 +1408,8 @@ func (h *Handler) BatchUpdateGroups(c *gin.Context) {
 		}(g)
 	}
 
-	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
-	for i := 0; i < cap(semaphore); i++ {
-		semaphore <- true
-	}
+	// wait until all concurrent goroutines are done
+	semaphore.Wait()
 
 	close(resultChannel)
 	for err := range resultChannel {
@@ -1463,19 +1454,16 @@ func (h *Handler) BatchUpdateOrganizations(c *gin.Context) {
 		return
 	}
 
-	// http://jmoiron.net/blog/limiting-concurrency-in-go/
-	concurrency := 10
-	semaphore := make(chan bool, concurrency)
+	// limit concurrency using a semaphore
+	semaphore := foundation.NewSemaphore(10)
 
 	resultChannel := make(chan error, len(body.Organizations))
 
 	for _, o := range body.Organizations {
-		// try to fill semaphore up to it's full size otherwise wait for a routine to finish
-		semaphore <- true
+		semaphore.Acquire()
 
 		go func(o string) {
-			// lower semaphore once the routine's finished, making room for another one to start
-			defer func() { <-semaphore }()
+			defer semaphore.Release()
 
 			organization, err := h.cockroachdbClient.GetOrganizationByID(ctx, o)
 			if err != nil {
@@ -1530,10 +1518,8 @@ func (h *Handler) BatchUpdateOrganizations(c *gin.Context) {
 		}(o)
 	}
 
-	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
-	for i := 0; i < cap(semaphore); i++ {
-		semaphore <- true
-	}
+	// wait until all concurrent goroutines are done
+	semaphore.Wait()
 
 	close(resultChannel)
 	for err := range resultChannel {
@@ -1581,19 +1567,16 @@ func (h *Handler) BatchUpdateClients(c *gin.Context) {
 		return
 	}
 
-	// http://jmoiron.net/blog/limiting-concurrency-in-go/
-	concurrency := 10
-	semaphore := make(chan bool, concurrency)
+	// limit concurrency using a semaphore
+	semaphore := foundation.NewSemaphore(10)
 
 	resultChannel := make(chan error, len(body.Clients))
 
 	for _, c := range body.Clients {
-		// try to fill semaphore up to it's full size otherwise wait for a routine to finish
-		semaphore <- true
+		semaphore.Acquire()
 
 		go func(c string) {
-			// lower semaphore once the routine's finished, making room for another one to start
-			defer func() { <-semaphore }()
+			defer semaphore.Release()
 
 			client, err := h.cockroachdbClient.GetClientByID(ctx, c)
 			if err != nil {
@@ -1685,10 +1668,8 @@ func (h *Handler) BatchUpdateClients(c *gin.Context) {
 		}(c)
 	}
 
-	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
-	for i := 0; i < cap(semaphore); i++ {
-		semaphore <- true
-	}
+	// wait until all concurrent goroutines are done
+	semaphore.Wait()
 
 	close(resultChannel)
 	for err := range resultChannel {
@@ -1736,19 +1717,16 @@ func (h *Handler) BatchUpdatePipelines(c *gin.Context) {
 		return
 	}
 
-	// http://jmoiron.net/blog/limiting-concurrency-in-go/
-	concurrency := 10
-	semaphore := make(chan bool, concurrency)
+	// limit concurrency using a semaphore
+	semaphore := foundation.NewSemaphore(10)
 
 	resultChannel := make(chan error, len(body.Pipelines))
 
 	for _, p := range body.Pipelines {
-		// try to fill semaphore up to it's full size otherwise wait for a routine to finish
-		semaphore <- true
+		semaphore.Acquire()
 
 		go func(p string) {
-			// lower semaphore once the routine's finished, making room for another one to start
-			defer func() { <-semaphore }()
+			defer semaphore.Release()
 
 			// split pipeline in source, owner and name
 			pipelineParts := strings.Split(p, "/")
@@ -1847,10 +1825,8 @@ func (h *Handler) BatchUpdatePipelines(c *gin.Context) {
 		}(p)
 	}
 
-	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
-	for i := 0; i < cap(semaphore); i++ {
-		semaphore <- true
-	}
+	// wait until all concurrent goroutines are done
+	semaphore.Wait()
 
 	close(resultChannel)
 	for err := range resultChannel {

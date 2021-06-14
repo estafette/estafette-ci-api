@@ -39,8 +39,6 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
-github.com/Masterminds/squirrel v1.2.0 h1:K1NhbTO21BWG47IVR0OnIZuE0LZcXAYqywrC3Ko53KI=
-github.com/Masterminds/squirrel v1.2.0/go.mod h1:yaPeOnPG5ZRwL9oKdTsO/prlkPbXWZlRVMQ/gGlzIuA=
 github.com/Masterminds/squirrel v1.5.0 h1:JukIZisrUXadA9pl3rMkjhiamxiB0cXiu+HGp/Y8cY8=
 github.com/Masterminds/squirrel v1.5.0/go.mod h1:NNaOrjSoIDfDA40n7sr2tPNZRfjzjA400rg+riTZj10=
 github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46/go.mod h1:3wb06e3pkSAbeQ52E9H9iFoQsEEwGN64994WTCIhntQ=
@@ -131,8 +129,8 @@ github.com/estafette/estafette-ci-manifest v0.1.190/go.mod h1:WASkc3SCW6ghRv6Iim
 github.com/estafette/estafette-ci-manifest v0.1.196 h1:dgM3BfmLqTCLa2CUASJYzWNYBhW2mJGxSsJsvxvgk5Q=
 github.com/estafette/estafette-ci-manifest v0.1.196/go.mod h1:WASkc3SCW6ghRv6IimS7e2dUJljwn+5izBXt+ATxp2Q=
 github.com/estafette/estafette-foundation v0.0.54/go.mod h1:3tosAek4nyGDaWbi9dz2jSb2Wa4dAtLw/7c7mDWwaLA=
-github.com/estafette/estafette-foundation v0.0.69 h1:KzAOoFy6IEBibs8NGDV15jeyWrEf0F5szerjCsPizNQ=
-github.com/estafette/estafette-foundation v0.0.69/go.mod h1:JCPoeHhk9b8Jom1Vf5wwIfkDvrdXCKxEtmDdDc+1ISg=
+github.com/estafette/estafette-foundation v0.0.70 h1:TK7Y3z/BQvlxsrjM/IqfsYxWnVFFjTlgYohxEqUB8JU=
+github.com/estafette/estafette-foundation v0.0.70/go.mod h1:JCPoeHhk9b8Jom1Vf5wwIfkDvrdXCKxEtmDdDc+1ISg=
 github.com/evanphx/json-patch v4.9.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 h1:BHsljHzVlRcyQhjrss6TZTdY2VfCqZPbv5k3iBFa2ZQ=

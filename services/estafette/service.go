@@ -20,6 +20,7 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
+	foundation "github.com/estafette/estafette-foundation"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -780,8 +781,8 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 	triggerCount := 0
 	firedTriggerCount := 0
 
-	// http://jmoiron.net/blog/limiting-concurrency-in-go/
-	semaphore := make(chan bool, s.triggerConcurrency)
+	// limit concurrency using a semaphore
+	semaphore := foundation.NewSemaphore(s.triggerConcurrency)
 
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
@@ -799,12 +800,10 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 
 				firedTriggerCount++
 
-				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
-				semaphore <- true
+				semaphore.Acquire()
 
 				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
-					// lower semaphore once the routine's finished, making room for another one to start
-					defer func() { <-semaphore }()
+					defer semaphore.Release()
 
 					// create new context to avoid cancellation impacting execution
 					span, _ := opentracing.StartSpanFromContext(ctx, "estafette:AsyncFireGitTriggersItem")
@@ -837,10 +836,8 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 		}
 	}
 
-	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
-	for i := 0; i < cap(semaphore); i++ {
-		semaphore <- true
-	}
+	// wait until all concurrent goroutines are done
+	semaphore.Wait()
 
 	log.Info().Msgf("[trigger:git(%v-%v:%v)] Fired %v out of %v triggers for %v pipelines", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
 
@@ -867,8 +864,8 @@ func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.E
 	triggerCount := 0
 	firedTriggerCount := 0
 
-	// http://jmoiron.net/blog/limiting-concurrency-in-go/
-	semaphore := make(chan bool, s.triggerConcurrency)
+	// limit concurrency using a semaphore
+	semaphore := foundation.NewSemaphore(s.triggerConcurrency)
 
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
@@ -886,12 +883,10 @@ func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.E
 
 				firedTriggerCount++
 
-				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
-				semaphore <- true
+				semaphore.Acquire()
 
 				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
-					// lower semaphore once the routine's finished, making room for another one to start
-					defer func() { <-semaphore }()
+					defer semaphore.Release()
 
 					// create new context to avoid cancellation impacting execution
 					span, _ := opentracing.StartSpanFromContext(ctx, "estafette:AsyncFireGithubTriggersItem")
@@ -923,10 +918,7 @@ func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.E
 		}
 	}
 
-	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
-	for i := 0; i < cap(semaphore); i++ {
-		semaphore <- true
-	}
+	semaphore.Wait()
 
 	log.Info().Msgf("[trigger:github(%v:%v)] Fired %v out of %v triggers for %v pipelines", githubEvent.Repository, githubEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
 
@@ -953,8 +945,8 @@ func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent mani
 	triggerCount := 0
 	firedTriggerCount := 0
 
-	// http://jmoiron.net/blog/limiting-concurrency-in-go/
-	semaphore := make(chan bool, s.triggerConcurrency)
+	// limit concurrency using a semaphore
+	semaphore := foundation.NewSemaphore(s.triggerConcurrency)
 
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
@@ -972,12 +964,10 @@ func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent mani
 
 				firedTriggerCount++
 
-				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
-				semaphore <- true
+				semaphore.Acquire()
 
 				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
-					// lower semaphore once the routine's finished, making room for another one to start
-					defer func() { <-semaphore }()
+					defer semaphore.Release()
 
 					// create new context to avoid cancellation impacting execution
 					span, _ := opentracing.StartSpanFromContext(ctx, "estafette:AsyncFireBitbucketTriggersItem")
@@ -1010,10 +1000,8 @@ func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent mani
 		}
 	}
 
-	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
-	for i := 0; i < cap(semaphore); i++ {
-		semaphore <- true
-	}
+	// wait until all concurrent goroutines are done
+	semaphore.Wait()
 
 	log.Info().Msgf("[trigger:bitbucket(%v:%v)] Fired %v out of %v triggers for %v pipelines", bitbucketEvent.Repository, bitbucketEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
 
@@ -1048,8 +1036,8 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 	triggerCount := 0
 	firedTriggerCount := 0
 
-	// http://jmoiron.net/blog/limiting-concurrency-in-go/
-	semaphore := make(chan bool, s.triggerConcurrency)
+	// limit concurrency using a semaphore
+	semaphore := foundation.NewSemaphore(s.triggerConcurrency)
 
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
@@ -1067,12 +1055,10 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 
 				firedTriggerCount++
 
-				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
-				semaphore <- true
+				semaphore.Acquire()
 
 				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
-					// lower semaphore once the routine's finished, making room for another one to start
-					defer func() { <-semaphore }()
+					defer semaphore.Release()
 
 					// create new context to avoid cancellation impacting execution
 					span, _ := opentracing.StartSpanFromContext(ctx, "estafette:AsyncFirePipelineTriggerItem")
@@ -1105,10 +1091,8 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 		}
 	}
 
-	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
-	for i := 0; i < cap(semaphore); i++ {
-		semaphore <- true
-	}
+	// wait until all concurrent goroutines are done
+	semaphore.Wait()
 
 	log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Fired %v out of %v triggers for %v pipelines", build.RepoSource, build.RepoOwner, build.RepoName, event, firedTriggerCount, triggerCount, len(pipelines))
 
@@ -1142,8 +1126,8 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 	triggerCount := 0
 	firedTriggerCount := 0
 
-	// http://jmoiron.net/blog/limiting-concurrency-in-go/
-	semaphore := make(chan bool, s.triggerConcurrency)
+	// limit concurrency using a semaphore
+	semaphore := foundation.NewSemaphore(s.triggerConcurrency)
 
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
@@ -1161,12 +1145,10 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 
 				firedTriggerCount++
 
-				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
-				semaphore <- true
+				semaphore.Acquire()
 
 				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
-					// lower semaphore once the routine's finished, making room for another one to start
-					defer func() { <-semaphore }()
+					defer semaphore.Release()
 
 					// create new context to avoid cancellation impacting execution
 					span, _ := opentracing.StartSpanFromContext(ctx, "estafette:AsyncFireReleaseTriggersItem")
@@ -1198,10 +1180,8 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 		}
 	}
 
-	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
-	for i := 0; i < cap(semaphore); i++ {
-		semaphore <- true
-	}
+	// wait until all concurrent goroutines are done
+	semaphore.Wait()
 
 	log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v] Fired %v out of %v triggers for %v pipelines", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, firedTriggerCount, triggerCount, len(pipelines))
 
@@ -1226,8 +1206,8 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 	triggerCount := 0
 	firedTriggerCount := 0
 
-	// http://jmoiron.net/blog/limiting-concurrency-in-go/
-	semaphore := make(chan bool, s.triggerConcurrency)
+	// limit concurrency using a semaphore
+	semaphore := foundation.NewSemaphore(s.triggerConcurrency)
 
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
@@ -1245,12 +1225,10 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 
 				firedTriggerCount++
 
-				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
-				semaphore <- true
+				semaphore.Acquire()
 
 				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
-					// lower semaphore once the routine's finished, making room for another one to start
-					defer func() { <-semaphore }()
+					defer semaphore.Release()
 
 					// create new context to avoid cancellation impacting execution
 					span, _ := opentracing.StartSpanFromContext(ctx, "estafette:AsyncFirePubSubTriggersItem")
@@ -1283,10 +1261,8 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 		}
 	}
 
-	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
-	for i := 0; i < cap(semaphore); i++ {
-		semaphore <- true
-	}
+	// wait until all concurrent goroutines are done
+	semaphore.Wait()
 
 	log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Fired %v out of %v triggers for %v pipelines", pubsubEvent.Project, pubsubEvent.Topic, firedTriggerCount, triggerCount, len(pipelines))
 
@@ -1314,9 +1290,8 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 	triggerCount := 0
 	firedTriggerCount := 0
 
-	// http://jmoiron.net/blog/limiting-concurrency-in-go/
-
-	semaphore := make(chan bool, s.triggerConcurrency)
+	// limit concurrency using a semaphore
+	semaphore := foundation.NewSemaphore(s.triggerConcurrency)
 
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
@@ -1334,12 +1309,10 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 
 				firedTriggerCount++
 
-				// try to fill semaphore up to it's full size otherwise wait for a routine to finish
-				semaphore <- true
+				semaphore.Acquire()
 
 				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
-					// lower semaphore once the routine's finished, making room for another one to start
-					defer func() { <-semaphore }()
+					defer semaphore.Release()
 
 					// create new context to avoid cancellation impacting execution
 					span, _ := opentracing.StartSpanFromContext(ctx, "estafette:AsyncFireCronTriggersItem")
@@ -1372,10 +1345,8 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 		}
 	}
 
-	// try to fill semaphore up to it's full size which only succeeds if all routines have finished
-	for i := 0; i < cap(semaphore); i++ {
-		semaphore <- true
-	}
+	// wait until all concurrent goroutines are done
+	semaphore.Wait()
 
 	log.Info().Msgf("[trigger:cron(%v)] Fired %v out of %v triggers for %v pipelines", ce.Time, firedTriggerCount, triggerCount, len(pipelines))
 

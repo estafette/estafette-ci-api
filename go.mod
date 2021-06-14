@@ -13,7 +13,7 @@ require (
 	github.com/estafette/estafette-ci-contracts v0.0.260
 	github.com/estafette/estafette-ci-crypt v0.0.42
 	github.com/estafette/estafette-ci-manifest v0.1.196
-	github.com/estafette/estafette-foundation v0.0.69
+	github.com/estafette/estafette-foundation v0.0.70
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gin-contrib/gzip v0.0.2-0.20190827144029-5602d8b438ea
 	github.com/gin-gonic/gin v1.7.1
