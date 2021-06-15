@@ -129,6 +129,10 @@ type Client interface {
 	GetAllPipelineReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
 	GetAllPipelineBots(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (bots []*contracts.Bot, err error)
 	GetAllPipelineBotsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+	GetAllNotifications(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (notifications []*contracts.NotificationRecord, err error)
+	GetAllNotificationsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error)
+
+	InsertNotification(ctx context.Context, notificationRecord contracts.NotificationRecord) (n *contracts.NotificationRecord, err error)
 
 	GetLabelValues(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error)
 	GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error)
@@ -3948,6 +3952,119 @@ func (c *client) GetAllPipelineBotsCount(ctx context.Context, filters map[api.Fi
 	return
 }
 
+func (c *client) GetAllNotifications(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (notifications []*contracts.NotificationRecord, err error) {
+
+	// generate query
+	query := c.selectNotificationsQuery().
+		Limit(uint64(pageSize)).
+		Offset(uint64((pageNumber - 1) * pageSize))
+
+	// dynamically set order by clause
+	query, err = orderByClauseGeneratorForSortings(query, "a.inserted_at DESC", sortings)
+	if err != nil {
+		return
+	}
+
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForNotificationFilters(query, filters)
+	if err != nil {
+		return
+	}
+
+	// execute query
+	rows, err := query.RunWith(c.databaseConnection).QueryContext(ctx)
+	if err != nil {
+		return
+	}
+
+	// read rows
+	if notifications, err = c.scanNotifications(rows); err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *client) GetAllNotificationsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
+
+	// generate query
+	query :=
+		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+			Select("COUNT(*)").
+			From("notifications a")
+
+	// dynamically set where clauses for filtering
+	query, err = whereClauseGeneratorForNotificationFilters(query, filters)
+	if err != nil {
+		return
+	}
+
+	// execute query
+	row := query.RunWith(c.databaseConnection).QueryRowContext(ctx)
+	if err = row.Scan(&totalCount); err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *client) InsertNotification(ctx context.Context, notificationRecord contracts.NotificationRecord) (n *contracts.NotificationRecord, err error) {
+
+	notificationsBytes, err := json.Marshal(notificationRecord.Notifications)
+	if err != nil {
+		return
+	}
+	groupsBytes, err := json.Marshal(notificationRecord.Groups)
+	if err != nil {
+		return
+	}
+	organizationsBytes, err := json.Marshal(notificationRecord.Organizations)
+	if err != nil {
+		return
+	}
+
+	// insert logs
+	row := c.databaseConnection.QueryRowContext(ctx,
+		`
+		INSERT INTO
+			notifications
+		(
+			link_type,
+			link_entity,
+			source,
+			notifications,
+			groups,
+			organizations
+		)
+		VALUES
+		(
+			$1,
+			$2,
+			$3,
+			$4,
+			$5,
+			$6
+		)
+		RETURNING
+			id
+		`,
+		notificationRecord.LinkType,
+		notificationRecord.LinkEntity,
+		notificationRecord.Source,
+		notificationsBytes,
+		groupsBytes,
+		organizationsBytes,
+	)
+
+	n = &notificationRecord
+
+	if err = row.Scan(&n.ID); err != nil {
+		return
+	}
+
+	return
+}
+
 func (c *client) GetLabelValues(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error) {
 
 	// see https://github.com/cockroachdb/cockroach/issues/35848
@@ -4851,6 +4968,24 @@ func whereClauseGeneratorForBotFilters(query sq.SelectBuilder, filters map[api.F
 	return query, nil
 }
 
+func whereClauseGeneratorForNotificationFilters(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
+
+	query, err := whereClauseGeneratorForSinceFilter(query, "inserted_at", filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForGroupsFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+	query, err = whereClauseGeneratorForOrganizationsFilter(query, filters)
+	if err != nil {
+		return query, err
+	}
+
+	return query, nil
+}
+
 func whereClauseGeneratorForGenericFilter(query sq.SelectBuilder, filters map[api.FilterType][]string, filterType api.FilterType, fieldName string) (sq.SelectBuilder, error) {
 	if values, ok := filters[filterType]; ok && len(values) > 0 && values[0] != "" && values[0] != "all" {
 		value := values[0]
@@ -5719,6 +5854,41 @@ func (c *client) scanBots(rows *sql.Rows) (bots []*contracts.Bot, err error) {
 		}
 
 		bots = append(bots, &bot)
+	}
+
+	return
+}
+
+func (c *client) scanNotifications(rows *sql.Rows) (notifications []*contracts.NotificationRecord, err error) {
+
+	notifications = make([]*contracts.NotificationRecord, 0)
+
+	defer rows.Close()
+	for rows.Next() {
+
+		notification := contracts.NotificationRecord{}
+		var id int
+		var notificationsData, groupsData, organizationsData []uint8
+
+		if err = rows.Scan(
+			&id,
+			&notification.LinkType,
+			&notification.LinkEntity,
+			&notification.Source,
+			&notificationsData,
+			&groupsData,
+			&organizationsData); err != nil {
+			return
+		}
+
+		notification.ID = strconv.Itoa(id)
+
+		err = c.setNotificationPropertiesFromJSONB(&notification, notificationsData, groupsData, organizationsData)
+		if err != nil {
+			return
+		}
+
+		notifications = append(notifications, &notification)
 	}
 
 	return
@@ -7656,6 +7826,14 @@ func (c *client) selectBotsQuery() sq.SelectBuilder {
 		From("bots a")
 }
 
+func (c *client) selectNotificationsQuery() sq.SelectBuilder {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	return psql.
+		Select("a.id, a.link_type, a.link_entity, a.source, a.notifications, a.inserted_at, a.groups, a.organizations").
+		From("notifications a")
+}
+
 func (c *client) selectComputedReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -7886,6 +8064,27 @@ func (c *client) setBotPropertiesFromJSONB(bot *contracts.Bot, triggeredByEvents
 	}
 	if len(organizationsData) > 0 {
 		if err = json.Unmarshal(organizationsData, &bot.Organizations); err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+func (c *client) setNotificationPropertiesFromJSONB(notification *contracts.NotificationRecord, notificationsData, groupsData, organizationsData []uint8) (err error) {
+
+	if len(notificationsData) > 0 {
+		if err = json.Unmarshal(notificationsData, &notification.Notifications); err != nil {
+			return
+		}
+	}
+	if len(groupsData) > 0 {
+		if err = json.Unmarshal(groupsData, &notification.Groups); err != nil {
+			return
+		}
+	}
+	if len(organizationsData) > 0 {
+		if err = json.Unmarshal(organizationsData, &notification.Organizations); err != nil {
 			return
 		}
 	}

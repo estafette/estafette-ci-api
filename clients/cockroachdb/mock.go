@@ -150,6 +150,36 @@ func (mr *MockClientMockRecorder) DeleteUser(ctx, user interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockClient)(nil).DeleteUser), ctx, user)
 }
 
+// GetAllNotifications mocks base method.
+func (m *MockClient) GetAllNotifications(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]*estafette_ci_contracts.NotificationRecord, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllNotifications", ctx, pageNumber, pageSize, filters, sortings)
+	ret0, _ := ret[0].([]*estafette_ci_contracts.NotificationRecord)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllNotifications indicates an expected call of GetAllNotifications.
+func (mr *MockClientMockRecorder) GetAllNotifications(ctx, pageNumber, pageSize, filters, sortings interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllNotifications", reflect.TypeOf((*MockClient)(nil).GetAllNotifications), ctx, pageNumber, pageSize, filters, sortings)
+}
+
+// GetAllNotificationsCount mocks base method.
+func (m *MockClient) GetAllNotificationsCount(ctx context.Context, filters map[api.FilterType][]string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllNotificationsCount", ctx, filters)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllNotificationsCount indicates an expected call of GetAllNotificationsCount.
+func (mr *MockClientMockRecorder) GetAllNotificationsCount(ctx, filters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllNotificationsCount", reflect.TypeOf((*MockClient)(nil).GetAllNotificationsCount), ctx, filters)
+}
+
 // GetAllPipelineBots mocks base method.
 func (m *MockClient) GetAllPipelineBots(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]*estafette_ci_contracts.Bot, error) {
 	m.ctrl.T.Helper()
@@ -2011,6 +2041,21 @@ func (m *MockClient) InsertGroup(ctx context.Context, group estafette_ci_contrac
 func (mr *MockClientMockRecorder) InsertGroup(ctx, group interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertGroup", reflect.TypeOf((*MockClient)(nil).InsertGroup), ctx, group)
+}
+
+// InsertNotification mocks base method.
+func (m *MockClient) InsertNotification(ctx context.Context, notificationRecord estafette_ci_contracts.NotificationRecord) (*estafette_ci_contracts.NotificationRecord, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InsertNotification", ctx, notificationRecord)
+	ret0, _ := ret[0].(*estafette_ci_contracts.NotificationRecord)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// InsertNotification indicates an expected call of InsertNotification.
+func (mr *MockClientMockRecorder) InsertNotification(ctx, notificationRecord interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertNotification", reflect.TypeOf((*MockClient)(nil).InsertNotification), ctx, notificationRecord)
 }
 
 // InsertOrganization mocks base method.
