@@ -5874,11 +5874,10 @@ func (c *client) scanNotifications(rows *sql.Rows) (notifications []*contracts.N
 	for rows.Next() {
 
 		notification := contracts.NotificationRecord{}
-		var id int
-		var linkDetailData, notificationsData, groupsData, organizationsData []uint8
+		var linkDetailData, notificationsData, groupsData, organizationsData []byte
 
 		if err = rows.Scan(
-			&id,
+			&notification.ID,
 			&notification.LinkType,
 			&notification.LinkID,
 			&linkDetailData,
@@ -5890,8 +5889,6 @@ func (c *client) scanNotifications(rows *sql.Rows) (notifications []*contracts.N
 		}
 
 		// set fields that couldn't be set straight away from the data
-		notification.ID = strconv.Itoa(id)
-
 		err = notification.SetLinkDetail(linkDetailData)
 		if err != nil {
 			return
