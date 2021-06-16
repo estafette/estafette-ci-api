@@ -511,6 +511,33 @@ func (h *Handler) CreatePipelineBot(c *gin.Context) {
 	c.JSON(http.StatusCreated, createdBot)
 }
 
+func (h *Handler) CreateNotification(c *gin.Context) {
+
+	if !api.RequestTokenIsValid(c) {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
+		return
+	}
+
+	var notification contracts.NotificationRecord
+	err := c.BindJSON(&notification)
+	if err != nil {
+		errorMessage := "Binding CreateNotification body failed"
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+
+	createdNotification, err := h.cockroachDBClient.InsertNotification(c.Request.Context(), notification)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed creating notification %v of type %v", createdNotification.LinkID, createdNotification.LinkType)
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+
+	c.JSON(http.StatusCreated, createdNotification)
+}
+
 func (h *Handler) GetPipelineBuildLogs(c *gin.Context) {
 
 	source := c.Param("source")
@@ -1761,6 +1788,40 @@ func (h *Handler) GetAllPipelineBots(c *gin.Context) {
 
 	if err != nil {
 		log.Error().Err(err).Msg("Failed retrieving all bots from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) GetAllNotifications(c *gin.Context) {
+
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
+
+	response, err := api.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			notifications, err := h.cockroachDBClient.GetAllNotifications(c.Request.Context(), pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(notifications))
+			for i := range notifications {
+				items[i] = notifications[i]
+			}
+
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachDBClient.GetAllNotificationsCount(c.Request.Context(), filters)
+		},
+		pageNumber,
+		pageSize)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving all notifications from db")
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
