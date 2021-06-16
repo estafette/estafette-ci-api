@@ -8089,27 +8089,6 @@ func (c *client) setBotPropertiesFromJSONB(bot *contracts.Bot, triggeredByEvents
 	return
 }
 
-func (c *client) setNotificationPropertiesFromJSONB(notification *contracts.NotificationRecord, notificationsData, groupsData, organizationsData []uint8) (err error) {
-
-	if len(notificationsData) > 0 {
-		if err = json.Unmarshal(notificationsData, &notification.Notifications); err != nil {
-			return
-		}
-	}
-	if len(groupsData) > 0 {
-		if err = json.Unmarshal(groupsData, &notification.Groups); err != nil {
-			return
-		}
-	}
-	if len(organizationsData) > 0 {
-		if err = json.Unmarshal(organizationsData, &notification.Organizations); err != nil {
-			return
-		}
-	}
-
-	return
-}
-
 func (c *client) getLatestReleasesForPipeline(ctx context.Context, pipeline *contracts.Pipeline) {
 	pipeline.ReleaseTargets = c.getLatestReleases(ctx, pipeline.ReleaseTargets, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName)
 }
