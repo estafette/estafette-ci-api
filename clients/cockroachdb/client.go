@@ -5883,6 +5883,7 @@ func (c *client) scanNotifications(rows *sql.Rows) (notifications []*contracts.N
 			&linkDetailData,
 			&notification.Source,
 			&notificationsData,
+			&notification.InsertedAt,
 			&groupsData,
 			&organizationsData); err != nil {
 			return
