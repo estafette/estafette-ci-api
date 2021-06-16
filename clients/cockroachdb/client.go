@@ -4010,15 +4010,19 @@ func (c *client) GetAllNotificationsCount(ctx context.Context, filters map[api.F
 
 func (c *client) InsertNotification(ctx context.Context, notificationRecord contracts.NotificationRecord) (n *contracts.NotificationRecord, err error) {
 
-	notificationsBytes, err := json.Marshal(notificationRecord.Notifications)
+	notificationsBytes, err := notificationRecord.GetNotifications()
 	if err != nil {
 		return
 	}
-	groupsBytes, err := json.Marshal(notificationRecord.Groups)
+	groupsBytes, err := notificationRecord.GetGroups()
 	if err != nil {
 		return
 	}
-	organizationsBytes, err := json.Marshal(notificationRecord.Organizations)
+	organizationsBytes, err := notificationRecord.GetOrganizations()
+	if err != nil {
+		return
+	}
+	linkDetailBytes, err := notificationRecord.GetLinkDetail()
 	if err != nil {
 		return
 	}
@@ -4030,7 +4034,8 @@ func (c *client) InsertNotification(ctx context.Context, notificationRecord cont
 			notifications
 		(
 			link_type,
-			link_entity,
+			link_id,
+			link_detail,
 			source,
 			notifications,
 			groups,
@@ -4043,13 +4048,15 @@ func (c *client) InsertNotification(ctx context.Context, notificationRecord cont
 			$3,
 			$4,
 			$5,
-			$6
+			$6,
+			$7
 		)
 		RETURNING
 			id
 		`,
 		notificationRecord.LinkType,
-		notificationRecord.LinkEntity,
+		notificationRecord.LinkID,
+		linkDetailBytes,
 		notificationRecord.Source,
 		notificationsBytes,
 		groupsBytes,
@@ -5868,12 +5875,13 @@ func (c *client) scanNotifications(rows *sql.Rows) (notifications []*contracts.N
 
 		notification := contracts.NotificationRecord{}
 		var id int
-		var notificationsData, groupsData, organizationsData []uint8
+		var linkDetailData, notificationsData, groupsData, organizationsData []uint8
 
 		if err = rows.Scan(
 			&id,
 			&notification.LinkType,
-			&notification.LinkEntity,
+			&notification.LinkID,
+			&linkDetailData,
 			&notification.Source,
 			&notificationsData,
 			&groupsData,
@@ -5881,9 +5889,22 @@ func (c *client) scanNotifications(rows *sql.Rows) (notifications []*contracts.N
 			return
 		}
 
+		// set fields that couldn't be set straight away from the data
 		notification.ID = strconv.Itoa(id)
 
-		err = c.setNotificationPropertiesFromJSONB(&notification, notificationsData, groupsData, organizationsData)
+		err = notification.SetLinkDetail(linkDetailData)
+		if err != nil {
+			return
+		}
+		err = notification.SetNotifications(notificationsData)
+		if err != nil {
+			return
+		}
+		err = notification.SetGroups(groupsData)
+		if err != nil {
+			return
+		}
+		err = notification.SetOrganizations(organizationsData)
 		if err != nil {
 			return
 		}
@@ -7830,7 +7851,7 @@ func (c *client) selectNotificationsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.link_type, a.link_entity, a.source, a.notifications, a.inserted_at, a.groups, a.organizations").
+		Select("a.id, a.link_type, a.link_id, a.link_detail, a.source, a.notifications, a.inserted_at, a.groups, a.organizations").
 		From("notifications a")
 }
 

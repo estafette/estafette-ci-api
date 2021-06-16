@@ -3522,6 +3522,68 @@ func TestIntegrationGetBitbucketTriggers(t *testing.T) {
 	})
 }
 
+func TestIntegrationInsertNotification(t *testing.T) {
+	t.Run("ReturnsInsertedNotificationWithID", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		notification := getNotification()
+
+		// act
+		insertedNotification, err := cockroachdbClient.InsertNotification(ctx, notification)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, insertedNotification)
+		assert.True(t, insertedNotification.ID != "")
+	})
+}
+
+func TestIntegrationGetAllNotifications(t *testing.T) {
+	t.Run("ReturnsFirstPageOfNotifications", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		notification := getNotification()
+		_, err := cockroachdbClient.InsertNotification(ctx, notification)
+		assert.Nil(t, err)
+
+		// act
+		notifications, err := cockroachdbClient.GetAllNotifications(ctx, 1, 20, map[api.FilterType][]string{}, []api.OrderField{})
+
+		assert.Nil(t, err)
+		assert.True(t, len(notifications) > 0)
+	})
+}
+
+func TestIntegrationGetAllNotificationsCount(t *testing.T) {
+	t.Run("ReturnsCountForAllNotifications", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		notification := getNotification()
+		_, err := cockroachdbClient.InsertNotification(ctx, notification)
+		assert.Nil(t, err)
+
+		// act
+		count, err := cockroachdbClient.GetAllNotificationsCount(ctx, map[api.FilterType][]string{})
+
+		assert.Nil(t, err)
+		assert.True(t, count > 0)
+	})
+}
+
 func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 
 	apiConfig := &api.APIConfig{
@@ -3591,6 +3653,27 @@ func getBot() contracts.Bot {
 		RepoName:   "estafette-ci-api",
 		BotStatus:  contracts.StatusPending,
 		Events:     []manifest.EstafetteEvent{},
+	}
+}
+
+func getNotification() contracts.NotificationRecord {
+	return contracts.NotificationRecord{
+		LinkType: contracts.NotificationLinkTypePipeline,
+		LinkID:   "github.com/estafette/estafette-ci-api",
+		PipelineDetail: &contracts.PipelineLinkDetail{
+			Branch:   "main",
+			Revision: "a4d05af37cfe169633793f68faea88746b240325",
+			Version:  "1.0.0-main-1759",
+			Status:   contracts.StatusSucceeded,
+		},
+		Source: "extensions/docker",
+		Notifications: []contracts.Notification{
+			{
+				Type:    contracts.NotificationTypeVulnerability,
+				Level:   contracts.NotificationLevelCritical,
+				Message: "CVE-xxx",
+			},
+		},
 	}
 }
 
