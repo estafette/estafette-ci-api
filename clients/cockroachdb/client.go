@@ -3129,7 +3129,7 @@ func (c *client) GetBuildsDuration(ctx context.Context, filters map[api.FilterTy
 	// generate query
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("SUM(AGE(updated_at,inserted_at))::string").
+			Select("SUM(AGE(updated_at,inserted_at))::int").
 			From("builds a")
 
 	// dynamically set where clauses for filtering
@@ -3141,16 +3141,12 @@ func (c *client) GetBuildsDuration(ctx context.Context, filters map[api.FilterTy
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRowContext(ctx)
 
-	var totalDurationAsString string
-
-	if err = row.Scan(&totalDurationAsString); err != nil {
+	var totalDurationSeconds int
+	if err = row.Scan(&totalDurationSeconds); err != nil {
 		return
 	}
 
-	totalDuration, err = time.ParseDuration(totalDurationAsString)
-	if err != nil {
-		return
-	}
+	totalDuration = time.Duration(totalDurationSeconds) * time.Second
 
 	return
 }
