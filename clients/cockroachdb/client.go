@@ -508,7 +508,7 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
 		Where(sq.Eq{"build_status": allowedBuildStatusesToTransitionFromAsStrings}).
-		Suffix("RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event, groups, organizations")
+		Suffix("RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, started_at, updated_at, EXTRACT(epoch FROM age(COALESCE(started_at, inserted_at), inserted_at)), EXTRACT(epoch FROM age(updated_at, COALESCE(started_at,inserted_at))), triggered_by_event, groups, organizations")
 
 	if buildStatus == contracts.StatusRunning {
 		query = query.Set("started_at", sq.Expr("now()"))
@@ -713,7 +713,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
 		Where(sq.Eq{"release_status": allowedReleaseStatusesToTransitionFromAsStrings}).
-		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event, groups, organizations")
+		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, started_at, updated_at, EXTRACT(epoch FROM age(COALESCE(started_at, inserted_at), inserted_at)), EXTRACT(epoch FROM age(updated_at, COALESCE(started_at,inserted_at))), triggered_by_event, groups, organizations")
 
 	if releaseStatus == contracts.StatusRunning {
 		query = query.Set("started_at", sq.Expr("now()"))
@@ -901,7 +901,7 @@ func (c *client) UpdateBotStatus(ctx context.Context, repoSource, repoOwner, rep
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
 		Where(sq.Eq{"bot_status": allowedBotStatusesToTransitionFromAsStrings}).
-		Suffix("RETURNING id, repo_source, repo_owner, repo_name, bot, bot_status, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event, groups, organizations")
+		Suffix("RETURNING id, repo_source, repo_owner, repo_name, bot, bot_status, inserted_at, started_at, updated_at, EXTRACT(epoch FROM age(COALESCE(started_at, inserted_at), inserted_at)), EXTRACT(epoch FROM age(updated_at, COALESCE(started_at,inserted_at))), triggered_by_event, groups, organizations")
 
 	if botStatus == contracts.StatusRunning {
 		query = query.Set("started_at", sq.Expr("now()"))
@@ -1885,7 +1885,7 @@ func (c *client) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOw
 		Limit(uint64(50))
 
 	query := psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.started_at, a.updated_at, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)), EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))), a.triggered_by_event").
 		Prefix("WITH ranked_builds AS (?)", innerquery).
 		From("ranked_builds a").
 		Where("a.rn = 1").
@@ -3256,7 +3256,7 @@ func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, rep
 	// generate query
 	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("a.inserted_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT AS pending_duration, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT as duration").
+			Select("a.inserted_at, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)) AS pending_duration, EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))) as duration").
 			From("builds a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -3318,7 +3318,7 @@ func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, r
 	// generate query
 	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("a.inserted_at, a.release, a.release_action, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT as pending_duration, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT as duration").
+			Select("a.inserted_at, a.release, a.release_action, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)) as pending_duration, EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))) as duration").
 			From("releases a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -3384,7 +3384,7 @@ func (c *client) GetPipelineBotsDurations(ctx context.Context, repoSource, repoO
 	// generate query
 	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("a.inserted_at, a.bot, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT as pending_duration, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT as duration").
+			Select("a.inserted_at, a.bot, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)) as pending_duration, EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))) as duration").
 			From("bots a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -7817,7 +7817,7 @@ func (c *client) selectBuildsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event, a.groups, a.organizations").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.started_at, a.updated_at, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)), EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))), a.triggered_by_event, a.groups, a.organizations").
 		From("builds a")
 }
 
@@ -7825,7 +7825,7 @@ func (c *client) selectPipelinesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.archived, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.last_updated_at, a.triggered_by_event, a.extra_info, a.groups, a.organizations").
+		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.archived, a.inserted_at, a.started_at, a.updated_at, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)), EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))), a.last_updated_at, a.triggered_by_event, a.extra_info, a.groups, a.organizations").
 		From("computed_pipelines a")
 }
 
@@ -7833,7 +7833,7 @@ func (c *client) selectReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event, a.groups, a.organizations").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)), EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))), a.triggered_by_event, a.groups, a.organizations").
 		From("releases a")
 }
 
@@ -7841,7 +7841,7 @@ func (c *client) selectBotsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.bot, a.bot_status, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event, a.groups, a.organizations").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.bot, a.bot_status, a.inserted_at, a.started_at, a.updated_at, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)), EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))), a.triggered_by_event, a.groups, a.organizations").
 		From("bots a")
 }
 
@@ -7857,7 +7857,7 @@ func (c *client) selectComputedReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event, a.extra_info, a.groups, a.organizations").
+		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)), EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))), a.triggered_by_event, a.extra_info, a.groups, a.organizations").
 		From("computed_releases a")
 }
 
