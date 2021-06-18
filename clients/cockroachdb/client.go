@@ -270,11 +270,15 @@ func (c *client) ConnectWithDriverAndSource(ctx context.Context, driverName, dat
 		return
 	}
 
-	log.Info().Msgf("Setting max open connections to database to %v...", c.config.Database.MaxOpenConns)
-	c.databaseConnection.SetMaxOpenConns(c.config.Database.MaxOpenConns)
+	if c.config.Database.MaxOpenConns > 0 {
+		log.Info().Msgf("Setting max open connections to database to %v...", c.config.Database.MaxOpenConns)
+		c.databaseConnection.SetMaxOpenConns(c.config.Database.MaxOpenConns)
+	}
 
-	log.Info().Msgf("Setting max idle connections to database to %v...", c.config.Database.MaxIdleConns)
-	c.databaseConnection.SetMaxIdleConns(c.config.Database.MaxIdleConns)
+	if c.config.Database.MaxIdleConns > 0 {
+		log.Info().Msgf("Setting max idle connections to database to %v...", c.config.Database.MaxIdleConns)
+		c.databaseConnection.SetMaxIdleConns(c.config.Database.MaxIdleConns)
+	}
 
 	if c.config.Database.ConnMaxLifetimeMinutes > 0 {
 		log.Info().Msgf("Setting max lifetime for connections to database to %v minutes...", c.config.Database.ConnMaxLifetimeMinutes)
