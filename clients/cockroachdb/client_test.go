@@ -111,30 +111,6 @@ func TestIntegrationUpdateBuildStatus(t *testing.T) {
 	})
 }
 
-func TestIntegrationGetBuildsDuration(t *testing.T) {
-	t.Run("RetrievesBuildsDuration", func(t *testing.T) {
-
-		if testing.Short() {
-			t.Skip("skipping test in short mode.")
-		}
-
-		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
-		build := getBuild()
-		jobResources := getJobResources()
-		insertedBuild, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
-		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateBuildStatus(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName, insertedBuild.ID, contracts.StatusSucceeded)
-		assert.Nil(t, err)
-
-		// act
-		duration, err := cockroachdbClient.GetBuildsDuration(ctx, make(map[api.FilterType][]string))
-
-		assert.Nil(t, err)
-		assert.True(t, duration.Milliseconds() > 0)
-	})
-}
-
 func TestIntegrationUpdateBuildResourceUtilization(t *testing.T) {
 	t.Run("UpdatesJobResourceForInsertedBuild", func(t *testing.T) {
 
