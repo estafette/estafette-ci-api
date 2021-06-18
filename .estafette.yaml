@@ -55,32 +55,81 @@ stages:
         image: extensions/helm:dev
         action: package
 
-  integration-tests-prepare:
+  integration-tests-against-cockroachdb-prepare:
     services:
-    - name: estafette-ci-db-public
+    - name: cockroachdb
       multiStage: true
       image: cockroachdb/cockroach:v21.1.1
       shell: /bin/bash
       env:
         COCKROACH_SKIP_ENABLING_DIAGNOSTIC_REPORTING: "true"
-      readiness:
-        path: /health?ready=1
-        port: 8080
+      readinessProbe:
+        httpGet:
+          path: /health?ready=1
+          port: 8080
         timeoutSeconds: 120
       commands:
       - /cockroach/cockroach start-single-node --insecure --advertise-addr estafette-ci-db-public
 
-    image: estafette/estafette-ci-db-migrator:${ESTAFETTE_TRIGGER_MIGRATOR_BUILD_VERSION}
+    # image: estafette/estafette-ci-db-migrator:${ESTAFETTE_TRIGGER_MIGRATOR_BUILD_VERSION}
+    image: estafette/estafette-ci-db-migrator:1.0.0-test-against-postgres-211
     env:
+      COCKROACH_HOST: cockroachdb
+      COCKROACH_DATABASE: defaultdb
       COCKROACH_INSECURE: true
+      COCKROACH_PORT: 26257
+      COCKROACH_USER: root
+      COCKROACH_PASSWORD: ''
       ESTAFETTE_LOG_FORMAT: console
 
-  integration-tests:
+  integration-tests-against-cockroachdb:
     image: golang:1.16-alpine
     env:
       CGO_ENABLED: 0
       GOOS: linux
       GOGC: off
+
+      COCKROACH_HOST: cockroachdb
+      COCKROACH_DATABASE: defaultdb
+      COCKROACH_INSECURE: true
+      COCKROACH_PORT: 26257
+      COCKROACH_USER: root
+      COCKROACH_PASSWORD: ''
+    commands:
+    - go test -run TestIntegration ./...
+
+  integration-tests-against-postgre-prepare:
+    services:
+    - name: postgres
+      image: postgres:13.3-alpine
+      env:
+        POSTGRES_PASSWORD: abc
+
+    # image: estafette/estafette-ci-db-migrator:${ESTAFETTE_BUILD_VERSION}
+    image: estafette/estafette-ci-db-migrator:1.0.0-test-against-postgres-211
+    env:
+      COCKROACH_HOST: postgres
+      COCKROACH_DATABASE: postgres
+      COCKROACH_INSECURE: true
+      COCKROACH_PORT: 5432
+      COCKROACH_USER: postgres
+      COCKROACH_PASSWORD: abc
+      ESTAFETTE_LOG_FORMAT: console
+      WAIT_SECONDS: 15
+
+  integration-tests-against-postgres:
+    image: golang:1.16-alpine
+    env:
+      CGO_ENABLED: 0
+      GOOS: linux
+      GOGC: off
+
+      COCKROACH_HOST: postgres
+      COCKROACH_DATABASE: postgres
+      COCKROACH_INSECURE: true
+      COCKROACH_PORT: 5432
+      COCKROACH_USER: postgres
+      COCKROACH_PASSWORD: abc
     commands:
     - go test -run TestIntegration ./...
 

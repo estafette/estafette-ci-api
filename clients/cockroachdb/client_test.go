@@ -3,6 +3,8 @@ package cockroachdb
 import (
 	"context"
 	"errors"
+	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -3586,15 +3588,46 @@ func TestIntegrationGetAllNotificationsCount(t *testing.T) {
 
 func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 
+	databaseName := "defaultdb"
+	if os.Getenv("COCKROACH_DATABASE") != "" {
+		databaseName = os.Getenv("COCKROACH_DATABASE")
+	}
+	host := "estafette-ci-db-public"
+	if os.Getenv("COCKROACH_HOST") != "" {
+		host = os.Getenv("COCKROACH_HOST")
+	}
+	insecure := true
+	if os.Getenv("COCKROACH_INSECURE") != "" {
+		cockroachInsecure, err := strconv.ParseBool(os.Getenv("COCKROACH_INSECURE"))
+		if err == nil {
+			insecure = cockroachInsecure
+		}
+	}
+	port := 26257
+	if os.Getenv("COCKROACH_PORT") != "" {
+		cockroachPort, err := strconv.Atoi(os.Getenv("COCKROACH_PORT"))
+		if err == nil {
+			port = cockroachPort
+		}
+	}
+	user := "root"
+	if os.Getenv("COCKROACH_USER") != "" {
+		user = os.Getenv("COCKROACH_USER")
+	}
+	password := ""
+	if os.Getenv("COCKROACH_PASSWORD") != "" {
+		password = os.Getenv("COCKROACH_PASSWORD")
+	}
+
 	apiConfig := &api.APIConfig{
 		Database: &api.DatabaseConfig{
-			DatabaseName:   "defaultdb",
-			Host:           "estafette-ci-db-public",
-			Insecure:       true,
+			DatabaseName:   databaseName,
+			Host:           host,
+			Insecure:       insecure,
 			CertificateDir: "",
-			Port:           26257,
-			User:           "root",
-			Password:       "",
+			Port:           port,
+			User:           user,
+			Password:       password,
 		},
 	}
 
