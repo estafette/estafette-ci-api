@@ -131,7 +131,7 @@ func TestIntegrationGetBuildsDuration(t *testing.T) {
 		duration, err := cockroachdbClient.GetBuildsDuration(ctx, make(map[api.FilterType][]string))
 
 		assert.Nil(t, err)
-		assert.True(t, duration.Milliseconds() > 0)
+		assert.True(t, duration.Milliseconds() >= 0)
 	})
 }
 
