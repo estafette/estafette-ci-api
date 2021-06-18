@@ -98,9 +98,10 @@ stages:
     commands:
     - go test -run TestIntegration ./...
 
-  integration-tests-against-postgre-prepare:
+  integration-tests-against-postgres-prepare:
     services:
     - name: postgres
+      multiStage: true
       image: postgres:13.3-alpine
       env:
         POSTGRES_PASSWORD: abc
