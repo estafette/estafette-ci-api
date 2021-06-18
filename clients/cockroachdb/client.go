@@ -3141,7 +3141,7 @@ func (c *client) GetBuildsDuration(ctx context.Context, filters map[api.FilterTy
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRowContext(ctx)
 
-	var totalDurationSeconds int
+	var totalDurationSeconds float64
 	if err = row.Scan(&totalDurationSeconds); err != nil {
 		return
 	}
@@ -3286,7 +3286,7 @@ func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, rep
 	for rows.Next() {
 
 		var insertedAt time.Time
-		var durationPendingSeconds, durationRunningSeconds int
+		var durationPendingSeconds, durationRunningSeconds float64
 
 		if err = rows.Scan(
 			&insertedAt,
@@ -3349,7 +3349,7 @@ func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, r
 
 		var insertedAt time.Time
 		var releaseName, releaseAction string
-		var durationPendingSeconds, durationRunningSeconds int
+		var durationPendingSeconds, durationRunningSeconds float64
 
 		if err = rows.Scan(
 			&insertedAt,
@@ -3415,7 +3415,7 @@ func (c *client) GetPipelineBotsDurations(ctx context.Context, repoSource, repoO
 
 		var insertedAt time.Time
 		var botName string
-		var durationPendingSeconds, durationRunningSeconds int
+		var durationPendingSeconds, durationRunningSeconds float64
 
 		if err = rows.Scan(
 			&insertedAt,
@@ -5450,7 +5450,7 @@ func (c *client) scanBuild(ctx context.Context, row sq.RowScanner, optimized, en
 
 	build = &contracts.Build{}
 	var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, groupsData, organizationsData []uint8
-	var durationPendingSeconds, durationRunningSeconds int
+	var durationPendingSeconds, durationRunningSeconds float64
 
 	if err = row.Scan(
 		&build.ID,
@@ -5513,7 +5513,7 @@ func (c *client) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contracts
 
 		build := contracts.Build{}
 		var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, groupsData, organizationsData []uint8
-		var durationPendingSeconds, durationRunningSeconds int
+		var durationPendingSeconds, durationRunningSeconds float64
 
 		if err = rows.Scan(
 			&build.ID,
@@ -5567,7 +5567,7 @@ func (c *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *cont
 
 	pipeline = &contracts.Pipeline{}
 	var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, groupsData, organizationsData []uint8
-	var durationPendingSeconds, durationRunningSeconds int
+	var durationPendingSeconds, durationRunningSeconds float64
 
 	if err = row.Scan(
 		&pipeline.ID,
@@ -5629,7 +5629,7 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 
 		pipeline := contracts.Pipeline{}
 		var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, groupsData, organizationsData []uint8
-		var durationPendingSeconds, durationRunningSeconds int
+		var durationPendingSeconds, durationRunningSeconds float64
 
 		if err = rows.Scan(
 			&pipeline.ID,
@@ -5685,7 +5685,7 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 func (c *client) scanRelease(row sq.RowScanner) (release *contracts.Release, err error) {
 
 	release = &contracts.Release{}
-	var durationPendingSeconds, durationRunningSeconds int
+	var durationPendingSeconds, durationRunningSeconds float64
 	var id int
 	var triggeredByEventsData, groupsData, organizationsData []uint8
 
@@ -5732,7 +5732,7 @@ func (c *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, er
 	for rows.Next() {
 
 		release := contracts.Release{}
-		var durationPendingSeconds, durationRunningSeconds int
+		var durationPendingSeconds, durationRunningSeconds float64
 		var id int
 		var triggeredByEventsData, groupsData, organizationsData []uint8
 
@@ -5777,7 +5777,7 @@ func (c *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, er
 func (c *client) scanBot(row sq.RowScanner) (bot *contracts.Bot, err error) {
 
 	bot = &contracts.Bot{}
-	var durationPendingSeconds, durationRunningSeconds int
+	var durationPendingSeconds, durationRunningSeconds float64
 	var id int
 	var triggeredByEventsData, groupsData, organizationsData []uint8
 
@@ -5822,7 +5822,7 @@ func (c *client) scanBots(rows *sql.Rows) (bots []*contracts.Bot, err error) {
 	for rows.Next() {
 
 		bot := contracts.Bot{}
-		var durationPendingSeconds, durationRunningSeconds int
+		var durationPendingSeconds, durationRunningSeconds float64
 		var id int
 		var triggeredByEventsData, groupsData, organizationsData []uint8
 
@@ -5917,7 +5917,7 @@ func (c *client) scanPipelineReleases(rows *sql.Rows) (releases []*contracts.Rel
 	for rows.Next() {
 
 		release := contracts.Release{}
-		var durationPendingSeconds, durationRunningSeconds int
+		var durationPendingSeconds, durationRunningSeconds float64
 		var id int
 		var triggeredByEventsData, extraInfoData, groupsData, organizationsData []uint8
 
