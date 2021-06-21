@@ -3610,7 +3610,13 @@ func TestIntegrationGetAllNotificationsCount(t *testing.T) {
 	})
 }
 
+var cockroachDbTestClient Client
+
 func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
+
+	if cockroachDbTestClient != nil {
+		return cockroachDbTestClient
+	}
 
 	databaseName := "defaultdb"
 	if os.Getenv("COCKROACH_DATABASE") != "" {
@@ -3675,12 +3681,12 @@ func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 
 	apiConfig.SetDefaults()
 
-	cockroachdbClient := NewClient(apiConfig)
-	err := cockroachdbClient.Connect(ctx)
+	cockroachDbTestClient := NewClient(apiConfig)
+	err := cockroachDbTestClient.Connect(ctx)
 
 	assert.Nil(t, err)
 
-	return cockroachdbClient
+	return cockroachDbTestClient
 }
 
 func getBuild() contracts.Build {
