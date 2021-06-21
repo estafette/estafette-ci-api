@@ -131,6 +131,8 @@ stages:
       COCKROACH_PORT: 5432
       COCKROACH_USER: postgres
       COCKROACH_PASSWORD: abc
+      COCKROACH_MAX_OPEN_CONNECTIONS: 5
+      COCKROACH_MAX_IDLE_CONNECTIONS: 5
     commands:
     - go test -run TestIntegration ./...
 

@@ -3643,6 +3643,22 @@ func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 		password = os.Getenv("COCKROACH_PASSWORD")
 	}
 
+	maxOpenConnections := 0
+	if os.Getenv("COCKROACH_MAX_OPEN_CONNECTIONS") != "" {
+		cockroachMaxOpenConnections, err := strconv.Atoi(os.Getenv("COCKROACH_MAX_OPEN_CONNECTIONS"))
+		if err == nil {
+			maxOpenConnections = cockroachMaxOpenConnections
+		}
+	}
+
+	maxIdleConnections := 2
+	if os.Getenv("COCKROACH_MAX_IDLE_CONNECTIONS") != "" {
+		cockroachMaxIdleConnections, err := strconv.Atoi(os.Getenv("COCKROACH_MAX_IDLE_CONNECTIONS"))
+		if err == nil {
+			maxIdleConnections = cockroachMaxIdleConnections
+		}
+	}
+
 	apiConfig := &api.APIConfig{
 		Database: &api.DatabaseConfig{
 			DatabaseName:   databaseName,
@@ -3652,6 +3668,8 @@ func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 			Port:           port,
 			User:           user,
 			Password:       password,
+			MaxOpenConns:   maxOpenConnections,
+			MaxIdleConns:   maxIdleConnections,
 		},
 	}
 
