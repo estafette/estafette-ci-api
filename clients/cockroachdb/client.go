@@ -6387,8 +6387,7 @@ func (c *client) UpdateUser(ctx context.Context, user contracts.User) (err error
 		Update("users").
 		Set("user_data", userBytes).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": user.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": user.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 
@@ -6415,8 +6414,7 @@ func (c *client) DeleteUser(ctx context.Context, user contracts.User) (err error
 		Set("user_data", userBytes).
 		Set("updated_at", sq.Expr("now()")).
 		Set("active", false).
-		Where(sq.Eq{"id": user.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": user.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 
@@ -6614,8 +6612,7 @@ func (c *client) UpdateGroup(ctx context.Context, group contracts.Group) (err er
 		Update("groups").
 		Set("group_data", groupBytes).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": group.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": group.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 	if err != nil {
@@ -6645,8 +6642,7 @@ func (c *client) DeleteGroup(ctx context.Context, group contracts.Group) (err er
 		Set("group_data", groupBytes).
 		Set("updated_at", sq.Expr("now()")).
 		Set("active", false).
-		Where(sq.Eq{"id": group.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": group.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 
@@ -6815,8 +6811,7 @@ func (c *client) UpdateOrganization(ctx context.Context, organization contracts.
 		Update("organizations").
 		Set("organization_data", organizationBytes).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": organization.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": organization.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 
@@ -6843,8 +6838,7 @@ func (c *client) DeleteOrganization(ctx context.Context, organization contracts.
 		Set("organization_data", organizationBytes).
 		Set("updated_at", sq.Expr("now()")).
 		Set("active", false).
-		Where(sq.Eq{"id": organization.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": organization.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 
@@ -7221,8 +7215,7 @@ func (c *client) UpdateCatalogEntity(ctx context.Context, catalogEntity contract
 		Set("labels", labelBytes).
 		Set("entity_metadata", metadataBytes).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": catalogEntity.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": catalogEntity.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 
@@ -7238,8 +7231,7 @@ func (c *client) DeleteCatalogEntity(ctx context.Context, id string) (err error)
 
 	query := psql.
 		Delete("catalog_entities a").
-		Where(sq.Eq{"a.id": id}).
-		Limit(uint64(1))
+		Where(sq.Eq{"a.id": id})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 	if err != nil {
