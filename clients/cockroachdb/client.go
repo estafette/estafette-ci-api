@@ -7023,8 +7023,7 @@ func (c *client) UpdateClient(ctx context.Context, client contracts.Client) (err
 		Update("clients").
 		Set("client_data", clientBytes).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": client.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": client.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 
@@ -7051,8 +7050,7 @@ func (c *client) DeleteClient(ctx context.Context, client contracts.Client) (err
 		Set("client_data", clientBytes).
 		Set("updated_at", sq.Expr("now()")).
 		Set("active", false).
-		Where(sq.Eq{"id": client.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": client.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 
