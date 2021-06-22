@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -3611,8 +3612,12 @@ func TestIntegrationGetAllNotificationsCount(t *testing.T) {
 }
 
 var cockroachDbTestClient Client
+var cockroachDbTestClientMutex = &sync.Mutex{}
 
 func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
+
+	cockroachDbTestClientMutex.Lock()
+	defer cockroachDbTestClientMutex.Unlock()
 
 	if cockroachDbTestClient != nil {
 		return cockroachDbTestClient
@@ -3681,7 +3686,7 @@ func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 
 	apiConfig.SetDefaults()
 
-	cockroachDbTestClient := NewClient(apiConfig)
+	cockroachDbTestClient = NewClient(apiConfig)
 	err := cockroachDbTestClient.Connect(ctx)
 
 	assert.Nil(t, err)
