@@ -60,7 +60,6 @@ stages:
     - name: cockroachdb
       multiStage: true
       image: cockroachdb/cockroach:v21.1.1
-      shell: /bin/bash
       env:
         COCKROACH_SKIP_ENABLING_DIAGNOSTIC_REPORTING: "true"
       readinessProbe:
