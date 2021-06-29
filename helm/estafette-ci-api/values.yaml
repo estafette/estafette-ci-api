@@ -202,6 +202,9 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
+pdb:
+  enabled: true
+
 secret:
   enabled: true
 

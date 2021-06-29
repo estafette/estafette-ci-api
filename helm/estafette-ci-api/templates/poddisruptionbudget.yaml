@@ -1,4 +1,4 @@
-{{- if gt .Values.deployment.replicaCount 1.0 }}
+{{- if .Values.pdb.enabled }}
 {{- if $.Capabilities.APIVersions.Has "policy/v1/PodDisruptionBudget" }}
 apiVersion: policy/v1
 {{- else -}}
