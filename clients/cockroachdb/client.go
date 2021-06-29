@@ -270,11 +270,15 @@ func (c *client) ConnectWithDriverAndSource(ctx context.Context, driverName, dat
 		return
 	}
 
-	log.Info().Msgf("Setting max open connections to database to %v...", c.config.Database.MaxOpenConns)
-	c.databaseConnection.SetMaxOpenConns(c.config.Database.MaxOpenConns)
+	if c.config.Database.MaxOpenConns > 0 {
+		log.Info().Msgf("Setting max open connections to database to %v...", c.config.Database.MaxOpenConns)
+		c.databaseConnection.SetMaxOpenConns(c.config.Database.MaxOpenConns)
+	}
 
-	log.Info().Msgf("Setting max idle connections to database to %v...", c.config.Database.MaxIdleConns)
-	c.databaseConnection.SetMaxIdleConns(c.config.Database.MaxIdleConns)
+	if c.config.Database.MaxIdleConns > 0 {
+		log.Info().Msgf("Setting max idle connections to database to %v...", c.config.Database.MaxIdleConns)
+		c.databaseConnection.SetMaxIdleConns(c.config.Database.MaxIdleConns)
+	}
 
 	if c.config.Database.ConnMaxLifetimeMinutes > 0 {
 		log.Info().Msgf("Setting max lifetime for connections to database to %v minutes...", c.config.Database.ConnMaxLifetimeMinutes)
@@ -508,7 +512,7 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
 		Where(sq.Eq{"build_status": allowedBuildStatusesToTransitionFromAsStrings}).
-		Suffix("RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event, groups, organizations")
+		Suffix("RETURNING id, repo_source, repo_owner, repo_name, repo_branch, repo_revision, build_version, build_status, labels, release_targets, manifest, commits, triggers, inserted_at, started_at, updated_at, EXTRACT(epoch FROM age(COALESCE(started_at, inserted_at), inserted_at)), EXTRACT(epoch FROM age(updated_at, COALESCE(started_at,inserted_at))), triggered_by_event, groups, organizations")
 
 	if buildStatus == contracts.StatusRunning {
 		query = query.Set("started_at", sq.Expr("now()"))
@@ -713,7 +717,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
 		Where(sq.Eq{"release_status": allowedReleaseStatusesToTransitionFromAsStrings}).
-		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event, groups, organizations")
+		Suffix("RETURNING id, repo_source, repo_owner, repo_name, release, release_action, release_version, release_status, inserted_at, started_at, updated_at, EXTRACT(epoch FROM age(COALESCE(started_at, inserted_at), inserted_at)), EXTRACT(epoch FROM age(updated_at, COALESCE(started_at,inserted_at))), triggered_by_event, groups, organizations")
 
 	if releaseStatus == contracts.StatusRunning {
 		query = query.Set("started_at", sq.Expr("now()"))
@@ -901,7 +905,7 @@ func (c *client) UpdateBotStatus(ctx context.Context, repoSource, repoOwner, rep
 		Where(sq.Eq{"repo_owner": repoOwner}).
 		Where(sq.Eq{"repo_name": repoName}).
 		Where(sq.Eq{"bot_status": allowedBotStatusesToTransitionFromAsStrings}).
-		Suffix("RETURNING id, repo_source, repo_owner, repo_name, bot, bot_status, inserted_at, started_at, updated_at, age(COALESCE(started_at, inserted_at), inserted_at)::INT, age(updated_at, COALESCE(started_at,inserted_at))::INT, triggered_by_event, groups, organizations")
+		Suffix("RETURNING id, repo_source, repo_owner, repo_name, bot, bot_status, inserted_at, started_at, updated_at, EXTRACT(epoch FROM age(COALESCE(started_at, inserted_at), inserted_at)), EXTRACT(epoch FROM age(updated_at, COALESCE(started_at,inserted_at))), triggered_by_event, groups, organizations")
 
 	if botStatus == contracts.StatusRunning {
 		query = query.Set("started_at", sq.Expr("now()"))
@@ -1885,7 +1889,7 @@ func (c *client) GetPipelineRecentBuilds(ctx context.Context, repoSource, repoOw
 		Limit(uint64(50))
 
 	query := psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.started_at, a.updated_at, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)), EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))), a.triggered_by_event").
 		Prefix("WITH ranked_builds AS (?)", innerquery).
 		From("ranked_builds a").
 		Where("a.rn = 1").
@@ -3129,7 +3133,7 @@ func (c *client) GetBuildsDuration(ctx context.Context, filters map[api.FilterTy
 	// generate query
 	query :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("SUM(AGE(updated_at,inserted_at))::string").
+			Select("SUM(EXTRACT(epoch FROM AGE(updated_at,inserted_at)))").
 			From("builds a")
 
 	// dynamically set where clauses for filtering
@@ -3141,16 +3145,12 @@ func (c *client) GetBuildsDuration(ctx context.Context, filters map[api.FilterTy
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRowContext(ctx)
 
-	var totalDurationAsString string
-
-	if err = row.Scan(&totalDurationAsString); err != nil {
+	var totalDurationSeconds float64
+	if err = row.Scan(&totalDurationSeconds); err != nil {
 		return
 	}
 
-	totalDuration, err = time.ParseDuration(totalDurationAsString)
-	if err != nil {
-		return
-	}
+	totalDuration = time.Duration(totalDurationSeconds) * time.Second
 
 	return
 }
@@ -3256,7 +3256,7 @@ func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, rep
 	// generate query
 	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("a.inserted_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT AS pending_duration, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT as duration").
+			Select("a.inserted_at, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)) AS pending_duration, EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))) as duration").
 			From("builds a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -3290,7 +3290,7 @@ func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, rep
 	for rows.Next() {
 
 		var insertedAt time.Time
-		var durationPendingSeconds, durationRunningSeconds int
+		var durationPendingSeconds, durationRunningSeconds float64
 
 		if err = rows.Scan(
 			&insertedAt,
@@ -3318,7 +3318,7 @@ func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, r
 	// generate query
 	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("a.inserted_at, a.release, a.release_action, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT as pending_duration, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT as duration").
+			Select("a.inserted_at, a.release, a.release_action, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)) as pending_duration, EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))) as duration").
 			From("releases a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -3353,7 +3353,7 @@ func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, r
 
 		var insertedAt time.Time
 		var releaseName, releaseAction string
-		var durationPendingSeconds, durationRunningSeconds int
+		var durationPendingSeconds, durationRunningSeconds float64
 
 		if err = rows.Scan(
 			&insertedAt,
@@ -3384,7 +3384,7 @@ func (c *client) GetPipelineBotsDurations(ctx context.Context, repoSource, repoO
 	// generate query
 	innerquery :=
 		sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
-			Select("a.inserted_at, a.bot, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT as pending_duration, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT as duration").
+			Select("a.inserted_at, a.bot, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)) as pending_duration, EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))) as duration").
 			From("bots a").
 			Where(sq.Eq{"a.repo_source": repoSource}).
 			Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -3419,7 +3419,7 @@ func (c *client) GetPipelineBotsDurations(ctx context.Context, repoSource, repoO
 
 		var insertedAt time.Time
 		var botName string
-		var durationPendingSeconds, durationRunningSeconds int
+		var durationPendingSeconds, durationRunningSeconds float64
 
 		if err = rows.Scan(
 			&insertedAt,
@@ -5454,7 +5454,7 @@ func (c *client) scanBuild(ctx context.Context, row sq.RowScanner, optimized, en
 
 	build = &contracts.Build{}
 	var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, groupsData, organizationsData []uint8
-	var durationPendingSeconds, durationRunningSeconds int
+	var durationPendingSeconds, durationRunningSeconds float64
 
 	if err = row.Scan(
 		&build.ID,
@@ -5517,7 +5517,7 @@ func (c *client) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contracts
 
 		build := contracts.Build{}
 		var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, groupsData, organizationsData []uint8
-		var durationPendingSeconds, durationRunningSeconds int
+		var durationPendingSeconds, durationRunningSeconds float64
 
 		if err = rows.Scan(
 			&build.ID,
@@ -5571,7 +5571,7 @@ func (c *client) scanPipeline(row sq.RowScanner, optimized bool) (pipeline *cont
 
 	pipeline = &contracts.Pipeline{}
 	var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, groupsData, organizationsData []uint8
-	var durationPendingSeconds, durationRunningSeconds int
+	var durationPendingSeconds, durationRunningSeconds float64
 
 	if err = row.Scan(
 		&pipeline.ID,
@@ -5633,7 +5633,7 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 
 		pipeline := contracts.Pipeline{}
 		var labelsData, releaseTargetsData, commitsData, triggersData, triggeredByEventsData, extraInfoData, groupsData, organizationsData []uint8
-		var durationPendingSeconds, durationRunningSeconds int
+		var durationPendingSeconds, durationRunningSeconds float64
 
 		if err = rows.Scan(
 			&pipeline.ID,
@@ -5689,7 +5689,7 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 func (c *client) scanRelease(row sq.RowScanner) (release *contracts.Release, err error) {
 
 	release = &contracts.Release{}
-	var durationPendingSeconds, durationRunningSeconds int
+	var durationPendingSeconds, durationRunningSeconds float64
 	var id int
 	var triggeredByEventsData, groupsData, organizationsData []uint8
 
@@ -5736,7 +5736,7 @@ func (c *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, er
 	for rows.Next() {
 
 		release := contracts.Release{}
-		var durationPendingSeconds, durationRunningSeconds int
+		var durationPendingSeconds, durationRunningSeconds float64
 		var id int
 		var triggeredByEventsData, groupsData, organizationsData []uint8
 
@@ -5781,7 +5781,7 @@ func (c *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, er
 func (c *client) scanBot(row sq.RowScanner) (bot *contracts.Bot, err error) {
 
 	bot = &contracts.Bot{}
-	var durationPendingSeconds, durationRunningSeconds int
+	var durationPendingSeconds, durationRunningSeconds float64
 	var id int
 	var triggeredByEventsData, groupsData, organizationsData []uint8
 
@@ -5826,7 +5826,7 @@ func (c *client) scanBots(rows *sql.Rows) (bots []*contracts.Bot, err error) {
 	for rows.Next() {
 
 		bot := contracts.Bot{}
-		var durationPendingSeconds, durationRunningSeconds int
+		var durationPendingSeconds, durationRunningSeconds float64
 		var id int
 		var triggeredByEventsData, groupsData, organizationsData []uint8
 
@@ -5921,7 +5921,7 @@ func (c *client) scanPipelineReleases(rows *sql.Rows) (releases []*contracts.Rel
 	for rows.Next() {
 
 		release := contracts.Release{}
-		var durationPendingSeconds, durationRunningSeconds int
+		var durationPendingSeconds, durationRunningSeconds float64
 		var id int
 		var triggeredByEventsData, extraInfoData, groupsData, organizationsData []uint8
 
@@ -6387,8 +6387,7 @@ func (c *client) UpdateUser(ctx context.Context, user contracts.User) (err error
 		Update("users").
 		Set("user_data", userBytes).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": user.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": user.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 
@@ -6415,8 +6414,7 @@ func (c *client) DeleteUser(ctx context.Context, user contracts.User) (err error
 		Set("user_data", userBytes).
 		Set("updated_at", sq.Expr("now()")).
 		Set("active", false).
-		Where(sq.Eq{"id": user.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": user.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 
@@ -6614,8 +6612,7 @@ func (c *client) UpdateGroup(ctx context.Context, group contracts.Group) (err er
 		Update("groups").
 		Set("group_data", groupBytes).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": group.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": group.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 	if err != nil {
@@ -6645,8 +6642,7 @@ func (c *client) DeleteGroup(ctx context.Context, group contracts.Group) (err er
 		Set("group_data", groupBytes).
 		Set("updated_at", sq.Expr("now()")).
 		Set("active", false).
-		Where(sq.Eq{"id": group.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": group.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 
@@ -6815,8 +6811,7 @@ func (c *client) UpdateOrganization(ctx context.Context, organization contracts.
 		Update("organizations").
 		Set("organization_data", organizationBytes).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": organization.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": organization.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 
@@ -6843,8 +6838,7 @@ func (c *client) DeleteOrganization(ctx context.Context, organization contracts.
 		Set("organization_data", organizationBytes).
 		Set("updated_at", sq.Expr("now()")).
 		Set("active", false).
-		Where(sq.Eq{"id": organization.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": organization.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 
@@ -7023,8 +7017,7 @@ func (c *client) UpdateClient(ctx context.Context, client contracts.Client) (err
 		Update("clients").
 		Set("client_data", clientBytes).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": client.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": client.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 
@@ -7051,8 +7044,7 @@ func (c *client) DeleteClient(ctx context.Context, client contracts.Client) (err
 		Set("client_data", clientBytes).
 		Set("updated_at", sq.Expr("now()")).
 		Set("active", false).
-		Where(sq.Eq{"id": client.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": client.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 
@@ -7223,8 +7215,7 @@ func (c *client) UpdateCatalogEntity(ctx context.Context, catalogEntity contract
 		Set("labels", labelBytes).
 		Set("entity_metadata", metadataBytes).
 		Set("updated_at", sq.Expr("now()")).
-		Where(sq.Eq{"id": catalogEntity.ID}).
-		Limit(uint64(1))
+		Where(sq.Eq{"id": catalogEntity.ID})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 
@@ -7240,8 +7231,7 @@ func (c *client) DeleteCatalogEntity(ctx context.Context, id string) (err error)
 
 	query := psql.
 		Delete("catalog_entities a").
-		Where(sq.Eq{"a.id": id}).
-		Limit(uint64(1))
+		Where(sq.Eq{"a.id": id})
 
 	_, err = query.RunWith(c.databaseConnection).ExecContext(ctx)
 	if err != nil {
@@ -7817,7 +7807,7 @@ func (c *client) selectBuildsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event, a.groups, a.organizations").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.inserted_at, a.started_at, a.updated_at, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)), EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))), a.triggered_by_event, a.groups, a.organizations").
 		From("builds a")
 }
 
@@ -7825,7 +7815,7 @@ func (c *client) selectPipelinesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.archived, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.last_updated_at, a.triggered_by_event, a.extra_info, a.groups, a.organizations").
+		Select("a.pipeline_id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_version, a.build_status, a.labels, a.release_targets, a.manifest, a.commits, a.triggers, a.archived, a.inserted_at, a.started_at, a.updated_at, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)), EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))), a.last_updated_at, a.triggered_by_event, a.extra_info, a.groups, a.organizations").
 		From("computed_pipelines a")
 }
 
@@ -7833,7 +7823,7 @@ func (c *client) selectReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event, a.groups, a.organizations").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)), EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))), a.triggered_by_event, a.groups, a.organizations").
 		From("releases a")
 }
 
@@ -7841,7 +7831,7 @@ func (c *client) selectBotsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.bot, a.bot_status, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event, a.groups, a.organizations").
+		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.bot, a.bot_status, a.inserted_at, a.started_at, a.updated_at, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)), EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))), a.triggered_by_event, a.groups, a.organizations").
 		From("bots a")
 }
 
@@ -7857,7 +7847,7 @@ func (c *client) selectComputedReleasesQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	return psql.
-		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)::INT, age(a.updated_at, COALESCE(a.started_at,a.inserted_at))::INT, a.triggered_by_event, a.extra_info, a.groups, a.organizations").
+		Select("a.release_id, a.repo_source, a.repo_owner, a.repo_name, a.release, a.release_action, a.release_version, a.release_status, a.inserted_at, a.started_at, a.updated_at, EXTRACT(epoch FROM age(COALESCE(a.started_at, a.inserted_at), a.inserted_at)), EXTRACT(epoch FROM age(a.updated_at, COALESCE(a.started_at,a.inserted_at))), a.triggered_by_event, a.extra_info, a.groups, a.organizations").
 		From("computed_releases a")
 }
 

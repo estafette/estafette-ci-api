@@ -3,6 +3,9 @@ package cockroachdb
 import (
 	"context"
 	"errors"
+	"os"
+	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -106,6 +109,30 @@ func TestIntegrationUpdateBuildStatus(t *testing.T) {
 		err := cockroachdbClient.UpdateBuildStatus(ctx, build.RepoSource, build.RepoOwner, build.RepoName, buildID, contracts.StatusSucceeded)
 
 		assert.Nil(t, err)
+	})
+}
+
+func TestIntegrationGetBuildsDuration(t *testing.T) {
+	t.Run("RetrievesBuildsDuration", func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
+
+		ctx := context.Background()
+		cockroachdbClient := getCockroachdbClient(ctx, t)
+		build := getBuild()
+		jobResources := getJobResources()
+		insertedBuild, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		assert.Nil(t, err)
+		err = cockroachdbClient.UpdateBuildStatus(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName, insertedBuild.ID, contracts.StatusSucceeded)
+		assert.Nil(t, err)
+
+		// act
+		duration, err := cockroachdbClient.GetBuildsDuration(ctx, make(map[api.FilterType][]string))
+
+		assert.Nil(t, err)
+		assert.True(t, duration.Milliseconds() >= 0)
 	})
 }
 
@@ -3584,28 +3611,87 @@ func TestIntegrationGetAllNotificationsCount(t *testing.T) {
 	})
 }
 
+var cockroachDbTestClient Client
+var cockroachDbTestClientMutex = &sync.Mutex{}
+
 func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
+
+	cockroachDbTestClientMutex.Lock()
+	defer cockroachDbTestClientMutex.Unlock()
+
+	if cockroachDbTestClient != nil {
+		return cockroachDbTestClient
+	}
+
+	databaseName := "defaultdb"
+	if os.Getenv("COCKROACH_DATABASE") != "" {
+		databaseName = os.Getenv("COCKROACH_DATABASE")
+	}
+	host := "estafette-ci-db-public"
+	if os.Getenv("COCKROACH_HOST") != "" {
+		host = os.Getenv("COCKROACH_HOST")
+	}
+	insecure := true
+	if os.Getenv("COCKROACH_INSECURE") != "" {
+		cockroachInsecure, err := strconv.ParseBool(os.Getenv("COCKROACH_INSECURE"))
+		if err == nil {
+			insecure = cockroachInsecure
+		}
+	}
+	port := 26257
+	if os.Getenv("COCKROACH_PORT") != "" {
+		cockroachPort, err := strconv.Atoi(os.Getenv("COCKROACH_PORT"))
+		if err == nil {
+			port = cockroachPort
+		}
+	}
+	user := "root"
+	if os.Getenv("COCKROACH_USER") != "" {
+		user = os.Getenv("COCKROACH_USER")
+	}
+	password := ""
+	if os.Getenv("COCKROACH_PASSWORD") != "" {
+		password = os.Getenv("COCKROACH_PASSWORD")
+	}
+
+	maxOpenConnections := 0
+	if os.Getenv("COCKROACH_MAX_OPEN_CONNECTIONS") != "" {
+		cockroachMaxOpenConnections, err := strconv.Atoi(os.Getenv("COCKROACH_MAX_OPEN_CONNECTIONS"))
+		if err == nil {
+			maxOpenConnections = cockroachMaxOpenConnections
+		}
+	}
+
+	maxIdleConnections := 2
+	if os.Getenv("COCKROACH_MAX_IDLE_CONNECTIONS") != "" {
+		cockroachMaxIdleConnections, err := strconv.Atoi(os.Getenv("COCKROACH_MAX_IDLE_CONNECTIONS"))
+		if err == nil {
+			maxIdleConnections = cockroachMaxIdleConnections
+		}
+	}
 
 	apiConfig := &api.APIConfig{
 		Database: &api.DatabaseConfig{
-			DatabaseName:   "defaultdb",
-			Host:           "estafette-ci-db-public",
-			Insecure:       true,
+			DatabaseName:   databaseName,
+			Host:           host,
+			Insecure:       insecure,
 			CertificateDir: "",
-			Port:           26257,
-			User:           "root",
-			Password:       "",
+			Port:           port,
+			User:           user,
+			Password:       password,
+			MaxOpenConns:   maxOpenConnections,
+			MaxIdleConns:   maxIdleConnections,
 		},
 	}
 
 	apiConfig.SetDefaults()
 
-	cockroachdbClient := NewClient(apiConfig)
-	err := cockroachdbClient.Connect(ctx)
+	cockroachDbTestClient = NewClient(apiConfig)
+	err := cockroachDbTestClient.Connect(ctx)
 
 	assert.Nil(t, err)
 
-	return cockroachdbClient
+	return cockroachDbTestClient
 }
 
 func getBuild() contracts.Build {
