@@ -204,6 +204,7 @@ autoscaling:
 
 pdb:
   enabled: true
+  maxUnavailable: 1
 
 secret:
   enabled: true
