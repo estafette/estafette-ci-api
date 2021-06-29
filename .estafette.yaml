@@ -104,7 +104,7 @@ stages:
       env:
         POSTGRES_PASSWORD: abc
 
-    image: estafette/estafette-ci-db-migrator:${ESTAFETTE_BUILD_VERSION}
+    image: estafette/estafette-ci-db-migrator:${ESTAFETTE_TRIGGER_MIGRATOR_BUILD_VERSION}
     env:
       COCKROACH_HOST: postgres
       COCKROACH_DATABASE: postgres
