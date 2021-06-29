@@ -59,7 +59,7 @@ stages:
     services:
     - name: cockroachdb
       multiStage: true
-      image: cockroachdb/cockroach:v21.1.1
+      image: cockroachdb/cockroach:v21.1.2
       env:
         COCKROACH_SKIP_ENABLING_DIAGNOSTIC_REPORTING: "true"
       readinessProbe:
@@ -70,8 +70,7 @@ stages:
       commands:
       - /cockroach/cockroach start-single-node --insecure --advertise-addr estafette-ci-db-public
 
-    # image: estafette/estafette-ci-db-migrator:${ESTAFETTE_TRIGGER_MIGRATOR_BUILD_VERSION}
-    image: estafette/estafette-ci-db-migrator:1.0.0-test-against-postgres-211
+    image: estafette/estafette-ci-db-migrator:${ESTAFETTE_TRIGGER_MIGRATOR_BUILD_VERSION}
     env:
       COCKROACH_HOST: cockroachdb
       COCKROACH_DATABASE: defaultdb
@@ -105,8 +104,7 @@ stages:
       env:
         POSTGRES_PASSWORD: abc
 
-    # image: estafette/estafette-ci-db-migrator:${ESTAFETTE_BUILD_VERSION}
-    image: estafette/estafette-ci-db-migrator:1.0.0-test-against-postgres-211
+    image: estafette/estafette-ci-db-migrator:${ESTAFETTE_BUILD_VERSION}
     env:
       COCKROACH_HOST: postgres
       COCKROACH_DATABASE: postgres
