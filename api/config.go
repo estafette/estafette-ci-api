@@ -734,18 +734,25 @@ func (c *DatabaseConfig) Validate() (err error) {
 
 // QueueConfig contains config for the dabase connection
 type QueueConfig struct {
-	Hosts []string `yaml:"hosts"`
+	Hosts       []string `yaml:"hosts"`
+	SubjectCron string   `yaml:"subjectCron"`
 }
 
 func (c *QueueConfig) SetDefaults() {
 	if len(c.Hosts) == 0 {
 		c.Hosts = []string{"estafette-ci-queue-0.estafette-ci-queue"}
 	}
+	if c.SubjectCron == "" {
+		c.SubjectCron = "cron"
+	}
 }
 
 func (c *QueueConfig) Validate() (err error) {
 	if len(c.Hosts) == 0 {
 		return errors.New("Configuration item 'queue.hosts' is required; please set it to name of the queue hosts used by the api")
+	}
+	if c.SubjectCron == "" {
+		return errors.New("Configuration item 'queue.subjectCron' is required; please set it to subject of the queue for cron events")
 	}
 
 	return nil

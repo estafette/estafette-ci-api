@@ -442,6 +442,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.NotNil(t, queueConfig)
 		assert.Equal(t, 1, len(queueConfig.Hosts))
 		assert.Equal(t, "estafette-ci-queue-0.estafette-ci-queue", queueConfig.Hosts[0])
+		assert.Equal(t, "cron", queueConfig.SubjectCron)
 	})
 
 	t.Run("ReturnsManifestPreferences", func(t *testing.T) {

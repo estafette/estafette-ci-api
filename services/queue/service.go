@@ -22,7 +22,6 @@ type Service interface {
 
 // NewService returns a new estafette.Service
 func NewService(config *api.APIConfig, estafetteService estafette.Service) Service {
-
 	return &service{
 		config:           config,
 		estafetteService: estafetteService,
@@ -70,7 +69,7 @@ func (s *service) InitSubscriptions(ctx context.Context) (err error) {
 }
 
 func (s *service) InitCronSubscription(ctx context.Context) (err error) {
-	_, err = s.natsEncodedConnection.QueueSubscribe("cron", "estafette-ci-api", s.HandleCronEvent)
+	_, err = s.natsEncodedConnection.QueueSubscribe(s.config.Queue.SubjectCron, "estafette-ci-api", s.HandleCronEvent)
 	if err != nil {
 		return
 	}
@@ -87,6 +86,6 @@ func (s *service) HandleCronEvent(cronEvent *manifest.EstafetteCronEvent) {
 
 	err = s.estafetteService.FireCronTriggers(ctx, *cronEvent)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed handling cron event from queu")
+		log.Error().Err(err).Msgf("Failed handling cron event from queue")
 	}
 }
