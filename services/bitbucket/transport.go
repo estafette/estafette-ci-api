@@ -143,7 +143,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 
-		h.service.PublishBitbucketEvent(ctx, manifest.EstafetteBitbucketEvent{
+		err = h.service.PublishBitbucketEvent(ctx, manifest.EstafetteBitbucketEvent{
 			Event:         eventType,
 			Repository:    anyEvent.GetRepository(),
 			HookUUID:      c.GetHeader("X-Hook-UUID"),
@@ -151,6 +151,9 @@ func (h *Handler) Handle(c *gin.Context) {
 			AttemptNumber: c.GetHeader("X-Attempt-Number"),
 			Payload:       string(body),
 		})
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed PublishBitbucketEvent")
+		}
 	}()
 
 	c.Status(http.StatusOK)

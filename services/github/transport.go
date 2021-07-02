@@ -180,12 +180,15 @@ func (h *Handler) Handle(c *gin.Context) {
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 
-		h.service.PublishGithubEvent(ctx, manifest.EstafetteGithubEvent{
+		err = h.service.PublishGithubEvent(ctx, manifest.EstafetteGithubEvent{
 			Event:      eventType,
 			Repository: anyEvent.GetRepository(),
 			Delivery:   c.GetHeader("X-GitHub-Delivery"),
 			Payload:    string(body),
 		})
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed PublishGithubEvent")
+		}
 	}()
 
 	c.Status(http.StatusOK)

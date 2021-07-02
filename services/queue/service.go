@@ -137,21 +137,21 @@ func (s *service) ReceiveBitbucketEvent(bitbucketEvent *manifest.EstafetteBitbuc
 }
 
 func (s *service) PublishGitEvent(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName("queue", "PublishGitEvent"))
+	span, _ := opentracing.StartSpanFromContext(ctx, api.GetSpanName("queue", "PublishGitEvent"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return s.natsEncodedConnection.Publish(s.config.Queue.SubjectGit, &gitEvent)
 }
 
 func (s *service) PublishGithubEvent(ctx context.Context, githubEvent manifest.EstafetteGithubEvent) (err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName("queue", "PublishGithubEvent"))
+	span, _ := opentracing.StartSpanFromContext(ctx, api.GetSpanName("queue", "PublishGithubEvent"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return s.natsEncodedConnection.Publish(s.config.Queue.SubjectGithub, &githubEvent)
 }
 
 func (s *service) PublishBitbucketEvent(ctx context.Context, bitbucketEvent manifest.EstafetteBitbucketEvent) (err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName("queue", "PublishBitbucketEvent"))
+	span, _ := opentracing.StartSpanFromContext(ctx, api.GetSpanName("queue", "PublishBitbucketEvent"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return s.natsEncodedConnection.Publish(s.config.Queue.SubjectBitbucket, &bitbucketEvent)
