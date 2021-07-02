@@ -8,6 +8,7 @@ import (
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/nats-io/nats.go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 )
 
@@ -78,7 +79,13 @@ func (s *service) InitCronSubscription(ctx context.Context) (err error) {
 }
 
 func (s *service) HandleCronEvent(cronEvent *manifest.EstafetteCronEvent) {
-	err := s.estafetteService.FireCronTriggers(context.Background(), *cronEvent)
+
+	var err error
+	ctx := context.Background()
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName("queue", "HandleCronEvent"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	err = s.estafetteService.FireCronTriggers(ctx, *cronEvent)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed handling cron event from queu")
 	}
