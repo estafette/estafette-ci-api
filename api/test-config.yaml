@@ -261,6 +261,9 @@ queue:
   hosts:
   - estafette-ci-queue-0.estafette-ci-queue
   subjectCron: cron
+  subjectGit: git
+  subjectGithub: github
+  subjectBitbucket: bitbucket
 
 manifestPreferences:
   labelRegexes:

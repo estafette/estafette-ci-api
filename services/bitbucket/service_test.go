@@ -5,12 +5,13 @@ import (
 	"errors"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/services/estafette"
+	"github.com/estafette/estafette-ci-api/services/queue"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -30,7 +31,8 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
+		queueService := queue.NewMockService(ctrl)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{}
 
@@ -54,7 +56,8 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
+		queueService := queue.NewMockService(ctrl)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -86,7 +89,8 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
+		queueService := queue.NewMockService(ctrl)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -120,7 +124,8 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
+		queueService := queue.NewMockService(ctrl)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -157,6 +162,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
+		queueService := queue.NewMockService(ctrl)
 
 		bitbucketapiClient.
 			EXPECT().
@@ -166,7 +172,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -200,6 +206,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
+		queueService := queue.NewMockService(ctrl)
 
 		bitbucketapiClient.
 			EXPECT().
@@ -212,7 +219,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -251,6 +258,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
+		queueService := queue.NewMockService(ctrl)
 
 		bitbucketapiClient.
 			EXPECT().
@@ -267,7 +275,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -306,16 +314,22 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
+		queueService := queue.NewMockService(ctrl)
 
-		gitEventTopic := api.NewEventTopic("test topic")
-		defer gitEventTopic.Close()
-		subscriptionChannel := gitEventTopic.Subscribe("PublishesGitTriggersOnTopic")
+		// gitEventTopic := queueService
+		// defer gitEventTopic.Close()
+		// subscriptionChannel := gitEventTopic.Subscribe("PublishesGitTriggersOnTopic")
 
 		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
 		bitbucketapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
+		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{
+			Event:      "push",
+			Repository: "bitbucket.org/",
+			Branch:     "master",
+		}))
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, gitEventTopic)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -334,15 +348,6 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 		// act
 		_ = service.CreateJobForBitbucketPush(context.Background(), pushEvent)
-
-		select {
-		case message, ok := <-subscriptionChannel:
-			assert.True(t, ok)
-			assert.Equal(t, "bitbucket.org/", message.Event.Git.Repository)
-
-		case <-time.After(10 * time.Second):
-			assert.Fail(t, "subscription timed out after 10 seconds")
-		}
 	})
 
 	t.Run("CallsSubscribeToPubsubTriggersOnPubsubAPIClient", func(t *testing.T) {
@@ -358,6 +363,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
+		queueService := queue.NewMockService(ctrl)
 
 		bitbucketapiClient.
 			EXPECT().
@@ -367,6 +373,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			})
 		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
+		queueService.EXPECT()
 
 		var wg sync.WaitGroup
 		wg.Add(1)
@@ -380,7 +387,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			}).
 			Times(1)
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
@@ -424,7 +431,8 @@ func TestIsAllowedOwner(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
+		queueService := queue.NewMockService(ctrl)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		repository := bitbucketapi.Repository{
 			Owner: bitbucketapi.Owner{
@@ -457,7 +465,8 @@ func TestIsAllowedOwner(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
+		queueService := queue.NewMockService(ctrl)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		repository := bitbucketapi.Repository{
 			Owner: bitbucketapi.Owner{
@@ -493,7 +502,8 @@ func TestIsAllowedOwner(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
+		queueService := queue.NewMockService(ctrl)
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		repository := bitbucketapi.Repository{
 			Owner: bitbucketapi.Owner{
@@ -523,13 +533,14 @@ func TestRename(t *testing.T) {
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
+		queueService := queue.NewMockService(ctrl)
 
 		estafetteService.
 			EXPECT().
 			Rename(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Times(1)
 
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, api.NewEventTopic("test topic"))
+		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		// act
 		err := service.Rename(context.Background(), "bitbucket.org", "estafette", "estafette-ci-contracts", "bitbucket.org", "estafette", "estafette-ci-protos")

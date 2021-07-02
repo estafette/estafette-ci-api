@@ -734,8 +734,11 @@ func (c *DatabaseConfig) Validate() (err error) {
 
 // QueueConfig contains config for the dabase connection
 type QueueConfig struct {
-	Hosts       []string `yaml:"hosts"`
-	SubjectCron string   `yaml:"subjectCron"`
+	Hosts            []string `yaml:"hosts"`
+	SubjectCron      string   `yaml:"subjectCron"`
+	SubjectGit       string   `yaml:"subjectGit"`
+	SubjectGithub    string   `yaml:"subjectGithub"`
+	SubjectBitbucket string   `yaml:"subjectBitbucket"`
 }
 
 func (c *QueueConfig) SetDefaults() {
@@ -745,6 +748,15 @@ func (c *QueueConfig) SetDefaults() {
 	if c.SubjectCron == "" {
 		c.SubjectCron = "cron"
 	}
+	if c.SubjectGit == "" {
+		c.SubjectGit = "git"
+	}
+	if c.SubjectGithub == "" {
+		c.SubjectGithub = "github"
+	}
+	if c.SubjectBitbucket == "" {
+		c.SubjectBitbucket = "bitbucket"
+	}
 }
 
 func (c *QueueConfig) Validate() (err error) {
@@ -753,6 +765,15 @@ func (c *QueueConfig) Validate() (err error) {
 	}
 	if c.SubjectCron == "" {
 		return errors.New("Configuration item 'queue.subjectCron' is required; please set it to subject of the queue for cron events")
+	}
+	if c.SubjectGit == "" {
+		return errors.New("Configuration item 'queue.subjectGit' is required; please set it to subject of the queue for git events")
+	}
+	if c.SubjectGithub == "" {
+		return errors.New("Configuration item 'queue.subjectGithub' is required; please set it to subject of the queue for github events")
+	}
+	if c.SubjectBitbucket == "" {
+		return errors.New("Configuration item 'queue.subjectBitbucket' is required; please set it to subject of the queue for bitbucket events")
 	}
 
 	return nil

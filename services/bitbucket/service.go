@@ -8,6 +8,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/services/estafette"
+	"github.com/estafette/estafette-ci-api/services/queue"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/opentracing/opentracing-go"
@@ -23,7 +24,7 @@ var (
 //go:generate mockgen -package=bitbucket -destination ./mock.go -source=service.go
 type Service interface {
 	CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error)
-	PublishBitbucketEvent(ctx context.Context, event manifest.EstafetteBitbucketEvent)
+	PublishBitbucketEvent(ctx context.Context, event manifest.EstafetteBitbucketEvent) (err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
@@ -31,13 +32,13 @@ type Service interface {
 }
 
 // NewService returns a new bitbucket.Service
-func NewService(config *api.APIConfig, bitbucketapiClient bitbucketapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, gitEventTopic *api.EventTopic) Service {
+func NewService(config *api.APIConfig, bitbucketapiClient bitbucketapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, queueService queue.Service) Service {
 	return &service{
 		config:             config,
 		bitbucketapiClient: bitbucketapiClient,
 		pubsubapiClient:    pubsubapiClient,
 		estafetteService:   estafetteService,
-		gitEventTopic:      gitEventTopic,
+		queueService:       queueService,
 	}
 }
 
@@ -46,7 +47,7 @@ type service struct {
 	bitbucketapiClient bitbucketapi.Client
 	pubsubapiClient    pubsubapi.Client
 	estafetteService   estafette.Service
-	gitEventTopic      *api.EventTopic
+	queueService       queue.Service
 }
 
 func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbucketapi.RepositoryPushEvent) (err error) {
@@ -63,7 +64,10 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	}
 
 	// handle git triggers
-	s.gitEventTopic.Publish("bitbucket.Service", api.EventTopicMessage{Ctx: ctx, Event: manifest.EstafetteEvent{Git: &gitEvent}})
+	err = s.queueService.PublishGitEvent(ctx, gitEvent)
+	if err != nil {
+		return
+	}
 
 	// get access token
 	accessToken, err := s.bitbucketapiClient.GetAccessToken(ctx)
@@ -141,10 +145,10 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	return nil
 }
 
-func (s *service) PublishBitbucketEvent(ctx context.Context, event manifest.EstafetteBitbucketEvent) {
+func (s *service) PublishBitbucketEvent(ctx context.Context, event manifest.EstafetteBitbucketEvent) (err error) {
 	log.Info().Msgf("Publishing bitbucket event '%v' for repository '%v' to topic...", event.Event, event.Repository)
 
-	s.gitEventTopic.Publish("bitbucket.Service", api.EventTopicMessage{Ctx: ctx, Event: manifest.EstafetteEvent{Bitbucket: &event}})
+	return s.queueService.PublishBitbucketEvent(ctx, event)
 }
 
 func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {

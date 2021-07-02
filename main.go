@@ -426,7 +426,7 @@ func getServices(ctx context.Context, config *api.APIConfig, encryptedConfig *ap
 	)
 
 	// github service
-	githubService = github.NewService(config, githubapiClient, pubsubapiClient, estafetteService, gitEventTopic)
+	githubService = github.NewService(config, githubapiClient, pubsubapiClient, estafetteService, queueService)
 	githubService = github.NewTracingService(githubService)
 	githubService = github.NewLoggingService(githubService)
 	githubService = github.NewMetricsService(githubService,
@@ -435,7 +435,7 @@ func getServices(ctx context.Context, config *api.APIConfig, encryptedConfig *ap
 	)
 
 	// bitbucket service
-	bitbucketService = bitbucket.NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, gitEventTopic)
+	bitbucketService = bitbucket.NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 	bitbucketService = bitbucket.NewTracingService(bitbucketService)
 	bitbucketService = bitbucket.NewLoggingService(bitbucketService)
 	bitbucketService = bitbucket.NewMetricsService(bitbucketService,
@@ -444,7 +444,7 @@ func getServices(ctx context.Context, config *api.APIConfig, encryptedConfig *ap
 	)
 
 	// cloudsource service
-	cloudsourceService = cloudsource.NewService(config, cloudsourceClient, pubsubapiClient, estafetteService, gitEventTopic)
+	cloudsourceService = cloudsource.NewService(config, cloudsourceClient, pubsubapiClient, estafetteService, queueService)
 	cloudsourceService = cloudsource.NewTracingService(cloudsourceService)
 	cloudsourceService = cloudsource.NewLoggingService(cloudsourceService)
 	cloudsourceService = cloudsource.NewMetricsService(cloudsourceService,

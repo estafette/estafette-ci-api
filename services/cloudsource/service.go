@@ -8,6 +8,7 @@ import (
 	"github.com/estafette/estafette-ci-api/clients/cloudsourceapi"
 	"github.com/estafette/estafette-ci-api/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/services/estafette"
+	"github.com/estafette/estafette-ci-api/services/queue"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/opentracing/opentracing-go"
@@ -27,13 +28,13 @@ type Service interface {
 }
 
 // NewService returns a new bitbucket.Service
-func NewService(config *api.APIConfig, cloudsourceapiClient cloudsourceapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, gitEventTopic *api.EventTopic) Service {
+func NewService(config *api.APIConfig, cloudsourceapiClient cloudsourceapi.Client, pubsubapiClient pubsubapi.Client, estafetteService estafette.Service, queueService queue.Service) Service {
 	return &service{
 		config:               config,
 		cloudsourceapiClient: cloudsourceapiClient,
 		pubsubapiClient:      pubsubapiClient,
 		estafetteService:     estafetteService,
-		gitEventTopic:        gitEventTopic,
+		queueService:         queueService,
 	}
 }
 
@@ -42,7 +43,7 @@ type service struct {
 	cloudsourceapiClient cloudsourceapi.Client
 	pubsubapiClient      pubsubapi.Client
 	estafetteService     estafette.Service
-	gitEventTopic        *api.EventTopic
+	queueService         queue.Service
 }
 
 func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error) {
@@ -76,7 +77,10 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 	}
 
 	// handle git triggers
-	s.gitEventTopic.Publish("cloudsource.Service", api.EventTopicMessage{Ctx: ctx, Event: manifest.EstafetteEvent{Git: &gitEvent}})
+	err = s.queueService.PublishGitEvent(ctx, gitEvent)
+	if err != nil {
+		return
+	}
 
 	// get access token
 	accessToken, err := s.cloudsourceapiClient.GetAccessToken(ctx)
