@@ -29,6 +29,7 @@ type APIConfig struct {
 	Auth                *AuthConfig                            `yaml:"auth,omitempty"`
 	Jobs                *JobsConfig                            `yaml:"jobs,omitempty"`
 	Database            *DatabaseConfig                        `yaml:"database,omitempty"`
+	Queue               *QueueConfig                           `yaml:"queue,omitempty"`
 	ManifestPreferences *manifest.EstafetteManifestPreferences `yaml:"manifestPreferences,omitempty"`
 	Catalog             *CatalogConfig                         `yaml:"catalog,omitempty"`
 	Credentials         []*contracts.CredentialConfig          `yaml:"credentials,omitempty" json:"credentials,omitempty"`
@@ -61,6 +62,11 @@ func (c *APIConfig) SetDefaults() {
 		c.Database = &DatabaseConfig{}
 	}
 	c.Database.SetDefaults()
+
+	if c.Queue == nil {
+		c.Queue = &QueueConfig{}
+	}
+	c.Queue.SetDefaults()
 
 	if c.ManifestPreferences == nil {
 		c.ManifestPreferences = manifest.GetDefaultManifestPreferences()
@@ -721,6 +727,25 @@ func (c *DatabaseConfig) Validate() (err error) {
 	}
 	if c.MaxOpenConns > 0 && c.MaxIdleConns > c.MaxOpenConns {
 		return errors.New("Configuration item 'database.maxIdleConnections' needs to be less or equal to 'database.maxOpenConnections'; please set it to a valid number")
+	}
+
+	return nil
+}
+
+// QueueConfig contains config for the dabase connection
+type QueueConfig struct {
+	Hosts []string `yaml:"hosts"`
+}
+
+func (c *QueueConfig) SetDefaults() {
+	if len(c.Hosts) == 0 {
+		c.Hosts = []string{"estafette-ci-queue-0.estafette-ci-queue"}
+	}
+}
+
+func (c *QueueConfig) Validate() (err error) {
+	if len(c.Hosts) == 0 {
+		return errors.New("Configuration item 'queue.hosts' is required; please set it to name of the queue hosts used by the api")
 	}
 
 	return nil

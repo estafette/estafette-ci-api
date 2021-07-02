@@ -22,6 +22,7 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/jinzhu/copier v0.2.8
 	github.com/lib/pq v1.3.0
+	github.com/nats-io/nats.go v1.11.0
 	github.com/opentracing-contrib/go-stdlib v0.0.0-20190519235532-cf7a6c988dc9
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.9.1

@@ -52,6 +52,7 @@ import (
 	"github.com/estafette/estafette-ci-api/services/estafette"
 	"github.com/estafette/estafette-ci-api/services/github"
 	"github.com/estafette/estafette-ci-api/services/pubsub"
+	"github.com/estafette/estafette-ci-api/services/queue"
 	"github.com/estafette/estafette-ci-api/services/rbac"
 	"github.com/estafette/estafette-ci-api/services/slack"
 )
@@ -94,7 +95,8 @@ func main() {
 	foundation.InitMetricsWithPort(9001)
 
 	// handle api requests
-	srv := initRequestHandlers(ctx, stop, wg)
+	srv, queueService := initRequestHandlers(ctx, stop, wg)
+	defer queueService.CloseConnection(ctx)
 
 	log.Debug().Msg("Handling requests...")
 
@@ -114,14 +116,23 @@ func main() {
 	})
 }
 
-func initRequestHandlers(ctx context.Context, stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) *http.Server {
+func initRequestHandlers(ctx context.Context, stopChannel <-chan struct{}, waitGroup *sync.WaitGroup) (*http.Server, queue.Service) {
 
 	config, encryptedConfig, secretHelper := getConfig(ctx)
 	gitEventTopic := getTopics(ctx, stopChannel)
 	bqClient, pubsubClient, gcsClient, sourcerepoTokenSource, sourcerepoService := getGoogleCloudClients(ctx, config)
 	bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient := getClients(ctx, config, encryptedConfig, secretHelper, bqClient, pubsubClient, gcsClient, sourcerepoTokenSource, sourcerepoService)
-	estafetteService, rbacService, githubService, bitbucketService, cloudsourceService, catalogService := getServices(ctx, config, encryptedConfig, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient, gitEventTopic)
+	estafetteService, queueService, rbacService, githubService, bitbucketService, cloudsourceService, catalogService := getServices(ctx, config, encryptedConfig, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient, gitEventTopic)
 	bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler, catalogHandler := getHandlers(ctx, config, encryptedConfig, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, cockroachdbClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient, estafetteService, rbacService, githubService, bitbucketService, cloudsourceService, catalogService)
+
+	err := queueService.CreateConnection(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed creating connection to queue")
+	}
+	err = queueService.InitSubscriptions(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed initializing queue subscriptions")
+	}
 
 	subscribeToTopics(ctx, gitEventTopic, estafetteService)
 
@@ -161,7 +172,7 @@ func initRequestHandlers(ctx context.Context, stopChannel <-chan struct{}, waitG
 		*sourcerepoService = *newSourcerepoService
 	})
 
-	return srv
+	return srv, queueService
 }
 
 func getTopics(ctx context.Context, stopChannel <-chan struct{}) (gitEventTopic *api.EventTopic) {
@@ -389,7 +400,7 @@ func getClients(ctx context.Context, config *api.APIConfig, encryptedConfig *api
 	return
 }
 
-func getServices(ctx context.Context, config *api.APIConfig, encryptedConfig *api.APIConfig, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client, gitEventTopic *api.EventTopic) (estafetteService estafette.Service, rbacService rbac.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service, catalogService catalog.Service) {
+func getServices(ctx context.Context, config *api.APIConfig, encryptedConfig *api.APIConfig, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, cockroachdbClient cockroachdb.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client, gitEventTopic *api.EventTopic) (estafetteService estafette.Service, queueService queue.Service, rbacService rbac.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service, catalogService catalog.Service) {
 
 	log.Debug().Msg("Creating services...")
 
@@ -401,6 +412,9 @@ func getServices(ctx context.Context, config *api.APIConfig, encryptedConfig *ap
 		api.NewRequestCounter("estafette_service"),
 		api.NewRequestHistogram("estafette_service"),
 	)
+
+	// queue service
+	queueService = queue.NewService(config, estafetteService)
 
 	// rbac service
 	rbacService = rbac.NewService(config, cockroachdbClient)

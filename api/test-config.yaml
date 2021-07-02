@@ -257,6 +257,10 @@ database:
   user: myuser
   password: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
 
+queue:
+  hosts:
+  - estafette-ci-queue-0.estafette-ci-queue
+
 manifestPreferences:
   labelRegexes:
     type: api|web|library|container

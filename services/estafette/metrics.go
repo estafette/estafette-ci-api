@@ -77,12 +77,12 @@ func (s *metricsService) FirePubSubTriggers(ctx context.Context, pubsubEvent man
 	return s.Service.FirePubSubTriggers(ctx, pubsubEvent)
 }
 
-func (s *metricsService) FireCronTriggers(ctx context.Context) (err error) {
+func (s *metricsService) FireCronTriggers(ctx context.Context, cronEvent manifest.EstafetteCronEvent) (err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(s.requestCount, s.requestLatency, "FireCronTriggers", begin)
 	}(time.Now())
 
-	return s.Service.FireCronTriggers(ctx)
+	return s.Service.FireCronTriggers(ctx, cronEvent)
 }
 
 func (s *metricsService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {

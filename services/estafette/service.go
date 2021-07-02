@@ -46,7 +46,7 @@ type Service interface {
 	FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) (err error)
 	FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) (err error)
 	FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) (err error)
-	FireCronTriggers(ctx context.Context) (err error)
+	FireCronTriggers(ctx context.Context, cronEvent manifest.EstafetteCronEvent) (err error)
 	FireGithubTriggers(ctx context.Context, githubEvent manifest.EstafetteGithubEvent) (err error)
 	FireBitbucketTriggers(ctx context.Context, bitbucketEvent manifest.EstafetteBitbucketEvent) (err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
@@ -1269,18 +1269,14 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 	return nil
 }
 
-func (s *service) FireCronTriggers(ctx context.Context) error {
+func (s *service) FireCronTriggers(ctx context.Context, cronEvent manifest.EstafetteCronEvent) error {
 
-	// create event object
-	ce := manifest.EstafetteCronEvent{
-		Time: time.Now().UTC(),
-	}
 	e := manifest.EstafetteEvent{
 		Fired: true,
-		Cron:  &ce,
+		Cron:  &cronEvent,
 	}
 
-	log.Info().Msgf("[trigger:cron(%v)] Checking if triggers need to be fired...", ce.Time)
+	log.Info().Msgf("[trigger:cron(%v)] Checking if triggers need to be fired...", cronEvent.Time)
 
 	pipelines, err := s.cockroachdbClient.GetCronTriggers(ctx)
 	if err != nil {
@@ -1297,7 +1293,7 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 	for _, p := range pipelines {
 		for _, t := range p.Triggers {
 
-			log.Debug().Interface("event", ce).Interface("trigger", t).Msgf("[trigger:cron(%v)] Checking if pipeline '%v/%v/%v' trigger should fire...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName)
+			log.Debug().Interface("event", cronEvent).Interface("trigger", t).Msgf("[trigger:cron(%v)] Checking if pipeline '%v/%v/%v' trigger should fire...", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName)
 
 			if t.Cron == nil {
 				continue
@@ -1305,7 +1301,7 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 
 			triggerCount++
 
-			if t.Cron.Fires(&ce) {
+			if t.Cron.Fires(&cronEvent) {
 
 				firedTriggerCount++
 
@@ -1321,22 +1317,22 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
-						log.Info().Msgf("[trigger:cron(%v)] Firing build action '%v/%v/%v', branch '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						log.Info().Msgf("[trigger:cron(%v)] Firing build action '%v/%v/%v', branch '%v'...", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 						err := s.fireBuild(ctx, *p, t, e)
 						if err != nil {
-							log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting build action'%v/%v/%v', branch '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+							log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting build action'%v/%v/%v', branch '%v'", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 						}
 					} else if t.ReleaseAction != nil {
-						log.Info().Msgf("[trigger:cron(%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						log.Info().Msgf("[trigger:cron(%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						err := s.fireRelease(ctx, *p, t, e)
 						if err != nil {
-							log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+							log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
 					} else if t.BotAction != nil {
-						log.Info().Msgf("[trigger:cron(%v)] Firing bot action '%v/%v/%v', branch '%v'...", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						log.Info().Msgf("[trigger:cron(%v)] Firing bot action '%v/%v/%v', branch '%v'...", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						err := s.fireBot(ctx, *p, t, e)
 						if err != nil {
-							log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting bot action '%v/%v/%v', branch '%v'", ce.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+							log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting bot action '%v/%v/%v', branch '%v'", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						}
 
 					}
@@ -1348,7 +1344,7 @@ func (s *service) FireCronTriggers(ctx context.Context) error {
 	// wait until all concurrent goroutines are done
 	semaphore.Wait()
 
-	log.Info().Msgf("[trigger:cron(%v)] Fired %v out of %v triggers for %v pipelines", ce.Time, firedTriggerCount, triggerCount, len(pipelines))
+	log.Info().Msgf("[trigger:cron(%v)] Fired %v out of %v triggers for %v pipelines", cronEvent.Time, firedTriggerCount, triggerCount, len(pipelines))
 
 	return nil
 }

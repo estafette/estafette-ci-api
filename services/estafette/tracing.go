@@ -75,11 +75,11 @@ func (s *tracingService) FirePubSubTriggers(ctx context.Context, pubsubEvent man
 	return s.Service.FirePubSubTriggers(ctx, pubsubEvent)
 }
 
-func (s *tracingService) FireCronTriggers(ctx context.Context) (err error) {
+func (s *tracingService) FireCronTriggers(ctx context.Context, cronEvent manifest.EstafetteCronEvent) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "FireCronTriggers"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return s.Service.FireCronTriggers(ctx)
+	return s.Service.FireCronTriggers(ctx, cronEvent)
 }
 
 func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {

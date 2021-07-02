@@ -2774,7 +2774,9 @@ func (h *Handler) PostCronEvent(c *gin.Context) {
 		return
 	}
 
-	err := h.buildService.FireCronTriggers(c.Request.Context())
+	err := h.buildService.FireCronTriggers(c.Request.Context(), manifest.EstafetteCronEvent{
+		Time: time.Now().UTC(),
+	})
 
 	if err != nil {
 		log.Error().Err(err).Msg("Failed firing cron triggers")

@@ -153,17 +153,17 @@ func (mr *MockServiceMockRecorder) FireBitbucketTriggers(ctx, bitbucketEvent int
 }
 
 // FireCronTriggers mocks base method.
-func (m *MockService) FireCronTriggers(ctx context.Context) error {
+func (m *MockService) FireCronTriggers(ctx context.Context, cronEvent manifest.EstafetteCronEvent) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FireCronTriggers", ctx)
+	ret := m.ctrl.Call(m, "FireCronTriggers", ctx, cronEvent)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // FireCronTriggers indicates an expected call of FireCronTriggers.
-func (mr *MockServiceMockRecorder) FireCronTriggers(ctx interface{}) *gomock.Call {
+func (mr *MockServiceMockRecorder) FireCronTriggers(ctx, cronEvent interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FireCronTriggers", reflect.TypeOf((*MockService)(nil).FireCronTriggers), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FireCronTriggers", reflect.TypeOf((*MockService)(nil).FireCronTriggers), ctx, cronEvent)
 }
 
 // FireGitTriggers mocks base method.

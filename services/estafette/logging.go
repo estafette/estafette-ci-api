@@ -66,10 +66,10 @@ func (s *loggingService) FirePubSubTriggers(ctx context.Context, pubsubEvent man
 	return s.Service.FirePubSubTriggers(ctx, pubsubEvent)
 }
 
-func (s *loggingService) FireCronTriggers(ctx context.Context) (err error) {
+func (s *loggingService) FireCronTriggers(ctx context.Context, cronEvent manifest.EstafetteCronEvent) (err error) {
 	defer func() { api.HandleLogError(s.prefix, "Service", "FireCronTriggers", err) }()
 
-	return s.Service.FireCronTriggers(ctx)
+	return s.Service.FireCronTriggers(ctx, cronEvent)
 }
 
 func (s *loggingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {

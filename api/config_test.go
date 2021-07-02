@@ -429,6 +429,21 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "this is my secret", databaseConfig.Password)
 	})
 
+	t.Run("ReturnsQueueConfig", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
+
+		// act
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+
+		queueConfig := config.Queue
+
+		assert.Nil(t, err)
+		assert.NotNil(t, queueConfig)
+		assert.Equal(t, 1, len(queueConfig.Hosts))
+		assert.Equal(t, "cockroachdb-public.estafette.svc.cluster.local", queueConfig.Hosts[0])
+	})
+
 	t.Run("ReturnsManifestPreferences", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false))
