@@ -14,10 +14,11 @@ import (
 	"github.com/estafette/estafette-ci-api/api"
 	"github.com/estafette/estafette-ci-api/clients/cockroachdb"
 	contracts "github.com/estafette/estafette-ci-contracts"
-	foundation "github.com/estafette/estafette-foundation"
 	"github.com/gin-gonic/gin"
 	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 )
 
 // NewHandler returns a new rbac.Handler
@@ -1121,20 +1122,22 @@ func (h *Handler) BatchUpdateUsers(c *gin.Context) {
 	}
 
 	// limit concurrency using a semaphore
-	semaphore := foundation.NewSemaphore(10)
-
-	resultChannel := make(chan error, len(body.Users))
+	semaphore := semaphore.NewWeighted(10)
+	g, ctx := errgroup.WithContext(ctx)
 
 	for _, u := range body.Users {
-		semaphore.Acquire()
+		u := u
 
-		go func(u string) {
-			defer semaphore.Release()
+		g.Go(func() error {
+			semaphore.Acquire(ctx, 1)
+			if err != nil {
+				return err
+			}
+			defer semaphore.Release(1)
 
 			user, err := h.cockroachdbClient.GetUserByID(ctx, u, map[api.FilterType][]string{})
 			if err != nil {
-				resultChannel <- err
-				return
+				return err
 			}
 
 			// add role if not present
@@ -1250,24 +1253,19 @@ func (h *Handler) BatchUpdateUsers(c *gin.Context) {
 
 			err = h.service.UpdateUser(ctx, *user)
 			if err != nil {
-				resultChannel <- err
-				return
+				return err
 			}
 
-			resultChannel <- nil
-		}(u)
+			return nil
+		})
 	}
 
 	// wait until all concurrent goroutines are done
-	semaphore.Wait()
-
-	close(resultChannel)
-	for err := range resultChannel {
-		if err != nil {
-			log.Error().Err(err).Msg("Failed updating user")
-			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-			return
-		}
+	err = g.Wait()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed updating user")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
@@ -1308,20 +1306,22 @@ func (h *Handler) BatchUpdateGroups(c *gin.Context) {
 	}
 
 	// limit concurrency using a semaphore
-	semaphore := foundation.NewSemaphore(10)
-
-	resultChannel := make(chan error, len(body.Groups))
+	semaphore := semaphore.NewWeighted(10)
+	errgrp, ctx := errgroup.WithContext(ctx)
 
 	for _, g := range body.Groups {
-		semaphore.Acquire()
+		g := g
 
-		go func(g string) {
-			defer semaphore.Release()
+		errgrp.Go(func() error {
+			semaphore.Acquire(ctx, 1)
+			if err != nil {
+				return err
+			}
+			defer semaphore.Release(1)
 
 			group, err := h.cockroachdbClient.GetGroupByID(ctx, g, map[api.FilterType][]string{})
 			if err != nil {
-				resultChannel <- err
-				return
+				return err
 			}
 
 			// add role if not present
@@ -1400,24 +1400,19 @@ func (h *Handler) BatchUpdateGroups(c *gin.Context) {
 
 			err = h.service.UpdateGroup(ctx, *group)
 			if err != nil {
-				resultChannel <- err
-				return
+				return err
 			}
 
-			resultChannel <- nil
-		}(g)
+			return nil
+		})
 	}
 
 	// wait until all concurrent goroutines are done
-	semaphore.Wait()
-
-	close(resultChannel)
-	for err := range resultChannel {
-		if err != nil {
-			log.Error().Err(err).Msg("Failed updating group")
-			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-			return
-		}
+	err = errgrp.Wait()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed updating group")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
@@ -1455,20 +1450,22 @@ func (h *Handler) BatchUpdateOrganizations(c *gin.Context) {
 	}
 
 	// limit concurrency using a semaphore
-	semaphore := foundation.NewSemaphore(10)
-
-	resultChannel := make(chan error, len(body.Organizations))
+	semaphore := semaphore.NewWeighted(10)
+	g, ctx := errgroup.WithContext(ctx)
 
 	for _, o := range body.Organizations {
-		semaphore.Acquire()
+		o := o
 
-		go func(o string) {
-			defer semaphore.Release()
+		g.Go(func() error {
+			semaphore.Acquire(ctx, 1)
+			if err != nil {
+				return err
+			}
+			defer semaphore.Release(1)
 
 			organization, err := h.cockroachdbClient.GetOrganizationByID(ctx, o)
 			if err != nil {
-				resultChannel <- err
-				return
+				return err
 			}
 
 			// add role if not present
@@ -1510,24 +1507,19 @@ func (h *Handler) BatchUpdateOrganizations(c *gin.Context) {
 
 			err = h.service.UpdateOrganization(ctx, *organization)
 			if err != nil {
-				resultChannel <- err
-				return
+				return err
 			}
 
-			resultChannel <- nil
-		}(o)
+			return nil
+		})
 	}
 
 	// wait until all concurrent goroutines are done
-	semaphore.Wait()
-
-	close(resultChannel)
-	for err := range resultChannel {
-		if err != nil {
-			log.Error().Err(err).Msg("Failed updating organization")
-			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-			return
-		}
+	err = g.Wait()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed updating organization")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
@@ -1568,20 +1560,22 @@ func (h *Handler) BatchUpdateClients(c *gin.Context) {
 	}
 
 	// limit concurrency using a semaphore
-	semaphore := foundation.NewSemaphore(10)
-
-	resultChannel := make(chan error, len(body.Clients))
+	semaphore := semaphore.NewWeighted(10)
+	g, ctx := errgroup.WithContext(ctx)
 
 	for _, c := range body.Clients {
-		semaphore.Acquire()
+		c := c
 
-		go func(c string) {
-			defer semaphore.Release()
+		g.Go(func() error {
+			semaphore.Acquire(ctx, 1)
+			if err != nil {
+				return err
+			}
+			defer semaphore.Release(1)
 
 			client, err := h.cockroachdbClient.GetClientByID(ctx, c)
 			if err != nil {
-				resultChannel <- err
-				return
+				return err
 			}
 
 			// add role if not present
@@ -1660,24 +1654,19 @@ func (h *Handler) BatchUpdateClients(c *gin.Context) {
 
 			err = h.service.UpdateClient(ctx, *client)
 			if err != nil {
-				resultChannel <- err
-				return
+				return err
 			}
 
-			resultChannel <- nil
-		}(c)
+			return nil
+		})
 	}
 
 	// wait until all concurrent goroutines are done
-	semaphore.Wait()
-
-	close(resultChannel)
-	for err := range resultChannel {
-		if err != nil {
-			log.Error().Err(err).Msg("Failed updating client")
-			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-			return
-		}
+	err = g.Wait()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed updating client")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
@@ -1718,27 +1707,28 @@ func (h *Handler) BatchUpdatePipelines(c *gin.Context) {
 	}
 
 	// limit concurrency using a semaphore
-	semaphore := foundation.NewSemaphore(10)
-
-	resultChannel := make(chan error, len(body.Pipelines))
+	semaphore := semaphore.NewWeighted(10)
+	g, ctx := errgroup.WithContext(ctx)
 
 	for _, p := range body.Pipelines {
-		semaphore.Acquire()
+		p := p
 
-		go func(p string) {
-			defer semaphore.Release()
+		g.Go(func() error {
+			semaphore.Acquire(ctx, 1)
+			if err != nil {
+				return err
+			}
+			defer semaphore.Release(1)
 
 			// split pipeline in source, owner and name
 			pipelineParts := strings.Split(p, "/")
 			if len(pipelineParts) != 3 {
-				resultChannel <- fmt.Errorf("Pipeline '%v' has invalid name", p)
-				return
+				return fmt.Errorf("Pipeline '%v' has invalid name", p)
 			}
 
 			pipeline, err := h.cockroachdbClient.GetPipeline(ctx, pipelineParts[0], pipelineParts[1], pipelineParts[2], map[api.FilterType][]string{}, true)
 			if err != nil {
-				resultChannel <- err
-				return
+				return err
 			}
 
 			// add group if not present
@@ -1817,24 +1807,19 @@ func (h *Handler) BatchUpdatePipelines(c *gin.Context) {
 
 			err = h.service.UpdatePipeline(ctx, *pipeline)
 			if err != nil {
-				resultChannel <- err
-				return
+				return err
 			}
 
-			resultChannel <- nil
-		}(p)
+			return nil
+		})
 	}
 
 	// wait until all concurrent goroutines are done
-	semaphore.Wait()
-
-	close(resultChannel)
-	for err := range resultChannel {
-		if err != nil {
-			log.Error().Err(err).Msg("Failed updating pipeline")
-			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-			return
-		}
+	err = g.Wait()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed updating pipeline")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})

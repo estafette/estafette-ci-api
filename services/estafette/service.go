@@ -20,10 +20,11 @@ import (
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
-	foundation "github.com/estafette/estafette-foundation"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -84,7 +85,7 @@ type service struct {
 	githubJobVarsFunc      func(context.Context, string, string, string) (string, error)
 	bitbucketJobVarsFunc   func(context.Context, string, string, string) (string, error)
 	cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, error)
-	triggerConcurrency     int
+	triggerConcurrency     int64
 }
 
 func (s *service) CreateBuild(ctx context.Context, build contracts.Build) (createdBuild *contracts.Build, err error) {
@@ -781,7 +782,8 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 	firedTriggerCount := 0
 
 	// limit concurrency using a semaphore
-	semaphore := foundation.NewSemaphore(s.triggerConcurrency)
+	semaphore := semaphore.NewWeighted(s.triggerConcurrency)
+	g, ctx := errgroup.WithContext(ctx)
 
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
@@ -799,10 +801,16 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 
 				firedTriggerCount++
 
-				semaphore.Acquire()
+				p := p
+				t := t
+				e := e
 
-				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
-					defer semaphore.Release()
+				g.Go(func() error {
+					semaphore.Acquire(ctx, 1)
+					if err != nil {
+						return err
+					}
+					defer semaphore.Release(1)
 
 					// create new context to avoid cancellation impacting execution
 					span, _ := opentracing.StartSpanFromContext(ctx, "estafette:AsyncFireGitTriggersItem")
@@ -828,15 +836,19 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:git(%v-%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						}
-
 					}
-				}(p, t, e)
+
+					return nil
+				})
 			}
 		}
 	}
 
 	// wait until all concurrent goroutines are done
-	semaphore.Wait()
+	err = g.Wait()
+	if err != nil {
+		return err
+	}
 
 	log.Info().Msgf("[trigger:git(%v-%v:%v)] Fired %v out of %v triggers for %v pipelines", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
 
@@ -864,7 +876,8 @@ func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.E
 	firedTriggerCount := 0
 
 	// limit concurrency using a semaphore
-	semaphore := foundation.NewSemaphore(s.triggerConcurrency)
+	semaphore := semaphore.NewWeighted(s.triggerConcurrency)
+	g, ctx := errgroup.WithContext(ctx)
 
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
@@ -882,10 +895,16 @@ func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.E
 
 				firedTriggerCount++
 
-				semaphore.Acquire()
+				p := p
+				t := t
+				e := e
 
-				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
-					defer semaphore.Release()
+				g.Go(func() error {
+					semaphore.Acquire(ctx, 1)
+					if err != nil {
+						return err
+					}
+					defer semaphore.Release(1)
 
 					// create new context to avoid cancellation impacting execution
 					span, _ := opentracing.StartSpanFromContext(ctx, "estafette:AsyncFireGithubTriggersItem")
@@ -912,12 +931,18 @@ func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.E
 							log.Error().Err(err).Msgf("[trigger:github(%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						}
 					}
-				}(p, t, e)
+
+					return nil
+				})
 			}
 		}
 	}
 
-	semaphore.Wait()
+	// wait until all concurrent goroutines are done
+	err = g.Wait()
+	if err != nil {
+		return err
+	}
 
 	log.Info().Msgf("[trigger:github(%v:%v)] Fired %v out of %v triggers for %v pipelines", githubEvent.Repository, githubEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
 
@@ -945,7 +970,8 @@ func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent mani
 	firedTriggerCount := 0
 
 	// limit concurrency using a semaphore
-	semaphore := foundation.NewSemaphore(s.triggerConcurrency)
+	semaphore := semaphore.NewWeighted(s.triggerConcurrency)
+	g, ctx := errgroup.WithContext(ctx)
 
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
@@ -963,10 +989,16 @@ func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent mani
 
 				firedTriggerCount++
 
-				semaphore.Acquire()
+				p := p
+				t := t
+				e := e
 
-				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
-					defer semaphore.Release()
+				g.Go(func() error {
+					semaphore.Acquire(ctx, 1)
+					if err != nil {
+						return err
+					}
+					defer semaphore.Release(1)
 
 					// create new context to avoid cancellation impacting execution
 					span, _ := opentracing.StartSpanFromContext(ctx, "estafette:AsyncFireBitbucketTriggersItem")
@@ -992,15 +1024,19 @@ func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent mani
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:bitbucket(%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						}
-
 					}
-				}(p, t, e)
+
+					return nil
+				})
 			}
 		}
 	}
 
 	// wait until all concurrent goroutines are done
-	semaphore.Wait()
+	err = g.Wait()
+	if err != nil {
+		return err
+	}
 
 	log.Info().Msgf("[trigger:bitbucket(%v:%v)] Fired %v out of %v triggers for %v pipelines", bitbucketEvent.Repository, bitbucketEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
 
@@ -1036,7 +1072,8 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 	firedTriggerCount := 0
 
 	// limit concurrency using a semaphore
-	semaphore := foundation.NewSemaphore(s.triggerConcurrency)
+	semaphore := semaphore.NewWeighted(s.triggerConcurrency)
+	g, ctx := errgroup.WithContext(ctx)
 
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
@@ -1054,10 +1091,16 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 
 				firedTriggerCount++
 
-				semaphore.Acquire()
+				p := p
+				t := t
+				e := e
 
-				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
-					defer semaphore.Release()
+				g.Go(func() error {
+					semaphore.Acquire(ctx, 1)
+					if err != nil {
+						return err
+					}
+					defer semaphore.Release(1)
 
 					// create new context to avoid cancellation impacting execution
 					span, _ := opentracing.StartSpanFromContext(ctx, "estafette:AsyncFirePipelineTriggerItem")
@@ -1083,15 +1126,19 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						}
-
 					}
-				}(p, t, e)
+
+					return nil
+				})
 			}
 		}
 	}
 
 	// wait until all concurrent goroutines are done
-	semaphore.Wait()
+	err = g.Wait()
+	if err != nil {
+		return err
+	}
 
 	log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Fired %v out of %v triggers for %v pipelines", build.RepoSource, build.RepoOwner, build.RepoName, event, firedTriggerCount, triggerCount, len(pipelines))
 
@@ -1126,7 +1173,8 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 	firedTriggerCount := 0
 
 	// limit concurrency using a semaphore
-	semaphore := foundation.NewSemaphore(s.triggerConcurrency)
+	semaphore := semaphore.NewWeighted(s.triggerConcurrency)
+	g, ctx := errgroup.WithContext(ctx)
 
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
@@ -1144,10 +1192,16 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 
 				firedTriggerCount++
 
-				semaphore.Acquire()
+				p := p
+				t := t
+				e := e
 
-				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
-					defer semaphore.Release()
+				g.Go(func() error {
+					semaphore.Acquire(ctx, 1)
+					if err != nil {
+						return err
+					}
+					defer semaphore.Release(1)
 
 					// create new context to avoid cancellation impacting execution
 					span, _ := opentracing.StartSpanFromContext(ctx, "estafette:AsyncFireReleaseTriggersItem")
@@ -1172,15 +1226,19 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						}
-
 					}
-				}(p, t, e)
+
+					return nil
+				})
 			}
 		}
 	}
 
 	// wait until all concurrent goroutines are done
-	semaphore.Wait()
+	err = g.Wait()
+	if err != nil {
+		return err
+	}
 
 	log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v] Fired %v out of %v triggers for %v pipelines", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, firedTriggerCount, triggerCount, len(pipelines))
 
@@ -1206,7 +1264,8 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 	firedTriggerCount := 0
 
 	// limit concurrency using a semaphore
-	semaphore := foundation.NewSemaphore(s.triggerConcurrency)
+	semaphore := semaphore.NewWeighted(s.triggerConcurrency)
+	g, ctx := errgroup.WithContext(ctx)
 
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
@@ -1224,10 +1283,16 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 
 				firedTriggerCount++
 
-				semaphore.Acquire()
+				p := p
+				t := t
+				e := e
 
-				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
-					defer semaphore.Release()
+				g.Go(func() error {
+					semaphore.Acquire(ctx, 1)
+					if err != nil {
+						return err
+					}
+					defer semaphore.Release(1)
 
 					// create new context to avoid cancellation impacting execution
 					span, _ := opentracing.StartSpanFromContext(ctx, "estafette:AsyncFirePubSubTriggersItem")
@@ -1253,15 +1318,19 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:pubsub(projects/%v/topics/%v)] Failed starting bot action '%v/%v/%v', branch '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						}
-
 					}
-				}(p, t, e)
+
+					return nil
+				})
 			}
 		}
 	}
 
 	// wait until all concurrent goroutines are done
-	semaphore.Wait()
+	err = g.Wait()
+	if err != nil {
+		return err
+	}
 
 	log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Fired %v out of %v triggers for %v pipelines", pubsubEvent.Project, pubsubEvent.Topic, firedTriggerCount, triggerCount, len(pipelines))
 
@@ -1286,7 +1355,8 @@ func (s *service) FireCronTriggers(ctx context.Context, cronEvent manifest.Estaf
 	firedTriggerCount := 0
 
 	// limit concurrency using a semaphore
-	semaphore := foundation.NewSemaphore(s.triggerConcurrency)
+	semaphore := semaphore.NewWeighted(s.triggerConcurrency)
+	g, ctx := errgroup.WithContext(ctx)
 
 	// check for each trigger whether it should fire
 	for _, p := range pipelines {
@@ -1304,10 +1374,16 @@ func (s *service) FireCronTriggers(ctx context.Context, cronEvent manifest.Estaf
 
 				firedTriggerCount++
 
-				semaphore.Acquire()
+				p := p
+				t := t
+				e := e
 
-				go func(p *contracts.Pipeline, t manifest.EstafetteTrigger, e manifest.EstafetteEvent) {
-					defer semaphore.Release()
+				g.Go(func() error {
+					semaphore.Acquire(ctx, 1)
+					if err != nil {
+						return err
+					}
+					defer semaphore.Release(1)
 
 					// create new context to avoid cancellation impacting execution
 					span, _ := opentracing.StartSpanFromContext(ctx, "estafette:AsyncFireCronTriggersItem")
@@ -1333,15 +1409,19 @@ func (s *service) FireCronTriggers(ctx context.Context, cronEvent manifest.Estaf
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting bot action '%v/%v/%v', branch '%v'", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						}
-
 					}
-				}(p, t, e)
+
+					return nil
+				})
 			}
 		}
 	}
 
 	// wait until all concurrent goroutines are done
-	semaphore.Wait()
+	err = g.Wait()
+	if err != nil {
+		return err
+	}
 
 	log.Info().Msgf("[trigger:cron(%v)] Fired %v out of %v triggers for %v pipelines", cronEvent.Time, firedTriggerCount, triggerCount, len(pipelines))
 
