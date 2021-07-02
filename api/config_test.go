@@ -441,7 +441,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, queueConfig)
 		assert.Equal(t, 1, len(queueConfig.Hosts))
-		assert.Equal(t, "cockroachdb-public.estafette.svc.cluster.local", queueConfig.Hosts[0])
+		assert.Equal(t, "estafette-ci-queue-0.estafette-ci-queue", queueConfig.Hosts[0])
 	})
 
 	t.Run("ReturnsManifestPreferences", func(t *testing.T) {
