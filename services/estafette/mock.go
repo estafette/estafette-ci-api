@@ -8,7 +8,6 @@ import (
 	context "context"
 	reflect "reflect"
 
-	api "github.com/estafette/estafette-ci-api/api"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	gomock "github.com/golang/mock/gomock"
@@ -263,18 +262,6 @@ func (m *MockService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner,
 func (mr *MockServiceMockRecorder) Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rename", reflect.TypeOf((*MockService)(nil).Rename), ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
-}
-
-// SubscribeToEventTopic mocks base method.
-func (m *MockService) SubscribeToEventTopic(ctx context.Context, gitEventTopic *api.EventTopic) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SubscribeToEventTopic", ctx, gitEventTopic)
-}
-
-// SubscribeToEventTopic indicates an expected call of SubscribeToEventTopic.
-func (mr *MockServiceMockRecorder) SubscribeToEventTopic(ctx, gitEventTopic interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeToEventTopic", reflect.TypeOf((*MockService)(nil).SubscribeToEventTopic), ctx, gitEventTopic)
 }
 
 // Unarchive mocks base method.

@@ -54,7 +54,6 @@ type Service interface {
 	Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpdateBuildStatus(ctx context.Context, event contracts.EstafetteCiBuilderEvent) (err error)
 	UpdateJobResources(ctx context.Context, event contracts.EstafetteCiBuilderEvent) (err error)
-	SubscribeToEventTopic(ctx context.Context, gitEventTopic *api.EventTopic)
 	GetEventsForJobEnvvars(ctx context.Context, triggers []manifest.EstafetteTrigger, events []manifest.EstafetteEvent) (triggersAsEvents []manifest.EstafetteEvent, err error)
 }
 
@@ -1673,37 +1672,6 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent contrac
 	}
 
 	return nil
-}
-
-func (s *service) SubscribeToEventTopic(ctx context.Context, gitEventTopic *api.EventTopic) {
-	eventChannel := gitEventTopic.Subscribe("estafette.Service")
-	for {
-		message, ok := <-eventChannel
-		if !ok {
-			break
-		}
-		if message.Event.Git != nil {
-			log.Info().Msgf("Received subscribed git event '%v' for repository '%v' on topic...", message.Event.Git.Event, message.Event.Git.Repository)
-			err := s.FireGitTriggers(message.Ctx, *message.Event.Git)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed firing git triggers for git event '%v' for repository '%v'", message.Event.Git.Event, message.Event.Git.Repository)
-			}
-		}
-		if message.Event.Github != nil {
-			log.Info().Msgf("Received subscribed github event '%v' for repository '%v' on topic...", message.Event.Github.Event, message.Event.Github.Repository)
-			err := s.FireGithubTriggers(message.Ctx, *message.Event.Github)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed firing github triggers for github event '%v' for repository '%v'", message.Event.Github.Event, message.Event.Github.Repository)
-			}
-		}
-		if message.Event.Bitbucket != nil {
-			log.Info().Msgf("Received subscribed bitbucket event '%v' for repository '%v' on topic...", message.Event.Bitbucket.Event, message.Event.Bitbucket.Repository)
-			err := s.FireBitbucketTriggers(message.Ctx, *message.Event.Bitbucket)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed firing bitbucket triggers for bitbucket event '%v' for repository '%v'", message.Event.Bitbucket.Event, message.Event.Bitbucket.Repository)
-			}
-		}
-	}
 }
 
 func (s *service) getBuildLabels(build contracts.Build, hasValidManifest bool, mft manifest.EstafetteManifest, pipeline *contracts.Pipeline) []contracts.Label {

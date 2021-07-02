@@ -117,13 +117,6 @@ func (s *tracingService) UpdateJobResources(ctx context.Context, event contracts
 	return s.Service.UpdateJobResources(ctx, event)
 }
 
-func (s *tracingService) SubscribeToEventTopic(ctx context.Context, gitEventTopic *api.EventTopic) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "SubscribeToEventTopic"))
-	defer func() { api.FinishSpan(span) }()
-
-	s.Service.SubscribeToEventTopic(ctx, gitEventTopic)
-}
-
 func (s *tracingService) GetEventsForJobEnvvars(ctx context.Context, triggers []manifest.EstafetteTrigger, events []manifest.EstafetteEvent) (triggersAsEvents []manifest.EstafetteEvent, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "GetEventsForJobEnvvars"))
 	defer func() { api.FinishSpan(span) }()
