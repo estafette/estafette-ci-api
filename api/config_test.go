@@ -442,10 +442,10 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.NotNil(t, queueConfig)
 		assert.Equal(t, 1, len(queueConfig.Hosts))
 		assert.Equal(t, "estafette-ci-queue-0.estafette-ci-queue", queueConfig.Hosts[0])
-		assert.Equal(t, "cron", queueConfig.SubjectCron)
-		assert.Equal(t, "git", queueConfig.SubjectGit)
-		assert.Equal(t, "github", queueConfig.SubjectGithub)
-		assert.Equal(t, "bitbucket", queueConfig.SubjectBitbucket)
+		assert.Equal(t, "event.cron", queueConfig.SubjectCron)
+		assert.Equal(t, "event.git", queueConfig.SubjectGit)
+		assert.Equal(t, "event.github", queueConfig.SubjectGithub)
+		assert.Equal(t, "event.bitbucket", queueConfig.SubjectBitbucket)
 	})
 
 	t.Run("ReturnsManifestPreferences", func(t *testing.T) {

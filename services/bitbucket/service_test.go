@@ -169,6 +169,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			GetAccessToken(gomock.Any()).
 			Times(1)
 
+		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "bitbucket.org/"})).AnyTimes()
 		bitbucketapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
@@ -215,6 +216,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 				return true, "builder:\n  track: dev\n", nil
 			}).Times(1)
 
+		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "bitbucket.org/estafette/estafette-in-bitbucket"})).AnyTimes()
 		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
@@ -274,6 +276,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
 		bitbucketapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
+		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "bitbucket.org/estafette/estafette-in-bitbucket"})).AnyTimes()
 
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
@@ -316,18 +319,10 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		estafetteService := estafette.NewMockService(ctrl)
 		queueService := queue.NewMockService(ctrl)
 
-		// gitEventTopic := queueService
-		// defer gitEventTopic.Close()
-		// subscriptionChannel := gitEventTopic.Subscribe("PublishesGitTriggersOnTopic")
-
 		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
 		bitbucketapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
-		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{
-			Event:      "push",
-			Repository: "bitbucket.org/",
-			Branch:     "master",
-		}))
+		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "bitbucket.org/"})).AnyTimes()
 
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
@@ -373,7 +368,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			})
 		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
-		queueService.EXPECT()
+		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "bitbucket.org/estafette/estafette-in-bitbucket"})).AnyTimes()
 
 		var wg sync.WaitGroup
 		wg.Add(1)

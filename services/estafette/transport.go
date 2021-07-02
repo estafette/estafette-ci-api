@@ -2766,27 +2766,6 @@ func (h *Handler) EncryptSecret(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"secret": encryptedString})
 }
 
-func (h *Handler) PostCronEvent(c *gin.Context) {
-
-	// ensure the user has administrator role
-	if !api.RequestTokenHasRole(c, api.RoleCronTrigger) {
-		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or user does not have cron-trigger role"})
-		return
-	}
-
-	err := h.buildService.FireCronTriggers(c.Request.Context(), manifest.EstafetteCronEvent{
-		Time: time.Now().UTC(),
-	})
-
-	if err != nil {
-		log.Error().Err(err).Msg("Failed firing cron triggers")
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Hey Cron, here's a tock for your tick"})
-}
-
 func (h *Handler) obfuscateSecrets(input string) (string, error) {
 
 	r, err := regexp.Compile(`estafette\.secret\(([a-zA-Z0-9.=_-]+)\)`)

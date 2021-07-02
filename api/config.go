@@ -746,16 +746,16 @@ func (c *QueueConfig) SetDefaults() {
 		c.Hosts = []string{"estafette-ci-queue-0.estafette-ci-queue"}
 	}
 	if c.SubjectCron == "" {
-		c.SubjectCron = "cron"
+		c.SubjectCron = "event.cron"
 	}
 	if c.SubjectGit == "" {
-		c.SubjectGit = "git"
+		c.SubjectGit = "event.git"
 	}
 	if c.SubjectGithub == "" {
-		c.SubjectGithub = "github"
+		c.SubjectGithub = "event.github"
 	}
 	if c.SubjectBitbucket == "" {
-		c.SubjectBitbucket = "bitbucket"
+		c.SubjectBitbucket = "event.bitbucket"
 	}
 }
 

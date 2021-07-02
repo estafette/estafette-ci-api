@@ -70,6 +70,7 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 			Times(1)
 
 		cloudsourceapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "source.developers.google.com/test-pubsub", Branch: "master"})).AnyTimes()
 
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, queueService)
 
@@ -120,6 +121,7 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 		cloudsourceapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
+		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "source.developers.google.com/projects/test-project/repos/pubsub-test", Branch: "master"})).AnyTimes()
 
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, queueService)
 
@@ -178,6 +180,7 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 
 		cloudsourceapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
+		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "source.developers.google.com/projects/test-project/repos/pubsub-test", Branch: "master"})).AnyTimes()
 
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, queueService)
 
@@ -219,9 +222,7 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 		estafetteService := estafette.NewMockService(ctrl)
 		queueService := queue.NewMockService(ctrl)
 
-		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{
-			Branch: "master",
-		}))
+		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "source.developers.google.com/projects/test-project/repos/pubsub-test", Branch: "master"})).AnyTimes()
 
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, queueService)
 
@@ -245,6 +246,7 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 		cloudsourceapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
 		cloudsourceapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
+		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "source.developers.google.com/projects/test-project/repos/pubsub-test", Branch: "master"})).AnyTimes()
 
 		// act
 		_ = service.CreateJobForCloudSourcePush(context.Background(), notification)
@@ -288,6 +290,7 @@ func TestCreateJobForCloudSourcePush(t *testing.T) {
 		cloudsourceapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
 		cloudsourceapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
+		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "source.developers.google.com/projects/test-project/repos/pubsub-test", Branch: "master"})).AnyTimes()
 
 		service := NewService(config, cloudsourceapiClient, pubsubapiClient, estafetteService, queueService)
 

@@ -707,9 +707,6 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/releases/:releaseId/logs", estafetteHandler.PostPipelineReleaseLogs)
 		jwtMiddlewareRoutes.POST("/api/pipelines/:source/:owner/:repo/bots/:botId/logs", estafetteHandler.PostPipelineBotLogs)
 
-		// communication from cron-event-sender to api
-		jwtMiddlewareRoutes.POST("/api/integrations/cron/events", estafetteHandler.PostCronEvent)
-
 		// do not require claims and avoid re-zipping
 		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs", estafetteHandler.GetPipelineBuildLogs)
 		preZippedJWTMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/logs/tail", estafetteHandler.TailPipelineBuildLogs)

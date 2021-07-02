@@ -260,10 +260,10 @@ database:
 queue:
   hosts:
   - estafette-ci-queue-0.estafette-ci-queue
-  subjectCron: cron
-  subjectGit: git
-  subjectGithub: github
-  subjectBitbucket: bitbucket
+  subjectCron: event.cron
+  subjectGit: event.git
+  subjectGithub: event.github
+  subjectBitbucket: event.bitbucket
 
 manifestPreferences:
   labelRegexes:
