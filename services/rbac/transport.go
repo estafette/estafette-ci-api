@@ -1129,7 +1129,7 @@ func (h *Handler) BatchUpdateUsers(c *gin.Context) {
 		u := u
 
 		g.Go(func() error {
-			semaphore.Acquire(ctx, 1)
+			err = semaphore.Acquire(ctx, 1)
 			if err != nil {
 				return err
 			}
@@ -1313,7 +1313,7 @@ func (h *Handler) BatchUpdateGroups(c *gin.Context) {
 		g := g
 
 		errgrp.Go(func() error {
-			semaphore.Acquire(ctx, 1)
+			err = semaphore.Acquire(ctx, 1)
 			if err != nil {
 				return err
 			}
@@ -1457,7 +1457,7 @@ func (h *Handler) BatchUpdateOrganizations(c *gin.Context) {
 		o := o
 
 		g.Go(func() error {
-			semaphore.Acquire(ctx, 1)
+			err = semaphore.Acquire(ctx, 1)
 			if err != nil {
 				return err
 			}
@@ -1567,7 +1567,7 @@ func (h *Handler) BatchUpdateClients(c *gin.Context) {
 		c := c
 
 		g.Go(func() error {
-			semaphore.Acquire(ctx, 1)
+			err = semaphore.Acquire(ctx, 1)
 			if err != nil {
 				return err
 			}
@@ -1714,7 +1714,7 @@ func (h *Handler) BatchUpdatePipelines(c *gin.Context) {
 		p := p
 
 		g.Go(func() error {
-			semaphore.Acquire(ctx, 1)
+			err = semaphore.Acquire(ctx, 1)
 			if err != nil {
 				return err
 			}

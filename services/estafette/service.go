@@ -806,7 +806,7 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 				e := e
 
 				g.Go(func() error {
-					semaphore.Acquire(ctx, 1)
+					err = semaphore.Acquire(ctx, 1)
 					if err != nil {
 						return err
 					}
@@ -900,7 +900,7 @@ func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.E
 				e := e
 
 				g.Go(func() error {
-					semaphore.Acquire(ctx, 1)
+					err = semaphore.Acquire(ctx, 1)
 					if err != nil {
 						return err
 					}
@@ -994,7 +994,7 @@ func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent mani
 				e := e
 
 				g.Go(func() error {
-					semaphore.Acquire(ctx, 1)
+					err = semaphore.Acquire(ctx, 1)
 					if err != nil {
 						return err
 					}
@@ -1096,7 +1096,7 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 				e := e
 
 				g.Go(func() error {
-					semaphore.Acquire(ctx, 1)
+					err = semaphore.Acquire(ctx, 1)
 					if err != nil {
 						return err
 					}
@@ -1197,7 +1197,7 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 				e := e
 
 				g.Go(func() error {
-					semaphore.Acquire(ctx, 1)
+					err = semaphore.Acquire(ctx, 1)
 					if err != nil {
 						return err
 					}
@@ -1288,7 +1288,7 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 				e := e
 
 				g.Go(func() error {
-					semaphore.Acquire(ctx, 1)
+					err = semaphore.Acquire(ctx, 1)
 					if err != nil {
 						return err
 					}
@@ -1379,7 +1379,7 @@ func (s *service) FireCronTriggers(ctx context.Context, cronEvent manifest.Estaf
 				e := e
 
 				g.Go(func() error {
-					semaphore.Acquire(ctx, 1)
+					err = semaphore.Acquire(ctx, 1)
 					if err != nil {
 						return err
 					}
