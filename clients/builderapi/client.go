@@ -1016,6 +1016,19 @@ func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderP
 		},
 	}
 
+	if ciBuilderParams.BuilderConfig.DockerConfig.RunType == contracts.DockerRunTypeDinD {
+		volumes = append(volumes, v1.Volume{
+			Name: "docker-graph-storage",
+			VolumeSource: v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{},
+			},
+		})
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      "docker-graph-storage",
+			MountPath: "/var/lib/docker",
+		})
+	}
+
 	if ciBuilderParams.OperatingSystem == manifest.OperatingSystemWindows && ciBuilderParams.BuilderConfig.Manifest.Builder.BuilderType != manifest.BuilderTypeKubernetes {
 		// windows builds uses docker-outside-docker, for which the hosts docker socket needs to be mounted into the ci-builder container
 		dockerSocketVolumeName := "docker-socket"
