@@ -1016,7 +1016,7 @@ func (c *client) getCiBuilderJobVolumesAndMounts(ctx context.Context, ciBuilderP
 		},
 	}
 
-	if ciBuilderParams.BuilderConfig.DockerConfig.RunType == contracts.DockerRunTypeDinD {
+	if builderConfig.DockerConfig != nil && builderConfig.DockerConfig.RunType == contracts.DockerRunTypeDinD {
 		volumes = append(volumes, v1.Volume{
 			Name: "docker-graph-storage",
 			VolumeSource: v1.VolumeSource{
