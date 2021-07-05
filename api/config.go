@@ -113,8 +113,9 @@ func (c *APIConfig) SetDefaults() {
 			},
 		})
 		c.TrustedImages = append(c.TrustedImages, &contracts.TrustedImageConfig{
-			ImagePath: "extensions/docker",
-			RunDocker: true,
+			ImagePath:          "extensions/docker",
+			RunDocker:          true,
+			AllowNotifications: true,
 			InjectedCredentialTypes: []string{
 				"container-registry",
 				"github-api-token",
