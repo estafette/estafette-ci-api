@@ -73,9 +73,12 @@ func getInjectedStageName(stageBaseName string, stages []*manifest.EstafetteStag
 	return injectedStageName
 }
 
-func injectIfNotExists(stages, parallelStages []*manifest.EstafetteStage, stageToInject *manifest.EstafetteStage) []*manifest.EstafetteStage {
-	if !stageExists(stages, stageToInject.Name) {
-		return append(parallelStages, stageToInject)
+func injectIfNotExists(stages, parallelStages []*manifest.EstafetteStage, stageToInject ...*manifest.EstafetteStage) []*manifest.EstafetteStage {
+
+	for _, sti := range stageToInject {
+		if !stageExists(stages, sti.Name) {
+			parallelStages = append(parallelStages, sti)
+		}
 	}
 
 	return parallelStages
@@ -109,7 +112,7 @@ func injectBuildStagesBefore(config *APIConfig, operatingSystem manifest.Operati
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Build != nil && injectedStages.Build.Before != nil {
-			injectedStage.ParallelStages = append(injectedStage.ParallelStages, injectedStages.Build.Before...)
+			injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, injectedStages.Build.Before...)
 		}
 	}
 
@@ -145,7 +148,7 @@ func injectBuildStagesAfter(config *APIConfig, operatingSystem manifest.Operatin
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Build != nil && injectedStages.Build.After != nil {
-			injectedStage.ParallelStages = append(injectedStage.ParallelStages, injectedStages.Build.After...)
+			injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, injectedStages.Build.After...)
 		}
 	}
 
@@ -179,7 +182,7 @@ func injectReleaseStagesBefore(config *APIConfig, operatingSystem manifest.Opera
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Release != nil && injectedStages.Release.Before != nil {
-			injectedStage.ParallelStages = append(injectedStage.ParallelStages, injectedStages.Release.Before...)
+			injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, injectedStages.Release.Before...)
 		}
 	}
 
@@ -207,7 +210,7 @@ func injectReleaseStagesAfter(config *APIConfig, operatingSystem manifest.Operat
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Release != nil && injectedStages.Release.After != nil {
-			injectedStage.ParallelStages = append(injectedStage.ParallelStages, injectedStages.Release.After...)
+			injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, injectedStages.Release.After...)
 		}
 	}
 
@@ -241,7 +244,7 @@ func injectBotStagesBefore(config *APIConfig, operatingSystem manifest.Operating
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Bot != nil && injectedStages.Bot.Before != nil {
-			injectedStage.ParallelStages = append(injectedStage.ParallelStages, injectedStages.Bot.Before...)
+			injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, injectedStages.Bot.Before...)
 		}
 	}
 
@@ -269,7 +272,7 @@ func injectBotStagesAfter(config *APIConfig, operatingSystem manifest.OperatingS
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Bot != nil && injectedStages.Bot.After != nil {
-			injectedStage.ParallelStages = append(injectedStage.ParallelStages, injectedStages.Bot.After...)
+			injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, injectedStages.Bot.After...)
 		}
 	}
 
