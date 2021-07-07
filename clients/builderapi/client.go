@@ -684,6 +684,7 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 		localBuilderConfig.Stages = localBuilderConfig.Manifest.Stages
 
 		localBuilderConfig.CIServer.PostLogsURL = strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/builds/%v/logs", localBuilderConfig.Git.RepoSource, localBuilderConfig.Git.RepoOwner, localBuilderConfig.Git.RepoName, localBuilderConfig.Build.ID)
+		localBuilderConfig.CIServer.CancelJobURL = strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/builds/%v", localBuilderConfig.Git.RepoSource, localBuilderConfig.Git.RepoOwner, localBuilderConfig.Git.RepoName, localBuilderConfig.Build.ID)
 
 	case contracts.JobTypeRelease:
 		releaseExists := false
@@ -698,6 +699,7 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 		}
 
 		localBuilderConfig.CIServer.PostLogsURL = strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/releases/%v/logs", localBuilderConfig.Git.RepoSource, localBuilderConfig.Git.RepoOwner, localBuilderConfig.Git.RepoName, localBuilderConfig.Release.ID)
+		localBuilderConfig.CIServer.CancelJobURL = strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/releases/%v", localBuilderConfig.Git.RepoSource, localBuilderConfig.Git.RepoOwner, localBuilderConfig.Git.RepoName, localBuilderConfig.Release.ID)
 
 	case contracts.JobTypeBot:
 		botExists := false
@@ -712,6 +714,7 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 		}
 
 		localBuilderConfig.CIServer.PostLogsURL = strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/bots/%v/logs", localBuilderConfig.Git.RepoSource, localBuilderConfig.Git.RepoOwner, localBuilderConfig.Git.RepoName, localBuilderConfig.Bot.ID)
+		localBuilderConfig.CIServer.CancelJobURL = strings.TrimRight(c.config.APIServer.ServiceURL, "/") + fmt.Sprintf("/api/pipelines/%v/%v/%v/bots/%v", localBuilderConfig.Git.RepoSource, localBuilderConfig.Git.RepoOwner, localBuilderConfig.Git.RepoName, localBuilderConfig.Bot.ID)
 
 	}
 
