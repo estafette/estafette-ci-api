@@ -661,7 +661,10 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 		return localBuilderConfig, err
 	}
 
-	jwt, err := api.GenerateJWT(c.config, time.Duration(6)*time.Hour, jwtgo.MapClaims{
+	now := time.Now().UTC()
+	expiry := now.Add(time.Duration(6) * time.Hour)
+
+	jwt, err := api.GenerateJWT(c.config, now, expiry, jwtgo.MapClaims{
 		"job": jobName,
 	})
 	if err != nil {
@@ -673,6 +676,7 @@ func (c *client) getBuilderConfig(ctx context.Context, ciBuilderParams CiBuilder
 		BaseURL:          c.config.APIServer.BaseURL,
 		BuilderEventsURL: strings.TrimRight(c.config.APIServer.ServiceURL, "/") + "/api/commands",
 		JWT:              jwt,
+		JWTExpiry:        expiry,
 	}
 
 	switch localBuilderConfig.JobType {

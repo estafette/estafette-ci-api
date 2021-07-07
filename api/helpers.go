@@ -26,16 +26,14 @@ var (
 	ErrInvalidSigningAlgorithm = errors.New("invalid signing algorithm")
 )
 
-func GenerateJWT(config *APIConfig, validDuration time.Duration, optionalClaims jwtgo.MapClaims) (tokenString string, err error) {
+func GenerateJWT(config *APIConfig, now time.Time, expiry time.Time, optionalClaims jwtgo.MapClaims) (tokenString string, err error) {
 
 	// Create the token
 	token := jwtgo.New(jwtgo.GetSigningMethod("HS256"))
 	claims := token.Claims.(jwtgo.MapClaims)
 
 	// set required claims
-	now := time.Now().UTC()
-	expire := now.Add(validDuration)
-	claims["exp"] = expire.Unix()
+	claims["exp"] = expiry.Unix()
 	claims["orig_iat"] = now.Unix()
 
 	for key, value := range optionalClaims {

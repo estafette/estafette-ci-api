@@ -127,7 +127,9 @@ func (h *Handler) LoginProvider(c *gin.Context) {
 	}
 
 	// generate jwt to use as state
-	state, err := api.GenerateJWT(h.config, time.Duration(10)*time.Minute, optionalClaims)
+	now := time.Now().UTC()
+	expiry := now.Add(time.Duration(10) * time.Minute)
+	state, err := api.GenerateJWT(h.config, now, expiry, optionalClaims)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed generating JWT to use as state")
 		c.String(http.StatusInternalServerError, "Failed generating JWT to use as state")
