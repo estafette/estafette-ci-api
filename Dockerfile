@@ -1,6 +1,6 @@
 FROM busybox:1.33.1
 
-RUN useradd -u 10001 scratchuser
+RUN adduser -u 10001 scratchuser
 
 FROM scratch
 
