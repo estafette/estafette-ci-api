@@ -1249,7 +1249,7 @@ func (h *Handler) TailPipelineReleaseLogs(c *gin.Context) {
 
 	go func() {
 		err := h.ciBuilderClient.TailCiBuilderJobLogs(c.Request.Context(), jobName, logChannel)
-		if err != nil {
+		if err != nil && !errors.Is(err, context.Canceled) {
 			log.Error().Err(err).Msgf("Failed tailing release job %v", jobName)
 		}
 	}()
@@ -1617,7 +1617,7 @@ func (h *Handler) TailPipelineBotLogs(c *gin.Context) {
 
 	go func() {
 		err := h.ciBuilderClient.TailCiBuilderJobLogs(c.Request.Context(), jobName, logChannel)
-		if err != nil {
+		if err != nil && !errors.Is(err, context.Canceled) {
 			log.Error().Err(err).Msgf("Failed tailing bot job %v", jobName)
 		}
 	}()
