@@ -353,7 +353,6 @@ releases:
         imagePullSecretUser: estafette.secret(VfjAylmn9HR7zgsc.Gn9lIjF7Pb3Izj6g3fA6wHu-0HNuqxbY7NvwYVCJ5w==.CWRwPC1hcLfF1nipyuEpc7bphtB3-FjwjBGDtYoZBEkoe57G3k5U08tm02qmfujWDUGK-i8=)
         imagePullSecretPassword: estafette.secret(bFuTk7W2-5ZNwN4Y.weEL4hZfGSe7C-wGEAq2EHpoDKnomlKhDLSgc9Y4MtspjPkT0qeeCpmES3cblc5D.7LxMwDlsdDaEJPFbBA7jESxxHr-dj0K7J4GwTfs8JvDjFr-zo3uRFSrIBlKLDuaZJoHNkJQ=)
         securityContext:
-          runAsGroup: 10001
           fsGroup: 10001
           # enable for kubernetes 1.20+
           # fsGroupChangePolicy: "OnRootMismatch"
@@ -372,6 +371,8 @@ releases:
           lifecycle:
             prestopsleep: false
           securityContext:
+            runAsUser: 10001
+            runAsGroup: 10001
             runAsNonRoot: true
         sidecars:
         - type: openresty
