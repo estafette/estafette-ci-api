@@ -1,5 +1,5 @@
-FROM ubuntu:latest
-RUN useradd -u 10001 scratchuser
+# FROM ubuntu:latest
+# RUN useradd -u 10001 scratchuser
 
 FROM scratch
 
@@ -9,8 +9,8 @@ LABEL maintainer="estafette.io" \
 COPY ca-certificates.crt /etc/ssl/certs/
 COPY ${ESTAFETTE_GIT_NAME} /
 
-# run as non-root user
-COPY --from=0 /etc/passwd /etc/passwd
+# # run as non-root user
+# COPY --from=0 /etc/passwd /etc/passwd
 USER scratchuser
 
 ENV GRACEFUL_SHUTDOWN_DELAY_SECONDS="20" \

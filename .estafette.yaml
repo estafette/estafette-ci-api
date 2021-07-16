@@ -352,10 +352,10 @@ releases:
         iapOauthClientSecret: estafette.secret(DtIinOnwxATamw47.3YE8gEmg5Bhrjpbm_oYIrSgY8HVUG97ecLjijXxiLhK7eVOkTe_hlJrEgxcgEplB.97AKjl7ynDZlpMnQ38BY_QIkxiEoO9WbdIjrilJSUQMz96JkMouDmp8CKXvS1TGvTrHJB10=)
         imagePullSecretUser: estafette.secret(VfjAylmn9HR7zgsc.Gn9lIjF7Pb3Izj6g3fA6wHu-0HNuqxbY7NvwYVCJ5w==.CWRwPC1hcLfF1nipyuEpc7bphtB3-FjwjBGDtYoZBEkoe57G3k5U08tm02qmfujWDUGK-i8=)
         imagePullSecretPassword: estafette.secret(bFuTk7W2-5ZNwN4Y.weEL4hZfGSe7C-wGEAq2EHpoDKnomlKhDLSgc9Y4MtspjPkT0qeeCpmES3cblc5D.7LxMwDlsdDaEJPFbBA7jESxxHr-dj0K7J4GwTfs8JvDjFr-zo3uRFSrIBlKLDuaZJoHNkJQ=)
-        securityContext:
-          fsGroup: 10001
-          # enable for kubernetes 1.20+
-          # fsGroupChangePolicy: "OnRootMismatch"
+        # securityContext:
+        #   fsGroup: 10001
+        #   # enable for kubernetes 1.20+
+        #   # fsGroupChangePolicy: "OnRootMismatch"
         container:
           repository: estafette
           env:
@@ -370,10 +370,10 @@ releases:
             port: 9001
           lifecycle:
             prestopsleep: false
-          securityContext:
-            runAsUser: 10001
-            runAsGroup: 10001
-            runAsNonRoot: true
+          # securityContext:
+          #   runAsUser: 10001
+          #   runAsGroup: 10001
+          #   runAsNonRoot: true
         sidecars:
         - type: openresty
           cpu:
