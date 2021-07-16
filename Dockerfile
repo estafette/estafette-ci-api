@@ -11,7 +11,7 @@ COPY ${ESTAFETTE_GIT_NAME} /
 
 # # run as non-root user
 # COPY --from=0 /etc/passwd /etc/passwd
-USER scratchuser
+# USER scratchuser
 
 ENV GRACEFUL_SHUTDOWN_DELAY_SECONDS="20" \
     ESTAFETTE_LOG_FORMAT="json"
