@@ -25,8 +25,8 @@ triggers:
     branch: main
 
 env:
-  GOCACHE: .go/build
-  GOMODCACHE: .go/pkg/mod
+  GOCACHE: /estafette-work/.go/build
+  GOMODCACHE: /estafette-work/.go/pkg/mod
 
 stages:
   build-lint-and-package:
