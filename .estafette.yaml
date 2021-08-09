@@ -63,7 +63,7 @@ stages:
     services:
     - name: cockroachdb
       multiStage: true
-      image: cockroachdb/cockroach:v21.1.4
+      image: cockroachdb/cockroach:v21.1.6
       env:
         COCKROACH_SKIP_ENABLING_DIAGNOSTIC_REPORTING: "true"
       readinessProbe:
