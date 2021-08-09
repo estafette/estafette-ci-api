@@ -143,8 +143,17 @@ func (c *client) SubscribeToPubsubTriggers(ctx context.Context, manifestString s
 		return err
 	}
 
-	if len(mft.Triggers) > 0 {
-		for _, t := range mft.Triggers {
+	for _, t := range mft.Triggers {
+		if t.PubSub != nil {
+			err := c.SubscribeToTopic(ctx, t.PubSub.Project, t.PubSub.Topic)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	for _, r := range mft.Releases {
+		for _, t := range r.Triggers {
 			if t.PubSub != nil {
 				err := c.SubscribeToTopic(ctx, t.PubSub.Project, t.PubSub.Topic)
 				if err != nil {
@@ -153,5 +162,17 @@ func (c *client) SubscribeToPubsubTriggers(ctx context.Context, manifestString s
 			}
 		}
 	}
+
+	for _, b := range mft.Bots {
+		for _, t := range b.Triggers {
+			if t.PubSub != nil {
+				err := c.SubscribeToTopic(ctx, t.PubSub.Project, t.PubSub.Topic)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	return nil
 }
