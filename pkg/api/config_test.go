@@ -188,6 +188,13 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Build.Before[0].Name)
 		assert.Equal(t, "extensions/envvars:stable", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Build.Before[0].ContainerImage)
+
+		assert.Equal(t, "snyk", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Build.After[0].Name)
+		assert.Equal(t, "extensions/snyk:stable-golang", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Build.After[0].ContainerImage)
+		assert.Equal(t, map[string]interface{}{
+			"language": "golang",
+		}, apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Build.After[0].CustomProperties["labelSelector"])
+
 		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Release.After[0].Name)
 		assert.Equal(t, "extensions/envvars:dev", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Release.After[0].ContainerImage)
 		assert.Equal(t, "envvars", apiServerConfig.InjectStagesPerOperatingSystem[manifest.OperatingSystemLinux].Bot.After[0].Name)

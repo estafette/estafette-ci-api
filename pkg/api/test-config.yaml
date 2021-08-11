@@ -83,7 +83,11 @@ apiServer:
         before:
         - name: envvars
           image: extensions/envvars:stable
-        after: []
+        after:
+        - name: snyk
+          image: extensions/snyk:stable-golang
+          labelSelector:
+            language: golang
       release:
         before: []
         after:

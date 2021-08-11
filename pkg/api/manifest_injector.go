@@ -2,6 +2,9 @@ package api
 
 import (
 	"fmt"
+	"log"
+	"regexp"
+	"strings"
 
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
@@ -38,8 +41,8 @@ func InjectStages(config *APIConfig, mft manifest.EstafetteManifest, builderTrac
 			releaseOperatingSystem = r.Builder.OperatingSystem
 		}
 
-		r.Stages = injectReleaseStagesBefore(config, releaseOperatingSystem, *r, builderTrack, gitSource, supportsBuildStatus)
-		r.Stages = injectReleaseStagesAfter(config, releaseOperatingSystem, *r, builderTrack, gitSource, supportsBuildStatus)
+		r.Stages = injectReleaseStagesBefore(config, releaseOperatingSystem, injectedManifest, *r, builderTrack, gitSource, supportsBuildStatus)
+		r.Stages = injectReleaseStagesAfter(config, releaseOperatingSystem, injectedManifest, *r, builderTrack, gitSource, supportsBuildStatus)
 	}
 
 	// inject bot stages
@@ -49,8 +52,8 @@ func InjectStages(config *APIConfig, mft manifest.EstafetteManifest, builderTrac
 			botOperatingSystem = b.Builder.OperatingSystem
 		}
 
-		b.Stages = injectBotStagesBefore(config, botOperatingSystem, *b, builderTrack, gitSource, supportsBuildStatus)
-		b.Stages = injectBotStagesAfter(config, botOperatingSystem, *b, builderTrack, gitSource, supportsBuildStatus)
+		b.Stages = injectBotStagesBefore(config, botOperatingSystem, injectedManifest, *b, builderTrack, gitSource, supportsBuildStatus)
+		b.Stages = injectBotStagesAfter(config, botOperatingSystem, injectedManifest, *b, builderTrack, gitSource, supportsBuildStatus)
 	}
 
 	// ensure all injected stages have defaults for shell and working directory matching the target operating system
@@ -73,10 +76,10 @@ func getInjectedStageName(stageBaseName string, stages []*manifest.EstafetteStag
 	return injectedStageName
 }
 
-func injectIfNotExists(stages, parallelStages []*manifest.EstafetteStage, stageToInject ...*manifest.EstafetteStage) []*manifest.EstafetteStage {
+func injectIfNotExists(mft manifest.EstafetteManifest, stages, parallelStages []*manifest.EstafetteStage, stageToInject ...*manifest.EstafetteStage) []*manifest.EstafetteStage {
 
 	for _, sti := range stageToInject {
-		if !stageExists(stages, sti.Name) {
+		if !stageExists(stages, sti.Name) && labelSelectorMatches(mft, *sti) {
 			parallelStages = append(parallelStages, sti)
 		}
 	}
@@ -94,13 +97,13 @@ func injectBuildStagesBefore(config *APIConfig, operatingSystem manifest.Operati
 		AutoInjected:   true,
 	}
 
-	injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
+	injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
 		Name:           "git-clone",
 		ContainerImage: fmt.Sprintf("extensions/git-clone:%v", builderTrack),
 	})
 
 	if supportsBuildStatus {
-		injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
+		injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
 			Name:           "set-pending-build-status",
 			ContainerImage: fmt.Sprintf("extensions/%v-status:%v", gitSource, builderTrack),
 			CustomProperties: map[string]interface{}{
@@ -112,7 +115,7 @@ func injectBuildStagesBefore(config *APIConfig, operatingSystem manifest.Operati
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Build != nil && injectedStages.Build.Before != nil {
-			injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, injectedStages.Build.Before...)
+			injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, injectedStages.Build.Before...)
 		}
 	}
 
@@ -138,7 +141,7 @@ func injectBuildStagesAfter(config *APIConfig, operatingSystem manifest.Operatin
 	}
 
 	if supportsBuildStatus {
-		injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
+		injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
 			Name:           "set-build-status",
 			ContainerImage: fmt.Sprintf("extensions/%v-status:%v", gitSource, builderTrack),
 			When:           "status == 'succeeded' || status == 'failed'",
@@ -148,7 +151,7 @@ func injectBuildStagesAfter(config *APIConfig, operatingSystem manifest.Operatin
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Build != nil && injectedStages.Build.After != nil {
-			injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, injectedStages.Build.After...)
+			injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, injectedStages.Build.After...)
 		}
 	}
 
@@ -162,7 +165,7 @@ func injectBuildStagesAfter(config *APIConfig, operatingSystem manifest.Operatin
 	return stages
 }
 
-func injectReleaseStagesBefore(config *APIConfig, operatingSystem manifest.OperatingSystem, release manifest.EstafetteRelease, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
+func injectReleaseStagesBefore(config *APIConfig, operatingSystem manifest.OperatingSystem, mft manifest.EstafetteManifest, release manifest.EstafetteRelease, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
 
 	stages = release.Stages
 
@@ -173,7 +176,7 @@ func injectReleaseStagesBefore(config *APIConfig, operatingSystem manifest.Opera
 	}
 
 	if release.CloneRepository != nil && *release.CloneRepository {
-		injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
+		injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
 			Name:           "git-clone",
 			ContainerImage: fmt.Sprintf("extensions/git-clone:%v", builderTrack),
 		})
@@ -182,7 +185,7 @@ func injectReleaseStagesBefore(config *APIConfig, operatingSystem manifest.Opera
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Release != nil && injectedStages.Release.Before != nil {
-			injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, injectedStages.Release.Before...)
+			injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, injectedStages.Release.Before...)
 		}
 	}
 
@@ -196,7 +199,7 @@ func injectReleaseStagesBefore(config *APIConfig, operatingSystem manifest.Opera
 	return stages
 }
 
-func injectReleaseStagesAfter(config *APIConfig, operatingSystem manifest.OperatingSystem, release manifest.EstafetteRelease, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
+func injectReleaseStagesAfter(config *APIConfig, operatingSystem manifest.OperatingSystem, mft manifest.EstafetteManifest, release manifest.EstafetteRelease, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
 
 	stages = release.Stages
 
@@ -210,7 +213,7 @@ func injectReleaseStagesAfter(config *APIConfig, operatingSystem manifest.Operat
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Release != nil && injectedStages.Release.After != nil {
-			injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, injectedStages.Release.After...)
+			injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, injectedStages.Release.After...)
 		}
 	}
 
@@ -224,7 +227,7 @@ func injectReleaseStagesAfter(config *APIConfig, operatingSystem manifest.Operat
 	return stages
 }
 
-func injectBotStagesBefore(config *APIConfig, operatingSystem manifest.OperatingSystem, bot manifest.EstafetteBot, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
+func injectBotStagesBefore(config *APIConfig, operatingSystem manifest.OperatingSystem, mft manifest.EstafetteManifest, bot manifest.EstafetteBot, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
 
 	stages = bot.Stages
 
@@ -235,7 +238,7 @@ func injectBotStagesBefore(config *APIConfig, operatingSystem manifest.Operating
 	}
 
 	if bot.CloneRepository != nil && *bot.CloneRepository {
-		injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
+		injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
 			Name:           "git-clone",
 			ContainerImage: fmt.Sprintf("extensions/git-clone:%v", builderTrack),
 		})
@@ -244,7 +247,7 @@ func injectBotStagesBefore(config *APIConfig, operatingSystem manifest.Operating
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Bot != nil && injectedStages.Bot.Before != nil {
-			injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, injectedStages.Bot.Before...)
+			injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, injectedStages.Bot.Before...)
 		}
 	}
 
@@ -258,7 +261,7 @@ func injectBotStagesBefore(config *APIConfig, operatingSystem manifest.Operating
 	return stages
 }
 
-func injectBotStagesAfter(config *APIConfig, operatingSystem manifest.OperatingSystem, bot manifest.EstafetteBot, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
+func injectBotStagesAfter(config *APIConfig, operatingSystem manifest.OperatingSystem, mft manifest.EstafetteManifest, bot manifest.EstafetteBot, builderTrack, gitSource string, supportsBuildStatus bool) (stages []*manifest.EstafetteStage) {
 
 	stages = bot.Stages
 
@@ -272,7 +275,7 @@ func injectBotStagesAfter(config *APIConfig, operatingSystem manifest.OperatingS
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Bot != nil && injectedStages.Bot.After != nil {
-			injectedStage.ParallelStages = injectIfNotExists(stages, injectedStage.ParallelStages, injectedStages.Bot.After...)
+			injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, injectedStages.Bot.After...)
 		}
 	}
 
@@ -293,6 +296,47 @@ func stageExists(stages []*manifest.EstafetteStage, stageName string) bool {
 		}
 	}
 	return false
+}
+
+func labelSelectorMatches(mft manifest.EstafetteManifest, stage manifest.EstafetteStage) bool {
+	if val, ok := stage.CustomProperties["labelSelector"]; ok {
+		labelSelector, ok := val.(map[string]interface{})
+		if ok {
+			allLabelsMatch := true
+			for labelSelectorKey, labelSelectorValue := range labelSelector {
+
+				// check if label exists in manifest
+				if labelValue, labelExists := mft.Labels[labelSelectorKey]; labelExists {
+
+					labelSelectorValueString := fmt.Sprintf("%v", labelSelectorValue)
+
+					pattern := fmt.Sprintf("^%v$", strings.TrimSpace(labelSelectorValueString))
+
+					log.Printf("match %v: %v against %v", labelSelectorKey, labelValue, pattern)
+
+					match, err := regexp.MatchString(pattern, labelValue)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					if !match {
+						log.Printf("%v: %v does not match %v", labelSelectorKey, labelValue, pattern)
+
+						allLabelsMatch = false
+						break
+					}
+				} else {
+					return false
+				}
+			}
+
+			return allLabelsMatch
+		} else {
+			log.Fatal("Can't cast labelSelector to map[string]string")
+		}
+	}
+
+	return true
 }
 
 func getOperatingSystem(mft manifest.EstafetteManifest, preferences manifest.EstafetteManifestPreferences) manifest.OperatingSystem {

@@ -8,6 +8,89 @@ import (
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
 
+func TestLabelSelectorMatches(t *testing.T) {
+	t.Run("ReturnsTrueIfNoLabelSelectorHasBeenDefined", func(t *testing.T) {
+		mft := manifest.EstafetteManifest{
+			Labels: map[string]string{
+				"language": "golang",
+				"team":     "estafette",
+			},
+		}
+
+		stage := manifest.EstafetteStage{}
+
+		match := labelSelectorMatches(mft, stage)
+
+		assert.True(t, match)
+	})
+
+	t.Run("ReturnsTrueIfAllLabelSelectorValuesMatchManifestLabelValues", func(t *testing.T) {
+		mft := manifest.EstafetteManifest{
+			Labels: map[string]string{
+				"language": "golang",
+				"team":     "estafette",
+			},
+		}
+
+		stage := manifest.EstafetteStage{
+			CustomProperties: map[string]interface{}{
+				"labelSelector": map[string]interface{}{
+					"language": "golang",
+					"team":     "estafette",
+				},
+			},
+		}
+
+		match := labelSelectorMatches(mft, stage)
+
+		assert.True(t, match)
+	})
+
+	t.Run("ReturnsTrueIfAllLabelSelectorValuesRegexesMatchManifestLabelValues", func(t *testing.T) {
+		mft := manifest.EstafetteManifest{
+			Labels: map[string]string{
+				"language": "golang",
+				"team":     "estafette",
+			},
+		}
+
+		stage := manifest.EstafetteStage{
+			CustomProperties: map[string]interface{}{
+				"labelSelector": map[string]interface{}{
+					"language": "golang|node",
+					"team":     "estafette",
+				},
+			},
+		}
+
+		match := labelSelectorMatches(mft, stage)
+
+		assert.True(t, match)
+	})
+
+	t.Run("ReturnsFalseIfAnyLabelSelectorValueDoesNotMatchManifestLabelValue", func(t *testing.T) {
+		mft := manifest.EstafetteManifest{
+			Labels: map[string]string{
+				"language": "golang",
+				"team":     "estafette",
+			},
+		}
+
+		stage := manifest.EstafetteStage{
+			CustomProperties: map[string]interface{}{
+				"labelSelector": map[string]interface{}{
+					"language": "node",
+					"team":     "estafette",
+				},
+			},
+		}
+
+		match := labelSelectorMatches(mft, stage)
+
+		assert.False(t, match)
+	})
+}
+
 func TestInjectStages(t *testing.T) {
 
 	t.Run("PrependParallelGitCloneStepInInitStage", func(t *testing.T) {
@@ -382,6 +465,168 @@ func TestInjectStages(t *testing.T) {
 		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Bots[0].Stages[2].ParallelStages[0].ContainerImage)
 	})
 
+	t.Run("InjectsConfiguredStagesIfDoesNotAlreadyExistsAndLabelsMatchLabelSelector", func(t *testing.T) {
+
+		mft := manifest.EstafetteManifest{
+			Labels: map[string]string{
+				"language": "golang",
+				"team":     "estafette",
+			},
+			Stages: []*manifest.EstafetteStage{
+				{
+					Name:           "build",
+					ContainerImage: "golang:1.10.2-alpine3.7",
+				},
+			},
+			Releases: []*manifest.EstafetteRelease{
+				{
+					Name: "production",
+					Stages: []*manifest.EstafetteStage{
+						{
+							Name:           "deploy",
+							ContainerImage: "extensions/gke",
+						},
+					},
+				},
+			},
+			Bots: []*manifest.EstafetteBot{
+				{
+					Name: "bot",
+					Stages: []*manifest.EstafetteStage{
+						{
+							Name:           "bot",
+							ContainerImage: "extensions/bot",
+						},
+					},
+				},
+			},
+		}
+
+		mft.SetDefaults(*manifest.GetDefaultManifestPreferences())
+
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+			APIServer: &APIServerConfig{
+				InjectStagesPerOperatingSystem: map[manifest.OperatingSystem]InjectStagesConfig{
+					manifest.OperatingSystemLinux: {
+						Build: &InjectStagesTypeConfig{
+							Before: []*manifest.EstafetteStage{
+								{
+									Name:           "envvar-before",
+									ContainerImage: "extensions/envvars:stable",
+									CustomProperties: map[string]interface{}{
+										"labelSelector": map[string]interface{}{
+											"language": "golang|node",
+											"team":     "estafette",
+										},
+									},
+								},
+							},
+							After: []*manifest.EstafetteStage{
+								{
+									Name:           "envvar-after",
+									ContainerImage: "extensions/envvars:stable",
+									CustomProperties: map[string]interface{}{
+										"labelSelector": map[string]interface{}{
+											"language": "golang|node",
+											"team":     "estafette",
+										},
+									},
+								},
+							},
+						},
+						Release: &InjectStagesTypeConfig{
+							Before: []*manifest.EstafetteStage{
+								{
+									Name:           "envvar-before",
+									ContainerImage: "extensions/envvars:stable",
+									CustomProperties: map[string]interface{}{
+										"labelSelector": map[string]interface{}{
+											"language": "golang|node",
+											"team":     "estafette",
+										},
+									},
+								},
+							},
+							After: []*manifest.EstafetteStage{
+								{
+									Name:           "envvar-after",
+									ContainerImage: "extensions/envvars:stable",
+									CustomProperties: map[string]interface{}{
+										"labelSelector": map[string]interface{}{
+											"language": "golang|node",
+											"team":     "estafette",
+										},
+									},
+								},
+							},
+						},
+						Bot: &InjectStagesTypeConfig{
+							Before: []*manifest.EstafetteStage{
+								{
+									Name:           "envvar-before",
+									ContainerImage: "extensions/envvars:stable",
+									CustomProperties: map[string]interface{}{
+										"labelSelector": map[string]interface{}{
+											"language": "golang|node",
+											"team":     "estafette",
+										},
+									},
+								},
+							},
+							After: []*manifest.EstafetteStage{
+								{
+									Name:           "envvar-after",
+									ContainerImage: "extensions/envvars:stable",
+									CustomProperties: map[string]interface{}{
+										"labelSelector": map[string]interface{}{
+											"language": "golang|node",
+											"team":     "estafette",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		// act
+		injectedManifest, err := InjectStages(config, mft, "beta", "github", "main", false)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 3, len(injectedManifest.Stages))
+		assert.Equal(t, "injected-before", injectedManifest.Stages[0].Name)
+		assert.Equal(t, 2, len(injectedManifest.Stages[0].ParallelStages))
+		assert.Equal(t, "envvar-before", injectedManifest.Stages[0].ParallelStages[1].Name)
+		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Stages[0].ParallelStages[1].ContainerImage)
+		assert.Equal(t, "injected-after", injectedManifest.Stages[2].Name)
+		assert.Equal(t, 1, len(injectedManifest.Stages[2].ParallelStages))
+		assert.Equal(t, "envvar-after", injectedManifest.Stages[2].ParallelStages[0].Name)
+		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Stages[2].ParallelStages[0].ContainerImage)
+
+		assert.Equal(t, 3, len(injectedManifest.Releases[0].Stages))
+		assert.Equal(t, "injected-before", injectedManifest.Releases[0].Stages[0].Name)
+		assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages[0].ParallelStages))
+		assert.Equal(t, "envvar-before", injectedManifest.Releases[0].Stages[0].ParallelStages[0].Name)
+		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Releases[0].Stages[0].ParallelStages[0].ContainerImage)
+		assert.Equal(t, "injected-after", injectedManifest.Releases[0].Stages[2].Name)
+		assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages[2].ParallelStages))
+		assert.Equal(t, "envvar-after", injectedManifest.Releases[0].Stages[2].ParallelStages[0].Name)
+		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Releases[0].Stages[2].ParallelStages[0].ContainerImage)
+
+		assert.Equal(t, 3, len(injectedManifest.Bots[0].Stages))
+		assert.Equal(t, "injected-before", injectedManifest.Bots[0].Stages[0].Name)
+		assert.Equal(t, 1, len(injectedManifest.Bots[0].Stages[0].ParallelStages))
+		assert.Equal(t, "envvar-before", injectedManifest.Bots[0].Stages[0].ParallelStages[0].Name)
+		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Bots[0].Stages[0].ParallelStages[0].ContainerImage)
+		assert.Equal(t, "injected-after", injectedManifest.Bots[0].Stages[2].Name)
+		assert.Equal(t, 1, len(injectedManifest.Bots[0].Stages[2].ParallelStages))
+		assert.Equal(t, "envvar-after", injectedManifest.Bots[0].Stages[2].ParallelStages[0].Name)
+		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Bots[0].Stages[2].ParallelStages[0].ContainerImage)
+	})
+
 	t.Run("DoesNotInjectConfiguredStagesIfAlreadyExists", func(t *testing.T) {
 
 		mft := manifest.EstafetteManifest{
@@ -516,6 +761,142 @@ func TestInjectStages(t *testing.T) {
 		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Bots[0].Stages[0].ContainerImage)
 		assert.Equal(t, "envvar-after", injectedManifest.Bots[0].Stages[2].Name)
 		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Bots[0].Stages[2].ContainerImage)
+	})
+
+	t.Run("DoesNotInjectConfiguredStagesIfLabelSelectorDoesNotMatch", func(t *testing.T) {
+
+		mft := manifest.EstafetteManifest{
+			Labels: map[string]string{
+				"language": "python",
+				"team":     "estafette",
+			},
+			Stages: []*manifest.EstafetteStage{
+				{
+					Name:           "build",
+					ContainerImage: "golang:1.10.2-alpine3.7",
+				},
+			},
+			Releases: []*manifest.EstafetteRelease{
+				{
+					Name: "production",
+					Stages: []*manifest.EstafetteStage{
+						{
+							Name:           "deploy",
+							ContainerImage: "extensions/gke",
+						},
+					},
+				},
+			},
+			Bots: []*manifest.EstafetteBot{
+				{
+					Name: "bot",
+					Stages: []*manifest.EstafetteStage{
+						{
+							Name:           "bot",
+							ContainerImage: "extensions/bot",
+						},
+					},
+				},
+			},
+		}
+
+		mft.SetDefaults(*manifest.GetDefaultManifestPreferences())
+
+		config := &APIConfig{
+			ManifestPreferences: manifest.GetDefaultManifestPreferences(),
+			APIServer: &APIServerConfig{
+				InjectStagesPerOperatingSystem: map[manifest.OperatingSystem]InjectStagesConfig{
+					manifest.OperatingSystemLinux: {
+						Build: &InjectStagesTypeConfig{
+							Before: []*manifest.EstafetteStage{
+								{
+									Name:           "envvar-before",
+									ContainerImage: "extensions/envvars:stable",
+									CustomProperties: map[string]interface{}{
+										"labelSelector": map[string]interface{}{
+											"language": "golang|node",
+											"team":     "estafette",
+										},
+									},
+								},
+							},
+							After: []*manifest.EstafetteStage{
+								{
+									Name:           "envvar-after",
+									ContainerImage: "extensions/envvars:stable",
+									CustomProperties: map[string]interface{}{
+										"labelSelector": map[string]interface{}{
+											"language": "golang|node",
+											"team":     "estafette",
+										},
+									},
+								},
+							},
+						},
+						Release: &InjectStagesTypeConfig{
+							Before: []*manifest.EstafetteStage{
+								{
+									Name:           "envvar-before",
+									ContainerImage: "extensions/envvars:stable",
+									CustomProperties: map[string]interface{}{
+										"labelSelector": map[string]interface{}{
+											"language": "golang|node",
+											"team":     "estafette",
+										},
+									},
+								},
+							},
+							After: []*manifest.EstafetteStage{
+								{
+									Name:           "envvar-after",
+									ContainerImage: "extensions/envvars:stable",
+									CustomProperties: map[string]interface{}{
+										"labelSelector": map[string]interface{}{
+											"language": "golang|node",
+											"team":     "estafette",
+										},
+									},
+								},
+							},
+						},
+						Bot: &InjectStagesTypeConfig{
+							Before: []*manifest.EstafetteStage{
+								{
+									Name:           "envvar-before",
+									ContainerImage: "extensions/envvars:stable",
+									CustomProperties: map[string]interface{}{
+										"labelSelector": map[string]interface{}{
+											"language": "golang|node",
+											"team":     "estafette",
+										},
+									},
+								},
+							},
+							After: []*manifest.EstafetteStage{
+								{
+									Name:           "envvar-after",
+									ContainerImage: "extensions/envvars:stable",
+									CustomProperties: map[string]interface{}{
+										"labelSelector": map[string]interface{}{
+											"language": "golang|node",
+											"team":     "estafette",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		// act
+		injectedManifest, err := InjectStages(config, mft, "dev", "source", "main", false)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(injectedManifest.Stages))
+		assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages))
+		assert.Equal(t, 1, len(injectedManifest.Bots[0].Stages))
 	})
 }
 
