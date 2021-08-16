@@ -452,7 +452,7 @@ func getHandlers(ctx context.Context, config *api.APIConfig, encryptedConfig *ap
 	warningHelper := api.NewWarningHelper(secretHelper)
 
 	// transport
-	bitbucketHandler = bitbucket.NewHandler(bitbucketService)
+	bitbucketHandler = bitbucket.NewHandler(bitbucketService, config)
 	githubHandler = github.NewHandler(githubService)
 	estafetteHandler = estafette.NewHandler(*configFilePath, *templatesPath, config, encryptedConfig, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
 	rbacHandler = rbac.NewHandler(config, rbacService, cockroachdbClient)
@@ -511,6 +511,7 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 
 	routes.POST("/api/integrations/bitbucket/events", bitbucketHandler.Handle)
 	routes.GET("/api/integrations/bitbucket/status", func(c *gin.Context) { c.String(200, "Bitbucket, I'm cool!") })
+	routes.GET("/api/integrations/bitbucket/descriptor", bitbucketHandler.Descriptor)
 
 	routes.POST("/api/integrations/slack/slash", slackHandler.Handle)
 	routes.GET("/api/integrations/slack/status", func(c *gin.Context) { c.String(200, "Slack, I'm cool!") })

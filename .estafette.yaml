@@ -12,9 +12,9 @@ version:
   semver:
     major: 1
     minor: 0
-    patch: 0
+    patch: 1
     labelTemplate: '{{branch}}-{{auto}}'
-    releaseBranch: 1.0.0
+    releaseBranch: 1.0.1
 
 triggers:
 - name: migrator

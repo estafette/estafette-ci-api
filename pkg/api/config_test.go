@@ -60,6 +60,8 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.True(t, bitbucketConfig.Enable)
+		assert.Equal(t, "ci.estafette.io", bitbucketConfig.Key)
+		assert.Equal(t, "Estafette CI", bitbucketConfig.Name)
 		assert.Equal(t, "sd9ewiwuejkwejkewk", bitbucketConfig.APIKey)
 		assert.Equal(t, "2390w3e90jdsk", bitbucketConfig.AppOAuthKey)
 		assert.Equal(t, "this is my secret", bitbucketConfig.AppOAuthSecret)
@@ -180,6 +182,7 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.Equal(t, "https://ci.estafette.io/", apiServerConfig.BaseURL)
+		assert.Equal(t, "https://ci-integrations.estafette.io/", apiServerConfig.IntegrationsURL)
 		assert.Equal(t, "http://estafette-ci-api.estafette.svc.cluster.local/", apiServerConfig.ServiceURL)
 		assert.Equal(t, 2, len(apiServerConfig.LogWriters))
 		assert.Equal(t, LogTargetDatabase, apiServerConfig.LogWriters[0])

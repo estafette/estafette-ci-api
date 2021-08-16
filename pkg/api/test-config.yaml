@@ -16,6 +16,8 @@ integrations:
 
   bitbucket:
     enable: true
+    key: ci.estafette.io
+    name: Estafette CI
     apiKey: sd9ewiwuejkwejkewk
     appOAuthKey: 2390w3e90jdsk
     appOAuthSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
@@ -72,6 +74,7 @@ integrations:
 
 apiServer:
   baseURL: https://ci.estafette.io/
+  integrationsURL: https://ci-integrations.estafette.io/
   serviceURL: http://estafette-ci-api.estafette.svc.cluster.local/
   logWriters:
   - database

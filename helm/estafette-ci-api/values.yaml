@@ -295,6 +295,7 @@ config:
 
       apiServer:
         baseURL: https://ci.estafette.io
+        integrationsURL: https://ci-integration.estafette.io
         serviceURL: http://estafette-ci-api.estafette-ci.svc.cluster.local
         logWriters:
         - database

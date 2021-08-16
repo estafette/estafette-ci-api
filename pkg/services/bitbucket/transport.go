@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/bitbucketapi"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
@@ -14,13 +15,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewHandler(service Service) Handler {
+func NewHandler(service Service, config *api.APIConfig) Handler {
 	return Handler{
+		config:  config,
 		service: service,
 	}
 }
 
 type Handler struct {
+	config  *api.APIConfig
 	service Service
 }
 
@@ -157,4 +160,43 @@ func (h *Handler) Handle(c *gin.Context) {
 	}()
 
 	c.Status(http.StatusOK)
+}
+
+func (h *Handler) Descriptor(c *gin.Context) {
+
+	// https://developer.atlassian.com/cloud/bitbucket/app-descriptor/
+
+	descriptor := Descriptor{
+		Key:         h.config.Integrations.Bitbucket.Key,
+		Name:        h.config.Integrations.Bitbucket.Name,
+		Description: "Estafette - The The resilient and cloud-native CI/CD platform",
+		BaseURL:     h.config.APIServer.IntegrationsURL,
+		Authentication: &DescriptorAuthentication{
+			Type: "none",
+		},
+		Lifecycle: &DescriptorLifecycle{
+			Installed:   "/api/integrations/bitbucket/installed",
+			Uninstalled: "/api/integrations/bitbucket/uninstalled",
+		},
+		Scopes:   []string{"repository"},
+		Contexts: []string{"account"},
+		Modules: &DescriptorModules{
+			Webhooks: []DescriptorWebhook{
+				{
+					Event: "repo:push",
+					URL:   "/api/integrations/bitbucket/events",
+				},
+				{
+					Event: "repo:updated",
+					URL:   "/api/integrations/bitbucket/events",
+				},
+				{
+					Event: "repo:deleted",
+					URL:   "/api/integrations/bitbucket/events",
+				},
+			},
+		},
+	}
+
+	c.JSON(http.StatusOK, descriptor)
 }

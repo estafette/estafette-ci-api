@@ -203,6 +203,7 @@ func (c *APIConfig) Validate() (err error) {
 // APIServerConfig represents configuration for the api server
 type APIServerConfig struct {
 	BaseURL                                  string                                                       `yaml:"baseURL"`
+	IntegrationsURL                          string                                                       `yaml:"integrationsURL"`
 	ServiceURL                               string                                                       `yaml:"serviceURL"`
 	LogWriters                               []LogTarget                                                  `yaml:"logWriters"`
 	LogReader                                LogTarget                                                    `yaml:"logReader"`
@@ -956,6 +957,8 @@ type InstallationOrganizations struct {
 // BitbucketConfig is used to configure bitbucket integration
 type BitbucketConfig struct {
 	Enable         bool   `yaml:"enable"`
+	Key            string `yaml:"key"`
+	Name           string `yaml:"name"`
 	APIKey         string `yaml:"apiKey"`
 	AppOAuthKey    string `yaml:"appOAuthKey"`
 	AppOAuthSecret string `yaml:"appOAuthSecret"`
