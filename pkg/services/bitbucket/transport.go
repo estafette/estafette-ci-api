@@ -178,7 +178,7 @@ func (h *Handler) Descriptor(c *gin.Context) {
 			Installed:   "/api/integrations/bitbucket/installed",
 			Uninstalled: "/api/integrations/bitbucket/uninstalled",
 		},
-		Scopes:   []string{"repository"},
+		Scopes:   []string{"repository:write", "pullrequest:write"},
 		Contexts: []string{"account"},
 		Modules: &DescriptorModules{
 			Webhooks: []DescriptorWebhook{
