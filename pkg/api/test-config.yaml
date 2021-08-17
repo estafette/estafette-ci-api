@@ -18,7 +18,8 @@ integrations:
     enable: true
     key: ci.estafette.io
     name: Estafette CI
-    apiKey: sd9ewiwuejkwejkewk
+    appClientID: 2390w3e90jdsk
+    appClientSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
     appOAuthKey: 2390w3e90jdsk
     appOAuthSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
     ownerOrganizations:

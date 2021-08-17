@@ -956,14 +956,16 @@ type InstallationOrganizations struct {
 
 // BitbucketConfig is used to configure bitbucket integration
 type BitbucketConfig struct {
-	Enable         bool   `yaml:"enable"`
-	Key            string `yaml:"key"`
-	Name           string `yaml:"name"`
-	APIKey         string `yaml:"apiKey"`
+	Enable             bool                 `yaml:"enable"`
+	Key                string               `yaml:"key"`
+	Name               string               `yaml:"name"`
+	AppClientID        string               `yaml:"appClientID"`
+	AppClientSecret    string               `yaml:"appClientSecret"`
+	OwnerOrganizations []OwnerOrganizations `yaml:"ownerOrganizations"`
+
+	// to be deprecated after switching to bitbucket app
 	AppOAuthKey    string `yaml:"appOAuthKey"`
 	AppOAuthSecret string `yaml:"appOAuthSecret"`
-	// AllowedOwners      []string             `yaml:"allowedOwners"`
-	OwnerOrganizations []OwnerOrganizations `yaml:"ownerOrganizations"`
 }
 
 func (c *BitbucketConfig) SetDefaults() {
@@ -977,14 +979,18 @@ func (c *BitbucketConfig) Validate() (err error) {
 		return nil
 	}
 
-	if c.APIKey == "" {
-		return errors.New("Configuration item 'integrations.bitbucket.apiKey' is required; please set it to a Bitbucket api key")
+	if c.AppClientID == "" {
+		return errors.New("Configuration item 'integrations.bitbucket.appClientID' is required; please set it to a Bitbucket App client id")
 	}
+	if c.AppClientSecret == "" {
+		return errors.New("Configuration item 'integrations.bitbucket.appClientSecret' is required; please set it to a Bitbucket App client secret")
+	}
+
 	if c.AppOAuthKey == "" {
-		return errors.New("Configuration item 'integrations.bitbucket.appOAuthKey' is required; please set it to a Bitbucket OAuth key")
+		return errors.New("Configuration item 'integrations.bitbucket.appOAuthKey' is required; please set it to a Bitbucket App client id")
 	}
 	if c.AppOAuthSecret == "" {
-		return errors.New("Configuration item 'integrations.bitbucket.appOAuthSecret' is required; please set it to a Bitbucket OAuth secret")
+		return errors.New("Configuration item 'integrations.bitbucket.appOAuthSecret' is required; please set it to a Bitbucket App client secret")
 	}
 
 	return nil
