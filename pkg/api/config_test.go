@@ -64,8 +64,6 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Equal(t, "Estafette CI", bitbucketConfig.Name)
 		assert.Equal(t, "2390w3e90jdsk", bitbucketConfig.AppClientID)
 		assert.Equal(t, "this is my secret", bitbucketConfig.AppClientSecret)
-		assert.Equal(t, "2390w3e90jdsk", bitbucketConfig.AppOAuthKey)
-		assert.Equal(t, "this is my secret", bitbucketConfig.AppOAuthSecret)
 
 		assert.Equal(t, 1, len(bitbucketConfig.OwnerOrganizations))
 		assert.Equal(t, "estafette", bitbucketConfig.OwnerOrganizations[0].Owner)

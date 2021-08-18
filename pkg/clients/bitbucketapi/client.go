@@ -47,7 +47,7 @@ type client struct {
 // GetAccessToken returns an access token to access the Bitbucket api
 func (c *client) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
 
-	basicAuthenticationToken := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", c.config.Integrations.Bitbucket.AppOAuthKey, c.config.Integrations.Bitbucket.AppOAuthSecret)))
+	basicAuthenticationToken := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", c.config.Integrations.Bitbucket.AppClientID, c.config.Integrations.Bitbucket.AppClientSecret)))
 
 	// form values
 	data := url.Values{}

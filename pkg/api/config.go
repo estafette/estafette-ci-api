@@ -962,10 +962,6 @@ type BitbucketConfig struct {
 	AppClientID        string               `yaml:"appClientID"`
 	AppClientSecret    string               `yaml:"appClientSecret"`
 	OwnerOrganizations []OwnerOrganizations `yaml:"ownerOrganizations"`
-
-	// to be deprecated after switching to bitbucket app
-	AppOAuthKey    string `yaml:"appOAuthKey"`
-	AppOAuthSecret string `yaml:"appOAuthSecret"`
 }
 
 func (c *BitbucketConfig) SetDefaults() {
@@ -984,13 +980,6 @@ func (c *BitbucketConfig) Validate() (err error) {
 	}
 	if c.AppClientSecret == "" {
 		return errors.New("Configuration item 'integrations.bitbucket.appClientSecret' is required; please set it to a Bitbucket App client secret")
-	}
-
-	if c.AppOAuthKey == "" {
-		return errors.New("Configuration item 'integrations.bitbucket.appOAuthKey' is required; please set it to a Bitbucket App client id")
-	}
-	if c.AppOAuthSecret == "" {
-		return errors.New("Configuration item 'integrations.bitbucket.appOAuthSecret' is required; please set it to a Bitbucket App client secret")
 	}
 
 	return nil
