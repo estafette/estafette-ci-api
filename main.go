@@ -512,6 +512,8 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	routes.POST("/api/integrations/bitbucket/events", bitbucketHandler.Handle)
 	routes.GET("/api/integrations/bitbucket/status", func(c *gin.Context) { c.String(200, "Bitbucket, I'm cool!") })
 	routes.GET("/api/integrations/bitbucket/descriptor", bitbucketHandler.Descriptor)
+	routes.POST("/api/integrations/bitbucket/installed", bitbucketHandler.Installed)
+	routes.POST("/api/integrations/bitbucket/uninstalled", bitbucketHandler.Uninstalled)
 
 	routes.POST("/api/integrations/slack/slash", slackHandler.Handle)
 	routes.GET("/api/integrations/slack/status", func(c *gin.Context) { c.String(200, "Slack, I'm cool!") })

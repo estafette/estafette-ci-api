@@ -200,3 +200,31 @@ func (h *Handler) Descriptor(c *gin.Context) {
 
 	c.JSON(http.StatusOK, descriptor)
 }
+
+func (h *Handler) Installed(c *gin.Context) {
+
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		log.Error().Err(err).Msg("Reading body for Bitbucket App installed event failed")
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	log.Info().Str("body", string(body)).Msg("Bitbucket App installed")
+
+	c.Status(http.StatusOK)
+}
+
+func (h *Handler) Uninstalled(c *gin.Context) {
+
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		log.Error().Err(err).Msg("Reading body for Bitbucket App uninstalled event failed")
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	log.Info().Str("body", string(body)).Msg("Bitbucket App uninstalled")
+
+	c.Status(http.StatusOK)
+}
