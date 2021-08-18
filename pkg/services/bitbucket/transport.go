@@ -31,9 +31,6 @@ func (h *Handler) Handle(c *gin.Context) {
 
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
 
-	eventType := c.GetHeader("X-Event-Key")
-	// h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "bitbucket"}).Inc()
-
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body from Bitbucket webhook failed")
@@ -51,14 +48,14 @@ func (h *Handler) Handle(c *gin.Context) {
 	}
 
 	// verify owner is allowed
-	isAllowed, _ := h.service.IsAllowedOwner(anyEvent.Repository)
+	isAllowed, _ := h.service.IsAllowedOwner(anyEvent.Data.Repository)
 	if !isAllowed {
 		log.Warn().Interface("event", anyEvent).Str("body", string(body)).Msg("BitbucketAnyEvent owner is not allowed")
 		c.Status(http.StatusUnauthorized)
 		return
 	}
 
-	switch eventType {
+	switch anyEvent.Event {
 	case "repo:push":
 		// unmarshal json body
 		var pushEvent bitbucketapi.RepositoryPushEvent
@@ -96,7 +93,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		"pullrequest:comment_deleted":
 
 	case "repo:updated":
-		log.Debug().Str("event", eventType).Str("requestBody", string(body)).Msgf("Bitbucket webhook event of type '%v', logging request body", eventType)
+		log.Debug().Str("event", anyEvent.Event).Str("requestBody", string(body)).Msgf("Bitbucket webhook event of type '%v', logging request body", anyEvent.Event)
 
 		// unmarshal json body
 		var repoUpdatedEvent bitbucketapi.RepoUpdatedEvent
@@ -118,7 +115,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		}
 
 	case "repo:deleted":
-		log.Debug().Str("event", eventType).Str("requestBody", string(body)).Msgf("Bitbucket webhook event of type '%v', logging request body", eventType)
+		log.Debug().Str("event", anyEvent.Event).Str("requestBody", string(body)).Msgf("Bitbucket webhook event of type '%v', logging request body", anyEvent.Event)
 		// unmarshal json body
 		var repoDeletedEvent bitbucketapi.RepoDeletedEvent
 		err := json.Unmarshal(body, &repoDeletedEvent)
@@ -137,7 +134,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		}
 
 	default:
-		log.Warn().Str("event", eventType).Msgf("Unsupported Bitbucket webhook event of type '%v'", eventType)
+		log.Warn().Str("event", anyEvent.Event).Msgf("Unsupported Bitbucket webhook event of type '%v'", anyEvent.Event)
 	}
 
 	// publish event for bots to run
@@ -148,7 +145,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		defer span.Finish()
 
 		err = h.service.PublishBitbucketEvent(ctx, manifest.EstafetteBitbucketEvent{
-			Event:         eventType,
+			Event:         anyEvent.Event,
 			Repository:    anyEvent.GetRepository(),
 			HookUUID:      c.GetHeader("X-Hook-UUID"),
 			RequestUUID:   c.GetHeader("X-Request-UUID"),

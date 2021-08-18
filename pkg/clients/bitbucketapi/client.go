@@ -112,7 +112,7 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessTok
 	client.KeepLog = true
 	client.Timeout = time.Second * 10
 
-	manifestSourceAPIUrl := fmt.Sprintf("https://api.bitbucket.org/2.0/repositories/%v/src/%v/.estafette.yaml", pushEvent.Repository.FullName, pushEvent.Push.Changes[0].New.Target.Hash)
+	manifestSourceAPIUrl := fmt.Sprintf("https://api.bitbucket.org/2.0/repositories/%v/src/%v/.estafette.yaml", pushEvent.Data.Repository.FullName, pushEvent.Data.Push.Changes[0].New.Target.Hash)
 
 	request, err := http.NewRequest("GET", manifestSourceAPIUrl, nil)
 

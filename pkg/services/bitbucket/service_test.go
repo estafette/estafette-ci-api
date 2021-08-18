@@ -60,10 +60,12 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
-			Push: bitbucketapi.PushEvent{
-				Changes: []bitbucketapi.PushEventChange{
-					bitbucketapi.PushEventChange{
-						New: nil,
+			Data: bitbucketapi.RepositoryPushEventData{
+				Push: bitbucketapi.PushEvent{
+					Changes: []bitbucketapi.PushEventChange{
+						bitbucketapi.PushEventChange{
+							New: nil,
+						},
 					},
 				},
 			},
@@ -93,11 +95,13 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
-			Push: bitbucketapi.PushEvent{
-				Changes: []bitbucketapi.PushEventChange{
-					bitbucketapi.PushEventChange{
-						New: &bitbucketapi.PushEventChangeObject{
-							Type: "notbranch",
+			Data: bitbucketapi.RepositoryPushEventData{
+				Push: bitbucketapi.PushEvent{
+					Changes: []bitbucketapi.PushEventChange{
+						bitbucketapi.PushEventChange{
+							New: &bitbucketapi.PushEventChangeObject{
+								Type: "notbranch",
+							},
 						},
 					},
 				},
@@ -128,13 +132,15 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
-			Push: bitbucketapi.PushEvent{
-				Changes: []bitbucketapi.PushEventChange{
-					bitbucketapi.PushEventChange{
-						New: &bitbucketapi.PushEventChangeObject{
-							Type: "branch",
-							Target: bitbucketapi.PushEventChangeObjectTarget{
-								Hash: "",
+			Data: bitbucketapi.RepositoryPushEventData{
+				Push: bitbucketapi.PushEvent{
+					Changes: []bitbucketapi.PushEventChange{
+						bitbucketapi.PushEventChange{
+							New: &bitbucketapi.PushEventChangeObject{
+								Type: "branch",
+								Target: bitbucketapi.PushEventChangeObjectTarget{
+									Hash: "",
+								},
 							},
 						},
 					},
@@ -176,13 +182,15 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
-			Push: bitbucketapi.PushEvent{
-				Changes: []bitbucketapi.PushEventChange{
-					bitbucketapi.PushEventChange{
-						New: &bitbucketapi.PushEventChangeObject{
-							Type: "branch",
-							Target: bitbucketapi.PushEventChangeObjectTarget{
-								Hash: "f0677f01cc6d54a5b042224a9eb374e98f979985",
+			Data: bitbucketapi.RepositoryPushEventData{
+				Push: bitbucketapi.PushEvent{
+					Changes: []bitbucketapi.PushEventChange{
+						bitbucketapi.PushEventChange{
+							New: &bitbucketapi.PushEventChangeObject{
+								Type: "branch",
+								Target: bitbucketapi.PushEventChangeObjectTarget{
+									Hash: "f0677f01cc6d54a5b042224a9eb374e98f979985",
+								},
 							},
 						},
 					},
@@ -224,20 +232,22 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
-			Push: bitbucketapi.PushEvent{
-				Changes: []bitbucketapi.PushEventChange{
-					bitbucketapi.PushEventChange{
-						New: &bitbucketapi.PushEventChangeObject{
-							Type: "branch",
-							Target: bitbucketapi.PushEventChangeObjectTarget{
-								Hash: "f0677f01cc6d54a5b042224a9eb374e98f979985",
+			Data: bitbucketapi.RepositoryPushEventData{
+				Push: bitbucketapi.PushEvent{
+					Changes: []bitbucketapi.PushEventChange{
+						bitbucketapi.PushEventChange{
+							New: &bitbucketapi.PushEventChangeObject{
+								Type: "branch",
+								Target: bitbucketapi.PushEventChangeObjectTarget{
+									Hash: "f0677f01cc6d54a5b042224a9eb374e98f979985",
+								},
 							},
 						},
 					},
 				},
-			},
-			Repository: bitbucketapi.Repository{
-				FullName: "estafette/estafette-in-bitbucket",
+				Repository: bitbucketapi.Repository{
+					FullName: "estafette/estafette-in-bitbucket",
+				},
 			},
 		}
 
@@ -281,20 +291,22 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
-			Push: bitbucketapi.PushEvent{
-				Changes: []bitbucketapi.PushEventChange{
-					bitbucketapi.PushEventChange{
-						New: &bitbucketapi.PushEventChangeObject{
-							Type: "branch",
-							Target: bitbucketapi.PushEventChangeObjectTarget{
-								Hash: "f0677f01cc6d54a5b042224a9eb374e98f979985",
+			Data: bitbucketapi.RepositoryPushEventData{
+				Push: bitbucketapi.PushEvent{
+					Changes: []bitbucketapi.PushEventChange{
+						bitbucketapi.PushEventChange{
+							New: &bitbucketapi.PushEventChangeObject{
+								Type: "branch",
+								Target: bitbucketapi.PushEventChangeObjectTarget{
+									Hash: "f0677f01cc6d54a5b042224a9eb374e98f979985",
+								},
 							},
 						},
 					},
 				},
-			},
-			Repository: bitbucketapi.Repository{
-				FullName: "estafette/estafette-in-bitbucket",
+				Repository: bitbucketapi.Repository{
+					FullName: "estafette/estafette-in-bitbucket",
+				},
 			},
 		}
 
@@ -327,13 +339,15 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
-			Push: bitbucketapi.PushEvent{
-				Changes: []bitbucketapi.PushEventChange{
-					bitbucketapi.PushEventChange{
-						New: &bitbucketapi.PushEventChangeObject{
-							Type: "branch",
-							Target: bitbucketapi.PushEventChangeObjectTarget{
-								Hash: "f0677f01cc6d54a5b042224a9eb374e98f979985",
+			Data: bitbucketapi.RepositoryPushEventData{
+				Push: bitbucketapi.PushEvent{
+					Changes: []bitbucketapi.PushEventChange{
+						bitbucketapi.PushEventChange{
+							New: &bitbucketapi.PushEventChangeObject{
+								Type: "branch",
+								Target: bitbucketapi.PushEventChangeObjectTarget{
+									Hash: "f0677f01cc6d54a5b042224a9eb374e98f979985",
+								},
 							},
 						},
 					},
@@ -385,20 +399,22 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		pushEvent := bitbucketapi.RepositoryPushEvent{
-			Push: bitbucketapi.PushEvent{
-				Changes: []bitbucketapi.PushEventChange{
-					bitbucketapi.PushEventChange{
-						New: &bitbucketapi.PushEventChangeObject{
-							Type: "branch",
-							Target: bitbucketapi.PushEventChangeObjectTarget{
-								Hash: "f0677f01cc6d54a5b042224a9eb374e98f979985",
+			Data: bitbucketapi.RepositoryPushEventData{
+				Push: bitbucketapi.PushEvent{
+					Changes: []bitbucketapi.PushEventChange{
+						bitbucketapi.PushEventChange{
+							New: &bitbucketapi.PushEventChangeObject{
+								Type: "branch",
+								Target: bitbucketapi.PushEventChangeObjectTarget{
+									Hash: "f0677f01cc6d54a5b042224a9eb374e98f979985",
+								},
 							},
 						},
 					},
 				},
-			},
-			Repository: bitbucketapi.Repository{
-				FullName: "estafette/estafette-in-bitbucket",
+				Repository: bitbucketapi.Repository{
+					FullName: "estafette/estafette-in-bitbucket",
+				},
 			},
 		}
 

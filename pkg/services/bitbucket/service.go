@@ -53,7 +53,7 @@ type service struct {
 func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbucketapi.RepositoryPushEvent) (err error) {
 
 	// check to see that it's a cloneable event
-	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil || pushEvent.Push.Changes[0].New.Type != "branch" || len(pushEvent.Push.Changes[0].New.Target.Hash) == 0 {
+	if len(pushEvent.Data.Push.Changes) == 0 || pushEvent.Data.Push.Changes[0].New == nil || pushEvent.Data.Push.Changes[0].New.Type != "branch" || len(pushEvent.Data.Push.Changes[0].New.Target.Hash) == 0 {
 		return ErrNonCloneableEvent
 	}
 
@@ -90,7 +90,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	}
 
 	var commits []contracts.GitCommit
-	for _, c := range pushEvent.Push.Changes {
+	for _, c := range pushEvent.Data.Push.Changes {
 		if len(c.Commits) > 0 {
 			commits = append(commits, contracts.GitCommit{
 				Author: contracts.GitAuthor{
@@ -104,7 +104,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	}
 
 	// get organizations linked to integration
-	_, organizations := s.IsAllowedOwner(&pushEvent.Repository)
+	_, organizations := s.IsAllowedOwner(&pushEvent.Data.Repository)
 
 	// create build object and hand off to build service
 	_, err = s.estafetteService.CreateBuild(ctx, contracts.Build{
