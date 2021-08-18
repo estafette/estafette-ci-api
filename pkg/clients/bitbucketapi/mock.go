@@ -34,6 +34,21 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
+// GenerateJWT mocks base method.
+func (m *MockClient) GenerateJWT() (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateJWT")
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GenerateJWT indicates an expected call of GenerateJWT.
+func (mr *MockClientMockRecorder) GenerateJWT() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateJWT", reflect.TypeOf((*MockClient)(nil).GenerateJWT))
+}
+
 // GetAccessToken mocks base method.
 func (m *MockClient) GetAccessToken(ctx context.Context) (AccessToken, error) {
 	m.ctrl.T.Helper()

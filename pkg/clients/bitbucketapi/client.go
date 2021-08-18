@@ -3,7 +3,6 @@ package bitbucketapi
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -11,9 +10,11 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
+	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
 )
 
@@ -23,6 +24,7 @@ type Client interface {
 	GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error)
 	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error)
+	GenerateJWT() (tokenString string, err error)
 }
 
 // NewClient returns a new bitbucket.Client
@@ -30,6 +32,7 @@ func NewClient(config *api.APIConfig) Client {
 	if config == nil || config.Integrations == nil || config.Integrations.Bitbucket == nil || !config.Integrations.Bitbucket.Enable {
 		return &client{
 			enabled: false,
+			config:  config,
 		}
 	}
 
@@ -47,11 +50,14 @@ type client struct {
 // GetAccessToken returns an access token to access the Bitbucket api
 func (c *client) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
 
-	basicAuthenticationToken := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", c.config.Integrations.Bitbucket.AppClientID, c.config.Integrations.Bitbucket.AppClientSecret)))
+	jtwToken, err := c.GenerateJWT()
+	if err != nil {
+		return
+	}
 
 	// form values
 	data := url.Values{}
-	data.Set("grant_type", "client_credentials")
+	data.Set("grant_type", "urn:bitbucket:oauth2:jwt")
 
 	// create client, in order to add headers
 	client := pester.NewExtendedClient(&http.Client{Transport: &nethttp.Transport{}})
@@ -75,7 +81,7 @@ func (c *client) GetAccessToken(ctx context.Context) (accesstoken AccessToken, e
 	}
 
 	// add headers
-	request.Header.Add("Authorization", fmt.Sprintf("%v %v", "Basic", basicAuthenticationToken))
+	request.Header.Add("Authorization", fmt.Sprintf("%v %v", "JWT", jtwToken))
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	// perform actual request
@@ -97,6 +103,7 @@ func (c *client) GetAccessToken(ctx context.Context) (accesstoken AccessToken, e
 	// unmarshal json body
 	err = json.Unmarshal(body, &accesstoken)
 	if err != nil {
+		log.Warn().Str("body", string(body)).Msg("Failed unmarshalling access token")
 		return
 	}
 
@@ -175,4 +182,23 @@ func (c *client) JobVarsFunc(ctx context.Context) func(ctx context.Context, repo
 
 		return accessToken.AccessToken, nil
 	}
+}
+
+func (c *client) GenerateJWT() (tokenString string, err error) {
+
+	// Create the token
+	token := jwt.New(jwt.GetSigningMethod("HS256"))
+	claims := token.Claims.(jwt.MapClaims)
+
+	now := time.Now().UTC()
+	expiry := now.Add(time.Duration(180) * time.Second)
+
+	// set required claims
+	claims["iss"] = c.config.Integrations.Bitbucket.Key
+	claims["iat"] = now.Unix()
+	claims["exp"] = expiry.Unix()
+	claims["sub"] = c.config.Integrations.Bitbucket.ClientKey
+
+	// sign the token
+	return token.SignedString([]byte(c.config.Integrations.Bitbucket.SharedSecret))
 }
