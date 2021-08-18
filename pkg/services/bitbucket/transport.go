@@ -31,6 +31,8 @@ func (h *Handler) Handle(c *gin.Context) {
 
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
 
+	eventType := c.GetHeader("X-Event-Key")
+
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body from Bitbucket webhook failed")
@@ -39,31 +41,43 @@ func (h *Handler) Handle(c *gin.Context) {
 	}
 
 	// unmarshal json body to check if installation is allowed
-	var anyEvent bitbucketapi.AnyEvent
-	err = json.Unmarshal(body, &anyEvent)
+	var eventCheck bitbucketapi.EventCheck
+	err = json.Unmarshal(body, &eventCheck)
 	if err != nil {
-		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to BitbucketAnyEvent failed")
+		log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body for EventCheck failed")
 		c.Status(http.StatusBadRequest)
 		return
 	}
 
 	// verify owner is allowed
-	isAllowed, _ := h.service.IsAllowedOwner(anyEvent.Data.Repository)
+	isAllowed, _ := h.service.IsAllowedOwner(eventCheck.GetRepository())
 	if !isAllowed {
-		log.Warn().Interface("event", anyEvent).Str("body", string(body)).Msg("BitbucketAnyEvent owner is not allowed")
+		log.Warn().Interface("event", eventCheck).Str("body", string(body)).Msg("Bitbucket EventCheck owner is not allowed")
 		c.Status(http.StatusUnauthorized)
 		return
 	}
 
-	switch anyEvent.Event {
+	switch eventType {
 	case "repo:push":
 		// unmarshal json body
 		var pushEvent bitbucketapi.RepositoryPushEvent
-		err := json.Unmarshal(body, &pushEvent)
-		if err != nil {
-			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to BitbucketRepositoryPushEvent failed")
-			c.Status(http.StatusInternalServerError)
-			return
+
+		if eventCheck.Data != nil {
+			var pushEventEnvelope bitbucketapi.RepositoryPushEventEnvelope
+			err := json.Unmarshal(body, &pushEventEnvelope)
+			if err != nil {
+				log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to Bitbucket RepositoryPushEventEnvelope failed")
+				c.Status(http.StatusInternalServerError)
+				return
+			}
+			pushEvent = pushEventEnvelope.Data
+		} else {
+			err := json.Unmarshal(body, &pushEvent)
+			if err != nil {
+				log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to Bitbucket RepositoryPushEvent failed")
+				c.Status(http.StatusInternalServerError)
+				return
+			}
 		}
 
 		err = h.service.CreateJobForBitbucketPush(c.Request.Context(), pushEvent)
@@ -93,7 +107,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		"pullrequest:comment_deleted":
 
 	case "repo:updated":
-		log.Debug().Str("event", anyEvent.Event).Str("requestBody", string(body)).Msgf("Bitbucket webhook event of type '%v', logging request body", anyEvent.Event)
+		log.Debug().Str("event", eventType).Str("requestBody", string(body)).Msgf("Bitbucket webhook event of type '%v', logging request body", eventType)
 
 		// unmarshal json body
 		var repoUpdatedEvent bitbucketapi.RepoUpdatedEvent
@@ -115,7 +129,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		}
 
 	case "repo:deleted":
-		log.Debug().Str("event", anyEvent.Event).Str("requestBody", string(body)).Msgf("Bitbucket webhook event of type '%v', logging request body", anyEvent.Event)
+		log.Debug().Str("event", eventType).Str("requestBody", string(body)).Msgf("Bitbucket webhook event of type '%v', logging request body", eventType)
 		// unmarshal json body
 		var repoDeletedEvent bitbucketapi.RepoDeletedEvent
 		err := json.Unmarshal(body, &repoDeletedEvent)
@@ -134,7 +148,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		}
 
 	default:
-		log.Warn().Str("event", anyEvent.Event).Msgf("Unsupported Bitbucket webhook event of type '%v'", anyEvent.Event)
+		log.Warn().Str("event", eventType).Msgf("Unsupported Bitbucket webhook event of type '%v'", eventType)
 	}
 
 	// publish event for bots to run
@@ -145,8 +159,8 @@ func (h *Handler) Handle(c *gin.Context) {
 		defer span.Finish()
 
 		err = h.service.PublishBitbucketEvent(ctx, manifest.EstafetteBitbucketEvent{
-			Event:         anyEvent.Event,
-			Repository:    anyEvent.GetRepository(),
+			Event:         eventType,
+			Repository:    eventCheck.GetFullRepository(),
 			HookUUID:      c.GetHeader("X-Hook-UUID"),
 			RequestUUID:   c.GetHeader("X-Request-UUID"),
 			AttemptNumber: c.GetHeader("X-Attempt-Number"),

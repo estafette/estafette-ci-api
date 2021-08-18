@@ -17,31 +17,50 @@ type AccessToken struct {
 	TokenType    string `json:"token_type"`
 }
 
-// AnyEvent represents any Bitbucket event to check for allowed owners
-type AnyEvent struct {
-	Event string       `json:"event"`
-	Data  AnyEventData `json:"data"`
+// EventCheck helps to check whether the payload is in new or old format
+type EventCheck struct {
+	Data       *EventCheckData `json:"data"`
+	Repository *Repository     `json:"repository"`
 }
 
-type AnyEventData struct {
+type EventCheckData struct {
 	Repository *Repository `json:"repository"`
 }
 
-func (ae *AnyEvent) GetRepository() string {
-	if ae.Data.Repository == nil {
+func (ec *EventCheck) GetRepository() *Repository {
+	if ec.Data != nil {
+		return ec.Data.Repository
+	}
+
+	return ec.Repository
+}
+
+func (ec *EventCheck) GetFullRepository() string {
+	if ec.Data == nil && ec.Repository == nil {
 		return ""
 	}
 
-	return fmt.Sprintf("%v/%v", repoSource, ae.Data.Repository.FullName)
+	if ec.Data != nil {
+		if ec.Data.Repository == nil {
+			return ""
+		}
+		return fmt.Sprintf("%v/%v", repoSource, ec.Data.Repository.FullName)
+	}
+
+	if ec.Repository == nil {
+		return ""
+	}
+	return fmt.Sprintf("%v/%v", repoSource, ec.Repository.FullName)
 }
 
-// RepositoryPushEvent represents a Bitbucket push event
+// RepositoryPushEventEnvelope represents a Bitbucket push event in new envelope
+type RepositoryPushEventEnvelope struct {
+	Event string              `json:"event"`
+	Data  RepositoryPushEvent `json:"data"`
+}
+
+// RepositoryPushEvent represents a Bitbucket push event payload
 type RepositoryPushEvent struct {
-	Event string                  `json:"event"`
-	Data  RepositoryPushEventData `json:"data"`
-}
-
-type RepositoryPushEventData struct {
 	Actor      Owner      `json:"actor"`
 	Repository Repository `json:"repository"`
 	Push       PushEvent  `json:"push"`
@@ -198,27 +217,27 @@ func (pe *RepositoryPushEvent) GetRepoSource() string {
 
 // GetRepoOwner returns the repository owner
 func (pe *RepositoryPushEvent) GetRepoOwner() string {
-	return strings.Split(pe.Data.Repository.FullName, "/")[0]
+	return strings.Split(pe.Repository.FullName, "/")[0]
 }
 
 // GetRepoName returns the repository name
 func (pe *RepositoryPushEvent) GetRepoName() string {
-	return strings.Split(pe.Data.Repository.FullName, "/")[1]
+	return strings.Split(pe.Repository.FullName, "/")[1]
 }
 
 // GetRepoFullName returns the repository owner and name
 func (pe *RepositoryPushEvent) GetRepoFullName() string {
-	return pe.Data.Repository.FullName
+	return pe.Repository.FullName
 }
 
 // GetRepoBranch returns the branch of the push event
 func (pe *RepositoryPushEvent) GetRepoBranch() string {
-	return pe.Data.Push.Changes[0].New.Name
+	return pe.Push.Changes[0].New.Name
 }
 
 // GetRepoRevision returns the revision of the push event
 func (pe *RepositoryPushEvent) GetRepoRevision() string {
-	return pe.Data.Push.Changes[0].New.Target.Hash
+	return pe.Push.Changes[0].New.Target.Hash
 }
 
 // GetRepository returns the full path to the repository
