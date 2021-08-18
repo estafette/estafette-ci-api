@@ -182,7 +182,11 @@ func (h *Handler) Descriptor(c *gin.Context) {
 		Key:         h.config.Integrations.Bitbucket.Key,
 		Name:        h.config.Integrations.Bitbucket.Name,
 		Description: "Estafette - The The resilient and cloud-native CI/CD platform",
-		BaseURL:     h.config.APIServer.IntegrationsURL,
+		Vendor: DescriptorVendor{
+			Name: "Estafette",
+			URL:  "https://estafette.io",
+		},
+		BaseURL: h.config.APIServer.IntegrationsURL,
 		Authentication: &DescriptorAuthentication{
 			Type: "none",
 		},
