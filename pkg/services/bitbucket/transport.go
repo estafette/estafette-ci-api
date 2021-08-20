@@ -15,16 +15,18 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewHandler(service Service, config *api.APIConfig) Handler {
+func NewHandler(service Service, config *api.APIConfig, bitbucketapiClient bitbucketapi.Client) Handler {
 	return Handler{
-		config:  config,
-		service: service,
+		config:             config,
+		service:            service,
+		bitbucketapiClient: bitbucketapiClient,
 	}
 }
 
 type Handler struct {
-	config  *api.APIConfig
-	service Service
+	config             *api.APIConfig
+	service            Service
+	bitbucketapiClient bitbucketapi.Client
 }
 
 func (h *Handler) Handle(c *gin.Context) {
@@ -228,6 +230,17 @@ func (h *Handler) Installed(c *gin.Context) {
 
 	log.Info().Str("body", string(body)).Msg("Bitbucket App installed")
 
+	var installation bitbucketapi.BitbucketAppInstallation
+	err = json.Unmarshal(body, &installation)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed unmarshalling bitbucket app install body")
+	} else {
+		err = h.bitbucketapiClient.AddInstallation(c.Request.Context(), installation)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed adding bitbucket app installation")
+		}
+	}
+
 	c.Status(http.StatusOK)
 }
 
@@ -241,6 +254,17 @@ func (h *Handler) Uninstalled(c *gin.Context) {
 	}
 
 	log.Info().Str("body", string(body)).Msg("Bitbucket App uninstalled")
+
+	var installation bitbucketapi.BitbucketAppInstallation
+	err = json.Unmarshal(body, &installation)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed unmarshalling bitbucket app uninstall body")
+	} else {
+		err = h.bitbucketapiClient.RemoveInstallation(c.Request.Context(), installation)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed removing bitbucket app installation")
+		}
+	}
 
 	c.Status(http.StatusOK)
 }

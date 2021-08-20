@@ -256,6 +256,17 @@ func getClients(ctx context.Context, config *api.APIConfig, encryptedConfig *api
 
 	log.Debug().Msg("Creating clients...")
 
+	// creates the in-cluster config
+	kubeClientConfig, err := rest.InClusterConfig()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed getting in-cluster kubernetes config")
+	}
+	// creates the clientset
+	kubeClientset, err := kubernetes.NewForConfig(kubeClientConfig)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed creating kubernetes clientset")
+	}
+
 	// bigquery client
 	bigqueryClient = bigquery.NewClient(config, bqClient)
 	bigqueryClient = bigquery.NewTracingClient(bigqueryClient)
@@ -264,13 +275,13 @@ func getClients(ctx context.Context, config *api.APIConfig, encryptedConfig *api
 		api.NewRequestCounter("bigquery_client"),
 		api.NewRequestHistogram("bigquery_client"),
 	)
-	err := bigqueryClient.Init(ctx)
+	err = bigqueryClient.Init(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Initializing BigQuery tables has failed")
 	}
 
 	// bitbucketapi client
-	bitbucketapiClient = bitbucketapi.NewClient(config)
+	bitbucketapiClient = bitbucketapi.NewClient(config, kubeClientset)
 	bitbucketapiClient = bitbucketapi.NewTracingClient(bitbucketapiClient)
 	bitbucketapiClient = bitbucketapi.NewLoggingClient(bitbucketapiClient)
 	bitbucketapiClient = bitbucketapi.NewMetricsClient(bitbucketapiClient,
@@ -328,21 +339,6 @@ func getClients(ctx context.Context, config *api.APIConfig, encryptedConfig *api
 	)
 
 	// builderapi client
-	// creates the in-cluster config
-	kubeClientConfig, err := rest.InClusterConfig()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed getting in-cluster kubernetes config")
-	}
-	// creates the clientset
-	kubeClientset, err := kubernetes.NewForConfig(kubeClientConfig)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed creating kubernetes clientset")
-	}
-
-	// kubeClient, err := k8s.NewInClusterClient()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating kubernetes client failed")
-	}
 	builderapiClient = builderapi.NewClient(config, encryptedConfig, secretHelper, kubeClientset, dockerhubapiClient)
 	builderapiClient = builderapi.NewTracingClient(builderapiClient)
 	builderapiClient = builderapi.NewLoggingClient(builderapiClient)
@@ -452,7 +448,7 @@ func getHandlers(ctx context.Context, config *api.APIConfig, encryptedConfig *ap
 	warningHelper := api.NewWarningHelper(secretHelper)
 
 	// transport
-	bitbucketHandler = bitbucket.NewHandler(bitbucketService, config)
+	bitbucketHandler = bitbucket.NewHandler(bitbucketService, config, bitbucketapiClient)
 	githubHandler = github.NewHandler(githubService)
 	estafetteHandler = estafette.NewHandler(*configFilePath, *templatesPath, config, encryptedConfig, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
 	rbacHandler = rbac.NewHandler(config, rbacService, cockroachdbClient)

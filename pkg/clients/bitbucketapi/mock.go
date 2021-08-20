@@ -34,6 +34,20 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
+// AddInstallation mocks base method.
+func (m *MockClient) AddInstallation(ctx context.Context, installation BitbucketAppInstallation) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddInstallation", ctx, installation)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddInstallation indicates an expected call of AddInstallation.
+func (mr *MockClientMockRecorder) AddInstallation(ctx, installation interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddInstallation", reflect.TypeOf((*MockClient)(nil).AddInstallation), ctx, installation)
+}
+
 // GenerateJWT mocks base method.
 func (m *MockClient) GenerateJWT() (string, error) {
 	m.ctrl.T.Helper()
@@ -80,6 +94,21 @@ func (mr *MockClientMockRecorder) GetEstafetteManifest(ctx, accesstoken, event i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEstafetteManifest", reflect.TypeOf((*MockClient)(nil).GetEstafetteManifest), ctx, accesstoken, event)
 }
 
+// GetInstallations mocks base method.
+func (m *MockClient) GetInstallations(ctx context.Context) ([]*BitbucketAppInstallation, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstallations", ctx)
+	ret0, _ := ret[0].([]*BitbucketAppInstallation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInstallations indicates an expected call of GetInstallations.
+func (mr *MockClientMockRecorder) GetInstallations(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallations", reflect.TypeOf((*MockClient)(nil).GetInstallations), ctx)
+}
+
 // JobVarsFunc mocks base method.
 func (m *MockClient) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, error) {
 	m.ctrl.T.Helper()
@@ -92,4 +121,18 @@ func (m *MockClient) JobVarsFunc(ctx context.Context) func(context.Context, stri
 func (mr *MockClientMockRecorder) JobVarsFunc(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "JobVarsFunc", reflect.TypeOf((*MockClient)(nil).JobVarsFunc), ctx)
+}
+
+// RemoveInstallation mocks base method.
+func (m *MockClient) RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveInstallation", ctx, installation)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveInstallation indicates an expected call of RemoveInstallation.
+func (mr *MockClientMockRecorder) RemoveInstallation(ctx, installation interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveInstallation", reflect.TypeOf((*MockClient)(nil).RemoveInstallation), ctx, installation)
 }

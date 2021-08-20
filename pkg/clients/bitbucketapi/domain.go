@@ -316,3 +316,10 @@ func (pe *RepoDeletedEvent) GetRepoOwner() string {
 func (pe *RepoDeletedEvent) GetRepoName() string {
 	return strings.Split(pe.Repository.FullName, "/")[1]
 }
+
+type BitbucketAppInstallation struct {
+	Key          string `json:"key"`
+	BaseApiURL   string `json:"baseApiUrl"`
+	ClientKey    string `json:"clientKey"`
+	SharedSecret string `json:"sharedSecret"`
+}

@@ -38,4 +38,22 @@ rules:
   - list
   - create
   - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "estafette-ci-api.fullname" . }}.api
+  labels:
+    {{- include "estafette-ci-api.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - create
+  - update
+  - patch
 {{- end }}
