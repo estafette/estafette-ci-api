@@ -235,9 +235,12 @@ func (h *Handler) Installed(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).Msg("Failed unmarshalling bitbucket app install body")
 	} else {
+		log.Info().Interface("installation", installation).Msg("Unmarshalled bitbucket app install body")
 		err = h.bitbucketapiClient.AddInstallation(c.Request.Context(), installation)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed adding bitbucket app installation")
+		} else {
+			log.Info().Msg("Added bitbucket app installation")
 		}
 	}
 
@@ -260,9 +263,12 @@ func (h *Handler) Uninstalled(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).Msg("Failed unmarshalling bitbucket app uninstall body")
 	} else {
+		log.Info().Interface("installation", installation).Msg("Unmarshalled bitbucket app uninstall body")
 		err = h.bitbucketapiClient.RemoveInstallation(c.Request.Context(), installation)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed removing bitbucket app installation")
+		} else {
+			log.Info().Msg("Removed bitbucket app installation")
 		}
 	}
 
