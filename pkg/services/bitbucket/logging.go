@@ -5,6 +5,8 @@ import (
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/bitbucketapi"
+	contracts "github.com/estafette/estafette-ci-contracts"
+	manifest "github.com/estafette/estafette-ci-manifest"
 )
 
 // NewLoggingService returns a new instance of a logging Service.
@@ -13,8 +15,8 @@ func NewLoggingService(s Service) Service {
 }
 
 type loggingService struct {
-	Service
-	prefix string
+	Service Service
+	prefix  string
 }
 
 func (s *loggingService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error) {
@@ -25,8 +27,37 @@ func (s *loggingService) CreateJobForBitbucketPush(ctx context.Context, event bi
 	return s.Service.CreateJobForBitbucketPush(ctx, event)
 }
 
+func (s *loggingService) PublishBitbucketEvent(ctx context.Context, event manifest.EstafetteBitbucketEvent) (err error) {
+	defer func() {
+		api.HandleLogError(s.prefix, "Service", "PublishBitbucketEvent", err, ErrNonCloneableEvent, ErrNoManifest)
+	}()
+
+	return s.Service.PublishBitbucketEvent(ctx, event)
+}
+
 func (s *loggingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
 	defer func() { api.HandleLogError(s.prefix, "Service", "Rename", err) }()
 
 	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+func (s *loggingService) Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	defer func() {
+		api.HandleLogError(s.prefix, "Service", "Archive", err, ErrNonCloneableEvent, ErrNoManifest)
+	}()
+
+	return s.Service.Archive(ctx, repoSource, repoOwner, repoName)
+}
+
+func (s *loggingService) Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	defer func() {
+		api.HandleLogError(s.prefix, "Service", "Unarchive", err, ErrNonCloneableEvent, ErrNoManifest)
+	}()
+
+	return s.Service.Unarchive(ctx, repoSource, repoOwner, repoName)
+}
+
+func (s *loggingService) IsAllowedOwner(ctx context.Context, repository *bitbucketapi.Repository) (isAllowed bool, organizations []*contracts.Organization) {
+
+	return s.Service.IsAllowedOwner(ctx, repository)
 }

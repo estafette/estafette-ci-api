@@ -5,6 +5,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/cloudsourceapi"
+	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/opentracing/opentracing-go"
 )
 
@@ -14,13 +15,19 @@ func NewTracingService(s Service) Service {
 }
 
 type tracingService struct {
-	Service
-	prefix string
+	Service Service
+	prefix  string
 }
 
-func (s *tracingService) CreateJobForCloudsourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error) {
+func (s *tracingService) CreateJobForCloudSourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "CreateJobForCloudSourcePush"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return s.Service.CreateJobForCloudSourcePush(ctx, notification)
+}
+
+func (s *tracingService) IsAllowedProject(ctx context.Context, notification cloudsourceapi.PubSubNotification) (isAllowed bool, organizations []*contracts.Organization) {
+	_, ctx = opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "IsAllowedProject"))
+
+	return s.Service.IsAllowedProject(ctx, notification)
 }

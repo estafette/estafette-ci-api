@@ -14,7 +14,7 @@ func NewLoggingClient(c Client) Client {
 }
 
 type loggingClient struct {
-	Client
+	Client Client
 	prefix string
 }
 
@@ -30,6 +30,12 @@ func (c *loggingClient) InsertReleaseLog(ctx context.Context, releaseLog contrac
 	return c.Client.InsertReleaseLog(ctx, releaseLog)
 }
 
+func (c *loggingClient) InsertBotLog(ctx context.Context, botLog contracts.BotLog) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "InsertBotLog", err) }()
+
+	return c.Client.InsertBotLog(ctx, botLog)
+}
+
 func (c *loggingClient) GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBuildLogs", err) }()
 
@@ -40,6 +46,12 @@ func (c *loggingClient) GetPipelineReleaseLogs(ctx context.Context, releaseLog c
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineReleaseLogs", err) }()
 
 	return c.Client.GetPipelineReleaseLogs(ctx, releaseLog, acceptGzipEncoding, responseWriter)
+}
+
+func (c *loggingClient) GetPipelineBotLogs(ctx context.Context, botLog contracts.BotLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBotLogs", err) }()
+
+	return c.Client.GetPipelineBotLogs(ctx, botLog, acceptGzipEncoding, responseWriter)
 }
 
 func (c *loggingClient) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {

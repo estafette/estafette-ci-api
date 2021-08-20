@@ -13,8 +13,8 @@ func NewLoggingService(s Service) Service {
 }
 
 type loggingService struct {
-	Service
-	prefix string
+	Service Service
+	prefix  string
 }
 
 func (s *loggingService) GetRoles(ctx context.Context) (roles []string, err error) {

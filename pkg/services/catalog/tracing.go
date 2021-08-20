@@ -14,8 +14,8 @@ func NewTracingService(s Service) Service {
 }
 
 type tracingService struct {
-	Service
-	prefix string
+	Service Service
+	prefix  string
 }
 
 func (s *tracingService) CreateCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (insertedCatalogEntity *contracts.CatalogEntity, err error) {

@@ -52,7 +52,7 @@ func (h *Handler) PostPubsubEvent(c *gin.Context) {
 		Msg("Successfully binded pubsub push event")
 
 	// verify project is allowed
-	isAllowed, _ := h.service.IsAllowedProject(notification)
+	isAllowed, _ := h.service.IsAllowedProject(c.Request.Context(), notification)
 	if !isAllowed {
 		c.Status(http.StatusUnauthorized)
 		return

@@ -24,7 +24,7 @@ var (
 //go:generate mockgen -package=cloudsource -destination ./mock.go -source=service.go
 type Service interface {
 	CreateJobForCloudSourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error)
-	IsAllowedProject(notification cloudsourceapi.PubSubNotification) (isAllowed bool, organizations []*contracts.Organization)
+	IsAllowedProject(ctx context.Context, notification cloudsourceapi.PubSubNotification) (isAllowed bool, organizations []*contracts.Organization)
 }
 
 // NewService returns a new bitbucket.Service
@@ -103,7 +103,7 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 	}
 
 	// get organizations linked to integration
-	_, organizations := s.IsAllowedProject(notification)
+	_, organizations := s.IsAllowedProject(ctx, notification)
 
 	// create build object and hand off to build service
 	_, err = s.estafetteService.CreateBuild(ctx, contracts.Build{
@@ -144,7 +144,7 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 	return nil
 }
 
-func (s *service) IsAllowedProject(notification cloudsourceapi.PubSubNotification) (isAllowed bool, organizations []*contracts.Organization) {
+func (s *service) IsAllowedProject(ctx context.Context, notification cloudsourceapi.PubSubNotification) (isAllowed bool, organizations []*contracts.Organization) {
 
 	if len(s.config.Integrations.CloudSource.ProjectOrganizations) == 0 {
 		return true, []*contracts.Organization{}

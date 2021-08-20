@@ -356,7 +356,7 @@ func TestIsAllowedProject(t *testing.T) {
 		}
 
 		// act
-		isAllowed, _ := service.IsAllowedProject(notification)
+		isAllowed, _ := service.IsAllowedProject(context.Background(), notification)
 
 		assert.True(t, isAllowed)
 	})
@@ -401,7 +401,7 @@ func TestIsAllowedProject(t *testing.T) {
 		}
 
 		// act
-		isAllowed, _ := service.IsAllowedProject(notification)
+		isAllowed, _ := service.IsAllowedProject(context.Background(), notification)
 
 		assert.False(t, isAllowed)
 	})
@@ -449,7 +449,7 @@ func TestIsAllowedProject(t *testing.T) {
 		}
 
 		// act
-		isAllowed, _ := service.IsAllowedProject(notification)
+		isAllowed, _ := service.IsAllowedProject(context.Background(), notification)
 
 		assert.True(t, isAllowed)
 	})

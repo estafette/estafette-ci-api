@@ -16,7 +16,7 @@ func NewMetricsClient(c Client, requestCount metrics.Counter, requestLatency met
 }
 
 type metricsClient struct {
-	Client
+	Client         Client
 	requestCount   metrics.Counter
 	requestLatency metrics.Histogram
 }
@@ -37,6 +37,14 @@ func (c *metricsClient) InsertReleaseLog(ctx context.Context, releaseLog contrac
 	return c.Client.InsertReleaseLog(ctx, releaseLog)
 }
 
+func (c *metricsClient) InsertBotLog(ctx context.Context, botLog contracts.BotLog) (err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "InsertBotLog", begin)
+	}(time.Now())
+
+	return c.Client.InsertBotLog(ctx, botLog)
+}
+
 func (c *metricsClient) GetPipelineBuildLogs(ctx context.Context, buildLog contracts.BuildLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineBuildLogs", begin)
@@ -51,6 +59,14 @@ func (c *metricsClient) GetPipelineReleaseLogs(ctx context.Context, releaseLog c
 	}(time.Now())
 
 	return c.Client.GetPipelineReleaseLogs(ctx, releaseLog, acceptGzipEncoding, responseWriter)
+}
+
+func (c *metricsClient) GetPipelineBotLogs(ctx context.Context, botLog contracts.BotLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineBotLogs", begin)
+	}(time.Now())
+
+	return c.Client.GetPipelineBotLogs(ctx, botLog, acceptGzipEncoding, responseWriter)
 }
 
 func (c *metricsClient) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {

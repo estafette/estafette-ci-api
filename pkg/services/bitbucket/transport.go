@@ -52,7 +52,7 @@ func (h *Handler) Handle(c *gin.Context) {
 	}
 
 	// verify owner is allowed
-	isAllowed, _ := h.service.IsAllowedOwner(eventCheck.GetRepository())
+	isAllowed, _ := h.service.IsAllowedOwner(c.Request.Context(), eventCheck.GetRepository())
 	if !isAllowed {
 		log.Warn().Interface("event", eventCheck).Str("body", string(body)).Msg("Bitbucket EventCheck owner is not allowed")
 		c.Status(http.StatusUnauthorized)

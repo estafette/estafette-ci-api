@@ -15,7 +15,7 @@ func NewLoggingClient(c Client) Client {
 }
 
 type loggingClient struct {
-	Client
+	Client Client
 	prefix string
 }
 
@@ -73,6 +73,24 @@ func (c *loggingClient) UpdateReleaseResourceUtilization(ctx context.Context, re
 	return c.Client.UpdateReleaseResourceUtilization(ctx, repoSource, repoOwner, repoName, releaseID, jobResources)
 }
 
+func (c *loggingClient) InsertBot(ctx context.Context, bot contracts.Bot, jobResources JobResources) (r *contracts.Bot, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "InsertBot", err) }()
+
+	return c.Client.InsertBot(ctx, bot, jobResources)
+}
+
+func (c *loggingClient) UpdateBotStatus(ctx context.Context, repoSource, repoOwner, repoName string, botID string, botStatus contracts.Status) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "UpdateBotStatus", err) }()
+
+	return c.Client.UpdateBotStatus(ctx, repoSource, repoOwner, repoName, botID, botStatus)
+}
+
+func (c *loggingClient) UpdateBotResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, botID string, jobResources JobResources) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "UpdateBotResourceUtilization", err) }()
+
+	return c.Client.UpdateBotResourceUtilization(ctx, repoSource, repoOwner, repoName, botID, jobResources)
+}
+
 func (c *loggingClient) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (buildlog contracts.BuildLog, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "InsertBuildLog", err) }()
 
@@ -83,6 +101,18 @@ func (c *loggingClient) InsertReleaseLog(ctx context.Context, releaseLog contrac
 	defer func() { api.HandleLogError(c.prefix, "Client", "InsertReleaseLog", err) }()
 
 	return c.Client.InsertReleaseLog(ctx, releaseLog, writeLogToDatabase)
+}
+
+func (c *loggingClient) InsertBotLog(ctx context.Context, botLog contracts.BotLog, writeLogToDatabase bool) (log contracts.BotLog, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "InsertBotLog", err) }()
+
+	return c.Client.InsertBotLog(ctx, botLog, writeLogToDatabase)
+}
+
+func (c *loggingClient) UpdateComputedTables(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "UpdateComputedTables", err) }()
+
+	return c.Client.UpdateComputedTables(ctx, repoSource, repoOwner, repoName)
 }
 
 func (c *loggingClient) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
@@ -301,6 +331,54 @@ func (c *loggingClient) GetPipelineReleaseMaxResourceUtilization(ctx context.Con
 	return c.Client.GetPipelineReleaseMaxResourceUtilization(ctx, repoSource, repoOwner, repoName, targetName, lastNRecords)
 }
 
+func (c *loggingClient) GetPipelineBots(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (bots []*contracts.Bot, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBots", err) }()
+
+	return c.Client.GetPipelineBots(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *loggingClient) GetPipelineBotsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBotsCount", err) }()
+
+	return c.Client.GetPipelineBotsCount(ctx, repoSource, repoOwner, repoName, filters)
+}
+
+func (c *loggingClient) GetPipelineBot(ctx context.Context, repoSource, repoOwner, repoName string, botID string) (bot *contracts.Bot, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBot", err) }()
+
+	return c.Client.GetPipelineBot(ctx, repoSource, repoOwner, repoName, botID)
+}
+
+func (c *loggingClient) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID string, readLogFromDatabase bool) (releaselog *contracts.BotLog, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBotLogs", err) }()
+
+	return c.Client.GetPipelineBotLogs(ctx, repoSource, repoOwner, repoName, botID, readLogFromDatabase)
+}
+
+func (c *loggingClient) GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID string, id string, readLogFromDatabase bool) (releaselog *contracts.BotLog, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBotLogsByID", err) }()
+
+	return c.Client.GetPipelineBotLogsByID(ctx, repoSource, repoOwner, repoName, botID, id, readLogFromDatabase)
+}
+
+func (c *loggingClient) GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, botID string, pageNumber int, pageSize int) (releaselogs []*contracts.BotLog, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBotLogsPerPage", err) }()
+
+	return c.Client.GetPipelineBotLogsPerPage(ctx, repoSource, repoOwner, repoName, botID, pageNumber, pageSize)
+}
+
+func (c *loggingClient) GetPipelineBotLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, botID string) (count int, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBotLogsCount", err) }()
+
+	return c.Client.GetPipelineBotLogsCount(ctx, repoSource, repoOwner, repoName, botID)
+}
+
+func (c *loggingClient) GetPipelineBotMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobresources JobResources, count int, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBotMaxResourceUtilization", err) }()
+
+	return c.Client.GetPipelineBotMaxResourceUtilization(ctx, repoSource, repoOwner, repoName, targetName, lastNRecords)
+}
+
 func (c *loggingClient) GetBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetBuildsCount", err) }()
 
@@ -311,6 +389,12 @@ func (c *loggingClient) GetReleasesCount(ctx context.Context, filters map[api.Fi
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetReleasesCount", err) }()
 
 	return c.Client.GetReleasesCount(ctx, filters)
+}
+
+func (c *loggingClient) GetBotsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetBotsCount", err) }()
+
+	return c.Client.GetBotsCount(ctx, filters)
 }
 
 func (c *loggingClient) GetBuildsDuration(ctx context.Context, filters map[api.FilterType][]string) (duration time.Duration, err error) {
@@ -331,6 +415,12 @@ func (c *loggingClient) GetFirstReleaseTimes(ctx context.Context) (times []time.
 	return c.Client.GetFirstReleaseTimes(ctx)
 }
 
+func (c *loggingClient) GetFirstBotTimes(ctx context.Context) (times []time.Time, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetFirstBotTimes", err) }()
+
+	return c.Client.GetFirstBotTimes(ctx)
+}
+
 func (c *loggingClient) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBuildsDurations", err) }()
 
@@ -341,6 +431,12 @@ func (c *loggingClient) GetPipelineReleasesDurations(ctx context.Context, repoSo
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineReleasesDurations", err) }()
 
 	return c.Client.GetPipelineReleasesDurations(ctx, repoSource, repoOwner, repoName, filters)
+}
+
+func (c *loggingClient) GetPipelineBotsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBotsDurations", err) }()
+
+	return c.Client.GetPipelineBotsDurations(ctx, repoSource, repoOwner, repoName, filters)
 }
 
 func (c *loggingClient) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
@@ -355,6 +451,12 @@ func (c *loggingClient) GetPipelineReleasesCPUUsageMeasurements(ctx context.Cont
 	return c.Client.GetPipelineReleasesCPUUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
 }
 
+func (c *loggingClient) GetPipelineBotsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBotsCPUUsageMeasurements", err) }()
+
+	return c.Client.GetPipelineBotsCPUUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
+}
+
 func (c *loggingClient) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBuildsMemoryUsageMeasurements", err) }()
 
@@ -365,6 +467,12 @@ func (c *loggingClient) GetPipelineReleasesMemoryUsageMeasurements(ctx context.C
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineReleasesMemoryUsageMeasurements", err) }()
 
 	return c.Client.GetPipelineReleasesMemoryUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
+}
+
+func (c *loggingClient) GetPipelineBotsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBotsMemoryUsageMeasurements", err) }()
+
+	return c.Client.GetPipelineBotsMemoryUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
 }
 
 func (c *loggingClient) GetLabelValues(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error) {
@@ -409,6 +517,18 @@ func (c *loggingClient) GetPipelinesWithMostReleasesCount(ctx context.Context, f
 	return c.Client.GetPipelinesWithMostReleasesCount(ctx, filters)
 }
 
+func (c *loggingClient) GetPipelinesWithMostBots(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (pipelines []map[string]interface{}, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelinesWithMostBots", err) }()
+
+	return c.Client.GetPipelinesWithMostBots(ctx, pageNumber, pageSize, filters)
+}
+
+func (c *loggingClient) GetPipelinesWithMostBotsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelinesWithMostBotsCount", err) }()
+
+	return c.Client.GetPipelinesWithMostBotsCount(ctx, filters)
+}
+
 func (c *loggingClient) GetTriggers(ctx context.Context, triggerType, identifier, event string) (pipelines []*contracts.Pipeline, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetTriggers", err) }()
 
@@ -443,6 +563,18 @@ func (c *loggingClient) GetCronTriggers(ctx context.Context) (pipelines []*contr
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetCronTriggers", err) }()
 
 	return c.Client.GetCronTriggers(ctx)
+}
+
+func (c *loggingClient) GetGithubTriggers(ctx context.Context, githubEvent manifest.EstafetteGithubEvent) (pipelines []*contracts.Pipeline, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetGithubTriggers", err) }()
+
+	return c.Client.GetGithubTriggers(ctx, githubEvent)
+}
+
+func (c *loggingClient) GetBitbucketTriggers(ctx context.Context, bitbucketEvent manifest.EstafetteBitbucketEvent) (pipelines []*contracts.Pipeline, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetBitbucketTriggers", err) }()
+
+	return c.Client.GetBitbucketTriggers(ctx, bitbucketEvent)
 }
 
 func (c *loggingClient) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName string) (err error) {
@@ -789,6 +921,36 @@ func (c *loggingClient) GetAllPipelineReleasesCount(ctx context.Context, filters
 	return c.Client.GetAllPipelineReleasesCount(ctx, filters)
 }
 
+func (c *loggingClient) GetAllPipelineBots(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (bots []*contracts.Bot, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAllPipelineBots", err) }()
+
+	return c.Client.GetAllPipelineBots(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *loggingClient) GetAllPipelineBotsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAllPipelineBotsCount", err) }()
+
+	return c.Client.GetAllPipelineBotsCount(ctx, filters)
+}
+
+func (c *loggingClient) GetAllNotifications(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (notifications []*contracts.NotificationRecord, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAllNotifications", err) }()
+
+	return c.Client.GetAllNotifications(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *loggingClient) GetAllNotificationsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAllNotificationsCount", err) }()
+
+	return c.Client.GetAllNotificationsCount(ctx, filters)
+}
+
+func (c *loggingClient) InsertNotification(ctx context.Context, notificationRecord contracts.NotificationRecord) (n *contracts.NotificationRecord, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "InsertNotification", err) }()
+
+	return c.Client.InsertNotification(ctx, notificationRecord)
+}
+
 func (c *loggingClient) GetReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetReleaseTargets", err) }()
 
@@ -823,4 +985,28 @@ func (c *loggingClient) GetAllReleasesReleaseTargetsCount(ctx context.Context, f
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetAllReleasesReleaseTargetsCount", err) }()
 
 	return c.Client.GetAllReleasesReleaseTargetsCount(ctx, filters)
+}
+
+func (c *loggingClient) GetPipelineBuildBranches(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string) (buildBranches []map[string]interface{}, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBuildBranches", err) }()
+
+	return c.Client.GetPipelineBuildBranches(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters)
+}
+
+func (c *loggingClient) GetPipelineBuildBranchesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBuildBranchesCount", err) }()
+
+	return c.Client.GetPipelineBuildBranchesCount(ctx, repoSource, repoOwner, repoName, filters)
+}
+
+func (c *loggingClient) GetPipelineBotNames(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string) (botNames []map[string]interface{}, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBotNames", err) }()
+
+	return c.Client.GetPipelineBotNames(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters)
+}
+
+func (c *loggingClient) GetPipelineBotNamesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetPipelineBotNamesCount", err) }()
+
+	return c.Client.GetPipelineBotNamesCount(ctx, repoSource, repoOwner, repoName, filters)
 }

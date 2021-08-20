@@ -28,7 +28,7 @@ type Service interface {
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
-	IsAllowedOwner(repository *bitbucketapi.Repository) (isAllowed bool, organizations []*contracts.Organization)
+	IsAllowedOwner(ctx context.Context, repository *bitbucketapi.Repository) (isAllowed bool, organizations []*contracts.Organization)
 }
 
 // NewService returns a new bitbucket.Service
@@ -104,7 +104,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	}
 
 	// get organizations linked to integration
-	_, organizations := s.IsAllowedOwner(&pushEvent.Repository)
+	_, organizations := s.IsAllowedOwner(ctx, &pushEvent.Repository)
 
 	// create build object and hand off to build service
 	_, err = s.estafetteService.CreateBuild(ctx, contracts.Build{
@@ -163,7 +163,7 @@ func (s *service) Unarchive(ctx context.Context, repoSource, repoOwner, repoName
 	return s.estafetteService.Unarchive(ctx, repoSource, repoOwner, repoName)
 }
 
-func (s *service) IsAllowedOwner(repository *bitbucketapi.Repository) (isAllowed bool, organizations []*contracts.Organization) {
+func (s *service) IsAllowedOwner(ctx context.Context, repository *bitbucketapi.Repository) (isAllowed bool, organizations []*contracts.Organization) {
 	if len(s.config.Integrations.Bitbucket.OwnerOrganizations) == 0 {
 		return true, []*contracts.Organization{}
 	}

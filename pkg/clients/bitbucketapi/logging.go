@@ -12,7 +12,7 @@ func NewLoggingClient(c Client) Client {
 }
 
 type loggingClient struct {
-	Client
+	Client Client
 	prefix string
 }
 
@@ -30,4 +30,20 @@ func (c *loggingClient) GetEstafetteManifest(ctx context.Context, accesstoken Ac
 
 func (c *loggingClient) JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 	return c.Client.JobVarsFunc(ctx)
+}
+
+func (c *loggingClient) GenerateJWT() (tokenString string, err error) {
+	return c.Client.GenerateJWT()
+}
+
+func (c *loggingClient) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {
+	return c.Client.GetInstallations(ctx)
+}
+
+func (c *loggingClient) AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
+	return c.Client.AddInstallation(ctx, installation)
+}
+
+func (c *loggingClient) RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
+	return c.Client.RemoveInstallation(ctx, installation)
 }

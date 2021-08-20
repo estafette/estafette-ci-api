@@ -6,6 +6,7 @@ import (
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/githubapi"
 	contracts "github.com/estafette/estafette-ci-contracts"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/opentracing/opentracing-go"
 )
 
@@ -15,8 +16,8 @@ func NewTracingService(s Service) Service {
 }
 
 type tracingService struct {
-	Service
-	prefix string
+	Service Service
+	prefix  string
 }
 
 func (s *tracingService) CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) (err error) {
@@ -24,6 +25,13 @@ func (s *tracingService) CreateJobForGithubPush(ctx context.Context, event githu
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return s.Service.CreateJobForGithubPush(ctx, event)
+}
+
+func (s *tracingService) PublishGithubEvent(ctx context.Context, event manifest.EstafetteGithubEvent) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "PublishGithubEvent"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return s.Service.PublishGithubEvent(ctx, event)
 }
 
 func (s *tracingService) HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (valid bool, err error) {
@@ -38,6 +46,20 @@ func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwn
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return s.Service.Rename(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
+}
+
+func (s *tracingService) Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "Archive"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return s.Service.Archive(ctx, repoSource, repoOwner, repoName)
+}
+
+func (s *tracingService) Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "Unarchive"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return s.Service.Unarchive(ctx, repoSource, repoOwner, repoName)
 }
 
 func (s *tracingService) IsAllowedInstallation(ctx context.Context, installation githubapi.Installation) (isAllowed bool, organizations []*contracts.Organization) {

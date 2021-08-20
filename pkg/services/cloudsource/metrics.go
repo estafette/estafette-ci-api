@@ -6,6 +6,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/cloudsourceapi"
+	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/go-kit/kit/metrics"
 )
 
@@ -15,7 +16,7 @@ func NewMetricsService(s Service, requestCount metrics.Counter, requestLatency m
 }
 
 type metricsService struct {
-	Service
+	Service        Service
 	requestCount   metrics.Counter
 	requestLatency metrics.Histogram
 }
@@ -26,4 +27,12 @@ func (s *metricsService) CreateJobForCloudSourcePush(ctx context.Context, notifi
 	}(time.Now())
 
 	return s.Service.CreateJobForCloudSourcePush(ctx, notification)
+}
+
+func (s *metricsService) IsAllowedProject(ctx context.Context, notification cloudsourceapi.PubSubNotification) (isAllowed bool, organizations []*contracts.Organization) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(s.requestCount, s.requestLatency, "IsAllowedProject", begin)
+	}(time.Now())
+
+	return s.Service.IsAllowedProject(ctx, notification)
 }

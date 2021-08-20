@@ -13,7 +13,7 @@ func NewTracingClient(c Client) Client {
 }
 
 type tracingClient struct {
-	Client
+	Client Client
 	prefix string
 }
 
@@ -36,4 +36,20 @@ func (c *tracingClient) JobVarsFunc(ctx context.Context) func(ctx context.Contex
 	defer func() { api.FinishSpan(span) }()
 
 	return c.Client.JobVarsFunc(ctx)
+}
+
+func (c *tracingClient) GenerateJWT() (tokenString string, err error) {
+	return c.Client.GenerateJWT()
+}
+
+func (c *tracingClient) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {
+	return c.Client.GetInstallations(ctx)
+}
+
+func (c *tracingClient) AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
+	return c.Client.AddInstallation(ctx, installation)
+}
+
+func (c *tracingClient) RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
+	return c.Client.RemoveInstallation(ctx, installation)
 }

@@ -13,7 +13,7 @@ func NewLoggingClient(c Client) Client {
 }
 
 type loggingClient struct {
-	Client
+	Client Client
 	prefix string
 }
 

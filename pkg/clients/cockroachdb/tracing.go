@@ -16,7 +16,7 @@ func NewTracingClient(c Client) Client {
 }
 
 type tracingClient struct {
-	Client
+	Client Client
 	prefix string
 }
 
@@ -83,6 +83,27 @@ func (c *tracingClient) UpdateReleaseResourceUtilization(ctx context.Context, re
 	return c.Client.UpdateReleaseResourceUtilization(ctx, repoSource, repoOwner, repoName, releaseID, jobResources)
 }
 
+func (c *tracingClient) InsertBot(ctx context.Context, bot contracts.Bot, jobResources JobResources) (r *contracts.Bot, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "InsertBot"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.InsertBot(ctx, bot, jobResources)
+}
+
+func (c *tracingClient) UpdateBotStatus(ctx context.Context, repoSource, repoOwner, repoName string, botID string, botStatus contracts.Status) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "UpdateBotStatus"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.UpdateBotStatus(ctx, repoSource, repoOwner, repoName, botID, botStatus)
+}
+
+func (c *tracingClient) UpdateBotResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, botID string, jobResources JobResources) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "UpdateBotResourceUtilization"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.UpdateBotResourceUtilization(ctx, repoSource, repoOwner, repoName, botID, jobResources)
+}
+
 func (c *tracingClient) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (buildlog contracts.BuildLog, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "InsertBuildLog"))
 	defer func() { api.FinishSpanWithError(span, err) }()
@@ -95,6 +116,20 @@ func (c *tracingClient) InsertReleaseLog(ctx context.Context, releaseLog contrac
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.InsertReleaseLog(ctx, releaseLog, writeLogToDatabase)
+}
+
+func (c *tracingClient) InsertBotLog(ctx context.Context, botLog contracts.BotLog, writeLogToDatabase bool) (log contracts.BotLog, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "InsertBotLog"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.InsertBotLog(ctx, botLog, writeLogToDatabase)
+}
+
+func (c *tracingClient) UpdateComputedTables(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "UpdateComputedTables"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.UpdateComputedTables(ctx, repoSource, repoOwner, repoName)
 }
 
 func (c *tracingClient) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
@@ -349,6 +384,62 @@ func (c *tracingClient) GetPipelineReleaseMaxResourceUtilization(ctx context.Con
 	return c.Client.GetPipelineReleaseMaxResourceUtilization(ctx, repoSource, repoOwner, repoName, targetName, lastNRecords)
 }
 
+func (c *tracingClient) GetPipelineBots(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (bots []*contracts.Bot, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBots"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineBots(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *tracingClient) GetPipelineBotsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBotsCount"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineBotsCount(ctx, repoSource, repoOwner, repoName, filters)
+}
+
+func (c *tracingClient) GetPipelineBot(ctx context.Context, repoSource, repoOwner, repoName string, botID string) (bot *contracts.Bot, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBot"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineBot(ctx, repoSource, repoOwner, repoName, botID)
+}
+
+func (c *tracingClient) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID string, readLogFromDatabase bool) (releaselog *contracts.BotLog, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBotLogs"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineBotLogs(ctx, repoSource, repoOwner, repoName, botID, readLogFromDatabase)
+}
+
+func (c *tracingClient) GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID string, id string, readLogFromDatabase bool) (releaselog *contracts.BotLog, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBotLogsByID"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineBotLogsByID(ctx, repoSource, repoOwner, repoName, botID, id, readLogFromDatabase)
+}
+
+func (c *tracingClient) GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, botID string, pageNumber int, pageSize int) (releaselogs []*contracts.BotLog, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBotLogsPerPage"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineBotLogsPerPage(ctx, repoSource, repoOwner, repoName, botID, pageNumber, pageSize)
+}
+
+func (c *tracingClient) GetPipelineBotLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, botID string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBotLogsCount"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineBotLogsCount(ctx, repoSource, repoOwner, repoName, botID)
+}
+
+func (c *tracingClient) GetPipelineBotMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobresources JobResources, count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBotMaxResourceUtilization"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineBotMaxResourceUtilization(ctx, repoSource, repoOwner, repoName, targetName, lastNRecords)
+}
+
 func (c *tracingClient) GetBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetBuildsCount"))
 	defer func() { api.FinishSpanWithError(span, err) }()
@@ -361,6 +452,13 @@ func (c *tracingClient) GetReleasesCount(ctx context.Context, filters map[api.Fi
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetReleasesCount(ctx, filters)
+}
+
+func (c *tracingClient) GetBotsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetBotsCount"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetBotsCount(ctx, filters)
 }
 
 func (c *tracingClient) GetBuildsDuration(ctx context.Context, filters map[api.FilterType][]string) (duration time.Duration, err error) {
@@ -384,6 +482,13 @@ func (c *tracingClient) GetFirstReleaseTimes(ctx context.Context) (times []time.
 	return c.Client.GetFirstReleaseTimes(ctx)
 }
 
+func (c *tracingClient) GetFirstBotTimes(ctx context.Context) (times []time.Time, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetFirstBotTimes"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetFirstBotTimes(ctx)
+}
+
 func (c *tracingClient) GetPipelineBuildsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBuildsDurations"))
 	defer func() { api.FinishSpanWithError(span, err) }()
@@ -396,6 +501,13 @@ func (c *tracingClient) GetPipelineReleasesDurations(ctx context.Context, repoSo
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetPipelineReleasesDurations(ctx, repoSource, repoOwner, repoName, filters)
+}
+
+func (c *tracingClient) GetPipelineBotsDurations(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (durations []map[string]interface{}, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBotsDurations"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineBotsDurations(ctx, repoSource, repoOwner, repoName, filters)
 }
 
 func (c *tracingClient) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
@@ -412,6 +524,13 @@ func (c *tracingClient) GetPipelineReleasesCPUUsageMeasurements(ctx context.Cont
 	return c.Client.GetPipelineReleasesCPUUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
 }
 
+func (c *tracingClient) GetPipelineBotsCPUUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBotsCPUUsageMeasurements"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineBotsCPUUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
+}
+
 func (c *tracingClient) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBuildsMemoryUsageMeasurements"))
 	defer func() { api.FinishSpanWithError(span, err) }()
@@ -424,6 +543,13 @@ func (c *tracingClient) GetPipelineReleasesMemoryUsageMeasurements(ctx context.C
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetPipelineReleasesMemoryUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
+}
+
+func (c *tracingClient) GetPipelineBotsMemoryUsageMeasurements(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (measurements []map[string]interface{}, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBotsMemoryUsageMeasurements"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineBotsMemoryUsageMeasurements(ctx, repoSource, repoOwner, repoName, filters)
 }
 
 func (c *tracingClient) GetLabelValues(ctx context.Context, labelKey string) (labels []map[string]interface{}, err error) {
@@ -475,6 +601,20 @@ func (c *tracingClient) GetPipelinesWithMostReleasesCount(ctx context.Context, f
 	return c.Client.GetPipelinesWithMostReleasesCount(ctx, filters)
 }
 
+func (c *tracingClient) GetPipelinesWithMostBots(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (pipelines []map[string]interface{}, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelinesWithMostBots"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelinesWithMostBots(ctx, pageNumber, pageSize, filters)
+}
+
+func (c *tracingClient) GetPipelinesWithMostBotsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelinesWithMostBotsCount"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelinesWithMostBotsCount(ctx, filters)
+}
+
 func (c *tracingClient) GetTriggers(ctx context.Context, triggerType, identifier, event string) (pipelines []*contracts.Pipeline, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetTriggers"))
 	defer func() { api.FinishSpanWithError(span, err) }()
@@ -515,6 +655,20 @@ func (c *tracingClient) GetCronTriggers(ctx context.Context) (pipelines []*contr
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetCronTriggers(ctx)
+}
+
+func (c *tracingClient) GetGithubTriggers(ctx context.Context, githubEvent manifest.EstafetteGithubEvent) (pipelines []*contracts.Pipeline, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetGithubTriggers"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetGithubTriggers(ctx, githubEvent)
+}
+
+func (c *tracingClient) GetBitbucketTriggers(ctx context.Context, bitbucketEvent manifest.EstafetteBitbucketEvent) (pipelines []*contracts.Pipeline, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetBitbucketTriggers"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetBitbucketTriggers(ctx, bitbucketEvent)
 }
 
 func (c *tracingClient) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName string) (err error) {
@@ -916,6 +1070,41 @@ func (c *tracingClient) GetAllPipelineReleasesCount(ctx context.Context, filters
 	return c.Client.GetAllPipelineReleasesCount(ctx, filters)
 }
 
+func (c *tracingClient) GetAllPipelineBots(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (bots []*contracts.Bot, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAllPipelineBots"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetAllPipelineBots(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *tracingClient) GetAllPipelineBotsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAllPipelineBotsCount"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetAllPipelineBotsCount(ctx, filters)
+}
+
+func (c *tracingClient) GetAllNotifications(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (notifications []*contracts.NotificationRecord, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAllNotifications"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetAllNotifications(ctx, pageNumber, pageSize, filters, sortings)
+}
+
+func (c *tracingClient) GetAllNotificationsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAllNotificationsCount"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetAllNotificationsCount(ctx, filters)
+}
+
+func (c *tracingClient) InsertNotification(ctx context.Context, notificationRecord contracts.NotificationRecord) (n *contracts.NotificationRecord, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "InsertNotification"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.InsertNotification(ctx, notificationRecord)
+}
+
 func (c *tracingClient) GetReleaseTargets(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (releaseTargets []map[string]interface{}, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetReleaseTargets"))
 	defer func() { api.FinishSpanWithError(span, err) }()
@@ -956,4 +1145,32 @@ func (c *tracingClient) GetAllReleasesReleaseTargetsCount(ctx context.Context, f
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetAllReleasesReleaseTargetsCount(ctx, filters)
+}
+
+func (c *tracingClient) GetPipelineBuildBranches(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string) (buildBranches []map[string]interface{}, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBuildBranches"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineBuildBranches(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters)
+}
+
+func (c *tracingClient) GetPipelineBuildBranchesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBuildBranchesCount"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineBuildBranchesCount(ctx, repoSource, repoOwner, repoName, filters)
+}
+
+func (c *tracingClient) GetPipelineBotNames(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string) (botNames []map[string]interface{}, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBotNames"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineBotNames(ctx, repoSource, repoOwner, repoName, pageNumber, pageSize, filters)
+}
+
+func (c *tracingClient) GetPipelineBotNamesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBotNamesCount"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetPipelineBotNamesCount(ctx, repoSource, repoOwner, repoName, filters)
 }

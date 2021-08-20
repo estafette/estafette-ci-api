@@ -15,7 +15,7 @@ func NewTracingClient(c Client) Client {
 }
 
 type tracingClient struct {
-	Client
+	Client Client
 	prefix string
 }
 

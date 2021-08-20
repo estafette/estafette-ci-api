@@ -14,8 +14,8 @@ func NewLoggingService(s Service) Service {
 }
 
 type loggingService struct {
-	Service
-	prefix string
+	Service Service
+	prefix  string
 }
 
 func (s *loggingService) CreateBuild(ctx context.Context, build contracts.Build) (b *contracts.Build, err error) {
@@ -40,6 +40,18 @@ func (s *loggingService) FinishRelease(ctx context.Context, repoSource, repoOwne
 	defer func() { api.HandleLogError(s.prefix, "Service", "FinishRelease", err) }()
 
 	return s.Service.FinishRelease(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)
+}
+
+func (s *loggingService) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch string) (b *contracts.Bot, err error) {
+	defer func() { api.HandleLogError(s.prefix, "Service", "CreateBot", err) }()
+
+	return s.Service.CreateBot(ctx, bot, mft, repoBranch)
+}
+
+func (s *loggingService) FinishBot(ctx context.Context, repoSource, repoOwner, repoName string, botID string, botStatus contracts.Status) (err error) {
+	defer func() { api.HandleLogError(s.prefix, "Service", "FinishBot", err) }()
+
+	return s.Service.FinishBot(ctx, repoSource, repoOwner, repoName, botID, botStatus)
 }
 
 func (s *loggingService) FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error) {
@@ -70,6 +82,18 @@ func (s *loggingService) FireCronTriggers(ctx context.Context, cronEvent manifes
 	defer func() { api.HandleLogError(s.prefix, "Service", "FireCronTriggers", err) }()
 
 	return s.Service.FireCronTriggers(ctx, cronEvent)
+}
+
+func (s *loggingService) FireGithubTriggers(ctx context.Context, githubEvent manifest.EstafetteGithubEvent) (err error) {
+	defer func() { api.HandleLogError(s.prefix, "Service", "FireGithubTriggers", err) }()
+
+	return s.Service.FireGithubTriggers(ctx, githubEvent)
+}
+
+func (s *loggingService) FireBitbucketTriggers(ctx context.Context, bitbucketEvent manifest.EstafetteBitbucketEvent) (err error) {
+	defer func() { api.HandleLogError(s.prefix, "Service", "FireBitbucketTriggers", err) }()
+
+	return s.Service.FireBitbucketTriggers(ctx, bitbucketEvent)
 }
 
 func (s *loggingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {

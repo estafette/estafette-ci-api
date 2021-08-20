@@ -436,7 +436,7 @@ func TestIsAllowedOwner(t *testing.T) {
 		}
 
 		// act
-		isAllowed, _ := service.IsAllowedOwner(&repository)
+		isAllowed, _ := service.IsAllowedOwner(context.Background(), &repository)
 
 		assert.True(t, isAllowed)
 	})
@@ -470,7 +470,7 @@ func TestIsAllowedOwner(t *testing.T) {
 		}
 
 		// act
-		isAllowed, _ := service.IsAllowedOwner(&repository)
+		isAllowed, _ := service.IsAllowedOwner(context.Background(), &repository)
 
 		assert.False(t, isAllowed)
 	})
@@ -507,7 +507,7 @@ func TestIsAllowedOwner(t *testing.T) {
 		}
 
 		// act
-		isAllowed, _ := service.IsAllowedOwner(&repository)
+		isAllowed, _ := service.IsAllowedOwner(context.Background(), &repository)
 
 		assert.True(t, isAllowed)
 	})

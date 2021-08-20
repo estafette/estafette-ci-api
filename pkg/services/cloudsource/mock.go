@@ -6,56 +6,61 @@ package cloudsource
 
 import (
 	context "context"
-	cloudsourceapi "github.com/estafette/estafette-ci-api/pkg/clients/cloudsourceapi"
-	estafette_ci_contracts "github.com/estafette/estafette-ci-contracts"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	cloudsourceapi "github.com/estafette/estafette-ci-api/pkg/clients/cloudsourceapi"
+	contracts "github.com/estafette/estafette-ci-contracts"
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockService is a mock of Service interface
+// MockService is a mock of Service interface.
 type MockService struct {
 	ctrl     *gomock.Controller
 	recorder *MockServiceMockRecorder
 }
 
-// MockServiceMockRecorder is the mock recorder for MockService
+// MockServiceMockRecorder is the mock recorder for MockService.
 type MockServiceMockRecorder struct {
 	mock *MockService
 }
 
-// NewMockService creates a new mock instance
+// NewMockService creates a new mock instance.
 func NewMockService(ctrl *gomock.Controller) *MockService {
 	mock := &MockService{ctrl: ctrl}
 	mock.recorder = &MockServiceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockService) EXPECT() *MockServiceMockRecorder {
 	return m.recorder
 }
 
-// CreateJobForCloudSourcePush mocks base method
+// CreateJobForCloudSourcePush mocks base method.
 func (m *MockService) CreateJobForCloudSourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateJobForCloudSourcePush", ctx, notification)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateJobForCloudSourcePush indicates an expected call of CreateJobForCloudSourcePush
+// CreateJobForCloudSourcePush indicates an expected call of CreateJobForCloudSourcePush.
 func (mr *MockServiceMockRecorder) CreateJobForCloudSourcePush(ctx, notification interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateJobForCloudSourcePush", reflect.TypeOf((*MockService)(nil).CreateJobForCloudSourcePush), ctx, notification)
 }
 
-// IsAllowedProject mocks base method
-func (m *MockService) IsAllowedProject(notification cloudsourceapi.PubSubNotification) (bool, []*estafette_ci_contracts.Organization) {
-	ret := m.ctrl.Call(m, "IsAllowedProject", notification)
+// IsAllowedProject mocks base method.
+func (m *MockService) IsAllowedProject(ctx context.Context, notification cloudsourceapi.PubSubNotification) (bool, []*contracts.Organization) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsAllowedProject", ctx, notification)
 	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].([]*estafette_ci_contracts.Organization)
+	ret1, _ := ret[1].([]*contracts.Organization)
 	return ret0, ret1
 }
 
-// IsAllowedProject indicates an expected call of IsAllowedProject
-func (mr *MockServiceMockRecorder) IsAllowedProject(notification interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsAllowedProject", reflect.TypeOf((*MockService)(nil).IsAllowedProject), notification)
+// IsAllowedProject indicates an expected call of IsAllowedProject.
+func (mr *MockServiceMockRecorder) IsAllowedProject(ctx, notification interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsAllowedProject", reflect.TypeOf((*MockService)(nil).IsAllowedProject), ctx, notification)
 }

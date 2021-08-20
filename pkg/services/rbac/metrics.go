@@ -15,7 +15,7 @@ func NewMetricsService(s Service, requestCount metrics.Counter, requestLatency m
 }
 
 type metricsService struct {
-	Service
+	Service        Service
 	requestCount   metrics.Counter
 	requestLatency metrics.Histogram
 }

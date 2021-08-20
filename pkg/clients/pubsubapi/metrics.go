@@ -15,7 +15,7 @@ func NewMetricsClient(c Client, requestCount metrics.Counter, requestLatency met
 }
 
 type metricsClient struct {
-	Client
+	Client         Client
 	requestCount   metrics.Counter
 	requestLatency metrics.Histogram
 }

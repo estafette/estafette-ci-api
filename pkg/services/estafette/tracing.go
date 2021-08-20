@@ -15,8 +15,8 @@ func NewTracingService(s Service) Service {
 }
 
 type tracingService struct {
-	Service
-	prefix string
+	Service Service
+	prefix  string
 }
 
 func (s *tracingService) CreateBuild(ctx context.Context, build contracts.Build) (b *contracts.Build, err error) {
@@ -45,6 +45,20 @@ func (s *tracingService) FinishRelease(ctx context.Context, repoSource, repoOwne
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return s.Service.FinishRelease(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)
+}
+
+func (s *tracingService) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch string) (b *contracts.Bot, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "CreateBot"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return s.Service.CreateBot(ctx, bot, mft, repoBranch)
+}
+
+func (s *tracingService) FinishBot(ctx context.Context, repoSource, repoOwner, repoName string, botID string, botStatus contracts.Status) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "FinishBot"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return s.Service.FinishBot(ctx, repoSource, repoOwner, repoName, botID, botStatus)
 }
 
 func (s *tracingService) FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error) {
@@ -80,6 +94,20 @@ func (s *tracingService) FireCronTriggers(ctx context.Context, cronEvent manifes
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return s.Service.FireCronTriggers(ctx, cronEvent)
+}
+
+func (s *tracingService) FireGithubTriggers(ctx context.Context, githubEvent manifest.EstafetteGithubEvent) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "FireGithubTriggers"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return s.Service.FireGithubTriggers(ctx, githubEvent)
+}
+
+func (s *tracingService) FireBitbucketTriggers(ctx context.Context, bitbucketEvent manifest.EstafetteBitbucketEvent) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "FireBitbucketTriggers"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return s.Service.FireBitbucketTriggers(ctx, bitbucketEvent)
 }
 
 func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {

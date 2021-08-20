@@ -13,8 +13,8 @@ func NewLoggingService(s Service) Service {
 }
 
 type loggingService struct {
-	Service
-	prefix string
+	Service Service
+	prefix  string
 }
 
 func (s *loggingService) CreateCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (insertedCatalogEntity *contracts.CatalogEntity, err error) {

@@ -14,8 +14,8 @@ func NewTracingService(s Service) Service {
 }
 
 type tracingService struct {
-	Service
-	prefix string
+	Service Service
+	prefix  string
 }
 
 func (s *tracingService) GetRoles(ctx context.Context) (roles []string, err error) {

@@ -16,7 +16,7 @@ func NewMetricsService(s Service, requestCount metrics.Counter, requestLatency m
 }
 
 type metricsService struct {
-	Service
+	Service        Service
 	requestCount   metrics.Counter
 	requestLatency metrics.Histogram
 }
@@ -43,6 +43,18 @@ func (s *metricsService) FinishRelease(ctx context.Context, repoSource, repoOwne
 	defer func(begin time.Time) { api.UpdateMetrics(s.requestCount, s.requestLatency, "FinishRelease", begin) }(time.Now())
 
 	return s.Service.FinishRelease(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)
+}
+
+func (s *metricsService) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest.EstafetteManifest, repoBranch string) (b *contracts.Bot, err error) {
+	defer func(begin time.Time) { api.UpdateMetrics(s.requestCount, s.requestLatency, "CreateBot", begin) }(time.Now())
+
+	return s.Service.CreateBot(ctx, bot, mft, repoBranch)
+}
+
+func (s *metricsService) FinishBot(ctx context.Context, repoSource, repoOwner, repoName string, botID string, botStatus contracts.Status) (err error) {
+	defer func(begin time.Time) { api.UpdateMetrics(s.requestCount, s.requestLatency, "FinishBot", begin) }(time.Now())
+
+	return s.Service.FinishBot(ctx, repoSource, repoOwner, repoName, botID, botStatus)
 }
 
 func (s *metricsService) FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (err error) {
@@ -83,6 +95,22 @@ func (s *metricsService) FireCronTriggers(ctx context.Context, cronEvent manifes
 	}(time.Now())
 
 	return s.Service.FireCronTriggers(ctx, cronEvent)
+}
+
+func (s *metricsService) FireGithubTriggers(ctx context.Context, githubEvent manifest.EstafetteGithubEvent) (err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(s.requestCount, s.requestLatency, "FireGithubTriggers", begin)
+	}(time.Now())
+
+	return s.Service.FireGithubTriggers(ctx, githubEvent)
+}
+
+func (s *metricsService) FireBitbucketTriggers(ctx context.Context, bitbucketEvent manifest.EstafetteBitbucketEvent) (err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(s.requestCount, s.requestLatency, "FireBitbucketTriggers", begin)
+	}(time.Now())
+
+	return s.Service.FireBitbucketTriggers(ctx, bitbucketEvent)
 }
 
 func (s *metricsService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
