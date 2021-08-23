@@ -29,7 +29,7 @@ func (s *loggingService) CreateJobForBitbucketPush(ctx context.Context, event bi
 
 func (s *loggingService) PublishBitbucketEvent(ctx context.Context, event manifest.EstafetteBitbucketEvent) (err error) {
 	defer func() {
-		api.HandleLogError(s.prefix, "Service", "PublishBitbucketEvent", err, ErrNonCloneableEvent, ErrNoManifest)
+		api.HandleLogError(s.prefix, "Service", "PublishBitbucketEvent", err)
 	}()
 
 	return s.Service.PublishBitbucketEvent(ctx, event)
@@ -43,7 +43,7 @@ func (s *loggingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwn
 
 func (s *loggingService) Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 	defer func() {
-		api.HandleLogError(s.prefix, "Service", "Archive", err, ErrNonCloneableEvent, ErrNoManifest)
+		api.HandleLogError(s.prefix, "Service", "Archive", err)
 	}()
 
 	return s.Service.Archive(ctx, repoSource, repoOwner, repoName)
@@ -51,7 +51,7 @@ func (s *loggingService) Archive(ctx context.Context, repoSource, repoOwner, rep
 
 func (s *loggingService) Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
 	defer func() {
-		api.HandleLogError(s.prefix, "Service", "Unarchive", err, ErrNonCloneableEvent, ErrNoManifest)
+		api.HandleLogError(s.prefix, "Service", "Unarchive", err)
 	}()
 
 	return s.Service.Unarchive(ctx, repoSource, repoOwner, repoName)

@@ -29,7 +29,7 @@ func (s *loggingService) CreateJobForGithubPush(ctx context.Context, event githu
 
 func (s *loggingService) PublishGithubEvent(ctx context.Context, event manifest.EstafetteGithubEvent) (err error) {
 	defer func() {
-		api.HandleLogError(s.prefix, "Service", "PublishGithubEvent", err, ErrNonCloneableEvent, ErrNoManifest)
+		api.HandleLogError(s.prefix, "Service", "PublishGithubEvent", err)
 	}()
 
 	return s.Service.PublishGithubEvent(ctx, event)

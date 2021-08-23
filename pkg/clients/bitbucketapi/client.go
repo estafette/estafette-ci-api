@@ -244,6 +244,8 @@ func (c *client) GetInstallations(ctx context.Context) (installations []*Bitbuck
 
 func (c *client) AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
 
+	log.Info().Interface("installation", installation).Msg("bitbucket::AddInstallation")
+
 	installations, err := c.GetInstallations(ctx)
 	if err != nil {
 		return
@@ -252,6 +254,8 @@ func (c *client) AddInstallation(ctx context.Context, installation BitbucketAppI
 	if installations == nil {
 		installations = make([]*BitbucketAppInstallation, 0)
 	}
+
+	log.Info().Interface("installations", installations).Msgf("Checking if installation with key '%v' and client key '%v' exists", installation.Key, installation.ClientKey)
 
 	// check if installation(s) with key and clientKey exists, if not add, otherwise update
 	installationExists := false
@@ -268,10 +272,14 @@ func (c *client) AddInstallation(ctx context.Context, installation BitbucketAppI
 		installations = append(installations, &installation)
 	}
 
+	log.Info().Interface("installations", installations).Msg("Upserting installations")
+
 	err = c.upsertConfigmap(ctx, installations)
 	if err != nil {
 		return
 	}
+
+	log.Info().Msg("Done upserting installations")
 
 	return
 }
