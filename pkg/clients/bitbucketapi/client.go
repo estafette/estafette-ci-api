@@ -44,8 +44,9 @@ func NewClient(config *api.APIConfig, kubeClientset *kubernetes.Clientset) Clien
 	}
 
 	return &client{
-		enabled: true,
-		config:  config,
+		enabled:       true,
+		config:        config,
+		kubeClientset: kubeClientset,
 	}
 }
 
