@@ -217,19 +217,26 @@ const bitbucketConfigmapName = "estafette-ci-api.bitbucket"
 
 func (c *client) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {
 
+	log.Info().Msg("bitbucket::GetInstallations | start")
+
 	// get from cache
 	if installationsCache != nil {
+		log.Info().Msg("bitbucket::GetInstallations | return cache")
 		return installationsCache, nil
 	}
 
 	installations = make([]*BitbucketAppInstallation, 0)
 
+	log.Info().Msgf("bitbucket::GetInstallations | read configmap '%v'", bitbucketConfigmapName)
+
 	configMap, err := c.kubeClientset.CoreV1().ConfigMaps(c.getCurrentNamespace()).Get(ctx, bitbucketConfigmapName, metav1.GetOptions{})
 	if err != nil || configMap == nil {
+		log.Error().Err(err).Msgf("bitbucket::GetInstallations | error reading configmap '%v'", bitbucketConfigmapName)
 		return installations, nil
 	}
 
 	if data, ok := configMap.Data["installations"]; ok {
+		log.Info().Msgf("bitbucket::GetInstallations | unmarshalling installations from '%v'", data)
 		err = json.Unmarshal([]byte(data), &installations)
 		if err != nil {
 			return
@@ -237,6 +244,8 @@ func (c *client) GetInstallations(ctx context.Context) (installations []*Bitbuck
 
 		// add to cache
 		installationsCache = installations
+	} else {
+		log.Warn().Msgf("bitbucket::GetInstallations | no installations in configmap  '%v'", bitbucketConfigmapName)
 	}
 
 	return
@@ -248,6 +257,7 @@ func (c *client) AddInstallation(ctx context.Context, installation BitbucketAppI
 
 	installations, err := c.GetInstallations(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed bitbucket::GetInstallations")
 		return
 	}
 
