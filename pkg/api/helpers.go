@@ -29,7 +29,7 @@ var (
 func GenerateJWT(config *APIConfig, now time.Time, expiry time.Time, optionalClaims jwtgo.MapClaims) (tokenString string, err error) {
 
 	// Create the token
-	token := jwtgo.New(jwtgo.GetSigningMethod("HS256"))
+	token := jwtgo.New(jwtgo.SigningMethodHS256)
 	claims := token.Claims.(jwtgo.MapClaims)
 
 	// set required claims
@@ -46,7 +46,7 @@ func GenerateJWT(config *APIConfig, now time.Time, expiry time.Time, optionalCla
 
 func ValidateJWT(config *APIConfig, tokenString string) (token *jwtgo.Token, err error) {
 	return jwtgo.Parse(tokenString, func(t *jwtgo.Token) (interface{}, error) {
-		if jwtgo.GetSigningMethod("HS256") != t.Method {
+		if jwtgo.SigningMethodHS256 != t.Method {
 			return nil, ErrInvalidSigningAlgorithm
 		}
 		return []byte(config.Auth.JWT.Key), nil

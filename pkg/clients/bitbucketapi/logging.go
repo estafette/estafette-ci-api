@@ -16,10 +16,10 @@ type loggingClient struct {
 	prefix string
 }
 
-func (c *loggingClient) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
+func (c *loggingClient) GetAccessToken(ctx context.Context, installation BitbucketAppInstallation) (accesstoken AccessToken, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetAccessToken", err) }()
 
-	return c.Client.GetAccessToken(ctx)
+	return c.Client.GetAccessToken(ctx, installation)
 }
 
 func (c *loggingClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error) {
@@ -32,8 +32,12 @@ func (c *loggingClient) JobVarsFunc(ctx context.Context) func(ctx context.Contex
 	return c.Client.JobVarsFunc(ctx)
 }
 
-func (c *loggingClient) GenerateJWT() (tokenString string, err error) {
-	return c.Client.GenerateJWT()
+func (c *loggingClient) ValidateInstallationJWT(ctx context.Context, authorizationHeader string) (installation *BitbucketAppInstallation, err error) {
+	return c.Client.ValidateInstallationJWT(ctx, authorizationHeader)
+}
+
+func (c *loggingClient) GenerateJWT(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error) {
+	return c.Client.GenerateJWT(ctx, installation)
 }
 
 func (c *loggingClient) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {

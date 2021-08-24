@@ -1,34 +1,6 @@
 package api
 
 // {
-// 	"keys" : [
-// 	   {
-// 		  "alg" : "ES256",
-// 		  "crv" : "P-256",
-// 		  "kid" : "f9R3yg",
-// 		  "kty" : "EC",
-// 		  "use" : "sig",
-// 		  "x" : "SqCmEwytkqG6tL6a2GTQGmSNI4jHYo5MeDUs7DpETVg",
-// 		  "y" : "Ql1yyBay4NrGbzasPEhp56Jy6HqoDkqkXYyQRreCOo0"
-// 	   },
-
-// IAPJSONWebKey is the IAP JWT json web key to represent the public key of the key used to encrypt the IAP JWT
-type IAPJSONWebKey struct {
-	Algorithm    string `json:"alg"`
-	Curve        string `json:"crv"`
-	KeyID        string `json:"kid"`
-	KeyType      string `json:"kty"`
-	PublicKeyUse string `json:"use"`
-	X            string `json:"x"`
-	Y            string `json:"y"`
-}
-
-// IAPJWKResponse as returned by https://www.gstatic.com/iap/verify/public_key-jwk
-type IAPJWKResponse struct {
-	Keys []IAPJSONWebKey `json:"keys"`
-}
-
-// {
 // 	"keys": [
 // 	  {
 // 		"e": "AQAB",

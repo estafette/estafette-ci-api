@@ -17,11 +17,11 @@ type tracingClient struct {
 	prefix string
 }
 
-func (c *tracingClient) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
+func (c *tracingClient) GetAccessToken(ctx context.Context, installation BitbucketAppInstallation) (accesstoken AccessToken, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAccessToken"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetAccessToken(ctx)
+	return c.Client.GetAccessToken(ctx, installation)
 }
 
 func (c *tracingClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error) {
@@ -38,8 +38,12 @@ func (c *tracingClient) JobVarsFunc(ctx context.Context) func(ctx context.Contex
 	return c.Client.JobVarsFunc(ctx)
 }
 
-func (c *tracingClient) GenerateJWT() (tokenString string, err error) {
-	return c.Client.GenerateJWT()
+func (c *tracingClient) ValidateInstallationJWT(ctx context.Context, authorizationHeader string) (installation *BitbucketAppInstallation, err error) {
+	return c.Client.ValidateInstallationJWT(ctx, authorizationHeader)
+}
+
+func (c *tracingClient) GenerateJWT(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error) {
+	return c.Client.GenerateJWT(ctx, installation)
 }
 
 func (c *tracingClient) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {

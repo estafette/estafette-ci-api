@@ -19,12 +19,12 @@ type metricsClient struct {
 	requestLatency metrics.Histogram
 }
 
-func (c *metricsClient) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
+func (c *metricsClient) GetAccessToken(ctx context.Context, installation BitbucketAppInstallation) (accesstoken AccessToken, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAccessToken", begin)
 	}(time.Now())
 
-	return c.Client.GetAccessToken(ctx)
+	return c.Client.GetAccessToken(ctx, installation)
 }
 
 func (c *metricsClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error) {
@@ -41,8 +41,16 @@ func (c *metricsClient) JobVarsFunc(ctx context.Context) func(ctx context.Contex
 	return c.Client.JobVarsFunc(ctx)
 }
 
-func (c *metricsClient) GenerateJWT() (tokenString string, err error) {
-	return c.Client.GenerateJWT()
+func (c *metricsClient) ValidateInstallationJWT(ctx context.Context, authorizationHeader string) (installation *BitbucketAppInstallation, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "ValidateInstallationJWT", begin)
+	}(time.Now())
+
+	return c.Client.ValidateInstallationJWT(ctx, authorizationHeader)
+}
+
+func (c *metricsClient) GenerateJWT(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error) {
+	return c.Client.GenerateJWT(ctx, installation)
 }
 
 func (c *metricsClient) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {

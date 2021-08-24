@@ -450,10 +450,10 @@ func getHandlers(ctx context.Context, config *api.APIConfig, encryptedConfig *ap
 	// transport
 	bitbucketHandler = bitbucket.NewHandler(bitbucketService, config, bitbucketapiClient)
 	githubHandler = github.NewHandler(githubService)
-	estafetteHandler = estafette.NewHandler(*configFilePath, *templatesPath, config, encryptedConfig, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceClient.JobVarsFunc(ctx))
+	estafetteHandler = estafette.NewHandler(*configFilePath, *templatesPath, config, encryptedConfig, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper)
 	rbacHandler = rbac.NewHandler(config, rbacService, cockroachdbClient)
 	pubsubHandler = pubsub.NewHandler(pubsubapiClient, estafetteService)
-	slackHandler = slack.NewHandler(secretHelper, config, slackapiClient, cockroachdbClient, estafetteService, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+	slackHandler = slack.NewHandler(secretHelper, config, slackapiClient, cockroachdbClient, estafetteService)
 	cloudsourceHandler = cloudsource.NewHandler(pubsubapiClient, cloudsourceService)
 	catalogHandler = catalog.NewHandler(config, catalogService, cockroachdbClient)
 

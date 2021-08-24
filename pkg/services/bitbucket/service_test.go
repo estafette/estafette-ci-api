@@ -34,10 +34,11 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		queueService := queue.NewMockService(ctrl)
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
+		installation := bitbucketapi.BitbucketAppInstallation{}
 		pushEvent := bitbucketapi.RepositoryPushEvent{}
 
 		// act
-		err := service.CreateJobForBitbucketPush(context.Background(), pushEvent)
+		err := service.CreateJobForBitbucketPush(context.Background(), installation, pushEvent)
 
 		assert.NotNil(t, err)
 		assert.True(t, errors.Is(err, ErrNonCloneableEvent))
@@ -59,6 +60,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		queueService := queue.NewMockService(ctrl)
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
+		installation := bitbucketapi.BitbucketAppInstallation{}
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
 				Changes: []bitbucketapi.PushEventChange{
@@ -70,7 +72,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		}
 
 		// act
-		err := service.CreateJobForBitbucketPush(context.Background(), pushEvent)
+		err := service.CreateJobForBitbucketPush(context.Background(), installation, pushEvent)
 
 		assert.NotNil(t, err)
 		assert.True(t, errors.Is(err, ErrNonCloneableEvent))
@@ -92,6 +94,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		queueService := queue.NewMockService(ctrl)
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
+		installation := bitbucketapi.BitbucketAppInstallation{}
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
 				Changes: []bitbucketapi.PushEventChange{
@@ -105,7 +108,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		}
 
 		// act
-		err := service.CreateJobForBitbucketPush(context.Background(), pushEvent)
+		err := service.CreateJobForBitbucketPush(context.Background(), installation, pushEvent)
 
 		assert.NotNil(t, err)
 		assert.True(t, errors.Is(err, ErrNonCloneableEvent))
@@ -127,6 +130,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		queueService := queue.NewMockService(ctrl)
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
+		installation := bitbucketapi.BitbucketAppInstallation{}
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
 				Changes: []bitbucketapi.PushEventChange{
@@ -143,7 +147,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		}
 
 		// act
-		err := service.CreateJobForBitbucketPush(context.Background(), pushEvent)
+		err := service.CreateJobForBitbucketPush(context.Background(), installation, pushEvent)
 
 		assert.NotNil(t, err)
 		assert.True(t, errors.Is(err, ErrNonCloneableEvent))
@@ -164,17 +168,13 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		estafetteService := estafette.NewMockService(ctrl)
 		queueService := queue.NewMockService(ctrl)
 
-		bitbucketapiClient.
-			EXPECT().
-			GetAccessToken(gomock.Any()).
-			Times(1)
-
 		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "bitbucket.org/"})).AnyTimes()
 		bitbucketapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
+		installation := bitbucketapi.BitbucketAppInstallation{}
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
 				Changes: []bitbucketapi.PushEventChange{
@@ -190,8 +190,13 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			},
 		}
 
+		bitbucketapiClient.
+			EXPECT().
+			GetAccessToken(gomock.Any(), installation).
+			Times(1)
+
 		// act
-		_ = service.CreateJobForBitbucketPush(context.Background(), pushEvent)
+		_ = service.CreateJobForBitbucketPush(context.Background(), installation, pushEvent)
 	})
 
 	t.Run("CallsGetEstafetteManifestOnBitbucketAPIClient", func(t *testing.T) {
@@ -217,12 +222,13 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			}).Times(1)
 
 		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "bitbucket.org/estafette/estafette-in-bitbucket"})).AnyTimes()
-		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
+		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any(), gomock.Any()).AnyTimes()
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
+		installation := bitbucketapi.BitbucketAppInstallation{}
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
 				Changes: []bitbucketapi.PushEventChange{
@@ -242,7 +248,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		}
 
 		// act
-		err := service.CreateJobForBitbucketPush(context.Background(), pushEvent)
+		err := service.CreateJobForBitbucketPush(context.Background(), installation, pushEvent)
 
 		assert.Nil(t, err)
 	})
@@ -273,13 +279,14 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			EXPECT().
 			CreateBuild(gomock.Any(), gomock.Any()).
 			Times(1)
-		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
+		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any(), gomock.Any()).AnyTimes()
 		bitbucketapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "bitbucket.org/estafette/estafette-in-bitbucket"})).AnyTimes()
 
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
+		installation := bitbucketapi.BitbucketAppInstallation{}
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
 				Changes: []bitbucketapi.PushEventChange{
@@ -299,7 +306,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		}
 
 		// act
-		err := service.CreateJobForBitbucketPush(context.Background(), pushEvent)
+		err := service.CreateJobForBitbucketPush(context.Background(), installation, pushEvent)
 
 		assert.Nil(t, err)
 	})
@@ -319,13 +326,14 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		estafetteService := estafette.NewMockService(ctrl)
 		queueService := queue.NewMockService(ctrl)
 
-		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
+		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any(), gomock.Any()).AnyTimes()
 		bitbucketapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "bitbucket.org/"})).AnyTimes()
 
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
+		installation := bitbucketapi.BitbucketAppInstallation{}
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
 				Changes: []bitbucketapi.PushEventChange{
@@ -342,7 +350,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		}
 
 		// act
-		_ = service.CreateJobForBitbucketPush(context.Background(), pushEvent)
+		_ = service.CreateJobForBitbucketPush(context.Background(), installation, pushEvent)
 	})
 
 	t.Run("CallsSubscribeToPubsubTriggersOnPubsubAPIClient", func(t *testing.T) {
@@ -366,7 +374,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			DoAndReturn(func(ctx context.Context, accesstoken bitbucketapi.AccessToken, event bitbucketapi.RepositoryPushEvent) (valid bool, manifest string, err error) {
 				return true, "builder:\n  track: dev\n", nil
 			})
-		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any()).AnyTimes()
+		bitbucketapiClient.EXPECT().GetAccessToken(gomock.Any(), gomock.Any()).AnyTimes()
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
 		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "bitbucket.org/estafette/estafette-in-bitbucket"})).AnyTimes()
 
@@ -384,6 +392,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
+		installation := bitbucketapi.BitbucketAppInstallation{}
 		pushEvent := bitbucketapi.RepositoryPushEvent{
 			Push: bitbucketapi.PushEvent{
 				Changes: []bitbucketapi.PushEventChange{
@@ -403,7 +412,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		}
 
 		// act
-		err := service.CreateJobForBitbucketPush(context.Background(), pushEvent)
+		err := service.CreateJobForBitbucketPush(context.Background(), installation, pushEvent)
 
 		assert.Nil(t, err)
 	})

@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -22,13 +24,21 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+var (
+	ErrInvalidAuthorizationHeader = errors.New("invalid authorization header")
+	ErrInvalidSigningAlgorithm    = errors.New("invalid signing algorithm")
+	ErrInvalidToken               = errors.New("invalid token")
+	ErrMissingInstallation        = errors.New("installation for clientKey is missing")
+)
+
 // Client is the interface for communicating with the bitbucket api
 //go:generate mockgen -package=bitbucketapi -destination ./mock.go -source=client.go
 type Client interface {
-	GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error)
+	GetAccessToken(ctx context.Context, installation BitbucketAppInstallation) (accesstoken AccessToken, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error)
 	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error)
-	GenerateJWT() (tokenString string, err error)
+	ValidateInstallationJWT(ctx context.Context, authorizationHeader string) (installation *BitbucketAppInstallation, err error)
+	GenerateJWT(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error)
 	GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error)
 	AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
 	RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
@@ -52,9 +62,9 @@ type client struct {
 }
 
 // GetAccessToken returns an access token to access the Bitbucket api
-func (c *client) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
+func (c *client) GetAccessToken(ctx context.Context, installation BitbucketAppInstallation) (accesstoken AccessToken, err error) {
 
-	jtwToken, err := c.GenerateJWT()
+	jtwToken, err := c.GenerateJWT(ctx, installation)
 	if err != nil {
 		return
 	}
@@ -188,23 +198,68 @@ func (c *client) JobVarsFunc(ctx context.Context) func(ctx context.Context, repo
 	}
 }
 
-func (c *client) GenerateJWT() (tokenString string, err error) {
+func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeader string) (installation *BitbucketAppInstallation, err error) {
+	if !strings.HasPrefix(authorizationHeader, "JWT ") {
+		return nil, ErrInvalidAuthorizationHeader
+	}
+	jwtTokenString := strings.TrimPrefix(authorizationHeader, "JWT ")
+
+	installations, err := c.GetInstallations(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if installations == nil && len(installations) == 0 {
+		return nil, ErrMissingInstallation
+	}
+
+	token, err := jwt.Parse(jwtTokenString, func(token *jwt.Token) (interface{}, error) {
+		// check algorithm is correct
+		if token.Method != jwt.SigningMethodHS256 {
+			return nil, ErrInvalidSigningAlgorithm
+		}
+
+		// get shared secret for client key (iss claim)
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			clientKey := claims["iss"].(string)
+			for _, inst := range installations {
+				if inst.Key == c.config.Integrations.Bitbucket.Key && inst.ClientKey == clientKey {
+					installation = inst
+					return []byte(inst.SharedSecret), nil
+				}
+			}
+		}
+
+		return nil, ErrMissingInstallation
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, ErrInvalidToken
+	}
+
+	return installation, nil
+}
+
+func (c *client) GenerateJWT(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error) {
 
 	// Create the token
-	token := jwt.New(jwt.GetSigningMethod("HS256"))
+	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 
 	now := time.Now().UTC()
 	expiry := now.Add(time.Duration(180) * time.Second)
 
 	// set required claims
-	claims["iss"] = c.config.Integrations.Bitbucket.Key
+	claims["iss"] = installation.Key
 	claims["iat"] = now.Unix()
 	claims["exp"] = expiry.Unix()
-	claims["sub"] = c.config.Integrations.Bitbucket.ClientKey
+	claims["sub"] = installation.ClientKey
 
 	// sign the token
-	return token.SignedString([]byte(c.config.Integrations.Bitbucket.SharedSecret))
+	return token.SignedString([]byte(installation.SharedSecret))
 }
 
 var installationsCache []*BitbucketAppInstallation
