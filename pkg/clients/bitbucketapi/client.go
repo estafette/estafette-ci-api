@@ -230,7 +230,10 @@ func (c *client) GetInstallations(ctx context.Context) (installations []*Bitbuck
 			return
 		}
 
-		c.decryptSharedSecrets(ctx, installations)
+		err = c.decryptSharedSecrets(ctx, installations)
+		if err != nil {
+			return
+		}
 
 		// add to cache
 		installationsCache = installations
@@ -299,7 +302,10 @@ func (c *client) RemoveInstallation(ctx context.Context, installation BitbucketA
 
 func (c *client) upsertConfigmap(ctx context.Context, installations []*BitbucketAppInstallation) (err error) {
 
-	c.encryptSharedSecrets(ctx, installations)
+	err = c.encryptSharedSecrets(ctx, installations)
+	if err != nil {
+		return
+	}
 
 	// marshal to json
 	data, err := json.Marshal(installations)
