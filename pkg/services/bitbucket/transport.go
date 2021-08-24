@@ -34,6 +34,9 @@ func (h *Handler) Handle(c *gin.Context) {
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
 
 	eventType := c.GetHeader("X-Event-Key")
+	authorization := c.GetHeader("Authorization")
+
+	log.Info().Msgf("Bitbucket webhook authorization: %v", authorization)
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -190,7 +193,7 @@ func (h *Handler) Descriptor(c *gin.Context) {
 		},
 		BaseURL: h.config.APIServer.IntegrationsURL,
 		Authentication: &DescriptorAuthentication{
-			Type: "none",
+			Type: "jwt",
 		},
 		Lifecycle: &DescriptorLifecycle{
 			Installed:   "/api/integrations/bitbucket/installed",
