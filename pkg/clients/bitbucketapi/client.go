@@ -12,6 +12,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/pkg/api"
+	crypt "github.com/estafette/estafette-ci-crypt"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
@@ -34,19 +35,12 @@ type Client interface {
 }
 
 // NewClient returns a new bitbucket.Client
-func NewClient(config *api.APIConfig, kubeClientset *kubernetes.Clientset) Client {
-	if config == nil || config.Integrations == nil || config.Integrations.Bitbucket == nil || !config.Integrations.Bitbucket.Enable {
-		return &client{
-			enabled:       false,
-			config:        config,
-			kubeClientset: kubeClientset,
-		}
-	}
-
+func NewClient(config *api.APIConfig, kubeClientset *kubernetes.Clientset, secretHelper crypt.SecretHelper) Client {
 	return &client{
-		enabled:       true,
+		enabled:       config != nil && config.Integrations != nil && config.Integrations.Bitbucket != nil && config.Integrations.Bitbucket.Enable,
 		config:        config,
 		kubeClientset: kubeClientset,
+		secretHelper:  secretHelper,
 	}
 }
 
@@ -54,6 +48,7 @@ type client struct {
 	enabled       bool
 	config        *api.APIConfig
 	kubeClientset *kubernetes.Clientset
+	secretHelper  crypt.SecretHelper
 }
 
 // GetAccessToken returns an access token to access the Bitbucket api
@@ -217,56 +212,42 @@ var installationsCache []*BitbucketAppInstallation
 const bitbucketConfigmapName = "estafette-ci-api.bitbucket"
 
 func (c *client) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {
-
-	log.Info().Msg("bitbucket::GetInstallations | start")
-
 	// get from cache
 	if installationsCache != nil {
-		log.Info().Msg("bitbucket::GetInstallations | return cache")
 		return installationsCache, nil
 	}
 
 	installations = make([]*BitbucketAppInstallation, 0)
 
-	log.Info().Msgf("bitbucket::GetInstallations | read configmap '%v'", bitbucketConfigmapName)
-
 	configMap, err := c.kubeClientset.CoreV1().ConfigMaps(c.getCurrentNamespace()).Get(ctx, bitbucketConfigmapName, metav1.GetOptions{})
 	if err != nil || configMap == nil {
-		log.Error().Err(err).Msgf("bitbucket::GetInstallations | error reading configmap '%v'", bitbucketConfigmapName)
 		return installations, nil
 	}
 
 	if data, ok := configMap.Data["installations"]; ok {
-		log.Info().Msgf("bitbucket::GetInstallations | unmarshalling installations from '%v'", data)
 		err = json.Unmarshal([]byte(data), &installations)
 		if err != nil {
 			return
 		}
 
+		c.decryptSharedSecrets(ctx, installations)
+
 		// add to cache
 		installationsCache = installations
-	} else {
-		log.Warn().Msgf("bitbucket::GetInstallations | no installations in configmap  '%v'", bitbucketConfigmapName)
 	}
 
 	return
 }
 
 func (c *client) AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
-
-	log.Info().Interface("installation", installation).Msg("bitbucket::AddInstallation")
-
 	installations, err := c.GetInstallations(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed bitbucket::GetInstallations")
 		return
 	}
 
 	if installations == nil {
 		installations = make([]*BitbucketAppInstallation, 0)
 	}
-
-	log.Info().Interface("installations", installations).Msgf("Checking if installation with key '%v' and client key '%v' exists", installation.Key, installation.ClientKey)
 
 	// check if installation(s) with key and clientKey exists, if not add, otherwise update
 	installationExists := false
@@ -283,20 +264,15 @@ func (c *client) AddInstallation(ctx context.Context, installation BitbucketAppI
 		installations = append(installations, &installation)
 	}
 
-	log.Info().Interface("installations", installations).Msg("Upserting installations")
-
 	err = c.upsertConfigmap(ctx, installations)
 	if err != nil {
 		return
 	}
 
-	log.Info().Msg("Done upserting installations")
-
 	return
 }
 
 func (c *client) RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
-
 	installations, err := c.GetInstallations(ctx)
 	if err != nil {
 		return
@@ -323,6 +299,9 @@ func (c *client) RemoveInstallation(ctx context.Context, installation BitbucketA
 
 func (c *client) upsertConfigmap(ctx context.Context, installations []*BitbucketAppInstallation) (err error) {
 
+	c.encryptSharedSecrets(ctx, installations)
+
+	// marshal to json
 	data, err := json.Marshal(installations)
 	if err != nil {
 		return err
@@ -367,4 +346,28 @@ func (c *client) getCurrentNamespace() string {
 	}
 
 	return string(namespace)
+}
+
+func (c *client) encryptSharedSecrets(ctx context.Context, installations []*BitbucketAppInstallation) (err error) {
+	for _, installation := range installations {
+		encryptedSharedSecret, encryptErr := c.secretHelper.EncryptEnvelope(installation.SharedSecret, crypt.DefaultPipelineAllowList)
+		if encryptErr != nil {
+			return encryptErr
+		}
+		installation.SharedSecret = encryptedSharedSecret
+	}
+
+	return nil
+}
+
+func (c *client) decryptSharedSecrets(ctx context.Context, installations []*BitbucketAppInstallation) (err error) {
+	for _, installation := range installations {
+		decryptedSharedSecret, _, decryptErr := c.secretHelper.DecryptEnvelope(installation.SharedSecret, "")
+		if decryptErr != nil {
+			return decryptErr
+		}
+		installation.SharedSecret = decryptedSharedSecret
+	}
+
+	return nil
 }

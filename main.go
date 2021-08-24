@@ -281,7 +281,7 @@ func getClients(ctx context.Context, config *api.APIConfig, encryptedConfig *api
 	}
 
 	// bitbucketapi client
-	bitbucketapiClient = bitbucketapi.NewClient(config, kubeClientset)
+	bitbucketapiClient = bitbucketapi.NewClient(config, kubeClientset, secretHelper)
 	bitbucketapiClient = bitbucketapi.NewTracingClient(bitbucketapiClient)
 	bitbucketapiClient = bitbucketapi.NewLoggingClient(bitbucketapiClient)
 	bitbucketapiClient = bitbucketapi.NewMetricsClient(bitbucketapiClient,
