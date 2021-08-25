@@ -73,3 +73,16 @@ func TestCommit(t *testing.T) {
 		assert.Equal(t, "log api call response body on error only", message)
 	})
 }
+
+func TestGetWorkspaceUUID(t *testing.T) {
+	t.Run("ExtractUUIDFromClientKey", func(t *testing.T) {
+		bai := BitbucketAppInstallation{
+			ClientKey: "ari:cloud:bitbucket::app/{229bfc71-6b33-4f17-ae61-9670ef23de17}/estafette.travix.com",
+		}
+
+		// act
+		uuid := bai.GetWorkspaceUUID()
+
+		assert.Equal(t, "{229bfc71-6b33-4f17-ae61-9670ef23de17}", uuid)
+	})
+}

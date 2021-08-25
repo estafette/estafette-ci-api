@@ -56,3 +56,7 @@ func (c *metricsClient) AddInstallation(ctx context.Context, installation Bitbuc
 func (c *metricsClient) RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
 	return c.Client.RemoveInstallation(ctx, installation)
 }
+
+func (c *metricsClient) GetWorkspace(ctx context.Context, installation BitbucketAppInstallation) (workspace *Workspace, err error) {
+	return c.Client.GetWorkspace(ctx, installation)
+}

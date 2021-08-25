@@ -238,6 +238,13 @@ func (h *Handler) Installed(c *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).Msg("Failed unmarshalling bitbucket app install body")
 	} else {
+
+		workspace, err := h.bitbucketapiClient.GetWorkspace(c.Request.Context(), installation)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed retrieving workspace for bitbucket app installation")
+		}
+		installation.Workspace = workspace
+
 		log.Info().Interface("installation", installation).Msg("Unmarshalled bitbucket app install body")
 		err = h.bitbucketapiClient.AddInstallation(c.Request.Context(), installation)
 		if err != nil {

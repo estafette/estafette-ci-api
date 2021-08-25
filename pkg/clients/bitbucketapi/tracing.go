@@ -53,3 +53,7 @@ func (c *tracingClient) AddInstallation(ctx context.Context, installation Bitbuc
 func (c *tracingClient) RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
 	return c.Client.RemoveInstallation(ctx, installation)
 }
+
+func (c *tracingClient) GetWorkspace(ctx context.Context, installation BitbucketAppInstallation) (workspace *Workspace, err error) {
+	return c.Client.GetWorkspace(ctx, installation)
+}

@@ -109,6 +109,21 @@ func (mr *MockClientMockRecorder) GetInstallations(ctx interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallations", reflect.TypeOf((*MockClient)(nil).GetInstallations), ctx)
 }
 
+// GetWorkspace mocks base method.
+func (m *MockClient) GetWorkspace(ctx context.Context, installation BitbucketAppInstallation) (*Workspace, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWorkspace", ctx, installation)
+	ret0, _ := ret[0].(*Workspace)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetWorkspace indicates an expected call of GetWorkspace.
+func (mr *MockClientMockRecorder) GetWorkspace(ctx, installation interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkspace", reflect.TypeOf((*MockClient)(nil).GetWorkspace), ctx, installation)
+}
+
 // JobVarsFunc mocks base method.
 func (m *MockClient) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, error) {
 	m.ctrl.T.Helper()

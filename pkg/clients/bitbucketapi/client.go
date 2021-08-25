@@ -32,6 +32,7 @@ type Client interface {
 	GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error)
 	AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
 	RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
+	GetWorkspace(ctx context.Context, installation BitbucketAppInstallation) (workspace *Workspace, err error)
 }
 
 // NewClient returns a new bitbucket.Client
@@ -376,4 +377,70 @@ func (c *client) decryptSharedSecrets(ctx context.Context, installations []*Bitb
 	}
 
 	return nil
+}
+
+func (c *client) GetWorkspace(ctx context.Context, installation BitbucketAppInstallation) (workspace *Workspace, err error) {
+	accessToken, err := c.GetAccessToken(ctx)
+	if err != nil {
+		return
+	}
+
+	// create client, in order to add headers
+	client := pester.NewExtendedClient(&http.Client{Transport: &nethttp.Transport{}})
+	client.MaxRetries = 3
+	client.Backoff = pester.ExponentialJitterBackoff
+	client.KeepLog = true
+	client.Timeout = time.Second * 10
+
+	workspaceAPIUrl := fmt.Sprintf("/2.0/workspaces/%v", installation.GetWorkspaceUUID())
+
+	request, err := http.NewRequest("GET", workspaceAPIUrl, nil)
+	if err != nil {
+		return
+	}
+
+	span := opentracing.SpanFromContext(ctx)
+	var ht *nethttp.Tracer
+	if span != nil {
+		// add tracing context
+		request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
+
+		// collect additional information on setting up connections
+		request, ht = nethttp.TraceRequest(span.Tracer(), request)
+	}
+
+	// add headers
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", accessToken.AccessToken))
+
+	// perform actual request
+	response, err := client.Do(request)
+	if err != nil {
+		return
+	}
+
+	defer response.Body.Close()
+	if ht != nil {
+		ht.Finish()
+	}
+
+	if response.StatusCode == http.StatusNotFound {
+		return
+	}
+
+	if response.StatusCode != http.StatusOK {
+		err = fmt.Errorf("Retrieving workspace from %v failed with status code %v", workspaceAPIUrl, response.StatusCode)
+		return
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(body, &workspace)
+	if err != nil {
+		return
+	}
+
+	return workspace, nil
 }
