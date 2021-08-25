@@ -245,19 +245,30 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 	token, err := jwt.Parse(jwtTokenString, func(token *jwt.Token) (interface{}, error) {
 		// check algorithm is correct
 		if token.Method != jwt.SigningMethodHS256 {
+
+			log.Warn().Str("jwt", jwtTokenString).Interface("installations", installations).Interface("token", token).Msg("Validating bitbucket jwt - invalid signing method")
+
 			return nil, ErrInvalidSigningAlgorithm
 		}
 
 		// get shared secret for client key (iss claim)
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
 			clientKey := claims["iss"].(string)
+
+			log.Debug().Str("jwt", jwtTokenString).Interface("installations", installations).Interface("token", token).Msg("Validating bitbucket jwt - finding installation")
+
 			for _, inst := range installations {
 				if inst.Key == c.config.Integrations.Bitbucket.Key && inst.ClientKey == clientKey {
 					installation = inst
+
+					log.Debug().Str("jwt", jwtTokenString).Interface("installation", installation).Interface("token", token).Msg("Validating bitbucket jwt - return key")
+
 					return []byte(inst.SharedSecret), nil
 				}
 			}
 		}
+
+		log.Warn().Str("jwt", jwtTokenString).Interface("installations", installations).Interface("token", token).Msg("Validating bitbucket jwt - failed finding installation")
 
 		return nil, ErrMissingInstallation
 	})
