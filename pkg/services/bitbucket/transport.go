@@ -236,8 +236,6 @@ func (h *Handler) Installed(c *gin.Context) {
 		return
 	}
 
-	log.Info().Str("body", string(body)).Msg("Bitbucket App installed")
-
 	var installation bitbucketapi.BitbucketAppInstallation
 	err = json.Unmarshal(body, &installation)
 	if err != nil {
@@ -275,8 +273,6 @@ func (h *Handler) Uninstalled(c *gin.Context) {
 		c.Status(http.StatusInternalServerError)
 		return
 	}
-
-	log.Info().Str("body", string(body)).Msg("Bitbucket App uninstalled")
 
 	var installation bitbucketapi.BitbucketAppInstallation
 	err = json.Unmarshal(body, &installation)
