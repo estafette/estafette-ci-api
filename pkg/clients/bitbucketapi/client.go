@@ -28,7 +28,9 @@ var (
 	ErrInvalidAuthorizationHeader = errors.New("invalid authorization header")
 	ErrInvalidSigningAlgorithm    = errors.New("invalid signing algorithm")
 	ErrInvalidToken               = errors.New("invalid token")
+	ErrNoInstallations            = errors.New("no installations")
 	ErrMissingInstallation        = errors.New("installation for clientKey is missing")
+	ErrMissingClaims              = errors.New("token has no claims")
 )
 
 // Client is the interface for communicating with the bitbucket api
@@ -239,7 +241,7 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 	}
 
 	if installations == nil && len(installations) == 0 {
-		return nil, ErrMissingInstallation
+		return nil, ErrNoInstallations
 	}
 
 	token, err := jwt.Parse(jwtTokenString, func(token *jwt.Token) (interface{}, error) {
@@ -259,9 +261,13 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 					return []byte(inst.SharedSecret), nil
 				}
 			}
+
+			log.Warn().Interface("installations", installations).Interface("token", token).Str("clientKey", clientKey).Str("key", c.config.Integrations.Bitbucket.Key).Msg(ErrMissingInstallation.Error())
+			return nil, ErrMissingInstallation
 		}
 
-		return nil, ErrMissingInstallation
+		log.Warn().Interface("installations", installations).Interface("token", token).Str("key", c.config.Integrations.Bitbucket.Key).Msg(ErrMissingInstallation.Error())
+		return nil, ErrMissingClaims
 	})
 	if err != nil {
 		return nil, err
