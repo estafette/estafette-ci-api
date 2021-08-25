@@ -19,12 +19,36 @@ type metricsClient struct {
 	requestLatency metrics.Histogram
 }
 
-func (c *metricsClient) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
+func (c *metricsClient) GetAccessTokenByInstallation(ctx context.Context, installation BitbucketAppInstallation) (accesstoken AccessToken, err error) {
 	defer func(begin time.Time) {
-		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAccessToken", begin)
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAccessTokenByInstallation", begin)
 	}(time.Now())
 
-	return c.Client.GetAccessToken(ctx)
+	return c.Client.GetAccessTokenByInstallation(ctx, installation)
+}
+
+func (c *metricsClient) GetAccessTokenBySlug(ctx context.Context, workspaceSlug string) (accesstoken AccessToken, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAccessTokenBySlug", begin)
+	}(time.Now())
+
+	return c.Client.GetAccessTokenBySlug(ctx, workspaceSlug)
+}
+
+func (c *metricsClient) GetAccessTokenByUUID(ctx context.Context, workspaceUUID string) (accesstoken AccessToken, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAccessTokenByUUID", begin)
+	}(time.Now())
+
+	return c.Client.GetAccessTokenByUUID(ctx, workspaceUUID)
+}
+
+func (c *metricsClient) GetAccessTokenByJWTToken(ctx context.Context, jwtToken string) (accesstoken AccessToken, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAccessTokenByJWTToken", begin)
+	}(time.Now())
+
+	return c.Client.GetAccessTokenByJWTToken(ctx, jwtToken)
 }
 
 func (c *metricsClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error) {
@@ -41,22 +65,82 @@ func (c *metricsClient) JobVarsFunc(ctx context.Context) func(ctx context.Contex
 	return c.Client.JobVarsFunc(ctx)
 }
 
-func (c *metricsClient) GenerateJWT() (tokenString string, err error) {
-	return c.Client.GenerateJWT()
+func (c *metricsClient) ValidateInstallationJWT(ctx context.Context, authorizationHeader string) (installation *BitbucketAppInstallation, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "ValidateInstallationJWT", begin)
+	}(time.Now())
+
+	return c.Client.ValidateInstallationJWT(ctx, authorizationHeader)
+}
+
+func (c *metricsClient) GenerateJWTBySlug(ctx context.Context, workspaceSlug string) (tokenString string, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GenerateJWTBySlug", begin)
+	}(time.Now())
+
+	return c.Client.GenerateJWTBySlug(ctx, workspaceSlug)
+}
+
+func (c *metricsClient) GenerateJWTByUUID(ctx context.Context, workspaceUUID string) (tokenString string, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GenerateJWTByUUID", begin)
+	}(time.Now())
+
+	return c.Client.GenerateJWTByUUID(ctx, workspaceUUID)
+}
+
+func (c *metricsClient) GenerateJWTByInstallation(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GenerateJWTByInstallation", begin)
+	}(time.Now())
+
+	return c.Client.GenerateJWTByInstallation(ctx, installation)
+}
+
+func (c *metricsClient) GetInstallationBySlug(ctx context.Context, workspaceSlug string) (installation *BitbucketAppInstallation, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetInstallationBySlug", begin)
+	}(time.Now())
+
+	return c.Client.GetInstallationBySlug(ctx, workspaceSlug)
+}
+
+func (c *metricsClient) GetInstallationByUUID(ctx context.Context, workspaceUUID string) (installation *BitbucketAppInstallation, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetInstallationByUUID", begin)
+	}(time.Now())
+
+	return c.Client.GetInstallationByUUID(ctx, workspaceUUID)
 }
 
 func (c *metricsClient) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetInstallations", begin)
+	}(time.Now())
+
 	return c.Client.GetInstallations(ctx)
 }
 
 func (c *metricsClient) AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "AddInstallation", begin)
+	}(time.Now())
+
 	return c.Client.AddInstallation(ctx, installation)
 }
 
 func (c *metricsClient) RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "RemoveInstallation", begin)
+	}(time.Now())
+
 	return c.Client.RemoveInstallation(ctx, installation)
 }
 
-func (c *metricsClient) GetWorkspace(ctx context.Context, installation BitbucketAppInstallation) (workspace *Workspace, err error) {
-	return c.Client.GetWorkspace(ctx, installation)
+func (c *metricsClient) GetWorkspace(ctx context.Context, workspaceUUID string) (workspace *Workspace, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetWorkspace", begin)
+	}(time.Now())
+
+	return c.Client.GetWorkspace(ctx, workspaceUUID)
 }

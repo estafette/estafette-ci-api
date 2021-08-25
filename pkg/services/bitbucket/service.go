@@ -23,7 +23,7 @@ var (
 // Service handles http events for Bitbucket integration
 //go:generate mockgen -package=bitbucket -destination ./mock.go -source=service.go
 type Service interface {
-	CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error)
+	CreateJobForBitbucketPush(ctx context.Context, installation bitbucketapi.BitbucketAppInstallation, event bitbucketapi.RepositoryPushEvent) (err error)
 	PublishBitbucketEvent(ctx context.Context, event manifest.EstafetteBitbucketEvent) (err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
@@ -50,7 +50,7 @@ type service struct {
 	queueService       queue.Service
 }
 
-func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbucketapi.RepositoryPushEvent) (err error) {
+func (s *service) CreateJobForBitbucketPush(ctx context.Context, installation bitbucketapi.BitbucketAppInstallation, pushEvent bitbucketapi.RepositoryPushEvent) (err error) {
 
 	// check to see that it's a cloneable event
 	if len(pushEvent.Push.Changes) == 0 || pushEvent.Push.Changes[0].New == nil || pushEvent.Push.Changes[0].New.Type != "branch" || len(pushEvent.Push.Changes[0].New.Target.Hash) == 0 {
@@ -70,7 +70,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, pushEvent bitbu
 	}
 
 	// get access token
-	accessToken, err := s.bitbucketapiClient.GetAccessToken(ctx)
+	accessToken, err := s.bitbucketapiClient.GetAccessTokenByInstallation(ctx, installation)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")

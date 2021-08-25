@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -22,17 +24,32 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+var (
+	ErrInvalidAuthorizationHeader = errors.New("invalid authorization header")
+	ErrInvalidSigningAlgorithm    = errors.New("invalid signing algorithm")
+	ErrInvalidToken               = errors.New("invalid token")
+	ErrMissingInstallation        = errors.New("installation for clientKey is missing")
+)
+
 // Client is the interface for communicating with the bitbucket api
 //go:generate mockgen -package=bitbucketapi -destination ./mock.go -source=client.go
 type Client interface {
-	GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error)
+	GetAccessTokenByInstallation(ctx context.Context, installation BitbucketAppInstallation) (accesstoken AccessToken, err error)
+	GetAccessTokenBySlug(ctx context.Context, workspaceSlug string) (accesstoken AccessToken, err error)
+	GetAccessTokenByUUID(ctx context.Context, workspaceUUID string) (accesstoken AccessToken, err error)
+	GetAccessTokenByJWTToken(ctx context.Context, jwtToken string) (accesstoken AccessToken, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error)
 	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error)
-	GenerateJWT() (tokenString string, err error)
+	ValidateInstallationJWT(ctx context.Context, authorizationHeader string) (installation *BitbucketAppInstallation, err error)
+	GenerateJWTBySlug(ctx context.Context, workspaceSlug string) (tokenString string, err error)
+	GenerateJWTByUUID(ctx context.Context, workspaceUUID string) (tokenString string, err error)
+	GenerateJWTByInstallation(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error)
+	GetInstallationBySlug(ctx context.Context, workspaceSlug string) (installation *BitbucketAppInstallation, err error)
+	GetInstallationByUUID(ctx context.Context, workspaceUUID string) (installation *BitbucketAppInstallation, err error)
 	GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error)
 	AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
 	RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
-	GetWorkspace(ctx context.Context, installation BitbucketAppInstallation) (workspace *Workspace, err error)
+	GetWorkspace(ctx context.Context, workspaceUUID string) (workspace *Workspace, err error)
 }
 
 // NewClient returns a new bitbucket.Client
@@ -52,13 +69,34 @@ type client struct {
 	secretHelper  crypt.SecretHelper
 }
 
-// GetAccessToken returns an access token to access the Bitbucket api
-func (c *client) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
-
-	jtwToken, err := c.GenerateJWT()
+func (c *client) GetAccessTokenByInstallation(ctx context.Context, installation BitbucketAppInstallation) (accesstoken AccessToken, err error) {
+	jtwToken, err := c.GenerateJWTByInstallation(ctx, installation)
 	if err != nil {
 		return
 	}
+
+	return c.GetAccessTokenByJWTToken(ctx, jtwToken)
+}
+
+func (c *client) GetAccessTokenBySlug(ctx context.Context, workspaceSlug string) (accesstoken AccessToken, err error) {
+	jtwToken, err := c.GenerateJWTBySlug(ctx, workspaceSlug)
+	if err != nil {
+		return
+	}
+
+	return c.GetAccessTokenByJWTToken(ctx, jtwToken)
+}
+
+func (c *client) GetAccessTokenByUUID(ctx context.Context, workspaceUUID string) (accesstoken AccessToken, err error) {
+	jtwToken, err := c.GenerateJWTByUUID(ctx, workspaceUUID)
+	if err != nil {
+		return
+	}
+
+	return c.GetAccessTokenByJWTToken(ctx, jtwToken)
+}
+
+func (c *client) GetAccessTokenByJWTToken(ctx context.Context, jwtToken string) (accesstoken AccessToken, err error) {
 
 	// form values
 	data := url.Values{}
@@ -86,7 +124,7 @@ func (c *client) GetAccessToken(ctx context.Context) (accesstoken AccessToken, e
 	}
 
 	// add headers
-	request.Header.Add("Authorization", fmt.Sprintf("%v %v", "JWT", jtwToken))
+	request.Header.Add("Authorization", fmt.Sprintf("%v %v", "JWT", jwtToken))
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	// perform actual request
@@ -180,7 +218,7 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessTok
 func (c *client) JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 	return func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 		// get access token
-		accessToken, err := c.GetAccessToken(ctx)
+		accessToken, err := c.GetAccessTokenBySlug(ctx, repoOwner)
 		if err != nil {
 			return "", err
 		}
@@ -189,23 +227,116 @@ func (c *client) JobVarsFunc(ctx context.Context) func(ctx context.Context, repo
 	}
 }
 
-func (c *client) GenerateJWT() (tokenString string, err error) {
+func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeader string) (installation *BitbucketAppInstallation, err error) {
+	if !strings.HasPrefix(authorizationHeader, "JWT ") {
+		return nil, ErrInvalidAuthorizationHeader
+	}
+	jwtTokenString := strings.TrimPrefix(authorizationHeader, "JWT ")
 
+	installations, err := c.GetInstallations(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if installations == nil && len(installations) == 0 {
+		return nil, ErrMissingInstallation
+	}
+
+	token, err := jwt.Parse(jwtTokenString, func(token *jwt.Token) (interface{}, error) {
+		// check algorithm is correct
+		if token.Method != jwt.SigningMethodHS256 {
+			return nil, ErrInvalidSigningAlgorithm
+		}
+
+		// get shared secret for client key (iss claim)
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			clientKey := claims["iss"].(string)
+			for _, inst := range installations {
+				if inst.Key == c.config.Integrations.Bitbucket.Key && inst.ClientKey == clientKey {
+					installation = inst
+					return []byte(inst.SharedSecret), nil
+				}
+			}
+		}
+
+		return nil, ErrMissingInstallation
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, ErrInvalidToken
+	}
+
+	return installation, nil
+}
+
+func (c *client) GenerateJWTBySlug(ctx context.Context, workspaceSlug string) (tokenString string, err error) {
+	installation, err := c.GetInstallationBySlug(ctx, workspaceSlug)
+	if err != nil {
+		return
+	}
+
+	return c.GenerateJWTByInstallation(ctx, *installation)
+}
+
+func (c *client) GenerateJWTByUUID(ctx context.Context, workspaceUUID string) (tokenString string, err error) {
+	installation, err := c.GetInstallationByUUID(ctx, workspaceUUID)
+	if err != nil {
+		return
+	}
+
+	return c.GenerateJWTByInstallation(ctx, *installation)
+}
+
+func (c *client) GenerateJWTByInstallation(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error) {
 	// Create the token
-	token := jwt.New(jwt.GetSigningMethod("HS256"))
+	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 
 	now := time.Now().UTC()
 	expiry := now.Add(time.Duration(180) * time.Second)
 
 	// set required claims
-	claims["iss"] = c.config.Integrations.Bitbucket.Key
+	claims["iss"] = installation.Key
 	claims["iat"] = now.Unix()
 	claims["exp"] = expiry.Unix()
-	claims["sub"] = c.config.Integrations.Bitbucket.ClientKey
+	claims["sub"] = installation.ClientKey
 
 	// sign the token
-	return token.SignedString([]byte(c.config.Integrations.Bitbucket.SharedSecret))
+	return token.SignedString([]byte(installation.SharedSecret))
+
+}
+
+func (c *client) GetInstallationBySlug(ctx context.Context, workspaceSlug string) (installation *BitbucketAppInstallation, err error) {
+	installations, err := c.GetInstallations(ctx)
+	if err != nil {
+		return
+	}
+
+	for _, inst := range installations {
+		if inst != nil && inst.Workspace != nil && inst.Workspace.Slug == workspaceSlug {
+			return inst, nil
+		}
+	}
+
+	return nil, ErrMissingInstallation
+}
+
+func (c *client) GetInstallationByUUID(ctx context.Context, workspaceUUID string) (installation *BitbucketAppInstallation, err error) {
+	installations, err := c.GetInstallations(ctx)
+	if err != nil {
+		return
+	}
+
+	for _, inst := range installations {
+		if inst != nil && inst.GetWorkspaceUUID() == workspaceUUID {
+			return inst, nil
+		}
+	}
+
+	return nil, ErrMissingInstallation
 }
 
 var installationsCache []*BitbucketAppInstallation
@@ -379,8 +510,8 @@ func (c *client) decryptSharedSecrets(ctx context.Context, installations []*Bitb
 	return nil
 }
 
-func (c *client) GetWorkspace(ctx context.Context, installation BitbucketAppInstallation) (workspace *Workspace, err error) {
-	accessToken, err := c.GetAccessToken(ctx)
+func (c *client) GetWorkspace(ctx context.Context, workspaceUUID string) (workspace *Workspace, err error) {
+	accessToken, err := c.GetAccessTokenByUUID(ctx, workspaceUUID)
 	if err != nil {
 		return
 	}
@@ -392,7 +523,7 @@ func (c *client) GetWorkspace(ctx context.Context, installation BitbucketAppInst
 	client.KeepLog = true
 	client.Timeout = time.Second * 10
 
-	workspaceAPIUrl := fmt.Sprintf("https://api.bitbucket.org/2.0/workspaces/%v", installation.GetWorkspaceUUID())
+	workspaceAPIUrl := fmt.Sprintf("https://api.bitbucket.org/2.0/workspaces/%v", workspaceUUID)
 
 	request, err := http.NewRequest("GET", workspaceAPIUrl, nil)
 	if err != nil {

@@ -19,12 +19,12 @@ type loggingService struct {
 	prefix  string
 }
 
-func (s *loggingService) CreateJobForBitbucketPush(ctx context.Context, event bitbucketapi.RepositoryPushEvent) (err error) {
+func (s *loggingService) CreateJobForBitbucketPush(ctx context.Context, installation bitbucketapi.BitbucketAppInstallation, event bitbucketapi.RepositoryPushEvent) (err error) {
 	defer func() {
 		api.HandleLogError(s.prefix, "Service", "CreateJobForBitbucketPush", err, ErrNonCloneableEvent, ErrNoManifest)
 	}()
 
-	return s.Service.CreateJobForBitbucketPush(ctx, event)
+	return s.Service.CreateJobForBitbucketPush(ctx, installation, event)
 }
 
 func (s *loggingService) PublishBitbucketEvent(ctx context.Context, event manifest.EstafetteBitbucketEvent) (err error) {

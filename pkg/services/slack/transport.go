@@ -1,7 +1,6 @@
 package slack
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -18,26 +17,22 @@ import (
 )
 
 // NewHandler returns a pubsub.Handler
-func NewHandler(secretHelper crypt.SecretHelper, config *api.APIConfig, slackapiClient slackapi.Client, cockroachdbClient cockroachdb.Client, estafetteService estafette.Service, githubJobVarsFunc func(context.Context, string, string, string) (string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, error)) Handler {
+func NewHandler(secretHelper crypt.SecretHelper, config *api.APIConfig, slackapiClient slackapi.Client, cockroachdbClient cockroachdb.Client, estafetteService estafette.Service) Handler {
 	return Handler{
-		config:               config,
-		secretHelper:         secretHelper,
-		slackapiClient:       slackapiClient,
-		cockroachdbClient:    cockroachdbClient,
-		estafetteService:     estafetteService,
-		githubJobVarsFunc:    githubJobVarsFunc,
-		bitbucketJobVarsFunc: bitbucketJobVarsFunc,
+		config:            config,
+		secretHelper:      secretHelper,
+		slackapiClient:    slackapiClient,
+		cockroachdbClient: cockroachdbClient,
+		estafetteService:  estafetteService,
 	}
 }
 
 type Handler struct {
-	config               *api.APIConfig
-	secretHelper         crypt.SecretHelper
-	slackapiClient       slackapi.Client
-	cockroachdbClient    cockroachdb.Client
-	estafetteService     estafette.Service
-	githubJobVarsFunc    func(context.Context, string, string, string) (string, error)
-	bitbucketJobVarsFunc func(context.Context, string, string, string) (string, error)
+	config            *api.APIConfig
+	secretHelper      crypt.SecretHelper
+	slackapiClient    slackapi.Client
+	cockroachdbClient cockroachdb.Client
+	estafetteService  estafette.Service
 }
 
 func (h *Handler) Handle(c *gin.Context) {

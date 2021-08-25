@@ -162,7 +162,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build) (creat
 	build.Triggers = s.getBuildTriggers(build, hasValidManifest, mft, pipeline)
 
 	// get authenticated url
-	environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+	environmentVariableWithToken, err := s.getSourceCodeAccessToken(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 	if err != nil {
 		return
 	}
@@ -421,7 +421,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	currentCounter := s.getVersionCounter(ctx, release.ReleaseVersion, mft)
 
 	// get authenticated url
-	environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, release.RepoSource, release.RepoOwner, release.RepoName)
+	environmentVariableWithToken, err := s.getSourceCodeAccessToken(ctx, release.RepoSource, release.RepoOwner, release.RepoName)
 	if err != nil {
 		return
 	}
@@ -651,7 +651,7 @@ func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest
 	mft = api.InjectCommands(s.config, mft)
 
 	// get authenticated url
-	environmentVariableWithToken, err := s.getAuthenticatedRepositoryURL(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName)
+	environmentVariableWithToken, err := s.getSourceCodeAccessToken(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName)
 	if err != nil {
 		return
 	}
@@ -1559,7 +1559,7 @@ func (s *service) getShortRepoSource(repoSource string) string {
 	return repoSourceArray[0]
 }
 
-func (s *service) getAuthenticatedRepositoryURL(ctx context.Context, repoSource, repoOwner, repoName string) (environmentVariableWithToken map[string]string, err error) {
+func (s *service) getSourceCodeAccessToken(ctx context.Context, repoSource, repoOwner, repoName string) (environmentVariableWithToken map[string]string, err error) {
 
 	switch {
 	case githubapi.IsRepoSourceGithub(repoSource):

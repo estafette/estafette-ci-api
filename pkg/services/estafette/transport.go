@@ -33,39 +33,33 @@ import (
 )
 
 // NewHandler returns a new estafette.Handler
-func NewHandler(configFilePath string, templatesPath string, config *api.APIConfig, encryptedConfig *api.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper api.WarningHelper, secretHelper crypt.SecretHelper, githubJobVarsFunc func(context.Context, string, string, string) (string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, error)) Handler {
+func NewHandler(configFilePath string, templatesPath string, config *api.APIConfig, encryptedConfig *api.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper api.WarningHelper, secretHelper crypt.SecretHelper) Handler {
 
 	return Handler{
-		configFilePath:         configFilePath,
-		templatesPath:          templatesPath,
-		config:                 config,
-		encryptedConfig:        encryptedConfig,
-		cockroachDBClient:      cockroachDBClient,
-		cloudStorageClient:     cloudStorageClient,
-		ciBuilderClient:        ciBuilderClient,
-		buildService:           buildService,
-		warningHelper:          warningHelper,
-		secretHelper:           secretHelper,
-		githubJobVarsFunc:      githubJobVarsFunc,
-		bitbucketJobVarsFunc:   bitbucketJobVarsFunc,
-		cloudsourceJobVarsFunc: cloudsourceJobVarsFunc,
+		configFilePath:     configFilePath,
+		templatesPath:      templatesPath,
+		config:             config,
+		encryptedConfig:    encryptedConfig,
+		cockroachDBClient:  cockroachDBClient,
+		cloudStorageClient: cloudStorageClient,
+		ciBuilderClient:    ciBuilderClient,
+		buildService:       buildService,
+		warningHelper:      warningHelper,
+		secretHelper:       secretHelper,
 	}
 }
 
 type Handler struct {
-	configFilePath         string
-	templatesPath          string
-	config                 *api.APIConfig
-	encryptedConfig        *api.APIConfig
-	cockroachDBClient      cockroachdb.Client
-	cloudStorageClient     cloudstorage.Client
-	ciBuilderClient        builderapi.Client
-	buildService           Service
-	warningHelper          api.WarningHelper
-	secretHelper           crypt.SecretHelper
-	githubJobVarsFunc      func(context.Context, string, string, string) (string, error)
-	bitbucketJobVarsFunc   func(context.Context, string, string, string) (string, error)
-	cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, error)
+	configFilePath     string
+	templatesPath      string
+	config             *api.APIConfig
+	encryptedConfig    *api.APIConfig
+	cockroachDBClient  cockroachdb.Client
+	cloudStorageClient cloudstorage.Client
+	ciBuilderClient    builderapi.Client
+	buildService       Service
+	warningHelper      api.WarningHelper
+	secretHelper       crypt.SecretHelper
 }
 
 func (h *Handler) GetPipelines(c *gin.Context) {

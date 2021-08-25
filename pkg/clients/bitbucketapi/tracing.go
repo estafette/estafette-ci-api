@@ -17,11 +17,32 @@ type tracingClient struct {
 	prefix string
 }
 
-func (c *tracingClient) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAccessToken"))
+func (c *tracingClient) GetAccessTokenByInstallation(ctx context.Context, installation BitbucketAppInstallation) (accesstoken AccessToken, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAccessTokenByInstallation"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetAccessToken(ctx)
+	return c.Client.GetAccessTokenByInstallation(ctx, installation)
+}
+
+func (c *tracingClient) GetAccessTokenBySlug(ctx context.Context, workspaceSlug string) (accesstoken AccessToken, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAccessTokenBySlug"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetAccessTokenBySlug(ctx, workspaceSlug)
+}
+
+func (c *tracingClient) GetAccessTokenByUUID(ctx context.Context, workspaceUUID string) (accesstoken AccessToken, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAccessTokenByUUID"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetAccessTokenByUUID(ctx, workspaceUUID)
+}
+
+func (c *tracingClient) GetAccessTokenByJWTToken(ctx context.Context, jwtToken string) (accesstoken AccessToken, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAccessTokenByJWTToken"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetAccessTokenByJWTToken(ctx, jwtToken)
 }
 
 func (c *tracingClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error) {
@@ -38,22 +59,72 @@ func (c *tracingClient) JobVarsFunc(ctx context.Context) func(ctx context.Contex
 	return c.Client.JobVarsFunc(ctx)
 }
 
-func (c *tracingClient) GenerateJWT() (tokenString string, err error) {
-	return c.Client.GenerateJWT()
+func (c *tracingClient) ValidateInstallationJWT(ctx context.Context, authorizationHeader string) (installation *BitbucketAppInstallation, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "JobVarsFunc"))
+	defer func() { api.FinishSpan(span) }()
+
+	return c.Client.ValidateInstallationJWT(ctx, authorizationHeader)
+}
+
+func (c *tracingClient) GenerateJWTBySlug(ctx context.Context, workspaceSlug string) (tokenString string, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GenerateJWTBySlug"))
+	defer func() { api.FinishSpan(span) }()
+
+	return c.Client.GenerateJWTBySlug(ctx, workspaceSlug)
+}
+
+func (c *tracingClient) GenerateJWTByUUID(ctx context.Context, workspaceUUID string) (tokenString string, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GenerateJWTByUUID"))
+	defer func() { api.FinishSpan(span) }()
+
+	return c.Client.GenerateJWTByUUID(ctx, workspaceUUID)
+}
+
+func (c *tracingClient) GenerateJWTByInstallation(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GenerateJWTByInstallation"))
+	defer func() { api.FinishSpan(span) }()
+
+	return c.Client.GenerateJWTByInstallation(ctx, installation)
+}
+
+func (c *tracingClient) GetInstallationBySlug(ctx context.Context, workspaceSlug string) (installation *BitbucketAppInstallation, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetInstallationBySlug"))
+	defer func() { api.FinishSpan(span) }()
+
+	return c.Client.GetInstallationBySlug(ctx, workspaceSlug)
+}
+
+func (c *tracingClient) GetInstallationByUUID(ctx context.Context, workspaceUUID string) (installation *BitbucketAppInstallation, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetInstallationByUUID"))
+	defer func() { api.FinishSpan(span) }()
+
+	return c.Client.GetInstallationByUUID(ctx, workspaceUUID)
 }
 
 func (c *tracingClient) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetInstallations"))
+	defer func() { api.FinishSpan(span) }()
+
 	return c.Client.GetInstallations(ctx)
 }
 
 func (c *tracingClient) AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "AddInstallation"))
+	defer func() { api.FinishSpan(span) }()
+
 	return c.Client.AddInstallation(ctx, installation)
 }
 
 func (c *tracingClient) RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "RemoveInstallation"))
+	defer func() { api.FinishSpan(span) }()
+
 	return c.Client.RemoveInstallation(ctx, installation)
 }
 
-func (c *tracingClient) GetWorkspace(ctx context.Context, installation BitbucketAppInstallation) (workspace *Workspace, err error) {
-	return c.Client.GetWorkspace(ctx, installation)
+func (c *tracingClient) GetWorkspace(ctx context.Context, workspaceUUID string) (workspace *Workspace, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetWorkspace"))
+	defer func() { api.FinishSpan(span) }()
+
+	return c.Client.GetWorkspace(ctx, workspaceUUID)
 }

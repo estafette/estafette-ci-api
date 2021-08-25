@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"testing"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
@@ -43,8 +42,6 @@ func TestConfigureGinGonic(t *testing.T) {
 			},
 		}
 
-		ctx := context.Background()
-
 		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
 		cloudstorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
@@ -63,11 +60,11 @@ func TestConfigureGinGonic(t *testing.T) {
 
 		bitbucketHandler := bitbucket.NewHandler(bitbucket.NewMockService(ctrl), config, bitbucketapiClient)
 		githubHandler := github.NewHandler(github.NewMockService(ctrl))
-		estafetteHandler := estafette.NewHandler("", "", config, config, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx), cloudsourceapiClient.JobVarsFunc(ctx))
+		estafetteHandler := estafette.NewHandler("", "", config, config, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper)
 
 		rbacHandler := rbac.NewHandler(config, rbac.NewMockService(ctrl), cockroachdbClient)
 		pubsubHandler := pubsub.NewHandler(pubsubapiclient, estafetteService)
-		slackHandler := slack.NewHandler(secretHelper, config, slackapiClient, cockroachdbClient, estafetteService, githubapiClient.JobVarsFunc(ctx), bitbucketapiClient.JobVarsFunc(ctx))
+		slackHandler := slack.NewHandler(secretHelper, config, slackapiClient, cockroachdbClient, estafetteService)
 		cloudsourceHandler := cloudsource.NewHandler(pubsubapiclient, cloudsource.NewMockService(ctrl))
 		catalogHandler := catalog.NewHandler(config, catalog.NewMockService(ctrl), cockroachdbClient)
 

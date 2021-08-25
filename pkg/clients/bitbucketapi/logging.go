@@ -16,10 +16,28 @@ type loggingClient struct {
 	prefix string
 }
 
-func (c *loggingClient) GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error) {
-	defer func() { api.HandleLogError(c.prefix, "Client", "GetAccessToken", err) }()
+func (c *loggingClient) GetAccessTokenByInstallation(ctx context.Context, installation BitbucketAppInstallation) (accesstoken AccessToken, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAccessTokenByInstallation", err) }()
 
-	return c.Client.GetAccessToken(ctx)
+	return c.Client.GetAccessTokenByInstallation(ctx, installation)
+}
+
+func (c *loggingClient) GetAccessTokenBySlug(ctx context.Context, workspaceSlug string) (accesstoken AccessToken, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAccessTokenBySlug", err) }()
+
+	return c.Client.GetAccessTokenBySlug(ctx, workspaceSlug)
+}
+
+func (c *loggingClient) GetAccessTokenByUUID(ctx context.Context, workspaceUUID string) (accesstoken AccessToken, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAccessTokenByUUID", err) }()
+
+	return c.Client.GetAccessTokenByUUID(ctx, workspaceUUID)
+}
+
+func (c *loggingClient) GetAccessTokenByJWTToken(ctx context.Context, jwtToken string) (accesstoken AccessToken, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAccessTokenByJWTToken", err) }()
+
+	return c.Client.GetAccessTokenByJWTToken(ctx, jwtToken)
 }
 
 func (c *loggingClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error) {
@@ -32,22 +50,60 @@ func (c *loggingClient) JobVarsFunc(ctx context.Context) func(ctx context.Contex
 	return c.Client.JobVarsFunc(ctx)
 }
 
-func (c *loggingClient) GenerateJWT() (tokenString string, err error) {
-	return c.Client.GenerateJWT()
+func (c *loggingClient) ValidateInstallationJWT(ctx context.Context, authorizationHeader string) (installation *BitbucketAppInstallation, err error) {
+	return c.Client.ValidateInstallationJWT(ctx, authorizationHeader)
+}
+
+func (c *loggingClient) GenerateJWTBySlug(ctx context.Context, workspaceSlug string) (tokenString string, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GenerateJWTBySlug", err) }()
+
+	return c.Client.GenerateJWTBySlug(ctx, workspaceSlug)
+}
+
+func (c *loggingClient) GenerateJWTByUUID(ctx context.Context, workspaceUUID string) (tokenString string, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GenerateJWTByUUID", err) }()
+
+	return c.Client.GenerateJWTByUUID(ctx, workspaceUUID)
+}
+
+func (c *loggingClient) GenerateJWTByInstallation(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GenerateJWTByInstallation", err) }()
+
+	return c.Client.GenerateJWTByInstallation(ctx, installation)
+}
+
+func (c *loggingClient) GetInstallationBySlug(ctx context.Context, workspaceSlug string) (installation *BitbucketAppInstallation, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetInstallationBySlug", err) }()
+
+	return c.Client.GetInstallationBySlug(ctx, workspaceSlug)
+}
+
+func (c *loggingClient) GetInstallationByUUID(ctx context.Context, workspaceUUID string) (installation *BitbucketAppInstallation, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetInstallationByUUID", err) }()
+
+	return c.Client.GetInstallationByUUID(ctx, workspaceUUID)
 }
 
 func (c *loggingClient) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetInstallations", err) }()
+
 	return c.Client.GetInstallations(ctx)
 }
 
 func (c *loggingClient) AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "AddInstallation", err) }()
+
 	return c.Client.AddInstallation(ctx, installation)
 }
 
 func (c *loggingClient) RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "RemoveInstallation", err) }()
+
 	return c.Client.RemoveInstallation(ctx, installation)
 }
 
-func (c *loggingClient) GetWorkspace(ctx context.Context, installation BitbucketAppInstallation) (workspace *Workspace, err error) {
-	return c.Client.GetWorkspace(ctx, installation)
+func (c *loggingClient) GetWorkspace(ctx context.Context, workspaceUUID string) (workspace *Workspace, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetWorkspace", err) }()
+
+	return c.Client.GetWorkspace(ctx, workspaceUUID)
 }

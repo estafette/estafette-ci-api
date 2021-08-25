@@ -111,13 +111,8 @@ func TestGetCatalogFilters(t *testing.T) {
 		buildService := NewMockService(ctrl)
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
-		githubJobVarsFunc := func(context.Context, string, string, string) (string, error) {
-			return "", nil
-		}
-		bitbucketJobVarsFunc := githubJobVarsFunc
-		cloudsourceJobVarsFunc := githubJobVarsFunc
 
-		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper, githubJobVarsFunc, bitbucketJobVarsFunc, cloudsourceJobVarsFunc)
+		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 
@@ -177,13 +172,8 @@ func TestGetPipeline(t *testing.T) {
 		buildService := NewMockService(ctrl)
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
-		githubJobVarsFunc := func(context.Context, string, string, string) (string, error) {
-			return "", nil
-		}
-		bitbucketJobVarsFunc := githubJobVarsFunc
-		cloudsourceJobVarsFunc := githubJobVarsFunc
 
-		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper, githubJobVarsFunc, bitbucketJobVarsFunc, cloudsourceJobVarsFunc)
+		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 		bodyReader := strings.NewReader("")
@@ -250,13 +240,8 @@ func TestGetManifestTemplates(t *testing.T) {
 		buildService := NewMockService(ctrl)
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
-		githubJobVarsFunc := func(context.Context, string, string, string) (string, error) {
-			return "", nil
-		}
-		bitbucketJobVarsFunc := githubJobVarsFunc
-		cloudsourceJobVarsFunc := githubJobVarsFunc
 
-		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper, githubJobVarsFunc, bitbucketJobVarsFunc, cloudsourceJobVarsFunc)
+		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 		bodyReader := strings.NewReader("")
@@ -302,13 +287,8 @@ func TestGenerateManifest(t *testing.T) {
 		buildService := NewMockService(ctrl)
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
-		githubJobVarsFunc := func(context.Context, string, string, string) (string, error) {
-			return "", nil
-		}
-		bitbucketJobVarsFunc := githubJobVarsFunc
-		cloudsourceJobVarsFunc := githubJobVarsFunc
 
-		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper, githubJobVarsFunc, bitbucketJobVarsFunc, cloudsourceJobVarsFunc)
+		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 		bodyReader := strings.NewReader("{\"template\": \"docker\", \"placeholders\": {\"TeamName\": \"estafette\"}}")

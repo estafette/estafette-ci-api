@@ -34,9 +34,14 @@ func (h *Handler) Handle(c *gin.Context) {
 	// https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html
 
 	eventType := c.GetHeader("X-Event-Key")
-	authorization := c.GetHeader("Authorization")
+	authorizationHeader := c.GetHeader("Authorization")
 
-	log.Info().Msgf("Bitbucket webhook authorization: %v", authorization)
+	installation, err := h.bitbucketapiClient.ValidateInstallationJWT(c.Request.Context(), authorizationHeader)
+	if err != nil || installation == nil {
+		log.Error().Err(err).Str("authorization", authorizationHeader).Msg("Validating authorization header failed")
+		c.Status(http.StatusBadRequest)
+		return
+	}
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -85,7 +90,7 @@ func (h *Handler) Handle(c *gin.Context) {
 			}
 		}
 
-		err = h.service.CreateJobForBitbucketPush(c.Request.Context(), pushEvent)
+		err = h.service.CreateJobForBitbucketPush(c.Request.Context(), *installation, pushEvent)
 		if err != nil && !errors.Is(err, ErrNonCloneableEvent) && !errors.Is(err, ErrNoManifest) {
 			c.Status(http.StatusInternalServerError)
 			return
@@ -240,8 +245,7 @@ func (h *Handler) Installed(c *gin.Context) {
 		c.Status(http.StatusInternalServerError)
 		return
 	} else {
-
-		workspace, err := h.bitbucketapiClient.GetWorkspace(c.Request.Context(), installation)
+		workspace, err := h.bitbucketapiClient.GetWorkspace(c.Request.Context(), installation.GetWorkspaceUUID())
 		if err != nil {
 			log.Error().Err(err).Msg("Failed retrieving workspace for bitbucket app installation")
 			c.Status(http.StatusInternalServerError)
