@@ -392,7 +392,7 @@ func (c *client) GetWorkspace(ctx context.Context, installation BitbucketAppInst
 	client.KeepLog = true
 	client.Timeout = time.Second * 10
 
-	workspaceAPIUrl := fmt.Sprintf("/2.0/workspaces/%v", installation.GetWorkspaceUUID())
+	workspaceAPIUrl := fmt.Sprintf("https://api.bitbucket.org/2.0/workspaces/%v", installation.GetWorkspaceUUID())
 
 	request, err := http.NewRequest("GET", workspaceAPIUrl, nil)
 	if err != nil {
