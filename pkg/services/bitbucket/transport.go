@@ -242,10 +242,14 @@ func (h *Handler) Installed(c *gin.Context) {
 	err = json.Unmarshal(body, &installation)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed unmarshalling bitbucket app install body")
+		c.Status(http.StatusInternalServerError)
+		return
 	} else {
 		workspace, err := h.bitbucketapiClient.GetWorkspace(c.Request.Context(), installation.GetWorkspaceUUID())
 		if err != nil {
 			log.Error().Err(err).Msg("Failed retrieving workspace for bitbucket app installation")
+			c.Status(http.StatusInternalServerError)
+			return
 		}
 		installation.Workspace = workspace
 
@@ -253,6 +257,8 @@ func (h *Handler) Installed(c *gin.Context) {
 		err = h.bitbucketapiClient.AddInstallation(c.Request.Context(), installation)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed adding bitbucket app installation")
+			c.Status(http.StatusInternalServerError)
+			return
 		} else {
 			log.Info().Msg("Added bitbucket app installation")
 		}
@@ -276,11 +282,15 @@ func (h *Handler) Uninstalled(c *gin.Context) {
 	err = json.Unmarshal(body, &installation)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed unmarshalling bitbucket app uninstall body")
+		c.Status(http.StatusInternalServerError)
+		return
 	} else {
 		log.Info().Interface("installation", installation).Msg("Unmarshalled bitbucket app uninstall body")
 		err = h.bitbucketapiClient.RemoveInstallation(c.Request.Context(), installation)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed removing bitbucket app installation")
+			c.Status(http.StatusInternalServerError)
+			return
 		} else {
 			log.Info().Msg("Removed bitbucket app installation")
 		}
