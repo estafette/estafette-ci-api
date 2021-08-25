@@ -353,7 +353,7 @@ const bitbucketConfigmapName = "estafette-ci-api.bitbucket"
 
 func (c *client) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {
 	// get from cache
-	if installationsCache == nil {
+	if installationsCache != nil {
 		return installationsCache, nil
 	}
 
