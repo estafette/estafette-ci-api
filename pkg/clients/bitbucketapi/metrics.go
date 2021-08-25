@@ -35,12 +35,12 @@ func (c *metricsClient) GetAccessTokenBySlug(ctx context.Context, workspaceSlug 
 	return c.Client.GetAccessTokenBySlug(ctx, workspaceSlug)
 }
 
-func (c *metricsClient) GetAccessTokenByUUID(ctx context.Context, uuid string) (accesstoken AccessToken, err error) {
+func (c *metricsClient) GetAccessTokenByUUID(ctx context.Context, workspaceUUID string) (accesstoken AccessToken, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAccessTokenByUUID", begin)
 	}(time.Now())
 
-	return c.Client.GetAccessTokenByUUID(ctx, uuid)
+	return c.Client.GetAccessTokenByUUID(ctx, workspaceUUID)
 }
 
 func (c *metricsClient) GetAccessTokenByJWTToken(ctx context.Context, jwtToken string) (accesstoken AccessToken, err error) {
@@ -81,12 +81,12 @@ func (c *metricsClient) GenerateJWTBySlug(ctx context.Context, workspaceSlug str
 	return c.Client.GenerateJWTBySlug(ctx, workspaceSlug)
 }
 
-func (c *metricsClient) GenerateJWTByUUID(ctx context.Context, uuid string) (tokenString string, err error) {
+func (c *metricsClient) GenerateJWTByUUID(ctx context.Context, workspaceUUID string) (tokenString string, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GenerateJWTByUUID", begin)
 	}(time.Now())
 
-	return c.Client.GenerateJWTByUUID(ctx, uuid)
+	return c.Client.GenerateJWTByUUID(ctx, workspaceUUID)
 }
 
 func (c *metricsClient) GenerateJWTByInstallation(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error) {
@@ -105,12 +105,12 @@ func (c *metricsClient) GetInstallationBySlug(ctx context.Context, workspaceSlug
 	return c.Client.GetInstallationBySlug(ctx, workspaceSlug)
 }
 
-func (c *metricsClient) GetInstallationByUUID(ctx context.Context, uuid string) (installation *BitbucketAppInstallation, err error) {
+func (c *metricsClient) GetInstallationByUUID(ctx context.Context, workspaceUUID string) (installation *BitbucketAppInstallation, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetInstallationByUUID", begin)
 	}(time.Now())
 
-	return c.Client.GetInstallationByUUID(ctx, uuid)
+	return c.Client.GetInstallationByUUID(ctx, workspaceUUID)
 }
 
 func (c *metricsClient) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {

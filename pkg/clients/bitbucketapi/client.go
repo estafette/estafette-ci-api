@@ -36,16 +36,16 @@ var (
 type Client interface {
 	GetAccessTokenByInstallation(ctx context.Context, installation BitbucketAppInstallation) (accesstoken AccessToken, err error)
 	GetAccessTokenBySlug(ctx context.Context, workspaceSlug string) (accesstoken AccessToken, err error)
-	GetAccessTokenByUUID(ctx context.Context, uuid string) (accesstoken AccessToken, err error)
+	GetAccessTokenByUUID(ctx context.Context, workspaceUUID string) (accesstoken AccessToken, err error)
 	GetAccessTokenByJWTToken(ctx context.Context, jwtToken string) (accesstoken AccessToken, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error)
 	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error)
 	ValidateInstallationJWT(ctx context.Context, authorizationHeader string) (installation *BitbucketAppInstallation, err error)
 	GenerateJWTBySlug(ctx context.Context, workspaceSlug string) (tokenString string, err error)
-	GenerateJWTByUUID(ctx context.Context, uuid string) (tokenString string, err error)
+	GenerateJWTByUUID(ctx context.Context, workspaceUUID string) (tokenString string, err error)
 	GenerateJWTByInstallation(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error)
 	GetInstallationBySlug(ctx context.Context, workspaceSlug string) (installation *BitbucketAppInstallation, err error)
-	GetInstallationByUUID(ctx context.Context, uuid string) (installation *BitbucketAppInstallation, err error)
+	GetInstallationByUUID(ctx context.Context, workspaceUUID string) (installation *BitbucketAppInstallation, err error)
 	GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error)
 	AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
 	RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
@@ -87,8 +87,8 @@ func (c *client) GetAccessTokenBySlug(ctx context.Context, workspaceSlug string)
 	return c.GetAccessTokenByJWTToken(ctx, jtwToken)
 }
 
-func (c *client) GetAccessTokenByUUID(ctx context.Context, uuid string) (accesstoken AccessToken, err error) {
-	jtwToken, err := c.GenerateJWTByUUID(ctx, uuid)
+func (c *client) GetAccessTokenByUUID(ctx context.Context, workspaceUUID string) (accesstoken AccessToken, err error) {
+	jtwToken, err := c.GenerateJWTByUUID(ctx, workspaceUUID)
 	if err != nil {
 		return
 	}
@@ -281,8 +281,8 @@ func (c *client) GenerateJWTBySlug(ctx context.Context, workspaceSlug string) (t
 	return c.GenerateJWTByInstallation(ctx, *installation)
 }
 
-func (c *client) GenerateJWTByUUID(ctx context.Context, uuid string) (tokenString string, err error) {
-	installation, err := c.GetInstallationByUUID(ctx, uuid)
+func (c *client) GenerateJWTByUUID(ctx context.Context, workspaceUUID string) (tokenString string, err error) {
+	installation, err := c.GetInstallationByUUID(ctx, workspaceUUID)
 	if err != nil {
 		return
 	}
@@ -324,14 +324,14 @@ func (c *client) GetInstallationBySlug(ctx context.Context, workspaceSlug string
 	return nil, ErrMissingInstallation
 }
 
-func (c *client) GetInstallationByUUID(ctx context.Context, uuid string) (installation *BitbucketAppInstallation, err error) {
+func (c *client) GetInstallationByUUID(ctx context.Context, workspaceUUID string) (installation *BitbucketAppInstallation, err error) {
 	installations, err := c.GetInstallations(ctx)
 	if err != nil {
 		return
 	}
 
 	for _, inst := range installations {
-		if inst != nil && inst.GetWorkspaceUUID() == uuid {
+		if inst != nil && inst.GetWorkspaceUUID() == workspaceUUID {
 			return inst, nil
 		}
 	}

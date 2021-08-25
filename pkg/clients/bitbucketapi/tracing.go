@@ -31,11 +31,11 @@ func (c *tracingClient) GetAccessTokenBySlug(ctx context.Context, workspaceSlug 
 	return c.Client.GetAccessTokenBySlug(ctx, workspaceSlug)
 }
 
-func (c *tracingClient) GetAccessTokenByUUID(ctx context.Context, uuid string) (accesstoken AccessToken, err error) {
+func (c *tracingClient) GetAccessTokenByUUID(ctx context.Context, workspaceUUID string) (accesstoken AccessToken, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAccessTokenByUUID"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetAccessTokenByUUID(ctx, uuid)
+	return c.Client.GetAccessTokenByUUID(ctx, workspaceUUID)
 }
 
 func (c *tracingClient) GetAccessTokenByJWTToken(ctx context.Context, jwtToken string) (accesstoken AccessToken, err error) {
@@ -73,11 +73,11 @@ func (c *tracingClient) GenerateJWTBySlug(ctx context.Context, workspaceSlug str
 	return c.Client.GenerateJWTBySlug(ctx, workspaceSlug)
 }
 
-func (c *tracingClient) GenerateJWTByUUID(ctx context.Context, uuid string) (tokenString string, err error) {
+func (c *tracingClient) GenerateJWTByUUID(ctx context.Context, workspaceUUID string) (tokenString string, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GenerateJWTByUUID"))
 	defer func() { api.FinishSpan(span) }()
 
-	return c.Client.GenerateJWTByUUID(ctx, uuid)
+	return c.Client.GenerateJWTByUUID(ctx, workspaceUUID)
 }
 
 func (c *tracingClient) GenerateJWTByInstallation(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error) {
@@ -94,11 +94,11 @@ func (c *tracingClient) GetInstallationBySlug(ctx context.Context, workspaceSlug
 	return c.Client.GetInstallationBySlug(ctx, workspaceSlug)
 }
 
-func (c *tracingClient) GetInstallationByUUID(ctx context.Context, uuid string) (installation *BitbucketAppInstallation, err error) {
+func (c *tracingClient) GetInstallationByUUID(ctx context.Context, workspaceUUID string) (installation *BitbucketAppInstallation, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetInstallationByUUID"))
 	defer func() { api.FinishSpan(span) }()
 
-	return c.Client.GetInstallationByUUID(ctx, uuid)
+	return c.Client.GetInstallationByUUID(ctx, workspaceUUID)
 }
 
 func (c *tracingClient) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {

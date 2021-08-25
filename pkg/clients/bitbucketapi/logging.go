@@ -28,10 +28,10 @@ func (c *loggingClient) GetAccessTokenBySlug(ctx context.Context, workspaceSlug 
 	return c.Client.GetAccessTokenBySlug(ctx, workspaceSlug)
 }
 
-func (c *loggingClient) GetAccessTokenByUUID(ctx context.Context, uuid string) (accesstoken AccessToken, err error) {
+func (c *loggingClient) GetAccessTokenByUUID(ctx context.Context, workspaceUUID string) (accesstoken AccessToken, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetAccessTokenByUUID", err) }()
 
-	return c.Client.GetAccessTokenByUUID(ctx, uuid)
+	return c.Client.GetAccessTokenByUUID(ctx, workspaceUUID)
 }
 
 func (c *loggingClient) GetAccessTokenByJWTToken(ctx context.Context, jwtToken string) (accesstoken AccessToken, err error) {
@@ -60,10 +60,10 @@ func (c *loggingClient) GenerateJWTBySlug(ctx context.Context, workspaceSlug str
 	return c.Client.GenerateJWTBySlug(ctx, workspaceSlug)
 }
 
-func (c *loggingClient) GenerateJWTByUUID(ctx context.Context, uuid string) (tokenString string, err error) {
+func (c *loggingClient) GenerateJWTByUUID(ctx context.Context, workspaceUUID string) (tokenString string, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GenerateJWTByUUID", err) }()
 
-	return c.Client.GenerateJWTByUUID(ctx, uuid)
+	return c.Client.GenerateJWTByUUID(ctx, workspaceUUID)
 }
 
 func (c *loggingClient) GenerateJWTByInstallation(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error) {
@@ -78,10 +78,10 @@ func (c *loggingClient) GetInstallationBySlug(ctx context.Context, workspaceSlug
 	return c.Client.GetInstallationBySlug(ctx, workspaceSlug)
 }
 
-func (c *loggingClient) GetInstallationByUUID(ctx context.Context, uuid string) (installation *BitbucketAppInstallation, err error) {
+func (c *loggingClient) GetInstallationByUUID(ctx context.Context, workspaceUUID string) (installation *BitbucketAppInstallation, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetInstallationByUUID", err) }()
 
-	return c.Client.GetInstallationByUUID(ctx, uuid)
+	return c.Client.GetInstallationByUUID(ctx, workspaceUUID)
 }
 
 func (c *loggingClient) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {

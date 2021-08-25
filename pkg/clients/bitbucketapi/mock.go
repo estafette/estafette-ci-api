@@ -79,18 +79,18 @@ func (mr *MockClientMockRecorder) GenerateJWTBySlug(ctx, workspaceSlug interface
 }
 
 // GenerateJWTByUUID mocks base method.
-func (m *MockClient) GenerateJWTByUUID(ctx context.Context, uuid string) (string, error) {
+func (m *MockClient) GenerateJWTByUUID(ctx context.Context, workspaceUUID string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateJWTByUUID", ctx, uuid)
+	ret := m.ctrl.Call(m, "GenerateJWTByUUID", ctx, workspaceUUID)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GenerateJWTByUUID indicates an expected call of GenerateJWTByUUID.
-func (mr *MockClientMockRecorder) GenerateJWTByUUID(ctx, uuid interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) GenerateJWTByUUID(ctx, workspaceUUID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateJWTByUUID", reflect.TypeOf((*MockClient)(nil).GenerateJWTByUUID), ctx, uuid)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateJWTByUUID", reflect.TypeOf((*MockClient)(nil).GenerateJWTByUUID), ctx, workspaceUUID)
 }
 
 // GetAccessTokenByInstallation mocks base method.
@@ -139,18 +139,18 @@ func (mr *MockClientMockRecorder) GetAccessTokenBySlug(ctx, workspaceSlug interf
 }
 
 // GetAccessTokenByUUID mocks base method.
-func (m *MockClient) GetAccessTokenByUUID(ctx context.Context, uuid string) (AccessToken, error) {
+func (m *MockClient) GetAccessTokenByUUID(ctx context.Context, workspaceUUID string) (AccessToken, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAccessTokenByUUID", ctx, uuid)
+	ret := m.ctrl.Call(m, "GetAccessTokenByUUID", ctx, workspaceUUID)
 	ret0, _ := ret[0].(AccessToken)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAccessTokenByUUID indicates an expected call of GetAccessTokenByUUID.
-func (mr *MockClientMockRecorder) GetAccessTokenByUUID(ctx, uuid interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) GetAccessTokenByUUID(ctx, workspaceUUID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccessTokenByUUID", reflect.TypeOf((*MockClient)(nil).GetAccessTokenByUUID), ctx, uuid)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccessTokenByUUID", reflect.TypeOf((*MockClient)(nil).GetAccessTokenByUUID), ctx, workspaceUUID)
 }
 
 // GetEstafetteManifest mocks base method.
@@ -185,18 +185,18 @@ func (mr *MockClientMockRecorder) GetInstallationBySlug(ctx, workspaceSlug inter
 }
 
 // GetInstallationByUUID mocks base method.
-func (m *MockClient) GetInstallationByUUID(ctx context.Context, uuid string) (*BitbucketAppInstallation, error) {
+func (m *MockClient) GetInstallationByUUID(ctx context.Context, workspaceUUID string) (*BitbucketAppInstallation, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstallationByUUID", ctx, uuid)
+	ret := m.ctrl.Call(m, "GetInstallationByUUID", ctx, workspaceUUID)
 	ret0, _ := ret[0].(*BitbucketAppInstallation)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetInstallationByUUID indicates an expected call of GetInstallationByUUID.
-func (mr *MockClientMockRecorder) GetInstallationByUUID(ctx, uuid interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) GetInstallationByUUID(ctx, workspaceUUID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallationByUUID", reflect.TypeOf((*MockClient)(nil).GetInstallationByUUID), ctx, uuid)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallationByUUID", reflect.TypeOf((*MockClient)(nil).GetInstallationByUUID), ctx, workspaceUUID)
 }
 
 // GetInstallations mocks base method.
