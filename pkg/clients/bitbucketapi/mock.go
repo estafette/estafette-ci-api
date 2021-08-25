@@ -215,18 +215,18 @@ func (mr *MockClientMockRecorder) GetInstallations(ctx interface{}) *gomock.Call
 }
 
 // GetWorkspace mocks base method.
-func (m *MockClient) GetWorkspace(ctx context.Context, uuid string) (*Workspace, error) {
+func (m *MockClient) GetWorkspace(ctx context.Context, workspaceUUID string) (*Workspace, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetWorkspace", ctx, uuid)
+	ret := m.ctrl.Call(m, "GetWorkspace", ctx, workspaceUUID)
 	ret0, _ := ret[0].(*Workspace)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetWorkspace indicates an expected call of GetWorkspace.
-func (mr *MockClientMockRecorder) GetWorkspace(ctx, uuid interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) GetWorkspace(ctx, workspaceUUID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkspace", reflect.TypeOf((*MockClient)(nil).GetWorkspace), ctx, uuid)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkspace", reflect.TypeOf((*MockClient)(nil).GetWorkspace), ctx, workspaceUUID)
 }
 
 // JobVarsFunc mocks base method.

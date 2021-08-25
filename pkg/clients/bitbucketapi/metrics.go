@@ -137,10 +137,10 @@ func (c *metricsClient) RemoveInstallation(ctx context.Context, installation Bit
 	return c.Client.RemoveInstallation(ctx, installation)
 }
 
-func (c *metricsClient) GetWorkspace(ctx context.Context, uuid string) (workspace *Workspace, err error) {
+func (c *metricsClient) GetWorkspace(ctx context.Context, workspaceUUID string) (workspace *Workspace, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetWorkspace", begin)
 	}(time.Now())
 
-	return c.Client.GetWorkspace(ctx, uuid)
+	return c.Client.GetWorkspace(ctx, workspaceUUID)
 }

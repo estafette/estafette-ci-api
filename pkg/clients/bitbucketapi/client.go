@@ -49,7 +49,7 @@ type Client interface {
 	GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error)
 	AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
 	RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
-	GetWorkspace(ctx context.Context, uuid string) (workspace *Workspace, err error)
+	GetWorkspace(ctx context.Context, workspaceUUID string) (workspace *Workspace, err error)
 }
 
 // NewClient returns a new bitbucket.Client
@@ -510,8 +510,8 @@ func (c *client) decryptSharedSecrets(ctx context.Context, installations []*Bitb
 	return nil
 }
 
-func (c *client) GetWorkspace(ctx context.Context, uuid string) (workspace *Workspace, err error) {
-	accessToken, err := c.GetAccessTokenByUUID(ctx, uuid)
+func (c *client) GetWorkspace(ctx context.Context, workspaceUUID string) (workspace *Workspace, err error) {
+	accessToken, err := c.GetAccessTokenByUUID(ctx, workspaceUUID)
 	if err != nil {
 		return
 	}
@@ -523,7 +523,7 @@ func (c *client) GetWorkspace(ctx context.Context, uuid string) (workspace *Work
 	client.KeepLog = true
 	client.Timeout = time.Second * 10
 
-	workspaceAPIUrl := fmt.Sprintf("https://api.bitbucket.org/2.0/workspaces/%v", uuid)
+	workspaceAPIUrl := fmt.Sprintf("https://api.bitbucket.org/2.0/workspaces/%v", workspaceUUID)
 
 	request, err := http.NewRequest("GET", workspaceAPIUrl, nil)
 	if err != nil {
