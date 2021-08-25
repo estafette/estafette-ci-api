@@ -144,6 +144,13 @@ type Repository struct {
 	IsPrivate bool            `json:"is_private"`
 	Scm       string          `json:"scm"`
 	Links     RepositoryLinks `json:"links"`
+	Workspace *Workspace      `json:"workspace"`
+}
+
+type Workspace struct {
+	Slug string `json:"slug"`
+	Name string `json:"name"`
+	UUID string `json:"uuid"`
 }
 
 // RepositoryLinks represents a collections of links for a Bitbucket repository
@@ -318,8 +325,24 @@ func (pe *RepoDeletedEvent) GetRepoName() string {
 }
 
 type BitbucketAppInstallation struct {
-	Key          string `json:"key"`
-	BaseApiURL   string `json:"baseApiUrl"`
-	ClientKey    string `json:"clientKey"`
-	SharedSecret string `json:"sharedSecret"`
+	Key          string     `json:"key"`
+	BaseApiURL   string     `json:"baseApiUrl"`
+	ClientKey    string     `json:"clientKey"`
+	SharedSecret string     `json:"sharedSecret"`
+	Workspace    *Workspace `json:"workspace"`
+}
+
+func (ai *BitbucketAppInstallation) GetWorkspaceUUID() string {
+	if ai.Workspace != nil {
+		return ai.Workspace.UUID
+	}
+
+	re := regexp.MustCompile(`ari:cloud:bitbucket::app/({[^}]+})/.+`)
+	match := re.FindStringSubmatch(ai.ClientKey)
+
+	if len(match) > 1 {
+		return match[1]
+	}
+
+	return ""
 }

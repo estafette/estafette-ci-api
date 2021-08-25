@@ -34,14 +34,22 @@ var (
 // Client is the interface for communicating with the bitbucket api
 //go:generate mockgen -package=bitbucketapi -destination ./mock.go -source=client.go
 type Client interface {
-	GetAccessToken(ctx context.Context, installation BitbucketAppInstallation) (accesstoken AccessToken, err error)
+	GetAccessTokenByInstallation(ctx context.Context, installation BitbucketAppInstallation) (accesstoken AccessToken, err error)
+	GetAccessTokenBySlug(ctx context.Context, workspaceSlug string) (accesstoken AccessToken, err error)
+	GetAccessTokenByUUID(ctx context.Context, uuid string) (accesstoken AccessToken, err error)
+	GetAccessTokenByJWTToken(ctx context.Context, jwtToken string) (accesstoken AccessToken, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (valid bool, manifest string, err error)
 	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error)
 	ValidateInstallationJWT(ctx context.Context, authorizationHeader string) (installation *BitbucketAppInstallation, err error)
-	GenerateJWT(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error)
+	GenerateJWTBySlug(ctx context.Context, workspaceSlug string) (tokenString string, err error)
+	GenerateJWTByUUID(ctx context.Context, uuid string) (tokenString string, err error)
+	GenerateJWTByInstallation(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error)
+	GetInstallationBySlug(ctx context.Context, workspaceSlug string) (installation *BitbucketAppInstallation, err error)
+	GetInstallationByUUID(ctx context.Context, uuid string) (installation *BitbucketAppInstallation, err error)
 	GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error)
 	AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
 	RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
+	GetWorkspace(ctx context.Context, uuid string) (workspace *Workspace, err error)
 }
 
 // NewClient returns a new bitbucket.Client
@@ -61,13 +69,34 @@ type client struct {
 	secretHelper  crypt.SecretHelper
 }
 
-// GetAccessToken returns an access token to access the Bitbucket api
-func (c *client) GetAccessToken(ctx context.Context, installation BitbucketAppInstallation) (accesstoken AccessToken, err error) {
-
-	jtwToken, err := c.GenerateJWT(ctx, installation)
+func (c *client) GetAccessTokenByInstallation(ctx context.Context, installation BitbucketAppInstallation) (accesstoken AccessToken, err error) {
+	jtwToken, err := c.GenerateJWTByInstallation(ctx, installation)
 	if err != nil {
 		return
 	}
+
+	return c.GetAccessTokenByJWTToken(ctx, jtwToken)
+}
+
+func (c *client) GetAccessTokenBySlug(ctx context.Context, workspaceSlug string) (accesstoken AccessToken, err error) {
+	jtwToken, err := c.GenerateJWTBySlug(ctx, workspaceSlug)
+	if err != nil {
+		return
+	}
+
+	return c.GetAccessTokenByJWTToken(ctx, jtwToken)
+}
+
+func (c *client) GetAccessTokenByUUID(ctx context.Context, uuid string) (accesstoken AccessToken, err error) {
+	jtwToken, err := c.GenerateJWTByUUID(ctx, uuid)
+	if err != nil {
+		return
+	}
+
+	return c.GetAccessTokenByJWTToken(ctx, jtwToken)
+}
+
+func (c *client) GetAccessTokenByJWTToken(ctx context.Context, jwtToken string) (accesstoken AccessToken, err error) {
 
 	// form values
 	data := url.Values{}
@@ -95,7 +124,7 @@ func (c *client) GetAccessToken(ctx context.Context, installation BitbucketAppIn
 	}
 
 	// add headers
-	request.Header.Add("Authorization", fmt.Sprintf("%v %v", "JWT", jtwToken))
+	request.Header.Add("Authorization", fmt.Sprintf("%v %v", "JWT", jwtToken))
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	// perform actual request
@@ -189,7 +218,7 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessTok
 func (c *client) JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 	return func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 		// get access token
-		accessToken, err := c.GetAccessToken(ctx)
+		accessToken, err := c.GetAccessTokenBySlug(ctx, repoOwner)
 		if err != nil {
 			return "", err
 		}
@@ -243,8 +272,25 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 	return installation, nil
 }
 
-func (c *client) GenerateJWT(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error) {
+func (c *client) GenerateJWTBySlug(ctx context.Context, workspaceSlug string) (tokenString string, err error) {
+	installation, err := c.GetInstallationBySlug(ctx, workspaceSlug)
+	if err != nil {
+		return
+	}
 
+	return c.GenerateJWTByInstallation(ctx, *installation)
+}
+
+func (c *client) GenerateJWTByUUID(ctx context.Context, uuid string) (tokenString string, err error) {
+	installation, err := c.GetInstallationByUUID(ctx, uuid)
+	if err != nil {
+		return
+	}
+
+	return c.GenerateJWTByInstallation(ctx, *installation)
+}
+
+func (c *client) GenerateJWTByInstallation(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error) {
 	// Create the token
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
@@ -260,6 +306,37 @@ func (c *client) GenerateJWT(ctx context.Context, installation BitbucketAppInsta
 
 	// sign the token
 	return token.SignedString([]byte(installation.SharedSecret))
+
+}
+
+func (c *client) GetInstallationBySlug(ctx context.Context, workspaceSlug string) (installation *BitbucketAppInstallation, err error) {
+	installations, err := c.GetInstallations(ctx)
+	if err != nil {
+		return
+	}
+
+	for _, inst := range installations {
+		if inst != nil && inst.Workspace != nil && inst.Workspace.Slug == workspaceSlug {
+			return inst, nil
+		}
+	}
+
+	return nil, ErrMissingInstallation
+}
+
+func (c *client) GetInstallationByUUID(ctx context.Context, uuid string) (installation *BitbucketAppInstallation, err error) {
+	installations, err := c.GetInstallations(ctx)
+	if err != nil {
+		return
+	}
+
+	for _, inst := range installations {
+		if inst != nil && inst.GetWorkspaceUUID() == uuid {
+			return inst, nil
+		}
+	}
+
+	return nil, ErrMissingInstallation
 }
 
 var installationsCache []*BitbucketAppInstallation
@@ -431,4 +508,70 @@ func (c *client) decryptSharedSecrets(ctx context.Context, installations []*Bitb
 	}
 
 	return nil
+}
+
+func (c *client) GetWorkspace(ctx context.Context, uuid string) (workspace *Workspace, err error) {
+	accessToken, err := c.GetAccessTokenByUUID(ctx, uuid)
+	if err != nil {
+		return
+	}
+
+	// create client, in order to add headers
+	client := pester.NewExtendedClient(&http.Client{Transport: &nethttp.Transport{}})
+	client.MaxRetries = 3
+	client.Backoff = pester.ExponentialJitterBackoff
+	client.KeepLog = true
+	client.Timeout = time.Second * 10
+
+	workspaceAPIUrl := fmt.Sprintf("/2.0/workspaces/%v", uuid)
+
+	request, err := http.NewRequest("GET", workspaceAPIUrl, nil)
+	if err != nil {
+		return
+	}
+
+	span := opentracing.SpanFromContext(ctx)
+	var ht *nethttp.Tracer
+	if span != nil {
+		// add tracing context
+		request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
+
+		// collect additional information on setting up connections
+		request, ht = nethttp.TraceRequest(span.Tracer(), request)
+	}
+
+	// add headers
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", accessToken.AccessToken))
+
+	// perform actual request
+	response, err := client.Do(request)
+	if err != nil {
+		return
+	}
+
+	defer response.Body.Close()
+	if ht != nil {
+		ht.Finish()
+	}
+
+	if response.StatusCode == http.StatusNotFound {
+		return
+	}
+
+	if response.StatusCode != http.StatusOK {
+		err = fmt.Errorf("Retrieving workspace from %v failed with status code %v", workspaceAPIUrl, response.StatusCode)
+		return
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(body, &workspace)
+	if err != nil {
+		return
+	}
+
+	return workspace, nil
 }

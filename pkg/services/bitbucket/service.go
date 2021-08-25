@@ -70,7 +70,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, installation bi
 	}
 
 	// get access token
-	accessToken, err := s.bitbucketapiClient.GetAccessToken(ctx, installation)
+	accessToken, err := s.bitbucketapiClient.GetAccessTokenByInstallation(ctx, installation)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving Estafettte manifest failed")
