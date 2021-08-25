@@ -959,8 +959,6 @@ type BitbucketConfig struct {
 	Enable             bool                 `yaml:"enable"`
 	Key                string               `yaml:"key"`
 	Name               string               `yaml:"name"`
-	ClientKey          string               `yaml:"clientKey"`
-	SharedSecret       string               `yaml:"sharedSecret"`
 	OwnerOrganizations []OwnerOrganizations `yaml:"ownerOrganizations"`
 }
 
@@ -977,13 +975,6 @@ func (c *BitbucketConfig) SetDefaults() {
 func (c *BitbucketConfig) Validate() (err error) {
 	if !c.Enable {
 		return nil
-	}
-
-	if c.ClientKey == "" {
-		return errors.New("Configuration item 'integrations.bitbucket.clientKey' is required; please set it to a Bitbucket App installation client key")
-	}
-	if c.SharedSecret == "" {
-		return errors.New("Configuration item 'integrations.bitbucket.sharedSecret' is required; please set it to a Bitbucket App client secret")
 	}
 
 	return nil

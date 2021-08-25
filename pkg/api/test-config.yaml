@@ -18,8 +18,6 @@ integrations:
     enable: true
     key: ci.estafette.io
     name: Estafette CI
-    clientKey: ari:cloud:bitbucket::app/{a3cf81ac-138c-49eb-bb74-4a0faf842fa9}/ci.estafette.io
-    sharedSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
     ownerOrganizations:
     - owner: estafette
       organizations:
