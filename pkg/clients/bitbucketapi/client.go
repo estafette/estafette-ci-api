@@ -262,11 +262,9 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 				}
 			}
 
-			log.Warn().Interface("installations", installations).Interface("token", token).Str("clientKey", clientKey).Str("key", c.config.Integrations.Bitbucket.Key).Msg(ErrMissingInstallation.Error())
 			return nil, ErrMissingInstallation
 		}
 
-		log.Warn().Interface("installations", installations).Interface("token", token).Str("key", c.config.Integrations.Bitbucket.Key).Msg(ErrMissingInstallation.Error())
 		return nil, ErrMissingClaims
 	})
 	if err != nil {
