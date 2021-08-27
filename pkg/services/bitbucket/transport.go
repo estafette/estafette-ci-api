@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -293,4 +294,8 @@ func (h *Handler) Uninstalled(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (h *Handler) Redirect(c *gin.Context) {
+	c.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("%v/admin/integrations", h.config.APIServer.BaseURL))
 }

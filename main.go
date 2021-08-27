@@ -451,7 +451,7 @@ func getHandlers(ctx context.Context, config *api.APIConfig, encryptedConfig *ap
 	bitbucketHandler = bitbucket.NewHandler(bitbucketService, config, bitbucketapiClient)
 	githubHandler = github.NewHandler(githubService)
 	estafetteHandler = estafette.NewHandler(*configFilePath, *templatesPath, config, encryptedConfig, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper)
-	rbacHandler = rbac.NewHandler(config, rbacService, cockroachdbClient)
+	rbacHandler = rbac.NewHandler(config, rbacService, cockroachdbClient, bitbucketapiClient)
 	pubsubHandler = pubsub.NewHandler(pubsubapiClient, estafetteService)
 	slackHandler = slack.NewHandler(secretHelper, config, slackapiClient, cockroachdbClient, estafetteService)
 	cloudsourceHandler = cloudsource.NewHandler(pubsubapiClient, cloudsourceService)
@@ -510,6 +510,7 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	routes.GET("/api/integrations/bitbucket/descriptor", bitbucketHandler.Descriptor)
 	routes.POST("/api/integrations/bitbucket/installed", bitbucketHandler.Installed)
 	routes.POST("/api/integrations/bitbucket/uninstalled", bitbucketHandler.Uninstalled)
+	routes.GET("/api/integrations/bitbucket/redirect", bitbucketHandler.Redirect)
 
 	routes.POST("/api/integrations/slack/slash", slackHandler.Handle)
 	routes.GET("/api/integrations/slack/status", func(c *gin.Context) { c.String(200, "Slack, I'm cool!") })
@@ -610,6 +611,8 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 		jwtMiddlewareRoutes.POST("/api/admin/clients", rbacHandler.CreateClient)
 		jwtMiddlewareRoutes.PUT("/api/admin/clients/:id", rbacHandler.UpdateClient)
 		jwtMiddlewareRoutes.DELETE("/api/admin/clients/:id", rbacHandler.DeleteClient)
+
+		jwtMiddlewareRoutes.GET("/api/admin/integrations", rbacHandler.GetIntegrations)
 
 		// catalog routes
 		jwtMiddlewareRoutes.GET("/api/catalog/entity-labels", catalogHandler.GetCatalogEntityLabels)
