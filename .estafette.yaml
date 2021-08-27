@@ -12,9 +12,9 @@ version:
   semver:
     major: 1
     minor: 0
-    patch: 3
+    patch: 4
     labelTemplate: '{{branch}}-{{auto}}'
-    releaseBranch: 1.0.3
+    releaseBranch: 1.0.4
 
 triggers:
 - name: migrator
@@ -32,7 +32,7 @@ stages:
   build-lint-and-package:
     parallelStages:
       build:
-        image: golang:1.16-alpine
+        image: golang:1.17-alpine
         env:
           CGO_ENABLED: 0
           GOOS: linux
@@ -46,7 +46,7 @@ stages:
         - golangci-lint run --timeout 3m
 
       test:
-        image: golang:1.16-alpine
+        image: golang:1.17-alpine
         commands:
         - apk add --update --no-cache build-base
         - go test -short -race ./...
@@ -85,7 +85,7 @@ stages:
       ESTAFETTE_LOG_FORMAT: console
 
   integration-tests-against-cockroachdb:
-    image: golang:1.16-alpine
+    image: golang:1.17-alpine
     env:
       CGO_ENABLED: 0
       GOOS: linux
@@ -120,7 +120,7 @@ stages:
       WAIT_SECONDS: 15
 
   integration-tests-against-postgres:
-    image: golang:1.16-alpine
+    image: golang:1.17-alpine
     env:
       CGO_ENABLED: 0
       GOOS: linux
