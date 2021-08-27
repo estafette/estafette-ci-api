@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	jwtgo "github.com/dgrijalva/jwt-go"
+	jwtgo "github.com/golang-jwt/jwt/v4"
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 	batchv1 "k8s.io/api/batch/v1"

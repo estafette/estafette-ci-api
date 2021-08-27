@@ -9,15 +9,15 @@ require (
 	github.com/Masterminds/squirrel v1.5.0
 	github.com/alecthomas/kingpin v2.2.6+incompatible
 	github.com/appleboy/gin-jwt/v2 v2.6.4
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/estafette/estafette-ci-contracts v0.0.272
-	github.com/estafette/estafette-ci-crypt v0.0.42
+	github.com/estafette/estafette-ci-crypt v0.0.43
 	github.com/estafette/estafette-ci-manifest v0.1.200
-	github.com/estafette/estafette-foundation v0.0.70
+	github.com/estafette/estafette-foundation v0.0.73
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gin-contrib/gzip v0.0.2-0.20190827144029-5602d8b438ea
 	github.com/gin-gonic/gin v1.7.1
 	github.com/go-kit/kit v0.10.0
+	github.com/golang-jwt/jwt/v4 v4.0.0
 	github.com/golang/mock v1.4.4
 	github.com/google/uuid v1.1.2
 	github.com/jinzhu/copier v0.2.8
@@ -51,6 +51,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-logr/logr v0.4.0 // indirect

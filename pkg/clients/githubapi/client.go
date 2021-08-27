@@ -11,8 +11,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/pkg/api"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"

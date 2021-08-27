@@ -10,11 +10,11 @@ import (
 	"time"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
-	jwtgo "github.com/dgrijalva/jwt-go"
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/cockroachdb"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
+	jwtgo "github.com/golang-jwt/jwt/v4"
 	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"

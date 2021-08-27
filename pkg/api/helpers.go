@@ -15,9 +15,9 @@ import (
 	"time"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
-	jwtgo "github.com/dgrijalva/jwt-go"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
+	jwtgo "github.com/golang-jwt/jwt/v4"
 	"github.com/sethgrid/pester"
 )
 
