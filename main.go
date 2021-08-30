@@ -17,23 +17,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	crypt "github.com/estafette/estafette-ci-crypt"
-	foundation "github.com/estafette/estafette-foundation"
-	"github.com/fsnotify/fsnotify"
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
-	"github.com/uber/jaeger-client-go"
-	jaegercfg "github.com/uber/jaeger-client-go/config"
-	jprom "github.com/uber/jaeger-lib/metrics/prometheus"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/option"
-	"google.golang.org/api/sourcerepo/v1"
-	stdsourcerepo "google.golang.org/api/sourcerepo/v1"
-
 	"github.com/estafette/estafette-ci-api/pkg/api"
-
 	"github.com/estafette/estafette-ci-api/pkg/clients/bigquery"
 	"github.com/estafette/estafette-ci-api/pkg/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/pkg/clients/builderapi"
@@ -45,7 +29,6 @@ import (
 	"github.com/estafette/estafette-ci-api/pkg/clients/prometheus"
 	"github.com/estafette/estafette-ci-api/pkg/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/pkg/clients/slackapi"
-
 	"github.com/estafette/estafette-ci-api/pkg/services/bitbucket"
 	"github.com/estafette/estafette-ci-api/pkg/services/catalog"
 	"github.com/estafette/estafette-ci-api/pkg/services/cloudsource"
@@ -55,6 +38,21 @@ import (
 	"github.com/estafette/estafette-ci-api/pkg/services/queue"
 	"github.com/estafette/estafette-ci-api/pkg/services/rbac"
 	"github.com/estafette/estafette-ci-api/pkg/services/slack"
+	crypt "github.com/estafette/estafette-ci-crypt"
+	foundation "github.com/estafette/estafette-foundation"
+	"github.com/fsnotify/fsnotify"
+	"github.com/gin-contrib/gzip"
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/rs/zerolog/log"
+	"github.com/uber/jaeger-client-go"
+	jaegercfg "github.com/uber/jaeger-client-go/config"
+	jprom "github.com/uber/jaeger-lib/metrics/prometheus"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/option"
+	"google.golang.org/api/sourcerepo/v1"
+	stdsourcerepo "google.golang.org/api/sourcerepo/v1"
 )
 
 var (
@@ -90,6 +88,11 @@ func main() {
 	stop := make(chan struct{}) // channel to signal goroutines to stop
 
 	ctx := foundation.InitCancellationContext(context.Background())
+
+	// https://github.com/golang-jwt/jwt/issues/98
+	jwt.TimeFunc = func() time.Time {
+		return time.Now().UTC().Add(time.Second * 20)
+	}
 
 	// start prometheus
 	foundation.InitMetricsWithPort(9001)
