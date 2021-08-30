@@ -77,12 +77,12 @@ func TestCommit(t *testing.T) {
 func TestGetWorkspaceUUID(t *testing.T) {
 	t.Run("ExtractUUIDFromClientKey", func(t *testing.T) {
 		bai := BitbucketAppInstallation{
-			ClientKey: "ari:cloud:bitbucket::app/{229bfc71-6b33-4f17-ae61-9670ef23de17}/estafette-ci",
+			ClientKey: "ari:cloud:bitbucket::app/{f786eeda-2b64-4617-8039-a85895b13619}/estafette-ci",
 		}
 
 		// act
 		uuid := bai.GetWorkspaceUUID()
 
-		assert.Equal(t, "{229bfc71-6b33-4f17-ae61-9670ef23de17}", uuid)
+		assert.Equal(t, "{f786eeda-2b64-4617-8039-a85895b13619}", uuid)
 	})
 }

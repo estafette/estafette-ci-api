@@ -831,38 +831,44 @@ func (h *Handler) DeleteOrganization(c *gin.Context) {
 
 func (h *Handler) GetClients(c *gin.Context) {
 
+	pageNumber, pageSize, filters, sortings := api.GetQueryParameters(c)
+
 	// ensure the request has the correct permission
-	if !api.RequestTokenHasPermission(c, api.PermissionIntegrationsGet) {
+	if !api.RequestTokenHasPermission(c, api.PermissionClientsList) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
 
 	ctx := c.Request.Context()
 
-	type bitbucketResponse struct {
-		AddonKey      string                                   `json:"addonKey,omitempty"`
-		RedirectURI   string                                   `json:"redirectURI,omitempty"`
-		Installations []*bitbucketapi.BitbucketAppInstallation `json:"installations,omitempty"`
-	}
+	response, err := api.GetPagedListResponse(
+		func() ([]interface{}, error) {
+			clients, err := h.cockroachdbClient.GetClients(ctx, pageNumber, pageSize, filters, sortings)
+			if err != nil {
+				return nil, err
+			}
 
-	var response struct {
-		Bitbucket *bitbucketResponse `json:"bitbucket,omitempty"`
-	}
+			// convert typed array to interface array O(n)
+			items := make([]interface{}, len(clients))
+			for i := range clients {
+				if !api.RequestTokenHasPermission(c, api.PermissionClientsViewSecret) {
+					// obfuscate client secret
+					clients[i].ClientSecret = "***"
+				}
+				items[i] = clients[i]
+			}
+			return items, nil
+		},
+		func() (int, error) {
+			return h.cockroachdbClient.GetClientsCount(ctx, filters)
+		},
+		pageNumber,
+		pageSize)
 
-	if h.config != nil && h.config.Integrations != nil && h.config.Integrations.Bitbucket != nil && h.config.Integrations.Bitbucket.Enable {
-		response.Bitbucket = &bitbucketResponse{
-			AddonKey:    h.config.Integrations.Bitbucket.Key,
-			RedirectURI: fmt.Sprintf("%v/api/integrations/bitbucket/redirect", h.config.APIServer.IntegrationsURL),
-		}
-
-		installations, err := h.bitbucketapiClient.GetInstallations(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed retrieving bitbucket installations from configmap")
-			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-			return
-		}
-
-		response.Bitbucket.Installations = installations
+	if err != nil {
+		log.Error().Err(err).Msg("Failed retrieving clients from db")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -982,21 +988,40 @@ func (h *Handler) DeleteClient(c *gin.Context) {
 func (h *Handler) GetIntegrations(c *gin.Context) {
 
 	// ensure the request has the correct permission
-	if !api.RequestTokenHasPermission(c, api.PermissionClientsDelete) {
+	if !api.RequestTokenHasPermission(c, api.PermissionIntegrationsGet) {
 		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
 		return
 	}
 
 	ctx := c.Request.Context()
-	id := c.Param("id")
-	err := h.service.DeleteClient(ctx, id)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed deleting client")
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-		return
+
+	type bitbucketResponse struct {
+		AddonKey      string                                   `json:"addonKey,omitempty"`
+		RedirectURI   string                                   `json:"redirectURI,omitempty"`
+		Installations []*bitbucketapi.BitbucketAppInstallation `json:"installations,omitempty"`
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+	var response struct {
+		Bitbucket *bitbucketResponse `json:"bitbucket,omitempty"`
+	}
+
+	if h.config != nil && h.config.Integrations != nil && h.config.Integrations.Bitbucket != nil && h.config.Integrations.Bitbucket.Enable {
+		response.Bitbucket = &bitbucketResponse{
+			AddonKey:    h.config.Integrations.Bitbucket.Key,
+			RedirectURI: fmt.Sprintf("%v/api/integrations/bitbucket/redirect", h.config.APIServer.IntegrationsURL),
+		}
+
+		installations, err := h.bitbucketapiClient.GetInstallations(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed retrieving bitbucket installations from configmap")
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+			return
+		}
+
+		response.Bitbucket.Installations = installations
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *Handler) GetPipelines(c *gin.Context) {
