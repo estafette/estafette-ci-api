@@ -1004,7 +1004,7 @@ func (h *Handler) GetIntegrations(c *gin.Context) {
 		response.Github = &githubResponse{
 			Manifest: githubManifest{
 				Name:        "estafette-ci",
-				Description: "Estafette - The The resilient and cloud-native CI/CD platform",
+				Description: "Estafette - The resilient and cloud-native CI/CD platform",
 				URL:         h.config.APIServer.BaseURL,
 				HookAttributes: &githubHookAttribute{
 					URL: fmt.Sprintf("%v/api/integrations/github/events", strings.TrimRight(h.config.APIServer.IntegrationsURL, "/")),

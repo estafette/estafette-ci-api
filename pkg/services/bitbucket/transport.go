@@ -198,7 +198,7 @@ func (h *Handler) Descriptor(c *gin.Context) {
 	descriptor := Descriptor{
 		Key:         h.config.Integrations.Bitbucket.Key,
 		Name:        h.config.Integrations.Bitbucket.Name,
-		Description: "Estafette - The The resilient and cloud-native CI/CD platform",
+		Description: "Estafette - The resilient and cloud-native CI/CD platform",
 		Vendor: DescriptorVendor{
 			Name: "Estafette",
 			URL:  "https://estafette.io",

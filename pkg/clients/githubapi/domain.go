@@ -186,7 +186,7 @@ func IsRepoSourceGithub(repoSourceToCompare string) bool {
 }
 
 type GithubApp struct {
-	ID            string `json:"id"`
+	ID            int    `json:"id"`
 	PrivateKey    string `json:"pem"`
 	WebhookSecret string `json:"webhook_secret"`
 }

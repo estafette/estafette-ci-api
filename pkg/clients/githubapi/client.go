@@ -336,6 +336,7 @@ func (c *client) ConvertAppManifestCode(ctx context.Context, code string) (err e
 	var app GithubApp
 	err = json.Unmarshal(body, &app)
 	if err != nil {
+		log.Warn().Err(err).Str("body", string(body)).Msgf("Failed unmarshalling response from %v", fmt.Sprintf("https://api.github.com/app-manifests/%v/conversions", code))
 		return
 	}
 
