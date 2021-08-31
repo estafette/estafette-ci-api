@@ -267,8 +267,23 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 
 		return nil, ErrMissingClaims
 	})
+
 	if err != nil {
-		return nil, err
+		// ignore error if only error is ValidationErrorIssuedAt
+		validationErr, isValidationError := err.(jwt.ValidationError)
+		hasIssuedAtError := isValidationError && validationErr.Errors&jwt.ValidationErrorIssuedAt != 0
+		if hasIssuedAtError {
+			// toggle ValidationErrorIssuedAt and check if it was the only validation error
+			remainingErrors := validationErr.Errors ^ jwt.ValidationErrorIssuedAt
+			if remainingErrors != 1 {
+				return nil, err
+			}
+
+			// token is valid except for ValidationErrorIssuedAt, set to true
+			token.Valid = true
+		} else {
+			return nil, err
+		}
 	}
 
 	if !token.Valid {
