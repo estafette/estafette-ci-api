@@ -12,7 +12,7 @@ metadata:
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     nginx.ingress.kubernetes.io/proxy-ssl-verify: "on"
     # see https://api.github.com/meta for githubs outbound ip addresses for hooks
-    nginx.ingress.kubernetes.io/whitelist-source-range: "192.30.252.0/22,185.199.108.0/22,140.82.112.0/20"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "0.0.0.0/0"
     nginx.ingress.kubernetes.io/client-body-buffer-size: "{{.NginxIngressClientBodyBufferSize}}"
     nginx.ingress.kubernetes.io/proxy-body-size: "{{.NginxIngressProxyBodySize}}"
     nginx.ingress.kubernetes.io/proxy-buffers-number: "{{.NginxIngressProxyBuffersNumber}}"
