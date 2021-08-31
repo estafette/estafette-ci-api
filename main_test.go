@@ -62,7 +62,7 @@ func TestConfigureGinGonic(t *testing.T) {
 		githubHandler := github.NewHandler(github.NewMockService(ctrl), config, githubapiClient)
 		estafetteHandler := estafette.NewHandler("", "", config, config, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper)
 
-		rbacHandler := rbac.NewHandler(config, rbac.NewMockService(ctrl), cockroachdbClient, bitbucketapiClient)
+		rbacHandler := rbac.NewHandler(config, rbac.NewMockService(ctrl), cockroachdbClient, bitbucketapiClient, githubapiClient)
 		pubsubHandler := pubsub.NewHandler(pubsubapiclient, estafetteService)
 		slackHandler := slack.NewHandler(secretHelper, config, slackapiClient, cockroachdbClient, estafetteService)
 		cloudsourceHandler := cloudsource.NewHandler(pubsubapiclient, cloudsource.NewMockService(ctrl))

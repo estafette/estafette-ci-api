@@ -1,9 +1,13 @@
 package rbac
 
-import "github.com/estafette/estafette-ci-api/pkg/clients/bitbucketapi"
+import (
+	"github.com/estafette/estafette-ci-api/pkg/clients/bitbucketapi"
+	"github.com/estafette/estafette-ci-api/pkg/clients/githubapi"
+)
 
 type githubResponse struct {
-	Manifest githubManifest `json:"manifest,omitempty"`
+	Manifest githubManifest         `json:"manifest,omitempty"`
+	Apps     []*githubapi.GithubApp `json:"apps,omitempty"`
 }
 
 type githubManifest struct {

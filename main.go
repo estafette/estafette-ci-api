@@ -454,7 +454,7 @@ func getHandlers(ctx context.Context, config *api.APIConfig, encryptedConfig *ap
 	bitbucketHandler = bitbucket.NewHandler(bitbucketService, config, bitbucketapiClient)
 	githubHandler = github.NewHandler(githubService, config, githubapiClient)
 	estafetteHandler = estafette.NewHandler(*configFilePath, *templatesPath, config, encryptedConfig, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper)
-	rbacHandler = rbac.NewHandler(config, rbacService, cockroachdbClient, bitbucketapiClient)
+	rbacHandler = rbac.NewHandler(config, rbacService, cockroachdbClient, bitbucketapiClient, githubapiClient)
 	pubsubHandler = pubsub.NewHandler(pubsubapiClient, estafetteService)
 	slackHandler = slack.NewHandler(secretHelper, config, slackapiClient, cockroachdbClient, estafetteService)
 	cloudsourceHandler = cloudsource.NewHandler(pubsubapiClient, cloudsourceService)

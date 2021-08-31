@@ -13,6 +13,7 @@ import (
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/pkg/clients/cockroachdb"
+	"github.com/estafette/estafette-ci-api/pkg/clients/githubapi"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
 	jwtgo "github.com/golang-jwt/jwt/v4"
@@ -23,12 +24,13 @@ import (
 )
 
 // NewHandler returns a new rbac.Handler
-func NewHandler(config *api.APIConfig, service Service, cockroachdbClient cockroachdb.Client, bitbucketapiClient bitbucketapi.Client) Handler {
+func NewHandler(config *api.APIConfig, service Service, cockroachdbClient cockroachdb.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client) Handler {
 	return Handler{
 		config:             config,
 		service:            service,
 		cockroachdbClient:  cockroachdbClient,
 		bitbucketapiClient: bitbucketapiClient,
+		githubapiClient:    githubapiClient,
 	}
 }
 
@@ -37,6 +39,7 @@ type Handler struct {
 	service            Service
 	cockroachdbClient  cockroachdb.Client
 	bitbucketapiClient bitbucketapi.Client
+	githubapiClient    githubapi.Client
 }
 
 func (h *Handler) GetLoggedInUser(c *gin.Context) {
@@ -1024,6 +1027,22 @@ func (h *Handler) GetIntegrations(c *gin.Context) {
 			},
 		}
 
+		apps, err := h.githubapiClient.GetApps(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed retrieving github apps from configmap")
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+			return
+		}
+
+		// clone apps while obfuscating secret properties
+		response.Github.Apps = make([]*githubapi.GithubApp, len(apps))
+		for _, app := range apps {
+			response.Github.Apps = append(response.Github.Apps, &githubapi.GithubApp{
+				ID:            app.ID,
+				PrivateKey:    "***",
+				WebhookSecret: "***",
+			})
+		}
 	}
 
 	if h.config != nil && h.config.Integrations != nil && h.config.Integrations.Bitbucket != nil && h.config.Integrations.Bitbucket.Enable {
@@ -1039,7 +1058,21 @@ func (h *Handler) GetIntegrations(c *gin.Context) {
 			return
 		}
 
-		response.Bitbucket.Installations = installations
+		// clone installations while obfuscating secret properties
+		response.Bitbucket.Installations = make([]*bitbucketapi.BitbucketAppInstallation, len(installations))
+		for _, installation := range installations {
+			response.Bitbucket.Installations = append(response.Bitbucket.Installations, &bitbucketapi.BitbucketAppInstallation{
+				Key:          installation.Key,
+				BaseApiURL:   installation.BaseApiURL,
+				ClientKey:    installation.ClientKey,
+				SharedSecret: "***",
+				Workspace: &bitbucketapi.Workspace{
+					Slug: installation.Workspace.Slug,
+					Name: installation.Workspace.Name,
+					UUID: installation.Workspace.UUID,
+				},
+			})
+		}
 	}
 
 	c.JSON(http.StatusOK, response)
