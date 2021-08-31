@@ -205,7 +205,6 @@ func (h *Handler) Redirect(c *gin.Context) {
 	// https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app-from-a-manifest
 
 	code := c.Query("code")
-	_ = c.Query("state")
 
 	err := h.githubapiClient.ConvertAppManifestCode(c.Request.Context(), code)
 	if err != nil {

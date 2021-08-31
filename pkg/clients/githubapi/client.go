@@ -323,7 +323,7 @@ func (c *client) ConvertAppManifestCode(ctx context.Context, code string) (err e
 		ht.Finish()
 	}
 
-	if response.StatusCode != http.StatusOK {
+	if response.StatusCode != http.StatusCreated {
 		return fmt.Errorf("Failed requesting %v with status code %v", fmt.Sprintf("https://api.github.com/app-manifests/%v/conversions", code), response.StatusCode)
 	}
 
