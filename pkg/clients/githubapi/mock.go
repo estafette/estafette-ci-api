@@ -34,6 +34,49 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
+// AddApp mocks base method.
+func (m *MockClient) AddApp(ctx context.Context, app GithubApp) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddApp", ctx, app)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddApp indicates an expected call of AddApp.
+func (mr *MockClientMockRecorder) AddApp(ctx, app interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddApp", reflect.TypeOf((*MockClient)(nil).AddApp), ctx, app)
+}
+
+// ConvertAppManifestCode mocks base method.
+func (m *MockClient) ConvertAppManifestCode(ctx context.Context, code string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ConvertAppManifestCode", ctx, code)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ConvertAppManifestCode indicates an expected call of ConvertAppManifestCode.
+func (mr *MockClientMockRecorder) ConvertAppManifestCode(ctx, code interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConvertAppManifestCode", reflect.TypeOf((*MockClient)(nil).ConvertAppManifestCode), ctx, code)
+}
+
+// GetApps mocks base method.
+func (m *MockClient) GetApps(ctx context.Context) ([]*GithubApp, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetApps", ctx)
+	ret0, _ := ret[0].([]*GithubApp)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetApps indicates an expected call of GetApps.
+func (mr *MockClientMockRecorder) GetApps(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetApps", reflect.TypeOf((*MockClient)(nil).GetApps), ctx)
+}
+
 // GetEstafetteManifest mocks base method.
 func (m *MockClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (bool, string, error) {
 	m.ctrl.T.Helper()
@@ -107,4 +150,18 @@ func (m *MockClient) JobVarsFunc(ctx context.Context) func(context.Context, stri
 func (mr *MockClientMockRecorder) JobVarsFunc(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "JobVarsFunc", reflect.TypeOf((*MockClient)(nil).JobVarsFunc), ctx)
+}
+
+// RemoveApp mocks base method.
+func (m *MockClient) RemoveApp(ctx context.Context, app GithubApp) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveApp", ctx, app)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveApp indicates an expected call of RemoveApp.
+func (mr *MockClientMockRecorder) RemoveApp(ctx, app interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveApp", reflect.TypeOf((*MockClient)(nil).RemoveApp), ctx, app)
 }

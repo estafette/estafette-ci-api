@@ -12,11 +12,15 @@ import (
 	"time"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
+	crypt "github.com/estafette/estafette-ci-crypt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 	"github.com/sethgrid/pester"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // Client is the interface for communicating with the github api
@@ -27,25 +31,27 @@ type Client interface {
 	GetInstallationToken(ctx context.Context, installationID int) (token AccessToken, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (valid bool, manifest string, err error)
 	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error)
+	ConvertAppManifestCode(ctx context.Context, code string) (err error)
+	GetApps(ctx context.Context) (apps []*GithubApp, err error)
+	AddApp(ctx context.Context, app GithubApp) (err error)
+	RemoveApp(ctx context.Context, app GithubApp) (err error)
 }
 
 // NewClient creates an githubapi.Client to communicate with the Github api
-func NewClient(config *api.APIConfig) Client {
-	if config == nil || config.Integrations == nil || config.Integrations.Github == nil || !config.Integrations.Github.Enable {
-		return &client{
-			enabled: false,
-		}
-	}
-
+func NewClient(config *api.APIConfig, kubeClientset *kubernetes.Clientset, secretHelper crypt.SecretHelper) Client {
 	return &client{
-		enabled: true,
-		config:  config,
+		enabled:       config != nil && config.Integrations != nil && config.Integrations.Github != nil && config.Integrations.Github.Enable,
+		config:        config,
+		kubeClientset: kubeClientset,
+		secretHelper:  secretHelper,
 	}
 }
 
 type client struct {
-	enabled bool
-	config  *api.APIConfig
+	enabled       bool
+	config        *api.APIConfig
+	kubeClientset *kubernetes.Clientset
+	secretHelper  crypt.SecretHelper
 }
 
 // GetGithubAppToken returns a Github app token with which to retrieve an installation token
@@ -276,4 +282,251 @@ func (c *client) callGithubAPI(ctx context.Context, method, url string, params i
 	}
 
 	return
+}
+
+func (c *client) ConvertAppManifestCode(ctx context.Context, code string) (err error) {
+
+	// https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app-from-a-manifest#3-you-exchange-the-temporary-code-to-retrieve-the-app-configuration
+	// swap code for id (GitHub App ID), pem (private key), and webhook_secret at POST /app-manifests/{code}/conversions
+
+	url := fmt.Sprintf("https://api.github.com/app-manifests/%v/conversions", code)
+
+	// create client, in order to add headers
+	client := pester.NewExtendedClient(&http.Client{Transport: &nethttp.Transport{}})
+	client.MaxRetries = 3
+	client.Backoff = pester.ExponentialJitterBackoff
+	client.KeepLog = true
+	client.Timeout = time.Second * 10
+	request, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		return
+	}
+
+	span := opentracing.SpanFromContext(ctx)
+	var ht *nethttp.Tracer
+	if span != nil {
+		// add tracing context
+		request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
+
+		// collect additional information on setting up connections
+		request, ht = nethttp.TraceRequest(span.Tracer(), request)
+	}
+
+	// perform actual request
+	response, err := client.Do(request)
+	if err != nil {
+		return
+	}
+
+	defer response.Body.Close()
+	if ht != nil {
+		ht.Finish()
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("Failed requesting %v with status code %v", fmt.Sprintf("https://api.github.com/app-manifests/%v/conversions", code), response.StatusCode)
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return
+	}
+
+	// unmarshal json body
+	var app GithubApp
+	err = json.Unmarshal(body, &app)
+	if err != nil {
+		return
+	}
+
+	err = c.AddApp(ctx, app)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *client) GetApps(ctx context.Context) (apps []*GithubApp, err error) {
+	// get from cache
+	if appsCache != nil {
+		return appsCache, nil
+	}
+
+	apps = make([]*GithubApp, 0)
+
+	configMap, err := c.kubeClientset.CoreV1().ConfigMaps(c.getCurrentNamespace()).Get(ctx, githubConfigmapName, metav1.GetOptions{})
+	if err != nil || configMap == nil {
+		return apps, nil
+	}
+
+	if data, ok := configMap.Data["apps"]; ok {
+		err = json.Unmarshal([]byte(data), &apps)
+		if err != nil {
+			return
+		}
+
+		err = c.decryptAppSecrets(ctx, apps)
+		if err != nil {
+			return
+		}
+
+		// add to cache
+		appsCache = apps
+	}
+
+	return
+}
+
+func (c *client) AddApp(ctx context.Context, app GithubApp) (err error) {
+
+	apps, err := c.GetApps(ctx)
+	if err != nil {
+		return
+	}
+
+	if apps == nil {
+		apps = make([]*GithubApp, 0)
+	}
+
+	// check if installation(s) with key and clientKey exists, if not add, otherwise update
+	appExists := false
+	for _, ap := range apps {
+		if ap.ID == app.ID {
+			appExists = true
+
+			ap.PrivateKey = app.PrivateKey
+			ap.WebhookSecret = app.WebhookSecret
+		}
+	}
+
+	if !appExists {
+		apps = append(apps, &app)
+	}
+
+	err = c.upsertConfigmap(ctx, apps)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *client) RemoveApp(ctx context.Context, app GithubApp) (err error) {
+	apps, err := c.GetApps(ctx)
+	if err != nil {
+		return
+	}
+
+	if apps == nil {
+		apps = make([]*GithubApp, 0)
+	}
+
+	// check if installation(s) with key and clientKey exists, then remove
+	for i, ap := range apps {
+		if ap.ID == app.ID {
+			apps = append(apps[:i], apps[i+1:]...)
+		}
+	}
+
+	err = c.upsertConfigmap(ctx, apps)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+var appsCache []*GithubApp
+
+const githubConfigmapName = "estafette-ci-api.github"
+
+func (c *client) upsertConfigmap(ctx context.Context, apps []*GithubApp) (err error) {
+
+	err = c.encryptAppSecrets(ctx, apps)
+	if err != nil {
+		return
+	}
+
+	// marshal to json
+	data, err := json.Marshal(apps)
+	if err != nil {
+		return err
+	}
+
+	// store in configmap
+	configMap, err := c.kubeClientset.CoreV1().ConfigMaps(c.getCurrentNamespace()).Get(ctx, githubConfigmapName, metav1.GetOptions{})
+	if err != nil || configMap == nil {
+		// create configmap
+		configMap = &v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      githubConfigmapName,
+				Namespace: c.getCurrentNamespace(),
+			},
+			Data: map[string]string{
+				"apps": string(data),
+			},
+		}
+		_, err = c.kubeClientset.CoreV1().ConfigMaps(c.getCurrentNamespace()).Create(ctx, configMap, metav1.CreateOptions{})
+		if err != nil {
+			return err
+		}
+	} else {
+		// update configmap
+		configMap.Data["apps"] = string(data)
+		_, err = c.kubeClientset.CoreV1().ConfigMaps(c.getCurrentNamespace()).Update(ctx, configMap, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
+	}
+
+	// update cache
+	appsCache = apps
+
+	return
+}
+
+func (c *client) getCurrentNamespace() string {
+	namespace, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed reading namespace")
+	}
+
+	return string(namespace)
+}
+
+func (c *client) encryptAppSecrets(ctx context.Context, apps []*GithubApp) (err error) {
+	for _, app := range apps {
+		encryptedPrivateKey, encryptErr := c.secretHelper.EncryptEnvelope(app.PrivateKey, crypt.DefaultPipelineAllowList)
+		if encryptErr != nil {
+			return encryptErr
+		}
+		app.PrivateKey = encryptedPrivateKey
+
+		encryptedWebhookSecret, encryptErr := c.secretHelper.EncryptEnvelope(app.WebhookSecret, crypt.DefaultPipelineAllowList)
+		if encryptErr != nil {
+			return encryptErr
+		}
+		app.WebhookSecret = encryptedWebhookSecret
+	}
+
+	return nil
+}
+
+func (c *client) decryptAppSecrets(ctx context.Context, apps []*GithubApp) (err error) {
+	for _, app := range apps {
+		decryptedPrivateKey, _, decryptErr := c.secretHelper.DecryptEnvelope(app.PrivateKey, "")
+		if decryptErr != nil {
+			return decryptErr
+		}
+		app.PrivateKey = decryptedPrivateKey
+
+		decryptedWebhookSecret, _, decryptErr := c.secretHelper.DecryptEnvelope(app.WebhookSecret, "")
+		if decryptErr != nil {
+			return decryptErr
+		}
+		app.WebhookSecret = decryptedWebhookSecret
+	}
+
+	return nil
 }

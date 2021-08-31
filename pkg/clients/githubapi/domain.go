@@ -184,3 +184,9 @@ func (pe *RepositoryEvent) GetNewRepoName() string {
 func IsRepoSourceGithub(repoSourceToCompare string) bool {
 	return repoSourceToCompare == repoSource
 }
+
+type GithubApp struct {
+	ID            string `json:"id"`
+	PrivateKey    string `json:"pem"`
+	WebhookSecret string `json:"webhook_secret"`
+}

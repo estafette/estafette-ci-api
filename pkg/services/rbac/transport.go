@@ -995,14 +995,37 @@ func (h *Handler) GetIntegrations(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	type bitbucketResponse struct {
-		AddonKey      string                                   `json:"addonKey,omitempty"`
-		RedirectURI   string                                   `json:"redirectURI,omitempty"`
-		Installations []*bitbucketapi.BitbucketAppInstallation `json:"installations,omitempty"`
+	var response struct {
+		Github    *githubResponse    `json:"github,omitempty"`
+		Bitbucket *bitbucketResponse `json:"bitbucket,omitempty"`
 	}
 
-	var response struct {
-		Bitbucket *bitbucketResponse `json:"bitbucket,omitempty"`
+	if h.config != nil && h.config.Integrations != nil && h.config.Integrations.Github != nil && h.config.Integrations.Github.Enable {
+		response.Github = &githubResponse{
+			Manifest: githubManifest{
+				Name:        "estafette-ci",
+				Description: "Estafette - The The resilient and cloud-native CI/CD platform",
+				URL:         h.config.APIServer.BaseURL,
+				HookAttributes: []*githubHookAttribute{
+					{
+						URL: fmt.Sprintf("%v/api/integrations/github/events", h.config.APIServer.IntegrationsURL),
+					},
+				},
+				RedirectURL: fmt.Sprintf("%v/api/integrations/github/redirect", h.config.APIServer.IntegrationsURL),
+				Public:      false,
+				DefaultEvents: []string{
+					"push",
+					"repository",
+				},
+				DefaultPermissions: map[string]string{
+					"contents": "write",
+					"issues":   "write",
+					"metadata": "read",
+					"statuses": "write",
+				},
+			},
+		}
+
 	}
 
 	if h.config != nil && h.config.Integrations != nil && h.config.Integrations.Bitbucket != nil && h.config.Integrations.Bitbucket.Enable {

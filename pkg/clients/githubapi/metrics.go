@@ -56,3 +56,29 @@ func (c *metricsClient) JobVarsFunc(ctx context.Context) func(context.Context, s
 
 	return c.Client.JobVarsFunc(ctx)
 }
+
+func (c *metricsClient) ConvertAppManifestCode(ctx context.Context, code string) (err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "ConvertAppManifestCode", begin)
+	}(time.Now())
+
+	return c.Client.ConvertAppManifestCode(ctx, code)
+}
+
+func (c *metricsClient) GetApps(ctx context.Context) (apps []*GithubApp, err error) {
+	defer func(begin time.Time) { api.UpdateMetrics(c.requestCount, c.requestLatency, "GetApps", begin) }(time.Now())
+
+	return c.Client.GetApps(ctx)
+}
+
+func (c *metricsClient) AddApp(ctx context.Context, app GithubApp) (err error) {
+	defer func(begin time.Time) { api.UpdateMetrics(c.requestCount, c.requestLatency, "AddApp", begin) }(time.Now())
+
+	return c.Client.AddApp(ctx, app)
+}
+
+func (c *metricsClient) RemoveApp(ctx context.Context, app GithubApp) (err error) {
+	defer func(begin time.Time) { api.UpdateMetrics(c.requestCount, c.requestLatency, "RemoveApp", begin) }(time.Now())
+
+	return c.Client.RemoveApp(ctx, app)
+}

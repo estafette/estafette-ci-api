@@ -43,3 +43,27 @@ func (c *loggingClient) GetEstafetteManifest(ctx context.Context, accesstoken Ac
 func (c *loggingClient) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, error) {
 	return c.Client.JobVarsFunc(ctx)
 }
+
+func (c *loggingClient) ConvertAppManifestCode(ctx context.Context, code string) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "ConvertAppManifestCode", err) }()
+
+	return c.Client.ConvertAppManifestCode(ctx, code)
+}
+
+func (c *loggingClient) GetApps(ctx context.Context) (apps []*GithubApp, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetApps", err) }()
+
+	return c.Client.GetApps(ctx)
+}
+
+func (c *loggingClient) AddApp(ctx context.Context, app GithubApp) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "AddApp", err) }()
+
+	return c.Client.AddApp(ctx, app)
+}
+
+func (c *loggingClient) RemoveApp(ctx context.Context, app GithubApp) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "RemoveApp", err) }()
+
+	return c.Client.RemoveApp(ctx, app)
+}

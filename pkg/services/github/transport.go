@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
+	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/githubapi"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
@@ -14,14 +16,18 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewHandler(service Service) Handler {
+func NewHandler(service Service, config *api.APIConfig, githubapiClient githubapi.Client) Handler {
 	return Handler{
-		service: service,
+		config:          config,
+		service:         service,
+		githubapiClient: githubapiClient,
 	}
 }
 
 type Handler struct {
-	service Service
+	config          *api.APIConfig
+	service         Service
+	githubapiClient githubapi.Client
 }
 
 func (h *Handler) Handle(c *gin.Context) {
@@ -193,4 +199,20 @@ func (h *Handler) Handle(c *gin.Context) {
 	}()
 
 	c.Status(http.StatusOK)
+}
+
+func (h *Handler) Redirect(c *gin.Context) {
+	// https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app-from-a-manifest
+
+	code := c.Query("code")
+	_ = c.Query("state")
+
+	err := h.githubapiClient.ConvertAppManifestCode(c.Request.Context(), code)
+	if err != nil {
+		log.Error().Err(err).Msg("Converting Github app install code failed")
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	c.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("%v/admin/integrations", h.config.APIServer.BaseURL))
 }

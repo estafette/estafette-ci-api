@@ -51,3 +51,31 @@ func (c *tracingClient) JobVarsFunc(ctx context.Context) func(context.Context, s
 
 	return c.Client.JobVarsFunc(ctx)
 }
+
+func (c *tracingClient) ConvertAppManifestCode(ctx context.Context, code string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "ConvertAppManifestCode"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.ConvertAppManifestCode(ctx, code)
+}
+
+func (c *tracingClient) GetApps(ctx context.Context) (apps []*GithubApp, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetApps"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetApps(ctx)
+}
+
+func (c *tracingClient) AddApp(ctx context.Context, app GithubApp) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "AddApp"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.AddApp(ctx, app)
+}
+
+func (c *tracingClient) RemoveApp(ctx context.Context, app GithubApp) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "RemoveApp"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.RemoveApp(ctx, app)
+}

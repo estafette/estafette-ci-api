@@ -12,6 +12,7 @@ import (
 	"github.com/estafette/estafette-ci-api/pkg/clients/bitbucketapi"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 )
@@ -38,8 +39,24 @@ func (h *Handler) Handle(c *gin.Context) {
 	authorizationHeader := c.GetHeader("Authorization")
 
 	installation, err := h.bitbucketapiClient.ValidateInstallationJWT(c.Request.Context(), authorizationHeader)
-	if err != nil || installation == nil {
-		log.Error().Err(err).Str("authorization", authorizationHeader).Msg("Validating authorization header failed")
+	if err != nil {
+		validationErr, isValidationError := err.(jwt.ValidationError)
+		hasIssuedAtError := isValidationError && validationErr.Errors&jwt.ValidationErrorIssuedAt != 0
+		remainingErrors := validationErr.Errors
+		if hasIssuedAtError {
+			// toggle ValidationErrorIssuedAt and check if there's still errors
+			remainingErrors = validationErr.Errors ^ jwt.ValidationErrorIssuedAt
+		}
+
+		if remainingErrors != 1 || !isValidationError {
+			log.Error().Err(err).Str("authorization", authorizationHeader).Msg("Validating authorization header failed")
+			c.Status(http.StatusBadRequest)
+			return
+		}
+	}
+
+	if installation == nil {
+		log.Error().Err(err).Str("authorization", authorizationHeader).Msg("Retrieving installation for authorization header failed")
 		c.Status(http.StatusBadRequest)
 		return
 	}

@@ -293,7 +293,7 @@ func getClients(ctx context.Context, config *api.APIConfig, encryptedConfig *api
 	)
 
 	// githubapi client
-	githubapiClient = githubapi.NewClient(config)
+	githubapiClient = githubapi.NewClient(config, kubeClientset, secretHelper)
 	githubapiClient = githubapi.NewTracingClient(githubapiClient)
 	githubapiClient = githubapi.NewLoggingClient(githubapiClient)
 	githubapiClient = githubapi.NewMetricsClient(githubapiClient,
@@ -452,7 +452,7 @@ func getHandlers(ctx context.Context, config *api.APIConfig, encryptedConfig *ap
 
 	// transport
 	bitbucketHandler = bitbucket.NewHandler(bitbucketService, config, bitbucketapiClient)
-	githubHandler = github.NewHandler(githubService)
+	githubHandler = github.NewHandler(githubService, config, githubapiClient)
 	estafetteHandler = estafette.NewHandler(*configFilePath, *templatesPath, config, encryptedConfig, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper)
 	rbacHandler = rbac.NewHandler(config, rbacService, cockroachdbClient, bitbucketapiClient)
 	pubsubHandler = pubsub.NewHandler(pubsubapiClient, estafetteService)
@@ -507,6 +507,7 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	log.Debug().Msg("Setting up routes...")
 	routes.POST("/api/integrations/github/events", githubHandler.Handle)
 	routes.GET("/api/integrations/github/status", func(c *gin.Context) { c.String(200, "Github, I'm cool!") })
+	routes.GET("/api/integrations/github/redirect", githubHandler.Redirect)
 
 	routes.POST("/api/integrations/bitbucket/events", bitbucketHandler.Handle)
 	routes.GET("/api/integrations/bitbucket/status", func(c *gin.Context) { c.String(200, "Bitbucket, I'm cool!") })
