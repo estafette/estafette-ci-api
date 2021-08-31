@@ -1008,10 +1008,10 @@ func (h *Handler) GetIntegrations(c *gin.Context) {
 				URL:         h.config.APIServer.BaseURL,
 				HookAttributes: []*githubHookAttribute{
 					{
-						URL: fmt.Sprintf("%v/api/integrations/github/events", h.config.APIServer.IntegrationsURL),
+						URL: fmt.Sprintf("%v/api/integrations/github/events", strings.TrimRight(h.config.APIServer.IntegrationsURL, "/")),
 					},
 				},
-				RedirectURL: fmt.Sprintf("%v/api/integrations/github/redirect", h.config.APIServer.IntegrationsURL),
+				RedirectURL: fmt.Sprintf("%v/api/integrations/github/redirect", strings.TrimRight(h.config.APIServer.IntegrationsURL, "/")),
 				Public:      false,
 				DefaultEvents: []string{
 					"push",
@@ -1031,7 +1031,7 @@ func (h *Handler) GetIntegrations(c *gin.Context) {
 	if h.config != nil && h.config.Integrations != nil && h.config.Integrations.Bitbucket != nil && h.config.Integrations.Bitbucket.Enable {
 		response.Bitbucket = &bitbucketResponse{
 			AddonKey:    h.config.Integrations.Bitbucket.Key,
-			RedirectURI: fmt.Sprintf("%v/api/integrations/bitbucket/redirect", h.config.APIServer.IntegrationsURL),
+			RedirectURI: fmt.Sprintf("%v/api/integrations/bitbucket/redirect", strings.TrimRight(h.config.APIServer.IntegrationsURL, "/")),
 		}
 
 		installations, err := h.bitbucketapiClient.GetInstallations(ctx)
