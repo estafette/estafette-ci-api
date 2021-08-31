@@ -7,16 +7,16 @@ type githubResponse struct {
 }
 
 type githubManifest struct {
-	Name               string                 `json:"name,omitempty"`
-	Description        string                 `json:"description,omitempty"`
-	URL                string                 `json:"url,omitempty"`
-	HookAttributes     []*githubHookAttribute `json:"hook_attributes,omitempty"`
-	RedirectURL        string                 `json:"redirect_url,omitempty"`
-	SetupURL           string                 `json:"setup_url,omitempty"`
-	CallbackURLs       []string               `json:"callback_urls,omitempty"`
-	Public             bool                   `json:"public,omitempty"`
-	DefaultPermissions map[string]string      `json:"default_permissions,omitempty"`
-	DefaultEvents      []string               `json:"default_events,omitempty"`
+	Name               string               `json:"name,omitempty"`
+	Description        string               `json:"description,omitempty"`
+	URL                string               `json:"url,omitempty"`
+	HookAttributes     *githubHookAttribute `json:"hook_attributes,omitempty"`
+	RedirectURL        string               `json:"redirect_url,omitempty"`
+	SetupURL           string               `json:"setup_url,omitempty"`
+	CallbackURLs       []string             `json:"callback_urls,omitempty"`
+	Public             bool                 `json:"public,omitempty"`
+	DefaultPermissions map[string]string    `json:"default_permissions,omitempty"`
+	DefaultEvents      []string             `json:"default_events,omitempty"`
 }
 
 type githubHookAttribute struct {

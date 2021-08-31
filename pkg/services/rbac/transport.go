@@ -1006,10 +1006,8 @@ func (h *Handler) GetIntegrations(c *gin.Context) {
 				Name:        "estafette-ci",
 				Description: "Estafette - The The resilient and cloud-native CI/CD platform",
 				URL:         h.config.APIServer.BaseURL,
-				HookAttributes: []*githubHookAttribute{
-					{
-						URL: fmt.Sprintf("%v/api/integrations/github/events", strings.TrimRight(h.config.APIServer.IntegrationsURL, "/")),
-					},
+				HookAttributes: &githubHookAttribute{
+					URL: fmt.Sprintf("%v/api/integrations/github/events", strings.TrimRight(h.config.APIServer.IntegrationsURL, "/")),
 				},
 				RedirectURL: fmt.Sprintf("%v/api/integrations/github/redirect", strings.TrimRight(h.config.APIServer.IntegrationsURL, "/")),
 				Public:      false,
