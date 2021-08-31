@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/githubapi"
@@ -213,5 +214,5 @@ func (h *Handler) Redirect(c *gin.Context) {
 		return
 	}
 
-	c.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("%v/admin/integrations", h.config.APIServer.BaseURL))
+	c.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("%v/admin/integrations", strings.TrimRight(h.config.APIServer.BaseURL, "/")))
 }
