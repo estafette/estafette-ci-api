@@ -280,9 +280,9 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 		if hasIssuedAtError {
 			// toggle ValidationErrorIssuedAt and check if it was the only validation error
 			remainingErrors := validationErr.Errors ^ jwt.ValidationErrorIssuedAt
-			log.Warn().Err(err).Str("jwtTokenString", jwtTokenString).Interface("remainingErrors", remainingErrors).Bool("testTokenValid", testToken.Valid).Msg("Test token has issued at error")
+			log.Warn().Err(testErr).Str("jwtTokenString", jwtTokenString).Interface("remainingErrors", remainingErrors).Bool("testTokenValid", testToken.Valid).Msg("Test token has issued at error")
 		} else {
-			log.Warn().Err(err).Str("jwtTokenString", jwtTokenString).Msg("Test token has no issued at error")
+			log.Warn().Err(testErr).Str("jwtTokenString", jwtTokenString).Msg("Test token has no issued at error")
 		}
 	}
 
