@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
@@ -244,7 +245,9 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 		return nil, ErrNoInstallations
 	}
 
-	token, err := jwt.Parse(jwtTokenString, func(token *jwt.Token) (interface{}, error) {
+	testToken, testErr := jwt.Parse(jwtTokenString, func(token *jwt.Token) (interface{}, error) {
+		log.Debug().Interface("token", *token).Str("tokenString", jwtTokenString).Msgf("Parsing test token")
+
 		// check algorithm is correct
 		if token.Method != jwt.SigningMethodHS256 {
 			return nil, ErrInvalidSigningAlgorithm
@@ -257,6 +260,52 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 			for _, inst := range installations {
 				if inst.Key == c.config.Integrations.Bitbucket.Key && inst.ClientKey == clientKey {
 					installation = inst
+
+					log.Debug().Interface("token", *token).Str("tokenString", jwtTokenString).Msgf("Found key for test token")
+
+					return []byte(inst.SharedSecret), nil
+				}
+			}
+
+			return nil, ErrMissingInstallation
+		}
+
+		return nil, ErrMissingClaims
+	})
+
+	if testErr != nil {
+		// ignore error if only error is ValidationErrorIssuedAt
+		validationErr, isValidationError := testErr.(jwt.ValidationError)
+		hasIssuedAtError := isValidationError && validationErr.Errors&jwt.ValidationErrorIssuedAt != 0
+		if hasIssuedAtError {
+			// toggle ValidationErrorIssuedAt and check if it was the only validation error
+			remainingErrors := validationErr.Errors ^ jwt.ValidationErrorIssuedAt
+			log.Warn().Err(err).Str("jwtTokenString", jwtTokenString).Interface("remainingErrors", remainingErrors).Bool("testTokenValid", testToken.Valid).Msg("Test token has issued at error")
+		} else {
+			log.Warn().Err(err).Str("jwtTokenString", jwtTokenString).Msg("Test token has no issued at error")
+		}
+	}
+
+	parser := new(jwt.Parser)
+	parser.SkipClaimsValidation = true
+
+	token, err := parser.Parse(jwtTokenString, func(token *jwt.Token) (interface{}, error) {
+		log.Debug().Interface("token", *token).Str("tokenString", jwtTokenString).Msgf("Parsing token")
+
+		// check algorithm is correct
+		if token.Method != jwt.SigningMethodHS256 {
+			return nil, ErrInvalidSigningAlgorithm
+		}
+
+		// get shared secret for client key (iss claim)
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			clientKey := claims["iss"].(string)
+
+			for _, inst := range installations {
+				if inst.Key == c.config.Integrations.Bitbucket.Key && inst.ClientKey == clientKey {
+					installation = inst
+
+					log.Debug().Interface("token", *token).Str("tokenString", jwtTokenString).Msgf("Found key for token")
 
 					return []byte(inst.SharedSecret), nil
 				}
@@ -275,6 +324,7 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 		if hasIssuedAtError {
 			// toggle ValidationErrorIssuedAt and check if it was the only validation error
 			remainingErrors := validationErr.Errors ^ jwt.ValidationErrorIssuedAt
+			log.Warn().Err(err).Str("jwtTokenString", jwtTokenString).Interface("remainingErrors", remainingErrors).Msg("Token has issued at error")
 			if remainingErrors != 1 {
 				return nil, err
 			}
@@ -282,6 +332,7 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 			// token is valid except for ValidationErrorIssuedAt, set to true
 			token.Valid = true
 		} else {
+			log.Warn().Err(err).Str("jwtTokenString", jwtTokenString).Msg("Token has no issued at error")
 			return nil, err
 		}
 	}
@@ -360,15 +411,35 @@ func (c *client) GetInstallationByUUID(ctx context.Context, workspaceUUID string
 	return nil, ErrMissingInstallation
 }
 
-var installationsCache []*BitbucketAppInstallation
+type installationsCacheItem struct {
+	Installations []*BitbucketAppInstallation
+	ExpiresIn     int
+	FetchedAt     time.Time
+}
+
+func (c *installationsCacheItem) ExpiresAt() time.Time {
+	return c.FetchedAt.Add(time.Duration(c.ExpiresIn) * time.Second)
+}
+
+func (c *installationsCacheItem) IsExpired() bool {
+	return time.Now().UTC().After(c.ExpiresAt())
+}
+
+var installationsCache installationsCacheItem
+
+var installationsCacheMutex = sync.RWMutex{}
 
 const bitbucketConfigmapName = "estafette-ci-api.bitbucket"
 
 func (c *client) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {
+
 	// get from cache
-	if installationsCache != nil {
-		return installationsCache, nil
+	installationsCacheMutex.RLock()
+	if installationsCache.Installations != nil && !installationsCache.IsExpired() {
+		installationsCacheMutex.RUnlock()
+		return installationsCache.Installations, nil
 	}
+	installationsCacheMutex.RUnlock()
 
 	installations = make([]*BitbucketAppInstallation, 0)
 
@@ -389,7 +460,13 @@ func (c *client) GetInstallations(ctx context.Context) (installations []*Bitbuck
 		}
 
 		// add to cache
-		installationsCache = installations
+		installationsCacheMutex.Lock()
+		installationsCache = installationsCacheItem{
+			Installations: installations,
+			ExpiresIn:     30,
+			FetchedAt:     time.Now().UTC(),
+		}
+		installationsCacheMutex.Unlock()
 	}
 
 	return
@@ -492,8 +569,14 @@ func (c *client) upsertConfigmap(ctx context.Context, installations []*Bitbucket
 		}
 	}
 
-	// update cache
-	installationsCache = installations
+	// add to cache
+	installationsCacheMutex.Lock()
+	installationsCache = installationsCacheItem{
+		Installations: installations,
+		ExpiresIn:     30,
+		FetchedAt:     time.Now().UTC(),
+	}
+	installationsCacheMutex.Unlock()
 
 	return
 }

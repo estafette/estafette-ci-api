@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
@@ -351,10 +352,14 @@ func (c *client) ConvertAppManifestCode(ctx context.Context, code string) (err e
 }
 
 func (c *client) GetApps(ctx context.Context) (apps []*GithubApp, err error) {
+
 	// get from cache
-	if appsCache != nil {
-		return appsCache, nil
+	appsCacheMutex.RLock()
+	if appsCache.Apps != nil && !appsCache.IsExpired() {
+		appsCacheMutex.RUnlock()
+		return appsCache.Apps, nil
 	}
+	appsCacheMutex.RUnlock()
 
 	apps = make([]*GithubApp, 0)
 
@@ -375,7 +380,13 @@ func (c *client) GetApps(ctx context.Context) (apps []*GithubApp, err error) {
 		}
 
 		// add to cache
-		appsCache = apps
+		appsCacheMutex.Lock()
+		appsCache = appsCacheItem{
+			Apps:      apps,
+			ExpiresIn: 30,
+			FetchedAt: time.Now().UTC(),
+		}
+		appsCacheMutex.Unlock()
 	}
 
 	return
@@ -440,7 +451,23 @@ func (c *client) RemoveApp(ctx context.Context, app GithubApp) (err error) {
 	return
 }
 
-var appsCache []*GithubApp
+type appsCacheItem struct {
+	Apps      []*GithubApp
+	ExpiresIn int
+	FetchedAt time.Time
+}
+
+func (c *appsCacheItem) ExpiresAt() time.Time {
+	return c.FetchedAt.Add(time.Duration(c.ExpiresIn) * time.Second)
+}
+
+func (c *appsCacheItem) IsExpired() bool {
+	return time.Now().UTC().After(c.ExpiresAt())
+}
+
+var appsCache appsCacheItem
+
+var appsCacheMutex = sync.RWMutex{}
 
 const githubConfigmapName = "estafette-ci-api.github"
 
@@ -483,8 +510,14 @@ func (c *client) upsertConfigmap(ctx context.Context, apps []*GithubApp) (err er
 		}
 	}
 
-	// update cache
-	appsCache = apps
+	// add to cache
+	appsCacheMutex.Lock()
+	appsCache = appsCacheItem{
+		Apps:      apps,
+		ExpiresIn: 30,
+		FetchedAt: time.Now().UTC(),
+	}
+	appsCacheMutex.Unlock()
 
 	return
 }
