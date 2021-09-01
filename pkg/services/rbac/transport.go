@@ -1045,6 +1045,7 @@ func (h *Handler) GetIntegrations(c *gin.Context) {
 				WebhookSecret: "***",
 				ClientID:      app.ClientID,
 				ClientSecret:  "***",
+				Installations: app.Installations,
 			})
 		}
 	}
