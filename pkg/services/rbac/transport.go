@@ -1035,7 +1035,7 @@ func (h *Handler) GetIntegrations(c *gin.Context) {
 		}
 
 		// clone apps while obfuscating secret properties
-		response.Github.Apps = make([]*githubapi.GithubApp, len(apps))
+		response.Github.Apps = make([]*githubapi.GithubApp, 0)
 		for _, app := range apps {
 			response.Github.Apps = append(response.Github.Apps, &githubapi.GithubApp{
 				ID:            app.ID,
@@ -1059,7 +1059,7 @@ func (h *Handler) GetIntegrations(c *gin.Context) {
 		}
 
 		// clone installations while obfuscating secret properties
-		response.Bitbucket.Installations = make([]*bitbucketapi.BitbucketAppInstallation, len(installations))
+		response.Bitbucket.Installations = make([]*bitbucketapi.BitbucketAppInstallation, 0)
 		for _, installation := range installations {
 			response.Bitbucket.Installations = append(response.Bitbucket.Installations, &bitbucketapi.BitbucketAppInstallation{
 				Key:          installation.Key,
