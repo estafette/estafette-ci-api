@@ -1039,8 +1039,12 @@ func (h *Handler) GetIntegrations(c *gin.Context) {
 		for _, app := range apps {
 			response.Github.Apps = append(response.Github.Apps, &githubapi.GithubApp{
 				ID:            app.ID,
+				Name:          app.Name,
+				Slug:          app.Slug,
 				PrivateKey:    "***",
 				WebhookSecret: "***",
+				ClientID:      app.ClientID,
+				ClientSecret:  "***",
 			})
 		}
 	}

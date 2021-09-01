@@ -547,6 +547,12 @@ func (c *client) encryptAppSecrets(ctx context.Context, apps []*GithubApp) (err 
 			return encryptErr
 		}
 		app.WebhookSecret = encryptedWebhookSecret
+
+		encryptedClientSecret, encryptErr := c.secretHelper.EncryptEnvelope(app.ClientSecret, crypt.DefaultPipelineAllowList)
+		if encryptErr != nil {
+			return encryptErr
+		}
+		app.ClientSecret = encryptedClientSecret
 	}
 
 	return nil
@@ -565,6 +571,12 @@ func (c *client) decryptAppSecrets(ctx context.Context, apps []*GithubApp) (err 
 			return decryptErr
 		}
 		app.WebhookSecret = decryptedWebhookSecret
+
+		decryptedClientSecret, _, decryptErr := c.secretHelper.DecryptEnvelope(app.ClientSecret, "")
+		if decryptErr != nil {
+			return decryptErr
+		}
+		app.ClientSecret = decryptedClientSecret
 	}
 
 	return nil
