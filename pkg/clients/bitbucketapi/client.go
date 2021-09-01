@@ -287,6 +287,8 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 			return nil, err
 		}
 
+		log.Warn().Err(err).Msg("Bitbucket JWT has issued at validation error, ignoring it")
+
 		// token is valid except for ValidationErrorIssuedAt, set to true
 		token.Valid = true
 	}
