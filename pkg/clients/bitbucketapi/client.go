@@ -272,6 +272,8 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 	})
 
 	if err != nil {
+		// https://github.com/golang-jwt/jwt/issues/98
+
 		// ignore error if only error is ValidationErrorIssuedAt
 		validationErr, isValidationError := err.(*jwt.ValidationError)
 		if !isValidationError {

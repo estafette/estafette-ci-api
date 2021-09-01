@@ -43,7 +43,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/rs/zerolog/log"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
@@ -88,11 +87,6 @@ func main() {
 	stop := make(chan struct{}) // channel to signal goroutines to stop
 
 	ctx := foundation.InitCancellationContext(context.Background())
-
-	// https://github.com/golang-jwt/jwt/issues/98
-	jwt.TimeFunc = func() time.Time {
-		return time.Now().UTC().Add(time.Second * 20)
-	}
 
 	// start prometheus
 	foundation.InitMetricsWithPort(9001)
