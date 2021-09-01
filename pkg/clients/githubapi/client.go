@@ -318,6 +318,9 @@ func (c *client) ConvertAppManifestCode(ctx context.Context, code string) (err e
 	if err != nil {
 		return
 	}
+	if response == nil {
+		return fmt.Errorf("Response for request %v is nil", url)
+	}
 
 	defer response.Body.Close()
 	if ht != nil {
@@ -325,7 +328,7 @@ func (c *client) ConvertAppManifestCode(ctx context.Context, code string) (err e
 	}
 
 	if response.StatusCode != http.StatusCreated {
-		return fmt.Errorf("Failed requesting %v with status code %v", fmt.Sprintf("https://api.github.com/app-manifests/%v/conversions", code), response.StatusCode)
+		return fmt.Errorf("Failed requesting %v with status code %v", url, response.StatusCode)
 	}
 
 	body, err := ioutil.ReadAll(response.Body)
@@ -333,13 +336,13 @@ func (c *client) ConvertAppManifestCode(ctx context.Context, code string) (err e
 		return
 	}
 
-	log.Debug().Err(err).Str("body", string(body)).Msgf("Received response from %v", fmt.Sprintf("https://api.github.com/app-manifests/%v/conversions", code))
+	log.Debug().Str("body", string(body)).Msgf("Received response from %v", url)
 
 	// unmarshal json body
 	var app GithubApp
 	err = json.Unmarshal(body, &app)
 	if err != nil {
-		log.Warn().Err(err).Str("body", string(body)).Msgf("Failed unmarshalling response from %v", fmt.Sprintf("https://api.github.com/app-manifests/%v/conversions", code))
+		log.Warn().Err(err).Str("body", string(body)).Msgf("Failed unmarshalling response from %v", url)
 		return
 	}
 
