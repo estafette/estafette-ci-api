@@ -275,7 +275,7 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 
 	if testErr != nil {
 		// ignore error if only error is ValidationErrorIssuedAt
-		validationErr, isValidationError := testErr.(jwt.ValidationError)
+		validationErr, isValidationError := testErr.(*jwt.ValidationError)
 		if isValidationError {
 			log.Warn().Err(validationErr).Str("jwtTokenString", jwtTokenString).Msg("Test token validation error")
 		}
@@ -323,7 +323,7 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 
 	if err != nil {
 		// ignore error if only error is ValidationErrorIssuedAt
-		validationErr, isValidationError := err.(jwt.ValidationError)
+		validationErr, isValidationError := err.(*jwt.ValidationError)
 		hasIssuedAtError := isValidationError && validationErr.Errors&jwt.ValidationErrorIssuedAt != 0
 		if hasIssuedAtError {
 			// toggle ValidationErrorIssuedAt and check if it was the only validation error
