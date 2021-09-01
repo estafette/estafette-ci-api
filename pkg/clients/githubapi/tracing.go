@@ -86,3 +86,17 @@ func (c *tracingClient) RemoveApp(ctx context.Context, app GithubApp) (err error
 
 	return c.Client.RemoveApp(ctx, app)
 }
+
+func (c *tracingClient) AddInstallation(ctx context.Context, installation Installation) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "AddInstallation"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.AddInstallation(ctx, installation)
+}
+
+func (c *tracingClient) RemoveInstallation(ctx context.Context, installation Installation) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "RemoveInstallation"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.RemoveInstallation(ctx, installation)
+}

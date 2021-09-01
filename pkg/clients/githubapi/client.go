@@ -37,6 +37,8 @@ type Client interface {
 	GetAppByID(ctx context.Context, id int) (app *GithubApp, err error)
 	AddApp(ctx context.Context, app GithubApp) (err error)
 	RemoveApp(ctx context.Context, app GithubApp) (err error)
+	AddInstallation(ctx context.Context, installation Installation) (err error)
+	RemoveInstallation(ctx context.Context, installation Installation) (err error)
 }
 
 // NewClient creates an githubapi.Client to communicate with the Github api
@@ -355,6 +357,25 @@ func (c *client) ConvertAppManifestCode(ctx context.Context, code string) (err e
 	return
 }
 
+type appsCacheItem struct {
+	Apps      []*GithubApp
+	ExpiresIn int
+	FetchedAt time.Time
+}
+
+func (c *appsCacheItem) ExpiresAt() time.Time {
+	return c.FetchedAt.Add(time.Duration(c.ExpiresIn) * time.Second)
+}
+
+func (c *appsCacheItem) IsExpired() bool {
+	return time.Now().UTC().After(c.ExpiresAt())
+}
+
+var appsCache appsCacheItem
+var appsCacheMutex = sync.RWMutex{}
+
+const githubConfigmapName = "estafette-ci-api.github"
+
 func (c *client) GetApps(ctx context.Context) (apps []*GithubApp, err error) {
 
 	// get from cache
@@ -426,7 +447,7 @@ func (c *client) AddApp(ctx context.Context, app GithubApp) (err error) {
 		apps = make([]*GithubApp, 0)
 	}
 
-	// check if installation(s) with key and clientKey exists, if not add, otherwise update
+	// check if app(s) with id exists, if not add, otherwise update
 	appExists := false
 	for _, ap := range apps {
 		if ap.ID == app.ID {
@@ -459,7 +480,7 @@ func (c *client) RemoveApp(ctx context.Context, app GithubApp) (err error) {
 		apps = make([]*GithubApp, 0)
 	}
 
-	// check if installation(s) with key and clientKey exists, then remove
+	// check if app(s) with id exists, then remove
 	for i, ap := range apps {
 		if ap.ID == app.ID {
 			apps = append(apps[:i], apps[i+1:]...)
@@ -474,25 +495,76 @@ func (c *client) RemoveApp(ctx context.Context, app GithubApp) (err error) {
 	return
 }
 
-type appsCacheItem struct {
-	Apps      []*GithubApp
-	ExpiresIn int
-	FetchedAt time.Time
+func (c *client) AddInstallation(ctx context.Context, installation Installation) (err error) {
+
+	apps, err := c.GetApps(ctx)
+	if err != nil {
+		return
+	}
+
+	if apps == nil {
+		apps = make([]*GithubApp, 0)
+	}
+
+	// check if installation(s) with id exists, if not add, otherwise update
+	for _, app := range apps {
+		if app.ID == installation.AppID {
+			if app.Installations == nil {
+				app.Installations = make([]*Installation, 0)
+			}
+			installationExists := false
+			for _, inst := range app.Installations {
+				if inst.ID == installation.ID {
+					installationExists = true
+				}
+			}
+			if !installationExists {
+				app.Installations = append(app.Installations, &installation)
+			}
+		}
+	}
+
+	err = c.upsertConfigmap(ctx, apps)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
-func (c *appsCacheItem) ExpiresAt() time.Time {
-	return c.FetchedAt.Add(time.Duration(c.ExpiresIn) * time.Second)
+func (c *client) RemoveInstallation(ctx context.Context, installation Installation) (err error) {
+
+	apps, err := c.GetApps(ctx)
+	if err != nil {
+		return
+	}
+
+	if apps == nil {
+		apps = make([]*GithubApp, 0)
+	}
+
+	// check if installation(s) with id exists, then remove
+	for _, app := range apps {
+		if app.ID == installation.AppID {
+			if app.Installations == nil {
+				app.Installations = make([]*Installation, 0)
+			}
+			for i, inst := range app.Installations {
+				if inst.ID == installation.ID {
+					app.Installations = append(app.Installations[:i], app.Installations[i+1:]...)
+				}
+			}
+		}
+	}
+
+	err = c.upsertConfigmap(ctx, apps)
+	if err != nil {
+		return
+	}
+
+	return
+
 }
-
-func (c *appsCacheItem) IsExpired() bool {
-	return time.Now().UTC().After(c.ExpiresAt())
-}
-
-var appsCache appsCacheItem
-
-var appsCacheMutex = sync.RWMutex{}
-
-const githubConfigmapName = "estafette-ci-api.github"
 
 func (c *client) upsertConfigmap(ctx context.Context, apps []*GithubApp) (err error) {
 

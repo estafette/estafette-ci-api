@@ -66,16 +66,17 @@ func (h *Handler) Handle(c *gin.Context) {
 		return
 	}
 
-	// verify installation id is allowed
-	isAllowed, _ := h.service.IsAllowedInstallation(c.Request.Context(), anyEvent.Installation)
-	if !isAllowed {
-		log.Warn().Interface("event", anyEvent).Str("body", string(body)).Msg("GithubAnyEvent installation is not allowed")
-		c.Status(http.StatusUnauthorized)
-		return
-	}
-
 	switch eventType {
 	case "push": // Any Git push to a Repository, including editing tags or branches. Commits via API actions that update references are also counted. This is the default event.
+
+		// verify installation id is allowed
+		isAllowed, _ := h.service.IsAllowedInstallation(c.Request.Context(), anyEvent.Installation)
+		if !isAllowed {
+			log.Warn().Interface("event", anyEvent).Str("body", string(body)).Msg("GithubAnyEvent installation is not allowed")
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
 		// unmarshal json body
 		var pushEvent githubapi.PushEvent
 		err := json.Unmarshal(body, &pushEvent)
@@ -97,7 +98,7 @@ func (h *Handler) Handle(c *gin.Context) {
 
 		// unmarshal json body
 		var repositoryEvent githubapi.RepositoryEvent
-		err := json.Unmarshal(body, &repositoryEvent)
+		err = json.Unmarshal(body, &repositoryEvent)
 		if err != nil {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubRepositoryEvent failed")
 			c.Status(http.StatusBadRequest)
@@ -106,7 +107,25 @@ func (h *Handler) Handle(c *gin.Context) {
 
 		switch repositoryEvent.Action {
 		case "created":
+			err = h.githubapiClient.AddInstallation(c.Request.Context(), anyEvent.Installation)
+			if err != nil {
+				log.Error().Err(err).Str("body", string(body)).Msg("Adding installation failed")
+				c.Status(http.StatusBadRequest)
+				return
+			}
+
 		case "deleted":
+			err = h.githubapiClient.RemoveInstallation(c.Request.Context(), anyEvent.Installation)
+			if err != nil {
+				log.Error().Err(err).Str("body", string(body)).Msg("Removing installation failed")
+				c.Status(http.StatusBadRequest)
+				return
+			}
+
+		case "suspend":
+		case "unsuspend":
+		default:
+			log.Warn().Str("event", eventType).Str("action", repositoryEvent.Action).Msgf("Unsupported Github webhook installation event action of type '%v'", repositoryEvent.Action)
 		}
 
 	case

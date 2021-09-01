@@ -34,7 +34,13 @@ type PushEvent struct {
 
 // Installation represents an installation of a Github app
 type Installation struct {
-	ID int `json:"id"`
+	ID      int      `json:"id"`
+	AppID   int      `json:"app_id,omitempty"`
+	Account *Account `json:"account,omitempty"`
+}
+
+type Account struct {
+	Login string `json:"login"`
 }
 
 // Commit represents a Github commit
@@ -186,11 +192,12 @@ func IsRepoSourceGithub(repoSourceToCompare string) bool {
 }
 
 type GithubApp struct {
-	ID            int    `json:"id"`
-	Name          string `json:"name"`
-	Slug          string `json:"slug"`
-	PrivateKey    string `json:"pem"`
-	WebhookSecret string `json:"webhook_secret"`
-	ClientID      string `json:"client_id"`
-	ClientSecret  string `json:"client_secret"`
+	ID            int             `json:"id"`
+	Name          string          `json:"name"`
+	Slug          string          `json:"slug"`
+	PrivateKey    string          `json:"pem"`
+	WebhookSecret string          `json:"webhook_secret"`
+	ClientID      string          `json:"client_id"`
+	ClientSecret  string          `json:"client_secret"`
+	Installations []*Installation `json:"installations"`
 }

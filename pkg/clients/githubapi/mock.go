@@ -48,6 +48,20 @@ func (mr *MockClientMockRecorder) AddApp(ctx, app interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddApp", reflect.TypeOf((*MockClient)(nil).AddApp), ctx, app)
 }
 
+// AddInstallation mocks base method.
+func (m *MockClient) AddInstallation(ctx context.Context, installation Installation) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddInstallation", ctx, installation)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddInstallation indicates an expected call of AddInstallation.
+func (mr *MockClientMockRecorder) AddInstallation(ctx, installation interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddInstallation", reflect.TypeOf((*MockClient)(nil).AddInstallation), ctx, installation)
+}
+
 // ConvertAppManifestCode mocks base method.
 func (m *MockClient) ConvertAppManifestCode(ctx context.Context, code string) error {
 	m.ctrl.T.Helper()
@@ -179,4 +193,18 @@ func (m *MockClient) RemoveApp(ctx context.Context, app GithubApp) error {
 func (mr *MockClientMockRecorder) RemoveApp(ctx, app interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveApp", reflect.TypeOf((*MockClient)(nil).RemoveApp), ctx, app)
+}
+
+// RemoveInstallation mocks base method.
+func (m *MockClient) RemoveInstallation(ctx context.Context, installation Installation) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveInstallation", ctx, installation)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveInstallation indicates an expected call of RemoveInstallation.
+func (mr *MockClientMockRecorder) RemoveInstallation(ctx, installation interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveInstallation", reflect.TypeOf((*MockClient)(nil).RemoveInstallation), ctx, installation)
 }

@@ -88,3 +88,17 @@ func (c *metricsClient) RemoveApp(ctx context.Context, app GithubApp) (err error
 
 	return c.Client.RemoveApp(ctx, app)
 }
+
+func (c *metricsClient) AddInstallation(ctx context.Context, installation Installation) (err error) {
+	defer func(begin time.Time) { api.UpdateMetrics(c.requestCount, c.requestLatency, "AddInstallation", begin) }(time.Now())
+
+	return c.Client.AddInstallation(ctx, installation)
+}
+
+func (c *metricsClient) RemoveInstallation(ctx context.Context, installation Installation) (err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "RemoveInstallation", begin)
+	}(time.Now())
+
+	return c.Client.RemoveInstallation(ctx, installation)
+}

@@ -73,3 +73,15 @@ func (c *loggingClient) RemoveApp(ctx context.Context, app GithubApp) (err error
 
 	return c.Client.RemoveApp(ctx, app)
 }
+
+func (c *loggingClient) AddInstallation(ctx context.Context, installation Installation) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "AddInstallation", err) }()
+
+	return c.Client.AddInstallation(ctx, installation)
+}
+
+func (c *loggingClient) RemoveInstallation(ctx context.Context, installation Installation) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "RemoveInstallation", err) }()
+
+	return c.Client.RemoveInstallation(ctx, installation)
+}
