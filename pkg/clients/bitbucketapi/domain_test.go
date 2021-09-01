@@ -1,8 +1,10 @@
 package bitbucketapi
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -84,5 +86,44 @@ func TestGetWorkspaceUUID(t *testing.T) {
 		uuid := bai.GetWorkspaceUUID()
 
 		assert.Equal(t, "{f786eeda-2b64-4617-8039-a85895b13619}", uuid)
+	})
+}
+
+func TestValidationErrorIssuedAt(t *testing.T) {
+	t.Run("HasNoRemainingErrorsIfOnlyErrorIsValidationErrorIssuedAt", func(t *testing.T) {
+		vErr := new(jwt.ValidationError)
+		vErr.Inner = fmt.Errorf("Token used before issued")
+		vErr.Errors |= jwt.ValidationErrorIssuedAt
+
+		var err error
+		err = vErr
+
+		validationErr, isValidationError := err.(*jwt.ValidationError)
+		hasIssuedAtError := isValidationError && validationErr.Errors&jwt.ValidationErrorIssuedAt != 0
+		remainingErrors := validationErr.Errors ^ jwt.ValidationErrorIssuedAt
+
+		assert.False(t, vErr.Errors == 0)
+		assert.True(t, isValidationError)
+		assert.True(t, hasIssuedAtError)
+		assert.Equal(t, uint32(0), remainingErrors)
+	})
+
+	t.Run("HasRemainingErrorsIfOtherErrorsBesidesValidationErrorIssuedAt", func(t *testing.T) {
+		vErr := new(jwt.ValidationError)
+		vErr.Inner = fmt.Errorf("Token used before issued")
+		vErr.Errors |= jwt.ValidationErrorIssuedAt
+		vErr.Errors |= jwt.ValidationErrorExpired
+
+		var err error
+		err = vErr
+
+		validationErr, isValidationError := err.(*jwt.ValidationError)
+		hasIssuedAtError := isValidationError && validationErr.Errors&jwt.ValidationErrorIssuedAt != 0
+		remainingErrors := validationErr.Errors ^ jwt.ValidationErrorIssuedAt
+
+		assert.False(t, vErr.Errors == 0)
+		assert.True(t, isValidationError)
+		assert.True(t, hasIssuedAtError)
+		assert.NotEqual(t, uint32(0), remainingErrors)
 	})
 }
