@@ -238,10 +238,12 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 
 	installations, err := c.GetInstallations(ctx)
 	if err != nil {
+		log.Warn().Err(err).Msg("Bitbucket JWT validation failed on retrieving installations")
 		return nil, err
 	}
 
 	if installations == nil && len(installations) == 0 {
+		log.Warn().Msg("Bitbucket JWT validation retrieved 0 installations")
 		return nil, ErrNoInstallations
 	}
 
@@ -273,17 +275,20 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 		// ignore error if only error is ValidationErrorIssuedAt
 		validationErr, isValidationError := err.(*jwt.ValidationError)
 		if !isValidationError {
+			log.Warn().Err(err).Msg("Bitbucket JWT parsing failed, but is not a ValidationError")
 			return nil, err
 		}
 
 		hasIssuedAtValidationError := validationErr.Errors&jwt.ValidationErrorIssuedAt != 0
 		if !hasIssuedAtValidationError {
+			log.Warn().Err(err).Msg("Bitbucket JWT parsing failed, but is not a ValidationErrorIssuedAt")
 			return nil, err
 		}
 
 		// toggle ValidationErrorIssuedAt and check if it was the only validation error
 		remainingErrors := validationErr.Errors ^ jwt.ValidationErrorIssuedAt
 		if remainingErrors != 1 {
+			log.Warn().Err(err).Msg("Bitbucket JWT parsing failed, but has other errors besides ValidationErrorIssuedAt")
 			return nil, err
 		}
 
@@ -294,6 +299,7 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 	}
 
 	if !token.Valid {
+		log.Warn().Err(err).Msg("Bitbucket JWT validation has invalid token")
 		return nil, ErrInvalidToken
 	}
 
