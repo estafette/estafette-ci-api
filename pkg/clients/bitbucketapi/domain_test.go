@@ -95,8 +95,7 @@ func TestValidationErrorIssuedAt(t *testing.T) {
 		vErr.Inner = fmt.Errorf("Token used before issued")
 		vErr.Errors |= jwt.ValidationErrorIssuedAt
 
-		var err error
-		err = vErr
+		err := error(vErr)
 
 		validationErr, isValidationError := err.(*jwt.ValidationError)
 		hasIssuedAtError := isValidationError && validationErr.Errors&jwt.ValidationErrorIssuedAt != 0
@@ -114,8 +113,7 @@ func TestValidationErrorIssuedAt(t *testing.T) {
 		vErr.Errors |= jwt.ValidationErrorIssuedAt
 		vErr.Errors |= jwt.ValidationErrorExpired
 
-		var err error
-		err = vErr
+		err := error(vErr)
 
 		validationErr, isValidationError := err.(*jwt.ValidationError)
 		hasIssuedAtError := isValidationError && validationErr.Errors&jwt.ValidationErrorIssuedAt != 0
