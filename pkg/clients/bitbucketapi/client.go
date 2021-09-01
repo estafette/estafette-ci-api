@@ -246,7 +246,7 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 	}
 
 	testToken, testErr := jwt.Parse(jwtTokenString, func(token *jwt.Token) (interface{}, error) {
-		log.Debug().Interface("token", *token).Str("tokenString", jwtTokenString).Msgf("Parsing test token")
+		log.Debug().Str("tokenString", jwtTokenString).Msgf("Parsing test token")
 
 		// check algorithm is correct
 		if token.Method != jwt.SigningMethodHS256 {
@@ -261,7 +261,7 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 				if inst.Key == c.config.Integrations.Bitbucket.Key && inst.ClientKey == clientKey {
 					installation = inst
 
-					log.Debug().Interface("token", *token).Str("tokenString", jwtTokenString).Msgf("Found key for test token")
+					log.Debug().Str("tokenString", jwtTokenString).Msgf("Found key for test token")
 
 					return []byte(inst.SharedSecret), nil
 				}
@@ -276,11 +276,15 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 	if testErr != nil {
 		// ignore error if only error is ValidationErrorIssuedAt
 		validationErr, isValidationError := testErr.(jwt.ValidationError)
+		if isValidationError {
+			log.Warn().Err(validationErr).Str("jwtTokenString", jwtTokenString).Msg("Test token validation error")
+		}
+
 		hasIssuedAtError := isValidationError && validationErr.Errors&jwt.ValidationErrorIssuedAt != 0
 		if hasIssuedAtError {
 			// toggle ValidationErrorIssuedAt and check if it was the only validation error
 			remainingErrors := validationErr.Errors ^ jwt.ValidationErrorIssuedAt
-			log.Warn().Err(testErr).Str("jwtTokenString", jwtTokenString).Interface("remainingErrors", remainingErrors).Bool("testTokenValid", testToken.Valid).Msg("Test token has issued at error")
+			log.Warn().Err(testErr).Str("jwtTokenString", jwtTokenString).Uint32("remainingErrors", remainingErrors).Bool("testTokenValid", testToken.Valid).Msg("Test token has issued at error")
 		} else {
 			log.Warn().Err(testErr).Str("jwtTokenString", jwtTokenString).Msg("Test token has no issued at error")
 		}
@@ -290,7 +294,7 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 	parser.SkipClaimsValidation = true
 
 	token, err := parser.Parse(jwtTokenString, func(token *jwt.Token) (interface{}, error) {
-		log.Debug().Interface("token", *token).Str("tokenString", jwtTokenString).Msgf("Parsing token")
+		log.Debug().Str("tokenString", jwtTokenString).Msgf("Parsing token")
 
 		// check algorithm is correct
 		if token.Method != jwt.SigningMethodHS256 {
@@ -305,7 +309,7 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 				if inst.Key == c.config.Integrations.Bitbucket.Key && inst.ClientKey == clientKey {
 					installation = inst
 
-					log.Debug().Interface("token", *token).Str("tokenString", jwtTokenString).Msgf("Found key for token")
+					log.Debug().Str("tokenString", jwtTokenString).Msgf("Found key for token")
 
 					return []byte(inst.SharedSecret), nil
 				}
@@ -324,7 +328,6 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 		if hasIssuedAtError {
 			// toggle ValidationErrorIssuedAt and check if it was the only validation error
 			remainingErrors := validationErr.Errors ^ jwt.ValidationErrorIssuedAt
-			log.Warn().Err(err).Str("jwtTokenString", jwtTokenString).Interface("remainingErrors", remainingErrors).Msg("Token has issued at error")
 			if remainingErrors != 1 {
 				return nil, err
 			}
@@ -332,7 +335,6 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 			// token is valid except for ValidationErrorIssuedAt, set to true
 			token.Valid = true
 		} else {
-			log.Warn().Err(err).Str("jwtTokenString", jwtTokenString).Msg("Token has no issued at error")
 			return nil, err
 		}
 	}
