@@ -62,6 +62,21 @@ func (mr *MockClientMockRecorder) ConvertAppManifestCode(ctx, code interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConvertAppManifestCode", reflect.TypeOf((*MockClient)(nil).ConvertAppManifestCode), ctx, code)
 }
 
+// GetAppByID mocks base method.
+func (m *MockClient) GetAppByID(ctx context.Context, id int) (*GithubApp, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAppByID", ctx, id)
+	ret0, _ := ret[0].(*GithubApp)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAppByID indicates an expected call of GetAppByID.
+func (mr *MockClientMockRecorder) GetAppByID(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppByID", reflect.TypeOf((*MockClient)(nil).GetAppByID), ctx, id)
+}
+
 // GetApps mocks base method.
 func (m *MockClient) GetApps(ctx context.Context) ([]*GithubApp, error) {
 	m.ctrl.T.Helper()

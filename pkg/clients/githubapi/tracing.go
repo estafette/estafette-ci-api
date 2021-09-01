@@ -66,6 +66,13 @@ func (c *tracingClient) GetApps(ctx context.Context) (apps []*GithubApp, err err
 	return c.Client.GetApps(ctx)
 }
 
+func (c *tracingClient) GetAppByID(ctx context.Context, id int) (app *GithubApp, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAppByID"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetAppByID(ctx, id)
+}
+
 func (c *tracingClient) AddApp(ctx context.Context, app GithubApp) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "AddApp"))
 	defer func() { api.FinishSpanWithError(span, err) }()

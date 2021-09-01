@@ -908,9 +908,6 @@ type GithubConfig struct {
 	Enable                    bool                        `yaml:"enable"`
 	PrivateKeyPath            string                      `yaml:"privateKeyPath"`
 	AppID                     string                      `yaml:"appID"`
-	ClientID                  string                      `yaml:"clientID"`
-	ClientSecret              string                      `yaml:"clientSecret"`
-	WebhookSecret             string                      `yaml:"webhookSecret"`
 	InstallationOrganizations []InstallationOrganizations `yaml:"installationOrganizations"`
 }
 
@@ -934,15 +931,6 @@ func (c *GithubConfig) Validate() (err error) {
 	}
 	if c.AppID == "" {
 		return errors.New("Configuration item 'integrations.github.appID' is required; please set it to the Github App's App ID")
-	}
-	if c.ClientID == "" {
-		return errors.New("Configuration item 'integrations.github.clientID' is required; please set it to the Github App's Client ID")
-	}
-	if c.ClientSecret == "" {
-		return errors.New("Configuration item 'integrations.github.clientSecret' is required; please set it to the Github App's client secret")
-	}
-	if c.WebhookSecret == "" {
-		return errors.New("Configuration item 'integrations.github.webhookSecret' is required; please set it to the Github App's webhook secret")
 	}
 
 	return nil

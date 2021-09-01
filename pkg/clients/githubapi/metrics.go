@@ -71,6 +71,12 @@ func (c *metricsClient) GetApps(ctx context.Context) (apps []*GithubApp, err err
 	return c.Client.GetApps(ctx)
 }
 
+func (c *metricsClient) GetAppByID(ctx context.Context, id int) (app *GithubApp, err error) {
+	defer func(begin time.Time) { api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAppByID", begin) }(time.Now())
+
+	return c.Client.GetAppByID(ctx, id)
+}
+
 func (c *metricsClient) AddApp(ctx context.Context, app GithubApp) (err error) {
 	defer func(begin time.Time) { api.UpdateMetrics(c.requestCount, c.requestLatency, "AddApp", begin) }(time.Now())
 

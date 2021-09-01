@@ -37,8 +37,6 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.True(t, githubConfig.Enable)
 		assert.Equal(t, "/github-app-key/private-key.pem", githubConfig.PrivateKeyPath)
 		assert.Equal(t, "15", githubConfig.AppID)
-		assert.Equal(t, "asdas2342", githubConfig.ClientID)
-		assert.Equal(t, "this is my secret", githubConfig.ClientSecret)
 
 		assert.Equal(t, 2, len(githubConfig.InstallationOrganizations))
 		assert.Equal(t, 15, githubConfig.InstallationOrganizations[0].Installation)

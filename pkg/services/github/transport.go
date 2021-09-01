@@ -45,7 +45,7 @@ func (h *Handler) Handle(c *gin.Context) {
 	}
 
 	// verify hmac signature
-	hasValidSignature, err := h.service.HasValidSignature(c.Request.Context(), body, c.GetHeader("X-Hub-Signature"))
+	hasValidSignature, err := h.service.HasValidSignature(c.Request.Context(), body, c.GetHeader("X-GitHub-Hook-Installation-Target-ID"), c.GetHeader("X-Hub-Signature"))
 	if err != nil {
 		log.Error().Err(err).Msg("Verifying signature from Github webhook failed")
 		c.Status(http.StatusInternalServerError)
@@ -92,15 +92,32 @@ func (h *Handler) Handle(c *gin.Context) {
 			return
 		}
 
+	case "installation": // Any time a GitHub App is installed or uninstalled.
+		log.Debug().Str("event", eventType).Str("requestBody", string(body)).Msgf("Github webhook event of type '%v', logging request body", eventType)
+
+		// unmarshal json body
+		var repositoryEvent githubapi.RepositoryEvent
+		err := json.Unmarshal(body, &repositoryEvent)
+		if err != nil {
+			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubRepositoryEvent failed")
+			c.Status(http.StatusBadRequest)
+			return
+		}
+
+		switch repositoryEvent.Action {
+		case "created":
+		case "deleted":
+		}
+
 	case
-		"commit_comment",                        // Any time a Commit is commented on.
-		"create",                                // Any time a Branch or Tag is created.
-		"delete",                                // Any time a Branch or Tag is deleted.
-		"deployment",                            // Any time a Repository has a new deployment created from the API.
-		"deployment_status",                     // Any time a deployment for a Repository has a status update from the API.
-		"fork",                                  // Any time a Repository is forked.
-		"gollum",                                // Any time a Wiki page is updated.
-		"installation",                          // Any time a GitHub App is installed or uninstalled.
+		"commit_comment",    // Any time a Commit is commented on.
+		"create",            // Any time a Branch or Tag is created.
+		"delete",            // Any time a Branch or Tag is deleted.
+		"deployment",        // Any time a Repository has a new deployment created from the API.
+		"deployment_status", // Any time a deployment for a Repository has a status update from the API.
+		"fork",              // Any time a Repository is forked.
+		"gollum",            // Any time a Wiki page is updated.
+
 		"installation_repositories",             // Any time a repository is added or removed from an installation.
 		"issue_comment",                         // Any time a comment on an issue is created, edited, or deleted.
 		"issues",                                // Any time an Issue is assigned, unassigned, labeled, unlabeled, opened, edited, milestoned, demilestoned, closed, or reopened.

@@ -38,12 +38,12 @@ func (s *metricsService) PublishGithubEvent(ctx context.Context, event manifest.
 	return s.Service.PublishGithubEvent(ctx, event)
 }
 
-func (s *metricsService) HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (valid bool, err error) {
+func (s *metricsService) HasValidSignature(ctx context.Context, body []byte, appIDHeader, signatureHeader string) (valid bool, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(s.requestCount, s.requestLatency, "HasValidSignature", begin)
 	}(time.Now())
 
-	return s.Service.HasValidSignature(ctx, body, signatureHeader)
+	return s.Service.HasValidSignature(ctx, body, appIDHeader, signatureHeader)
 }
 
 func (s *metricsService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {

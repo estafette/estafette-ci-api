@@ -6,6 +6,8 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
@@ -29,7 +31,7 @@ var (
 type Service interface {
 	CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) (err error)
 	PublishGithubEvent(ctx context.Context, event manifest.EstafetteGithubEvent) (err error)
-	HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (validSignature bool, err error)
+	HasValidSignature(ctx context.Context, body []byte, appIDHeader, signatureHeader string) (validSignature bool, err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
 	Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
@@ -155,7 +157,21 @@ func (s *service) PublishGithubEvent(ctx context.Context, event manifest.Estafet
 	return s.queueService.PublishGithubEvent(ctx, event)
 }
 
-func (s *service) HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (bool, error) {
+func (s *service) HasValidSignature(ctx context.Context, body []byte, appIDHeader, signatureHeader string) (bool, error) {
+
+	id, err := strconv.Atoi(appIDHeader)
+	if err != nil {
+		return false, err
+	}
+
+	app, err := s.githubapiClient.GetAppByID(ctx, id)
+	if err != nil {
+		return false, err
+	}
+
+	if app == nil {
+		return false, fmt.Errorf("App for id %v is nil", id)
+	}
 
 	// https://developer.github.com/webhooks/securing/
 	signature := strings.Replace(signatureHeader, "sha1=", "", 1)
@@ -165,7 +181,7 @@ func (s *service) HasValidSignature(ctx context.Context, body []byte, signatureH
 	}
 
 	// calculate expected MAC
-	mac := hmac.New(sha1.New, []byte(s.config.Integrations.Github.WebhookSecret))
+	mac := hmac.New(sha1.New, []byte(app.WebhookSecret))
 	mac.Write(body)
 	expectedMAC := mac.Sum(nil)
 

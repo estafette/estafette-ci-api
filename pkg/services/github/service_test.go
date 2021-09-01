@@ -384,9 +384,7 @@ func TestHasValidSignature(t *testing.T) {
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
-				Github: &api.GithubConfig{
-					WebhookSecret: "m1gw5wmje424dmfvpb72ny6vjnubw79jvi7dlw2h",
-				},
+				Github: &api.GithubConfig{},
 			},
 		}
 
@@ -395,13 +393,21 @@ func TestHasValidSignature(t *testing.T) {
 		estafetteService := estafette.NewMockService(ctrl)
 		queueService := queue.NewMockService(ctrl)
 
+		githubapiClient.
+			EXPECT().
+			GetAppByID(gomock.Any(), 15).
+			Return(&githubapi.GithubApp{
+				ID:            15,
+				WebhookSecret: "m1gw5wmje424dmfvpb72ny6vjnubw79jvi7dlw2h",
+			}, nil)
+
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, queueService)
 
 		body := []byte(`{"action": "opened","issue": {"url": "https://api.github.com/repos/octocat/Hello-World/issues/1347","number": 1347,...},"repository" : {"id": 1296269,"full_name": "octocat/Hello-World","owner": {"login": "octocat","id": 1,...},...},"sender": {"login": "octocat","id": 1,...}}`)
 		signatureHeader := "sha1=7d38cdd689735b008b3c702edd92eea23791c5f6"
 
 		// act
-		validSignature, err := service.HasValidSignature(context.Background(), body, signatureHeader)
+		validSignature, err := service.HasValidSignature(context.Background(), body, "15", signatureHeader)
 
 		assert.Nil(t, err)
 		assert.False(t, validSignature)
@@ -414,9 +420,7 @@ func TestHasValidSignature(t *testing.T) {
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
-				Github: &api.GithubConfig{
-					WebhookSecret: "m1gw5wmje424dmfvpb72ny6vjnubw79jvi7dlw2h",
-				},
+				Github: &api.GithubConfig{},
 			},
 		}
 
@@ -425,13 +429,21 @@ func TestHasValidSignature(t *testing.T) {
 		estafetteService := estafette.NewMockService(ctrl)
 		queueService := queue.NewMockService(ctrl)
 
+		githubapiClient.
+			EXPECT().
+			GetAppByID(gomock.Any(), 15).
+			Return(&githubapi.GithubApp{
+				ID:            15,
+				WebhookSecret: "m1gw5wmje424dmfvpb72ny6vjnubw79jvi7dlw2h",
+			}, nil)
+
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, queueService)
 
 		body := []byte(`{"action": "opened","issue": {"url": "https://api.github.com/repos/octocat/Hello-World/issues/1347","number": 1347,...},"repository" : {"id": 1296269,"full_name": "octocat/Hello-World","owner": {"login": "octocat","id": 1,...},...},"sender": {"login": "octocat","id": 1,...}}`)
 		signatureHeader := "sha1=765539562e575982123574d8325a636e16e0efba"
 
 		// act
-		validSignature, err := service.HasValidSignature(context.Background(), body, signatureHeader)
+		validSignature, err := service.HasValidSignature(context.Background(), body, "15", signatureHeader)
 
 		assert.Nil(t, err)
 		assert.True(t, validSignature)

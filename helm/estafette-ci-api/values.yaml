@@ -226,9 +226,6 @@ config:
           enable: false
           privateKeyPath: /github-app-key/private-key.pem
           appID: 15
-          clientID: asdas2342
-          clientSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
-          webhookSecret: estafette.secret(deFTz5Bdjg6SUe29.oPIkXbze5G9PNEWS2-ZnArl8BCqHnx4MdTdxHg37th9u)
           installationOrganizations:
           - installation: 15
             organizations:

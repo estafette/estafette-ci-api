@@ -56,6 +56,12 @@ func (c *loggingClient) GetApps(ctx context.Context) (apps []*GithubApp, err err
 	return c.Client.GetApps(ctx)
 }
 
+func (c *loggingClient) GetAppByID(ctx context.Context, id int) (app *GithubApp, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAppByID", err) }()
+
+	return c.Client.GetAppByID(ctx, id)
+}
+
 func (c *loggingClient) AddApp(ctx context.Context, app GithubApp) (err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "AddApp", err) }()
 

@@ -34,6 +34,7 @@ type Client interface {
 	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error)
 	ConvertAppManifestCode(ctx context.Context, code string) (err error)
 	GetApps(ctx context.Context) (apps []*GithubApp, err error)
+	GetAppByID(ctx context.Context, id int) (app *GithubApp, err error)
 	AddApp(ctx context.Context, app GithubApp) (err error)
 	RemoveApp(ctx context.Context, app GithubApp) (err error)
 }
@@ -393,6 +394,25 @@ func (c *client) GetApps(ctx context.Context) (apps []*GithubApp, err error) {
 	}
 
 	return
+}
+
+func (c *client) GetAppByID(ctx context.Context, id int) (app *GithubApp, err error) {
+	apps, err := c.GetApps(ctx)
+	if err != nil {
+		return
+	}
+
+	if apps == nil {
+		return nil, fmt.Errorf("Apps for id %v are nil", id)
+	}
+
+	for _, a := range apps {
+		if a.ID == id {
+			return a, nil
+		}
+	}
+
+	return nil, fmt.Errorf("App for id %v is unknown", id)
 }
 
 func (c *client) AddApp(ctx context.Context, app GithubApp) (err error) {

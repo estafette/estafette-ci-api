@@ -35,10 +35,10 @@ func (s *loggingService) PublishGithubEvent(ctx context.Context, event manifest.
 	return s.Service.PublishGithubEvent(ctx, event)
 }
 
-func (s *loggingService) HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (valid bool, err error) {
+func (s *loggingService) HasValidSignature(ctx context.Context, body []byte, appIDHeader, signatureHeader string) (valid bool, err error) {
 	defer func() { api.HandleLogError(s.prefix, "Service", "HasValidSignature", err) }()
 
-	return s.Service.HasValidSignature(ctx, body, signatureHeader)
+	return s.Service.HasValidSignature(ctx, body, appIDHeader, signatureHeader)
 }
 
 func (s *loggingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {

@@ -34,11 +34,11 @@ func (s *tracingService) PublishGithubEvent(ctx context.Context, event manifest.
 	return s.Service.PublishGithubEvent(ctx, event)
 }
 
-func (s *tracingService) HasValidSignature(ctx context.Context, body []byte, signatureHeader string) (valid bool, err error) {
+func (s *tracingService) HasValidSignature(ctx context.Context, body []byte, appIDHeader, signatureHeader string) (valid bool, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "HasValidSignature"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return s.Service.HasValidSignature(ctx, body, signatureHeader)
+	return s.Service.HasValidSignature(ctx, body, appIDHeader, signatureHeader)
 }
 
 func (s *tracingService) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
