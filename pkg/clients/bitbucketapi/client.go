@@ -289,7 +289,7 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 
 		// toggle ValidationErrorIssuedAt and check if it was the only validation error
 		remainingErrors := validationErr.Errors ^ jwt.ValidationErrorIssuedAt
-		if remainingErrors != 1 {
+		if remainingErrors > 0 {
 			log.Warn().Err(err).Msg("Bitbucket JWT parsing failed, but has other errors besides ValidationErrorIssuedAt")
 			return nil, err
 		}
