@@ -294,14 +294,12 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 			return nil, err
 		}
 
-		standardClaims, isStandardClaims := token.Claims.(jwt.StandardClaims)
-		if isStandardClaims {
-			log.Warn().Err(err).Str("now", time.Now().UTC().Format(time.RFC3339)).Str("iat", time.Unix(standardClaims.IssuedAt, 0).Format(time.RFC3339)).Msg("Bitbucket JWT has 'issued at' validation error, ignoring it")
+		iat := c.getIat(token)
+		if iat > 0 {
+			log.Warn().Err(err).Str("now", time.Now().UTC().Format(time.RFC3339)).Str("iat", time.Unix(iat, 0).Format(time.RFC3339)).Msg("Bitbucket JWT has 'issued at' validation error, ignoring it")
 		} else {
 			log.Warn().Err(err).Msg("Bitbucket JWT has 'issued at' validation error, ignoring it")
 		}
-
-		log.Warn().Err(err).Msg("Bitbucket JWT has 'issued at' validation error, ignoring it")
 
 		// token is valid except for ValidationErrorIssuedAt, set to true
 		token.Valid = true
@@ -649,4 +647,34 @@ func (c *client) GetWorkspace(ctx context.Context, workspaceUUID string) (worksp
 	}
 
 	return workspace, nil
+}
+
+func (c *client) getIat(token *jwt.Token) (iat int64) {
+	if token == nil || token.Claims == nil {
+		return -1
+	}
+
+	switch claimType := token.Claims.(type) {
+	case jwt.StandardClaims:
+		log.Debug().Msgf("Token has claim type %T", claimType)
+		return claimType.IssuedAt
+	case jwt.MapClaims:
+		log.Debug().Msgf("Token has claim type %T", claimType)
+		iat, hasIat := claimType["iat"]
+		if hasIat {
+			switch iatType := iat.(type) {
+			case float64:
+				return int64(iatType)
+			case json.Number:
+				v, _ := iatType.Int64()
+				return v
+			default:
+				log.Warn().Msgf("IAT type %T for token is unknown", iatType)
+			}
+		}
+	default:
+		log.Warn().Msgf("Claim type %T for token is unknown", claimType)
+	}
+
+	return -1
 }
