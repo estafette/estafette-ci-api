@@ -612,7 +612,7 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 
 		jwtMiddlewareRoutes.GET("/api/admin/integrations", rbacHandler.GetIntegrations)
 		jwtMiddlewareRoutes.PUT("/api/admin/integrations/github/:id", rbacHandler.UpdateGithubInstallation)
-		jwtMiddlewareRoutes.PUT("/api/admin/integrations/bitbucket/:id", rbacHandler.UpdateBitbucketInstallation)
+		jwtMiddlewareRoutes.PUT("/api/admin/integrations/bitbucket/:clientKey", rbacHandler.UpdateBitbucketInstallation)
 
 		// catalog routes
 		jwtMiddlewareRoutes.GET("/api/catalog/entity-labels", catalogHandler.GetCatalogEntityLabels)
