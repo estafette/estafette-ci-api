@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -22,6 +23,10 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+)
+
+var (
+	ErrMissingInstallation = errors.New("installation is missing")
 )
 
 // Client is the interface for communicating with the github api
@@ -107,7 +112,7 @@ func (c *client) GetAppAndInstallationByOwner(ctx context.Context, repoOwner str
 		}
 	}
 
-	return nil, nil, fmt.Errorf("App and installation for repoOwner %v can't be found", repoOwner)
+	return nil, nil, ErrMissingInstallation
 }
 
 func (c *client) GetAppAndInstallationByID(ctx context.Context, installationID int) (app *GithubApp, installation *GithubInstallation, err error) {
@@ -126,7 +131,7 @@ func (c *client) GetAppAndInstallationByID(ctx context.Context, installationID i
 		}
 	}
 
-	return nil, nil, fmt.Errorf("App and installation for installationID %v can't be found", installationID)
+	return nil, nil, ErrMissingInstallation
 }
 
 // GetInstallationToken returns an access token for an installation of a Github app

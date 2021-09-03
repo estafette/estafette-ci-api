@@ -905,8 +905,7 @@ func (c *APIConfigIntegrations) Validate() (err error) {
 
 // GithubConfig is used to configure github integration
 type GithubConfig struct {
-	Enable                    bool                        `yaml:"enable"`
-	InstallationOrganizations []InstallationOrganizations `yaml:"installationOrganizations"`
+	Enable bool `yaml:"enable"`
 }
 
 func (c *GithubConfig) SetDefaults() {
@@ -931,10 +930,9 @@ type InstallationOrganizations struct {
 
 // BitbucketConfig is used to configure bitbucket integration
 type BitbucketConfig struct {
-	Enable             bool                 `yaml:"enable"`
-	Key                string               `yaml:"key"`
-	Name               string               `yaml:"name"`
-	OwnerOrganizations []OwnerOrganizations `yaml:"ownerOrganizations"`
+	Enable bool   `yaml:"enable"`
+	Key    string `yaml:"key"`
+	Name   string `yaml:"name"`
 }
 
 func (c *BitbucketConfig) SetDefaults() {

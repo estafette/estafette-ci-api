@@ -256,22 +256,22 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 func TestIsAllowedInstallation(t *testing.T) {
 
-	t.Run("ReturnsTrueIfAllowedInstallationsConfigIsEmpty", func(t *testing.T) {
+	t.Run("ReturnsTrueIfInstallationIsKnown", func(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
-				Github: &api.GithubConfig{
-					InstallationOrganizations: []api.InstallationOrganizations{},
-				},
+				Github: &api.GithubConfig{},
 			},
 		}
 		githubapiClient := githubapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
 		queueService := queue.NewMockService(ctrl)
+
+		githubapiClient.EXPECT().GetAppAndInstallationByID(gomock.Any(), 513).Return(&githubapi.GithubApp{}, &githubapi.GithubInstallation{}, nil)
 
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, queueService)
 
@@ -283,26 +283,23 @@ func TestIsAllowedInstallation(t *testing.T) {
 		assert.True(t, isAllowed)
 	})
 
-	t.Run("ReturnsFalseIfInstallationIDIsNotInAllowedInstallationsConfig", func(t *testing.T) {
+	t.Run("ReturnsFalseIfInstallationIDIsUnknown", func(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
-				Github: &api.GithubConfig{
-					InstallationOrganizations: []api.InstallationOrganizations{
-						{
-							Installation: 236,
-						},
-					},
-				},
+				Github: &api.GithubConfig{},
 			},
 		}
 		githubapiClient := githubapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
 		queueService := queue.NewMockService(ctrl)
+
+		githubapiClient.EXPECT().GetAppAndInstallationByID(gomock.Any(), 513).Return(nil, nil, githubapi.ErrMissingInstallation)
+
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, queueService)
 
 		installationID := 513
@@ -311,39 +308,6 @@ func TestIsAllowedInstallation(t *testing.T) {
 		isAllowed, _ := service.IsAllowedInstallation(context.Background(), installationID)
 
 		assert.False(t, isAllowed)
-	})
-
-	t.Run("ReturnsTrueIfInstallationIDIsInAllowedInstallationsConfig", func(t *testing.T) {
-
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		config := &api.APIConfig{
-			Integrations: &api.APIConfigIntegrations{
-				Github: &api.GithubConfig{
-					InstallationOrganizations: []api.InstallationOrganizations{
-						{
-							Installation: 236,
-						},
-						{
-							Installation: 513,
-						},
-					},
-				},
-			},
-		}
-		githubapiClient := githubapi.NewMockClient(ctrl)
-		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
-		estafetteService := estafette.NewMockService(ctrl)
-		queueService := queue.NewMockService(ctrl)
-		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, queueService)
-
-		installationID := 513
-
-		// act
-		isAllowed, _ := service.IsAllowedInstallation(context.Background(), installationID)
-
-		assert.True(t, isAllowed)
 	})
 }
 

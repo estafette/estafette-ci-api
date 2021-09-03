@@ -225,6 +225,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient.EXPECT().GetAccessTokenByInstallation(gomock.Any(), gomock.Any()).AnyTimes()
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
+		bitbucketapiClient.EXPECT().GetInstallationBySlug(gomock.Any(), gomock.Any()).Return(&bitbucketapi.BitbucketAppInstallation{}, nil)
 
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
@@ -283,6 +284,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "bitbucket.org/estafette/estafette-in-bitbucket"})).AnyTimes()
+		bitbucketapiClient.EXPECT().GetInstallationBySlug(gomock.Any(), gomock.Any()).Return(&bitbucketapi.BitbucketAppInstallation{}, nil)
 
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
@@ -377,6 +379,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 		bitbucketapiClient.EXPECT().GetAccessTokenByInstallation(gomock.Any(), gomock.Any()).AnyTimes()
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
 		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "bitbucket.org/estafette/estafette-in-bitbucket"})).AnyTimes()
+		bitbucketapiClient.EXPECT().GetInstallationBySlug(gomock.Any(), gomock.Any()).Return(&bitbucketapi.BitbucketAppInstallation{}, nil)
 
 		var wg sync.WaitGroup
 		wg.Add(1)
@@ -420,16 +423,14 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 
 func TestIsAllowedOwner(t *testing.T) {
 
-	t.Run("ReturnsTrueIfAllowedOwnersConfigIsEmpty", func(t *testing.T) {
+	t.Run("ReturnsTrueIfInstallationIsKnown", func(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
-				Bitbucket: &api.BitbucketConfig{
-					OwnerOrganizations: []api.OwnerOrganizations{},
-				},
+				Bitbucket: &api.BitbucketConfig{},
 			},
 		}
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
@@ -437,6 +438,8 @@ func TestIsAllowedOwner(t *testing.T) {
 		estafetteService := estafette.NewMockService(ctrl)
 		queueService := queue.NewMockService(ctrl)
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
+
+		bitbucketapiClient.EXPECT().GetInstallationBySlug(gomock.Any(), "anyone").Return(&bitbucketapi.BitbucketAppInstallation{}, nil)
 
 		repository := bitbucketapi.Repository{
 			Owner: bitbucketapi.Owner{
@@ -450,26 +453,23 @@ func TestIsAllowedOwner(t *testing.T) {
 		assert.True(t, isAllowed)
 	})
 
-	t.Run("ReturnsFalseIfOwnerUsernameIsNotInAllowedOwnersConfig", func(t *testing.T) {
+	t.Run("ReturnsFalseIfInstallationIsUnknown", func(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
 		config := &api.APIConfig{
 			Integrations: &api.APIConfigIntegrations{
-				Bitbucket: &api.BitbucketConfig{
-					OwnerOrganizations: []api.OwnerOrganizations{
-						{
-							Owner: "someone-else",
-						},
-					},
-				},
+				Bitbucket: &api.BitbucketConfig{},
 			},
 		}
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
 		queueService := queue.NewMockService(ctrl)
+
+		bitbucketapiClient.EXPECT().GetInstallationBySlug(gomock.Any(), "estafette-in-bitbucket").Return(nil, bitbucketapi.ErrMissingInstallation)
+
 		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
 
 		repository := bitbucketapi.Repository{
@@ -482,43 +482,6 @@ func TestIsAllowedOwner(t *testing.T) {
 		isAllowed, _ := service.IsAllowedOwner(context.Background(), &repository)
 
 		assert.False(t, isAllowed)
-	})
-
-	t.Run("ReturnsTrueIfOwnerUsernameIsInAllowedOwnersConfig", func(t *testing.T) {
-
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		config := &api.APIConfig{
-			Integrations: &api.APIConfigIntegrations{
-				Bitbucket: &api.BitbucketConfig{
-					OwnerOrganizations: []api.OwnerOrganizations{
-						{
-							Owner: "someone-else",
-						},
-						{
-							Owner: "estafette-in-bitbucket",
-						},
-					},
-				},
-			},
-		}
-		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
-		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
-		estafetteService := estafette.NewMockService(ctrl)
-		queueService := queue.NewMockService(ctrl)
-		service := NewService(config, bitbucketapiClient, pubsubapiClient, estafetteService, queueService)
-
-		repository := bitbucketapi.Repository{
-			Owner: bitbucketapi.Owner{
-				UserName: "estafette-in-bitbucket",
-			},
-		}
-
-		// act
-		isAllowed, _ := service.IsAllowedOwner(context.Background(), &repository)
-
-		assert.True(t, isAllowed)
 	})
 }
 

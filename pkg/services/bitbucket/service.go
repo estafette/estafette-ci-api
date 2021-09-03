@@ -164,19 +164,21 @@ func (s *service) Unarchive(ctx context.Context, repoSource, repoOwner, repoName
 }
 
 func (s *service) IsAllowedOwner(ctx context.Context, repository *bitbucketapi.Repository) (isAllowed bool, organizations []*contracts.Organization) {
-	if len(s.config.Integrations.Bitbucket.OwnerOrganizations) == 0 {
-		return true, []*contracts.Organization{}
-	}
+	installation, err := s.bitbucketapiClient.GetInstallationBySlug(ctx, repository.Owner.UserName)
 
-	if repository == nil {
+	if err != nil && errors.Is(err, bitbucketapi.ErrMissingInstallation) {
 		return false, []*contracts.Organization{}
 	}
 
-	for _, oo := range s.config.Integrations.Bitbucket.OwnerOrganizations {
-		if oo.Owner == repository.Owner.UserName {
-			return true, oo.Organizations
-		}
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed getting bitbucket installation for owner %v", repository.Owner.UserName)
+		return false, []*contracts.Organization{}
 	}
 
-	return false, []*contracts.Organization{}
+	if installation == nil {
+		log.Error().Err(err).Msgf("Bitbucket installation for id %v is owner", repository.Owner.UserName)
+		return false, []*contracts.Organization{}
+	}
+
+	return true, installation.Organizations
 }

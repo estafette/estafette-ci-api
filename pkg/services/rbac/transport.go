@@ -1076,6 +1076,7 @@ func (h *Handler) GetIntegrations(c *gin.Context) {
 					Name: installation.Workspace.Name,
 					UUID: installation.Workspace.UUID,
 				},
+				Organizations: installation.Organizations,
 			})
 		}
 	}

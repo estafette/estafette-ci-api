@@ -225,15 +225,20 @@ func (s *service) Unarchive(ctx context.Context, repoSource, repoOwner, repoName
 }
 
 func (s *service) IsAllowedInstallation(ctx context.Context, installationID int) (isAllowed bool, organizations []*contracts.Organization) {
-	if len(s.config.Integrations.Github.InstallationOrganizations) == 0 {
-		return true, []*contracts.Organization{}
+	_, installation, err := s.githubapiClient.GetAppAndInstallationByID(ctx, installationID)
+	if err != nil && errors.Is(err, githubapi.ErrMissingInstallation) {
+		return false, []*contracts.Organization{}
 	}
 
-	for _, io := range s.config.Integrations.Github.InstallationOrganizations {
-		if io.Installation == installationID {
-			return true, io.Organizations
-		}
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed getting github installation for id %v", installationID)
+		return false, []*contracts.Organization{}
 	}
 
-	return false, []*contracts.Organization{}
+	if installation == nil {
+		log.Error().Err(err).Msgf("Github installation for id %v is nil", installationID)
+		return false, []*contracts.Organization{}
+	}
+
+	return true, installation.Organizations
 }

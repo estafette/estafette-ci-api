@@ -1,22 +1,11 @@
 integrations:
   github:
     enable: true
-    installationOrganizations:
-    - installation: 15
-      organizations:
-      - name: Estafette
-    - installation: 83
-      organizations:
-      - name: Estafette
 
   bitbucket:
     enable: true
     key: ci.estafette.io
     name: Estafette CI
-    ownerOrganizations:
-    - owner: estafette
-      organizations:
-      - name: Estafette
 
   slack:
     enable: true
