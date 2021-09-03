@@ -17,25 +17,32 @@ type tracingClient struct {
 	prefix string
 }
 
-func (c *tracingClient) GetGithubAppToken(ctx context.Context) (token string, err error) {
+func (c *tracingClient) GetGithubAppToken(ctx context.Context, app GithubApp) (token string, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetGithubAppToken"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetGithubAppToken(ctx)
+	return c.Client.GetGithubAppToken(ctx, app)
 }
 
-func (c *tracingClient) GetInstallationID(ctx context.Context, repoOwner string) (installationID int, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetInstallationID"))
+func (c *tracingClient) GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (app *GithubApp, installation *Installation, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAppAndInstallationByOwner"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetInstallationID(ctx, repoOwner)
+	return c.Client.GetAppAndInstallationByOwner(ctx, repoOwner)
 }
 
-func (c *tracingClient) GetInstallationToken(ctx context.Context, installationID int) (token AccessToken, err error) {
+func (c *tracingClient) GetAppAndInstallationByID(ctx context.Context, installationID int) (app *GithubApp, installation *Installation, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAppAndInstallationByID"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.GetAppAndInstallationByID(ctx, installationID)
+}
+
+func (c *tracingClient) GetInstallationToken(ctx context.Context, app GithubApp, installation Installation) (accessToken AccessToken, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetInstallationToken"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetInstallationToken(ctx, installationID)
+	return c.Client.GetInstallationToken(ctx, app, installation)
 }
 
 func (c *tracingClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (valid bool, manifest string, err error) {

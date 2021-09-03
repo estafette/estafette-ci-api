@@ -16,22 +16,28 @@ type loggingClient struct {
 	prefix string
 }
 
-func (c *loggingClient) GetGithubAppToken(ctx context.Context) (token string, err error) {
+func (c *loggingClient) GetGithubAppToken(ctx context.Context, app GithubApp) (token string, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetGithubAppToken", err) }()
 
-	return c.Client.GetGithubAppToken(ctx)
+	return c.Client.GetGithubAppToken(ctx, app)
 }
 
-func (c *loggingClient) GetInstallationID(ctx context.Context, repoOwner string) (installationID int, err error) {
-	defer func() { api.HandleLogError(c.prefix, "Client", "GetInstallationID", err) }()
+func (c *loggingClient) GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (app *GithubApp, installation *Installation, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAppAndInstallationByOwner", err) }()
 
-	return c.Client.GetInstallationID(ctx, repoOwner)
+	return c.Client.GetAppAndInstallationByOwner(ctx, repoOwner)
 }
 
-func (c *loggingClient) GetInstallationToken(ctx context.Context, installationID int) (token AccessToken, err error) {
+func (c *loggingClient) GetAppAndInstallationByID(ctx context.Context, installationID int) (app *GithubApp, installation *Installation, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAppAndInstallationByID", err) }()
+
+	return c.Client.GetAppAndInstallationByID(ctx, installationID)
+}
+
+func (c *loggingClient) GetInstallationToken(ctx context.Context, app GithubApp, installation Installation) (accessToken AccessToken, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetInstallationToken", err) }()
 
-	return c.Client.GetInstallationToken(ctx, installationID)
+	return c.Client.GetInstallationToken(ctx, app, installation)
 }
 
 func (c *loggingClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (valid bool, manifest string, err error) {

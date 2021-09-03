@@ -27,9 +27,10 @@ import (
 // Client is the interface for communicating with the github api
 //go:generate mockgen -package=githubapi -destination ./mock.go -source=client.go
 type Client interface {
-	GetGithubAppToken(ctx context.Context) (token string, err error)
-	GetInstallationID(ctx context.Context, repoOwner string) (installationID int, err error)
-	GetInstallationToken(ctx context.Context, installationID int) (token AccessToken, err error)
+	GetGithubAppToken(ctx context.Context, app GithubApp) (token string, err error)
+	GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (app *GithubApp, installation *Installation, err error)
+	GetAppAndInstallationByID(ctx context.Context, installationID int) (app *GithubApp, installation *Installation, err error)
+	GetInstallationToken(ctx context.Context, app GithubApp, installation Installation) (accessToken AccessToken, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (valid bool, manifest string, err error)
 	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error)
 	ConvertAppManifestCode(ctx context.Context, code string) (err error)
@@ -59,16 +60,12 @@ type client struct {
 }
 
 // GetGithubAppToken returns a Github app token with which to retrieve an installation token
-func (c *client) GetGithubAppToken(ctx context.Context) (githubAppToken string, err error) {
+func (c *client) GetGithubAppToken(ctx context.Context, app GithubApp) (githubAppToken string, err error) {
 
 	// https://developer.github.com/apps/building-integrations/setting-up-and-registering-github-apps/about-authentication-options-for-github-apps/
 
 	// load private key from pem file
-	pemFileByteArray, err := ioutil.ReadFile(c.config.Integrations.Github.PrivateKeyPath)
-	if err != nil {
-		return
-	}
-	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(pemFileByteArray)
+	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(app.PrivateKey))
 	if err != nil {
 		return
 	}
@@ -81,7 +78,7 @@ func (c *client) GetGithubAppToken(ctx context.Context) (githubAppToken string, 
 		// JWT expiration time (10 minute maximum)
 		"exp": epoch + 500,
 		// GitHub App's identifier
-		"iss": c.config.Integrations.Github.AppID,
+		"iss": app.ID,
 	})
 
 	// sign and get the complete encoded token as a string using the private key
@@ -94,55 +91,53 @@ func (c *client) GetGithubAppToken(ctx context.Context) (githubAppToken string, 
 }
 
 // GetInstallationID returns the id for an installation of a Github app
-func (c *client) GetInstallationID(ctx context.Context, repoOwner string) (installationID int, err error) {
+func (c *client) GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (app *GithubApp, installation *Installation, err error) {
 
-	githubAppToken, err := c.GetGithubAppToken(ctx)
+	// get installation and app by repoOwner
+	apps, err := c.GetApps(ctx)
 	if err != nil {
 		return
 	}
 
-	type InstallationAccount struct {
-		Login string `json:"login"`
-	}
-
-	type InstallationResponse struct {
-		ID      int                 `json:"id"`
-		Account InstallationAccount `json:"account"`
-	}
-
-	_, body, err := c.callGithubAPI(ctx, "GET", "https://api.github.com/app/installations", nil, "Bearer", githubAppToken)
-	if err != nil {
-		return
-	}
-
-	var installations []InstallationResponse
-
-	// unmarshal json body
-	err = json.Unmarshal(body, &installations)
-	if err != nil {
-		return
-	}
-
-	// find installation matching repoOwner
-	for _, installation := range installations {
-		if installation.Account.Login == repoOwner {
-			installationID = installation.ID
-			return
+	for _, a := range apps {
+		for _, i := range a.Installations {
+			if i.Account != nil && i.Account.Login == repoOwner {
+				return a, i, nil
+			}
 		}
 	}
 
-	return installationID, fmt.Errorf("Github installation of app %v with account login %v can't be found", c.config.Integrations.Github.AppID, repoOwner)
+	return nil, nil, fmt.Errorf("App and installation for repoOwner %v can't be found", repoOwner)
 }
 
-// GetInstallationToken returns an access token for an installation of a Github app
-func (c *client) GetInstallationToken(ctx context.Context, installationID int) (accessToken AccessToken, err error) {
+func (c *client) GetAppAndInstallationByID(ctx context.Context, installationID int) (app *GithubApp, installation *Installation, err error) {
 
-	githubAppToken, err := c.GetGithubAppToken(ctx)
+	// get installation and app by repoOwner
+	apps, err := c.GetApps(ctx)
 	if err != nil {
 		return
 	}
 
-	_, body, err := c.callGithubAPI(ctx, "POST", fmt.Sprintf("https://api.github.com/app/installations/%v/access_tokens", installationID), nil, "Bearer", githubAppToken)
+	for _, a := range apps {
+		for _, i := range a.Installations {
+			if i.ID == installationID {
+				return a, i, nil
+			}
+		}
+	}
+
+	return nil, nil, fmt.Errorf("App and installation for installationID %v can't be found", installationID)
+}
+
+// GetInstallationToken returns an access token for an installation of a Github app
+func (c *client) GetInstallationToken(ctx context.Context, app GithubApp, installation Installation) (accessToken AccessToken, err error) {
+
+	githubAppToken, err := c.GetGithubAppToken(ctx, app)
+	if err != nil {
+		return
+	}
+
+	_, body, err := c.callGithubAPI(ctx, "POST", fmt.Sprintf("https://api.github.com/app/installations/%v/access_tokens", installation.ID), nil, "Bearer", githubAppToken)
 	if err != nil {
 		return
 	}
@@ -199,13 +194,19 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accessToken AccessTok
 func (c *client) JobVarsFunc(ctx context.Context) func(context.Context, string, string, string) (string, error) {
 	return func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
 		// get installation id with just the repo owner
-		installationID, err := c.GetInstallationID(ctx, repoOwner)
+		app, installation, err := c.GetAppAndInstallationByOwner(ctx, repoOwner)
 		if err != nil {
 			return "", err
 		}
+		if app == nil {
+			return "", fmt.Errorf("App for repoOwner %v is nil", repoOwner)
+		}
+		if installation == nil {
+			return "", fmt.Errorf("Installation for repoOwner %v is nil", repoOwner)
+		}
 
 		// get access token
-		accessToken, err := c.GetInstallationToken(ctx, installationID)
+		accessToken, err := c.GetInstallationToken(ctx, *app, *installation)
 		if err != nil {
 			return "", err
 		}

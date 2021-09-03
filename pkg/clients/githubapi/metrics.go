@@ -19,28 +19,36 @@ type metricsClient struct {
 	requestLatency metrics.Histogram
 }
 
-func (c *metricsClient) GetGithubAppToken(ctx context.Context) (token string, err error) {
+func (c *metricsClient) GetGithubAppToken(ctx context.Context, app GithubApp) (token string, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetGithubAppToken", begin)
 	}(time.Now())
 
-	return c.Client.GetGithubAppToken(ctx)
+	return c.Client.GetGithubAppToken(ctx, app)
 }
 
-func (c *metricsClient) GetInstallationID(ctx context.Context, repoOwner string) (installationID int, err error) {
+func (c *metricsClient) GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (app *GithubApp, installation *Installation, err error) {
 	defer func(begin time.Time) {
-		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetInstallationID", begin)
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAppAndInstallationByOwner", begin)
 	}(time.Now())
 
-	return c.Client.GetInstallationID(ctx, repoOwner)
+	return c.Client.GetAppAndInstallationByOwner(ctx, repoOwner)
 }
 
-func (c *metricsClient) GetInstallationToken(ctx context.Context, installationID int) (token AccessToken, err error) {
+func (c *metricsClient) GetAppAndInstallationByID(ctx context.Context, installationID int) (app *GithubApp, installation *Installation, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAppAndInstallationByID", begin)
+	}(time.Now())
+
+	return c.Client.GetAppAndInstallationByID(ctx, installationID)
+}
+
+func (c *metricsClient) GetInstallationToken(ctx context.Context, app GithubApp, installation Installation) (accessToken AccessToken, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetInstallationToken", begin)
 	}(time.Now())
 
-	return c.Client.GetInstallationToken(ctx, installationID)
+	return c.Client.GetInstallationToken(ctx, app, installation)
 }
 
 func (c *metricsClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (valid bool, manifest string, err error) {

@@ -76,8 +76,22 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 		return
 	}
 
+	app, installation, err := s.githubapiClient.GetAppAndInstallationByID(ctx, pushEvent.Installation.ID)
+	if err != nil {
+		log.Error().Err(err).Msgf("Retrieving app and installation by id %v failed", pushEvent.Installation.ID)
+		return
+	}
+	if app == nil {
+		log.Error().Msgf("App for installation id %v is nil", pushEvent.Installation.ID)
+		return fmt.Errorf("App for installation id %v is nil", pushEvent.Installation.ID)
+	}
+	if installation == nil {
+		log.Error().Msgf("Installation for installation id %v is nil", pushEvent.Installation.ID)
+		return fmt.Errorf("Installation for installation id %v is nil", pushEvent.Installation.ID)
+	}
+
 	// get access token
-	accessToken, err := s.githubapiClient.GetInstallationToken(ctx, pushEvent.Installation.ID)
+	accessToken, err := s.githubapiClient.GetInstallationToken(ctx, *app, *installation)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Retrieving access token failed")

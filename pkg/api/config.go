@@ -906,8 +906,6 @@ func (c *APIConfigIntegrations) Validate() (err error) {
 // GithubConfig is used to configure github integration
 type GithubConfig struct {
 	Enable                    bool                        `yaml:"enable"`
-	PrivateKeyPath            string                      `yaml:"privateKeyPath"`
-	AppID                     string                      `yaml:"appID"`
 	InstallationOrganizations []InstallationOrganizations `yaml:"installationOrganizations"`
 }
 
@@ -915,22 +913,11 @@ func (c *GithubConfig) SetDefaults() {
 	if !c.Enable {
 		return
 	}
-
-	if c.PrivateKeyPath == "" {
-		c.PrivateKeyPath = "/secrets/private-key.pem"
-	}
 }
 
 func (c *GithubConfig) Validate() (err error) {
 	if !c.Enable {
 		return nil
-	}
-
-	if c.PrivateKeyPath == "" {
-		return errors.New("Configuration item 'integrations.github.privateKeyPath' is required; please set it to the path where the private key for the Github App is mounted")
-	}
-	if c.AppID == "" {
-		return errors.New("Configuration item 'integrations.github.appID' is required; please set it to the Github App's App ID")
 	}
 
 	return nil

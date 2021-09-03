@@ -1,8 +1,6 @@
 integrations:
   github:
     enable: true
-    privateKeyPath: /github-app-key/private-key.pem
-    appID: 15
     installationOrganizations:
     - installation: 15
       organizations:

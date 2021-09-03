@@ -62,7 +62,13 @@ func TestCreateJobForGithubPush(t *testing.T) {
 
 		githubapiClient.
 			EXPECT().
-			GetInstallationToken(gomock.Any(), gomock.Any()).
+			GetAppAndInstallationByID(gomock.Any(), gomock.Any()).
+			Return(&githubapi.GithubApp{}, &githubapi.Installation{}, nil).
+			Times(1)
+
+		githubapiClient.
+			EXPECT().
+			GetInstallationToken(gomock.Any(), gomock.Any(), gomock.Any()).
 			Times(1)
 
 		githubapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -101,7 +107,8 @@ func TestCreateJobForGithubPush(t *testing.T) {
 			}).
 			Times(1)
 
-		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any()).AnyTimes()
+		githubapiClient.EXPECT().GetAppAndInstallationByID(gomock.Any(), gomock.Any()).Return(&githubapi.GithubApp{}, &githubapi.Installation{}, nil).AnyTimes()
+		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "github.com/", Branch: "master"})).AnyTimes()
@@ -145,7 +152,8 @@ func TestCreateJobForGithubPush(t *testing.T) {
 			CreateBuild(gomock.Any(), gomock.Any()).
 			Times(1)
 
-		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any()).AnyTimes()
+		githubapiClient.EXPECT().GetAppAndInstallationByID(gomock.Any(), gomock.Any()).Return(&githubapi.GithubApp{}, &githubapi.Installation{}, nil).AnyTimes()
+		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "github.com/", Branch: "master"})).AnyTimes()
 
@@ -182,7 +190,8 @@ func TestCreateJobForGithubPush(t *testing.T) {
 			Ref: "refs/heads/master",
 		}
 
-		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any()).AnyTimes()
+		githubapiClient.EXPECT().GetAppAndInstallationByID(gomock.Any(), gomock.Any()).Return(&githubapi.GithubApp{}, &githubapi.Installation{}, nil).AnyTimes()
+		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		githubapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "github.com/", Branch: "master"})).AnyTimes()
 
@@ -224,7 +233,8 @@ func TestCreateJobForGithubPush(t *testing.T) {
 			}).
 			Times(1)
 
-		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any()).AnyTimes()
+		githubapiClient.EXPECT().GetAppAndInstallationByID(gomock.Any(), gomock.Any()).Return(&githubapi.GithubApp{}, &githubapi.Installation{}, nil).AnyTimes()
+		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		githubapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
 		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "github.com/", Branch: "master"})).AnyTimes()
