@@ -800,6 +800,8 @@ func (h *Handler) PostPipelineBuildLogs(c *gin.Context) {
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed inserting logs into cloudstorage for %v/%v/%v/%v", source, owner, repo, revisionOrID)
+			c.String(http.StatusInternalServerError, "Oops, something went wrong")
+			return
 		}
 	}
 
@@ -1305,6 +1307,8 @@ func (h *Handler) PostPipelineReleaseLogs(c *gin.Context) {
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed inserting release logs into cloud storage for %v/%v/%v/%v", source, owner, repo, releaseID)
+			c.String(http.StatusInternalServerError, "Oops, something went wrong")
+			return
 		}
 	}
 
@@ -1681,6 +1685,8 @@ func (h *Handler) PostPipelineBotLogs(c *gin.Context) {
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed inserting bot logs into cloud storage for %v/%v/%v/%v", source, owner, repo, botID)
+			c.String(http.StatusInternalServerError, "Oops, something went wrong")
+			return
 		}
 	}
 
