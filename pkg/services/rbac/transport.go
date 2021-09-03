@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -1093,17 +1092,9 @@ func (h *Handler) UpdateGithubInstallation(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	// get integration
-	installationIDString := c.Param("id")
-	installationID, err := strconv.Atoi(installationIDString)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed parsing github installation id %v", installationIDString)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
-		return
-	}
-
+	// bind body
 	var installationFromForm githubapi.GithubInstallation
-	err = c.BindJSON(&installationFromForm)
+	err := c.BindJSON(&installationFromForm)
 	if err != nil {
 		errorMessage := "Binding UpdateGithubIntegration body failed"
 		log.Error().Err(err).Msg(errorMessage)
@@ -1112,9 +1103,9 @@ func (h *Handler) UpdateGithubInstallation(c *gin.Context) {
 	}
 
 	// get github installation
-	_, installation, err := h.githubapiClient.GetAppAndInstallationByID(ctx, installationID)
+	_, installation, err := h.githubapiClient.GetAppAndInstallationByID(ctx, installationFromForm.ID)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed retrieving github installation %v from configmap", installationID)
+		log.Error().Err(err).Msgf("Failed retrieving github installation %v from configmap", installationFromForm.ID)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
@@ -1124,7 +1115,7 @@ func (h *Handler) UpdateGithubInstallation(c *gin.Context) {
 
 	err = h.githubapiClient.AddInstallation(ctx, *installation)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed updating github installation %v in configmap", installationID)
+		log.Error().Err(err).Msgf("Failed updating github installation %v in configmap", installationFromForm.ID)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
@@ -1141,9 +1132,7 @@ func (h *Handler) UpdateBitbucketInstallation(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	// get integration
-	clientKey := c.Param("clientKey")
-
+	// bind body
 	var installationFromForm bitbucketapi.BitbucketAppInstallation
 	err := c.BindJSON(&installationFromForm)
 	if err != nil {
@@ -1154,9 +1143,9 @@ func (h *Handler) UpdateBitbucketInstallation(c *gin.Context) {
 	}
 
 	// get bitbucket installation
-	installation, err := h.bitbucketapiClient.GetInstallationByClientKey(ctx, clientKey)
+	installation, err := h.bitbucketapiClient.GetInstallationByClientKey(ctx, installationFromForm.ClientKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed retrieving bitbucket installation %v from configmap", clientKey)
+		log.Error().Err(err).Msgf("Failed retrieving bitbucket installation %v from configmap", installationFromForm.ClientKey)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
@@ -1166,7 +1155,7 @@ func (h *Handler) UpdateBitbucketInstallation(c *gin.Context) {
 
 	err = h.bitbucketapiClient.AddInstallation(ctx, *installation)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed updating bitbucket installation %v in configmap", clientKey)
+		log.Error().Err(err).Msgf("Failed updating bitbucket installation %v in configmap", installationFromForm.ClientKey)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 		return
 	}

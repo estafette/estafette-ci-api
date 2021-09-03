@@ -611,8 +611,8 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 		jwtMiddlewareRoutes.DELETE("/api/admin/clients/:id", rbacHandler.DeleteClient)
 
 		jwtMiddlewareRoutes.GET("/api/admin/integrations", rbacHandler.GetIntegrations)
-		jwtMiddlewareRoutes.PUT("/api/admin/integrations/github/:id", rbacHandler.UpdateGithubInstallation)
-		jwtMiddlewareRoutes.PUT("/api/admin/integrations/bitbucket/:clientKey", rbacHandler.UpdateBitbucketInstallation)
+		jwtMiddlewareRoutes.PUT("/api/admin/integrations/github/", rbacHandler.UpdateGithubInstallation)
+		jwtMiddlewareRoutes.PUT("/api/admin/integrations/bitbucket/", rbacHandler.UpdateBitbucketInstallation)
 
 		// catalog routes
 		jwtMiddlewareRoutes.GET("/api/catalog/entity-labels", catalogHandler.GetCatalogEntityLabels)
