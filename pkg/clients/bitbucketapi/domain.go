@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	contracts "github.com/estafette/estafette-ci-contracts"
 )
 
 const repoSource = "bitbucket.org"
@@ -325,11 +327,12 @@ func (pe *RepoDeletedEvent) GetRepoName() string {
 }
 
 type BitbucketAppInstallation struct {
-	Key          string     `json:"key"`
-	BaseApiURL   string     `json:"baseApiUrl"`
-	ClientKey    string     `json:"clientKey"`
-	SharedSecret string     `json:"sharedSecret"`
-	Workspace    *Workspace `json:"workspace"`
+	Key           string                    `json:"key"`
+	BaseApiURL    string                    `json:"baseApiUrl"`
+	ClientKey     string                    `json:"clientKey"`
+	SharedSecret  string                    `json:"sharedSecret"`
+	Workspace     *Workspace                `json:"workspace"`
+	Organizations []*contracts.Organization `json:"organizations,omitempty"`
 }
 
 func (ai *BitbucketAppInstallation) GetWorkspaceUUID() string {

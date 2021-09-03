@@ -24,21 +24,21 @@ func (c *tracingClient) GetGithubAppToken(ctx context.Context, app GithubApp) (t
 	return c.Client.GetGithubAppToken(ctx, app)
 }
 
-func (c *tracingClient) GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (app *GithubApp, installation *Installation, err error) {
+func (c *tracingClient) GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (app *GithubApp, installation *GithubInstallation, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAppAndInstallationByOwner"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetAppAndInstallationByOwner(ctx, repoOwner)
 }
 
-func (c *tracingClient) GetAppAndInstallationByID(ctx context.Context, installationID int) (app *GithubApp, installation *Installation, err error) {
+func (c *tracingClient) GetAppAndInstallationByID(ctx context.Context, installationID int) (app *GithubApp, installation *GithubInstallation, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAppAndInstallationByID"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.GetAppAndInstallationByID(ctx, installationID)
 }
 
-func (c *tracingClient) GetInstallationToken(ctx context.Context, app GithubApp, installation Installation) (accessToken AccessToken, err error) {
+func (c *tracingClient) GetInstallationToken(ctx context.Context, app GithubApp, installation GithubInstallation) (accessToken AccessToken, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetInstallationToken"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
@@ -94,14 +94,14 @@ func (c *tracingClient) RemoveApp(ctx context.Context, app GithubApp) (err error
 	return c.Client.RemoveApp(ctx, app)
 }
 
-func (c *tracingClient) AddInstallation(ctx context.Context, installation Installation) (err error) {
+func (c *tracingClient) AddInstallation(ctx context.Context, installation GithubInstallation) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "AddInstallation"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.AddInstallation(ctx, installation)
 }
 
-func (c *tracingClient) RemoveInstallation(ctx context.Context, installation Installation) (err error) {
+func (c *tracingClient) RemoveInstallation(ctx context.Context, installation GithubInstallation) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "RemoveInstallation"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 

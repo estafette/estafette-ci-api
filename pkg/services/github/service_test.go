@@ -63,7 +63,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 		githubapiClient.
 			EXPECT().
 			GetAppAndInstallationByID(gomock.Any(), gomock.Any()).
-			Return(&githubapi.GithubApp{}, &githubapi.Installation{}, nil).
+			Return(&githubapi.GithubApp{}, &githubapi.GithubInstallation{}, nil).
 			Times(1)
 
 		githubapiClient.
@@ -107,7 +107,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 			}).
 			Times(1)
 
-		githubapiClient.EXPECT().GetAppAndInstallationByID(gomock.Any(), gomock.Any()).Return(&githubapi.GithubApp{}, &githubapi.Installation{}, nil).AnyTimes()
+		githubapiClient.EXPECT().GetAppAndInstallationByID(gomock.Any(), gomock.Any()).Return(&githubapi.GithubApp{}, &githubapi.GithubInstallation{}, nil).AnyTimes()
 		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
@@ -152,7 +152,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 			CreateBuild(gomock.Any(), gomock.Any()).
 			Times(1)
 
-		githubapiClient.EXPECT().GetAppAndInstallationByID(gomock.Any(), gomock.Any()).Return(&githubapi.GithubApp{}, &githubapi.Installation{}, nil).AnyTimes()
+		githubapiClient.EXPECT().GetAppAndInstallationByID(gomock.Any(), gomock.Any()).Return(&githubapi.GithubApp{}, &githubapi.GithubInstallation{}, nil).AnyTimes()
 		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		pubsubapiClient.EXPECT().SubscribeToPubsubTriggers(gomock.Any(), gomock.Any()).AnyTimes()
 		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "github.com/", Branch: "master"})).AnyTimes()
@@ -190,7 +190,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 			Ref: "refs/heads/master",
 		}
 
-		githubapiClient.EXPECT().GetAppAndInstallationByID(gomock.Any(), gomock.Any()).Return(&githubapi.GithubApp{}, &githubapi.Installation{}, nil).AnyTimes()
+		githubapiClient.EXPECT().GetAppAndInstallationByID(gomock.Any(), gomock.Any()).Return(&githubapi.GithubApp{}, &githubapi.GithubInstallation{}, nil).AnyTimes()
 		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		githubapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		queueService.EXPECT().PublishGitEvent(gomock.Any(), gomock.Eq(manifest.EstafetteGitEvent{Event: "push", Repository: "github.com/", Branch: "master"})).AnyTimes()
@@ -233,7 +233,7 @@ func TestCreateJobForGithubPush(t *testing.T) {
 			}).
 			Times(1)
 
-		githubapiClient.EXPECT().GetAppAndInstallationByID(gomock.Any(), gomock.Any()).Return(&githubapi.GithubApp{}, &githubapi.Installation{}, nil).AnyTimes()
+		githubapiClient.EXPECT().GetAppAndInstallationByID(gomock.Any(), gomock.Any()).Return(&githubapi.GithubApp{}, &githubapi.GithubInstallation{}, nil).AnyTimes()
 		githubapiClient.EXPECT().GetInstallationToken(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		githubapiClient.EXPECT().GetEstafetteManifest(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		estafetteService.EXPECT().CreateBuild(gomock.Any(), gomock.Any()).AnyTimes()
@@ -275,12 +275,10 @@ func TestIsAllowedInstallation(t *testing.T) {
 
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, queueService)
 
-		installation := githubapi.Installation{
-			ID: 513,
-		}
+		installationID := 513
 
 		// act
-		isAllowed, _ := service.IsAllowedInstallation(context.Background(), installation)
+		isAllowed, _ := service.IsAllowedInstallation(context.Background(), installationID)
 
 		assert.True(t, isAllowed)
 	})
@@ -307,12 +305,10 @@ func TestIsAllowedInstallation(t *testing.T) {
 		queueService := queue.NewMockService(ctrl)
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, queueService)
 
-		installation := githubapi.Installation{
-			ID: 513,
-		}
+		installationID := 513
 
 		// act
-		isAllowed, _ := service.IsAllowedInstallation(context.Background(), installation)
+		isAllowed, _ := service.IsAllowedInstallation(context.Background(), installationID)
 
 		assert.False(t, isAllowed)
 	})
@@ -342,12 +338,10 @@ func TestIsAllowedInstallation(t *testing.T) {
 		queueService := queue.NewMockService(ctrl)
 		service := NewService(config, githubapiClient, pubsubapiClient, estafetteService, queueService)
 
-		installation := githubapi.Installation{
-			ID: 513,
-		}
+		installationID := 513
 
 		// act
-		isAllowed, _ := service.IsAllowedInstallation(context.Background(), installation)
+		isAllowed, _ := service.IsAllowedInstallation(context.Background(), installationID)
 
 		assert.True(t, isAllowed)
 	})

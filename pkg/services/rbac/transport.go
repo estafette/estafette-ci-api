@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1081,6 +1082,96 @@ func (h *Handler) GetIntegrations(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) UpdateGithubInstallation(c *gin.Context) {
+	// ensure the request has the correct permission
+	if !api.RequestTokenHasPermission(c, api.PermissionIntegrationsUpdate) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	// get integration
+	installationIDString := c.Param("id")
+	installationID, err := strconv.Atoi(installationIDString)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed parsing github installation id %v", installationIDString)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	var installationFromForm githubapi.GithubInstallation
+	err = c.BindJSON(&installationFromForm)
+	if err != nil {
+		errorMessage := "Binding UpdateGithubIntegration body failed"
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+
+	// get github installation
+	_, installation, err := h.githubapiClient.GetAppAndInstallationByID(ctx, installationID)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed retrieving github installation %v from configmap", installationID)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	// update organizations
+	installation.Organizations = installationFromForm.Organizations
+
+	err = h.githubapiClient.AddInstallation(ctx, *installation)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed updating github installation %v in configmap", installationID)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
+}
+
+func (h *Handler) UpdateBitbucketInstallation(c *gin.Context) {
+	// ensure the request has the correct permission
+	if !api.RequestTokenHasPermission(c, api.PermissionIntegrationsUpdate) {
+		c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": "JWT is invalid or request does not have correct permission"})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	// get integration
+	clientKey := c.Param("clientKey")
+
+	var installationFromForm bitbucketapi.BitbucketAppInstallation
+	err := c.BindJSON(&installationFromForm)
+	if err != nil {
+		errorMessage := "Binding UpdateBitbucketIntegration body failed"
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+
+	// get bitbucket installation
+	installation, err := h.bitbucketapiClient.GetInstallationByClientKey(ctx, clientKey)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed retrieving bitbucket installation %v from configmap", clientKey)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	// update organizations
+	installation.Organizations = installationFromForm.Organizations
+
+	err = h.bitbucketapiClient.AddInstallation(ctx, *installation)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed updating bitbucket installation %v in configmap", clientKey)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": http.StatusText(http.StatusOK)})
 }
 
 func (h *Handler) GetPipelines(c *gin.Context) {

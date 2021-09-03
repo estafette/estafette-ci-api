@@ -3,14 +3,16 @@ package githubapi
 import (
 	"fmt"
 	"strings"
+
+	contracts "github.com/estafette/estafette-ci-contracts"
 )
 
 const repoSource = "github.com"
 
 // AnyEvent represents any of the Github webhook events, to check if installation is allowed
 type AnyEvent struct {
-	Installation Installation `json:"installation"`
-	Repository   *Repository  `json:"repository"`
+	Installation GithubInstallation `json:"installation"`
+	Repository   *Repository        `json:"repository"`
 }
 
 func (ae *AnyEvent) GetRepository() string {
@@ -23,20 +25,21 @@ func (ae *AnyEvent) GetRepository() string {
 
 // PushEvent represents a Github webhook push event
 type PushEvent struct {
-	After        string       `json:"after"`
-	Commits      []Commit     `json:"commits"`
-	HeadCommit   Commit       `json:"head_commit"`
-	Pusher       Pusher       `json:"pusher"`
-	Repository   Repository   `json:"repository"`
-	Installation Installation `json:"installation"`
-	Ref          string       `json:"ref"`
+	After        string             `json:"after"`
+	Commits      []Commit           `json:"commits"`
+	HeadCommit   Commit             `json:"head_commit"`
+	Pusher       Pusher             `json:"pusher"`
+	Repository   Repository         `json:"repository"`
+	Installation GithubInstallation `json:"installation"`
+	Ref          string             `json:"ref"`
 }
 
 // Installation represents an installation of a Github app
-type Installation struct {
-	ID      int      `json:"id"`
-	AppID   int      `json:"app_id,omitempty"`
-	Account *Account `json:"account,omitempty"`
+type GithubInstallation struct {
+	ID            int                       `json:"id"`
+	AppID         int                       `json:"app_id,omitempty"`
+	Account       *Account                  `json:"account,omitempty"`
+	Organizations []*contracts.Organization `json:"organizations,omitempty"`
 }
 
 type Account struct {
@@ -125,10 +128,10 @@ func (pe *PushEvent) GetRepository() string {
 
 // RepositoryEvent represents a Github webhook repository event
 type RepositoryEvent struct {
-	Action       string            `json:"action"`
-	Changes      RepositoryChanges `json:"changes"`
-	Repository   Repository        `json:"repository"`
-	Installation Installation      `json:"installation"`
+	Action       string             `json:"action"`
+	Changes      RepositoryChanges  `json:"changes"`
+	Repository   Repository         `json:"repository"`
+	Installation GithubInstallation `json:"installation"`
 }
 
 // RepositoryChanges records changes made to a repository
@@ -192,12 +195,12 @@ func IsRepoSourceGithub(repoSourceToCompare string) bool {
 }
 
 type GithubApp struct {
-	ID            int             `json:"id"`
-	Name          string          `json:"name"`
-	Slug          string          `json:"slug"`
-	PrivateKey    string          `json:"pem"`
-	WebhookSecret string          `json:"webhook_secret"`
-	ClientID      string          `json:"client_id"`
-	ClientSecret  string          `json:"client_secret"`
-	Installations []*Installation `json:"installations"`
+	ID            int                   `json:"id"`
+	Name          string                `json:"name"`
+	Slug          string                `json:"slug"`
+	PrivateKey    string                `json:"pem"`
+	WebhookSecret string                `json:"webhook_secret"`
+	ClientID      string                `json:"client_id"`
+	ClientSecret  string                `json:"client_secret"`
+	Installations []*GithubInstallation `json:"installations"`
 }

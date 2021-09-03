@@ -169,6 +169,21 @@ func (mr *MockClientMockRecorder) GetEstafetteManifest(ctx, accesstoken, event i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEstafetteManifest", reflect.TypeOf((*MockClient)(nil).GetEstafetteManifest), ctx, accesstoken, event)
 }
 
+// GetInstallationByClientKey mocks base method.
+func (m *MockClient) GetInstallationByClientKey(ctx context.Context, clientKey string) (*BitbucketAppInstallation, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstallationByClientKey", ctx, clientKey)
+	ret0, _ := ret[0].(*BitbucketAppInstallation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInstallationByClientKey indicates an expected call of GetInstallationByClientKey.
+func (mr *MockClientMockRecorder) GetInstallationByClientKey(ctx, clientKey interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallationByClientKey", reflect.TypeOf((*MockClient)(nil).GetInstallationByClientKey), ctx, clientKey)
+}
+
 // GetInstallationBySlug mocks base method.
 func (m *MockClient) GetInstallationBySlug(ctx context.Context, workspaceSlug string) (*BitbucketAppInstallation, error) {
 	m.ctrl.T.Helper()

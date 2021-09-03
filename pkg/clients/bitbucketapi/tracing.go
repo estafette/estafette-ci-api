@@ -101,6 +101,13 @@ func (c *tracingClient) GetInstallationByUUID(ctx context.Context, workspaceUUID
 	return c.Client.GetInstallationByUUID(ctx, workspaceUUID)
 }
 
+func (c *tracingClient) GetInstallationByClientKey(ctx context.Context, clientKey string) (installation *BitbucketAppInstallation, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetInstallationByClientKey"))
+	defer func() { api.FinishSpan(span) }()
+
+	return c.Client.GetInstallationByClientKey(ctx, clientKey)
+}
+
 func (c *tracingClient) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetInstallations"))
 	defer func() { api.FinishSpan(span) }()

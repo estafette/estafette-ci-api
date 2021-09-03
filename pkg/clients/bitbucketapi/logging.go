@@ -84,6 +84,12 @@ func (c *loggingClient) GetInstallationByUUID(ctx context.Context, workspaceUUID
 	return c.Client.GetInstallationByUUID(ctx, workspaceUUID)
 }
 
+func (c *loggingClient) GetInstallationByClientKey(ctx context.Context, clientKey string) (installation *BitbucketAppInstallation, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetInstallationByClientKey", err) }()
+
+	return c.Client.GetInstallationByClientKey(ctx, clientKey)
+}
+
 func (c *loggingClient) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetInstallations", err) }()
 

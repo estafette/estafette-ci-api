@@ -49,6 +49,7 @@ type Client interface {
 	GenerateJWTByInstallation(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error)
 	GetInstallationBySlug(ctx context.Context, workspaceSlug string) (installation *BitbucketAppInstallation, err error)
 	GetInstallationByUUID(ctx context.Context, workspaceUUID string) (installation *BitbucketAppInstallation, err error)
+	GetInstallationByClientKey(ctx context.Context, clientKey string) (installation *BitbucketAppInstallation, err error)
 	GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error)
 	AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
 	RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
@@ -380,6 +381,21 @@ func (c *client) GetInstallationByUUID(ctx context.Context, workspaceUUID string
 	return nil, ErrMissingInstallation
 }
 
+func (c *client) GetInstallationByClientKey(ctx context.Context, clientKey string) (installation *BitbucketAppInstallation, err error) {
+	installations, err := c.GetInstallations(ctx)
+	if err != nil {
+		return
+	}
+
+	for _, inst := range installations {
+		if inst != nil && inst.ClientKey == clientKey {
+			return inst, nil
+		}
+	}
+
+	return nil, ErrMissingInstallation
+}
+
 type installationsCacheItem struct {
 	Installations []*BitbucketAppInstallation
 	ExpiresIn     int
@@ -457,8 +473,8 @@ func (c *client) AddInstallation(ctx context.Context, installation BitbucketAppI
 		if inst.Key == installation.Key && inst.ClientKey == installation.ClientKey {
 			installationExists = true
 
-			inst.BaseApiURL = installation.BaseApiURL
-			inst.SharedSecret = installation.SharedSecret
+			// update fields editable from gui
+			inst.Organizations = installation.Organizations
 		}
 	}
 

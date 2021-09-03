@@ -113,6 +113,14 @@ func (c *metricsClient) GetInstallationByUUID(ctx context.Context, workspaceUUID
 	return c.Client.GetInstallationByUUID(ctx, workspaceUUID)
 }
 
+func (c *metricsClient) GetInstallationByClientKey(ctx context.Context, clientKey string) (installation *BitbucketAppInstallation, err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetInstallationByClientKey", begin)
+	}(time.Now())
+
+	return c.Client.GetInstallationByClientKey(ctx, clientKey)
+}
+
 func (c *metricsClient) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetInstallations", begin)

@@ -59,6 +59,6 @@ func (s *loggingService) Unarchive(ctx context.Context, repoSource, repoOwner, r
 	return s.Service.Unarchive(ctx, repoSource, repoOwner, repoName)
 }
 
-func (s *loggingService) IsAllowedInstallation(ctx context.Context, installation githubapi.Installation) (isAllowed bool, organizations []*contracts.Organization) {
-	return s.Service.IsAllowedInstallation(ctx, installation)
+func (s *loggingService) IsAllowedInstallation(ctx context.Context, installationID int) (isAllowed bool, organizations []*contracts.Organization) {
+	return s.Service.IsAllowedInstallation(ctx, installationID)
 }

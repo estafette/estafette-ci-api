@@ -70,12 +70,12 @@ func (h *Handler) Handle(c *gin.Context) {
 	case "push": // Any Git push to a Repository, including editing tags or branches. Commits via API actions that update references are also counted. This is the default event.
 
 		// verify installation id is allowed
-		// isAllowed, _ := h.service.IsAllowedInstallation(c.Request.Context(), anyEvent.Installation)
-		// if !isAllowed {
-		// 	log.Warn().Interface("event", anyEvent).Str("body", string(body)).Msg("GithubAnyEvent installation is not allowed")
-		// 	c.Status(http.StatusUnauthorized)
-		// 	return
-		// }
+		isAllowed, _ := h.service.IsAllowedInstallation(c.Request.Context(), anyEvent.Installation.ID)
+		if !isAllowed {
+			log.Warn().Interface("event", anyEvent).Str("body", string(body)).Msg("GithubAnyEvent installation is not allowed")
+			c.Status(http.StatusUnauthorized)
+			return
+		}
 
 		// unmarshal json body
 		var pushEvent githubapi.PushEvent

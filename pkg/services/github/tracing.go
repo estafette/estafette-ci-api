@@ -62,9 +62,9 @@ func (s *tracingService) Unarchive(ctx context.Context, repoSource, repoOwner, r
 	return s.Service.Unarchive(ctx, repoSource, repoOwner, repoName)
 }
 
-func (s *tracingService) IsAllowedInstallation(ctx context.Context, installation githubapi.Installation) (isAllowed bool, organizations []*contracts.Organization) {
+func (s *tracingService) IsAllowedInstallation(ctx context.Context, installationID int) (isAllowed bool, organizations []*contracts.Organization) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "Rename"))
 	defer func() { api.FinishSpan(span) }()
 
-	return s.Service.IsAllowedInstallation(ctx, installation)
+	return s.Service.IsAllowedInstallation(ctx, installationID)
 }

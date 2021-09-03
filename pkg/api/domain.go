@@ -170,6 +170,7 @@ const (
 	PermissionClientsDelete
 
 	PermissionIntegrationsGet
+	PermissionIntegrationsUpdate
 
 	PermissionPipelinesList
 	PermissionPipelinesGet
@@ -289,6 +290,7 @@ var rolesToPermissionMap = map[Role][]Permission{
 		PermissionClientsUpdate,
 		PermissionClientsDelete,
 		PermissionIntegrationsGet,
+		PermissionIntegrationsUpdate,
 		PermissionPipelinesList,
 		PermissionPipelinesGet,
 		PermissionPipelinesUpdate,

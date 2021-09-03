@@ -22,19 +22,19 @@ func (c *loggingClient) GetGithubAppToken(ctx context.Context, app GithubApp) (t
 	return c.Client.GetGithubAppToken(ctx, app)
 }
 
-func (c *loggingClient) GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (app *GithubApp, installation *Installation, err error) {
+func (c *loggingClient) GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (app *GithubApp, installation *GithubInstallation, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetAppAndInstallationByOwner", err) }()
 
 	return c.Client.GetAppAndInstallationByOwner(ctx, repoOwner)
 }
 
-func (c *loggingClient) GetAppAndInstallationByID(ctx context.Context, installationID int) (app *GithubApp, installation *Installation, err error) {
+func (c *loggingClient) GetAppAndInstallationByID(ctx context.Context, installationID int) (app *GithubApp, installation *GithubInstallation, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetAppAndInstallationByID", err) }()
 
 	return c.Client.GetAppAndInstallationByID(ctx, installationID)
 }
 
-func (c *loggingClient) GetInstallationToken(ctx context.Context, app GithubApp, installation Installation) (accessToken AccessToken, err error) {
+func (c *loggingClient) GetInstallationToken(ctx context.Context, app GithubApp, installation GithubInstallation) (accessToken AccessToken, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetInstallationToken", err) }()
 
 	return c.Client.GetInstallationToken(ctx, app, installation)
@@ -80,13 +80,13 @@ func (c *loggingClient) RemoveApp(ctx context.Context, app GithubApp) (err error
 	return c.Client.RemoveApp(ctx, app)
 }
 
-func (c *loggingClient) AddInstallation(ctx context.Context, installation Installation) (err error) {
+func (c *loggingClient) AddInstallation(ctx context.Context, installation GithubInstallation) (err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "AddInstallation", err) }()
 
 	return c.Client.AddInstallation(ctx, installation)
 }
 
-func (c *loggingClient) RemoveInstallation(ctx context.Context, installation Installation) (err error) {
+func (c *loggingClient) RemoveInstallation(ctx context.Context, installation GithubInstallation) (err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "RemoveInstallation", err) }()
 
 	return c.Client.RemoveInstallation(ctx, installation)

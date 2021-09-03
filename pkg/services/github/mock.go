@@ -81,18 +81,18 @@ func (mr *MockServiceMockRecorder) HasValidSignature(ctx, body, appIDHeader, sig
 }
 
 // IsAllowedInstallation mocks base method.
-func (m *MockService) IsAllowedInstallation(ctx context.Context, installation githubapi.Installation) (bool, []*contracts.Organization) {
+func (m *MockService) IsAllowedInstallation(ctx context.Context, installationID int) (bool, []*contracts.Organization) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsAllowedInstallation", ctx, installation)
+	ret := m.ctrl.Call(m, "IsAllowedInstallation", ctx, installationID)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].([]*contracts.Organization)
 	return ret0, ret1
 }
 
 // IsAllowedInstallation indicates an expected call of IsAllowedInstallation.
-func (mr *MockServiceMockRecorder) IsAllowedInstallation(ctx, installation interface{}) *gomock.Call {
+func (mr *MockServiceMockRecorder) IsAllowedInstallation(ctx, installationID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsAllowedInstallation", reflect.TypeOf((*MockService)(nil).IsAllowedInstallation), ctx, installation)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsAllowedInstallation", reflect.TypeOf((*MockService)(nil).IsAllowedInstallation), ctx, installationID)
 }
 
 // PublishGithubEvent mocks base method.

@@ -49,7 +49,7 @@ func (mr *MockClientMockRecorder) AddApp(ctx, app interface{}) *gomock.Call {
 }
 
 // AddInstallation mocks base method.
-func (m *MockClient) AddInstallation(ctx context.Context, installation Installation) error {
+func (m *MockClient) AddInstallation(ctx context.Context, installation GithubInstallation) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddInstallation", ctx, installation)
 	ret0, _ := ret[0].(error)
@@ -77,11 +77,11 @@ func (mr *MockClientMockRecorder) ConvertAppManifestCode(ctx, code interface{}) 
 }
 
 // GetAppAndInstallationByID mocks base method.
-func (m *MockClient) GetAppAndInstallationByID(ctx context.Context, installationID int) (*GithubApp, *Installation, error) {
+func (m *MockClient) GetAppAndInstallationByID(ctx context.Context, installationID int) (*GithubApp, *GithubInstallation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAppAndInstallationByID", ctx, installationID)
 	ret0, _ := ret[0].(*GithubApp)
-	ret1, _ := ret[1].(*Installation)
+	ret1, _ := ret[1].(*GithubInstallation)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
@@ -93,11 +93,11 @@ func (mr *MockClientMockRecorder) GetAppAndInstallationByID(ctx, installationID 
 }
 
 // GetAppAndInstallationByOwner mocks base method.
-func (m *MockClient) GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (*GithubApp, *Installation, error) {
+func (m *MockClient) GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (*GithubApp, *GithubInstallation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAppAndInstallationByOwner", ctx, repoOwner)
 	ret0, _ := ret[0].(*GithubApp)
-	ret1, _ := ret[1].(*Installation)
+	ret1, _ := ret[1].(*GithubInstallation)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
@@ -170,7 +170,7 @@ func (mr *MockClientMockRecorder) GetGithubAppToken(ctx, app interface{}) *gomoc
 }
 
 // GetInstallationToken mocks base method.
-func (m *MockClient) GetInstallationToken(ctx context.Context, app GithubApp, installation Installation) (AccessToken, error) {
+func (m *MockClient) GetInstallationToken(ctx context.Context, app GithubApp, installation GithubInstallation) (AccessToken, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetInstallationToken", ctx, app, installation)
 	ret0, _ := ret[0].(AccessToken)
@@ -213,7 +213,7 @@ func (mr *MockClientMockRecorder) RemoveApp(ctx, app interface{}) *gomock.Call {
 }
 
 // RemoveInstallation mocks base method.
-func (m *MockClient) RemoveInstallation(ctx context.Context, installation Installation) error {
+func (m *MockClient) RemoveInstallation(ctx context.Context, installation GithubInstallation) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RemoveInstallation", ctx, installation)
 	ret0, _ := ret[0].(error)

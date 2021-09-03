@@ -28,9 +28,9 @@ import (
 //go:generate mockgen -package=githubapi -destination ./mock.go -source=client.go
 type Client interface {
 	GetGithubAppToken(ctx context.Context, app GithubApp) (token string, err error)
-	GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (app *GithubApp, installation *Installation, err error)
-	GetAppAndInstallationByID(ctx context.Context, installationID int) (app *GithubApp, installation *Installation, err error)
-	GetInstallationToken(ctx context.Context, app GithubApp, installation Installation) (accessToken AccessToken, err error)
+	GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (app *GithubApp, installation *GithubInstallation, err error)
+	GetAppAndInstallationByID(ctx context.Context, installationID int) (app *GithubApp, installation *GithubInstallation, err error)
+	GetInstallationToken(ctx context.Context, app GithubApp, installation GithubInstallation) (accessToken AccessToken, err error)
 	GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event PushEvent) (valid bool, manifest string, err error)
 	JobVarsFunc(ctx context.Context) func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error)
 	ConvertAppManifestCode(ctx context.Context, code string) (err error)
@@ -38,8 +38,8 @@ type Client interface {
 	GetAppByID(ctx context.Context, id int) (app *GithubApp, err error)
 	AddApp(ctx context.Context, app GithubApp) (err error)
 	RemoveApp(ctx context.Context, app GithubApp) (err error)
-	AddInstallation(ctx context.Context, installation Installation) (err error)
-	RemoveInstallation(ctx context.Context, installation Installation) (err error)
+	AddInstallation(ctx context.Context, installation GithubInstallation) (err error)
+	RemoveInstallation(ctx context.Context, installation GithubInstallation) (err error)
 }
 
 // NewClient creates an githubapi.Client to communicate with the Github api
@@ -91,7 +91,7 @@ func (c *client) GetGithubAppToken(ctx context.Context, app GithubApp) (githubAp
 }
 
 // GetInstallationID returns the id for an installation of a Github app
-func (c *client) GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (app *GithubApp, installation *Installation, err error) {
+func (c *client) GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (app *GithubApp, installation *GithubInstallation, err error) {
 
 	// get installation and app by repoOwner
 	apps, err := c.GetApps(ctx)
@@ -110,7 +110,7 @@ func (c *client) GetAppAndInstallationByOwner(ctx context.Context, repoOwner str
 	return nil, nil, fmt.Errorf("App and installation for repoOwner %v can't be found", repoOwner)
 }
 
-func (c *client) GetAppAndInstallationByID(ctx context.Context, installationID int) (app *GithubApp, installation *Installation, err error) {
+func (c *client) GetAppAndInstallationByID(ctx context.Context, installationID int) (app *GithubApp, installation *GithubInstallation, err error) {
 
 	// get installation and app by repoOwner
 	apps, err := c.GetApps(ctx)
@@ -130,7 +130,7 @@ func (c *client) GetAppAndInstallationByID(ctx context.Context, installationID i
 }
 
 // GetInstallationToken returns an access token for an installation of a Github app
-func (c *client) GetInstallationToken(ctx context.Context, app GithubApp, installation Installation) (accessToken AccessToken, err error) {
+func (c *client) GetInstallationToken(ctx context.Context, app GithubApp, installation GithubInstallation) (accessToken AccessToken, err error) {
 
 	githubAppToken, err := c.GetGithubAppToken(ctx, app)
 	if err != nil {
@@ -496,7 +496,7 @@ func (c *client) RemoveApp(ctx context.Context, app GithubApp) (err error) {
 	return
 }
 
-func (c *client) AddInstallation(ctx context.Context, installation Installation) (err error) {
+func (c *client) AddInstallation(ctx context.Context, installation GithubInstallation) (err error) {
 
 	apps, err := c.GetApps(ctx)
 	if err != nil {
@@ -511,12 +511,15 @@ func (c *client) AddInstallation(ctx context.Context, installation Installation)
 	for _, app := range apps {
 		if app.ID == installation.AppID {
 			if app.Installations == nil {
-				app.Installations = make([]*Installation, 0)
+				app.Installations = make([]*GithubInstallation, 0)
 			}
 			installationExists := false
 			for _, inst := range app.Installations {
 				if inst.ID == installation.ID {
 					installationExists = true
+
+					// update fields editable from gui
+					inst.Organizations = installation.Organizations
 				}
 			}
 			if !installationExists {
@@ -533,7 +536,7 @@ func (c *client) AddInstallation(ctx context.Context, installation Installation)
 	return
 }
 
-func (c *client) RemoveInstallation(ctx context.Context, installation Installation) (err error) {
+func (c *client) RemoveInstallation(ctx context.Context, installation GithubInstallation) (err error) {
 
 	apps, err := c.GetApps(ctx)
 	if err != nil {
@@ -548,7 +551,7 @@ func (c *client) RemoveInstallation(ctx context.Context, installation Installati
 	for _, app := range apps {
 		if app.ID == installation.AppID {
 			if app.Installations == nil {
-				app.Installations = make([]*Installation, 0)
+				app.Installations = make([]*GithubInstallation, 0)
 			}
 			for i, inst := range app.Installations {
 				if inst.ID == installation.ID {

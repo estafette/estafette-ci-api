@@ -27,7 +27,7 @@ func (c *metricsClient) GetGithubAppToken(ctx context.Context, app GithubApp) (t
 	return c.Client.GetGithubAppToken(ctx, app)
 }
 
-func (c *metricsClient) GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (app *GithubApp, installation *Installation, err error) {
+func (c *metricsClient) GetAppAndInstallationByOwner(ctx context.Context, repoOwner string) (app *GithubApp, installation *GithubInstallation, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAppAndInstallationByOwner", begin)
 	}(time.Now())
@@ -35,7 +35,7 @@ func (c *metricsClient) GetAppAndInstallationByOwner(ctx context.Context, repoOw
 	return c.Client.GetAppAndInstallationByOwner(ctx, repoOwner)
 }
 
-func (c *metricsClient) GetAppAndInstallationByID(ctx context.Context, installationID int) (app *GithubApp, installation *Installation, err error) {
+func (c *metricsClient) GetAppAndInstallationByID(ctx context.Context, installationID int) (app *GithubApp, installation *GithubInstallation, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAppAndInstallationByID", begin)
 	}(time.Now())
@@ -43,7 +43,7 @@ func (c *metricsClient) GetAppAndInstallationByID(ctx context.Context, installat
 	return c.Client.GetAppAndInstallationByID(ctx, installationID)
 }
 
-func (c *metricsClient) GetInstallationToken(ctx context.Context, app GithubApp, installation Installation) (accessToken AccessToken, err error) {
+func (c *metricsClient) GetInstallationToken(ctx context.Context, app GithubApp, installation GithubInstallation) (accessToken AccessToken, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetInstallationToken", begin)
 	}(time.Now())
@@ -97,13 +97,13 @@ func (c *metricsClient) RemoveApp(ctx context.Context, app GithubApp) (err error
 	return c.Client.RemoveApp(ctx, app)
 }
 
-func (c *metricsClient) AddInstallation(ctx context.Context, installation Installation) (err error) {
+func (c *metricsClient) AddInstallation(ctx context.Context, installation GithubInstallation) (err error) {
 	defer func(begin time.Time) { api.UpdateMetrics(c.requestCount, c.requestLatency, "AddInstallation", begin) }(time.Now())
 
 	return c.Client.AddInstallation(ctx, installation)
 }
 
-func (c *metricsClient) RemoveInstallation(ctx context.Context, installation Installation) (err error) {
+func (c *metricsClient) RemoveInstallation(ctx context.Context, installation GithubInstallation) (err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "RemoveInstallation", begin)
 	}(time.Now())

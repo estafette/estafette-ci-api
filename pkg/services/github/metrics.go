@@ -64,8 +64,8 @@ func (s *metricsService) Unarchive(ctx context.Context, repoSource, repoOwner, r
 	return s.Service.Unarchive(ctx, repoSource, repoOwner, repoName)
 }
 
-func (s *metricsService) IsAllowedInstallation(ctx context.Context, installation githubapi.Installation) (isAllowed bool, organizations []*contracts.Organization) {
+func (s *metricsService) IsAllowedInstallation(ctx context.Context, installationID int) (isAllowed bool, organizations []*contracts.Organization) {
 	defer func(begin time.Time) { api.UpdateMetrics(s.requestCount, s.requestLatency, "Rename", begin) }(time.Now())
 
-	return s.Service.IsAllowedInstallation(ctx, installation)
+	return s.Service.IsAllowedInstallation(ctx, installationID)
 }
