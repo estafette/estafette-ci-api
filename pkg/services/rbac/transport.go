@@ -1052,32 +1052,39 @@ func (h *Handler) GetIntegrations(c *gin.Context) {
 
 	if h.config != nil && h.config.Integrations != nil && h.config.Integrations.Bitbucket != nil && h.config.Integrations.Bitbucket.Enable {
 		response.Bitbucket = &bitbucketResponse{
-			AddonKey:    h.config.Integrations.Bitbucket.Key,
 			RedirectURI: fmt.Sprintf("%v/api/integrations/bitbucket/redirect", strings.TrimRight(h.config.APIServer.IntegrationsURL, "/")),
 		}
 
-		installations, err := h.bitbucketapiClient.GetInstallations(ctx)
+		apps, err := h.bitbucketapiClient.GetApps(ctx)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed retrieving bitbucket installations from configmap")
+			log.Error().Err(err).Msg("Failed retrieving bitbucket apps from configmap")
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
 			return
 		}
 
 		// clone installations while obfuscating secret properties
-		response.Bitbucket.Installations = make([]*bitbucketapi.BitbucketAppInstallation, 0)
-		for _, installation := range installations {
-			response.Bitbucket.Installations = append(response.Bitbucket.Installations, &bitbucketapi.BitbucketAppInstallation{
-				Key:          installation.Key,
-				BaseApiURL:   installation.BaseApiURL,
-				ClientKey:    installation.ClientKey,
-				SharedSecret: "***",
-				Workspace: &bitbucketapi.Workspace{
-					Slug: installation.Workspace.Slug,
-					Name: installation.Workspace.Name,
-					UUID: installation.Workspace.UUID,
-				},
-				Organizations: installation.Organizations,
-			})
+		response.Bitbucket.Apps = make([]*bitbucketapi.BitbucketApp, 0)
+		for _, app := range apps {
+			copiedApp := &bitbucketapi.BitbucketApp{
+				Key:           app.Key,
+				Installations: make([]*bitbucketapi.BitbucketAppInstallation, 0),
+			}
+
+			for _, installation := range app.Installations {
+				copiedApp.Installations = append(copiedApp.Installations, &bitbucketapi.BitbucketAppInstallation{
+					Key:          installation.Key,
+					BaseApiURL:   installation.BaseApiURL,
+					ClientKey:    installation.ClientKey,
+					SharedSecret: "***",
+					Workspace: &bitbucketapi.Workspace{
+						Slug: installation.Workspace.Slug,
+						Name: installation.Workspace.Name,
+						UUID: installation.Workspace.UUID,
+					},
+					Organizations: installation.Organizations,
+				})
+			}
+			response.Bitbucket.Apps = append(response.Bitbucket.Apps, copiedApp)
 		}
 	}
 

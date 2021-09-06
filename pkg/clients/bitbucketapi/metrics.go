@@ -121,12 +121,12 @@ func (c *metricsClient) GetInstallationByClientKey(ctx context.Context, clientKe
 	return c.Client.GetInstallationByClientKey(ctx, clientKey)
 }
 
-func (c *metricsClient) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {
+func (c *metricsClient) GetApps(ctx context.Context) (apps []*BitbucketApp, err error) {
 	defer func(begin time.Time) {
-		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetInstallations", begin)
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetApps", begin)
 	}(time.Now())
 
-	return c.Client.GetInstallations(ctx)
+	return c.Client.GetApps(ctx)
 }
 
 func (c *metricsClient) AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {

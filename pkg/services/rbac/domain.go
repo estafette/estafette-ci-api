@@ -28,7 +28,6 @@ type githubHookAttribute struct {
 }
 
 type bitbucketResponse struct {
-	AddonKey      string                                   `json:"addonKey,omitempty"`
-	RedirectURI   string                                   `json:"redirectURI,omitempty"`
-	Installations []*bitbucketapi.BitbucketAppInstallation `json:"installations,omitempty"`
+	RedirectURI string                       `json:"redirectURI,omitempty"`
+	Apps        []*bitbucketapi.BitbucketApp `json:"apps,omitempty"`
 }

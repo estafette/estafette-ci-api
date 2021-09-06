@@ -47,10 +47,10 @@ type Client interface {
 	GenerateJWTBySlug(ctx context.Context, workspaceSlug string) (tokenString string, err error)
 	GenerateJWTByUUID(ctx context.Context, workspaceUUID string) (tokenString string, err error)
 	GenerateJWTByInstallation(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error)
+	GetApps(ctx context.Context) (apps []*BitbucketApp, err error)
 	GetInstallationBySlug(ctx context.Context, workspaceSlug string) (installation *BitbucketAppInstallation, err error)
 	GetInstallationByUUID(ctx context.Context, workspaceUUID string) (installation *BitbucketAppInstallation, err error)
 	GetInstallationByClientKey(ctx context.Context, clientKey string) (installation *BitbucketAppInstallation, err error)
-	GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error)
 	AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
 	RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
 	GetWorkspace(ctx context.Context, workspaceUUID string) (workspace *Workspace, err error)
@@ -237,14 +237,14 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 	}
 	jwtTokenString := strings.TrimPrefix(authorizationHeader, "JWT ")
 
-	installations, err := c.GetInstallations(ctx)
+	apps, err := c.GetApps(ctx)
 	if err != nil {
-		log.Warn().Err(err).Msg("Bitbucket JWT validation failed on retrieving installations")
+		log.Warn().Err(err).Msg("Bitbucket JWT validation failed on retrieving apps")
 		return nil, err
 	}
 
-	if installations == nil && len(installations) == 0 {
-		log.Warn().Msg("Bitbucket JWT validation retrieved 0 installations")
+	if apps == nil && len(apps) == 0 {
+		log.Warn().Msg("Bitbucket JWT validation retrieved 0 apps")
 		return nil, ErrNoInstallations
 	}
 
@@ -258,11 +258,13 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
 			clientKey := claims["iss"].(string)
 
-			for _, inst := range installations {
-				if inst.Key == c.config.Integrations.Bitbucket.Key && inst.ClientKey == clientKey {
-					installation = inst
+			for _, app := range apps {
+				for _, inst := range app.Installations {
+					if inst.ClientKey == clientKey {
+						installation = inst
 
-					return []byte(inst.SharedSecret), nil
+						return []byte(inst.SharedSecret), nil
+					}
 				}
 			}
 
@@ -352,14 +354,16 @@ func (c *client) GenerateJWTByInstallation(ctx context.Context, installation Bit
 }
 
 func (c *client) GetInstallationBySlug(ctx context.Context, workspaceSlug string) (installation *BitbucketAppInstallation, err error) {
-	installations, err := c.GetInstallations(ctx)
+	apps, err := c.GetApps(ctx)
 	if err != nil {
 		return
 	}
 
-	for _, inst := range installations {
-		if inst != nil && inst.Workspace != nil && inst.Workspace.Slug == workspaceSlug {
-			return inst, nil
+	for _, app := range apps {
+		for _, inst := range app.Installations {
+			if inst != nil && inst.Workspace != nil && inst.Workspace.Slug == workspaceSlug {
+				return inst, nil
+			}
 		}
 	}
 
@@ -367,14 +371,16 @@ func (c *client) GetInstallationBySlug(ctx context.Context, workspaceSlug string
 }
 
 func (c *client) GetInstallationByUUID(ctx context.Context, workspaceUUID string) (installation *BitbucketAppInstallation, err error) {
-	installations, err := c.GetInstallations(ctx)
+	apps, err := c.GetApps(ctx)
 	if err != nil {
 		return
 	}
 
-	for _, inst := range installations {
-		if inst != nil && inst.GetWorkspaceUUID() == workspaceUUID {
-			return inst, nil
+	for _, app := range apps {
+		for _, inst := range app.Installations {
+			if inst != nil && inst.GetWorkspaceUUID() == workspaceUUID {
+				return inst, nil
+			}
 		}
 	}
 
@@ -382,107 +388,121 @@ func (c *client) GetInstallationByUUID(ctx context.Context, workspaceUUID string
 }
 
 func (c *client) GetInstallationByClientKey(ctx context.Context, clientKey string) (installation *BitbucketAppInstallation, err error) {
-	installations, err := c.GetInstallations(ctx)
+	apps, err := c.GetApps(ctx)
 	if err != nil {
 		return
 	}
 
-	for _, inst := range installations {
-		if inst != nil && inst.ClientKey == clientKey {
-			return inst, nil
+	for _, app := range apps {
+		for _, inst := range app.Installations {
+			if inst != nil && inst.ClientKey == clientKey {
+				return inst, nil
+			}
 		}
 	}
 
 	return nil, ErrMissingInstallation
 }
 
-type installationsCacheItem struct {
-	Installations []*BitbucketAppInstallation
-	ExpiresIn     int
-	FetchedAt     time.Time
+type appsCacheItem struct {
+	Apps      []*BitbucketApp
+	ExpiresIn int
+	FetchedAt time.Time
 }
 
-func (c *installationsCacheItem) ExpiresAt() time.Time {
+func (c *appsCacheItem) ExpiresAt() time.Time {
 	return c.FetchedAt.Add(time.Duration(c.ExpiresIn) * time.Second)
 }
 
-func (c *installationsCacheItem) IsExpired() bool {
+func (c *appsCacheItem) IsExpired() bool {
 	return time.Now().UTC().After(c.ExpiresAt())
 }
 
-var installationsCache installationsCacheItem
-
-var installationsCacheMutex = sync.RWMutex{}
+var appsCache appsCacheItem
+var appsCacheMutex = sync.RWMutex{}
 
 const bitbucketConfigmapName = "estafette-ci-api.bitbucket"
 
-func (c *client) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {
-
+func (c *client) GetApps(ctx context.Context) (apps []*BitbucketApp, err error) {
 	// get from cache
-	installationsCacheMutex.RLock()
-	if installationsCache.Installations != nil && !installationsCache.IsExpired() {
-		installationsCacheMutex.RUnlock()
-		return installationsCache.Installations, nil
+	appsCacheMutex.RLock()
+	if appsCache.Apps != nil && !appsCache.IsExpired() {
+		appsCacheMutex.RUnlock()
+		return appsCache.Apps, nil
 	}
-	installationsCacheMutex.RUnlock()
+	appsCacheMutex.RUnlock()
 
-	installations = make([]*BitbucketAppInstallation, 0)
+	apps = make([]*BitbucketApp, 0)
 
 	configMap, err := c.kubeClientset.CoreV1().ConfigMaps(c.getCurrentNamespace()).Get(ctx, bitbucketConfigmapName, metav1.GetOptions{})
 	if err != nil || configMap == nil {
-		return installations, nil
+		return apps, nil
 	}
 
-	if data, ok := configMap.Data["installations"]; ok {
-		err = json.Unmarshal([]byte(data), &installations)
+	if data, ok := configMap.Data["apps"]; ok {
+		err = json.Unmarshal([]byte(data), &apps)
 		if err != nil {
 			return
 		}
 
-		err = c.decryptSharedSecrets(ctx, installations)
+		err = c.decryptSharedSecrets(ctx, apps)
 		if err != nil {
 			return
 		}
 
 		// add to cache
-		installationsCacheMutex.Lock()
-		installationsCache = installationsCacheItem{
-			Installations: installations,
-			ExpiresIn:     30,
-			FetchedAt:     time.Now().UTC(),
+		appsCacheMutex.Lock()
+		appsCache = appsCacheItem{
+			Apps:      apps,
+			ExpiresIn: 30,
+			FetchedAt: time.Now().UTC(),
 		}
-		installationsCacheMutex.Unlock()
+		appsCacheMutex.Unlock()
 	}
 
 	return
 }
 
 func (c *client) AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
-	installations, err := c.GetInstallations(ctx)
+	apps, err := c.GetApps(ctx)
 	if err != nil {
 		return
 	}
 
-	if installations == nil {
-		installations = make([]*BitbucketAppInstallation, 0)
+	if apps == nil {
+		apps = make([]*BitbucketApp, 0)
 	}
 
 	// check if installation(s) with key and clientKey exists, if not add, otherwise update
-	installationExists := false
-	for _, inst := range installations {
-		if inst.Key == installation.Key && inst.ClientKey == installation.ClientKey {
-			installationExists = true
+	appExists := false
+	for _, app := range apps {
+		if app.Key == installation.Key {
+			appExists = true
 
-			// update fields editable from gui
-			inst.Organizations = installation.Organizations
+			installationExists := false
+			for _, inst := range app.Installations {
+				if inst.ClientKey == installation.ClientKey {
+					installationExists = true
+
+					// update fields editable from gui
+					inst.Organizations = installation.Organizations
+				}
+			}
+
+			if !installationExists {
+				app.Installations = append(app.Installations, &installation)
+			}
 		}
 	}
 
-	if !installationExists {
-		installations = append(installations, &installation)
+	if !appExists {
+		apps = append(apps, &BitbucketApp{
+			Key:           installation.Key,
+			Installations: []*BitbucketAppInstallation{&installation},
+		})
 	}
 
-	err = c.upsertConfigmap(ctx, installations)
+	err = c.upsertConfigmap(ctx, apps)
 	if err != nil {
 		return
 	}
@@ -491,23 +511,25 @@ func (c *client) AddInstallation(ctx context.Context, installation BitbucketAppI
 }
 
 func (c *client) RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
-	installations, err := c.GetInstallations(ctx)
+	apps, err := c.GetApps(ctx)
 	if err != nil {
 		return
 	}
 
-	if installations == nil {
-		installations = make([]*BitbucketAppInstallation, 0)
+	if apps == nil {
+		apps = make([]*BitbucketApp, 0)
 	}
 
 	// check if installation(s) with key and clientKey exists, then remove
-	for i, inst := range installations {
-		if inst.Key == installation.Key && inst.ClientKey == installation.ClientKey {
-			installations = append(installations[:i], installations[i+1:]...)
+	for _, app := range apps {
+		for i, inst := range app.Installations {
+			if inst.Key == installation.Key && inst.ClientKey == installation.ClientKey {
+				app.Installations = append(app.Installations[:i], app.Installations[i+1:]...)
+			}
 		}
 	}
 
-	err = c.upsertConfigmap(ctx, installations)
+	err = c.upsertConfigmap(ctx, apps)
 	if err != nil {
 		return
 	}
@@ -515,15 +537,15 @@ func (c *client) RemoveInstallation(ctx context.Context, installation BitbucketA
 	return
 }
 
-func (c *client) upsertConfigmap(ctx context.Context, installations []*BitbucketAppInstallation) (err error) {
+func (c *client) upsertConfigmap(ctx context.Context, apps []*BitbucketApp) (err error) {
 
-	err = c.encryptSharedSecrets(ctx, installations)
+	err = c.encryptSharedSecrets(ctx, apps)
 	if err != nil {
 		return
 	}
 
 	// marshal to json
-	data, err := json.Marshal(installations)
+	data, err := json.Marshal(apps)
 	if err != nil {
 		return err
 	}
@@ -538,7 +560,7 @@ func (c *client) upsertConfigmap(ctx context.Context, installations []*Bitbucket
 				Namespace: c.getCurrentNamespace(),
 			},
 			Data: map[string]string{
-				"installations": string(data),
+				"apps": string(data),
 			},
 		}
 		_, err = c.kubeClientset.CoreV1().ConfigMaps(c.getCurrentNamespace()).Create(ctx, configMap, metav1.CreateOptions{})
@@ -547,7 +569,7 @@ func (c *client) upsertConfigmap(ctx context.Context, installations []*Bitbucket
 		}
 	} else {
 		// update configmap
-		configMap.Data["installations"] = string(data)
+		configMap.Data["apps"] = string(data)
 		_, err = c.kubeClientset.CoreV1().ConfigMaps(c.getCurrentNamespace()).Update(ctx, configMap, metav1.UpdateOptions{})
 		if err != nil {
 			return err
@@ -555,13 +577,13 @@ func (c *client) upsertConfigmap(ctx context.Context, installations []*Bitbucket
 	}
 
 	// add to cache
-	installationsCacheMutex.Lock()
-	installationsCache = installationsCacheItem{
-		Installations: installations,
-		ExpiresIn:     30,
-		FetchedAt:     time.Now().UTC(),
+	appsCacheMutex.Lock()
+	appsCache = appsCacheItem{
+		Apps:      apps,
+		ExpiresIn: 30,
+		FetchedAt: time.Now().UTC(),
 	}
-	installationsCacheMutex.Unlock()
+	appsCacheMutex.Unlock()
 
 	return
 }
@@ -575,25 +597,29 @@ func (c *client) getCurrentNamespace() string {
 	return string(namespace)
 }
 
-func (c *client) encryptSharedSecrets(ctx context.Context, installations []*BitbucketAppInstallation) (err error) {
-	for _, installation := range installations {
-		encryptedSharedSecret, encryptErr := c.secretHelper.EncryptEnvelope(installation.SharedSecret, crypt.DefaultPipelineAllowList)
-		if encryptErr != nil {
-			return encryptErr
+func (c *client) encryptSharedSecrets(ctx context.Context, apps []*BitbucketApp) (err error) {
+	for _, app := range apps {
+		for _, installation := range app.Installations {
+			encryptedSharedSecret, encryptErr := c.secretHelper.EncryptEnvelope(installation.SharedSecret, crypt.DefaultPipelineAllowList)
+			if encryptErr != nil {
+				return encryptErr
+			}
+			installation.SharedSecret = encryptedSharedSecret
 		}
-		installation.SharedSecret = encryptedSharedSecret
 	}
 
 	return nil
 }
 
-func (c *client) decryptSharedSecrets(ctx context.Context, installations []*BitbucketAppInstallation) (err error) {
-	for _, installation := range installations {
-		decryptedSharedSecret, _, decryptErr := c.secretHelper.DecryptEnvelope(installation.SharedSecret, "")
-		if decryptErr != nil {
-			return decryptErr
+func (c *client) decryptSharedSecrets(ctx context.Context, apps []*BitbucketApp) (err error) {
+	for _, app := range apps {
+		for _, installation := range app.Installations {
+			decryptedSharedSecret, _, decryptErr := c.secretHelper.DecryptEnvelope(installation.SharedSecret, "")
+			if decryptErr != nil {
+				return decryptErr
+			}
+			installation.SharedSecret = decryptedSharedSecret
 		}
-		installation.SharedSecret = decryptedSharedSecret
 	}
 
 	return nil

@@ -48,8 +48,6 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.True(t, bitbucketConfig.Enable)
-		assert.Equal(t, "ci.estafette.io", bitbucketConfig.Key)
-		assert.Equal(t, "Estafette CI", bitbucketConfig.Name)
 	})
 
 	t.Run("ReturnsCloudsourceConfig", func(t *testing.T) {

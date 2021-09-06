@@ -194,11 +194,17 @@ func (h *Handler) Handle(c *gin.Context) {
 
 func (h *Handler) Descriptor(c *gin.Context) {
 
+	key := c.Query("key")
+
+	if key == "" {
+		key = "estafette-ci"
+	}
+
 	// https://developer.atlassian.com/cloud/bitbucket/app-descriptor/
 
 	descriptor := Descriptor{
-		Key:         h.config.Integrations.Bitbucket.Key,
-		Name:        h.config.Integrations.Bitbucket.Name,
+		Key:         key,
+		Name:        "Estafette",
 		Description: "Estafette - The resilient and cloud-native CI/CD platform",
 		Vendor: DescriptorVendor{
 			Name: "Estafette",

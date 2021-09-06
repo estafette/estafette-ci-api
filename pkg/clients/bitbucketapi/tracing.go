@@ -108,11 +108,11 @@ func (c *tracingClient) GetInstallationByClientKey(ctx context.Context, clientKe
 	return c.Client.GetInstallationByClientKey(ctx, clientKey)
 }
 
-func (c *tracingClient) GetInstallations(ctx context.Context) (installations []*BitbucketAppInstallation, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetInstallations"))
+func (c *tracingClient) GetApps(ctx context.Context) (apps []*BitbucketApp, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetApps"))
 	defer func() { api.FinishSpan(span) }()
 
-	return c.Client.GetInstallations(ctx)
+	return c.Client.GetApps(ctx)
 }
 
 func (c *tracingClient) AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {

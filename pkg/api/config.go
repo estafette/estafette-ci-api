@@ -930,19 +930,11 @@ type InstallationOrganizations struct {
 
 // BitbucketConfig is used to configure bitbucket integration
 type BitbucketConfig struct {
-	Enable bool   `yaml:"enable"`
-	Key    string `yaml:"key"`
-	Name   string `yaml:"name"`
+	Enable bool `yaml:"enable"`
 }
 
 func (c *BitbucketConfig) SetDefaults() {
 
-	if c.Key == "" {
-		c.Key = "estafette-ci"
-	}
-	if c.Name == "" {
-		c.Name = "Estafette CI"
-	}
 }
 
 func (c *BitbucketConfig) Validate() (err error) {

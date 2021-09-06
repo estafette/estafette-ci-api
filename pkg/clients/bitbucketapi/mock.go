@@ -153,6 +153,21 @@ func (mr *MockClientMockRecorder) GetAccessTokenByUUID(ctx, workspaceUUID interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccessTokenByUUID", reflect.TypeOf((*MockClient)(nil).GetAccessTokenByUUID), ctx, workspaceUUID)
 }
 
+// GetApps mocks base method.
+func (m *MockClient) GetApps(ctx context.Context) ([]*BitbucketApp, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetApps", ctx)
+	ret0, _ := ret[0].([]*BitbucketApp)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetApps indicates an expected call of GetApps.
+func (mr *MockClientMockRecorder) GetApps(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetApps", reflect.TypeOf((*MockClient)(nil).GetApps), ctx)
+}
+
 // GetEstafetteManifest mocks base method.
 func (m *MockClient) GetEstafetteManifest(ctx context.Context, accesstoken AccessToken, event RepositoryPushEvent) (bool, string, error) {
 	m.ctrl.T.Helper()
@@ -212,21 +227,6 @@ func (m *MockClient) GetInstallationByUUID(ctx context.Context, workspaceUUID st
 func (mr *MockClientMockRecorder) GetInstallationByUUID(ctx, workspaceUUID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallationByUUID", reflect.TypeOf((*MockClient)(nil).GetInstallationByUUID), ctx, workspaceUUID)
-}
-
-// GetInstallations mocks base method.
-func (m *MockClient) GetInstallations(ctx context.Context) ([]*BitbucketAppInstallation, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstallations", ctx)
-	ret0, _ := ret[0].([]*BitbucketAppInstallation)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetInstallations indicates an expected call of GetInstallations.
-func (mr *MockClientMockRecorder) GetInstallations(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallations", reflect.TypeOf((*MockClient)(nil).GetInstallations), ctx)
 }
 
 // GetWorkspace mocks base method.

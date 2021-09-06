@@ -4,8 +4,6 @@ integrations:
 
   bitbucket:
     enable: true
-    key: ci.estafette.io
-    name: Estafette CI
 
   slack:
     enable: true

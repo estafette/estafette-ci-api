@@ -326,6 +326,11 @@ func (pe *RepoDeletedEvent) GetRepoName() string {
 	return strings.Split(pe.Repository.FullName, "/")[1]
 }
 
+type BitbucketApp struct {
+	Key           string                      `json:"key"`
+	Installations []*BitbucketAppInstallation `json:"installations"`
+}
+
 type BitbucketAppInstallation struct {
 	Key           string                    `json:"key"`
 	BaseApiURL    string                    `json:"baseApiUrl"`
