@@ -297,9 +297,9 @@ func (c *client) ValidateInstallationJWT(ctx context.Context, authorizationHeade
 
 		iat := c.getIat(token)
 		if iat > 0 {
-			log.Warn().Err(err).Str("now", time.Now().UTC().Format(time.RFC3339)).Str("iat", time.Unix(iat, 0).Format(time.RFC3339)).Msg("Bitbucket JWT has 'issued at' validation error, ignoring it")
+			log.Info().Err(err).Str("now", time.Now().UTC().Format(time.RFC3339)).Str("iat", time.Unix(iat, 0).Format(time.RFC3339)).Msg("Bitbucket JWT has 'issued at' validation error, ignoring it")
 		} else {
-			log.Warn().Err(err).Msg("Bitbucket JWT has 'issued at' validation error, ignoring it")
+			log.Info().Err(err).Msg("Bitbucket JWT has 'issued at' validation error, ignoring it")
 		}
 
 		// token is valid except for ValidationErrorIssuedAt, set to true
