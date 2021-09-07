@@ -3672,15 +3672,14 @@ func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
 
 	apiConfig := &api.APIConfig{
 		Database: &api.DatabaseConfig{
-			DatabaseName:   databaseName,
-			Host:           host,
-			Insecure:       insecure,
-			CertificateDir: "",
-			Port:           port,
-			User:           user,
-			Password:       password,
-			MaxOpenConns:   maxOpenConnections,
-			MaxIdleConns:   maxIdleConnections,
+			DatabaseName: databaseName,
+			Host:         host,
+			Insecure:     insecure,
+			Port:         port,
+			User:         user,
+			Password:     password,
+			MaxOpenConns: maxOpenConnections,
+			MaxIdleConns: maxIdleConnections,
 		},
 	}
 

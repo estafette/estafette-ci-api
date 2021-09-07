@@ -435,7 +435,10 @@ config:
         databaseName: estafette_ci_api
         host: cockroachdb-public.estafette-ci.svc.cluster.local
         insecure: false
-        certificateDir: /cockroach-certs
+        sslMode: verify-full
+        certificateAuthorityPath: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        certificatePath: /cockroach-certs/cert
+        certificateKeyPath: /cockroach-certs/key
         port: 26257
         user: api
         password:

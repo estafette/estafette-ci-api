@@ -672,16 +672,19 @@ type AffinityAndTolerationsConfig struct {
 
 // DatabaseConfig contains config for the dabase connection
 type DatabaseConfig struct {
-	DatabaseName           string `yaml:"databaseName"`
-	Host                   string `yaml:"host"`
-	Insecure               bool   `yaml:"insecure"`
-	CertificateDir         string `yaml:"certificateDir"`
-	Port                   int    `yaml:"port"`
-	User                   string `yaml:"user"`
-	Password               string `yaml:"password"`
-	MaxOpenConns           int    `yaml:"maxOpenConnections"`
-	MaxIdleConns           int    `yaml:"maxIdleConnections"`
-	ConnMaxLifetimeMinutes int    `yaml:"connectionMaxLifetimeMinutes"`
+	DatabaseName             string `yaml:"databaseName"`
+	Host                     string `yaml:"host"`
+	Insecure                 bool   `yaml:"insecure"`
+	SslMode                  string `yaml:"sslMode"`
+	CertificateAuthorityPath string `yaml:"certificateAuthorityPath"`
+	CertificatePath          string `yaml:"certificatePath"`
+	CertificateKeyPath       string `yaml:"certificateKeyPath"`
+	Port                     int    `yaml:"port"`
+	User                     string `yaml:"user"`
+	Password                 string `yaml:"password"`
+	MaxOpenConns             int    `yaml:"maxOpenConnections"`
+	MaxIdleConns             int    `yaml:"maxIdleConnections"`
+	ConnMaxLifetimeMinutes   int    `yaml:"connectionMaxLifetimeMinutes"`
 }
 
 func (c *DatabaseConfig) SetDefaults() {
@@ -691,8 +694,17 @@ func (c *DatabaseConfig) SetDefaults() {
 	if c.Host == "" {
 		c.Host = "estafette-ci-db-public"
 	}
-	if c.CertificateDir == "" {
-		c.CertificateDir = "/cockroach-certs"
+	if c.SslMode == "" {
+		c.SslMode = "verify-full"
+	}
+	if c.CertificateAuthorityPath == "" {
+		c.CertificateAuthorityPath = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+	}
+	if c.CertificatePath == "" {
+		c.CertificatePath = "/cockroach-certs/cert"
+	}
+	if c.CertificateKeyPath == "" {
+		c.CertificateKeyPath = "/cockroach-certs/key"
 	}
 	if c.Port <= 0 {
 		c.Port = 26257
@@ -718,9 +730,21 @@ func (c *DatabaseConfig) Validate() (err error) {
 	if c.Host == "" {
 		return errors.New("Configuration item 'database.host' is required; please set it to hostname of the database server")
 	}
-	if c.CertificateDir == "" {
-		return errors.New("Configuration item 'database.certificateDir' is required; please set it to directory the database client certificate is mounted to")
+	if c.Insecure {
+		if c.SslMode == "" {
+			return errors.New("Configuration item 'database.sslMode' is required; please set it to 'verify-ca' or 'verify-full'")
+		}
+		if c.CertificateAuthorityPath == "" {
+			return errors.New("Configuration item 'database.certificateAuthorityPath' is required; please set it to '/var/run/secrets/kubernetes.io/serviceaccount/ca.crt' or '/cockroach-certs/ca.crt'")
+		}
+		if c.CertificatePath == "" {
+			return errors.New("Configuration item 'database.certificatePath' is required; please set it to '/cockroach-certs/tls.crt'")
+		}
+		if c.CertificateKeyPath == "" {
+			return errors.New("Configuration item 'database.certificateKeyPath' is required; please set it to '/cockroach-certs/tls.key'")
+		}
 	}
+
 	if c.Port <= 0 {
 		return errors.New("Configuration item 'database.port' is required; please set it to port of the database server")
 	}
