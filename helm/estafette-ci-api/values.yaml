@@ -208,13 +208,10 @@ pdb:
 
 secret:
   enabled: true
-
-  files: {}
-    # # the aes-256 key to encrypt/decrypt estafette secrets
-    # secretDecryptionKey:
-
-    # # private key file for github app to communicate with the github api
-    # githubPrivateKey:
+  # the aes-256 key to encrypt/decrypt estafette secrets; by default this is generated on install, only set it when migrating
+  secretDecryptionKey:
+  # the 256 bit jwt key for authentication to the api; by default this is generated on install, only set it when migrating
+  jwtKey:
 
 config:
   enabled: true
@@ -419,8 +416,6 @@ config:
       auth:
         jwt:
           domain:
-          realm:
-          key:
         administrators:
         - admin@estafette.io
         organizations:

@@ -69,6 +69,7 @@ var (
 	configFilePath               = kingpin.Flag("config-file-path", "The path to yaml config file configuring this application.").Default("/configs/config.yaml").OverrideDefaultFromEnvar("CONFIG_FILE_PATH").String()
 	templatesPath                = kingpin.Flag("templates-path", "The path to the manifest templates being used by the 'Create' functionality.").Default("/templates").OverrideDefaultFromEnvar("TEMPLATES_PATH").String()
 	secretDecryptionKeyPath      = kingpin.Flag("secret-decryption-key-path", "The path to the AES-256 key used to decrypt secrets that have been encrypted with it.").Default("/secrets/secretDecryptionKey").OverrideDefaultFromEnvar("SECRET_DECRYPTION_KEY_PATH").String()
+	jwtKeyPath                   = kingpin.Flag("jwt-key-path", "The path to 256 bit jwt key used for api authentication.").Default("/secrets/jwtKey").OverrideDefaultFromEnvar("JWT_KEY_PATH").String()
 	gracefulShutdownDelaySeconds = kingpin.Flag("graceful-shutdown-delay-seconds", "The number of seconds to wait with graceful shutdown in order to let endpoints update propagation finish.").Default("15").OverrideDefaultFromEnvar("GRACEFUL_SHUTDOWN_DELAY_SECONDS").Int()
 )
 
@@ -176,9 +177,19 @@ func getConfig(ctx context.Context) (*api.APIConfig, *api.APIConfig, crypt.Secre
 		log.Fatal().Msgf("Cannot find secret decryption key at path %v", *secretDecryptionKeyPath)
 	}
 
+	// read jwt key from jwtKeyPath
+	if !foundation.FileExists(*jwtKeyPath) {
+		log.Fatal().Msgf("Cannot find jwt key at path %v", *jwtKeyPath)
+	}
+
 	secretDecryptionKeyBytes, err := ioutil.ReadFile(*secretDecryptionKeyPath)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed reading secret decryption key from path %v", *secretDecryptionKeyPath)
+	}
+
+	jwtKeyPathBytes, err := ioutil.ReadFile(*jwtKeyPath)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Failed reading jwt key from path %v", *jwtKeyPath)
 	}
 
 	log.Debug().Msg("Creating helpers...")
@@ -187,7 +198,7 @@ func getConfig(ctx context.Context) (*api.APIConfig, *api.APIConfig, crypt.Secre
 
 	log.Debug().Msg("Creating config reader...")
 
-	configReader := api.NewConfigReader(secretHelper)
+	configReader := api.NewConfigReader(secretHelper, string(jwtKeyPathBytes))
 
 	// await for config file to be present, due to git-sync sidecar startup it can take some time
 	for !foundation.FileExists(*configFilePath) {

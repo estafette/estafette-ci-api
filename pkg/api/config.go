@@ -11,14 +11,11 @@ import (
 	"strings"
 
 	contracts "github.com/estafette/estafette-ci-contracts"
-	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
-	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
 	googleoauth2v2 "google.golang.org/api/oauth2/v2"
 	"google.golang.org/api/option"
-	yaml "gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -1197,62 +1194,6 @@ func (c *CloudSourceConfig) Validate() (err error) {
 type ProjectOrganizations struct {
 	Project       string                    `yaml:"project"`
 	Organizations []*contracts.Organization `yaml:"organizations"`
-}
-
-// ConfigReader reads the api config from file
-type ConfigReader interface {
-	ReadConfigFromFile(string, bool) (*APIConfig, error)
-}
-
-type configReaderImpl struct {
-	secretHelper crypt.SecretHelper
-}
-
-// NewConfigReader returns a new config.ConfigReader
-func NewConfigReader(secretHelper crypt.SecretHelper) ConfigReader {
-	return &configReaderImpl{
-		secretHelper: secretHelper,
-	}
-}
-
-// ReadConfigFromFile is used to read configuration from a file set from a configmap
-func (h *configReaderImpl) ReadConfigFromFile(configPath string, decryptSecrets bool) (config *APIConfig, err error) {
-
-	log.Info().Msgf("Reading %v file...", configPath)
-
-	data, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		return config, err
-	}
-
-	// decrypt secrets before unmarshalling
-	if decryptSecrets {
-
-		decryptedData, err := h.secretHelper.DecryptAllEnvelopes(string(data), "")
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed decrypting secrets in config file")
-		}
-
-		data = []byte(decryptedData)
-	}
-
-	// unmarshal into structs
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return config, err
-	}
-
-	// fill in all the defaults for empty values
-	config.SetDefaults()
-
-	// validate the config
-	err = config.Validate()
-	if err != nil {
-		return
-	}
-
-	log.Info().Msgf("Finished reading %v file successfully", configPath)
-
-	return
 }
 
 // UnmarshalYAML customizes unmarshalling an AffinityAndTolerationsConfig

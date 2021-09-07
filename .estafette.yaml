@@ -168,9 +168,6 @@ stages:
         env:
         - name: JAEGER_DISABLED
           value: 'true'
-      secret:
-        files:
-          secretDecryptionKey: 1PsvXVOMkhfAQuBIcIGCtzIdPXNV0NYG
       ingress:
         enabled: true
         hosts:
