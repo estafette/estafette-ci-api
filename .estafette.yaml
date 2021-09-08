@@ -76,12 +76,12 @@ stages:
 
     image: estafette/estafette-ci-db-migrator:${ESTAFETTE_TRIGGER_MIGRATOR_BUILD_VERSION}
     env:
-      HOST: cockroachdb
-      DATABASE: defaultdb
-      INSECURE: true
-      PORT: 26257
-      USER: root
-      PASSWORD: ''
+      DB_HOST: cockroachdb
+      DB_DATABASE: defaultdb
+      DB_INSECURE: true
+      DB_PORT: 26257
+      DB_USER: root
+      DB_PASSWORD: ''
       ESTAFETTE_LOG_FORMAT: console
 
   integration-tests-against-cockroachdb:
@@ -91,12 +91,12 @@ stages:
       GOOS: linux
       GOGC: off
 
-      HOST: cockroachdb
-      DATABASE: defaultdb
-      INSECURE: true
-      PORT: 26257
-      USER: root
-      PASSWORD: ''
+      DB_HOST: cockroachdb
+      DB_DATABASE: defaultdb
+      DB_INSECURE: true
+      DB_PORT: 26257
+      DB_USER: root
+      DB_PASSWORD: ''
     commands:
     - go test -run TestIntegration ./...
 
@@ -110,12 +110,12 @@ stages:
 
     image: estafette/estafette-ci-db-migrator:${ESTAFETTE_TRIGGER_MIGRATOR_BUILD_VERSION}
     env:
-      HOST: postgres
-      DATABASE: postgres
-      INSECURE: true
-      PORT: 5432
-      USER: postgres
-      PASSWORD: abc
+      DB_HOST: postgres
+      DB_DATABASE: postgres
+      DB_INSECURE: true
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: abc
       ESTAFETTE_LOG_FORMAT: console
 
   integration-tests-against-postgres:
@@ -125,14 +125,14 @@ stages:
       GOOS: linux
       GOGC: off
 
-      HOST: postgres
-      DATABASE: postgres
-      INSECURE: true
-      PORT: 5432
-      USER: postgres
-      PASSWORD: abc
-      MAX_OPEN_CONNECTIONS: 3
-      MAX_IDLE_CONNECTIONS: 3
+      DB_HOST: postgres
+      DB_DATABASE: postgres
+      DB_INSECURE: true
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: abc
+      DB_MAX_OPEN_CONNECTIONS: 3
+      DB_MAX_IDLE_CONNECTIONS: 3
     commands:
     - go test -run TestIntegration ./...
 

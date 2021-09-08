@@ -3624,47 +3624,47 @@ func getDatabaseClient(ctx context.Context, t *testing.T) Client {
 	}
 
 	databaseName := "defaultdb"
-	if os.Getenv("COCKROACH_DATABASE") != "" {
-		databaseName = os.Getenv("COCKROACH_DATABASE")
+	if os.Getenv("DB_DATABASE") != "" {
+		databaseName = os.Getenv("DB_DATABASE")
 	}
 	host := "estafette-ci-db-public"
-	if os.Getenv("COCKROACH_HOST") != "" {
-		host = os.Getenv("COCKROACH_HOST")
+	if os.Getenv("DB_HOST") != "" {
+		host = os.Getenv("DB_HOST")
 	}
 	insecure := true
-	if os.Getenv("COCKROACH_INSECURE") != "" {
-		cockroachInsecure, err := strconv.ParseBool(os.Getenv("COCKROACH_INSECURE"))
+	if os.Getenv("DB_INSECURE") != "" {
+		cockroachInsecure, err := strconv.ParseBool(os.Getenv("DB_INSECURE"))
 		if err == nil {
 			insecure = cockroachInsecure
 		}
 	}
 	port := 26257
-	if os.Getenv("COCKROACH_PORT") != "" {
-		cockroachPort, err := strconv.Atoi(os.Getenv("COCKROACH_PORT"))
+	if os.Getenv("DB_PORT") != "" {
+		cockroachPort, err := strconv.Atoi(os.Getenv("DB_PORT"))
 		if err == nil {
 			port = cockroachPort
 		}
 	}
 	user := "root"
-	if os.Getenv("COCKROACH_USER") != "" {
-		user = os.Getenv("COCKROACH_USER")
+	if os.Getenv("DB_USER") != "" {
+		user = os.Getenv("DB_USER")
 	}
 	password := ""
-	if os.Getenv("COCKROACH_PASSWORD") != "" {
-		password = os.Getenv("COCKROACH_PASSWORD")
+	if os.Getenv("DB_PASSWORD") != "" {
+		password = os.Getenv("DB_PASSWORD")
 	}
 
 	maxOpenConnections := 0
-	if os.Getenv("COCKROACH_MAX_OPEN_CONNECTIONS") != "" {
-		cockroachMaxOpenConnections, err := strconv.Atoi(os.Getenv("COCKROACH_MAX_OPEN_CONNECTIONS"))
+	if os.Getenv("DB_MAX_OPEN_CONNECTIONS") != "" {
+		cockroachMaxOpenConnections, err := strconv.Atoi(os.Getenv("DB_MAX_OPEN_CONNECTIONS"))
 		if err == nil {
 			maxOpenConnections = cockroachMaxOpenConnections
 		}
 	}
 
 	maxIdleConnections := 2
-	if os.Getenv("COCKROACH_MAX_IDLE_CONNECTIONS") != "" {
-		cockroachMaxIdleConnections, err := strconv.Atoi(os.Getenv("COCKROACH_MAX_IDLE_CONNECTIONS"))
+	if os.Getenv("DB_MAX_IDLE_CONNECTIONS") != "" {
+		cockroachMaxIdleConnections, err := strconv.Atoi(os.Getenv("DB_MAX_IDLE_CONNECTIONS"))
 		if err == nil {
 			maxIdleConnections = cockroachMaxIdleConnections
 		}
