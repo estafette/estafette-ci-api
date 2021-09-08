@@ -3611,16 +3611,16 @@ func TestIntegrationGetAllNotificationsCount(t *testing.T) {
 	})
 }
 
-var cockroachDbTestClient Client
-var cockroachDbTestClientMutex = &sync.Mutex{}
+var dbTestClient Client
+var dbTestClientMutex = &sync.Mutex{}
 
 func getDatabaseClient(ctx context.Context, t *testing.T) Client {
 
-	cockroachDbTestClientMutex.Lock()
-	defer cockroachDbTestClientMutex.Unlock()
+	dbTestClientMutex.Lock()
+	defer dbTestClientMutex.Unlock()
 
-	if cockroachDbTestClient != nil {
-		return cockroachDbTestClient
+	if dbTestClient != nil {
+		return dbTestClient
 	}
 
 	databaseName := "defaultdb"
@@ -3633,16 +3633,16 @@ func getDatabaseClient(ctx context.Context, t *testing.T) Client {
 	}
 	insecure := true
 	if os.Getenv("DB_INSECURE") != "" {
-		cockroachInsecure, err := strconv.ParseBool(os.Getenv("DB_INSECURE"))
+		dbInsecure, err := strconv.ParseBool(os.Getenv("DB_INSECURE"))
 		if err == nil {
-			insecure = cockroachInsecure
+			insecure = dbInsecure
 		}
 	}
 	port := 26257
 	if os.Getenv("DB_PORT") != "" {
-		cockroachPort, err := strconv.Atoi(os.Getenv("DB_PORT"))
+		dbPort, err := strconv.Atoi(os.Getenv("DB_PORT"))
 		if err == nil {
-			port = cockroachPort
+			port = dbPort
 		}
 	}
 	user := "root"
@@ -3656,17 +3656,17 @@ func getDatabaseClient(ctx context.Context, t *testing.T) Client {
 
 	maxOpenConnections := 0
 	if os.Getenv("DB_MAX_OPEN_CONNECTIONS") != "" {
-		cockroachMaxOpenConnections, err := strconv.Atoi(os.Getenv("DB_MAX_OPEN_CONNECTIONS"))
+		dbMaxOpenConnections, err := strconv.Atoi(os.Getenv("DB_MAX_OPEN_CONNECTIONS"))
 		if err == nil {
-			maxOpenConnections = cockroachMaxOpenConnections
+			maxOpenConnections = dbMaxOpenConnections
 		}
 	}
 
 	maxIdleConnections := 2
 	if os.Getenv("DB_MAX_IDLE_CONNECTIONS") != "" {
-		cockroachMaxIdleConnections, err := strconv.Atoi(os.Getenv("DB_MAX_IDLE_CONNECTIONS"))
+		dbMaxIdleConnections, err := strconv.Atoi(os.Getenv("DB_MAX_IDLE_CONNECTIONS"))
 		if err == nil {
-			maxIdleConnections = cockroachMaxIdleConnections
+			maxIdleConnections = dbMaxIdleConnections
 		}
 	}
 
@@ -3685,12 +3685,16 @@ func getDatabaseClient(ctx context.Context, t *testing.T) Client {
 
 	apiConfig.SetDefaults()
 
-	cockroachDbTestClient = NewClient(apiConfig)
-	err := cockroachDbTestClient.Connect(ctx)
+	dbTestClient = NewClient(apiConfig)
+	err := dbTestClient.Connect(ctx)
 
 	assert.Nil(t, err)
 
-	return cockroachDbTestClient
+	err = dbTestClient.AwaitDatabaseReadiness(ctx)
+
+	assert.Nil(t, err)
+
+	return dbTestClient
 }
 
 func getBuild() contracts.Build {
