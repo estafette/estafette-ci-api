@@ -695,13 +695,13 @@ func (c *DatabaseConfig) SetDefaults() {
 		c.SslMode = "verify-full"
 	}
 	if c.CertificateAuthorityPath == "" {
-		c.CertificateAuthorityPath = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+		c.CertificateAuthorityPath = "/cockroach-certs/ca.crt"
 	}
 	if c.CertificatePath == "" {
-		c.CertificatePath = "/cockroach-certs/cert"
+		c.CertificatePath = "/cockroach-certs/tls.crt"
 	}
 	if c.CertificateKeyPath == "" {
-		c.CertificateKeyPath = "/cockroach-certs/key"
+		c.CertificateKeyPath = "/cockroach-certs/tls.key"
 	}
 	if c.Port <= 0 {
 		c.Port = 26257
