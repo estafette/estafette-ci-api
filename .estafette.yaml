@@ -170,7 +170,7 @@ stages:
       ingress:
         enabled: true
         hosts:
-        - host: ci.estafette.io
+        - host: {{ $.Values.baseHost }}
           paths:
           - path: /api/
             pathType: Prefix
@@ -189,7 +189,7 @@ stages:
       ingressWebhooks:
         enabled: true
         hosts:
-        - host: ci-webhook.estafette.io
+        - host: {{ $.Values.integrationsHost }}
           paths:
           - path: /api/integrations/github/
             pathType: Prefix
