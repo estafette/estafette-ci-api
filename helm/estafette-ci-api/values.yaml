@@ -213,6 +213,13 @@ secret:
   # the 256 bit jwt key for authentication to the api; by default this is generated on install, only set it when migrating
   jwtKey:
 
+
+# (private) host at which to access the web interface and api
+baseHost: ci.estafette.io
+
+# host to receive webhooks from 3rd party integrations like github, bitbucket
+integrationsHost: ci-integration.estafette.io
+
 config:
   enabled: true
 
@@ -288,9 +295,9 @@ config:
             - name: Estafette
 
       apiServer:
-        baseURL: https://ci.estafette.io
-        integrationsURL: https://ci-integration.estafette.io
-        serviceURL: http://estafette-ci-api.estafette-ci.svc.cluster.local
+        baseURL: https://{{ .Values.baseHost }}
+        integrationsURL: https://{{ .Values.integrationsHost }}
+        serviceURL: http://{{ include "estafette-ci-api.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
         logWriters:
         - database
         logReader: database
@@ -415,7 +422,7 @@ config:
 
       auth:
         jwt:
-          domain:
+          domain: {{ .Values.baseHost }}
         administrators:
         - admin@estafette.io
         organizations:
