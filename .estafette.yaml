@@ -117,7 +117,6 @@ stages:
       USER: postgres
       PASSWORD: abc
       ESTAFETTE_LOG_FORMAT: console
-      WAIT_SECONDS: 15
 
   integration-tests-against-postgres:
     image: golang:1.17-alpine
