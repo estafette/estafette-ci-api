@@ -125,7 +125,7 @@ ingress:
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   hosts:
-    - host: ci.estafette.io
+    - host: "{{ $.Values.baseHost }}"
       paths:
       - path: /api/
         pathType: Prefix
@@ -153,7 +153,7 @@ ingressWebhooks:
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   hosts:
-    - host: ci-webhooks.estafette.io
+    - host: "{{ $.Values.integrationsHost }}"
       paths:
       - path: /api/integrations/bitbucket
         pathType: Prefix
@@ -295,8 +295,8 @@ config:
             - name: Estafette
 
       apiServer:
-        baseURL: https://{{ .Values.baseHost }}
-        integrationsURL: https://{{ .Values.integrationsHost }}
+        baseURL: https://{{ $.Values.baseHost }}
+        integrationsURL: https://{{ $.Values.integrationsHost }}
         serviceURL: http://{{ include "estafette-ci-api.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
         logWriters:
         - database
@@ -422,7 +422,7 @@ config:
 
       auth:
         jwt:
-          domain: {{ .Values.baseHost }}
+          domain: {{ $.Values.baseHost }}
         administrators:
         - admin@estafette.io
         organizations:
