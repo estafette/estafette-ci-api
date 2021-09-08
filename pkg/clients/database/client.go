@@ -291,6 +291,7 @@ func (c *client) ConnectWithDriverAndSource(ctx context.Context, driverName, dat
 
 func (c *client) AwaitDatabaseReadiness(ctx context.Context) (err error) {
 	return foundation.Retry(func() error {
+		log.Info().Msg("Checking if database is ready...")
 		return c.databaseConnection.Ping()
 	}, foundation.Attempts(12), foundation.DelayMillisecond(5000), foundation.Fixed())
 }
