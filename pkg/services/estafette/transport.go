@@ -22,7 +22,7 @@ import (
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/pkg/clients/cloudstorage"
-	"github.com/estafette/estafette-ci-api/pkg/clients/cockroachdb"
+	"github.com/estafette/estafette-ci-api/pkg/clients/database"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	manifest "github.com/estafette/estafette-ci-manifest"
@@ -33,14 +33,14 @@ import (
 )
 
 // NewHandler returns a new estafette.Handler
-func NewHandler(configFilePath string, templatesPath string, config *api.APIConfig, encryptedConfig *api.APIConfig, cockroachDBClient cockroachdb.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper api.WarningHelper, secretHelper crypt.SecretHelper) Handler {
+func NewHandler(configFilePath string, templatesPath string, config *api.APIConfig, encryptedConfig *api.APIConfig, databaseClient database.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper api.WarningHelper, secretHelper crypt.SecretHelper) Handler {
 
 	return Handler{
 		configFilePath:     configFilePath,
 		templatesPath:      templatesPath,
 		config:             config,
 		encryptedConfig:    encryptedConfig,
-		cockroachDBClient:  cockroachDBClient,
+		databaseClient:     databaseClient,
 		cloudStorageClient: cloudStorageClient,
 		ciBuilderClient:    ciBuilderClient,
 		buildService:       buildService,
@@ -54,7 +54,7 @@ type Handler struct {
 	templatesPath      string
 	config             *api.APIConfig
 	encryptedConfig    *api.APIConfig
-	cockroachDBClient  cockroachdb.Client
+	databaseClient     database.Client
 	cloudStorageClient cloudstorage.Client
 	ciBuilderClient    builderapi.Client
 	buildService       Service
@@ -71,7 +71,7 @@ func (h *Handler) GetPipelines(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			pipelines, err := h.cockroachDBClient.GetPipelines(c.Request.Context(), pageNumber, pageSize, filters, sortings, true)
+			pipelines, err := h.databaseClient.GetPipelines(c.Request.Context(), pageNumber, pageSize, filters, sortings, true)
 			if err != nil {
 				return nil, err
 			}
@@ -85,7 +85,7 @@ func (h *Handler) GetPipelines(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetPipelinesCount(c.Request.Context(), filters)
+			return h.databaseClient.GetPipelinesCount(c.Request.Context(), filters)
 		},
 		pageNumber,
 		pageSize)
@@ -107,7 +107,7 @@ func (h *Handler) GetPipeline(c *gin.Context) {
 
 	filters := api.GetPipelineFilters(c)
 
-	pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), source, owner, repo, filters, true)
+	pipeline, err := h.databaseClient.GetPipeline(c.Request.Context(), source, owner, repo, filters, true)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
@@ -126,7 +126,7 @@ func (h *Handler) GetPipelineRecentBuilds(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	builds, err := h.cockroachDBClient.GetPipelineRecentBuilds(c.Request.Context(), source, owner, repo, true)
+	builds, err := h.databaseClient.GetPipelineRecentBuilds(c.Request.Context(), source, owner, repo, true)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed retrieving recent builds for %v/%v/%v from db", source, owner, repo)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
@@ -149,7 +149,7 @@ func (h *Handler) GetPipelineBuildBranches(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			buildBranches, err := h.cockroachDBClient.GetPipelineBuildBranches(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters)
+			buildBranches, err := h.databaseClient.GetPipelineBuildBranches(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters)
 			if err != nil {
 				return nil, err
 			}
@@ -163,7 +163,7 @@ func (h *Handler) GetPipelineBuildBranches(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetPipelineBuildBranchesCount(c.Request.Context(), source, owner, repo, filters)
+			return h.databaseClient.GetPipelineBuildBranchesCount(c.Request.Context(), source, owner, repo, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -187,7 +187,7 @@ func (h *Handler) GetPipelineBuilds(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			builds, err := h.cockroachDBClient.GetPipelineBuilds(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters, sortings, true)
+			builds, err := h.databaseClient.GetPipelineBuilds(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters, sortings, true)
 			if err != nil {
 				return nil, err
 			}
@@ -201,7 +201,7 @@ func (h *Handler) GetPipelineBuilds(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetPipelineBuildsCount(c.Request.Context(), source, owner, repo, filters)
+			return h.databaseClient.GetPipelineBuildsCount(c.Request.Context(), source, owner, repo, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -224,7 +224,7 @@ func (h *Handler) GetPipelineBuild(c *gin.Context) {
 
 	if len(revisionOrID) == 40 {
 
-		build, err := h.cockroachDBClient.GetPipelineBuild(c.Request.Context(), source, owner, repo, revisionOrID, false)
+		build, err := h.databaseClient.GetPipelineBuild(c.Request.Context(), source, owner, repo, revisionOrID, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
@@ -238,7 +238,7 @@ func (h *Handler) GetPipelineBuild(c *gin.Context) {
 		return
 	}
 
-	build, err := h.cockroachDBClient.GetPipelineBuildByID(c.Request.Context(), source, owner, repo, revisionOrID, false)
+	build, err := h.databaseClient.GetPipelineBuildByID(c.Request.Context(), source, owner, repo, revisionOrID, false)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
@@ -305,7 +305,7 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 	}
 
 	// check if version exists and is valid to re-run
-	failedBuilds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(c.Request.Context(), buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, []contracts.Status{contracts.StatusFailed, contracts.StatusCanceled}, 1, false)
+	failedBuilds, err := h.databaseClient.GetPipelineBuildsByVersion(c.Request.Context(), buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, []contracts.Status{contracts.StatusFailed, contracts.StatusCanceled}, 1, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, email)
 		log.Error().Err(err).Msg(errorMessage)
@@ -313,7 +313,7 @@ func (h *Handler) CreatePipelineBuild(c *gin.Context) {
 		return
 	}
 
-	nonFailedBuilds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(c.Request.Context(), buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, []contracts.Status{contracts.StatusSucceeded, contracts.StatusRunning, contracts.StatusPending, contracts.StatusCanceling}, 1, false)
+	nonFailedBuilds, err := h.databaseClient.GetPipelineBuildsByVersion(c.Request.Context(), buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, []contracts.Status{contracts.StatusSucceeded, contracts.StatusRunning, contracts.StatusPending, contracts.StatusCanceling}, 1, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for build command issued by %v", buildCommand.RepoSource, buildCommand.RepoOwner, buildCommand.RepoName, buildCommand.BuildVersion, email)
 		log.Error().Err(err).Msg(errorMessage)
@@ -383,7 +383,7 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 	log.Debug().Msgf("Canceling pipeline build %v/%v/%v with id %v...", source, owner, repo, revisionOrID)
 
 	// retrieve build
-	build, err := h.cockroachDBClient.GetPipelineBuildByID(c.Request.Context(), source, owner, repo, revisionOrID, false)
+	build, err := h.databaseClient.GetPipelineBuildByID(c.Request.Context(), source, owner, repo, revisionOrID, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Retrieving pipeline build failed"})
@@ -397,7 +397,7 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 		// apparently cancel was already clicked, but somehow the job didn't update the status to canceled
 		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeBuild, build.RepoOwner, build.RepoName, build.ID)
 		_ = h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
-		_ = h.cockroachDBClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, build.ID, contracts.StatusCanceled)
+		_ = h.databaseClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, build.ID, contracts.StatusCanceled)
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled build by user %v", email)})
 		return
 	}
@@ -414,7 +414,7 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 		// job might not have created a builder yet, so set status to canceled straightaway
 		buildStatus = contracts.StatusCanceled
 	}
-	err = h.cockroachDBClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, build.ID, buildStatus)
+	err = h.databaseClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, build.ID, buildStatus)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed updating build status for %v/%v/%v/builds/%v in db", source, owner, repo, revisionOrID)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline build status to canceling"})
@@ -426,7 +426,7 @@ func (h *Handler) CancelPipelineBuild(c *gin.Context) {
 	// canceling the job failed because it no longer existed we should set canceled status right after having set it to canceling
 	if errors.Is(cancelErr, builderapi.ErrJobNotFound) && build.BuildStatus == contracts.StatusRunning {
 		buildStatus = contracts.StatusCanceled
-		err = h.cockroachDBClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, build.ID, buildStatus)
+		err = h.databaseClient.UpdateBuildStatus(c.Request.Context(), build.RepoSource, build.RepoOwner, build.RepoName, build.ID, buildStatus)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed updating build status to canceled after setting it to canceling for %v/%v/%v/builds/%v in db", source, owner, repo, revisionOrID)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline build status to canceled"})
@@ -478,7 +478,7 @@ func (h *Handler) CreatePipelineBot(c *gin.Context) {
 
 	filters := api.GetPipelineFilters(c)
 
-	pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), botCommand.RepoSource, botCommand.RepoOwner, botCommand.RepoName, filters, false)
+	pipeline, err := h.databaseClient.GetPipeline(c.Request.Context(), botCommand.RepoSource, botCommand.RepoOwner, botCommand.RepoName, filters, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving pipeline %v/%v/%v for bot command", botCommand.RepoSource, botCommand.RepoOwner, botCommand.RepoName)
 		log.Error().Err(err).Msg(errorMessage)
@@ -521,7 +521,7 @@ func (h *Handler) CreateNotification(c *gin.Context) {
 		return
 	}
 
-	createdNotification, err := h.cockroachDBClient.InsertNotification(c.Request.Context(), notification)
+	createdNotification, err := h.databaseClient.InsertNotification(c.Request.Context(), notification)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed creating notification %v of type %v", createdNotification.LinkID, createdNotification.LinkType)
 		log.Error().Err(err).Msg(errorMessage)
@@ -542,13 +542,13 @@ func (h *Handler) GetPipelineBuildLogs(c *gin.Context) {
 	var build *contracts.Build
 	var err error
 	if len(revisionOrID) == 40 {
-		build, err = h.cockroachDBClient.GetPipelineBuild(c.Request.Context(), source, owner, repo, revisionOrID, false)
+		build, err = h.databaseClient.GetPipelineBuild(c.Request.Context(), source, owner, repo, revisionOrID, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
 		}
 	} else {
-		build, err = h.cockroachDBClient.GetPipelineBuildByID(c.Request.Context(), source, owner, repo, revisionOrID, false)
+		build, err = h.databaseClient.GetPipelineBuildByID(c.Request.Context(), source, owner, repo, revisionOrID, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
@@ -560,7 +560,7 @@ func (h *Handler) GetPipelineBuildLogs(c *gin.Context) {
 		return
 	}
 
-	buildLog, err := h.cockroachDBClient.GetPipelineBuildLogs(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID, h.config.APIServer.ReadLogFromDatabase())
+	buildLog, err := h.databaseClient.GetPipelineBuildLogs(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID, h.config.APIServer.ReadLogFromDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from db", source, owner, repo, revisionOrID)
@@ -603,13 +603,13 @@ func (h *Handler) GetPipelineBuildLogsByID(c *gin.Context) {
 	var build *contracts.Build
 	var err error
 	if len(revisionOrID) == 40 {
-		build, err = h.cockroachDBClient.GetPipelineBuild(c.Request.Context(), source, owner, repo, revisionOrID, false)
+		build, err = h.databaseClient.GetPipelineBuild(c.Request.Context(), source, owner, repo, revisionOrID, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
 		}
 	} else {
-		build, err = h.cockroachDBClient.GetPipelineBuildByID(c.Request.Context(), source, owner, repo, revisionOrID, false)
+		build, err = h.databaseClient.GetPipelineBuildByID(c.Request.Context(), source, owner, repo, revisionOrID, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, id)
@@ -621,7 +621,7 @@ func (h *Handler) GetPipelineBuildLogsByID(c *gin.Context) {
 		return
 	}
 
-	buildLog, err := h.cockroachDBClient.GetPipelineBuildLogsByID(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID, id, h.config.APIServer.ReadLogFromDatabase())
+	buildLog, err := h.databaseClient.GetPipelineBuildLogsByID(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID, id, h.config.APIServer.ReadLogFromDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from db", source, owner, repo, revisionOrID)
@@ -663,13 +663,13 @@ func (h *Handler) GetPipelineBuildLogsPerPage(c *gin.Context) {
 	var build *contracts.Build
 	var err error
 	if len(revisionOrID) == 40 {
-		build, err = h.cockroachDBClient.GetPipelineBuild(c.Request.Context(), source, owner, repo, revisionOrID, false)
+		build, err = h.databaseClient.GetPipelineBuild(c.Request.Context(), source, owner, repo, revisionOrID, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
 		}
 	} else {
-		build, err = h.cockroachDBClient.GetPipelineBuildByID(c.Request.Context(), source, owner, repo, revisionOrID, false)
+		build, err = h.databaseClient.GetPipelineBuildByID(c.Request.Context(), source, owner, repo, revisionOrID, false)
 		if err != nil {
 			log.Error().Err(err).
 				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
@@ -685,7 +685,7 @@ func (h *Handler) GetPipelineBuildLogsPerPage(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			logs, err := h.cockroachDBClient.GetPipelineBuildLogsPerPage(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID, pageNumber, pageSize)
+			logs, err := h.databaseClient.GetPipelineBuildLogsPerPage(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID, pageNumber, pageSize)
 			if err != nil {
 				return nil, err
 			}
@@ -699,7 +699,7 @@ func (h *Handler) GetPipelineBuildLogsPerPage(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetPipelineBuildLogsCount(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID)
+			return h.databaseClient.GetPipelineBuildLogsCount(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID)
 		},
 		pageNumber,
 		pageSize)
@@ -787,7 +787,7 @@ func (h *Handler) PostPipelineBuildLogs(c *gin.Context) {
 		buildLog.BuildID = revisionOrID
 	}
 
-	insertedBuildLog, err := h.cockroachDBClient.InsertBuildLog(c.Request.Context(), buildLog, h.config.APIServer.WriteLogToDatabase())
+	insertedBuildLog, err := h.databaseClient.InsertBuildLog(c.Request.Context(), buildLog, h.config.APIServer.WriteLogToDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed inserting logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
@@ -815,7 +815,7 @@ func (h *Handler) GetPipelineBuildWarnings(c *gin.Context) {
 	repo := c.Param("repo")
 	revisionOrID := c.Param("revisionOrId")
 
-	build, err := h.cockroachDBClient.GetPipelineBuildByID(c.Request.Context(), source, owner, repo, revisionOrID, false)
+	build, err := h.databaseClient.GetPipelineBuildByID(c.Request.Context(), source, owner, repo, revisionOrID, false)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
@@ -846,7 +846,7 @@ func (h *Handler) GetPipelineReleases(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			releases, err := h.cockroachDBClient.GetPipelineReleases(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters, sortings)
+			releases, err := h.databaseClient.GetPipelineReleases(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -860,7 +860,7 @@ func (h *Handler) GetPipelineReleases(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetPipelineReleasesCount(c.Request.Context(), source, owner, repo, filters)
+			return h.databaseClient.GetPipelineReleasesCount(c.Request.Context(), source, owner, repo, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -915,7 +915,7 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 
 	filters := api.GetPipelineFilters(c)
 
-	pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, filters, false)
+	pipeline, err := h.databaseClient.GetPipeline(c.Request.Context(), releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, filters, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving pipeline %v/%v/%v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName)
 		log.Error().Err(err).Msg(errorMessage)
@@ -930,7 +930,7 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 	}
 
 	// check if version exists and is valid to release
-	builds, err := h.cockroachDBClient.GetPipelineBuildsByVersion(c.Request.Context(), releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion, []contracts.Status{contracts.StatusSucceeded}, 1, false)
+	builds, err := h.databaseClient.GetPipelineBuildsByVersion(c.Request.Context(), releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion, []contracts.Status{contracts.StatusSucceeded}, 1, false)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build %v/%v/%v version %v for release command", releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion)
 		log.Error().Err(err).Msg(errorMessage)
@@ -1041,7 +1041,7 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 
 	log.Debug().Msgf("Canceling pipeline release %v/%v/%v with id %v...", source, owner, repo, idValue)
 
-	release, err := h.cockroachDBClient.GetPipelineRelease(c.Request.Context(), source, owner, repo, idValue)
+	release, err := h.databaseClient.GetPipelineRelease(c.Request.Context(), source, owner, repo, idValue)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed retrieving release for %v/%v/%v/%v from db", source, owner, repo, idValue)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Retrieving pipeline release failed"})
@@ -1054,7 +1054,7 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 	if release.ReleaseStatus == contracts.StatusCanceling {
 		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeRelease, release.RepoOwner, release.RepoName, release.ID)
 		_ = h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
-		_ = h.cockroachDBClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, release.ID, contracts.StatusCanceled)
+		_ = h.databaseClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, release.ID, contracts.StatusCanceled)
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled release by user %v", email)})
 		return
 	}
@@ -1071,7 +1071,7 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 		// job might not have created a builder yet, so set status to canceled straightaway
 		releaseStatus = contracts.StatusCanceled
 	}
-	err = h.cockroachDBClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, release.ID, releaseStatus)
+	err = h.databaseClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, release.ID, releaseStatus)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed updating release status for %v/%v/%v/builds/%v in db", source, owner, repo, release.ID)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline release status to canceling"})
@@ -1083,7 +1083,7 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 	// canceling the job failed because it no longer existed we should set canceled status right after having set it to canceling
 	if errors.Is(cancelErr, builderapi.ErrJobNotFound) && release.ReleaseStatus == contracts.StatusRunning {
 		releaseStatus = contracts.StatusCanceled
-		err = h.cockroachDBClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, release.ID, releaseStatus)
+		err = h.databaseClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, release.ID, releaseStatus)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed updating release status to canceled after setting it to canceling for %v/%v/%v/builds/%v in db", source, owner, repo, release.ID)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline release status to canceled"})
@@ -1101,7 +1101,7 @@ func (h *Handler) GetPipelineRelease(c *gin.Context) {
 	repo := c.Param("repo")
 	releaseID := c.Param("releaseId")
 
-	release, err := h.cockroachDBClient.GetPipelineRelease(c.Request.Context(), source, owner, repo, releaseID)
+	release, err := h.databaseClient.GetPipelineRelease(c.Request.Context(), source, owner, repo, releaseID)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving release for %v/%v/%v/%v from db", source, owner, repo, releaseID)
@@ -1121,7 +1121,7 @@ func (h *Handler) GetPipelineReleaseLogs(c *gin.Context) {
 	repo := c.Param("repo")
 	releaseID := c.Param("releaseId")
 
-	releaseLog, err := h.cockroachDBClient.GetPipelineReleaseLogs(c.Request.Context(), source, owner, repo, releaseID, h.config.APIServer.ReadLogFromDatabase())
+	releaseLog, err := h.databaseClient.GetPipelineReleaseLogs(c.Request.Context(), source, owner, repo, releaseID, h.config.APIServer.ReadLogFromDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving release logs for %v/%v/%v/%v from db", source, owner, repo, releaseID)
@@ -1161,7 +1161,7 @@ func (h *Handler) GetPipelineReleaseLogsByID(c *gin.Context) {
 	releaseID := c.Param("releaseId")
 	id := c.Param("id")
 
-	releaseLog, err := h.cockroachDBClient.GetPipelineReleaseLogsByID(c.Request.Context(), source, owner, repo, releaseID, id, h.config.APIServer.ReadLogFromDatabase())
+	releaseLog, err := h.databaseClient.GetPipelineReleaseLogsByID(c.Request.Context(), source, owner, repo, releaseID, id, h.config.APIServer.ReadLogFromDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving release logs for %v/%v/%v/%v from db", source, owner, repo, releaseID)
@@ -1204,7 +1204,7 @@ func (h *Handler) GetPipelineReleaseLogsPerPage(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			logs, err := h.cockroachDBClient.GetPipelineReleaseLogsPerPage(c.Request.Context(), source, owner, repo, releaseID, pageNumber, pageSize)
+			logs, err := h.databaseClient.GetPipelineReleaseLogsPerPage(c.Request.Context(), source, owner, repo, releaseID, pageNumber, pageSize)
 			if err != nil {
 				return nil, err
 			}
@@ -1218,7 +1218,7 @@ func (h *Handler) GetPipelineReleaseLogsPerPage(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetPipelineReleaseLogsCount(c.Request.Context(), source, owner, repo, releaseID)
+			return h.databaseClient.GetPipelineReleaseLogsCount(c.Request.Context(), source, owner, repo, releaseID)
 		},
 		pageNumber,
 		pageSize)
@@ -1294,7 +1294,7 @@ func (h *Handler) PostPipelineReleaseLogs(c *gin.Context) {
 		return
 	}
 
-	insertedReleaseLog, err := h.cockroachDBClient.InsertReleaseLog(c.Request.Context(), releaseLog, h.config.APIServer.WriteLogToDatabase())
+	insertedReleaseLog, err := h.databaseClient.InsertReleaseLog(c.Request.Context(), releaseLog, h.config.APIServer.WriteLogToDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed inserting release logs for %v/%v/%v/%v", source, owner, repo, releaseID)
@@ -1328,7 +1328,7 @@ func (h *Handler) GetPipelineBotNames(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			botNames, err := h.cockroachDBClient.GetPipelineBotNames(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters)
+			botNames, err := h.databaseClient.GetPipelineBotNames(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters)
 			if err != nil {
 				return nil, err
 			}
@@ -1342,7 +1342,7 @@ func (h *Handler) GetPipelineBotNames(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetPipelineBotNamesCount(c.Request.Context(), source, owner, repo, filters)
+			return h.databaseClient.GetPipelineBotNamesCount(c.Request.Context(), source, owner, repo, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -1366,7 +1366,7 @@ func (h *Handler) GetPipelineBots(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			bots, err := h.cockroachDBClient.GetPipelineBots(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters, sortings)
+			bots, err := h.databaseClient.GetPipelineBots(c.Request.Context(), source, owner, repo, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -1380,7 +1380,7 @@ func (h *Handler) GetPipelineBots(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetPipelineBotsCount(c.Request.Context(), source, owner, repo, filters)
+			return h.databaseClient.GetPipelineBotsCount(c.Request.Context(), source, owner, repo, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -1411,7 +1411,7 @@ func (h *Handler) CancelPipelineBot(c *gin.Context) {
 
 	log.Debug().Msgf("Canceling pipeline bot %v/%v/%v with id %v...", source, owner, repo, botID)
 
-	bot, err := h.cockroachDBClient.GetPipelineBot(c.Request.Context(), source, owner, repo, botID)
+	bot, err := h.databaseClient.GetPipelineBot(c.Request.Context(), source, owner, repo, botID)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed retrieving bot for %v/%v/%v/%v from db", source, owner, repo, botID)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Retrieving pipeline bot failed"})
@@ -1424,7 +1424,7 @@ func (h *Handler) CancelPipelineBot(c *gin.Context) {
 	if bot.BotStatus == contracts.StatusCanceling {
 		jobName := h.ciBuilderClient.GetJobName(c.Request.Context(), contracts.JobTypeBot, bot.RepoOwner, bot.RepoName, bot.ID)
 		_ = h.ciBuilderClient.CancelCiBuilderJob(c.Request.Context(), jobName)
-		_ = h.cockroachDBClient.UpdateBotStatus(c.Request.Context(), bot.RepoSource, bot.RepoOwner, bot.RepoName, botID, contracts.StatusCanceled)
+		_ = h.databaseClient.UpdateBotStatus(c.Request.Context(), bot.RepoSource, bot.RepoOwner, bot.RepoName, botID, contracts.StatusCanceled)
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Canceled bot by user %v", email)})
 		return
 	}
@@ -1441,7 +1441,7 @@ func (h *Handler) CancelPipelineBot(c *gin.Context) {
 		// job might not have created a builder yet, so set status to canceled straightaway
 		botStatus = contracts.StatusCanceled
 	}
-	err = h.cockroachDBClient.UpdateBotStatus(c.Request.Context(), bot.RepoSource, bot.RepoOwner, bot.RepoName, botID, botStatus)
+	err = h.databaseClient.UpdateBotStatus(c.Request.Context(), bot.RepoSource, bot.RepoOwner, bot.RepoName, botID, botStatus)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed updating bot status for %v/%v/%v/bots/%v in db", source, owner, repo, botID)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline bot status to canceling"})
@@ -1453,7 +1453,7 @@ func (h *Handler) CancelPipelineBot(c *gin.Context) {
 	// canceling the job failed because it no longer existed we should set canceled status right after having set it to canceling
 	if errors.Is(cancelErr, builderapi.ErrJobNotFound) && bot.BotStatus == contracts.StatusRunning {
 		botStatus = contracts.StatusCanceled
-		err = h.cockroachDBClient.UpdateBotStatus(c.Request.Context(), bot.RepoSource, bot.RepoOwner, bot.RepoName, botID, botStatus)
+		err = h.databaseClient.UpdateBotStatus(c.Request.Context(), bot.RepoSource, bot.RepoOwner, bot.RepoName, botID, botStatus)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed updating bot status to canceled after setting it to canceling for %v/%v/%v/bots/%v in db", source, owner, repo, botID)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline bot status to canceled"})
@@ -1471,7 +1471,7 @@ func (h *Handler) GetPipelineBot(c *gin.Context) {
 	repo := c.Param("repo")
 	botID := c.Param("botId")
 
-	bot, err := h.cockroachDBClient.GetPipelineBot(c.Request.Context(), source, owner, repo, botID)
+	bot, err := h.databaseClient.GetPipelineBot(c.Request.Context(), source, owner, repo, botID)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving bot for %v/%v/%v/%v from db", source, owner, repo, botID)
@@ -1491,7 +1491,7 @@ func (h *Handler) GetPipelineBotLogs(c *gin.Context) {
 	repo := c.Param("repo")
 	botID := c.Param("botId")
 
-	botLog, err := h.cockroachDBClient.GetPipelineBotLogs(c.Request.Context(), source, owner, repo, botID, h.config.APIServer.ReadLogFromDatabase())
+	botLog, err := h.databaseClient.GetPipelineBotLogs(c.Request.Context(), source, owner, repo, botID, h.config.APIServer.ReadLogFromDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving bot logs for %v/%v/%v/%v from db", source, owner, repo, botID)
@@ -1531,7 +1531,7 @@ func (h *Handler) GetPipelineBotLogsByID(c *gin.Context) {
 	botID := c.Param("botId")
 	id := c.Param("id")
 
-	botLog, err := h.cockroachDBClient.GetPipelineBotLogsByID(c.Request.Context(), source, owner, repo, botID, id, h.config.APIServer.ReadLogFromDatabase())
+	botLog, err := h.databaseClient.GetPipelineBotLogsByID(c.Request.Context(), source, owner, repo, botID, id, h.config.APIServer.ReadLogFromDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving bot logs for %v/%v/%v/%v from db", source, owner, repo, botID)
@@ -1574,7 +1574,7 @@ func (h *Handler) GetPipelineBotLogsPerPage(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			logs, err := h.cockroachDBClient.GetPipelineBotLogsPerPage(c.Request.Context(), source, owner, repo, botID, pageNumber, pageSize)
+			logs, err := h.databaseClient.GetPipelineBotLogsPerPage(c.Request.Context(), source, owner, repo, botID, pageNumber, pageSize)
 			if err != nil {
 				return nil, err
 			}
@@ -1588,7 +1588,7 @@ func (h *Handler) GetPipelineBotLogsPerPage(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetPipelineBotLogsCount(c.Request.Context(), source, owner, repo, botID)
+			return h.databaseClient.GetPipelineBotLogsCount(c.Request.Context(), source, owner, repo, botID)
 		},
 		pageNumber,
 		pageSize)
@@ -1672,7 +1672,7 @@ func (h *Handler) PostPipelineBotLogs(c *gin.Context) {
 		return
 	}
 
-	insertedBotLog, err := h.cockroachDBClient.InsertBotLog(c.Request.Context(), botLog, h.config.APIServer.WriteLogToDatabase())
+	insertedBotLog, err := h.databaseClient.InsertBotLog(c.Request.Context(), botLog, h.config.APIServer.WriteLogToDatabase())
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed inserting bot logs for %v/%v/%v/%v", source, owner, repo, botID)
@@ -1699,7 +1699,7 @@ func (h *Handler) GetAllPipelineBuilds(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			builds, err := h.cockroachDBClient.GetAllPipelineBuilds(c.Request.Context(), pageNumber, pageSize, filters, sortings, true)
+			builds, err := h.databaseClient.GetAllPipelineBuilds(c.Request.Context(), pageNumber, pageSize, filters, sortings, true)
 			if err != nil {
 				return nil, err
 			}
@@ -1713,7 +1713,7 @@ func (h *Handler) GetAllPipelineBuilds(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetAllPipelineBuildsCount(c.Request.Context(), filters)
+			return h.databaseClient.GetAllPipelineBuildsCount(c.Request.Context(), filters)
 		},
 		pageNumber,
 		pageSize)
@@ -1733,7 +1733,7 @@ func (h *Handler) GetAllPipelineReleases(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			releases, err := h.cockroachDBClient.GetAllPipelineReleases(c.Request.Context(), pageNumber, pageSize, filters, sortings)
+			releases, err := h.databaseClient.GetAllPipelineReleases(c.Request.Context(), pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -1747,7 +1747,7 @@ func (h *Handler) GetAllPipelineReleases(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetAllPipelineReleasesCount(c.Request.Context(), filters)
+			return h.databaseClient.GetAllPipelineReleasesCount(c.Request.Context(), filters)
 		},
 		pageNumber,
 		pageSize)
@@ -1767,7 +1767,7 @@ func (h *Handler) GetAllPipelineBots(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			bots, err := h.cockroachDBClient.GetAllPipelineBots(c.Request.Context(), pageNumber, pageSize, filters, sortings)
+			bots, err := h.databaseClient.GetAllPipelineBots(c.Request.Context(), pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -1781,7 +1781,7 @@ func (h *Handler) GetAllPipelineBots(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetAllPipelineBotsCount(c.Request.Context(), filters)
+			return h.databaseClient.GetAllPipelineBotsCount(c.Request.Context(), filters)
 		},
 		pageNumber,
 		pageSize)
@@ -1801,7 +1801,7 @@ func (h *Handler) GetAllNotifications(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			notifications, err := h.cockroachDBClient.GetAllNotifications(c.Request.Context(), pageNumber, pageSize, filters, sortings)
+			notifications, err := h.databaseClient.GetAllNotifications(c.Request.Context(), pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -1815,7 +1815,7 @@ func (h *Handler) GetAllNotifications(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetAllNotificationsCount(c.Request.Context(), filters)
+			return h.databaseClient.GetAllNotificationsCount(c.Request.Context(), filters)
 		},
 		pageNumber,
 		pageSize)
@@ -1838,7 +1838,7 @@ func (h *Handler) GetReleaseTargets(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			releaseTargets, err := h.cockroachDBClient.GetReleaseTargets(c.Request.Context(), pageNumber, pageSize, filters)
+			releaseTargets, err := h.databaseClient.GetReleaseTargets(c.Request.Context(), pageNumber, pageSize, filters)
 			if err != nil {
 				return nil, err
 			}
@@ -1852,7 +1852,7 @@ func (h *Handler) GetReleaseTargets(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetReleaseTargetsCount(c.Request.Context(), filters)
+			return h.databaseClient.GetReleaseTargetsCount(c.Request.Context(), filters)
 		},
 		pageNumber,
 		pageSize)
@@ -1875,7 +1875,7 @@ func (h *Handler) GetAllPipelinesReleaseTargets(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			releaseTargets, err := h.cockroachDBClient.GetAllPipelinesReleaseTargets(c.Request.Context(), pageNumber, pageSize, filters)
+			releaseTargets, err := h.databaseClient.GetAllPipelinesReleaseTargets(c.Request.Context(), pageNumber, pageSize, filters)
 			if err != nil {
 				return nil, err
 			}
@@ -1889,7 +1889,7 @@ func (h *Handler) GetAllPipelinesReleaseTargets(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetAllPipelinesReleaseTargetsCount(c.Request.Context(), filters)
+			return h.databaseClient.GetAllPipelinesReleaseTargetsCount(c.Request.Context(), filters)
 		},
 		pageNumber,
 		pageSize)
@@ -1912,7 +1912,7 @@ func (h *Handler) GetAllReleasesReleaseTargets(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			releaseTargets, err := h.cockroachDBClient.GetAllReleasesReleaseTargets(c.Request.Context(), pageNumber, pageSize, filters)
+			releaseTargets, err := h.databaseClient.GetAllReleasesReleaseTargets(c.Request.Context(), pageNumber, pageSize, filters)
 			if err != nil {
 				return nil, err
 			}
@@ -1926,7 +1926,7 @@ func (h *Handler) GetAllReleasesReleaseTargets(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetAllReleasesReleaseTargetsCount(c.Request.Context(), filters)
+			return h.databaseClient.GetAllReleasesReleaseTargetsCount(c.Request.Context(), filters)
 		},
 		pageNumber,
 		pageSize)
@@ -1949,7 +1949,7 @@ func (h *Handler) GetFrequentLabels(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			labels, err := h.cockroachDBClient.GetFrequentLabels(c.Request.Context(), pageNumber, pageSize, filters)
+			labels, err := h.databaseClient.GetFrequentLabels(c.Request.Context(), pageNumber, pageSize, filters)
 			if err != nil {
 				return nil, err
 			}
@@ -1963,7 +1963,7 @@ func (h *Handler) GetFrequentLabels(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachDBClient.GetFrequentLabelsCount(c.Request.Context(), filters)
+			return h.databaseClient.GetFrequentLabelsCount(c.Request.Context(), filters)
 		},
 		pageNumber,
 		pageSize)
@@ -1988,7 +1988,7 @@ func (h *Handler) GetPipelineStatsBuildsDurations(c *gin.Context) {
 	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
 	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
-	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(c.Request.Context(), source, owner, repo, filters)
+	durations, err := h.databaseClient.GetPipelineBuildsDurations(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build durations from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
@@ -2012,7 +2012,7 @@ func (h *Handler) GetPipelineStatsReleasesDurations(c *gin.Context) {
 	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
 	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
-	durations, err := h.cockroachDBClient.GetPipelineReleasesDurations(c.Request.Context(), source, owner, repo, filters)
+	durations, err := h.databaseClient.GetPipelineReleasesDurations(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving releases durations from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
@@ -2036,7 +2036,7 @@ func (h *Handler) GetPipelineStatsBotsDurations(c *gin.Context) {
 	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
 	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
-	durations, err := h.cockroachDBClient.GetPipelineBotsDurations(c.Request.Context(), source, owner, repo, filters)
+	durations, err := h.databaseClient.GetPipelineBotsDurations(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving bots durations from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
@@ -2060,7 +2060,7 @@ func (h *Handler) GetPipelineStatsBuildsCPUUsageMeasurements(c *gin.Context) {
 	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
 	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
-	measurements, err := h.cockroachDBClient.GetPipelineBuildsCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
+	measurements, err := h.databaseClient.GetPipelineBuildsCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build cpu usage measurements from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
@@ -2084,7 +2084,7 @@ func (h *Handler) GetPipelineStatsReleasesCPUUsageMeasurements(c *gin.Context) {
 	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
 	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
-	measurements, err := h.cockroachDBClient.GetPipelineReleasesCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
+	measurements, err := h.databaseClient.GetPipelineReleasesCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving release cpu usage measurements from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
@@ -2108,7 +2108,7 @@ func (h *Handler) GetPipelineStatsBotsCPUUsageMeasurements(c *gin.Context) {
 	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
 	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
-	measurements, err := h.cockroachDBClient.GetPipelineBotsCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
+	measurements, err := h.databaseClient.GetPipelineBotsCPUUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving bots cpu usage measurements from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
@@ -2132,7 +2132,7 @@ func (h *Handler) GetPipelineStatsBuildsMemoryUsageMeasurements(c *gin.Context) 
 	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
 	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
-	measurements, err := h.cockroachDBClient.GetPipelineBuildsMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
+	measurements, err := h.databaseClient.GetPipelineBuildsMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build memory usage measurements from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
@@ -2156,7 +2156,7 @@ func (h *Handler) GetPipelineStatsReleasesMemoryUsageMeasurements(c *gin.Context
 	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
 	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
-	measurements, err := h.cockroachDBClient.GetPipelineReleasesMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
+	measurements, err := h.databaseClient.GetPipelineReleasesMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving release memory usage measurements from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
@@ -2180,7 +2180,7 @@ func (h *Handler) GetPipelineStatsBotsMemoryUsageMeasurements(c *gin.Context) {
 	filters[api.FilterStatus] = api.GetStatusFilter(c, contracts.StatusSucceeded)
 	filters[api.FilterLast] = api.GetLastFilter(c, 100)
 
-	measurements, err := h.cockroachDBClient.GetPipelineBotsMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
+	measurements, err := h.databaseClient.GetPipelineBotsMemoryUsageMeasurements(c.Request.Context(), source, owner, repo, filters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving bots memory usage measurements from db for %v/%v/%v", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
@@ -2201,7 +2201,7 @@ func (h *Handler) GetPipelineWarnings(c *gin.Context) {
 
 	filters := api.GetPipelineFilters(c)
 
-	pipeline, err := h.cockroachDBClient.GetPipeline(c.Request.Context(), source, owner, repo, filters, false)
+	pipeline, err := h.databaseClient.GetPipeline(c.Request.Context(), source, owner, repo, filters, false)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
 	}
@@ -2221,7 +2221,7 @@ func (h *Handler) GetPipelineWarnings(c *gin.Context) {
 	// get last 25 builds
 	buildsFilters[api.FilterLast] = api.GetLastFilter(c, 25)
 
-	durations, err := h.cockroachDBClient.GetPipelineBuildsDurations(c.Request.Context(), source, owner, repo, buildsFilters)
+	durations, err := h.databaseClient.GetPipelineBuildsDurations(c.Request.Context(), source, owner, repo, buildsFilters)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed retrieving build durations from db for pipeline %v/%v/%v warnings", source, owner, repo)
 		log.Error().Err(err).Msg(errorMessage)
@@ -2277,7 +2277,7 @@ func (h *Handler) GetCatalogFilterValues(c *gin.Context) {
 
 	labelKey := c.DefaultQuery("filter[labels]", "type")
 
-	labels, err := h.cockroachDBClient.GetLabelValues(c.Request.Context(), labelKey)
+	labels, err := h.databaseClient.GetLabelValues(c.Request.Context(), labelKey)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed retrieving label values from db")
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
@@ -2294,7 +2294,7 @@ func (h *Handler) GetStatsPipelinesCount(c *gin.Context) {
 	filters[api.FilterStatus] = api.GetStatusFilter(c)
 	filters[api.FilterSince] = api.GetSinceFilter(c)
 
-	pipelinesCount, err := h.cockroachDBClient.GetPipelinesCount(c.Request.Context(), filters)
+	pipelinesCount, err := h.databaseClient.GetPipelinesCount(c.Request.Context(), filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Failed retrieving pipelines count from db")
@@ -2312,7 +2312,7 @@ func (h *Handler) GetStatsReleasesCount(c *gin.Context) {
 	filters[api.FilterStatus] = api.GetStatusFilter(c)
 	filters[api.FilterSince] = api.GetSinceFilter(c)
 
-	releasesCount, err := h.cockroachDBClient.GetReleasesCount(c.Request.Context(), filters)
+	releasesCount, err := h.databaseClient.GetReleasesCount(c.Request.Context(), filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Failed retrieving releases count from db")
@@ -2330,7 +2330,7 @@ func (h *Handler) GetStatsBotsCount(c *gin.Context) {
 	filters[api.FilterStatus] = api.GetStatusFilter(c)
 	filters[api.FilterSince] = api.GetSinceFilter(c)
 
-	botsCount, err := h.cockroachDBClient.GetBotsCount(c.Request.Context(), filters)
+	botsCount, err := h.databaseClient.GetBotsCount(c.Request.Context(), filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Failed retrieving bots count from db")
@@ -2348,7 +2348,7 @@ func (h *Handler) GetStatsBuildsCount(c *gin.Context) {
 	filters[api.FilterStatus] = api.GetStatusFilter(c)
 	filters[api.FilterSince] = api.GetSinceFilter(c)
 
-	buildsCount, err := h.cockroachDBClient.GetBuildsCount(c.Request.Context(), filters)
+	buildsCount, err := h.databaseClient.GetBuildsCount(c.Request.Context(), filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Failed retrieving builds count from db")
@@ -2363,14 +2363,14 @@ func (h *Handler) GetStatsMostBuilds(c *gin.Context) {
 
 	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
 
-	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostBuilds(c.Request.Context(), pageNumber, pageSize, filters)
+	pipelines, err := h.databaseClient.GetPipelinesWithMostBuilds(c.Request.Context(), pageNumber, pageSize, filters)
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines with most builds from db"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		return
 	}
-	pipelinesCount, err := h.cockroachDBClient.GetPipelinesWithMostBuildsCount(c.Request.Context(), filters)
+	pipelinesCount, err := h.databaseClient.GetPipelinesWithMostBuildsCount(c.Request.Context(), filters)
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines count from db"
 		log.Error().Err(err).Msg(errorMessage)
@@ -2399,14 +2399,14 @@ func (h *Handler) GetStatsMostReleases(c *gin.Context) {
 
 	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
 
-	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostReleases(c.Request.Context(), pageNumber, pageSize, filters)
+	pipelines, err := h.databaseClient.GetPipelinesWithMostReleases(c.Request.Context(), pageNumber, pageSize, filters)
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines with most builds from db"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		return
 	}
-	pipelinesCount, err := h.cockroachDBClient.GetPipelinesWithMostReleasesCount(c.Request.Context(), filters)
+	pipelinesCount, err := h.databaseClient.GetPipelinesWithMostReleasesCount(c.Request.Context(), filters)
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines count from db"
 		log.Error().Err(err).Msg(errorMessage)
@@ -2435,14 +2435,14 @@ func (h *Handler) GetStatsMostBots(c *gin.Context) {
 
 	pageNumber, pageSize, filters, _ := api.GetQueryParameters(c)
 
-	pipelines, err := h.cockroachDBClient.GetPipelinesWithMostBots(c.Request.Context(), pageNumber, pageSize, filters)
+	pipelines, err := h.databaseClient.GetPipelinesWithMostBots(c.Request.Context(), pageNumber, pageSize, filters)
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines with most bots from db"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		return
 	}
-	pipelinesCount, err := h.cockroachDBClient.GetPipelinesWithMostBotsCount(c.Request.Context(), filters)
+	pipelinesCount, err := h.databaseClient.GetPipelinesWithMostBotsCount(c.Request.Context(), filters)
 	if err != nil {
 		errorMessage := "Failed retrieving pipelines count from db"
 		log.Error().Err(err).Msg(errorMessage)
@@ -2474,7 +2474,7 @@ func (h *Handler) GetStatsBuildsDuration(c *gin.Context) {
 	filters[api.FilterStatus] = api.GetStatusFilter(c)
 	filters[api.FilterSince] = api.GetSinceFilter(c)
 
-	buildsDuration, err := h.cockroachDBClient.GetBuildsDuration(c.Request.Context(), filters)
+	buildsDuration, err := h.databaseClient.GetBuildsDuration(c.Request.Context(), filters)
 	if err != nil {
 		log.Error().Err(err).
 			Msg("Failed retrieving builds duration from db")
@@ -2487,7 +2487,7 @@ func (h *Handler) GetStatsBuildsDuration(c *gin.Context) {
 
 func (h *Handler) GetStatsBuildsAdoption(c *gin.Context) {
 
-	buildTimes, err := h.cockroachDBClient.GetFirstBuildTimes(c.Request.Context())
+	buildTimes, err := h.databaseClient.GetFirstBuildTimes(c.Request.Context())
 	if err != nil {
 		errorMessage := "Failed retrieving first build times from db"
 		log.Error().Err(err).Msg(errorMessage)
@@ -2502,7 +2502,7 @@ func (h *Handler) GetStatsBuildsAdoption(c *gin.Context) {
 
 func (h *Handler) GetStatsReleasesAdoption(c *gin.Context) {
 
-	releaseTimes, err := h.cockroachDBClient.GetFirstReleaseTimes(c.Request.Context())
+	releaseTimes, err := h.databaseClient.GetFirstReleaseTimes(c.Request.Context())
 	if err != nil {
 		errorMessage := "Failed retrieving first release times from db"
 		log.Error().Err(err).Msg(errorMessage)
@@ -2517,7 +2517,7 @@ func (h *Handler) GetStatsReleasesAdoption(c *gin.Context) {
 
 func (h *Handler) GetStatsBotsAdoption(c *gin.Context) {
 
-	releaseTimes, err := h.cockroachDBClient.GetFirstBotTimes(c.Request.Context())
+	releaseTimes, err := h.databaseClient.GetFirstBotTimes(c.Request.Context())
 	if err != nil {
 		errorMessage := "Failed retrieving first bot times from db"
 		log.Error().Err(err).Msg(errorMessage)

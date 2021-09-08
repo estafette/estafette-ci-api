@@ -141,9 +141,6 @@ func (c *APIConfig) SetDefaults() {
 			RunPrivileged: true,
 		})
 	}
-	// for _, trustedImage := range c.TrustedImages {
-	// 	trustedImage.SetDefaults()
-	// }
 }
 
 func (c *APIConfig) Validate() (err error) {

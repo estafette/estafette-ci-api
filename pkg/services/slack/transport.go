@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
-	"github.com/estafette/estafette-ci-api/pkg/clients/cockroachdb"
+	"github.com/estafette/estafette-ci-api/pkg/clients/database"
 	"github.com/estafette/estafette-ci-api/pkg/clients/slackapi"
 	"github.com/estafette/estafette-ci-api/pkg/services/estafette"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -17,22 +17,22 @@ import (
 )
 
 // NewHandler returns a pubsub.Handler
-func NewHandler(secretHelper crypt.SecretHelper, config *api.APIConfig, slackapiClient slackapi.Client, cockroachdbClient cockroachdb.Client, estafetteService estafette.Service) Handler {
+func NewHandler(secretHelper crypt.SecretHelper, config *api.APIConfig, slackapiClient slackapi.Client, databaseClient database.Client, estafetteService estafette.Service) Handler {
 	return Handler{
-		config:            config,
-		secretHelper:      secretHelper,
-		slackapiClient:    slackapiClient,
-		cockroachdbClient: cockroachdbClient,
-		estafetteService:  estafetteService,
+		config:           config,
+		secretHelper:     secretHelper,
+		slackapiClient:   slackapiClient,
+		databaseClient:   databaseClient,
+		estafetteService: estafetteService,
 	}
 }
 
 type Handler struct {
-	config            *api.APIConfig
-	secretHelper      crypt.SecretHelper
-	slackapiClient    slackapi.Client
-	cockroachdbClient cockroachdb.Client
-	estafetteService  estafette.Service
+	config           *api.APIConfig
+	secretHelper     crypt.SecretHelper
+	slackapiClient   slackapi.Client
+	databaseClient   database.Client
+	estafetteService estafette.Service
 }
 
 func (h *Handler) Handle(c *gin.Context) {
@@ -109,7 +109,7 @@ func (h *Handler) Handle(c *gin.Context) {
 
 					var pipeline *contracts.Pipeline
 					if len(fullRepoNameArray) == 1 {
-						pipelines, err := h.cockroachdbClient.GetPipelinesByRepoName(c.Request.Context(), fullRepoName, false)
+						pipelines, err := h.databaseClient.GetPipelinesByRepoName(c.Request.Context(), fullRepoName, false)
 						if err != nil {
 							log.Error().Err(err).Msgf("Failed retrieving pipelines for repo name %v by name", fullRepoName)
 							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
@@ -129,7 +129,7 @@ func (h *Handler) Handle(c *gin.Context) {
 						}
 						pipeline = pipelines[0]
 					} else {
-						pipeline, err := h.cockroachdbClient.GetPipeline(c.Request.Context(), fullRepoNameArray[0], fullRepoNameArray[1], fullRepoNameArray[2], map[api.FilterType][]string{}, false)
+						pipeline, err := h.databaseClient.GetPipeline(c.Request.Context(), fullRepoNameArray[0], fullRepoNameArray[1], fullRepoNameArray[2], map[api.FilterType][]string{}, false)
 						if err != nil {
 							c.String(http.StatusOK, fmt.Sprintf("Retrieving the pipeline for repository %v from the database failed: %v", fullRepoName, err))
 							return
@@ -141,7 +141,7 @@ func (h *Handler) Handle(c *gin.Context) {
 					}
 
 					// check if version exists
-					builds, err := h.cockroachdbClient.GetPipelineBuildsByVersion(c.Request.Context(), pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion, []contracts.Status{contracts.StatusSucceeded}, 1, false)
+					builds, err := h.databaseClient.GetPipelineBuildsByVersion(c.Request.Context(), pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, buildVersion, []contracts.Status{contracts.StatusSucceeded}, 1, false)
 
 					if err != nil {
 						c.String(http.StatusOK, fmt.Sprintf("Retrieving the build for repository %v and version %v from the database failed: %v", fullRepoName, buildVersion, err))

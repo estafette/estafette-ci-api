@@ -14,7 +14,7 @@ import (
 	"github.com/estafette/estafette-ci-api/pkg/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/pkg/clients/cloudsourceapi"
 	"github.com/estafette/estafette-ci-api/pkg/clients/cloudstorage"
-	"github.com/estafette/estafette-ci-api/pkg/clients/cockroachdb"
+	"github.com/estafette/estafette-ci-api/pkg/clients/database"
 	"github.com/estafette/estafette-ci-api/pkg/clients/githubapi"
 	"github.com/estafette/estafette-ci-api/pkg/clients/prometheus"
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -59,11 +59,11 @@ type Service interface {
 }
 
 // NewService returns a new estafette.Service
-func NewService(config *api.APIConfig, cockroachdbClient cockroachdb.Client, secretHelper crypt.SecretHelper, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, error)) Service {
+func NewService(config *api.APIConfig, databaseClient database.Client, secretHelper crypt.SecretHelper, prometheusClient prometheus.Client, cloudStorageClient cloudstorage.Client, builderapiClient builderapi.Client, githubJobVarsFunc func(context.Context, string, string, string) (string, error), bitbucketJobVarsFunc func(context.Context, string, string, string) (string, error), cloudsourceJobVarsFunc func(context.Context, string, string, string) (string, error)) Service {
 
 	return &service{
 		config:                 config,
-		cockroachdbClient:      cockroachdbClient,
+		databaseClient:         databaseClient,
 		secretHelper:           secretHelper,
 		prometheusClient:       prometheusClient,
 		cloudStorageClient:     cloudStorageClient,
@@ -77,7 +77,7 @@ func NewService(config *api.APIConfig, cockroachdbClient cockroachdb.Client, sec
 
 type service struct {
 	config                 *api.APIConfig
-	cockroachdbClient      cockroachdb.Client
+	databaseClient         database.Client
 	secretHelper           crypt.SecretHelper
 	prometheusClient       prometheus.Client
 	cloudStorageClient     cloudstorage.Client
@@ -130,7 +130,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build) (creat
 	}
 
 	// retrieve pipeline if already exists to get counter value
-	pipeline, _ := s.cockroachdbClient.GetPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName, map[api.FilterType][]string{}, false)
+	pipeline, _ := s.databaseClient.GetPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName, map[api.FilterType][]string{}, false)
 
 	// get counter and update build labels if manifest is invalid
 	currentCounter, build, err := s.getBuildCounter(ctx, build, shortRepoSource, hasValidManifest, mft, pipeline)
@@ -148,7 +148,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build) (creat
 		}
 
 		// get max counter for same branch
-		lastBuildsForBranch, _ := s.cockroachdbClient.GetPipelineBuilds(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, 1, 10, map[api.FilterType][]string{api.FilterBranch: []string{pipeline.RepoBranch}}, []api.OrderField{}, false)
+		lastBuildsForBranch, _ := s.databaseClient.GetPipelineBuilds(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, 1, 10, map[api.FilterType][]string{api.FilterBranch: []string{pipeline.RepoBranch}}, []api.OrderField{}, false)
 		if len(lastBuildsForBranch) == 1 {
 			mc := s.getVersionCounter(ctx, lastBuildsForBranch[0].BuildVersion, mft)
 			if mc > maxCounterCurrentBranch {
@@ -170,7 +170,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build) (creat
 	jobResources := s.getBuildJobResources(ctx, build)
 
 	// store build in db
-	createdBuild, err = s.cockroachdbClient.InsertBuild(ctx, contracts.Build{
+	createdBuild, err = s.databaseClient.InsertBuild(ctx, contracts.Build{
 		RepoSource:     build.RepoSource,
 		RepoOwner:      build.RepoOwner,
 		RepoName:       build.RepoName,
@@ -286,7 +286,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build) (creat
 			})
 		}
 
-		insertedBuildLog, err := s.cockroachdbClient.InsertBuildLog(ctx, buildLog, s.config.APIServer.WriteLogToDatabase())
+		insertedBuildLog, err := s.databaseClient.InsertBuildLog(ctx, buildLog, s.config.APIServer.WriteLogToDatabase())
 		if err != nil {
 			log.Warn().Err(err).Msgf("Failed inserting build log for invalid manifest")
 		}
@@ -326,7 +326,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build) (creat
 			},
 		}
 
-		insertedBuildLog, err := s.cockroachdbClient.InsertBuildLog(ctx, buildLog, s.config.APIServer.WriteLogToDatabase())
+		insertedBuildLog, err := s.databaseClient.InsertBuildLog(ctx, buildLog, s.config.APIServer.WriteLogToDatabase())
 		if err != nil {
 			log.Warn().Err(err).Msgf("Failed inserting build log for invalid manifest")
 		}
@@ -344,7 +344,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build) (creat
 
 func (s *service) FinishBuild(ctx context.Context, repoSource, repoOwner, repoName string, buildID string, buildStatus contracts.Status) error {
 
-	err := s.cockroachdbClient.UpdateBuildStatus(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
+	err := s.databaseClient.UpdateBuildStatus(ctx, repoSource, repoOwner, repoName, buildID, buildStatus)
 	if err != nil {
 		return err
 	}
@@ -356,7 +356,7 @@ func (s *service) FinishBuild(ctx context.Context, repoSource, repoOwner, repoNa
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 
-		build, err := s.cockroachdbClient.GetPipelineBuildByID(ctx, repoSource, repoOwner, repoName, buildID, false)
+		build, err := s.databaseClient.GetPipelineBuildByID(ctx, repoSource, repoOwner, repoName, buildID, false)
 		if err != nil {
 			return
 		}
@@ -429,7 +429,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	jobResources := s.getReleaseJobResources(ctx, release)
 
 	// create release in database
-	createdRelease, err = s.cockroachdbClient.InsertRelease(ctx, contracts.Release{
+	createdRelease, err = s.databaseClient.InsertRelease(ctx, contracts.Release{
 		Name:           release.Name,
 		Action:         release.Action,
 		RepoSource:     release.RepoSource,
@@ -454,7 +454,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 	triggeredByEvents := release.Events
 
 	// retrieve pipeline if already exists to get counter value
-	pipeline, _ := s.cockroachdbClient.GetPipeline(ctx, release.RepoSource, release.RepoOwner, release.RepoName, map[api.FilterType][]string{}, false)
+	pipeline, _ := s.databaseClient.GetPipeline(ctx, release.RepoSource, release.RepoOwner, release.RepoName, map[api.FilterType][]string{}, false)
 	if pipeline != nil {
 		// get max counter for pipeline
 		mc := s.getVersionCounter(ctx, pipeline.BuildVersion, mft)
@@ -463,7 +463,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 		}
 
 		// get max counter for same branch
-		lastBuildsForBranch, _ := s.cockroachdbClient.GetPipelineBuilds(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, 1, 10, map[api.FilterType][]string{api.FilterBranch: []string{repoBranch}}, []api.OrderField{}, false)
+		lastBuildsForBranch, _ := s.databaseClient.GetPipelineBuilds(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, 1, 10, map[api.FilterType][]string{api.FilterBranch: []string{repoBranch}}, []api.OrderField{}, false)
 		if len(lastBuildsForBranch) == 1 {
 			mc := s.getVersionCounter(ctx, lastBuildsForBranch[0].BuildVersion, mft)
 			if mc > maxCounterCurrentBranch {
@@ -547,7 +547,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 			})
 		}
 
-		insertedReleaseLog, err := s.cockroachdbClient.InsertReleaseLog(ctx, releaseLog, s.config.APIServer.WriteLogToDatabase())
+		insertedReleaseLog, err := s.databaseClient.InsertReleaseLog(ctx, releaseLog, s.config.APIServer.WriteLogToDatabase())
 		if err != nil {
 			log.Warn().Err(err).Msgf("Failed inserting release log for manifest with restricted secrets")
 		}
@@ -577,7 +577,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 }
 
 func (s *service) FinishRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, releaseStatus contracts.Status) error {
-	err := s.cockroachdbClient.UpdateReleaseStatus(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)
+	err := s.databaseClient.UpdateReleaseStatus(ctx, repoSource, repoOwner, repoName, releaseID, releaseStatus)
 	if err != nil {
 		return err
 	}
@@ -589,7 +589,7 @@ func (s *service) FinishRelease(ctx context.Context, repoSource, repoOwner, repo
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 
-		release, err := s.cockroachdbClient.GetPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseID)
+		release, err := s.databaseClient.GetPipelineRelease(ctx, repoSource, repoOwner, repoName, releaseID)
 		if err != nil {
 			return
 		}
@@ -659,7 +659,7 @@ func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest
 	jobResources := s.getBotJobResources(ctx, bot)
 
 	// create release in database
-	createdBot, err = s.cockroachdbClient.InsertBot(ctx, contracts.Bot{
+	createdBot, err = s.databaseClient.InsertBot(ctx, contracts.Bot{
 		Name:          bot.Name,
 		RepoSource:    bot.RepoSource,
 		RepoOwner:     bot.RepoOwner,
@@ -738,7 +738,7 @@ func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest
 			})
 		}
 
-		insertedBotLog, err := s.cockroachdbClient.InsertBotLog(ctx, botLog, s.config.APIServer.WriteLogToDatabase())
+		insertedBotLog, err := s.databaseClient.InsertBotLog(ctx, botLog, s.config.APIServer.WriteLogToDatabase())
 		if err != nil {
 			log.Warn().Err(err).Msgf("Failed inserting bot log for manifest with restricted secrets")
 		}
@@ -755,7 +755,7 @@ func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest
 }
 
 func (s *service) FinishBot(ctx context.Context, repoSource, repoOwner, repoName string, botID string, botStatus contracts.Status) error {
-	err := s.cockroachdbClient.UpdateBotStatus(ctx, repoSource, repoOwner, repoName, botID, botStatus)
+	err := s.databaseClient.UpdateBotStatus(ctx, repoSource, repoOwner, repoName, botID, botStatus)
 	if err != nil {
 		return err
 	}
@@ -768,7 +768,7 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 	log.Info().Msgf("[trigger:git(%v-%v:%v)] Checking if triggers need to be fired...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event)
 
 	// retrieve all pipeline triggers
-	pipelines, err := s.cockroachdbClient.GetGitTriggers(ctx, gitEvent)
+	pipelines, err := s.databaseClient.GetGitTriggers(ctx, gitEvent)
 	if err != nil {
 		return err
 	}
@@ -860,7 +860,7 @@ func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.E
 	log.Info().Msgf("[trigger:github(%v:%v)] Checking if triggers need to be fired...", githubEvent.Repository, githubEvent.Event)
 
 	// retrieve all pipeline triggers
-	pipelines, err := s.cockroachdbClient.GetGithubTriggers(ctx, githubEvent)
+	pipelines, err := s.databaseClient.GetGithubTriggers(ctx, githubEvent)
 	if err != nil {
 		return err
 	}
@@ -954,7 +954,7 @@ func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent mani
 	log.Info().Msgf("[trigger:bitbucket(%v:%v)] Checking if triggers need to be fired...", bitbucketEvent.Repository, bitbucketEvent.Event)
 
 	// retrieve all pipeline triggers
-	pipelines, err := s.cockroachdbClient.GetBitbucketTriggers(ctx, bitbucketEvent)
+	pipelines, err := s.databaseClient.GetBitbucketTriggers(ctx, bitbucketEvent)
 	if err != nil {
 		return err
 	}
@@ -1048,7 +1048,7 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 	log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Checking if triggers need to be fired...", build.RepoSource, build.RepoOwner, build.RepoName, event)
 
 	// retrieve all pipeline triggers
-	pipelines, err := s.cockroachdbClient.GetPipelineTriggers(ctx, build, event)
+	pipelines, err := s.databaseClient.GetPipelineTriggers(ctx, build, event)
 	if err != nil {
 		return err
 	}
@@ -1149,7 +1149,7 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 
 	log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v] Checking if triggers need to be fired...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
 
-	pipelines, err := s.cockroachdbClient.GetReleaseTriggers(ctx, release, event)
+	pipelines, err := s.databaseClient.GetReleaseTriggers(ctx, release, event)
 	if err != nil {
 		return err
 	}
@@ -1250,7 +1250,7 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 	log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Checking if triggers need to be fired...", pubsubEvent.Project, pubsubEvent.Topic)
 
 	// retrieve all pipeline triggers
-	pipelines, err := s.cockroachdbClient.GetPubSubTriggers(ctx, pubsubEvent)
+	pipelines, err := s.databaseClient.GetPubSubTriggers(ctx, pubsubEvent)
 	if err != nil {
 		return err
 	}
@@ -1346,7 +1346,7 @@ func (s *service) FireCronTriggers(ctx context.Context, cronEvent manifest.Estaf
 
 	log.Info().Msgf("[trigger:cron(%v)] Checking if triggers need to be fired...", cronEvent.Time)
 
-	pipelines, err := s.cockroachdbClient.GetCronTriggers(ctx)
+	pipelines, err := s.databaseClient.GetCronTriggers(ctx)
 	if err != nil {
 		return err
 	}
@@ -1434,7 +1434,7 @@ func (s *service) fireBuild(ctx context.Context, p contracts.Pipeline, t manifes
 	}
 
 	// get last build for branch defined in 'builds' section
-	lastBuildForBranch, err := s.cockroachdbClient.GetLastPipelineBuildForBranch(ctx, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+	lastBuildForBranch, err := s.databaseClient.GetLastPipelineBuildForBranch(ctx, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 	if err != nil {
 		return err
 	}
@@ -1503,7 +1503,7 @@ func (s *service) fireRelease(ctx context.Context, p contracts.Pipeline, t manif
 	repoRevision := p.RepoRevision
 	mft := p.ManifestObject
 	if versionToRelease != p.BuildVersion {
-		succeededBuilds, err := s.cockroachdbClient.GetPipelineBuildsByVersion(ctx, p.RepoSource, p.RepoOwner, p.RepoName, versionToRelease, []contracts.Status{contracts.StatusSucceeded}, 1, false)
+		succeededBuilds, err := s.databaseClient.GetPipelineBuildsByVersion(ctx, p.RepoSource, p.RepoOwner, p.RepoName, versionToRelease, []contracts.Status{contracts.StatusSucceeded}, 1, false)
 		if err != nil {
 			return err
 		}
@@ -1610,7 +1610,7 @@ func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fro
 		shortFromRepoSource := s.getShortRepoSource(fromRepoSource)
 		shortToRepoSource := s.getShortRepoSource(toRepoSource)
 
-		err := s.cockroachdbClient.Rename(ctx, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName)
+		err := s.databaseClient.Rename(ctx, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName)
 		if err != nil {
 			errors <- err
 		}
@@ -1641,11 +1641,11 @@ func (s *service) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fro
 }
 
 func (s *service) Archive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
-	return s.cockroachdbClient.ArchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
+	return s.databaseClient.ArchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
 }
 
 func (s *service) Unarchive(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
-	return s.cockroachdbClient.UnarchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
+	return s.databaseClient.UnarchiveComputedPipeline(ctx, repoSource, repoOwner, repoName)
 }
 
 func (s *service) UpdateBuildStatus(ctx context.Context, ciBuilderEvent contracts.EstafetteCiBuilderEvent) (err error) {
@@ -1721,7 +1721,7 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent contrac
 
 		log.Info().Msgf("Max memory usage for pod %v is %v", ciBuilderEvent.PodName, maxMemory)
 
-		jobResources := cockroachdb.JobResources{
+		jobResources := database.JobResources{
 			CPUMaxUsage:    maxCPU,
 			MemoryMaxUsage: maxMemory,
 		}
@@ -1729,21 +1729,21 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent contrac
 		switch ciBuilderEvent.JobType {
 		case contracts.JobTypeBuild:
 
-			err = s.cockroachdbClient.UpdateBuildResourceUtilization(ctx, ciBuilderEvent.Git.RepoSource, ciBuilderEvent.Git.RepoOwner, ciBuilderEvent.Git.RepoName, ciBuilderEvent.Build.ID, jobResources)
+			err = s.databaseClient.UpdateBuildResourceUtilization(ctx, ciBuilderEvent.Git.RepoSource, ciBuilderEvent.Git.RepoOwner, ciBuilderEvent.Git.RepoName, ciBuilderEvent.Build.ID, jobResources)
 			if err != nil {
 				return err
 			}
 
 		case contracts.JobTypeRelease:
 
-			err = s.cockroachdbClient.UpdateReleaseResourceUtilization(ctx, ciBuilderEvent.Git.RepoSource, ciBuilderEvent.Git.RepoOwner, ciBuilderEvent.Git.RepoName, ciBuilderEvent.Release.ID, jobResources)
+			err = s.databaseClient.UpdateReleaseResourceUtilization(ctx, ciBuilderEvent.Git.RepoSource, ciBuilderEvent.Git.RepoOwner, ciBuilderEvent.Git.RepoName, ciBuilderEvent.Release.ID, jobResources)
 			if err != nil {
 				return err
 			}
 
 		case contracts.JobTypeBot:
 
-			err = s.cockroachdbClient.UpdateBotResourceUtilization(ctx, ciBuilderEvent.Git.RepoSource, ciBuilderEvent.Git.RepoOwner, ciBuilderEvent.Git.RepoName, ciBuilderEvent.Bot.ID, jobResources)
+			err = s.databaseClient.UpdateBotResourceUtilization(ctx, ciBuilderEvent.Git.RepoSource, ciBuilderEvent.Git.RepoOwner, ciBuilderEvent.Git.RepoName, ciBuilderEvent.Bot.ID, jobResources)
 			if err != nil {
 				return err
 			}
@@ -1819,7 +1819,7 @@ func (s *service) getBuildCounter(ctx context.Context, build contracts.Build, sh
 	counter = 0
 	if build.BuildVersion == "" {
 		// get autoincrementing counter
-		counter, err = s.cockroachdbClient.GetAutoIncrement(ctx, shortRepoSource, build.RepoOwner, build.RepoName)
+		counter, err = s.databaseClient.GetAutoIncrement(ctx, shortRepoSource, build.RepoOwner, build.RepoName)
 		if err != nil {
 			return counter, build, err
 		}
@@ -1889,7 +1889,7 @@ func (s *service) getVersionCounter(ctx context.Context, version string, mft man
 	return counter
 }
 
-func (s *service) getBuildJobResources(ctx context.Context, build contracts.Build) cockroachdb.JobResources {
+func (s *service) getBuildJobResources(ctx context.Context, build contracts.Build) database.JobResources {
 	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
 	defaultCPUCores := s.config.Jobs.DefaultCPUCores
 	if defaultCPUCores == 0 {
@@ -1900,7 +1900,7 @@ func (s *service) getBuildJobResources(ctx context.Context, build contracts.Buil
 		defaultMemory = s.config.Jobs.MaxMemoryBytes
 	}
 
-	jobResources := cockroachdb.JobResources{
+	jobResources := database.JobResources{
 		CPURequest:    defaultCPUCores,
 		CPULimit:      s.config.Jobs.MaxCPUCores,
 		MemoryRequest: defaultMemory,
@@ -1908,7 +1908,7 @@ func (s *service) getBuildJobResources(ctx context.Context, build contracts.Buil
 	}
 
 	// get max usage from previous builds
-	measuredResources, nrRecords, err := s.cockroachdbClient.GetPipelineBuildMaxResourceUtilization(ctx, build.RepoSource, build.RepoOwner, build.RepoName, 25)
+	measuredResources, nrRecords, err := s.databaseClient.GetPipelineBuildMaxResourceUtilization(ctx, build.RepoSource, build.RepoOwner, build.RepoName, 25)
 	if err != nil {
 		log.Warn().Err(err).Msgf("Failed retrieving max resource utilization for recent builds of %v/%v/%v, using defaults...", build.RepoSource, build.RepoOwner, build.RepoName)
 	} else if nrRecords < 5 {
@@ -1957,10 +1957,10 @@ func (s *service) getBuildJobResources(ctx context.Context, build contracts.Buil
 	return jobResources
 }
 
-func (s *service) getReleaseJobResources(ctx context.Context, release contracts.Release) cockroachdb.JobResources {
+func (s *service) getReleaseJobResources(ctx context.Context, release contracts.Release) database.JobResources {
 
 	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
-	jobResources := cockroachdb.JobResources{
+	jobResources := database.JobResources{
 		CPURequest:    s.config.Jobs.MaxCPUCores,
 		CPULimit:      s.config.Jobs.MaxCPUCores,
 		MemoryRequest: s.config.Jobs.MaxMemoryBytes,
@@ -1968,7 +1968,7 @@ func (s *service) getReleaseJobResources(ctx context.Context, release contracts.
 	}
 
 	// get max usage from previous releases
-	measuredResources, nrRecords, err := s.cockroachdbClient.GetPipelineReleaseMaxResourceUtilization(ctx, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, 25)
+	measuredResources, nrRecords, err := s.databaseClient.GetPipelineReleaseMaxResourceUtilization(ctx, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, 25)
 	if err != nil {
 		log.Warn().Err(err).Msgf("Failed retrieving max resource utilization for recent releases of %v/%v/%v target %v, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
 	} else if nrRecords < 5 {
@@ -2001,10 +2001,10 @@ func (s *service) getReleaseJobResources(ctx context.Context, release contracts.
 	return jobResources
 }
 
-func (s *service) getBotJobResources(ctx context.Context, bot contracts.Bot) cockroachdb.JobResources {
+func (s *service) getBotJobResources(ctx context.Context, bot contracts.Bot) database.JobResources {
 
 	// define resource request and limit values to fit reasonably well inside a n1-standard-8 (8 vCPUs, 30 GB memory) machine
-	jobResources := cockroachdb.JobResources{
+	jobResources := database.JobResources{
 		CPURequest:    s.config.Jobs.MaxCPUCores,
 		CPULimit:      s.config.Jobs.MaxCPUCores,
 		MemoryRequest: s.config.Jobs.MaxMemoryBytes,
@@ -2012,7 +2012,7 @@ func (s *service) getBotJobResources(ctx context.Context, bot contracts.Bot) coc
 	}
 
 	// get max usage from previous releases
-	measuredResources, nrRecords, err := s.cockroachdbClient.GetPipelineReleaseMaxResourceUtilization(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, bot.Name, 25)
+	measuredResources, nrRecords, err := s.databaseClient.GetPipelineReleaseMaxResourceUtilization(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, bot.Name, 25)
 	if err != nil {
 		log.Warn().Err(err).Msgf("Failed retrieving max resource utilization for recent bots of %v/%v/%v target %v, using defaults...", bot.RepoSource, bot.RepoOwner, bot.RepoName, bot.Name)
 	} else if nrRecords < 5 {
@@ -2083,7 +2083,7 @@ func (s *service) GetEventsForJobEnvvars(ctx context.Context, triggers []manifes
 					}
 				}
 
-				lastBuilds, innerErr := s.cockroachdbClient.GetPipelineBuilds(ctx, pipelineNameParts[0], pipelineNameParts[1], pipelineNameParts[2], 1, 1, filters, []api.OrderField{}, false)
+				lastBuilds, innerErr := s.databaseClient.GetPipelineBuilds(ctx, pipelineNameParts[0], pipelineNameParts[1], pipelineNameParts[2], 1, 1, filters, []api.OrderField{}, false)
 				if innerErr != nil {
 					return
 				}
@@ -2123,7 +2123,7 @@ func (s *service) GetEventsForJobEnvvars(ctx context.Context, triggers []manifes
 					filters[api.FilterReleaseTarget] = []string{t.Release.Target}
 				}
 
-				lastReleases, innerErr := s.cockroachdbClient.GetPipelineReleases(ctx, pipelineNameParts[0], pipelineNameParts[1], pipelineNameParts[2], 1, 1, filters, []api.OrderField{})
+				lastReleases, innerErr := s.databaseClient.GetPipelineReleases(ctx, pipelineNameParts[0], pipelineNameParts[1], pipelineNameParts[2], 1, 1, filters, []api.OrderField{})
 				if innerErr != nil {
 					return
 				}

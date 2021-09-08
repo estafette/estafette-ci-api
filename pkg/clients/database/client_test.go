@@ -1,4 +1,4 @@
-package cockroachdb
+package database
 
 import (
 	"context"
@@ -23,10 +23,10 @@ func TestIntegrationGetAutoIncrement(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 
 		// act
-		autoincrement, err := cockroachdbClient.GetAutoIncrement(ctx, "github", "estafette", "estafette-ci-api")
+		autoincrement, err := databaseClient.GetAutoIncrement(ctx, "github", "estafette", "estafette-ci-api")
 
 		assert.Nil(t, err)
 		assert.True(t, autoincrement > 0)
@@ -39,11 +39,11 @@ func TestIntegrationGetAutoIncrement(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 
 		// act
-		autoincrement1, err1 := cockroachdbClient.GetAutoIncrement(ctx, "github", "estafette", "estafette-ci-api")
-		autoincrement2, err2 := cockroachdbClient.GetAutoIncrement(ctx, "github", "estafette", "estafette-ci-api")
+		autoincrement1, err1 := databaseClient.GetAutoIncrement(ctx, "github", "estafette", "estafette-ci-api")
+		autoincrement2, err2 := databaseClient.GetAutoIncrement(ctx, "github", "estafette", "estafette-ci-api")
 
 		assert.Nil(t, err1)
 		assert.Nil(t, err2)
@@ -61,12 +61,12 @@ func TestIntegrationInsertBuild(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
 
 		// act
-		insertedBuild, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		insertedBuild, err := databaseClient.InsertBuild(ctx, build, jobResources)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedBuild)
@@ -82,14 +82,14 @@ func TestIntegrationUpdateBuildStatus(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		insertedBuild, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		insertedBuild, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpdateBuildStatus(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName, insertedBuild.ID, contracts.StatusSucceeded)
+		err = databaseClient.UpdateBuildStatus(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName, insertedBuild.ID, contracts.StatusSucceeded)
 
 		assert.Nil(t, err)
 	})
@@ -101,12 +101,12 @@ func TestIntegrationUpdateBuildStatus(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		buildID := "15"
 
 		// act
-		err := cockroachdbClient.UpdateBuildStatus(ctx, build.RepoSource, build.RepoOwner, build.RepoName, buildID, contracts.StatusSucceeded)
+		err := databaseClient.UpdateBuildStatus(ctx, build.RepoSource, build.RepoOwner, build.RepoName, buildID, contracts.StatusSucceeded)
 
 		assert.Nil(t, err)
 	})
@@ -120,16 +120,16 @@ func TestIntegrationGetBuildsDuration(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		insertedBuild, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		insertedBuild, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateBuildStatus(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName, insertedBuild.ID, contracts.StatusSucceeded)
+		err = databaseClient.UpdateBuildStatus(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName, insertedBuild.ID, contracts.StatusSucceeded)
 		assert.Nil(t, err)
 
 		// act
-		duration, err := cockroachdbClient.GetBuildsDuration(ctx, make(map[api.FilterType][]string))
+		duration, err := databaseClient.GetBuildsDuration(ctx, make(map[api.FilterType][]string))
 
 		assert.Nil(t, err)
 		assert.True(t, duration.Milliseconds() >= 0)
@@ -144,10 +144,10 @@ func TestIntegrationUpdateBuildResourceUtilization(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		insertedBuild, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		insertedBuild, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
 
 		newJobResources := JobResources{
@@ -158,7 +158,7 @@ func TestIntegrationUpdateBuildResourceUtilization(t *testing.T) {
 		}
 
 		// act
-		err = cockroachdbClient.UpdateBuildResourceUtilization(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName, insertedBuild.ID, newJobResources)
+		err = databaseClient.UpdateBuildResourceUtilization(ctx, insertedBuild.RepoSource, insertedBuild.RepoOwner, insertedBuild.RepoName, insertedBuild.ID, newJobResources)
 
 		assert.Nil(t, err)
 	})
@@ -170,7 +170,7 @@ func TestIntegrationUpdateBuildResourceUtilization(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		buildID := "15"
 
@@ -182,7 +182,7 @@ func TestIntegrationUpdateBuildResourceUtilization(t *testing.T) {
 		}
 
 		// act
-		err := cockroachdbClient.UpdateBuildResourceUtilization(ctx, build.RepoSource, build.RepoOwner, build.RepoName, buildID, newJobResources)
+		err := databaseClient.UpdateBuildResourceUtilization(ctx, build.RepoSource, build.RepoOwner, build.RepoName, buildID, newJobResources)
 
 		assert.Nil(t, err)
 	})
@@ -196,12 +196,12 @@ func TestIntegrationInsertRelease(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		release := getRelease()
 		jobResources := getJobResources()
 
 		// act
-		insertedRelease, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		insertedRelease, err := databaseClient.InsertRelease(ctx, release, jobResources)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedRelease)
@@ -217,15 +217,15 @@ func TestIntegrationUpdateReleaseStatus(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		release := getRelease()
 		release.ReleaseStatus = contracts.StatusPending
 		jobResources := getJobResources()
-		insertedRelease, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		insertedRelease, err := databaseClient.InsertRelease(ctx, release, jobResources)
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpdateReleaseStatus(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.ID, contracts.StatusRunning)
+		err = databaseClient.UpdateReleaseStatus(ctx, insertedRelease.RepoSource, insertedRelease.RepoOwner, insertedRelease.RepoName, insertedRelease.ID, contracts.StatusRunning)
 
 		assert.Nil(t, err)
 	})
@@ -237,12 +237,12 @@ func TestIntegrationUpdateReleaseStatus(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		release := getRelease()
 		releaseID := "15"
 
 		// act
-		err := cockroachdbClient.UpdateReleaseStatus(ctx, release.RepoSource, release.RepoOwner, release.RepoName, releaseID, contracts.StatusRunning)
+		err := databaseClient.UpdateReleaseStatus(ctx, release.RepoSource, release.RepoOwner, release.RepoName, releaseID, contracts.StatusRunning)
 
 		assert.Nil(t, err)
 	})
@@ -256,10 +256,10 @@ func TestIntegrationUpdateReleaseResourceUtilization(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		release := getRelease()
 		jobResources := getJobResources()
-		insertedRelease, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		insertedRelease, err := databaseClient.InsertRelease(ctx, release, jobResources)
 		assert.Nil(t, err)
 
 		newJobResources := JobResources{
@@ -270,7 +270,7 @@ func TestIntegrationUpdateReleaseResourceUtilization(t *testing.T) {
 		}
 
 		// act
-		err = cockroachdbClient.UpdateReleaseResourceUtilization(ctx, release.RepoSource, release.RepoOwner, release.RepoName, insertedRelease.ID, newJobResources)
+		err = databaseClient.UpdateReleaseResourceUtilization(ctx, release.RepoSource, release.RepoOwner, release.RepoName, insertedRelease.ID, newJobResources)
 
 		assert.Nil(t, err)
 	})
@@ -282,7 +282,7 @@ func TestIntegrationUpdateReleaseResourceUtilization(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		release := getRelease()
 		releaseID := "15"
 
@@ -294,7 +294,7 @@ func TestIntegrationUpdateReleaseResourceUtilization(t *testing.T) {
 		}
 
 		// act
-		err := cockroachdbClient.UpdateReleaseResourceUtilization(ctx, release.RepoSource, release.RepoOwner, release.RepoName, releaseID, newJobResources)
+		err := databaseClient.UpdateReleaseResourceUtilization(ctx, release.RepoSource, release.RepoOwner, release.RepoName, releaseID, newJobResources)
 
 		assert.Nil(t, err)
 	})
@@ -308,12 +308,12 @@ func TestIntegrationInsertBot(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		bot := getBot()
 		jobResources := getJobResources()
 
 		// act
-		insertedBot, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+		insertedBot, err := databaseClient.InsertBot(ctx, bot, jobResources)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedBot)
@@ -329,14 +329,14 @@ func TestIntegrationUpdateBotStatus(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		bot := getBot()
 		jobResources := getJobResources()
-		insertedBot, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+		insertedBot, err := databaseClient.InsertBot(ctx, bot, jobResources)
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpdateBotStatus(ctx, insertedBot.RepoSource, insertedBot.RepoOwner, insertedBot.RepoName, insertedBot.ID, contracts.StatusSucceeded)
+		err = databaseClient.UpdateBotStatus(ctx, insertedBot.RepoSource, insertedBot.RepoOwner, insertedBot.RepoName, insertedBot.ID, contracts.StatusSucceeded)
 
 		assert.Nil(t, err)
 	})
@@ -348,12 +348,12 @@ func TestIntegrationUpdateBotStatus(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		bot := getBot()
 		botID := "15"
 
 		// act
-		err := cockroachdbClient.UpdateBotStatus(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, botID, contracts.StatusSucceeded)
+		err := databaseClient.UpdateBotStatus(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, botID, contracts.StatusSucceeded)
 
 		assert.Nil(t, err)
 	})
@@ -367,10 +367,10 @@ func TestIntegrationUpdateBotResourceUtilization(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		bot := getBot()
 		jobResources := getJobResources()
-		insertedBot, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+		insertedBot, err := databaseClient.InsertBot(ctx, bot, jobResources)
 		assert.Nil(t, err)
 
 		newJobResources := JobResources{
@@ -381,7 +381,7 @@ func TestIntegrationUpdateBotResourceUtilization(t *testing.T) {
 		}
 
 		// act
-		err = cockroachdbClient.UpdateBotResourceUtilization(ctx, insertedBot.RepoSource, insertedBot.RepoOwner, insertedBot.RepoName, insertedBot.ID, newJobResources)
+		err = databaseClient.UpdateBotResourceUtilization(ctx, insertedBot.RepoSource, insertedBot.RepoOwner, insertedBot.RepoName, insertedBot.ID, newJobResources)
 
 		assert.Nil(t, err)
 	})
@@ -393,7 +393,7 @@ func TestIntegrationUpdateBotResourceUtilization(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		bot := getBot()
 		botID := "15"
 
@@ -405,7 +405,7 @@ func TestIntegrationUpdateBotResourceUtilization(t *testing.T) {
 		}
 
 		// act
-		err := cockroachdbClient.UpdateBotResourceUtilization(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, botID, newJobResources)
+		err := databaseClient.UpdateBotResourceUtilization(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, botID, newJobResources)
 
 		assert.Nil(t, err)
 	})
@@ -419,11 +419,11 @@ func TestIntegrationInsertBuildLog(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		buildLog := getBuildLog()
 
 		// act
-		insertedBuildLog, err := cockroachdbClient.InsertBuildLog(ctx, buildLog, true)
+		insertedBuildLog, err := databaseClient.InsertBuildLog(ctx, buildLog, true)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedBuildLog)
@@ -437,11 +437,11 @@ func TestIntegrationInsertBuildLog(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		buildLog := getBuildLog()
 
 		// act
-		insertedBuildLog, err := cockroachdbClient.InsertBuildLog(ctx, buildLog, false)
+		insertedBuildLog, err := databaseClient.InsertBuildLog(ctx, buildLog, false)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedBuildLog)
@@ -457,11 +457,11 @@ func TestIntegrationInsertReleaseLog(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		releaseLog := getReleaseLog()
 
 		// act
-		insertedReleaseLog, err := cockroachdbClient.InsertReleaseLog(ctx, releaseLog, true)
+		insertedReleaseLog, err := databaseClient.InsertReleaseLog(ctx, releaseLog, true)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedReleaseLog)
@@ -475,11 +475,11 @@ func TestIntegrationInsertReleaseLog(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		releaseLog := getReleaseLog()
 
 		// act
-		insertedReleaseLog, err := cockroachdbClient.InsertReleaseLog(ctx, releaseLog, false)
+		insertedReleaseLog, err := databaseClient.InsertReleaseLog(ctx, releaseLog, false)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedReleaseLog)
@@ -495,11 +495,11 @@ func TestIntegrationInsertBotLog(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		botLog := getBotLog()
 
 		// act
-		insertedBotLog, err := cockroachdbClient.InsertBotLog(ctx, botLog, true)
+		insertedBotLog, err := databaseClient.InsertBotLog(ctx, botLog, true)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedBotLog)
@@ -513,11 +513,11 @@ func TestIntegrationInsertBotLog(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		botLog := getBotLog()
 
 		// act
-		insertedBotLog, err := cockroachdbClient.InsertBotLog(ctx, botLog, false)
+		insertedBotLog, err := databaseClient.InsertBotLog(ctx, botLog, false)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedBotLog)
@@ -533,16 +533,16 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, map[api.FilterType][]string{}, []api.OrderField{}, false)
+		pipelines, err := databaseClient.GetPipelines(ctx, 1, 10, map[api.FilterType][]string{}, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -555,12 +555,12 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		sortings := []api.OrderField{
@@ -571,7 +571,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, map[api.FilterType][]string{}, sortings, false)
+		pipelines, err := databaseClient.GetPipelines(ctx, 1, 10, map[api.FilterType][]string{}, sortings, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -584,12 +584,12 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -597,7 +597,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
+		pipelines, err := databaseClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -610,12 +610,12 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -623,7 +623,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
+		pipelines, err := databaseClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -636,12 +636,12 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -649,7 +649,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
+		pipelines, err := databaseClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -662,12 +662,12 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -675,7 +675,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
+		pipelines, err := databaseClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -688,12 +688,12 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -701,7 +701,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
+		pipelines, err := databaseClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -714,10 +714,10 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
 
 		release := getRelease()
@@ -729,11 +729,11 @@ func TestIngrationGetPipelines(t *testing.T) {
 				},
 			},
 		}
-		_, err = cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		_, err = databaseClient.InsertRelease(ctx, release, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpsertComputedRelease(ctx, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, release.Action)
+		err = databaseClient.UpsertComputedRelease(ctx, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, release.Action)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -741,7 +741,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
+		pipelines, err := databaseClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -754,12 +754,12 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 		pipeline := contracts.Pipeline{
 			RepoSource: build.RepoSource,
@@ -772,7 +772,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 				},
 			},
 		}
-		err = cockroachdbClient.UpdateComputedPipelinePermissions(ctx, pipeline)
+		err = databaseClient.UpdateComputedPipelinePermissions(ctx, pipeline)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -780,7 +780,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
+		pipelines, err := databaseClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -798,12 +798,12 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 		pipeline := contracts.Pipeline{
 			RepoSource: build.RepoSource,
@@ -816,7 +816,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 				},
 			},
 		}
-		err = cockroachdbClient.UpdateComputedPipelinePermissions(ctx, pipeline)
+		err = databaseClient.UpdateComputedPipelinePermissions(ctx, pipeline)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -824,7 +824,7 @@ func TestIngrationGetPipelines(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
+		pipelines, err := databaseClient.GetPipelines(ctx, 1, 10, filters, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(pipelines) > 0)
@@ -844,14 +844,14 @@ func TestIngrationUpsertComputedPipeline(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 
 		assert.Nil(t, err)
 	})
@@ -865,10 +865,10 @@ func TestIngrationUpdateComputedPipelinePermissions(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
 
 		pipeline := contracts.Pipeline{
@@ -890,7 +890,7 @@ func TestIngrationUpdateComputedPipelinePermissions(t *testing.T) {
 		}
 
 		// act
-		err = cockroachdbClient.UpdateComputedPipelinePermissions(ctx, pipeline)
+		err = databaseClient.UpdateComputedPipelinePermissions(ctx, pipeline)
 
 		assert.Nil(t, err)
 	})
@@ -904,16 +904,16 @@ func TestIngrationUpsertComputedRelease(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		release := getRelease()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		_, err := databaseClient.InsertRelease(ctx, release, jobResources)
 		assert.Nil(t, err)
 
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpsertComputedRelease(ctx, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, release.Action)
+		err = databaseClient.UpsertComputedRelease(ctx, release.RepoSource, release.RepoOwner, release.RepoName, release.Name, release.Action)
 
 		assert.Nil(t, err)
 	})
@@ -927,18 +927,18 @@ func TestIngrationArchiveComputedPipeline(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		build.RepoName = "archival-test"
 		build.Labels = []contracts.Label{{Key: "test", Value: "archival"}}
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.ArchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.ArchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 
 		assert.Nil(t, err)
 	})
@@ -950,20 +950,20 @@ func TestIngrationArchiveComputedPipeline(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		build.RepoName = "archival-test-2"
 		build.Labels = []contracts.Label{{Key: "test", Value: "archival"}}
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
-		err = cockroachdbClient.ArchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.ArchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelinesByRepoName(ctx, build.RepoName, false)
+		pipelines, err := databaseClient.GetPipelinesByRepoName(ctx, build.RepoName, false)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(pipelines))
@@ -978,20 +978,20 @@ func TestIngrationUnarchiveComputedPipeline(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		build.RepoName = "unarchival-test"
 		build.Labels = []contracts.Label{{Key: "test", Value: "unarchival"}}
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
-		err = cockroachdbClient.ArchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.ArchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UnarchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UnarchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 
 		assert.Nil(t, err)
 	})
@@ -1003,22 +1003,22 @@ func TestIngrationUnarchiveComputedPipeline(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		build.RepoName = "unarchival-test-2"
 		build.Labels = []contracts.Label{{Key: "test", Value: "unarchival"}}
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
-		err = cockroachdbClient.ArchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.ArchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UnarchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UnarchiveComputedPipeline(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		// act
-		pipelines, err := cockroachdbClient.GetPipelinesByRepoName(ctx, build.RepoName, false)
+		pipelines, err := databaseClient.GetPipelinesByRepoName(ctx, build.RepoName, false)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(pipelines))
@@ -1033,28 +1033,28 @@ func TestIntegrationGetLabelValues(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
 		build.RepoName = "labels-test-1"
 		build.Labels = []contracts.Label{{Key: "type", Value: "api"}}
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting first build record")
 
 		otherBuild := getBuild()
 		otherBuild.RepoName = "labels-test-2"
 		otherBuild.Labels = []contracts.Label{{Key: "type", Value: "web"}}
-		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
+		_, err = databaseClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
-		err = cockroachdbClient.UpdateComputedTables(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline for other build")
 
 		// act
-		labels, err := cockroachdbClient.GetLabelValues(ctx, "type")
+		labels, err := databaseClient.GetLabelValues(ctx, "type")
 
 		assert.Nil(t, err, "failed getting label values")
 		if !assert.Equal(t, 2, len(labels)) {
@@ -1071,18 +1071,18 @@ func TestIntegrationGetFrequentLabels(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
 		build.RepoName = "frequent-label-test-1"
 		build.Labels = []contracts.Label{{Key: "label-test", Value: "GetFrequentLabels"}}
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting first build record")
 
 		otherBuild := getBuild()
 		otherBuild.RepoName = "frequent-label-test-2"
 		otherBuild.Labels = []contracts.Label{{Key: "label-test", Value: "GetFrequentLabels"}}
-		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
+		_, err = databaseClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
 		filters := map[api.FilterType][]string{
@@ -1095,13 +1095,13 @@ func TestIntegrationGetFrequentLabels(t *testing.T) {
 		}
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
-		err = cockroachdbClient.UpdateComputedTables(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline for other build")
 
 		// act
-		labels, err := cockroachdbClient.GetFrequentLabels(ctx, 1, 10, filters)
+		labels, err := databaseClient.GetFrequentLabels(ctx, 1, 10, filters)
 
 		assert.Nil(t, err, "failed getting frequent label")
 		if !assert.Equal(t, 1, len(labels)) {
@@ -1118,18 +1118,18 @@ func TestIntegrationGetFrequentLabelsCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
 		build.RepoName = "frequent-label-count-test-1"
 		build.Labels = []contracts.Label{{Key: "label-count-test", Value: "GetFrequentLabelsCount"}}
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting build record")
 
 		otherBuild := getBuild()
 		otherBuild.RepoName = "frequent-label-count-test-2"
 		otherBuild.Labels = []contracts.Label{{Key: "label-count-test", Value: "GetFrequentLabelsCount"}}
-		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
+		_, err = databaseClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
 		filters := map[api.FilterType][]string{
@@ -1142,13 +1142,13 @@ func TestIntegrationGetFrequentLabelsCount(t *testing.T) {
 		}
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
-		err = cockroachdbClient.UpdateComputedTables(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline for other build")
 
 		// act
-		count, err := cockroachdbClient.GetFrequentLabelsCount(ctx, filters)
+		count, err := databaseClient.GetFrequentLabelsCount(ctx, filters)
 
 		assert.Nil(t, err, "failed getting frequent label count")
 		assert.Equal(t, 1, count)
@@ -1163,7 +1163,7 @@ func TestIntegrationGetAllPipelinesReleaseTargets(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
 		build.RepoName = "release-targets-test-1"
@@ -1171,7 +1171,7 @@ func TestIntegrationGetAllPipelinesReleaseTargets(t *testing.T) {
 		build.ReleaseTargets = []contracts.ReleaseTarget{{
 			Name: "GetAllPipelinesReleaseTargets",
 		}}
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting first build record")
 
 		otherBuild := getBuild()
@@ -1180,7 +1180,7 @@ func TestIntegrationGetAllPipelinesReleaseTargets(t *testing.T) {
 		otherBuild.ReleaseTargets = []contracts.ReleaseTarget{{
 			Name: "GetAllPipelinesReleaseTargets",
 		}}
-		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
+		_, err = databaseClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
 		filters := map[api.FilterType][]string{
@@ -1196,13 +1196,13 @@ func TestIntegrationGetAllPipelinesReleaseTargets(t *testing.T) {
 		}
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
-		err = cockroachdbClient.UpdateComputedTables(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline for other build")
 
 		// act
-		releaseTargets, err := cockroachdbClient.GetAllPipelinesReleaseTargets(ctx, 1, 10, filters)
+		releaseTargets, err := databaseClient.GetAllPipelinesReleaseTargets(ctx, 1, 10, filters)
 
 		assert.Nil(t, err, "failed getting release targets")
 		if !assert.Equal(t, 1, len(releaseTargets)) {
@@ -1221,7 +1221,7 @@ func TestIntegrationGetAllPipelinesReleaseTargetsCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
 		build.RepoName = "release-targets-count-test-1"
@@ -1229,7 +1229,7 @@ func TestIntegrationGetAllPipelinesReleaseTargetsCount(t *testing.T) {
 		build.ReleaseTargets = []contracts.ReleaseTarget{{
 			Name: "GetAllPipelinesReleaseTargetsCount",
 		}}
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting build record")
 
 		otherBuild := getBuild()
@@ -1238,7 +1238,7 @@ func TestIntegrationGetAllPipelinesReleaseTargetsCount(t *testing.T) {
 		otherBuild.ReleaseTargets = []contracts.ReleaseTarget{{
 			Name: "GetAllPipelinesReleaseTargetsCount",
 		}}
-		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
+		_, err = databaseClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
 		filters := map[api.FilterType][]string{
@@ -1254,13 +1254,13 @@ func TestIntegrationGetAllPipelinesReleaseTargetsCount(t *testing.T) {
 		}
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
-		err = cockroachdbClient.UpdateComputedTables(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, otherBuild.RepoSource, otherBuild.RepoOwner, otherBuild.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline for other build")
 
 		// act
-		count, err := cockroachdbClient.GetAllPipelinesReleaseTargetsCount(ctx, filters)
+		count, err := databaseClient.GetAllPipelinesReleaseTargetsCount(ctx, filters)
 
 		assert.Nil(t, err, "failed getting release targets count")
 		assert.Equal(t, 1, count)
@@ -1275,17 +1275,17 @@ func TestIntegrationGetAllReleasesReleaseTargets(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 
 		release := getRelease()
 		release.Name = "GetAllReleasesReleaseTargets"
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		_, err := databaseClient.InsertRelease(ctx, release, jobResources)
 		assert.Nil(t, err)
 
 		otherRelease := getRelease()
 		otherRelease.Name = "GetAllReleasesReleaseTargets"
-		_, err = cockroachdbClient.InsertRelease(ctx, otherRelease, jobResources)
+		_, err = databaseClient.InsertRelease(ctx, otherRelease, jobResources)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -1295,7 +1295,7 @@ func TestIntegrationGetAllReleasesReleaseTargets(t *testing.T) {
 		}
 
 		// act
-		releaseTargets, err := cockroachdbClient.GetAllReleasesReleaseTargets(ctx, 1, 10, filters)
+		releaseTargets, err := databaseClient.GetAllReleasesReleaseTargets(ctx, 1, 10, filters)
 
 		assert.Nil(t, err, "failed getting release targets")
 		assert.GreaterOrEqual(t, len(releaseTargets), 1)
@@ -1310,17 +1310,17 @@ func TestIntegrationGetAllReleasesReleaseTargetsCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 
 		release := getRelease()
 		release.Name = "GetAllReleasesReleaseTargetsCount"
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		_, err := databaseClient.InsertRelease(ctx, release, jobResources)
 		assert.Nil(t, err)
 
 		otherRelease := getRelease()
 		otherRelease.Name = "GetAllReleasesReleaseTargetsCount"
-		_, err = cockroachdbClient.InsertRelease(ctx, otherRelease, jobResources)
+		_, err = databaseClient.InsertRelease(ctx, otherRelease, jobResources)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -1330,7 +1330,7 @@ func TestIntegrationGetAllReleasesReleaseTargetsCount(t *testing.T) {
 		}
 
 		// act
-		count, err := cockroachdbClient.GetAllReleasesReleaseTargetsCount(ctx, filters)
+		count, err := databaseClient.GetAllReleasesReleaseTargetsCount(ctx, filters)
 
 		assert.Nil(t, err, "failed getting release targets count")
 		assert.GreaterOrEqual(t, count, 1)
@@ -1345,20 +1345,20 @@ func TestIntegrationGetPipelineBuildBranches(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
 		build.RepoBranch = "GetPipelineBuildBranches"
 		build.RepoName = "build-branches-test-1"
 		build.Labels = []contracts.Label{{Key: "build-branches-test", Value: "GetPipelineBuildBranches"}}
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting first build record")
 
 		otherBuild := getBuild()
 		otherBuild.RepoBranch = "GetPipelineBuildBranches"
 		otherBuild.RepoName = "build-branches-test-1"
 		otherBuild.Labels = []contracts.Label{{Key: "build-branches-test", Value: "GetPipelineBuildBranches"}}
-		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
+		_, err = databaseClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
 		filters := map[api.FilterType][]string{
@@ -1371,7 +1371,7 @@ func TestIntegrationGetPipelineBuildBranches(t *testing.T) {
 		}
 
 		// act
-		buildBranches, err := cockroachdbClient.GetPipelineBuildBranches(ctx, build.RepoSource, build.RepoOwner, build.RepoName, 1, 10, filters)
+		buildBranches, err := databaseClient.GetPipelineBuildBranches(ctx, build.RepoSource, build.RepoOwner, build.RepoName, 1, 10, filters)
 
 		assert.Nil(t, err, "failed getting build branches")
 		if !assert.Equal(t, 1, len(buildBranches)) {
@@ -1390,20 +1390,20 @@ func TestIntegrationGetPipelineBuildBranchesCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
 		build.RepoBranch = "GetPipelineBuildBranchesCount"
 		build.RepoName = "build-branches-count-test-1"
 		build.Labels = []contracts.Label{{Key: "build-branches-count-test", Value: "GetPipelineBuildBranchesCount"}}
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting build record")
 
 		otherBuild := getBuild()
 		otherBuild.RepoBranch = "GetPipelineBuildBranchesCount"
 		otherBuild.RepoName = "build-branches-count-test-1"
 		otherBuild.Labels = []contracts.Label{{Key: "build-branches-count-test", Value: "GetPipelineBuildBranchesCount"}}
-		_, err = cockroachdbClient.InsertBuild(ctx, otherBuild, jobResources)
+		_, err = databaseClient.InsertBuild(ctx, otherBuild, jobResources)
 		assert.Nil(t, err, "failed inserting other build record")
 
 		filters := map[api.FilterType][]string{
@@ -1416,7 +1416,7 @@ func TestIntegrationGetPipelineBuildBranchesCount(t *testing.T) {
 		}
 
 		// act
-		count, err := cockroachdbClient.GetPipelineBuildBranchesCount(ctx, build.RepoSource, build.RepoOwner, build.RepoName, filters)
+		count, err := databaseClient.GetPipelineBuildBranchesCount(ctx, build.RepoSource, build.RepoOwner, build.RepoName, filters)
 
 		assert.Nil(t, err, "failed getting build branches count")
 		assert.Equal(t, 1, count)
@@ -1431,18 +1431,18 @@ func TestIntegrationGetPipelineBotNames(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		jobResources := getJobResources()
 		bot := getBot()
 		bot.Name = "GetPipelineBotNames"
 		bot.RepoName = "bot-names-test-1"
-		_, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+		_, err := databaseClient.InsertBot(ctx, bot, jobResources)
 		assert.Nil(t, err, "failed inserting first bot record")
 
 		otherBot := getBot()
 		otherBot.Name = "GetPipelineBotNames"
 		otherBot.RepoName = "bot-names-test-1"
-		_, err = cockroachdbClient.InsertBot(ctx, otherBot, jobResources)
+		_, err = databaseClient.InsertBot(ctx, otherBot, jobResources)
 		assert.Nil(t, err, "failed inserting other bot record")
 
 		filters := map[api.FilterType][]string{
@@ -1452,7 +1452,7 @@ func TestIntegrationGetPipelineBotNames(t *testing.T) {
 		}
 
 		// act
-		buildBranches, err := cockroachdbClient.GetPipelineBotNames(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, 1, 10, filters)
+		buildBranches, err := databaseClient.GetPipelineBotNames(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, 1, 10, filters)
 
 		assert.Nil(t, err, "failed getting bot names")
 		if !assert.Equal(t, 1, len(buildBranches)) {
@@ -1471,18 +1471,18 @@ func TestIntegrationGetPipelineBotNamesCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		jobResources := getJobResources()
 		bot := getBot()
 		bot.Name = "GetPipelineBotNamesCount"
 		bot.RepoName = "bot-names-count-test-1"
-		_, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+		_, err := databaseClient.InsertBot(ctx, bot, jobResources)
 		assert.Nil(t, err, "failed inserting bot record")
 
 		otherBot := getBot()
 		otherBot.Name = "GetPipelineBotNamesCount"
 		otherBot.RepoName = "bot-names-count-test-1"
-		_, err = cockroachdbClient.InsertBot(ctx, otherBot, jobResources)
+		_, err = databaseClient.InsertBot(ctx, otherBot, jobResources)
 		assert.Nil(t, err, "failed inserting other bot record")
 
 		filters := map[api.FilterType][]string{
@@ -1492,7 +1492,7 @@ func TestIntegrationGetPipelineBotNamesCount(t *testing.T) {
 		}
 
 		// act
-		count, err := cockroachdbClient.GetPipelineBotNamesCount(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, filters)
+		count, err := databaseClient.GetPipelineBotNamesCount(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, filters)
 
 		assert.Nil(t, err, "failed getting bot names count")
 		assert.Equal(t, 1, count)
@@ -1507,11 +1507,11 @@ func TestIntegrationInsertUser(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		user := getUser()
 
 		// act
-		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+		insertedUser, err := databaseClient.InsertUser(ctx, user)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedUser)
@@ -1527,13 +1527,13 @@ func TestIntegrationUpdateUser(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		user := getUser()
-		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+		insertedUser, err := databaseClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpdateUser(ctx, *insertedUser)
+		err = databaseClient.UpdateUser(ctx, *insertedUser)
 
 		assert.Nil(t, err)
 	})
@@ -1545,14 +1545,14 @@ func TestIntegrationUpdateUser(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		user := getUser()
-		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+		insertedUser, err := databaseClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
 		insertedUser.ID = "15"
 
 		// act
-		err = cockroachdbClient.UpdateUser(ctx, *insertedUser)
+		err = databaseClient.UpdateUser(ctx, *insertedUser)
 
 		assert.Nil(t, err)
 	})
@@ -1566,13 +1566,13 @@ func TestIntegrationDeleteUser(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		user := getUser()
-		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+		insertedUser, err := databaseClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.DeleteUser(ctx, *insertedUser)
+		err = databaseClient.DeleteUser(ctx, *insertedUser)
 
 		assert.Nil(t, err)
 	})
@@ -1584,14 +1584,14 @@ func TestIntegrationDeleteUser(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		user := getUser()
-		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+		insertedUser, err := databaseClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
 		insertedUser.ID = "15"
 
 		// act
-		err = cockroachdbClient.DeleteUser(ctx, *insertedUser)
+		err = databaseClient.DeleteUser(ctx, *insertedUser)
 
 		assert.Nil(t, err)
 	})
@@ -1604,7 +1604,7 @@ func TestIntegrationGetUserByIdentity(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		user := getUser()
 		user.Identities = []*contracts.UserIdentity{
 			{
@@ -1613,7 +1613,7 @@ func TestIntegrationGetUserByIdentity(t *testing.T) {
 				Email:    "wilson-test@homeimprovement.com",
 			},
 		}
-		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+		insertedUser, err := databaseClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
 
 		identity := contracts.UserIdentity{
@@ -1622,7 +1622,7 @@ func TestIntegrationGetUserByIdentity(t *testing.T) {
 		}
 
 		// act
-		retrievedUser, err := cockroachdbClient.GetUserByIdentity(ctx, identity)
+		retrievedUser, err := databaseClient.GetUserByIdentity(ctx, identity)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedUser)
@@ -1636,7 +1636,7 @@ func TestIntegrationGetUserByIdentity(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		user := getUser()
 		user.Identities = []*contracts.UserIdentity{
 			{
@@ -1645,7 +1645,7 @@ func TestIntegrationGetUserByIdentity(t *testing.T) {
 				Email:    "wilson-test@homeimprovement.com",
 			},
 		}
-		_, err := cockroachdbClient.InsertUser(ctx, user)
+		_, err := databaseClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
 
 		identity := contracts.UserIdentity{
@@ -1654,7 +1654,7 @@ func TestIntegrationGetUserByIdentity(t *testing.T) {
 		}
 
 		// act
-		retrievedUser, err := cockroachdbClient.GetUserByIdentity(ctx, identity)
+		retrievedUser, err := databaseClient.GetUserByIdentity(ctx, identity)
 
 		assert.NotNil(t, err)
 		assert.True(t, errors.Is(err, ErrUserNotFound))
@@ -1670,13 +1670,13 @@ func TestIntegrationGetUserByID(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		user := getUser()
-		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+		insertedUser, err := databaseClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
 
 		// act
-		retrievedUser, err := cockroachdbClient.GetUserByID(ctx, insertedUser.ID, map[api.FilterType][]string{})
+		retrievedUser, err := databaseClient.GetUserByID(ctx, insertedUser.ID, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedUser)
@@ -1690,16 +1690,16 @@ func TestIntegrationGetUserByID(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		user := getUser()
-		insertedUser, err := cockroachdbClient.InsertUser(ctx, user)
+		insertedUser, err := databaseClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
 		filters := map[api.FilterType][]string{
 			api.FilterOrganizations: []string{"Estafette"},
 		}
 
 		// act
-		retrievedUser, err := cockroachdbClient.GetUserByID(ctx, insertedUser.ID, filters)
+		retrievedUser, err := databaseClient.GetUserByID(ctx, insertedUser.ID, filters)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedUser)
@@ -1715,13 +1715,13 @@ func TestIntegrationGetUsers(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		user := getUser()
-		_, err := cockroachdbClient.InsertUser(ctx, user)
+		_, err := databaseClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
 
 		// act
-		users, err := cockroachdbClient.GetUsers(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
+		users, err := databaseClient.GetUsers(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, users)
@@ -1735,7 +1735,7 @@ func TestIntegrationGetUsers(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		user := getUser()
 		user.Groups = []*contracts.Group{
 			{
@@ -1743,7 +1743,7 @@ func TestIntegrationGetUsers(t *testing.T) {
 				Name: "Team A",
 			},
 		}
-		_, err := cockroachdbClient.InsertUser(ctx, user)
+		_, err := databaseClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -1751,7 +1751,7 @@ func TestIntegrationGetUsers(t *testing.T) {
 		}
 
 		// act
-		users, err := cockroachdbClient.GetUsers(ctx, 1, 100, filters, []api.OrderField{})
+		users, err := databaseClient.GetUsers(ctx, 1, 100, filters, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, users)
@@ -1765,7 +1765,7 @@ func TestIntegrationGetUsers(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		user := getUser()
 		user.Organizations = []*contracts.Organization{
 			{
@@ -1773,7 +1773,7 @@ func TestIntegrationGetUsers(t *testing.T) {
 				Name: "Estafette",
 			},
 		}
-		_, err := cockroachdbClient.InsertUser(ctx, user)
+		_, err := databaseClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -1781,7 +1781,7 @@ func TestIntegrationGetUsers(t *testing.T) {
 		}
 
 		// act
-		users, err := cockroachdbClient.GetUsers(ctx, 1, 100, filters, []api.OrderField{})
+		users, err := databaseClient.GetUsers(ctx, 1, 100, filters, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, users)
@@ -1797,13 +1797,13 @@ func TestIntegrationGetUsersCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		user := getUser()
-		_, err := cockroachdbClient.InsertUser(ctx, user)
+		_, err := databaseClient.InsertUser(ctx, user)
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetUsersCount(ctx, map[api.FilterType][]string{})
+		count, err := databaseClient.GetUsersCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -1818,11 +1818,11 @@ func TestIntegrationInsertGroup(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		group := getGroup()
 
 		// act
-		insertedGroup, err := cockroachdbClient.InsertGroup(ctx, group)
+		insertedGroup, err := databaseClient.InsertGroup(ctx, group)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedGroup)
@@ -1838,13 +1838,13 @@ func TestIntegrationUpdateGroup(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		group := getGroup()
-		insertedGroup, err := cockroachdbClient.InsertGroup(ctx, group)
+		insertedGroup, err := databaseClient.InsertGroup(ctx, group)
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpdateGroup(ctx, *insertedGroup)
+		err = databaseClient.UpdateGroup(ctx, *insertedGroup)
 
 		assert.Nil(t, err)
 	})
@@ -1856,14 +1856,14 @@ func TestIntegrationUpdateGroup(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		group := getGroup()
-		insertedGroup, err := cockroachdbClient.InsertGroup(ctx, group)
+		insertedGroup, err := databaseClient.InsertGroup(ctx, group)
 		assert.Nil(t, err)
 		insertedGroup.ID = "15"
 
 		// act
-		err = cockroachdbClient.UpdateGroup(ctx, *insertedGroup)
+		err = databaseClient.UpdateGroup(ctx, *insertedGroup)
 
 		assert.Nil(t, err)
 	})
@@ -1877,13 +1877,13 @@ func TestIntegrationDeleteGroup(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		group := getGroup()
-		insertedGroup, err := cockroachdbClient.InsertGroup(ctx, group)
+		insertedGroup, err := databaseClient.InsertGroup(ctx, group)
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.DeleteGroup(ctx, *insertedGroup)
+		err = databaseClient.DeleteGroup(ctx, *insertedGroup)
 
 		assert.Nil(t, err)
 	})
@@ -1895,14 +1895,14 @@ func TestIntegrationDeleteGroup(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		group := getGroup()
-		insertedGroup, err := cockroachdbClient.InsertGroup(ctx, group)
+		insertedGroup, err := databaseClient.InsertGroup(ctx, group)
 		assert.Nil(t, err)
 		insertedGroup.ID = "15"
 
 		// act
-		err = cockroachdbClient.DeleteGroup(ctx, *insertedGroup)
+		err = databaseClient.DeleteGroup(ctx, *insertedGroup)
 
 		assert.Nil(t, err)
 	})
@@ -1916,7 +1916,7 @@ func TestIntegrationGetGroupByIdentity(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		group := getGroup()
 		group.Identities = []*contracts.GroupIdentity{
 			{
@@ -1925,7 +1925,7 @@ func TestIntegrationGetGroupByIdentity(t *testing.T) {
 				Name:     "Team Z",
 			},
 		}
-		insertedGroup, err := cockroachdbClient.InsertGroup(ctx, group)
+		insertedGroup, err := databaseClient.InsertGroup(ctx, group)
 		assert.Nil(t, err)
 
 		identity := contracts.GroupIdentity{
@@ -1934,7 +1934,7 @@ func TestIntegrationGetGroupByIdentity(t *testing.T) {
 		}
 
 		// act
-		retrievedGroup, err := cockroachdbClient.GetGroupByIdentity(ctx, identity)
+		retrievedGroup, err := databaseClient.GetGroupByIdentity(ctx, identity)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedGroup)
@@ -1948,7 +1948,7 @@ func TestIntegrationGetGroupByIdentity(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		group := getGroup()
 		group.Identities = []*contracts.GroupIdentity{
 			{
@@ -1957,7 +1957,7 @@ func TestIntegrationGetGroupByIdentity(t *testing.T) {
 				Name:     "Team Z",
 			},
 		}
-		_, err := cockroachdbClient.InsertGroup(ctx, group)
+		_, err := databaseClient.InsertGroup(ctx, group)
 		assert.Nil(t, err)
 
 		identity := contracts.GroupIdentity{
@@ -1966,7 +1966,7 @@ func TestIntegrationGetGroupByIdentity(t *testing.T) {
 		}
 
 		// act
-		retrievedGroup, err := cockroachdbClient.GetGroupByIdentity(ctx, identity)
+		retrievedGroup, err := databaseClient.GetGroupByIdentity(ctx, identity)
 
 		assert.NotNil(t, err)
 		assert.True(t, errors.Is(err, ErrGroupNotFound))
@@ -1982,13 +1982,13 @@ func TestIntegrationGetGroupByID(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		group := getGroup()
-		insertedGroup, err := cockroachdbClient.InsertGroup(ctx, group)
+		insertedGroup, err := databaseClient.InsertGroup(ctx, group)
 		assert.Nil(t, err)
 
 		// act
-		retrievedGroup, err := cockroachdbClient.GetGroupByID(ctx, insertedGroup.ID, map[api.FilterType][]string{})
+		retrievedGroup, err := databaseClient.GetGroupByID(ctx, insertedGroup.ID, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedGroup)
@@ -2002,16 +2002,16 @@ func TestIntegrationGetGroupByID(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		group := getGroup()
-		insertedGroup, err := cockroachdbClient.InsertGroup(ctx, group)
+		insertedGroup, err := databaseClient.InsertGroup(ctx, group)
 		assert.Nil(t, err)
 		filters := map[api.FilterType][]string{
 			api.FilterOrganizations: []string{"Org A"},
 		}
 
 		// act
-		retrievedGroup, err := cockroachdbClient.GetGroupByID(ctx, insertedGroup.ID, filters)
+		retrievedGroup, err := databaseClient.GetGroupByID(ctx, insertedGroup.ID, filters)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedGroup)
@@ -2027,13 +2027,13 @@ func TestIntegrationGetGroups(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		group := getGroup()
-		_, err := cockroachdbClient.InsertGroup(ctx, group)
+		_, err := databaseClient.InsertGroup(ctx, group)
 		assert.Nil(t, err)
 
 		// act
-		groups, err := cockroachdbClient.GetGroups(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
+		groups, err := databaseClient.GetGroups(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, groups)
@@ -2049,13 +2049,13 @@ func TestIntegrationGetGroupsCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		group := getGroup()
-		_, err := cockroachdbClient.InsertGroup(ctx, group)
+		_, err := databaseClient.InsertGroup(ctx, group)
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetGroupsCount(ctx, map[api.FilterType][]string{})
+		count, err := databaseClient.GetGroupsCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -2070,11 +2070,11 @@ func TestIntegrationInsertOrganization(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		organization := getOrganization()
 
 		// act
-		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		insertedOrganization, err := databaseClient.InsertOrganization(ctx, organization)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedOrganization)
@@ -2090,13 +2090,13 @@ func TestIntegrationUpdateOrganization(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		organization := getOrganization()
-		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		insertedOrganization, err := databaseClient.InsertOrganization(ctx, organization)
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpdateOrganization(ctx, *insertedOrganization)
+		err = databaseClient.UpdateOrganization(ctx, *insertedOrganization)
 
 		assert.Nil(t, err)
 	})
@@ -2108,14 +2108,14 @@ func TestIntegrationUpdateOrganization(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		organization := getOrganization()
-		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		insertedOrganization, err := databaseClient.InsertOrganization(ctx, organization)
 		assert.Nil(t, err)
 		insertedOrganization.ID = "15"
 
 		// act
-		err = cockroachdbClient.UpdateOrganization(ctx, *insertedOrganization)
+		err = databaseClient.UpdateOrganization(ctx, *insertedOrganization)
 
 		assert.Nil(t, err)
 	})
@@ -2129,13 +2129,13 @@ func TestIntegrationDeleteOrganization(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		organization := getOrganization()
-		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		insertedOrganization, err := databaseClient.InsertOrganization(ctx, organization)
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.DeleteOrganization(ctx, *insertedOrganization)
+		err = databaseClient.DeleteOrganization(ctx, *insertedOrganization)
 
 		assert.Nil(t, err)
 	})
@@ -2147,14 +2147,14 @@ func TestIntegrationDeleteOrganization(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		organization := getOrganization()
-		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		insertedOrganization, err := databaseClient.InsertOrganization(ctx, organization)
 		assert.Nil(t, err)
 		insertedOrganization.ID = "15"
 
 		// act
-		err = cockroachdbClient.DeleteOrganization(ctx, *insertedOrganization)
+		err = databaseClient.DeleteOrganization(ctx, *insertedOrganization)
 
 		assert.Nil(t, err)
 	})
@@ -2168,7 +2168,7 @@ func TestIntegrationGetOrganizationByIdentity(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		organization := getOrganization()
 		organization.Identities = []*contracts.OrganizationIdentity{
 			{
@@ -2177,7 +2177,7 @@ func TestIntegrationGetOrganizationByIdentity(t *testing.T) {
 				Name:     "Org Z",
 			},
 		}
-		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		insertedOrganization, err := databaseClient.InsertOrganization(ctx, organization)
 		assert.Nil(t, err)
 
 		identity := contracts.OrganizationIdentity{
@@ -2186,7 +2186,7 @@ func TestIntegrationGetOrganizationByIdentity(t *testing.T) {
 		}
 
 		// act
-		retrievedOrganization, err := cockroachdbClient.GetOrganizationByIdentity(ctx, identity)
+		retrievedOrganization, err := databaseClient.GetOrganizationByIdentity(ctx, identity)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedOrganization)
@@ -2200,7 +2200,7 @@ func TestIntegrationGetOrganizationByIdentity(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		organization := getOrganization()
 		organization.Identities = []*contracts.OrganizationIdentity{
 			{
@@ -2209,7 +2209,7 @@ func TestIntegrationGetOrganizationByIdentity(t *testing.T) {
 				Name:     "Org Z",
 			},
 		}
-		_, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		_, err := databaseClient.InsertOrganization(ctx, organization)
 		assert.Nil(t, err)
 
 		identity := contracts.OrganizationIdentity{
@@ -2218,7 +2218,7 @@ func TestIntegrationGetOrganizationByIdentity(t *testing.T) {
 		}
 
 		// act
-		retrievedOrganization, err := cockroachdbClient.GetOrganizationByIdentity(ctx, identity)
+		retrievedOrganization, err := databaseClient.GetOrganizationByIdentity(ctx, identity)
 
 		assert.NotNil(t, err)
 		assert.True(t, errors.Is(err, ErrOrganizationNotFound))
@@ -2234,13 +2234,13 @@ func TestIntegrationGetOrganizationByID(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		organization := getOrganization()
-		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		insertedOrganization, err := databaseClient.InsertOrganization(ctx, organization)
 		assert.Nil(t, err)
 
 		// act
-		retrievedOrganization, err := cockroachdbClient.GetOrganizationByID(ctx, insertedOrganization.ID)
+		retrievedOrganization, err := databaseClient.GetOrganizationByID(ctx, insertedOrganization.ID)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedOrganization)
@@ -2256,14 +2256,14 @@ func TestIntegrationGetOrganizationByName(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		organization := getOrganization()
 		organization.Name = "organization-name-test"
-		insertedOrganization, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		insertedOrganization, err := databaseClient.InsertOrganization(ctx, organization)
 		assert.Nil(t, err)
 
 		// act
-		retrievedOrganization, err := cockroachdbClient.GetOrganizationByName(ctx, "organization-name-test")
+		retrievedOrganization, err := databaseClient.GetOrganizationByName(ctx, "organization-name-test")
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedOrganization)
@@ -2280,13 +2280,13 @@ func TestIntegrationGetOrganizations(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		organization := getOrganization()
-		_, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		_, err := databaseClient.InsertOrganization(ctx, organization)
 		assert.Nil(t, err)
 
 		// act
-		organizations, err := cockroachdbClient.GetOrganizations(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
+		organizations, err := databaseClient.GetOrganizations(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, organizations)
@@ -2302,13 +2302,13 @@ func TestIntegrationGetOrganizationsCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		organization := getOrganization()
-		_, err := cockroachdbClient.InsertOrganization(ctx, organization)
+		_, err := databaseClient.InsertOrganization(ctx, organization)
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetOrganizationsCount(ctx, map[api.FilterType][]string{})
+		count, err := databaseClient.GetOrganizationsCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -2323,11 +2323,11 @@ func TestIntegrationInsertClient(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		client := getClient()
 
 		// act
-		insertedClient, err := cockroachdbClient.InsertClient(ctx, client)
+		insertedClient, err := databaseClient.InsertClient(ctx, client)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedClient)
@@ -2343,13 +2343,13 @@ func TestIntegrationUpdateClient(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		client := getClient()
-		insertedClient, err := cockroachdbClient.InsertClient(ctx, client)
+		insertedClient, err := databaseClient.InsertClient(ctx, client)
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpdateClient(ctx, *insertedClient)
+		err = databaseClient.UpdateClient(ctx, *insertedClient)
 
 		assert.Nil(t, err)
 	})
@@ -2361,14 +2361,14 @@ func TestIntegrationUpdateClient(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		client := getClient()
-		insertedClient, err := cockroachdbClient.InsertClient(ctx, client)
+		insertedClient, err := databaseClient.InsertClient(ctx, client)
 		assert.Nil(t, err)
 		insertedClient.ID = "15"
 
 		// act
-		err = cockroachdbClient.UpdateClient(ctx, *insertedClient)
+		err = databaseClient.UpdateClient(ctx, *insertedClient)
 
 		assert.Nil(t, err)
 	})
@@ -2382,13 +2382,13 @@ func TestIntegrationDeleteClient(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		client := getClient()
-		insertedClient, err := cockroachdbClient.InsertClient(ctx, client)
+		insertedClient, err := databaseClient.InsertClient(ctx, client)
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.DeleteClient(ctx, *insertedClient)
+		err = databaseClient.DeleteClient(ctx, *insertedClient)
 
 		assert.Nil(t, err)
 	})
@@ -2400,14 +2400,14 @@ func TestIntegrationDeleteClient(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		client := getClient()
-		insertedClient, err := cockroachdbClient.InsertClient(ctx, client)
+		insertedClient, err := databaseClient.InsertClient(ctx, client)
 		assert.Nil(t, err)
 		insertedClient.ID = "15"
 
 		// act
-		err = cockroachdbClient.DeleteClient(ctx, *insertedClient)
+		err = databaseClient.DeleteClient(ctx, *insertedClient)
 
 		assert.Nil(t, err)
 	})
@@ -2421,16 +2421,16 @@ func TestIntegrationGetClientByClientID(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		client := getClient()
 		client.ClientID = "zyx"
-		insertedClient, err := cockroachdbClient.InsertClient(ctx, client)
+		insertedClient, err := databaseClient.InsertClient(ctx, client)
 		assert.Nil(t, err)
 
 		clientID := "zyx"
 
 		// act
-		retrievedClient, err := cockroachdbClient.GetClientByClientID(ctx, clientID)
+		retrievedClient, err := databaseClient.GetClientByClientID(ctx, clientID)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedClient)
@@ -2444,16 +2444,16 @@ func TestIntegrationGetClientByClientID(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		client := getClient()
 		client.ClientID = "zyx"
-		_, err := cockroachdbClient.InsertClient(ctx, client)
+		_, err := databaseClient.InsertClient(ctx, client)
 		assert.Nil(t, err)
 
 		clientID := "xyz"
 
 		// act
-		retrievedClient, err := cockroachdbClient.GetClientByClientID(ctx, clientID)
+		retrievedClient, err := databaseClient.GetClientByClientID(ctx, clientID)
 
 		assert.NotNil(t, err)
 		assert.True(t, errors.Is(err, ErrClientNotFound))
@@ -2469,13 +2469,13 @@ func TestIntegrationGetClientByID(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		client := getClient()
-		insertedClient, err := cockroachdbClient.InsertClient(ctx, client)
+		insertedClient, err := databaseClient.InsertClient(ctx, client)
 		assert.Nil(t, err)
 
 		// act
-		retrievedClient, err := cockroachdbClient.GetClientByID(ctx, insertedClient.ID)
+		retrievedClient, err := databaseClient.GetClientByID(ctx, insertedClient.ID)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedClient)
@@ -2491,13 +2491,13 @@ func TestIntegrationGetClients(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		client := getClient()
-		_, err := cockroachdbClient.InsertClient(ctx, client)
+		_, err := databaseClient.InsertClient(ctx, client)
 		assert.Nil(t, err)
 
 		// act
-		clients, err := cockroachdbClient.GetClients(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
+		clients, err := databaseClient.GetClients(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, clients)
@@ -2513,13 +2513,13 @@ func TestIntegrationGetClientsCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		client := getClient()
-		_, err := cockroachdbClient.InsertClient(ctx, client)
+		_, err := databaseClient.InsertClient(ctx, client)
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetClientsCount(ctx, map[api.FilterType][]string{})
+		count, err := databaseClient.GetClientsCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -2534,11 +2534,11 @@ func TestIntegrationInsertCatalogEntity(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
 
 		// act
-		insertedCatalogEntity, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		insertedCatalogEntity, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedCatalogEntity)
@@ -2554,13 +2554,13 @@ func TestIntegrationUpdateCatalogEntity(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
-		insertedCatalogEntity, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		insertedCatalogEntity, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.UpdateCatalogEntity(ctx, *insertedCatalogEntity)
+		err = databaseClient.UpdateCatalogEntity(ctx, *insertedCatalogEntity)
 
 		assert.Nil(t, err)
 	})
@@ -2572,14 +2572,14 @@ func TestIntegrationUpdateCatalogEntity(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
-		insertedCatalogEntity, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		insertedCatalogEntity, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 		insertedCatalogEntity.ID = "15"
 
 		// act
-		err = cockroachdbClient.UpdateCatalogEntity(ctx, *insertedCatalogEntity)
+		err = databaseClient.UpdateCatalogEntity(ctx, *insertedCatalogEntity)
 
 		assert.Nil(t, err)
 	})
@@ -2593,17 +2593,17 @@ func TestIntegrationDeleteCatalogEntity(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
-		insertedCatalogEntity, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		insertedCatalogEntity, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		// act
-		err = cockroachdbClient.DeleteCatalogEntity(ctx, insertedCatalogEntity.ID)
+		err = databaseClient.DeleteCatalogEntity(ctx, insertedCatalogEntity.ID)
 
 		assert.Nil(t, err)
 
-		retrievedCatalogEntity, err := cockroachdbClient.GetCatalogEntityByID(ctx, insertedCatalogEntity.ID)
+		retrievedCatalogEntity, err := databaseClient.GetCatalogEntityByID(ctx, insertedCatalogEntity.ID)
 
 		assert.NotNil(t, err)
 		assert.True(t, errors.Is(err, ErrCatalogEntityNotFound))
@@ -2619,13 +2619,13 @@ func TestIntegrationGetCatalogEntityByID(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
-		insertedCatalogEntity, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		insertedCatalogEntity, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		// act
-		retrievedCatalogEntity, err := cockroachdbClient.GetCatalogEntityByID(ctx, insertedCatalogEntity.ID)
+		retrievedCatalogEntity, err := databaseClient.GetCatalogEntityByID(ctx, insertedCatalogEntity.ID)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, retrievedCatalogEntity)
@@ -2639,13 +2639,13 @@ func TestIntegrationGetCatalogEntityByID(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		// act
-		retrievedCatalogEntity, err := cockroachdbClient.GetCatalogEntityByID(ctx, "14")
+		retrievedCatalogEntity, err := databaseClient.GetCatalogEntityByID(ctx, "14")
 
 		assert.NotNil(t, err)
 		assert.True(t, errors.Is(err, ErrCatalogEntityNotFound))
@@ -2661,13 +2661,13 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		// act
-		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
+		catalogEntitys, err := databaseClient.GetCatalogEntities(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, catalogEntitys)
@@ -2681,10 +2681,10 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
 		catalogEntity.ParentKey = "parent-key-retrieval-test"
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -2694,7 +2694,7 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		}
 
 		// act
-		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
+		catalogEntitys, err := databaseClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, catalogEntitys)
@@ -2708,11 +2708,11 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
 		catalogEntity.ParentKey = "parent-key-value-retrieval-test"
 		catalogEntity.ParentValue = "some-value"
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -2722,7 +2722,7 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		}
 
 		// act
-		catalogEntities, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
+		catalogEntities, err := databaseClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, catalogEntities)
@@ -2736,10 +2736,10 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
 		catalogEntity.Key = "entity-key-retrieval-test"
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -2749,7 +2749,7 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		}
 
 		// act
-		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
+		catalogEntitys, err := databaseClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, catalogEntitys)
@@ -2763,11 +2763,11 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
 		catalogEntity.Key = "entity-key-value-retrieval-test"
 		catalogEntity.Value = "some-value"
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -2777,7 +2777,7 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		}
 
 		// act
-		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
+		catalogEntitys, err := databaseClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, catalogEntitys)
@@ -2791,10 +2791,10 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
 		catalogEntity.LinkedPipeline = "github.com/estafette/estafette-ci-api"
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -2804,7 +2804,7 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		}
 
 		// act
-		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
+		catalogEntitys, err := databaseClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, catalogEntitys)
@@ -2818,7 +2818,7 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
 		catalogEntity.Labels = []contracts.Label{
 			{
@@ -2826,7 +2826,7 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 				Value: "production",
 			},
 		}
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		filters := map[api.FilterType][]string{
@@ -2836,7 +2836,7 @@ func TestIntegrationGetCatalogEntities(t *testing.T) {
 		}
 
 		// act
-		catalogEntitys, err := cockroachdbClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
+		catalogEntitys, err := databaseClient.GetCatalogEntities(ctx, 1, 100, filters, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.NotNil(t, catalogEntitys)
@@ -2852,13 +2852,13 @@ func TestIntegrationGetCatalogEntitiesCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetCatalogEntitiesCount(ctx, map[api.FilterType][]string{})
+		count, err := databaseClient.GetCatalogEntitiesCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -2873,13 +2873,13 @@ func TestIntegrationGetCatalogEntityParentKeys(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		// act
-		keys, err := cockroachdbClient.GetCatalogEntityParentKeys(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
+		keys, err := databaseClient.GetCatalogEntityParentKeys(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(keys) > 0)
@@ -2894,13 +2894,13 @@ func TestIntegrationGetCatalogEntityParentKeysCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetCatalogEntityParentKeysCount(ctx, map[api.FilterType][]string{})
+		count, err := databaseClient.GetCatalogEntityParentKeysCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -2915,13 +2915,13 @@ func TestIntegrationGetCatalogEntityParentValues(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		// act
-		values, err := cockroachdbClient.GetCatalogEntityParentValues(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
+		values, err := databaseClient.GetCatalogEntityParentValues(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(values) > 0)
@@ -2936,13 +2936,13 @@ func TestIntegrationGetCatalogEntityParentValuesCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetCatalogEntityParentValuesCount(ctx, map[api.FilterType][]string{})
+		count, err := databaseClient.GetCatalogEntityParentValuesCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -2957,13 +2957,13 @@ func TestIntegrationGetCatalogEntityKeys(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		// act
-		keys, err := cockroachdbClient.GetCatalogEntityKeys(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
+		keys, err := databaseClient.GetCatalogEntityKeys(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(keys) > 0)
@@ -2978,13 +2978,13 @@ func TestIntegrationGetCatalogEntityKeysCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetCatalogEntityKeysCount(ctx, map[api.FilterType][]string{})
+		count, err := databaseClient.GetCatalogEntityKeysCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -2999,13 +2999,13 @@ func TestIntegrationGetCatalogEntityValues(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		// act
-		values, err := cockroachdbClient.GetCatalogEntityValues(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
+		values, err := databaseClient.GetCatalogEntityValues(ctx, 1, 100, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(values) > 0)
@@ -3020,13 +3020,13 @@ func TestIntegrationGetCatalogEntityValuesCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetCatalogEntityValuesCount(ctx, map[api.FilterType][]string{})
+		count, err := databaseClient.GetCatalogEntityValuesCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -3041,18 +3041,18 @@ func TestIntegrationGetCatalogEntityLabels(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
 		catalogEntity.Value = "entity-1"
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 		catalogEntity2 := getCatalogEntity()
 		catalogEntity2.Value = "entity-2"
-		_, err = cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity2)
+		_, err = databaseClient.InsertCatalogEntity(ctx, catalogEntity2)
 		assert.Nil(t, err)
 
 		// act
-		keys, err := cockroachdbClient.GetCatalogEntityLabels(ctx, 1, 100, map[api.FilterType][]string{})
+		keys, err := databaseClient.GetCatalogEntityLabels(ctx, 1, 100, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(keys) > 0)
@@ -3067,18 +3067,18 @@ func TestIntegrationGetCatalogEntityLabelsCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		catalogEntity := getCatalogEntity()
 		catalogEntity.Value = "entity-1"
-		_, err := cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+		_, err := databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 		assert.Nil(t, err)
 		catalogEntity2 := getCatalogEntity()
 		catalogEntity2.Value = "entity-2"
-		_, err = cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity2)
+		_, err = databaseClient.InsertCatalogEntity(ctx, catalogEntity2)
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetCatalogEntityLabelsCount(ctx, map[api.FilterType][]string{})
+		count, err := databaseClient.GetCatalogEntityLabelsCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -3092,16 +3092,16 @@ func TestIntegrationGetPipelineBuildsDurations(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		// act
-		durations, err := cockroachdbClient.GetPipelineBuildsDurations(ctx, build.RepoSource, build.RepoOwner, build.RepoName, map[api.FilterType][]string{})
+		durations, err := databaseClient.GetPipelineBuildsDurations(ctx, build.RepoSource, build.RepoOwner, build.RepoName, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(durations) > 0)
@@ -3115,14 +3115,14 @@ func TestIntegrationGetPipelineReleasesDurations(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		release := getRelease()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		_, err := databaseClient.InsertRelease(ctx, release, jobResources)
 		assert.Nil(t, err)
 
 		// act
-		durations, err := cockroachdbClient.GetPipelineReleasesDurations(ctx, release.RepoSource, release.RepoOwner, release.RepoName, map[api.FilterType][]string{})
+		durations, err := databaseClient.GetPipelineReleasesDurations(ctx, release.RepoSource, release.RepoOwner, release.RepoName, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(durations) > 0)
@@ -3136,14 +3136,14 @@ func TestIntegrationGetPipelineBotsDurations(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		bot := getBot()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+		_, err := databaseClient.InsertBot(ctx, bot, jobResources)
 		assert.Nil(t, err)
 
 		// act
-		durations, err := cockroachdbClient.GetPipelineBotsDurations(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, map[api.FilterType][]string{})
+		durations, err := databaseClient.GetPipelineBotsDurations(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(durations) > 0)
@@ -3157,16 +3157,16 @@ func TestIntegrationGetPipelineBuilds(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		// act
-		builds, err := cockroachdbClient.GetPipelineBuilds(ctx, build.RepoSource, build.RepoOwner, build.RepoName, 1, 10, map[api.FilterType][]string{}, []api.OrderField{}, false)
+		builds, err := databaseClient.GetPipelineBuilds(ctx, build.RepoSource, build.RepoOwner, build.RepoName, 1, 10, map[api.FilterType][]string{}, []api.OrderField{}, false)
 
 		assert.Nil(t, err)
 		assert.True(t, len(builds) > 0)
@@ -3180,16 +3180,16 @@ func TestIntegrationGetPipelineBuildsCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		build := getBuild()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err)
 
 		// act
-		buildCount, err := cockroachdbClient.GetPipelineBuildsCount(ctx, build.RepoSource, build.RepoOwner, build.RepoName, map[api.FilterType][]string{})
+		buildCount, err := databaseClient.GetPipelineBuildsCount(ctx, build.RepoSource, build.RepoOwner, build.RepoName, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, buildCount > 0)
@@ -3203,14 +3203,14 @@ func TestIntegrationGetPipelineReleases(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		release := getRelease()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		_, err := databaseClient.InsertRelease(ctx, release, jobResources)
 		assert.Nil(t, err)
 
 		// act
-		releases, err := cockroachdbClient.GetPipelineReleases(ctx, release.RepoSource, release.RepoOwner, release.RepoName, 1, 10, map[api.FilterType][]string{}, []api.OrderField{})
+		releases, err := databaseClient.GetPipelineReleases(ctx, release.RepoSource, release.RepoOwner, release.RepoName, 1, 10, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(releases) > 0)
@@ -3224,14 +3224,14 @@ func TestIntegrationGetPipelineReleasesCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		release := getRelease()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertRelease(ctx, release, jobResources)
+		_, err := databaseClient.InsertRelease(ctx, release, jobResources)
 		assert.Nil(t, err)
 
 		// act
-		releasesCount, err := cockroachdbClient.GetPipelineReleasesCount(ctx, release.RepoSource, release.RepoOwner, release.RepoName, map[api.FilterType][]string{})
+		releasesCount, err := databaseClient.GetPipelineReleasesCount(ctx, release.RepoSource, release.RepoOwner, release.RepoName, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, releasesCount > 0)
@@ -3245,14 +3245,14 @@ func TestIntegrationGetPipelineBots(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		bot := getBot()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+		_, err := databaseClient.InsertBot(ctx, bot, jobResources)
 		assert.Nil(t, err)
 
 		// act
-		bots, err := cockroachdbClient.GetPipelineBots(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, 1, 10, map[api.FilterType][]string{}, []api.OrderField{})
+		bots, err := databaseClient.GetPipelineBots(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, 1, 10, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(bots) > 0)
@@ -3266,14 +3266,14 @@ func TestIntegrationGetPipelineBotsCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		bot := getBot()
 		jobResources := getJobResources()
-		_, err := cockroachdbClient.InsertBot(ctx, bot, jobResources)
+		_, err := databaseClient.InsertBot(ctx, bot, jobResources)
 		assert.Nil(t, err)
 
 		// act
-		botsCount, err := cockroachdbClient.GetPipelineBotsCount(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, map[api.FilterType][]string{})
+		botsCount, err := databaseClient.GetPipelineBotsCount(ctx, bot.RepoSource, bot.RepoOwner, bot.RepoName, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, botsCount > 0)
@@ -3287,7 +3287,7 @@ func TestIntegrationGetGitTriggers(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
 		build.RepoName = "github-trigger-test-1"
@@ -3303,11 +3303,11 @@ func TestIntegrationGetGitTriggers(t *testing.T) {
 			},
 		}
 
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting first build record")
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
 
 		gitEvent := manifest.EstafetteGitEvent{
@@ -3317,7 +3317,7 @@ func TestIntegrationGetGitTriggers(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetGitTriggers(ctx, gitEvent)
+		pipelines, err := databaseClient.GetGitTriggers(ctx, gitEvent)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(pipelines))
@@ -3329,7 +3329,7 @@ func TestIntegrationGetGitTriggers(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
 		build.RepoName = "git-trigger-test-2"
@@ -3345,11 +3345,11 @@ func TestIntegrationGetGitTriggers(t *testing.T) {
 			},
 		}
 
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting first build record")
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
 
 		gitEvent := manifest.EstafetteGitEvent{
@@ -3359,7 +3359,7 @@ func TestIntegrationGetGitTriggers(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetGitTriggers(ctx, gitEvent)
+		pipelines, err := databaseClient.GetGitTriggers(ctx, gitEvent)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(pipelines))
@@ -3373,7 +3373,7 @@ func TestIntegrationGetGithubTriggers(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
 		build.RepoName = "github-trigger-test-1"
@@ -3392,11 +3392,11 @@ func TestIntegrationGetGithubTriggers(t *testing.T) {
 			},
 		}
 
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting first build record")
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
 
 		githubEvent := manifest.EstafetteGithubEvent{
@@ -3406,7 +3406,7 @@ func TestIntegrationGetGithubTriggers(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetGithubTriggers(ctx, githubEvent)
+		pipelines, err := databaseClient.GetGithubTriggers(ctx, githubEvent)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(pipelines))
@@ -3418,7 +3418,7 @@ func TestIntegrationGetGithubTriggers(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
 		build.RepoName = "github-trigger-test-2"
@@ -3437,11 +3437,11 @@ func TestIntegrationGetGithubTriggers(t *testing.T) {
 			},
 		}
 
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting first build record")
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
 
 		githubEvent := manifest.EstafetteGithubEvent{
@@ -3451,7 +3451,7 @@ func TestIntegrationGetGithubTriggers(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetGithubTriggers(ctx, githubEvent)
+		pipelines, err := databaseClient.GetGithubTriggers(ctx, githubEvent)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(pipelines))
@@ -3465,7 +3465,7 @@ func TestIntegrationGetBitbucketTriggers(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
 		build.RepoName = "github-trigger-test-1"
@@ -3484,11 +3484,11 @@ func TestIntegrationGetBitbucketTriggers(t *testing.T) {
 			},
 		}
 
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting first build record")
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
 
 		bitbucketEvent := manifest.EstafetteBitbucketEvent{
@@ -3498,7 +3498,7 @@ func TestIntegrationGetBitbucketTriggers(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetBitbucketTriggers(ctx, bitbucketEvent)
+		pipelines, err := databaseClient.GetBitbucketTriggers(ctx, bitbucketEvent)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(pipelines))
@@ -3510,7 +3510,7 @@ func TestIntegrationGetBitbucketTriggers(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		jobResources := getJobResources()
 		build := getBuild()
 		build.RepoName = "bitbucket-trigger-test-2"
@@ -3528,11 +3528,11 @@ func TestIntegrationGetBitbucketTriggers(t *testing.T) {
 			},
 		}
 
-		_, err := cockroachdbClient.InsertBuild(ctx, build, jobResources)
+		_, err := databaseClient.InsertBuild(ctx, build, jobResources)
 		assert.Nil(t, err, "failed inserting first build record")
 
 		// ensure computed_pipelines are updated in time (they run as a goroutine, so unpredictable when they're finished)
-		err = cockroachdbClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
+		err = databaseClient.UpdateComputedTables(ctx, build.RepoSource, build.RepoOwner, build.RepoName)
 		assert.Nil(t, err, "failed upserting computed pipeline")
 
 		bitbucketEvent := manifest.EstafetteBitbucketEvent{
@@ -3542,7 +3542,7 @@ func TestIntegrationGetBitbucketTriggers(t *testing.T) {
 		}
 
 		// act
-		pipelines, err := cockroachdbClient.GetBitbucketTriggers(ctx, bitbucketEvent)
+		pipelines, err := databaseClient.GetBitbucketTriggers(ctx, bitbucketEvent)
 
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(pipelines))
@@ -3557,11 +3557,11 @@ func TestIntegrationInsertNotification(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		notification := getNotification()
 
 		// act
-		insertedNotification, err := cockroachdbClient.InsertNotification(ctx, notification)
+		insertedNotification, err := databaseClient.InsertNotification(ctx, notification)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedNotification)
@@ -3577,13 +3577,13 @@ func TestIntegrationGetAllNotifications(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		notification := getNotification()
-		_, err := cockroachdbClient.InsertNotification(ctx, notification)
+		_, err := databaseClient.InsertNotification(ctx, notification)
 		assert.Nil(t, err)
 
 		// act
-		notifications, err := cockroachdbClient.GetAllNotifications(ctx, 1, 20, map[api.FilterType][]string{}, []api.OrderField{})
+		notifications, err := databaseClient.GetAllNotifications(ctx, 1, 20, map[api.FilterType][]string{}, []api.OrderField{})
 
 		assert.Nil(t, err)
 		assert.True(t, len(notifications) > 0)
@@ -3598,13 +3598,13 @@ func TestIntegrationGetAllNotificationsCount(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cockroachdbClient := getCockroachdbClient(ctx, t)
+		databaseClient := getDatabaseClient(ctx, t)
 		notification := getNotification()
-		_, err := cockroachdbClient.InsertNotification(ctx, notification)
+		_, err := databaseClient.InsertNotification(ctx, notification)
 		assert.Nil(t, err)
 
 		// act
-		count, err := cockroachdbClient.GetAllNotificationsCount(ctx, map[api.FilterType][]string{})
+		count, err := databaseClient.GetAllNotificationsCount(ctx, map[api.FilterType][]string{})
 
 		assert.Nil(t, err)
 		assert.True(t, count > 0)
@@ -3614,7 +3614,7 @@ func TestIntegrationGetAllNotificationsCount(t *testing.T) {
 var cockroachDbTestClient Client
 var cockroachDbTestClientMutex = &sync.Mutex{}
 
-func getCockroachdbClient(ctx context.Context, t *testing.T) Client {
+func getDatabaseClient(ctx context.Context, t *testing.T) Client {
 
 	cockroachDbTestClientMutex.Lock()
 	defer cockroachDbTestClientMutex.Unlock()

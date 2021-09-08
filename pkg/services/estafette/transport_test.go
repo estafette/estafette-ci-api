@@ -15,7 +15,7 @@ import (
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/pkg/clients/cloudstorage"
-	"github.com/estafette/estafette-ci-api/pkg/clients/cockroachdb"
+	"github.com/estafette/estafette-ci-api/pkg/clients/database"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	"github.com/gin-gonic/gin"
@@ -104,7 +104,7 @@ func TestGetCatalogFilters(t *testing.T) {
 		}
 		encryptedConfig := cfg
 
-		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		databaseClient := database.NewMockClient(ctrl)
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 
@@ -112,7 +112,7 @@ func TestGetCatalogFilters(t *testing.T) {
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 
-		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
+		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 
@@ -147,7 +147,7 @@ func TestGetCatalogFilters(t *testing.T) {
 
 func TestGetPipeline(t *testing.T) {
 
-	t.Run("ReturnsPipelineFromNewCockroachdbClientAfterReload", func(t *testing.T) {
+	t.Run("ReturnsPipelineFromNewdatabaseClientAfterReload", func(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -157,8 +157,8 @@ func TestGetPipeline(t *testing.T) {
 		cfg := &api.APIConfig{}
 		encryptedConfig := cfg
 
-		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
-		cockroachdbClient.
+		databaseClient := database.NewMockClient(ctrl)
+		databaseClient.
 			EXPECT().
 			GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
@@ -173,7 +173,7 @@ func TestGetPipeline(t *testing.T) {
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 
-		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
+		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 		bodyReader := strings.NewReader("")
@@ -191,7 +191,7 @@ func TestGetPipeline(t *testing.T) {
 		assert.Equal(t, "{\"id\":\"\",\"repoSource\":\"\",\"repoOwner\":\"\",\"repoName\":\"\",\"repoBranch\":\"\",\"repoRevision\":\"\",\"buildStatus\":\"succeeded\",\"insertedAt\":\"0001-01-01T00:00:00Z\",\"updatedAt\":\"0001-01-01T00:00:00Z\",\"duration\":0,\"lastUpdatedAt\":\"0001-01-01T00:00:00Z\"}", string(body))
 
 		// act
-		cockroachdbClient.
+		databaseClient.
 			EXPECT().
 			GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
@@ -234,14 +234,14 @@ func TestGetManifestTemplates(t *testing.T) {
 		cfg := &api.APIConfig{}
 		encryptedConfig := cfg
 
-		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		databaseClient := database.NewMockClient(ctrl)
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 		buildService := NewMockService(ctrl)
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 
-		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
+		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 		bodyReader := strings.NewReader("")
@@ -281,14 +281,14 @@ func TestGenerateManifest(t *testing.T) {
 		cfg := &api.APIConfig{}
 		encryptedConfig := cfg
 
-		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		databaseClient := database.NewMockClient(ctrl)
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 		buildService := NewMockService(ctrl)
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 
-		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, cockroachdbClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
+		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 		bodyReader := strings.NewReader("{\"template\": \"docker\", \"placeholders\": {\"TeamName\": \"estafette\"}}")

@@ -1,4 +1,4 @@
-package cockroachdb
+package database
 
 import (
 	"context"
@@ -33,6 +33,14 @@ func (c *metricsClient) ConnectWithDriverAndSource(ctx context.Context, driverNa
 	}(time.Now())
 
 	return c.Client.ConnectWithDriverAndSource(ctx, driverName, dataSourceName)
+}
+
+func (c *metricsClient) AwaitDatabaseReadiness(ctx context.Context) (err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "AwaitDatabaseReadiness", begin)
+	}(time.Now())
+
+	return c.Client.AwaitDatabaseReadiness(ctx)
 }
 
 func (c *metricsClient) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {

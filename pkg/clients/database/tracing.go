@@ -1,4 +1,4 @@
-package cockroachdb
+package database
 
 import (
 	"context"
@@ -32,6 +32,13 @@ func (c *tracingClient) ConnectWithDriverAndSource(ctx context.Context, driverNa
 	defer func() { api.FinishSpanWithError(span, err) }()
 
 	return c.Client.ConnectWithDriverAndSource(ctx, driverName, dataSourceName)
+}
+
+func (c *tracingClient) AwaitDatabaseReadiness(ctx context.Context) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "AwaitDatabaseReadiness"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.AwaitDatabaseReadiness(ctx)
 }
 
 func (c *tracingClient) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {

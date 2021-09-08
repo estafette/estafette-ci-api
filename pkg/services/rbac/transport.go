@@ -12,7 +12,7 @@ import (
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/bitbucketapi"
-	"github.com/estafette/estafette-ci-api/pkg/clients/cockroachdb"
+	"github.com/estafette/estafette-ci-api/pkg/clients/database"
 	"github.com/estafette/estafette-ci-api/pkg/clients/githubapi"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
@@ -24,11 +24,11 @@ import (
 )
 
 // NewHandler returns a new rbac.Handler
-func NewHandler(config *api.APIConfig, service Service, cockroachdbClient cockroachdb.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client) Handler {
+func NewHandler(config *api.APIConfig, service Service, databaseClient database.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client) Handler {
 	return Handler{
 		config:             config,
 		service:            service,
-		cockroachdbClient:  cockroachdbClient,
+		databaseClient:     databaseClient,
 		bitbucketapiClient: bitbucketapiClient,
 		githubapiClient:    githubapiClient,
 	}
@@ -37,7 +37,7 @@ func NewHandler(config *api.APIConfig, service Service, cockroachdbClient cockro
 type Handler struct {
 	config             *api.APIConfig
 	service            Service
-	cockroachdbClient  cockroachdb.Client
+	databaseClient     database.Client
 	bitbucketapiClient bitbucketapi.Client
 	githubapiClient    githubapi.Client
 }
@@ -48,7 +48,7 @@ func (h *Handler) GetLoggedInUser(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	user, err := h.cockroachdbClient.GetUserByID(ctx, id, map[api.FilterType][]string{})
+	user, err := h.databaseClient.GetUserByID(ctx, id, map[api.FilterType][]string{})
 	if err != nil {
 		log.Error().Err(err).Msgf("Retrieving user from db failed with id %v", id)
 		c.String(http.StatusInternalServerError, "Retrieving user from db failed")
@@ -203,7 +203,7 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 
 		// upsert user
 		user, err := h.service.GetUserByIdentity(ctx, *identity)
-		if err != nil && errors.Is(err, cockroachdb.ErrUserNotFound) {
+		if err != nil && errors.Is(err, database.ErrUserNotFound) {
 			user, err = h.service.CreateUserFromIdentity(ctx, *identity)
 			if err != nil {
 				return nil, err
@@ -251,8 +251,8 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 			}
 			if !isLinkedToOrganization {
 				// try and get organization by name
-				org, err := h.cockroachdbClient.GetOrganizationByName(ctx, organization)
-				if err != nil && errors.Is(err, cockroachdb.ErrOrganizationNotFound) {
+				org, err := h.databaseClient.GetOrganizationByName(ctx, organization)
+				if err != nil && errors.Is(err, database.ErrOrganizationNotFound) {
 					// organization doesn't exist yet, create it
 					org, err = h.service.CreateOrganization(ctx, contracts.Organization{
 						Name: organization,
@@ -316,7 +316,7 @@ func (h *Handler) HandleClientLoginProviderAuthenticator() func(c *gin.Context) 
 		ctx := c.Request.Context()
 
 		// get client from db by clientID
-		clientFromDB, err := h.cockroachdbClient.GetClientByClientID(ctx, client.ClientID)
+		clientFromDB, err := h.databaseClient.GetClientByClientID(ctx, client.ClientID)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed retrieving client by client id %v", client.ClientID)
 			return nil, err
@@ -353,7 +353,7 @@ func (h *Handler) HandleImpersonateAuthenticator() func(c *gin.Context) (interfa
 		ctx := c.Request.Context()
 		id := c.Param("id")
 
-		user, err := h.cockroachdbClient.GetUserByID(ctx, id, map[api.FilterType][]string{})
+		user, err := h.databaseClient.GetUserByID(ctx, id, map[api.FilterType][]string{})
 		if err != nil || user == nil {
 			return nil, err
 		}
@@ -390,7 +390,7 @@ func (h *Handler) GetUsers(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			users, err := h.cockroachdbClient.GetUsers(ctx, pageNumber, pageSize, filters, sortings)
+			users, err := h.databaseClient.GetUsers(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -404,7 +404,7 @@ func (h *Handler) GetUsers(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetUsersCount(ctx, filters)
+			return h.databaseClient.GetUsersCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -429,7 +429,7 @@ func (h *Handler) GetUser(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
 
-	user, err := h.cockroachdbClient.GetUserByID(ctx, id, map[api.FilterType][]string{})
+	user, err := h.databaseClient.GetUserByID(ctx, id, map[api.FilterType][]string{})
 	if err != nil || user == nil {
 		log.Error().Err(err).Msgf("Failed retrieving user with id %v from db", id)
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
@@ -538,7 +538,7 @@ func (h *Handler) GetGroups(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			groups, err := h.cockroachdbClient.GetGroups(ctx, pageNumber, pageSize, filters, sortings)
+			groups, err := h.databaseClient.GetGroups(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -558,7 +558,7 @@ func (h *Handler) GetGroups(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetGroupsCount(ctx, filters)
+			return h.databaseClient.GetGroupsCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -583,7 +583,7 @@ func (h *Handler) GetGroup(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
 
-	group, err := h.cockroachdbClient.GetGroupByID(ctx, id, map[api.FilterType][]string{})
+	group, err := h.databaseClient.GetGroupByID(ctx, id, map[api.FilterType][]string{})
 	if err != nil || group == nil {
 		log.Error().Err(err).Msgf("Failed retrieving group with id %v from db", id)
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
@@ -692,7 +692,7 @@ func (h *Handler) GetOrganizations(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			organizations, err := h.cockroachdbClient.GetOrganizations(ctx, pageNumber, pageSize, filters, sortings)
+			organizations, err := h.databaseClient.GetOrganizations(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -712,7 +712,7 @@ func (h *Handler) GetOrganizations(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetOrganizationsCount(ctx, filters)
+			return h.databaseClient.GetOrganizationsCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -737,7 +737,7 @@ func (h *Handler) GetOrganization(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
 
-	organization, err := h.cockroachdbClient.GetOrganizationByID(ctx, id)
+	organization, err := h.databaseClient.GetOrganizationByID(ctx, id)
 	if err != nil || organization == nil {
 		log.Error().Err(err).Msgf("Failed retrieving organization with id %v from db", id)
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
@@ -846,7 +846,7 @@ func (h *Handler) GetClients(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			clients, err := h.cockroachdbClient.GetClients(ctx, pageNumber, pageSize, filters, sortings)
+			clients, err := h.databaseClient.GetClients(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -863,7 +863,7 @@ func (h *Handler) GetClients(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetClientsCount(ctx, filters)
+			return h.databaseClient.GetClientsCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -888,7 +888,7 @@ func (h *Handler) GetClient(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
 
-	client, err := h.cockroachdbClient.GetClientByID(ctx, id)
+	client, err := h.databaseClient.GetClientByID(ctx, id)
 	if err != nil || client == nil {
 		log.Error().Err(err).Msgf("Failed retrieving client with id %v from db", id)
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
@@ -1185,7 +1185,7 @@ func (h *Handler) GetPipelines(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			pipelines, err := h.cockroachdbClient.GetPipelines(ctx, pageNumber, pageSize, filters, sortings, true)
+			pipelines, err := h.databaseClient.GetPipelines(ctx, pageNumber, pageSize, filters, sortings, true)
 			if err != nil {
 				return nil, err
 			}
@@ -1199,7 +1199,7 @@ func (h *Handler) GetPipelines(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetPipelinesCount(ctx, filters)
+			return h.databaseClient.GetPipelinesCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -1226,7 +1226,7 @@ func (h *Handler) GetPipeline(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 
-	pipeline, err := h.cockroachdbClient.GetPipeline(ctx, source, owner, repo, map[api.FilterType][]string{}, false)
+	pipeline, err := h.databaseClient.GetPipeline(ctx, source, owner, repo, map[api.FilterType][]string{}, false)
 	if err != nil || pipeline == nil {
 		log.Error().Err(err).Msgf("Failed retrieving pipeline for %v/%v/%v from db", source, owner, repo)
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
@@ -1325,7 +1325,7 @@ func (h *Handler) BatchUpdateUsers(c *gin.Context) {
 			}
 			defer semaphore.Release(1)
 
-			user, err := h.cockroachdbClient.GetUserByID(ctx, u, map[api.FilterType][]string{})
+			user, err := h.databaseClient.GetUserByID(ctx, u, map[api.FilterType][]string{})
 			if err != nil {
 				return err
 			}
@@ -1509,7 +1509,7 @@ func (h *Handler) BatchUpdateGroups(c *gin.Context) {
 			}
 			defer semaphore.Release(1)
 
-			group, err := h.cockroachdbClient.GetGroupByID(ctx, g, map[api.FilterType][]string{})
+			group, err := h.databaseClient.GetGroupByID(ctx, g, map[api.FilterType][]string{})
 			if err != nil {
 				return err
 			}
@@ -1653,7 +1653,7 @@ func (h *Handler) BatchUpdateOrganizations(c *gin.Context) {
 			}
 			defer semaphore.Release(1)
 
-			organization, err := h.cockroachdbClient.GetOrganizationByID(ctx, o)
+			organization, err := h.databaseClient.GetOrganizationByID(ctx, o)
 			if err != nil {
 				return err
 			}
@@ -1763,7 +1763,7 @@ func (h *Handler) BatchUpdateClients(c *gin.Context) {
 			}
 			defer semaphore.Release(1)
 
-			client, err := h.cockroachdbClient.GetClientByID(ctx, c)
+			client, err := h.databaseClient.GetClientByID(ctx, c)
 			if err != nil {
 				return err
 			}
@@ -1916,7 +1916,7 @@ func (h *Handler) BatchUpdatePipelines(c *gin.Context) {
 				return fmt.Errorf("Pipeline '%v' has invalid name", p)
 			}
 
-			pipeline, err := h.cockroachdbClient.GetPipeline(ctx, pipelineParts[0], pipelineParts[1], pipelineParts[2], map[api.FilterType][]string{}, true)
+			pipeline, err := h.databaseClient.GetPipeline(ctx, pipelineParts[0], pipelineParts[1], pipelineParts[2], map[api.FilterType][]string{}, true)
 			if err != nil {
 				return err
 			}

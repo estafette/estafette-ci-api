@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
-	"github.com/estafette/estafette-ci-api/pkg/clients/cockroachdb"
+	"github.com/estafette/estafette-ci-api/pkg/clients/database"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
@@ -52,16 +52,16 @@ type Service interface {
 }
 
 // NewService returns a github.Service to handle incoming webhook events
-func NewService(config *api.APIConfig, cockroachdbClient cockroachdb.Client) Service {
+func NewService(config *api.APIConfig, databaseClient database.Client) Service {
 	return &service{
-		config:            config,
-		cockroachdbClient: cockroachdbClient,
+		config:         config,
+		databaseClient: databaseClient,
 	}
 }
 
 type service struct {
-	config            *api.APIConfig
-	cockroachdbClient cockroachdb.Client
+	config         *api.APIConfig
+	databaseClient database.Client
 }
 
 func (s *service) GetRoles(ctx context.Context) (roles []string, err error) {
@@ -108,7 +108,7 @@ func (s *service) GetProviderByName(ctx context.Context, organization, name stri
 
 func (s *service) GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 
-	user, err = s.cockroachdbClient.GetUserByIdentity(ctx, identity)
+	user, err = s.databaseClient.GetUserByIdentity(ctx, identity)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func (s *service) CreateUserFromIdentity(ctx context.Context, identity contracts
 
 	s.setAdminRoleForUserIfConfigured(user)
 
-	return s.cockroachdbClient.InsertUser(ctx, *user)
+	return s.databaseClient.InsertUser(ctx, *user)
 }
 
 func (s *service) CreateUser(ctx context.Context, user contracts.User) (insertedUser *contracts.User, err error) {
@@ -161,13 +161,13 @@ func (s *service) CreateUser(ctx context.Context, user contracts.User) (inserted
 
 	s.setAdminRoleForUserIfConfigured(insertedUser)
 
-	return s.cockroachdbClient.InsertUser(ctx, *insertedUser)
+	return s.databaseClient.InsertUser(ctx, *insertedUser)
 }
 
 func (s *service) UpdateUser(ctx context.Context, user contracts.User) (err error) {
 
 	// get user from db
-	currentUser, err := s.cockroachdbClient.GetUserByID(ctx, user.ID, map[api.FilterType][]string{})
+	currentUser, err := s.databaseClient.GetUserByID(ctx, user.ID, map[api.FilterType][]string{})
 	if err != nil {
 		return
 	}
@@ -190,13 +190,13 @@ func (s *service) UpdateUser(ctx context.Context, user contracts.User) (err erro
 
 	s.setAdminRoleForUserIfConfigured(currentUser)
 
-	return s.cockroachdbClient.UpdateUser(ctx, *currentUser)
+	return s.databaseClient.UpdateUser(ctx, *currentUser)
 }
 
 func (s *service) DeleteUser(ctx context.Context, id string) (err error) {
 
 	// get user from db
-	currentUser, err := s.cockroachdbClient.GetUserByID(ctx, id, map[api.FilterType][]string{})
+	currentUser, err := s.databaseClient.GetUserByID(ctx, id, map[api.FilterType][]string{})
 	if err != nil {
 		return
 	}
@@ -204,7 +204,7 @@ func (s *service) DeleteUser(ctx context.Context, id string) (err error) {
 		return fmt.Errorf("User is nil")
 	}
 
-	return s.cockroachdbClient.DeleteUser(ctx, *currentUser)
+	return s.databaseClient.DeleteUser(ctx, *currentUser)
 }
 func (s *service) CreateGroup(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error) {
 
@@ -218,13 +218,13 @@ func (s *service) CreateGroup(ctx context.Context, group contracts.Group) (inser
 		Roles:         group.Roles,
 	}
 
-	return s.cockroachdbClient.InsertGroup(ctx, *insertedGroup)
+	return s.databaseClient.InsertGroup(ctx, *insertedGroup)
 }
 
 func (s *service) UpdateGroup(ctx context.Context, group contracts.Group) (err error) {
 
 	// get group from db
-	currentGroup, err := s.cockroachdbClient.GetGroupByID(ctx, group.ID, map[api.FilterType][]string{})
+	currentGroup, err := s.databaseClient.GetGroupByID(ctx, group.ID, map[api.FilterType][]string{})
 	if err != nil {
 		return
 	}
@@ -239,13 +239,13 @@ func (s *service) UpdateGroup(ctx context.Context, group contracts.Group) (err e
 	currentGroup.Organizations = group.Organizations
 	currentGroup.Roles = group.Roles
 
-	return s.cockroachdbClient.UpdateGroup(ctx, *currentGroup)
+	return s.databaseClient.UpdateGroup(ctx, *currentGroup)
 }
 
 func (s *service) DeleteGroup(ctx context.Context, id string) (err error) {
 
 	// get group from db
-	currentGroup, err := s.cockroachdbClient.GetGroupByID(ctx, id, map[api.FilterType][]string{})
+	currentGroup, err := s.databaseClient.GetGroupByID(ctx, id, map[api.FilterType][]string{})
 	if err != nil {
 		return
 	}
@@ -253,7 +253,7 @@ func (s *service) DeleteGroup(ctx context.Context, id string) (err error) {
 		return fmt.Errorf("Group is nil")
 	}
 
-	return s.cockroachdbClient.DeleteGroup(ctx, *currentGroup)
+	return s.databaseClient.DeleteGroup(ctx, *currentGroup)
 }
 
 func (s *service) CreateOrganization(ctx context.Context, organization contracts.Organization) (insertedOrganization *contracts.Organization, err error) {
@@ -266,13 +266,13 @@ func (s *service) CreateOrganization(ctx context.Context, organization contracts
 		Roles:      organization.Roles,
 	}
 
-	return s.cockroachdbClient.InsertOrganization(ctx, *insertedOrganization)
+	return s.databaseClient.InsertOrganization(ctx, *insertedOrganization)
 }
 
 func (s *service) UpdateOrganization(ctx context.Context, organization contracts.Organization) (err error) {
 
 	// get organization from db
-	currentOrganization, err := s.cockroachdbClient.GetOrganizationByID(ctx, organization.ID)
+	currentOrganization, err := s.databaseClient.GetOrganizationByID(ctx, organization.ID)
 	if err != nil {
 		return
 	}
@@ -285,13 +285,13 @@ func (s *service) UpdateOrganization(ctx context.Context, organization contracts
 	currentOrganization.Identities = organization.Identities
 	currentOrganization.Roles = organization.Roles
 
-	return s.cockroachdbClient.UpdateOrganization(ctx, *currentOrganization)
+	return s.databaseClient.UpdateOrganization(ctx, *currentOrganization)
 }
 
 func (s *service) DeleteOrganization(ctx context.Context, id string) (err error) {
 
 	// get organization from db
-	currentOrganization, err := s.cockroachdbClient.GetOrganizationByID(ctx, id)
+	currentOrganization, err := s.databaseClient.GetOrganizationByID(ctx, id)
 	if err != nil {
 		return
 	}
@@ -299,7 +299,7 @@ func (s *service) DeleteOrganization(ctx context.Context, id string) (err error)
 		return fmt.Errorf("Organization is nil")
 	}
 
-	return s.cockroachdbClient.DeleteOrganization(ctx, *currentOrganization)
+	return s.databaseClient.DeleteOrganization(ctx, *currentOrganization)
 }
 
 func (s *service) CreateClient(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error) {
@@ -324,13 +324,13 @@ func (s *service) CreateClient(ctx context.Context, client contracts.Client) (in
 	insertedClient.ClientSecret = clientSecret
 	insertedClient.ClientID = uuid.New().String()
 
-	return s.cockroachdbClient.InsertClient(ctx, *insertedClient)
+	return s.databaseClient.InsertClient(ctx, *insertedClient)
 }
 
 func (s *service) UpdateClient(ctx context.Context, client contracts.Client) (err error) {
 
 	// get client from db
-	currentClient, err := s.cockroachdbClient.GetClientByID(ctx, client.ID)
+	currentClient, err := s.databaseClient.GetClientByID(ctx, client.ID)
 	if err != nil {
 		return
 	}
@@ -343,13 +343,13 @@ func (s *service) UpdateClient(ctx context.Context, client contracts.Client) (er
 	currentClient.Roles = client.Roles
 	currentClient.Organizations = client.Organizations
 
-	return s.cockroachdbClient.UpdateClient(ctx, *currentClient)
+	return s.databaseClient.UpdateClient(ctx, *currentClient)
 }
 
 func (s *service) DeleteClient(ctx context.Context, id string) (err error) {
 
 	// get client from db
-	currentClient, err := s.cockroachdbClient.GetClientByID(ctx, id)
+	currentClient, err := s.databaseClient.GetClientByID(ctx, id)
 	if err != nil {
 		return
 	}
@@ -357,12 +357,12 @@ func (s *service) DeleteClient(ctx context.Context, id string) (err error) {
 		return fmt.Errorf("Client is nil")
 	}
 
-	return s.cockroachdbClient.DeleteClient(ctx, *currentClient)
+	return s.databaseClient.DeleteClient(ctx, *currentClient)
 }
 
 func (s *service) UpdatePipeline(ctx context.Context, pipeline contracts.Pipeline) (err error) {
 	// get pipeline from db
-	currentPipeline, err := s.cockroachdbClient.GetPipeline(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, map[api.FilterType][]string{}, true)
+	currentPipeline, err := s.databaseClient.GetPipeline(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, map[api.FilterType][]string{}, true)
 	if err != nil {
 		return
 	}
@@ -375,7 +375,7 @@ func (s *service) UpdatePipeline(ctx context.Context, pipeline contracts.Pipelin
 	currentPipeline.Organizations = pipeline.Organizations
 	currentPipeline.Archived = pipeline.Archived
 
-	return s.cockroachdbClient.UpdateComputedPipelinePermissions(ctx, *currentPipeline)
+	return s.databaseClient.UpdateComputedPipelinePermissions(ctx, *currentPipeline)
 }
 
 func (s *service) GetInheritedRolesForUser(ctx context.Context, user contracts.User) (roles []*string, err error) {
@@ -387,7 +387,7 @@ func (s *service) GetInheritedRolesForUser(ctx context.Context, user contracts.U
 
 	// get roles from groups linked to user
 	for _, g := range user.Groups {
-		group, err := s.cockroachdbClient.GetGroupByID(ctx, g.ID, map[api.FilterType][]string{})
+		group, err := s.databaseClient.GetGroupByID(ctx, g.ID, map[api.FilterType][]string{})
 		if err != nil {
 			return nil, err
 		}
@@ -395,7 +395,7 @@ func (s *service) GetInheritedRolesForUser(ctx context.Context, user contracts.U
 
 		// get roles from organizations linked to groups
 		for _, o := range group.Organizations {
-			organization, err := s.cockroachdbClient.GetOrganizationByID(ctx, o.ID)
+			organization, err := s.databaseClient.GetOrganizationByID(ctx, o.ID)
 			if err != nil {
 				return nil, err
 			}
@@ -405,7 +405,7 @@ func (s *service) GetInheritedRolesForUser(ctx context.Context, user contracts.U
 
 	// get roles from organizations linked to user
 	for _, o := range user.Organizations {
-		organization, err := s.cockroachdbClient.GetOrganizationByID(ctx, o.ID)
+		organization, err := s.databaseClient.GetOrganizationByID(ctx, o.ID)
 		if err != nil {
 			return nil, err
 		}

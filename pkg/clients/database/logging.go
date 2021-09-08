@@ -1,4 +1,4 @@
-package cockroachdb
+package database
 
 import (
 	"context"
@@ -29,6 +29,12 @@ func (c *loggingClient) ConnectWithDriverAndSource(ctx context.Context, driverNa
 	defer func() { api.HandleLogError(c.prefix, "Client", "ConnectWithDriverAndSource", err) }()
 
 	return c.Client.ConnectWithDriverAndSource(ctx, driverName, dataSourceName)
+}
+
+func (c *loggingClient) AwaitDatabaseReadiness(ctx context.Context) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "AwaitDatabaseReadiness", err) }()
+
+	return c.Client.AwaitDatabaseReadiness(ctx)
 }
 
 func (c *loggingClient) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error) {

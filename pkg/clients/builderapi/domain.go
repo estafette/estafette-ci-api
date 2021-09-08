@@ -3,7 +3,7 @@ package builderapi
 import (
 	"fmt"
 
-	"github.com/estafette/estafette-ci-api/pkg/clients/cockroachdb"
+	"github.com/estafette/estafette-ci-api/pkg/clients/database"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 )
@@ -13,7 +13,7 @@ type CiBuilderParams struct {
 	BuilderConfig        contracts.BuilderConfig
 	EnvironmentVariables map[string]string
 	OperatingSystem      manifest.OperatingSystem
-	JobResources         cockroachdb.JobResources
+	JobResources         database.JobResources
 }
 
 // GetFullRepoPath returns the full path of the pipeline / build / release repository with source, owner and name

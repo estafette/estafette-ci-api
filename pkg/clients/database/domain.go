@@ -1,4 +1,4 @@
-package cockroachdb
+package database
 
 import "time"
 

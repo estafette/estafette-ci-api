@@ -5,25 +5,25 @@ import (
 	"sort"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
-	"github.com/estafette/estafette-ci-api/pkg/clients/cockroachdb"
+	"github.com/estafette/estafette-ci-api/pkg/clients/database"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
 
 // NewHandler returns a new rbac.Handler
-func NewHandler(config *api.APIConfig, service Service, cockroachdbClient cockroachdb.Client) Handler {
+func NewHandler(config *api.APIConfig, service Service, databaseClient database.Client) Handler {
 	return Handler{
-		config:            config,
-		service:           service,
-		cockroachdbClient: cockroachdbClient,
+		config:         config,
+		service:        service,
+		databaseClient: databaseClient,
 	}
 }
 
 type Handler struct {
-	config            *api.APIConfig
-	service           Service
-	cockroachdbClient cockroachdb.Client
+	config         *api.APIConfig
+	service        Service
+	databaseClient database.Client
 }
 
 func (h *Handler) GetCatalogEntityLabels(c *gin.Context) {
@@ -40,7 +40,7 @@ func (h *Handler) GetCatalogEntityLabels(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			catalogEntityKeys, err := h.cockroachdbClient.GetCatalogEntityLabels(ctx, pageNumber, pageSize, filters)
+			catalogEntityKeys, err := h.databaseClient.GetCatalogEntityLabels(ctx, pageNumber, pageSize, filters)
 			if err != nil {
 				return nil, err
 			}
@@ -54,7 +54,7 @@ func (h *Handler) GetCatalogEntityLabels(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetCatalogEntityLabelsCount(ctx, filters)
+			return h.databaseClient.GetCatalogEntityLabelsCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -82,7 +82,7 @@ func (h *Handler) GetCatalogEntityKeys(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			catalogEntityKeys, err := h.cockroachdbClient.GetCatalogEntityKeys(ctx, pageNumber, pageSize, filters, sortings)
+			catalogEntityKeys, err := h.databaseClient.GetCatalogEntityKeys(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -96,7 +96,7 @@ func (h *Handler) GetCatalogEntityKeys(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetCatalogEntityKeysCount(ctx, filters)
+			return h.databaseClient.GetCatalogEntityKeysCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -124,7 +124,7 @@ func (h *Handler) GetCatalogEntityValues(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			catalogEntityValues, err := h.cockroachdbClient.GetCatalogEntityValues(ctx, pageNumber, pageSize, filters, sortings)
+			catalogEntityValues, err := h.databaseClient.GetCatalogEntityValues(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -138,7 +138,7 @@ func (h *Handler) GetCatalogEntityValues(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetCatalogEntityValuesCount(ctx, filters)
+			return h.databaseClient.GetCatalogEntityValuesCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -166,7 +166,7 @@ func (h *Handler) GetCatalogEntityParentKeys(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			catalogEntityKeys, err := h.cockroachdbClient.GetCatalogEntityParentKeys(ctx, pageNumber, pageSize, filters, sortings)
+			catalogEntityKeys, err := h.databaseClient.GetCatalogEntityParentKeys(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -180,7 +180,7 @@ func (h *Handler) GetCatalogEntityParentKeys(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetCatalogEntityParentKeysCount(ctx, filters)
+			return h.databaseClient.GetCatalogEntityParentKeysCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -208,7 +208,7 @@ func (h *Handler) GetCatalogEntityParentValues(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			catalogEntityValues, err := h.cockroachdbClient.GetCatalogEntityParentValues(ctx, pageNumber, pageSize, filters, sortings)
+			catalogEntityValues, err := h.databaseClient.GetCatalogEntityParentValues(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -222,7 +222,7 @@ func (h *Handler) GetCatalogEntityParentValues(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetCatalogEntityParentValuesCount(ctx, filters)
+			return h.databaseClient.GetCatalogEntityParentValuesCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -250,7 +250,7 @@ func (h *Handler) GetCatalogEntities(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			catalogEntities, err := h.cockroachdbClient.GetCatalogEntities(ctx, pageNumber, pageSize, filters, sortings)
+			catalogEntities, err := h.databaseClient.GetCatalogEntities(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -264,7 +264,7 @@ func (h *Handler) GetCatalogEntities(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetCatalogEntitiesCount(ctx, filters)
+			return h.databaseClient.GetCatalogEntitiesCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -289,7 +289,7 @@ func (h *Handler) GetCatalogEntity(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
 
-	catalogEntity, err := h.cockroachdbClient.GetCatalogEntityByID(ctx, id)
+	catalogEntity, err := h.databaseClient.GetCatalogEntityByID(ctx, id)
 	if err != nil || catalogEntity == nil {
 		log.Error().Err(err).Msgf("Failed retrieving catalogEntity with id %v from db", id)
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
@@ -396,7 +396,7 @@ func (h *Handler) GetCatalogUsers(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			users, err := h.cockroachdbClient.GetUsers(ctx, pageNumber, pageSize, filters, sortings)
+			users, err := h.databaseClient.GetUsers(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -416,7 +416,7 @@ func (h *Handler) GetCatalogUsers(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetUsersCount(ctx, filters)
+			return h.databaseClient.GetUsersCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -437,7 +437,7 @@ func (h *Handler) GetCatalogUser(c *gin.Context) {
 
 	filters := api.SetPermissionsFilters(c, map[api.FilterType][]string{})
 
-	user, err := h.cockroachdbClient.GetUserByID(ctx, id, filters)
+	user, err := h.databaseClient.GetUserByID(ctx, id, filters)
 	if err != nil || user == nil {
 		log.Error().Err(err).Msgf("Failed retrieving user with id %v from db", id)
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})
@@ -458,7 +458,7 @@ func (h *Handler) GetCatalogGroups(c *gin.Context) {
 
 	response, err := api.GetPagedListResponse(
 		func() ([]interface{}, error) {
-			groups, err := h.cockroachdbClient.GetGroups(ctx, pageNumber, pageSize, filters, sortings)
+			groups, err := h.databaseClient.GetGroups(ctx, pageNumber, pageSize, filters, sortings)
 			if err != nil {
 				return nil, err
 			}
@@ -478,7 +478,7 @@ func (h *Handler) GetCatalogGroups(c *gin.Context) {
 			return items, nil
 		},
 		func() (int, error) {
-			return h.cockroachdbClient.GetGroupsCount(ctx, filters)
+			return h.databaseClient.GetGroupsCount(ctx, filters)
 		},
 		pageNumber,
 		pageSize)
@@ -499,7 +499,7 @@ func (h *Handler) GetCatalogGroup(c *gin.Context) {
 
 	filters := api.SetPermissionsFilters(c, map[api.FilterType][]string{})
 
-	group, err := h.cockroachdbClient.GetGroupByID(ctx, id, filters)
+	group, err := h.databaseClient.GetGroupByID(ctx, id, filters)
 	if err != nil || group == nil {
 		log.Error().Err(err).Msgf("Failed retrieving group with id %v from db", id)
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound)})

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
-	"github.com/estafette/estafette-ci-api/pkg/clients/cockroachdb"
+	"github.com/estafette/estafette-ci-api/pkg/clients/database"
 	contracts "github.com/estafette/estafette-ci-contracts"
 )
 
@@ -17,26 +17,26 @@ type Service interface {
 }
 
 // NewService returns a github.Service to handle incoming webhook events
-func NewService(config *api.APIConfig, cockroachdbClient cockroachdb.Client) Service {
+func NewService(config *api.APIConfig, databaseClient database.Client) Service {
 	return &service{
-		config:            config,
-		cockroachdbClient: cockroachdbClient,
+		config:         config,
+		databaseClient: databaseClient,
 	}
 }
 
 type service struct {
-	config            *api.APIConfig
-	cockroachdbClient cockroachdb.Client
+	config         *api.APIConfig
+	databaseClient database.Client
 }
 
 func (s *service) CreateCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (insertedCatalogEntity *contracts.CatalogEntity, err error) {
-	return s.cockroachdbClient.InsertCatalogEntity(ctx, catalogEntity)
+	return s.databaseClient.InsertCatalogEntity(ctx, catalogEntity)
 }
 
 func (s *service) UpdateCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (err error) {
-	return s.cockroachdbClient.UpdateCatalogEntity(ctx, catalogEntity)
+	return s.databaseClient.UpdateCatalogEntity(ctx, catalogEntity)
 }
 
 func (s *service) DeleteCatalogEntity(ctx context.Context, id string) (err error) {
-	return s.cockroachdbClient.DeleteCatalogEntity(ctx, id)
+	return s.databaseClient.DeleteCatalogEntity(ctx, id)
 }

@@ -1,4 +1,4 @@
-package cockroachdb
+package database
 
 import (
 	"context"
@@ -40,11 +40,12 @@ var (
 	ErrCatalogEntityNotFound = errors.New("the catalog entity can't be found")
 )
 
-// Client is the interface for communicating with CockroachDB
-//go:generate mockgen -package=cockroachdb -destination ./mock.go -source=client.go
+// Client is the interface for communicating with the database
+//go:generate mockgen -package=database -destination ./mock.go -source=client.go
 type Client interface {
 	Connect(ctx context.Context) (err error)
 	ConnectWithDriverAndSource(ctx context.Context, driverName, dataSourceName string) (err error)
+	AwaitDatabaseReadiness(ctx context.Context) (err error)
 
 	GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwner, repoName string) (autoincrement int, err error)
 	InsertBuild(ctx context.Context, build contracts.Build, jobResources JobResources) (b *contracts.Build, err error)
@@ -286,6 +287,12 @@ func (c *client) ConnectWithDriverAndSource(ctx context.Context, driverName, dat
 	}
 
 	return
+}
+
+func (c *client) AwaitDatabaseReadiness(ctx context.Context) (err error) {
+	return foundation.Retry(func() error {
+		return c.databaseConnection.Ping()
+	}, foundation.Attempts(12), foundation.DelayMillisecond(5000), foundation.Fixed())
 }
 
 // GetAutoIncrement returns the autoincrement number for a pipeline

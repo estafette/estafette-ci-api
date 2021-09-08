@@ -10,7 +10,7 @@ import (
 	"github.com/estafette/estafette-ci-api/pkg/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/pkg/clients/cloudsourceapi"
 	"github.com/estafette/estafette-ci-api/pkg/clients/cloudstorage"
-	"github.com/estafette/estafette-ci-api/pkg/clients/cockroachdb"
+	"github.com/estafette/estafette-ci-api/pkg/clients/database"
 	"github.com/estafette/estafette-ci-api/pkg/clients/githubapi"
 	"github.com/estafette/estafette-ci-api/pkg/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/pkg/clients/slackapi"
@@ -42,7 +42,7 @@ func TestConfigureGinGonic(t *testing.T) {
 			},
 		}
 
-		cockroachdbClient := cockroachdb.NewMockClient(ctrl)
+		databaseClient := database.NewMockClient(ctrl)
 		cloudstorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)
@@ -60,13 +60,13 @@ func TestConfigureGinGonic(t *testing.T) {
 
 		bitbucketHandler := bitbucket.NewHandler(bitbucket.NewMockService(ctrl), config, bitbucketapiClient)
 		githubHandler := github.NewHandler(github.NewMockService(ctrl), config, githubapiClient)
-		estafetteHandler := estafette.NewHandler("", "", config, config, cockroachdbClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper)
+		estafetteHandler := estafette.NewHandler("", "", config, config, databaseClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper)
 
-		rbacHandler := rbac.NewHandler(config, rbac.NewMockService(ctrl), cockroachdbClient, bitbucketapiClient, githubapiClient)
+		rbacHandler := rbac.NewHandler(config, rbac.NewMockService(ctrl), databaseClient, bitbucketapiClient, githubapiClient)
 		pubsubHandler := pubsub.NewHandler(pubsubapiclient, estafetteService)
-		slackHandler := slack.NewHandler(secretHelper, config, slackapiClient, cockroachdbClient, estafetteService)
+		slackHandler := slack.NewHandler(secretHelper, config, slackapiClient, databaseClient, estafetteService)
 		cloudsourceHandler := cloudsource.NewHandler(pubsubapiclient, cloudsource.NewMockService(ctrl))
-		catalogHandler := catalog.NewHandler(config, catalog.NewMockService(ctrl), cockroachdbClient)
+		catalogHandler := catalog.NewHandler(config, catalog.NewMockService(ctrl), databaseClient)
 
 		// act
 		_ = configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler, catalogHandler)
