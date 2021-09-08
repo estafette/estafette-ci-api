@@ -172,7 +172,7 @@ stages:
       ingress:
         enabled: true
         hosts:
-        - host: {{ $.Values.baseHost }}
+        - host: "{{ $.Values.baseHost }}"
           paths:
           - path: /api/
             pathType: Prefix
@@ -191,7 +191,7 @@ stages:
       ingressWebhooks:
         enabled: true
         hosts:
-        - host: {{ $.Values.integrationsHost }}
+        - host: "{{ $.Values.integrationsHost }}"
           paths:
           - path: /api/integrations/github/
             pathType: Prefix
