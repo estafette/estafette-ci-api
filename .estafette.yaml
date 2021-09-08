@@ -167,6 +167,8 @@ stages:
         env:
         - name: JAEGER_DISABLED
           value: 'true'
+        extraVolumes: |
+        extraVolumeMounts: |
       ingress:
         enabled: true
         hosts:

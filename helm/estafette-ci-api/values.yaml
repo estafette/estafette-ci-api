@@ -57,9 +57,26 @@ deployment:
 
   # specify extra volumes 
   extraVolumes: |
+    - name: client-certificate
+      projected:
+        sources:
+        - secret:
+            name: estafette-ci-db-client-secret
+            items:
+            - key: ca.crt
+              path: ca.crt
+              mode: 256
+            - key: tls.crt
+              path: tls.crt
+              mode: 256
+            - key: tls.key
+              path: tls.key
+              mode: 256
 
   # specify extra volume mounts for the main container
   extraVolumeMounts: |
+    - name: client-certificate
+      mountPath: /cockroach-certs
 
 imagePullSecrets: []
 nameOverride: ""
