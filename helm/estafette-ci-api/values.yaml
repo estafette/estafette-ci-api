@@ -8,10 +8,16 @@ image:
     # username: john_doe
     # password: changeme
 
+# the following log formats are available: plaintext, console, json, stackdriver, v3 (see https://github.com/estafette/estafette-foundation for more info)
+logFormat: plaintext
+
+# the following levels and upwards will be logged: disabled, trace, debug, info, warn, error, fatal, panic (see https://github.com/estafette/estafette-foundation for more info)
+logLevel: debug
+
 deployment:
   replicaCount: 1
 
-  env: []
+  extraEnv: []
 
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious

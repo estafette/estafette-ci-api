@@ -58,8 +58,12 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- with .Values.deployment.env }}
           env:
+            - name: "ESTAFETTE_LOG_FORMAT"
+              value: "{{ .Values.logFormat }}"
+            - name: "ESTAFETTE_LOG_LEVEL"
+              value: "{{ .Values.logLevel }}"
+          {{- with .Values.deployment.extraEnv }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
