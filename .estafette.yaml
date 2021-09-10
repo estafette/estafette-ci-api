@@ -47,14 +47,6 @@ stages:
         - apk add --update --no-cache build-base
         - go test -short -race ./...
 
-      lint-helm-chart:
-        image: extensions/helm:dev
-        action: lint
-
-      package-helm-chart:
-        image: extensions/helm:dev
-        action: package
-
   integration-tests-against-cockroachdb-prepare:
     services:
     - name: cockroachdb
@@ -147,100 +139,6 @@ stages:
     action: push
     repositories:
     - estafette
-
-  test-helm-chart-1.21:
-    services:
-    - name: kubernetes
-      image: bsycorp/kind:latest-1.21
-      readiness:
-        path: /kubernetes-ready
-        port: 10080
-        timeoutSeconds: 120
-    image: extensions/helm:dev
-    action: test
-    values: |-
-      deployment:
-        env:
-        - name: JAEGER_DISABLED
-          value: 'true'
-        extraVolumes: |
-        extraVolumeMounts: |
-      ingress:
-        enabled: true
-        hosts:
-        - host: "{{ $.Values.baseHost }}"
-          paths:
-          - path: /api/
-            pathType: Prefix
-            backend:
-              service:
-                name: estafette-ci-api
-                port:
-                  name: http
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: estafette-ci-web
-                port:
-                  name: http
-      ingressWebhooks:
-        enabled: true
-        hosts:
-        - host: "{{ $.Values.integrationsHost }}"
-          paths:
-          - path: /api/integrations/github/
-            pathType: Prefix
-            backend:
-              service:
-                name: estafette-ci-api
-                port:
-                  name: http
-
-      extraLabels:
-        team: estafette
-
-      extraSecrets:
-      - key: gcp
-        annotations: {}
-        mountPath: /gcp
-        data:
-          service-account-key.json: |
-            {}
-
-      extraConfigmaps:
-      - key: templates
-        annotations: {}
-        mountPath: /templates
-        data: |
-          manifest-docker.tmpl: |
-            labels:
-              container: {{.ContainerName}}
-              team: {{.TeamName}}
-              language: docker
-
-            stages:
-              bake:
-                image: extensions/docker:stable
-                action: build
-                repositories:
-                - estafette
-
-              push-to-docker-registry:
-                image: extensions/docker:stable
-                action: push
-                repositories:
-                - estafette
-
-  clone-charts-repo:
-    image: extensions/git-clone:dev
-    repo: helm-charts
-    branch: main
-
-  publish-helm-chart:
-    image: extensions/helm:dev
-    action: publish
-    repoBranch: main
 
   slack-notify:
     image: extensions/slack-build-status:dev
@@ -396,19 +294,3 @@ releases:
         when:
           status == 'succeeded' ||
           status == 'failed'
-
-  release:
-    stages:
-      clone-charts-repo:
-        image: extensions/git-clone:dev
-        repo: helm-charts
-        branch: main
-
-      purge-prerelease-helm-charts:
-        image: extensions/helm:dev
-        action: purge
-        repoBranch: main
-
-      create-github-release:
-        image: extensions/github-release:dev
-        ignoreMissingMilestone: true
