@@ -416,21 +416,3 @@ releases:
       create-github-release:
         image: extensions/github-release:dev
         ignoreMissingMilestone: true
-
-  helm-diff:
-    stages:
-      diff:
-        image: extensions/helm:dev
-        credentials: gke-tooling-estafette
-        action: diff
-        tillerless: true
-        namespace: estafette
-        values: |-
-          jobs:
-            namespace: estafette-ci-jobs
-          secret:
-            decryptionKey: 1PsvXVOMkhfAQuBIcIGCtzIdPXNV0NYG
-          hostnames:
-          - estafette.secret(z6C9Piz4EhMxWMc8.uxcITmg39HiLJuuqSyPRM06PTWNd6S1x1QxfYYeyGoBLcgkM)
-          jaeger:
-            enable: true
