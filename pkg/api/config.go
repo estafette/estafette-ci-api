@@ -450,11 +450,12 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 		return identity, nil
 
 	case "github":
-
-		_, body, callErr := p.callGithubAPI(ctx, "GET", "https://api.github.com/user", nil, "Bearer", token.AccessToken)
+		statusCode, body, callErr := p.callGithubAPI(ctx, "GET", "https://api.github.com/user", nil, "Bearer", token.AccessToken)
 		if callErr != nil {
 			return nil, callErr
 		}
+
+		log.Debug().Str("body", string(body)).Int("statusCode", statusCode).Msg("Fetched user details from github api")
 
 		var githubUser struct {
 			ID     int    `json:"id"`
