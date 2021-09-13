@@ -1649,7 +1649,7 @@ func TestIntegrationGetUserByIdentity(t *testing.T) {
 		assert.Nil(t, err)
 
 		identity := contracts.UserIdentity{
-			Provider: "microsoft",
+			Provider: "github",
 			Email:    "wilson-test@homeimprovement.com",
 		}
 

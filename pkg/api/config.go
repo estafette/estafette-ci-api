@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"regexp"
 	"strings"
 
@@ -390,20 +389,11 @@ func (p *OAuthProvider) GetConfig(baseURL string) *oauth2.Config {
 		oauthConfig.Scopes = []string{
 			"https://www.googleapis.com/auth/userinfo.email",
 		}
-	case "microsoft":
-		oauthConfig.Endpoint = endpoints.Microsoft
-		oauthConfig.Scopes = []string{
-			"user.read+openid+profile+email",
-		}
-	case "facebook":
-		oauthConfig.Endpoint = endpoints.Facebook
 	case "github":
 		oauthConfig.Endpoint = endpoints.GitHub
-	case "bitbucket":
-		oauthConfig.Endpoint = endpoints.Bitbucket
-	case "gitlab":
-		oauthConfig.Endpoint = endpoints.GitLab
-
+		oauthConfig.Scopes = []string{
+			"user:email",
+		}
 	default:
 		return nil
 	}
@@ -450,43 +440,32 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 
 		return identity, nil
 
-	case "microsoft":
-
-		client := config.Client(ctx, token)
-
-		// retrieve userinfo
-		resp, err := client.Get("https://graph.microsoft.com/v1.0/me")
+	case "github":
+		oauth2Service, err := googleoauth2v2.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
 		if err != nil {
 			return nil, err
 		}
-		defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("Calling microsoft graph returned unexpected status code %v", resp.StatusCode)
-		}
-
-		body, err := ioutil.ReadAll(resp.Body)
+		// retrieve userinfo
+		userInfo, err := oauth2Service.Userinfo.Get().Do()
 		if err != nil {
-			return identity, err
+			return nil, err
 		}
 
-		var userInfo struct {
-			ID      string `json:"id,omitempty"`
-			Email   string `json:"mail,omitempty"`
-			Name    string `json:"displayName,omitempty"`
-			Picture string `json:"picture,omitempty"`
+		username := userInfo.Name
+		if username == "" && (userInfo.GivenName != "" || userInfo.FamilyName != "") {
+			username = strings.Trim(fmt.Sprintf("%v %v", userInfo.GivenName, userInfo.FamilyName), " ")
 		}
-
-		if err = json.Unmarshal(body, &userInfo); err != nil {
-			return nil, fmt.Errorf("Unmarshalling userinfo from microsoft graph body failed: %v", body)
+		if username == "" {
+			username = userInfo.Email
 		}
 
 		// map userinfo to user identity
 		identity = &contracts.UserIdentity{
 			Provider: p.Name,
 			Email:    userInfo.Email,
-			Name:     userInfo.Name,
-			ID:       userInfo.ID,
+			Name:     username,
+			ID:       userInfo.Id,
 			Avatar:   userInfo.Picture,
 		}
 
