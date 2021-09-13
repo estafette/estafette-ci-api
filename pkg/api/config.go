@@ -311,9 +311,13 @@ func (c *APIServerConfig) ReadLogFromCloudStorage() bool {
 
 // AuthConfig determines whether to use IAP for authentication and authorization
 type AuthConfig struct {
-	JWT            *JWTConfig                `yaml:"jwt" env:",prefix=JWT_"`
-	Administrators []string                  `yaml:"administrators" env:"ADMINISTRATORS"`
-	Organizations  []*AuthOrganizationConfig `yaml:"organizations" env:"ORGANIZATIONS"`
+	JWT            *JWTConfig `yaml:"jwt" env:",prefix=JWT_"`
+	Administrators []string   `yaml:"administrators" env:"ADMINISTRATORS"`
+
+	GoogleProvider *OAuthProvider `yaml:"google" env:",prefix=GOOGLE_"`
+	GithubProvider *OAuthProvider `yaml:"github" env:",prefix=GITHUB_"`
+
+	Organizations []*AuthOrganizationConfig `yaml:"organizations"`
 }
 
 func (c *AuthConfig) SetDefaults() {
@@ -321,6 +325,13 @@ func (c *AuthConfig) SetDefaults() {
 		c.JWT = &JWTConfig{}
 	}
 	c.JWT.SetDefaults()
+
+	if c.GoogleProvider != nil {
+		c.GoogleProvider.Name = "google"
+	}
+	if c.GithubProvider != nil {
+		c.GithubProvider.Name = "github"
+	}
 }
 
 func (c *AuthConfig) Validate() (err error) {

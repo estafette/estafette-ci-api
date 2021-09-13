@@ -75,6 +75,15 @@ func (s *service) GetProviders(ctx context.Context) (providers map[string][]*api
 	for _, c := range s.config.Auth.Organizations {
 		providers[c.Name] = c.OAuthProviders
 	}
+
+	if s.config.Auth.GoogleProvider != nil && s.config.Auth.GoogleProvider.ClientID != "" {
+		providers["none"] = append(providers["none"], s.config.Auth.GoogleProvider)
+	}
+
+	if s.config.Auth.GithubProvider != nil && s.config.Auth.GithubProvider.ClientID != "" {
+		providers["none"] = append(providers["none"], s.config.Auth.GithubProvider)
+	}
+
 	return providers, nil
 }
 
@@ -84,7 +93,7 @@ func (s *service) GetProviderByName(ctx context.Context, organization, name stri
 		return
 	}
 
-	if organization == "" {
+	if organization == "" || organization == "none" {
 		// go through all organizations and pick the first match
 		for _, orgProviders := range providers {
 			for _, p := range orgProviders {

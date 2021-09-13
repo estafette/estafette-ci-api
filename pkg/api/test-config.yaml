@@ -134,6 +134,14 @@ auth:
   administrators:
   - admin1@server.com
   - admin2@server.com
+  google:
+    clientID: abcdasa
+    clientSecret: asdsddsfdfs
+    allowedIdentitiesRegex: .+@estafette\.io
+  github:
+    clientID: abcdasa
+    clientSecret: asdsddsfdfs
+    allowedIdentitiesRegex: .+@estafette\.io
   organizations:
   - name: Org A
     oauthProviders:
@@ -150,9 +158,9 @@ auth:
   - name: Org C
     oauthProviders:
     - name: github
-    clientID: abcdasa
-    clientSecret: asdsddsfdfs
-    allowedIdentitiesRegex: .+@estafette\.io
+      clientID: abcdasa
+      clientSecret: asdsddsfdfs
+      allowedIdentitiesRegex: .+@estafette\.io
 
 jobs:
   namespace: estafette-ci-jobs
