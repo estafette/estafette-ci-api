@@ -21,14 +21,14 @@ import (
 
 // APIConfig represent the configuration for the entire api application
 type APIConfig struct {
-	Integrations        *APIConfigIntegrations                 `yaml:"integrations,omitempty"`
-	APIServer           *APIServerConfig                       `yaml:"apiServer,omitempty"`
-	Auth                *AuthConfig                            `yaml:"auth,omitempty"`
-	Jobs                *JobsConfig                            `yaml:"jobs,omitempty"`
-	Database            *DatabaseConfig                        `yaml:"database,omitempty"`
-	Queue               *QueueConfig                           `yaml:"queue,omitempty"`
-	ManifestPreferences *manifest.EstafetteManifestPreferences `yaml:"manifestPreferences,omitempty"`
-	Catalog             *CatalogConfig                         `yaml:"catalog,omitempty"`
+	Integrations        *APIConfigIntegrations                 `yaml:"integrations,omitempty" env:",prefix=INTEGRATIONS_"`
+	APIServer           *APIServerConfig                       `yaml:"apiServer,omitempty" env:",prefix=APISERVER_"`
+	Auth                *AuthConfig                            `yaml:"auth,omitempty" env:",prefix=AUTH_"`
+	Jobs                *JobsConfig                            `yaml:"jobs,omitempty" env:",prefix=JOBS_"`
+	Database            *DatabaseConfig                        `yaml:"database,omitempty" env:",prefix=DATABASE_"`
+	Queue               *QueueConfig                           `yaml:"queue,omitempty" env:",prefix=QUEUE_"`
+	ManifestPreferences *manifest.EstafetteManifestPreferences `yaml:"manifestPreferences,omitempty" env:",prefix=MANIFESTPREFERENCES_"`
+	Catalog             *CatalogConfig                         `yaml:"catalog,omitempty" env:",prefix=CATALOG_"`
 	Credentials         []*contracts.CredentialConfig          `yaml:"credentials,omitempty" json:"credentials,omitempty"`
 	TrustedImages       []*contracts.TrustedImageConfig        `yaml:"trustedImages,omitempty" json:"trustedImages,omitempty"`
 }
@@ -813,14 +813,14 @@ func (c *CatalogConfig) Validate() (err error) {
 
 // APIConfigIntegrations contains config for 3rd party integrations
 type APIConfigIntegrations struct {
-	Github       *GithubConfig       `yaml:"github,omitempty"`
-	Bitbucket    *BitbucketConfig    `yaml:"bitbucket,omitempty"`
-	Slack        *SlackConfig        `yaml:"slack,omitempty"`
-	Pubsub       *PubsubConfig       `yaml:"pubsub,omitempty"`
-	Prometheus   *PrometheusConfig   `yaml:"prometheus,omitempty"`
-	BigQuery     *BigQueryConfig     `yaml:"bigquery,omitempty"`
-	CloudStorage *CloudStorageConfig `yaml:"gcs,omitempty"`
-	CloudSource  *CloudSourceConfig  `yaml:"cloudsource,omitempty"`
+	Github       *GithubConfig       `yaml:"github,omitempty" env:",prefix=GITHUB_"`
+	Bitbucket    *BitbucketConfig    `yaml:"bitbucket,omitempty" env:",prefix=BITBUCKET_"`
+	Slack        *SlackConfig        `yaml:"slack,omitempty" env:",prefix=SLACK_"`
+	Pubsub       *PubsubConfig       `yaml:"pubsub,omitempty" env:",prefix=PUBSUB_"`
+	Prometheus   *PrometheusConfig   `yaml:"prometheus,omitempty" env:",prefix=PROMETHEUS_"`
+	BigQuery     *BigQueryConfig     `yaml:"bigquery,omitempty" env:",prefix=BIGQUERY_"`
+	CloudStorage *CloudStorageConfig `yaml:"gcs,omitempty" env:",prefix=CLOUDSTORAGE_"`
+	CloudSource  *CloudSourceConfig  `yaml:"cloudsource,omitempty" env:",prefix=CLOUDSOURCE_"`
 }
 
 func (c *APIConfigIntegrations) SetDefaults() {

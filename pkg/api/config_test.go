@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"math"
+	"os"
 	"testing"
 
 	contracts "github.com/estafette/estafette-ci-contracts"
@@ -283,37 +284,15 @@ func TestReadConfigFromFile(t *testing.T) {
 		assert.Nil(t, err)
 
 		// build affinity
-		assert.Equal(t, v1.Affinity{
-			NodeAffinity: &v1.NodeAffinity{
-				RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
-					NodeSelectorTerms: []v1.NodeSelectorTerm{
-						{
-							MatchExpressions: []v1.NodeSelectorRequirement{
-								{
-									Key:      "role",
-									Operator: v1.NodeSelectorOpIn,
-									Values:   []string{"privileged"},
-								},
-							},
-						},
-					},
-				},
-				PreferredDuringSchedulingIgnoredDuringExecution: []v1.PreferredSchedulingTerm{
-					{
-						Weight: 10,
-						Preference: v1.NodeSelectorTerm{
-							MatchExpressions: []v1.NodeSelectorRequirement{
-								{
-									Key:      "cloud.google.com/gke-preemptible",
-									Operator: v1.NodeSelectorOpIn,
-									Values:   []string{"true"},
-								},
-							},
-						},
-					},
-				},
-			},
-		}, *jobsConfig.BuildAffinityAndTolerations.Affinity)
+		assert.Equal(t, "role", jobsConfig.BuildAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Key)
+		assert.Equal(t, v1.NodeSelectorOpIn, jobsConfig.BuildAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Operator)
+		assert.Equal(t, 1, len(jobsConfig.BuildAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Values))
+		assert.Equal(t, "privileged", jobsConfig.BuildAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Values[0])
+
+		assert.Equal(t, int32(10), jobsConfig.BuildAffinityAndTolerations.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution[0].Weight)
+		assert.Equal(t, "cloud.google.com/gke-preemptible", jobsConfig.BuildAffinityAndTolerations.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution[0].Preference.MatchExpressions[0].Key)
+		assert.Equal(t, v1.NodeSelectorOpIn, jobsConfig.BuildAffinityAndTolerations.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution[0].Preference.MatchExpressions[0].Operator)
+		assert.Equal(t, "true", jobsConfig.BuildAffinityAndTolerations.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution[0].Preference.MatchExpressions[0].Values[0])
 
 		// build tolerations
 		assert.Equal(t, []v1.Toleration{
@@ -332,27 +311,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		}, jobsConfig.BuildAffinityAndTolerations.Tolerations)
 
 		// release affinity
-		assert.Equal(t, v1.Affinity{
-			NodeAffinity: &v1.NodeAffinity{
-				RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
-					NodeSelectorTerms: []v1.NodeSelectorTerm{
-						{
-							MatchExpressions: []v1.NodeSelectorRequirement{
-								{
-									Key:      "role",
-									Operator: v1.NodeSelectorOpIn,
-									Values:   []string{"privileged"},
-								},
-								{
-									Key:      "cloud.google.com/gke-preemptible",
-									Operator: v1.NodeSelectorOpDoesNotExist,
-								},
-							},
-						},
-					},
-				},
-			},
-		}, *jobsConfig.ReleaseAffinityAndTolerations.Affinity)
+		assert.Equal(t, "role", jobsConfig.ReleaseAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Key)
+		assert.Equal(t, v1.NodeSelectorOpIn, jobsConfig.ReleaseAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Operator)
+		assert.Equal(t, "privileged", jobsConfig.ReleaseAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Values[0])
+		assert.Equal(t, "cloud.google.com/gke-preemptible", jobsConfig.ReleaseAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[1].Key)
+		assert.Equal(t, v1.NodeSelectorOpDoesNotExist, jobsConfig.ReleaseAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[1].Operator)
 
 		// release tolerations
 		assert.Equal(t, []v1.Toleration{
@@ -365,27 +328,11 @@ func TestReadConfigFromFile(t *testing.T) {
 		}, jobsConfig.ReleaseAffinityAndTolerations.Tolerations)
 
 		// bot affinity
-		assert.Equal(t, v1.Affinity{
-			NodeAffinity: &v1.NodeAffinity{
-				RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
-					NodeSelectorTerms: []v1.NodeSelectorTerm{
-						{
-							MatchExpressions: []v1.NodeSelectorRequirement{
-								{
-									Key:      "role",
-									Operator: v1.NodeSelectorOpIn,
-									Values:   []string{"privileged"},
-								},
-								{
-									Key:      "cloud.google.com/gke-preemptible",
-									Operator: v1.NodeSelectorOpDoesNotExist,
-								},
-							},
-						},
-					},
-				},
-			},
-		}, *jobsConfig.BotAffinityAndTolerations.Affinity)
+		assert.Equal(t, "role", jobsConfig.BotAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Key)
+		assert.Equal(t, v1.NodeSelectorOpIn, jobsConfig.BotAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Operator)
+		assert.Equal(t, "privileged", jobsConfig.BotAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Values[0])
+		assert.Equal(t, "cloud.google.com/gke-preemptible", jobsConfig.BotAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[1].Key)
+		assert.Equal(t, v1.NodeSelectorOpDoesNotExist, jobsConfig.BotAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[1].Operator)
 
 		// bot tolerations
 		assert.Equal(t, []v1.Toleration{
@@ -536,6 +483,19 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.Equal(t, "{\"name\":\"gke-estafette-production\",\"type\":\"kubernetes-engine\",\"additionalProperties\":{\"cluster\":\"production-europe-west2\",\"defaults\":{\"autoscale\":{\"min\":2},\"container\":{\"repository\":\"estafette\"},\"namespace\":\"estafette\",\"sidecars\":[{\"image\":\"estafette/openresty-sidecar:1.13.6.1-alpine\",\"type\":\"openresty\"}]},\"project\":\"estafette-production\",\"region\":\"europe-west2\",\"serviceAccountKeyfile\":\"{}\"}}", string(bytes))
+	})
+
+	t.Run("Overrides_Integrations_Github_Enabled_From_Envvar", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
+		os.Setenv("ESCI_INTEGRATIONS_GITHUB_ENABLE", "false")
+
+		// act
+		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		assert.Nil(t, err)
+
+		assert.Equal(t, true, config.Integrations.Github.Enable)
+		os.Setenv("ESCI_INTEGRATIONS_GITHUB_ENABLE", "")
 	})
 }
 

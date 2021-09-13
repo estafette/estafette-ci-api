@@ -29,6 +29,7 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/rs/zerolog v1.18.0
 	github.com/sethgrid/pester v1.1.0
+	github.com/sethvargo/go-envconfig v0.3.5
 	github.com/sethvargo/go-password v0.1.3
 	github.com/stretchr/testify v1.7.0
 	github.com/uber/jaeger-client-go v2.22.1+incompatible

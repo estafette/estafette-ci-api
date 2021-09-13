@@ -1,10 +1,12 @@
 package api
 
 import (
+	"context"
 	"io/ioutil"
 
 	crypt "github.com/estafette/estafette-ci-crypt"
 	"github.com/rs/zerolog/log"
+	"github.com/sethvargo/go-envconfig"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -57,6 +59,12 @@ func (h *configReaderImpl) ReadConfigFromFile(configPath string, decryptSecrets 
 	// set jwt key from secret
 	if config.Auth.JWT.Key == "" {
 		config.Auth.JWT.Key = h.jwtKey
+	}
+
+	// override values from envvars
+	lookuper := envconfig.PrefixLookuper("ESCI_", envconfig.OsLookuper())
+	if err = envconfig.ProcessWith(context.Background(), config, lookuper); err != nil {
+		return
 	}
 
 	// validate the config
