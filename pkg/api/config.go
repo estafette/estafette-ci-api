@@ -479,6 +479,35 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 			Avatar:   githubUser.Avatar,
 		}
 
+		if identity.Email == "" {
+
+			statusCode, body, callErr := p.callGithubAPI(ctx, "GET", "https://api.github.com/user/emails", nil, "Bearer", token.AccessToken)
+			if callErr != nil {
+				return nil, callErr
+			}
+
+			log.Debug().Str("body", string(body)).Int("statusCode", statusCode).Msg("Fetched user emails from github api")
+
+			var githubEmails []struct {
+				Email      string `json:"email"`
+				Verified   bool   `json:"verified"`
+				Primary    bool   `json:"primary"`
+				Visibility string `json:"visibility"`
+			}
+
+			// unmarshal json body
+			err = json.Unmarshal(body, &githubEmails)
+			if err != nil {
+				return
+			}
+
+			for _, email := range githubEmails {
+				if email.Verified && email.Primary {
+					identity.Email = email.Email
+				}
+			}
+		}
+
 		return identity, nil
 	}
 
