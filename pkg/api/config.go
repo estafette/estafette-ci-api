@@ -414,6 +414,16 @@ func (c *OAuthProvider) SetDefaults() {
 }
 
 func (c *OAuthProvider) Validate() (err error) {
+	if c.Name == "" {
+		return errors.New("Oauth provider config property `name` is empty")
+	}
+	if c.ClientID == "" {
+		return errors.New("Oauth provider config property `clientID` is empty")
+	}
+	if c.ClientSecret == "" {
+		return errors.New("Oauth provider config property `clientSecret` is empty")
+	}
+
 	return nil
 }
 
