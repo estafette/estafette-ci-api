@@ -272,7 +272,7 @@ var rolesToPermissionMap = map[Role][]Permission{
 		PermissionUsersCreate,
 		PermissionUsersUpdate,
 		PermissionUsersDelete,
-		PermissionUsersImpersonate,
+		// PermissionUsersImpersonate,
 		PermissionGroupsList,
 		PermissionGroupsGet,
 		PermissionGroupsCreate,

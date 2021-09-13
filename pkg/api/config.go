@@ -498,8 +498,11 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 
 		body, callErr := p.callGithubAPI(ctx, "GET", "https://api.github.com/user", []int{http.StatusOK}, nil, "Bearer", token.AccessToken)
 		if callErr != nil {
+			log.Warn().Str("body", string(body)).Msgf("Failed fetching user details from github api")
 			return nil, callErr
 		}
+
+		log.Debug().Str("body", string(body)).Msgf("Fetched user details from github api")
 
 		var githubUser struct {
 			ID     int    `json:"id"`
@@ -530,8 +533,11 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 
 			body, callErr := p.callGithubAPI(ctx, "GET", "https://api.github.com/user/emails", []int{http.StatusOK}, nil, "Bearer", token.AccessToken)
 			if callErr != nil {
+				log.Warn().Str("body", string(body)).Msgf("Failed fetching user email addresses from github api")
 				return nil, callErr
 			}
+
+			log.Debug().Str("body", string(body)).Msgf("Fetched user email addresses from github api")
 
 			var githubEmails []struct {
 				Email      string `json:"email"`

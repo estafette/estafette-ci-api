@@ -172,6 +172,8 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 			return nil, err
 		}
 
+		log.Debug().Interface("provider", provider).Msgf("Fetched provider for organization '%v' and name '%v'", organization, name)
+
 		// retrieve oauth config
 		cfg := provider.GetConfig(h.config.APIServer.BaseURL)
 		token, err := cfg.Exchange(ctx, code)
