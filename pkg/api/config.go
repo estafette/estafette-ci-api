@@ -16,6 +16,7 @@ import (
 
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
+	foundation "github.com/estafette/estafette-foundation"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
@@ -396,6 +397,7 @@ func (p *OAuthProvider) GetConfig(baseURL string) *oauth2.Config {
 	case "google":
 		oauthConfig.Endpoint = endpoints.Google
 		oauthConfig.Scopes = []string{
+			"https://www.googleapis.com/auth/userinfo.profile",
 			"https://www.googleapis.com/auth/userinfo.email",
 		}
 	case "github":
@@ -450,12 +452,12 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 		return identity, nil
 
 	case "github":
-		statusCode, body, callErr := p.callGithubAPI(ctx, "GET", "https://api.github.com/user", nil, "Bearer", token.AccessToken)
+		log.Debug().Msg("Fetching user details from github api")
+
+		body, callErr := p.callGithubAPI(ctx, "GET", "https://api.github.com/user", []int{http.StatusOK}, nil, "Bearer", token.AccessToken)
 		if callErr != nil {
 			return nil, callErr
 		}
-
-		log.Debug().Str("body", string(body)).Int("statusCode", statusCode).Msg("Fetched user details from github api")
 
 		var githubUser struct {
 			ID     int    `json:"id"`
@@ -467,6 +469,7 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 		// unmarshal json body
 		err = json.Unmarshal(body, &githubUser)
 		if err != nil {
+			log.Warn().Str("body", string(body)).Msg("Failed unmarshalling github api user response")
 			return
 		}
 
@@ -481,12 +484,12 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 
 		if identity.Email == "" {
 
-			statusCode, body, callErr := p.callGithubAPI(ctx, "GET", "https://api.github.com/user/emails", nil, "Bearer", token.AccessToken)
+			log.Debug().Msg("Fetching user email addresses from github api")
+
+			body, callErr := p.callGithubAPI(ctx, "GET", "https://api.github.com/user/emails", []int{http.StatusOK}, nil, "Bearer", token.AccessToken)
 			if callErr != nil {
 				return nil, callErr
 			}
-
-			log.Debug().Str("body", string(body)).Int("statusCode", statusCode).Msg("Fetched user emails from github api")
 
 			var githubEmails []struct {
 				Email      string `json:"email"`
@@ -498,6 +501,7 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 			// unmarshal json body
 			err = json.Unmarshal(body, &githubEmails)
 			if err != nil {
+				log.Warn().Str("body", string(body)).Msg("Failed unmarshalling github api user emails response")
 				return
 			}
 
@@ -514,14 +518,14 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 	return nil, fmt.Errorf("The GetUser function has not been implemented for provider '%v'", p.Name)
 }
 
-func (p *OAuthProvider) callGithubAPI(ctx context.Context, method, url string, params interface{}, authorizationType, token string) (statusCode int, body []byte, err error) {
+func (p *OAuthProvider) callGithubAPI(ctx context.Context, method, url string, allowedStatusCodes []int, params interface{}, authorizationType, token string) (body []byte, err error) {
 
 	// convert params to json if they're present
 	var requestBody io.Reader
 	if params != nil {
 		data, err := json.Marshal(params)
 		if err != nil {
-			return 0, body, err
+			return body, err
 		}
 		requestBody = bytes.NewReader(data)
 	}
@@ -562,7 +566,13 @@ func (p *OAuthProvider) callGithubAPI(ctx context.Context, method, url string, p
 		ht.Finish()
 	}
 
-	statusCode = response.StatusCode
+	if len(allowedStatusCodes) == 0 {
+		allowedStatusCodes = []int{http.StatusOK}
+	}
+
+	if !foundation.IntArrayContains(allowedStatusCodes, response.StatusCode) {
+		return nil, fmt.Errorf("%v %v responded with status code %v", method, url, response.StatusCode)
+	}
 
 	body, err = ioutil.ReadAll(response.Body)
 	if err != nil {
