@@ -77,10 +77,18 @@ func (s *service) GetProviders(ctx context.Context) (providers map[string][]*api
 	}
 
 	if s.config.Auth.GoogleProvider != nil && s.config.Auth.GoogleProvider.ClientID != "" {
+		if _, ok := providers["none"]; !ok {
+			providers["none"] = make([]*api.OAuthProvider, 0)
+		}
+
 		providers["none"] = append(providers["none"], s.config.Auth.GoogleProvider)
 	}
 
 	if s.config.Auth.GithubProvider != nil && s.config.Auth.GithubProvider.ClientID != "" {
+		if _, ok := providers["none"]; !ok {
+			providers["none"] = make([]*api.OAuthProvider, 0)
+		}
+
 		providers["none"] = append(providers["none"], s.config.Auth.GithubProvider)
 	}
 

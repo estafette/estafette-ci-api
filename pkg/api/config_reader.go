@@ -53,18 +53,18 @@ func (h *configReaderImpl) ReadConfigFromFile(configPath string, decryptSecrets 
 		return config, err
 	}
 
+	// override values from envvars
+	lookuper := envconfig.PrefixLookuper("ESCI_", envconfig.OsLookuper())
+	if err = envconfig.ProcessWith(context.Background(), config, lookuper); err != nil {
+		return
+	}
+
 	// fill in all the defaults for empty values
 	config.SetDefaults()
 
 	// set jwt key from secret
 	if config.Auth.JWT.Key == "" {
 		config.Auth.JWT.Key = h.jwtKey
-	}
-
-	// override values from envvars
-	lookuper := envconfig.PrefixLookuper("ESCI_", envconfig.OsLookuper())
-	if err = envconfig.ProcessWith(context.Background(), config, lookuper); err != nil {
-		return
 	}
 
 	// validate the config

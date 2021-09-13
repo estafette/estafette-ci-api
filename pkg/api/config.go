@@ -328,9 +328,11 @@ func (c *AuthConfig) SetDefaults() {
 
 	if c.GoogleProvider != nil {
 		c.GoogleProvider.Name = "google"
+		c.GoogleProvider.SetDefaults()
 	}
 	if c.GithubProvider != nil {
 		c.GithubProvider.Name = "github"
+		c.GithubProvider.SetDefaults()
 	}
 }
 
@@ -338,6 +340,19 @@ func (c *AuthConfig) Validate() (err error) {
 	err = c.JWT.Validate()
 	if err != nil {
 		return
+	}
+
+	if c.GoogleProvider != nil {
+		err = c.GoogleProvider.Validate()
+		if err != nil {
+			return
+		}
+	}
+	if c.GithubProvider != nil {
+		err = c.GithubProvider.Validate()
+		if err != nil {
+			return
+		}
 	}
 
 	return nil
