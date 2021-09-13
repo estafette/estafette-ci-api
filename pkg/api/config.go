@@ -1,16 +1,25 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
+	"github.com/opentracing/opentracing-go"
+	"github.com/rs/zerolog/log"
+	"github.com/sethgrid/pester"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
 	googleoauth2v2 "google.golang.org/api/oauth2/v2"
@@ -350,7 +359,7 @@ func (config *AuthConfig) IsConfiguredAsAdministrator(email string) bool {
 	return false
 }
 
-// OAuthProvider is used to configure one or more oauth providers like google, github, microsoft
+// OAuthProvider is used to configure one or more oauth providers like google, github
 type OAuthProvider struct {
 	Name                   string `yaml:"name" env:"NAME"`
 	ClientID               string `yaml:"clientID" env:"CLIENTID"`
@@ -441,38 +450,112 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 		return identity, nil
 
 	case "github":
-		oauth2Service, err := googleoauth2v2.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
-		if err != nil {
-			return nil, err
+
+		_, body, callErr := p.callGithubAPI(ctx, "GET", "https://api.github.com/user", nil, "Bearer", token.AccessToken)
+		if callErr != nil {
+			return nil, callErr
 		}
 
-		// retrieve userinfo
-		userInfo, err := oauth2Service.Userinfo.Get().Do()
-		if err != nil {
-			return nil, err
+		var githubUser struct {
+			ID     int    `json:"id"`
+			Name   string `json:"name"`
+			Email  string `json:"email"`
+			Avatar string `json:"avatar_url"`
 		}
 
-		username := userInfo.Name
-		if username == "" && (userInfo.GivenName != "" || userInfo.FamilyName != "") {
-			username = strings.Trim(fmt.Sprintf("%v %v", userInfo.GivenName, userInfo.FamilyName), " ")
-		}
-		if username == "" {
-			username = userInfo.Email
+		// unmarshal json body
+		err = json.Unmarshal(body, &githubUser)
+		if err != nil {
+			return
 		}
 
 		// map userinfo to user identity
 		identity = &contracts.UserIdentity{
 			Provider: p.Name,
-			Email:    userInfo.Email,
-			Name:     username,
-			ID:       userInfo.Id,
-			Avatar:   userInfo.Picture,
+			Email:    githubUser.Email,
+			Name:     githubUser.Name,
+			ID:       strconv.Itoa(githubUser.ID),
+			Avatar:   githubUser.Avatar,
 		}
 
 		return identity, nil
 	}
 
 	return nil, fmt.Errorf("The GetUser function has not been implemented for provider '%v'", p.Name)
+}
+
+func (p *OAuthProvider) callGithubAPI(ctx context.Context, method, url string, params interface{}, authorizationType, token string) (statusCode int, body []byte, err error) {
+
+	// convert params to json if they're present
+	var requestBody io.Reader
+	if params != nil {
+		data, err := json.Marshal(params)
+		if err != nil {
+			return 0, body, err
+		}
+		requestBody = bytes.NewReader(data)
+	}
+
+	// create client, in order to add headers
+	client := pester.NewExtendedClient(&http.Client{Transport: &nethttp.Transport{}})
+	client.MaxRetries = 3
+	client.Backoff = pester.ExponentialJitterBackoff
+	client.KeepLog = true
+	client.Timeout = time.Second * 10
+	request, err := http.NewRequest(method, url, requestBody)
+	if err != nil {
+		return
+	}
+
+	span := opentracing.SpanFromContext(ctx)
+	var ht *nethttp.Tracer
+	if span != nil {
+		// add tracing context
+		request = request.WithContext(opentracing.ContextWithSpan(request.Context(), span))
+
+		// collect additional information on setting up connections
+		request, ht = nethttp.TraceRequest(span.Tracer(), request)
+	}
+
+	// add headers
+	request.Header.Add("Authorization", fmt.Sprintf("%v %v", authorizationType, token))
+	request.Header.Add("Accept", "application/vnd.github.v3+json")
+
+	// perform actual request
+	response, err := client.Do(request)
+	if err != nil {
+		return
+	}
+
+	defer response.Body.Close()
+	if ht != nil {
+		ht.Finish()
+	}
+
+	statusCode = response.StatusCode
+
+	body, err = ioutil.ReadAll(response.Body)
+	if err != nil {
+		return
+	}
+
+	// unmarshal json body
+	var b interface{}
+	err = json.Unmarshal(body, &b)
+	if err != nil {
+		log.Error().Err(err).
+			Str("url", url).
+			Str("requestMethod", method).
+			Interface("requestBody", params).
+			Interface("requestHeaders", request.Header).
+			Interface("responseHeaders", response.Header).
+			Str("responseBody", string(body)).
+			Msg("Deserializing response for '%v' Github api call failed")
+
+		return
+	}
+
+	return
 }
 
 // UserIsAllowed checks if user email address matches allowedIdentitiesRegex
