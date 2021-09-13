@@ -334,6 +334,14 @@ func (c *AuthConfig) SetDefaults() {
 		c.GithubProvider.Name = "github"
 		c.GithubProvider.SetDefaults()
 	}
+
+	for _, orgProviders := range c.Organizations {
+		for _, provider := range orgProviders.OAuthProviders {
+			provider.Organization = orgProviders.Name
+		}
+
+		orgProviders.SetDefaults()
+	}
 }
 
 func (c *AuthConfig) Validate() (err error) {
@@ -350,6 +358,13 @@ func (c *AuthConfig) Validate() (err error) {
 	}
 	if c.GithubProvider != nil {
 		err = c.GithubProvider.Validate()
+		if err != nil {
+			return
+		}
+	}
+
+	for _, orgProviders := range c.Organizations {
+		err = orgProviders.Validate()
 		if err != nil {
 			return
 		}
@@ -391,6 +406,7 @@ type OAuthProvider struct {
 	Name                   string `yaml:"name" env:"NAME"`
 	ClientID               string `yaml:"clientID" env:"CLIENTID"`
 	ClientSecret           string `yaml:"clientSecret" env:"CLIENTSECRET"`
+	Organization           string `yaml:"organization" env:"ORGANIZATION"`
 	AllowedIdentitiesRegex string `yaml:"allowedIdentitiesRegex" env:"ALLOWEDIDENTITIESREGEX"`
 }
 

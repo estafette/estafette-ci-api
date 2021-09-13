@@ -24,7 +24,7 @@ var (
 type Service interface {
 	GetRoles(ctx context.Context) (roles []string, err error)
 
-	GetProviders(ctx context.Context) (providers map[string][]*api.OAuthProvider, err error)
+	GetProviders(ctx context.Context) (providers []*api.OAuthProvider, err error)
 	GetProviderByName(ctx context.Context, organization, name string) (provider *api.OAuthProvider, err error)
 
 	GetUserByIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error)
@@ -68,28 +68,20 @@ func (s *service) GetRoles(ctx context.Context) (roles []string, err error) {
 	return api.Roles(), nil
 }
 
-func (s *service) GetProviders(ctx context.Context) (providers map[string][]*api.OAuthProvider, err error) {
+func (s *service) GetProviders(ctx context.Context) (providers []*api.OAuthProvider, err error) {
 
-	providers = map[string][]*api.OAuthProvider{}
+	providers = make([]*api.OAuthProvider, 0)
 
 	for _, c := range s.config.Auth.Organizations {
-		providers[c.Name] = c.OAuthProviders
+		providers = append(providers, c.OAuthProviders...)
 	}
 
 	if s.config.Auth.GoogleProvider != nil && s.config.Auth.GoogleProvider.ClientID != "" {
-		if _, ok := providers["none"]; !ok {
-			providers["none"] = make([]*api.OAuthProvider, 0)
-		}
-
-		providers["none"] = append(providers["none"], s.config.Auth.GoogleProvider)
+		providers = append(providers, s.config.Auth.GoogleProvider)
 	}
 
 	if s.config.Auth.GithubProvider != nil && s.config.Auth.GithubProvider.ClientID != "" {
-		if _, ok := providers["none"]; !ok {
-			providers["none"] = make([]*api.OAuthProvider, 0)
-		}
-
-		providers["none"] = append(providers["none"], s.config.Auth.GithubProvider)
+		providers = append(providers, s.config.Auth.GithubProvider)
 	}
 
 	return providers, nil
@@ -101,21 +93,10 @@ func (s *service) GetProviderByName(ctx context.Context, organization, name stri
 		return
 	}
 
-	if organization == "" || organization == "none" {
-		// go through all organizations and pick the first match
-		for _, orgProviders := range providers {
-			for _, p := range orgProviders {
-				if p.Name == name {
-					return p, nil
-				}
-			}
-		}
-	} else {
-		if orgProviders, ok := providers[organization]; ok {
-			for _, p := range orgProviders {
-				if p.Name == name {
-					return p, nil
-				}
+	for _, provider := range providers {
+		if organization == "" || provider.Organization == organization {
+			if provider.Name == name {
+				return provider, nil
 			}
 		}
 	}

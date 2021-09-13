@@ -25,7 +25,7 @@ func (s *tracingService) GetRoles(ctx context.Context) (roles []string, err erro
 	return s.Service.GetRoles(ctx)
 }
 
-func (s *tracingService) GetProviders(ctx context.Context) (providers map[string][]*api.OAuthProvider, err error) {
+func (s *tracingService) GetProviders(ctx context.Context) (providers []*api.OAuthProvider, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(s.prefix, "GetProviders"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 

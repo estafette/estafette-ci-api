@@ -23,7 +23,7 @@ func (s *loggingService) GetRoles(ctx context.Context) (roles []string, err erro
 	return s.Service.GetRoles(ctx)
 }
 
-func (s *loggingService) GetProviders(ctx context.Context) (providers map[string][]*api.OAuthProvider, err error) {
+func (s *loggingService) GetProviders(ctx context.Context) (providers []*api.OAuthProvider, err error) {
 	defer func() { api.HandleLogError(s.prefix, "Service", "GetProviders", err) }()
 
 	return s.Service.GetProviders(ctx)

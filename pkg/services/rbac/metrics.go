@@ -26,7 +26,7 @@ func (s *metricsService) GetRoles(ctx context.Context) (roles []string, err erro
 	return s.Service.GetRoles(ctx)
 }
 
-func (s *metricsService) GetProviders(ctx context.Context) (providers map[string][]*api.OAuthProvider, err error) {
+func (s *metricsService) GetProviders(ctx context.Context) (providers []*api.OAuthProvider, err error) {
 	defer func(begin time.Time) { api.UpdateMetrics(s.requestCount, s.requestLatency, "GetProviders", begin) }(time.Now())
 
 	return s.Service.GetProviders(ctx)

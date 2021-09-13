@@ -86,7 +86,6 @@ func (h *Handler) GetProviders(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	providers, err := h.service.GetProviders(ctx)
-
 	if err != nil {
 		log.Error().Err(err).Msg("Retrieving oauth providers failed")
 		c.String(http.StatusInternalServerError, "Retrieving oauth providers failed")
@@ -94,15 +93,13 @@ func (h *Handler) GetProviders(c *gin.Context) {
 	}
 
 	responseItems := make([]interface{}, 0)
-	for organization, orgProviders := range providers {
-		for _, p := range orgProviders {
-			responseItems = append(responseItems, map[string]interface{}{
-				"id":           p.Name,
-				"organization": organization,
-				"name":         strings.Title(p.Name),
-				"path":         fmt.Sprintf("/api/auth/login/%v", p.Name),
-			})
-		}
+	for _, provider := range providers {
+		responseItems = append(responseItems, map[string]interface{}{
+			"id":           provider.Name,
+			"organization": provider.Organization,
+			"name":         strings.Title(provider.Name),
+			"path":         fmt.Sprintf("/api/auth/login/%v", provider.Name),
+		})
 	}
 
 	c.JSON(http.StatusOK, responseItems)
