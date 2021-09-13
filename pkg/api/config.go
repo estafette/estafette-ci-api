@@ -512,8 +512,6 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 			return nil, callErr
 		}
 
-		log.Debug().Str("body", string(body)).Msgf("Fetched user details from github api")
-
 		var githubUser struct {
 			ID     int    `json:"id"`
 			Name   string `json:"name"`
@@ -546,8 +544,6 @@ func (p *OAuthProvider) GetUserIdentity(ctx context.Context, config *oauth2.Conf
 				log.Warn().Str("body", string(body)).Msgf("Failed fetching user email addresses from github api")
 				return nil, callErr
 			}
-
-			log.Debug().Str("body", string(body)).Msgf("Fetched user email addresses from github api")
 
 			var githubEmails []struct {
 				Email      string `json:"email"`
