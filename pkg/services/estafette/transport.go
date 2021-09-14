@@ -1043,7 +1043,7 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 
 	release, err := h.databaseClient.GetPipelineRelease(c.Request.Context(), source, owner, repo, idValue)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed retrieving release for %v/%v/%v/%v from db", source, owner, repo, idValue)
+		log.Error().Err(err).Msgf("Failed retrieving release for %v/%v/%v/%v from db in CancelPipelineRelease", source, owner, repo, idValue)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Retrieving pipeline release failed"})
 		return
 	}
@@ -1073,7 +1073,7 @@ func (h *Handler) CancelPipelineRelease(c *gin.Context) {
 	}
 	err = h.databaseClient.UpdateReleaseStatus(c.Request.Context(), release.RepoSource, release.RepoOwner, release.RepoName, release.ID, releaseStatus)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed updating release status for %v/%v/%v/builds/%v in db", source, owner, repo, release.ID)
+		log.Error().Err(err).Msgf("Failed updating release status for %v/%v/%v/builds/%v in db in CancelPipelineRelease", source, owner, repo, release.ID)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": "Failed setting pipeline release status to canceling"})
 		return
 	}
@@ -1104,7 +1104,7 @@ func (h *Handler) GetPipelineRelease(c *gin.Context) {
 	release, err := h.databaseClient.GetPipelineRelease(c.Request.Context(), source, owner, repo, releaseID)
 	if err != nil {
 		log.Error().Err(err).
-			Msgf("Failed retrieving release for %v/%v/%v/%v from db", source, owner, repo, releaseID)
+			Msgf("Failed retrieving release for %v/%v/%v/%v from db in GetPipelineRelease", source, owner, repo, releaseID)
 	}
 	if release == nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Pipeline release not found"})
