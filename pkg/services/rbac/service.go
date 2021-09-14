@@ -73,7 +73,11 @@ func (s *service) GetProviders(ctx context.Context) (providers []*api.OAuthProvi
 	providers = make([]*api.OAuthProvider, 0)
 
 	for _, c := range s.config.Auth.Organizations {
-		providers = append(providers, c.OAuthProviders...)
+		for _, p := range c.OAuthProviders {
+			if p != nil && p.ClientID != "" {
+				providers = append(providers, p)
+			}
+		}
 	}
 
 	if s.config.Auth.GoogleProvider != nil && s.config.Auth.GoogleProvider.ClientID != "" {
