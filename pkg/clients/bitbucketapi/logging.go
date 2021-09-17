@@ -96,6 +96,18 @@ func (c *loggingClient) GetApps(ctx context.Context) (apps []*BitbucketApp, err 
 	return c.Client.GetApps(ctx)
 }
 
+func (c *loggingClient) GetAppByKey(ctx context.Context, key string) (app *BitbucketApp, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAppByKey", err) }()
+
+	return c.Client.GetAppByKey(ctx, key)
+}
+
+func (c *loggingClient) AddApp(ctx context.Context, app BitbucketApp) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "AddApp", err) }()
+
+	return c.Client.AddApp(ctx, app)
+}
+
 func (c *loggingClient) AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "AddInstallation", err) }()
 

@@ -30,6 +30,7 @@ var (
 	ErrInvalidSigningAlgorithm    = errors.New("invalid signing algorithm")
 	ErrInvalidToken               = errors.New("invalid token")
 	ErrNoInstallations            = errors.New("no installations")
+	ErrMissingApp                 = errors.New("app for key is missing")
 	ErrMissingInstallation        = errors.New("installation for clientKey is missing")
 	ErrMissingClaims              = errors.New("token has no claims")
 )
@@ -48,9 +49,11 @@ type Client interface {
 	GenerateJWTByUUID(ctx context.Context, workspaceUUID string) (tokenString string, err error)
 	GenerateJWTByInstallation(ctx context.Context, installation BitbucketAppInstallation) (tokenString string, err error)
 	GetApps(ctx context.Context) (apps []*BitbucketApp, err error)
+	GetAppByKey(ctx context.Context, key string) (app *BitbucketApp, err error)
 	GetInstallationBySlug(ctx context.Context, workspaceSlug string) (installation *BitbucketAppInstallation, err error)
 	GetInstallationByUUID(ctx context.Context, workspaceUUID string) (installation *BitbucketAppInstallation, err error)
 	GetInstallationByClientKey(ctx context.Context, clientKey string) (installation *BitbucketAppInstallation, err error)
+	AddApp(ctx context.Context, app BitbucketApp) (err error)
 	AddInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
 	RemoveInstallation(ctx context.Context, installation BitbucketAppInstallation) (err error)
 	GetWorkspace(ctx context.Context, workspaceUUID string) (workspace *Workspace, err error)
@@ -458,6 +461,52 @@ func (c *client) GetApps(ctx context.Context) (apps []*BitbucketApp, err error) 
 			FetchedAt: time.Now().UTC(),
 		}
 		appsCacheMutex.Unlock()
+	}
+
+	return
+}
+
+func (c *client) GetAppByKey(ctx context.Context, key string) (app *BitbucketApp, err error) {
+	apps, err := c.GetApps(ctx)
+	if err != nil {
+		return
+	}
+
+	for _, a := range apps {
+		if a != nil && a.Key == key {
+			return a, nil
+		}
+	}
+
+	return nil, ErrMissingApp
+}
+
+func (c *client) AddApp(ctx context.Context, app BitbucketApp) (err error) {
+	apps, err := c.GetApps(ctx)
+	if err != nil {
+		return
+	}
+
+	if apps == nil {
+		apps = make([]*BitbucketApp, 0)
+	}
+
+	// check if app with key, if not add
+	appExists := false
+	for _, app := range apps {
+		if app.Key == app.Key {
+			appExists = true
+			break
+		}
+	}
+
+	if !appExists {
+		apps = append(apps, &app)
+	}
+
+	err = c.upsertConfigmap(ctx, apps)
+	if err != nil {
+		return
 	}
 
 	return

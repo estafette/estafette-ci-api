@@ -34,6 +34,20 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
+// AddApp mocks base method.
+func (m *MockClient) AddApp(ctx context.Context, app BitbucketApp) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddApp", ctx, app)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddApp indicates an expected call of AddApp.
+func (mr *MockClientMockRecorder) AddApp(ctx, app interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddApp", reflect.TypeOf((*MockClient)(nil).AddApp), ctx, app)
+}
+
 // AddInstallation mocks base method.
 func (m *MockClient) AddInstallation(ctx context.Context, installation BitbucketAppInstallation) error {
 	m.ctrl.T.Helper()
@@ -151,6 +165,21 @@ func (m *MockClient) GetAccessTokenByUUID(ctx context.Context, workspaceUUID str
 func (mr *MockClientMockRecorder) GetAccessTokenByUUID(ctx, workspaceUUID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccessTokenByUUID", reflect.TypeOf((*MockClient)(nil).GetAccessTokenByUUID), ctx, workspaceUUID)
+}
+
+// GetAppByKey mocks base method.
+func (m *MockClient) GetAppByKey(ctx context.Context, key string) (*BitbucketApp, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAppByKey", ctx, key)
+	ret0, _ := ret[0].(*BitbucketApp)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAppByKey indicates an expected call of GetAppByKey.
+func (mr *MockClientMockRecorder) GetAppByKey(ctx, key interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppByKey", reflect.TypeOf((*MockClient)(nil).GetAppByKey), ctx, key)
 }
 
 // GetApps mocks base method.

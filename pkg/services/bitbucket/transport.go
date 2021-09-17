@@ -257,6 +257,25 @@ func (h *Handler) Installed(c *gin.Context) {
 		c.Status(http.StatusInternalServerError)
 		return
 	} else {
+		_, err := h.bitbucketapiClient.GetAppByKey(c.Request.Context(), installation.Key)
+		if err != nil && !errors.Is(err, bitbucketapi.ErrMissingApp) {
+			log.Error().Err(err).Msgf("Failed retrieving app for bitbucket app installation key %v", installation.Key)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		if err != nil && errors.Is(err, bitbucketapi.ErrMissingApp) {
+			// create app
+			err = h.bitbucketapiClient.AddApp(c.Request.Context(), bitbucketapi.BitbucketApp{
+				Key:           installation.Key,
+				Installations: make([]*bitbucketapi.BitbucketAppInstallation, 0),
+			})
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed adding app for bitbucket app installation key %v", installation.Key)
+				c.Status(http.StatusInternalServerError)
+				return
+			}
+		}
+
 		workspace, err := h.bitbucketapiClient.GetWorkspace(c.Request.Context(), installation.GetWorkspaceUUID())
 		if err != nil {
 			log.Error().Err(err).Msg("Failed retrieving workspace for bitbucket app installation")
