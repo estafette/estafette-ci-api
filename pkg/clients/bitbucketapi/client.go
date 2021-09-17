@@ -493,8 +493,8 @@ func (c *client) AddApp(ctx context.Context, app BitbucketApp) (err error) {
 
 	// check if app with key, if not add
 	appExists := false
-	for _, app := range apps {
-		if app.Key == app.Key {
+	for _, a := range apps {
+		if a != nil && a.Key == app.Key {
 			appExists = true
 			break
 		}
@@ -535,6 +535,8 @@ func (c *client) AddInstallation(ctx context.Context, installation BitbucketAppI
 
 					// update fields editable from gui
 					inst.Organizations = installation.Organizations
+
+					break
 				}
 			}
 
