@@ -176,10 +176,6 @@ func (h *Handler) Handle(c *gin.Context) {
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 
-		if eventCheck.GetFullRepository() == "" {
-			return
-		}
-
 		err = h.service.PublishBitbucketEvent(ctx, manifest.EstafetteBitbucketEvent{
 			Event:         eventType,
 			Repository:    eventCheck.GetFullRepository(),

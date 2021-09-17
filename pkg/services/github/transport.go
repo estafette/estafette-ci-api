@@ -224,10 +224,6 @@ func (h *Handler) Handle(c *gin.Context) {
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 		defer span.Finish()
 
-		if anyEvent.GetRepository() == "" {
-			return
-		}
-
 		err = h.service.PublishGithubEvent(ctx, manifest.EstafetteGithubEvent{
 			Event:      eventType,
 			Repository: anyEvent.GetRepository(),
