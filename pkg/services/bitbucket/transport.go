@@ -276,7 +276,7 @@ func (h *Handler) Installed(c *gin.Context) {
 			}
 		}
 
-		workspace, err := h.bitbucketapiClient.GetWorkspace(c.Request.Context(), installation.GetWorkspaceUUID())
+		workspace, err := h.bitbucketapiClient.GetWorkspace(c.Request.Context(), installation)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed retrieving workspace for bitbucket app installation")
 			c.Status(http.StatusInternalServerError)

@@ -120,8 +120,8 @@ func (c *loggingClient) RemoveInstallation(ctx context.Context, installation Bit
 	return c.Client.RemoveInstallation(ctx, installation)
 }
 
-func (c *loggingClient) GetWorkspace(ctx context.Context, workspaceUUID string) (workspace *Workspace, err error) {
+func (c *loggingClient) GetWorkspace(ctx context.Context, installation BitbucketAppInstallation) (workspace *Workspace, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetWorkspace", err) }()
 
-	return c.Client.GetWorkspace(ctx, workspaceUUID)
+	return c.Client.GetWorkspace(ctx, installation)
 }

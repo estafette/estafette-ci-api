@@ -143,9 +143,9 @@ func (c *tracingClient) RemoveInstallation(ctx context.Context, installation Bit
 	return c.Client.RemoveInstallation(ctx, installation)
 }
 
-func (c *tracingClient) GetWorkspace(ctx context.Context, workspaceUUID string) (workspace *Workspace, err error) {
+func (c *tracingClient) GetWorkspace(ctx context.Context, installation BitbucketAppInstallation) (workspace *Workspace, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetWorkspace"))
 	defer func() { api.FinishSpan(span) }()
 
-	return c.Client.GetWorkspace(ctx, workspaceUUID)
+	return c.Client.GetWorkspace(ctx, installation)
 }
