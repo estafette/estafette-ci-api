@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -11,10 +12,6 @@ import (
 
 const (
 	envTag = "env"
-
-	optRequired = "required"
-	optDefault  = "default="
-	optPrefix   = "prefix="
 )
 
 var (
@@ -68,6 +65,12 @@ func OverrideFromEnvMap(config interface{}, prefix string, environmentVariables 
 		}
 
 		fieldEnvarName := prefix + strings.ToUpper(tf.Name)
+		tag := tf.Tag.Get(envTag)
+		if tag != "" {
+			fieldEnvarName = prefix + strings.ToUpper(tag)
+		}
+
+		log.Printf("Checking if envvar %v exists", fieldEnvarName)
 
 		// check if environment variable for property exists
 		if val, ok := environmentVariables[fieldEnvarName]; ok {

@@ -502,8 +502,8 @@ func TestReadConfigFromFile(t *testing.T) {
 
 		// act
 		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
-		assert.Nil(t, err)
 
+		assert.Nil(t, err)
 		assert.Equal(t, false, config.Integrations.Github.Enable)
 		os.Setenv("ESCI_INTEGRATIONS_GITHUB_ENABLE", "")
 	})

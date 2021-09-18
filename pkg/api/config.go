@@ -30,14 +30,14 @@ import (
 
 // APIConfig represent the configuration for the entire api application
 type APIConfig struct {
-	Integrations        *APIConfigIntegrations                 `yaml:"integrations,omitempty" env:",prefix=INTEGRATIONS_"`
-	APIServer           *APIServerConfig                       `yaml:"apiServer,omitempty" env:",prefix=APISERVER_"`
-	Auth                *AuthConfig                            `yaml:"auth,omitempty" env:",prefix=AUTH_"`
-	Jobs                *JobsConfig                            `yaml:"jobs,omitempty" env:",prefix=JOBS_"`
-	Database            *DatabaseConfig                        `yaml:"database,omitempty" env:",prefix=DATABASE_"`
-	Queue               *QueueConfig                           `yaml:"queue,omitempty" env:",prefix=QUEUE_"`
-	ManifestPreferences *manifest.EstafetteManifestPreferences `yaml:"manifestPreferences,omitempty" env:",prefix=MANIFESTPREFERENCES_"`
-	Catalog             *CatalogConfig                         `yaml:"catalog,omitempty" env:",prefix=CATALOG_"`
+	Integrations        *APIConfigIntegrations                 `yaml:"integrations,omitempty"`
+	APIServer           *APIServerConfig                       `yaml:"apiServer,omitempty"`
+	Auth                *AuthConfig                            `yaml:"auth,omitempty"`
+	Jobs                *JobsConfig                            `yaml:"jobs,omitempty"`
+	Database            *DatabaseConfig                        `yaml:"database,omitempty"`
+	Queue               *QueueConfig                           `yaml:"queue,omitempty"`
+	ManifestPreferences *manifest.EstafetteManifestPreferences `yaml:"manifestPreferences,omitempty"`
+	Catalog             *CatalogConfig                         `yaml:"catalog,omitempty"`
 	Credentials         []*contracts.CredentialConfig          `yaml:"credentials,omitempty" json:"credentials,omitempty"`
 	TrustedImages       []*contracts.TrustedImageConfig        `yaml:"trustedImages,omitempty" json:"trustedImages,omitempty"`
 }
@@ -204,11 +204,11 @@ func (c *APIConfig) Validate() (err error) {
 
 // APIServerConfig represents configuration for the api server
 type APIServerConfig struct {
-	BaseURL                                  string                                                       `yaml:"baseURL" env:"BASEURL"`
-	IntegrationsURL                          string                                                       `yaml:"integrationsURL" env:"INTEGRATIONSURL"`
-	ServiceURL                               string                                                       `yaml:"serviceURL" env:"SERVICEURL"`
-	LogWriters                               []LogTarget                                                  `yaml:"logWriters" env:"LOGWRITERS"`
-	LogReader                                LogTarget                                                    `yaml:"logReader" env:"LOGREADER"`
+	BaseURL                                  string                                                       `yaml:"baseURL"`
+	IntegrationsURL                          string                                                       `yaml:"integrationsURL"`
+	ServiceURL                               string                                                       `yaml:"serviceURL"`
+	LogWriters                               []LogTarget                                                  `yaml:"logWriters"`
+	LogReader                                LogTarget                                                    `yaml:"logReader"`
 	InjectStagesPerOperatingSystem           map[manifest.OperatingSystem]InjectStagesConfig              `yaml:"injectStagesPerOperatingSystem,omitempty"`
 	InjectCommandsPerOperatingSystemAndShell map[manifest.OperatingSystem]map[string]InjectCommandsConfig `yaml:"injectCommandsPerOperatingSystemAndShell,omitempty"`
 	DockerConfigPerOperatingSystem           map[manifest.OperatingSystem]contracts.DockerConfig          `yaml:"dockerConfigPerOperatingSystem,omitempty" json:"dockerConfigPerOperatingSystem,omitempty"`
@@ -312,11 +312,11 @@ func (c *APIServerConfig) ReadLogFromCloudStorage() bool {
 
 // AuthConfig determines whether to use IAP for authentication and authorization
 type AuthConfig struct {
-	JWT            *JWTConfig `yaml:"jwt" env:",prefix=JWT_"`
-	Administrators []string   `yaml:"administrators" env:"ADMINISTRATORS"`
+	JWT            *JWTConfig `yaml:"jwt"`
+	Administrators []string   `yaml:"administrators"`
 
-	GoogleProvider *OAuthProvider `yaml:"google" env:",prefix=GOOGLE_"`
-	GithubProvider *OAuthProvider `yaml:"github" env:",prefix=GITHUB_"`
+	GoogleProvider *OAuthProvider `yaml:"google"`
+	GithubProvider *OAuthProvider `yaml:"github"`
 
 	Organizations []*AuthOrganizationConfig `yaml:"organizations"`
 }
@@ -376,8 +376,8 @@ func (c *AuthConfig) Validate() (err error) {
 
 // AuthOrganizationConfig configures things relevant to each organization using the system
 type AuthOrganizationConfig struct {
-	Name           string           `yaml:"name" env:"NAME"`
-	OAuthProviders []*OAuthProvider `yaml:"oauthProviders" env:"OAUTHPROVIDERS"`
+	Name           string           `yaml:"name"`
+	OAuthProviders []*OAuthProvider `yaml:"oauthProviders"`
 }
 
 func (c *AuthOrganizationConfig) SetDefaults() {
@@ -404,11 +404,11 @@ func (config *AuthConfig) IsConfiguredAsAdministrator(email string) bool {
 
 // OAuthProvider is used to configure one or more oauth providers like google, github
 type OAuthProvider struct {
-	Name                   string `yaml:"name" env:"NAME"`
-	ClientID               string `yaml:"clientID" env:"CLIENTID"`
-	ClientSecret           string `yaml:"clientSecret" env:"CLIENTSECRET"`
-	Organization           string `yaml:"organization" env:"ORGANIZATION"`
-	AllowedIdentitiesRegex string `yaml:"allowedIdentitiesRegex" env:"ALLOWEDIDENTITIESREGEX"`
+	Name                   string `yaml:"name"`
+	ClientID               string `yaml:"clientID"`
+	ClientSecret           string `yaml:"clientSecret"`
+	Organization           string `yaml:"organization"`
+	AllowedIdentitiesRegex string `yaml:"allowedIdentitiesRegex"`
 }
 
 func (c *OAuthProvider) SetDefaults() {
@@ -674,9 +674,9 @@ func (p *OAuthProvider) UserIsAllowed(ctx context.Context, email string) (isAllo
 
 // JWTConfig is used to configure JWT middleware
 type JWTConfig struct {
-	Domain string `yaml:"domain" env:"DOMAIN"`
+	Domain string `yaml:"domain"`
 	// Key to sign JWT; use 256-bit key (or 32 bytes) minimum length
-	Key string `yaml:"key" env:"KEY"`
+	Key string `yaml:"key"`
 }
 
 func (c *JWTConfig) SetDefaults() {
@@ -695,24 +695,24 @@ func (c *JWTConfig) Validate() (err error) {
 
 // JobsConfig configures the lower and upper bounds for automatically setting resources for build/release jobs
 type JobsConfig struct {
-	Namespace          string `yaml:"namespace" env:"NAMESPACE"`
-	ServiceAccountName string `yaml:"serviceAccount" env:"SERVICEACCOUNT"`
+	Namespace          string `yaml:"namespace"`
+	ServiceAccountName string `yaml:"serviceAccount"`
 
-	MinCPUCores     float64 `yaml:"minCPUCores" env:"MINCPUCORES"`
-	DefaultCPUCores float64 `yaml:"defaultCPUCores" env:"DEFAULTCPUCORES"`
-	MaxCPUCores     float64 `yaml:"maxCPUCores" env:"MAXCPUCORES"`
-	CPURequestRatio float64 `yaml:"cpuRequestRatio" env:"CPUREQUESTRATIO"`
-	CPULimitRatio   float64 `yaml:"cpuLimitRatio" env:"CPULIMITRATIO"`
+	MinCPUCores     float64 `yaml:"minCPUCores"`
+	DefaultCPUCores float64 `yaml:"defaultCPUCores"`
+	MaxCPUCores     float64 `yaml:"maxCPUCores"`
+	CPURequestRatio float64 `yaml:"cpuRequestRatio"`
+	CPULimitRatio   float64 `yaml:"cpuLimitRatio"`
 
-	MinMemoryBytes     float64 `yaml:"minMemoryBytes" env:"MINMEMORYBYTES"`
-	DefaultMemoryBytes float64 `yaml:"defaultMemoryBytes" env:"DEFAULTMEMORYBYTES"`
-	MaxMemoryBytes     float64 `yaml:"maxMemoryBytes" env:"MAXMEMORYBYTES"`
-	MemoryRequestRatio float64 `yaml:"memoryRequestRatio" env:"MEMORYREQUESTRATIO"`
-	MemoryLimitRatio   float64 `yaml:"memoryLimitRatio" env:"MEMORYLIMITRATIO"`
+	MinMemoryBytes     float64 `yaml:"minMemoryBytes"`
+	DefaultMemoryBytes float64 `yaml:"defaultMemoryBytes"`
+	MaxMemoryBytes     float64 `yaml:"maxMemoryBytes"`
+	MemoryRequestRatio float64 `yaml:"memoryRequestRatio"`
+	MemoryLimitRatio   float64 `yaml:"memoryLimitRatio"`
 
-	BuildAffinityAndTolerations   *AffinityAndTolerationsConfig `yaml:"build" env:",prefix=BUILDAFFINITYANDTOLERATIONS_"`
-	ReleaseAffinityAndTolerations *AffinityAndTolerationsConfig `yaml:"release" env:",prefix=RELEASEAFFINITYANDTOLERATIONS_"`
-	BotAffinityAndTolerations     *AffinityAndTolerationsConfig `yaml:"bot" env:",prefix=BOTAFFINITYANDTOLERATIONS_"`
+	BuildAffinityAndTolerations   *AffinityAndTolerationsConfig `yaml:"build"`
+	ReleaseAffinityAndTolerations *AffinityAndTolerationsConfig `yaml:"release"`
+	BotAffinityAndTolerations     *AffinityAndTolerationsConfig `yaml:"bot"`
 }
 
 func (c *JobsConfig) SetDefaults() {
@@ -817,19 +817,19 @@ type AffinityAndTolerationsConfig struct {
 
 // DatabaseConfig contains config for the dabase connection
 type DatabaseConfig struct {
-	DatabaseName             string `yaml:"databaseName" env:"DATABASENAME"`
-	Host                     string `yaml:"host" env:"HOST"`
-	Insecure                 bool   `yaml:"insecure" env:"INSECURE"`
-	SslMode                  string `yaml:"sslMode" env:"SSLMODE"`
-	CertificateAuthorityPath string `yaml:"certificateAuthorityPath" env:"CERTIFICATEAUTHORITYPATH"`
-	CertificatePath          string `yaml:"certificatePath" env:"CERTIFICATEPATH"`
-	CertificateKeyPath       string `yaml:"certificateKeyPath" env:"CERTIFICATEKEYPATH"`
-	Port                     int    `yaml:"port" env:"PORT"`
-	User                     string `yaml:"user" env:"USER"`
-	Password                 string `yaml:"password" env:"PASSWORD"`
-	MaxOpenConns             int    `yaml:"maxOpenConnections" env:"MAXOPENCONNECTIONS"`
-	MaxIdleConns             int    `yaml:"maxIdleConnections" env:"MAXIDLECONNECTIONS"`
-	ConnMaxLifetimeMinutes   int    `yaml:"connectionMaxLifetimeMinutes" env:"CONNECTIONMAXLIFETIMEMINUTES"`
+	DatabaseName             string `yaml:"databaseName"`
+	Host                     string `yaml:"host"`
+	Insecure                 bool   `yaml:"insecure"`
+	SslMode                  string `yaml:"sslMode"`
+	CertificateAuthorityPath string `yaml:"certificateAuthorityPath"`
+	CertificatePath          string `yaml:"certificatePath"`
+	CertificateKeyPath       string `yaml:"certificateKeyPath"`
+	Port                     int    `yaml:"port"`
+	User                     string `yaml:"user"`
+	Password                 string `yaml:"password"`
+	MaxOpenConns             int    `yaml:"maxOpenConnections"`
+	MaxIdleConns             int    `yaml:"maxIdleConnections"`
+	ConnMaxLifetimeMinutes   int    `yaml:"connectionMaxLifetimeMinutes"`
 }
 
 func (c *DatabaseConfig) SetDefaults() {
@@ -905,11 +905,11 @@ func (c *DatabaseConfig) Validate() (err error) {
 
 // QueueConfig contains config for the dabase connection
 type QueueConfig struct {
-	Hosts            []string `yaml:"hosts" env:"HOSTS"`
-	SubjectCron      string   `yaml:"subjectCron" env:"SUBJECTCRON"`
-	SubjectGit       string   `yaml:"subjectGit" env:"SUBJECTGIT"`
-	SubjectGithub    string   `yaml:"subjectGithub" env:"SUBJECTGITHUB"`
-	SubjectBitbucket string   `yaml:"subjectBitbucket" env:"SUBJECTBITBUCKET"`
+	Hosts            []string `yaml:"hosts"`
+	SubjectCron      string   `yaml:"subjectCron"`
+	SubjectGit       string   `yaml:"subjectGit"`
+	SubjectGithub    string   `yaml:"subjectGithub"`
+	SubjectBitbucket string   `yaml:"subjectBitbucket"`
 }
 
 func (c *QueueConfig) SetDefaults() {
@@ -952,7 +952,7 @@ func (c *QueueConfig) Validate() (err error) {
 
 // CatalogConfig configures various aspect of the catalog page
 type CatalogConfig struct {
-	Filters []string `yaml:"filters,omitempty" json:"filters,omitempty" env:"FILTERS"`
+	Filters []string `yaml:"filters,omitempty" json:"filters,omitempty"`
 }
 
 func (c *CatalogConfig) SetDefaults() {
@@ -964,14 +964,14 @@ func (c *CatalogConfig) Validate() (err error) {
 
 // APIConfigIntegrations contains config for 3rd party integrations
 type APIConfigIntegrations struct {
-	Github       *GithubConfig       `yaml:"github,omitempty" env:",prefix=GITHUB_"`
-	Bitbucket    *BitbucketConfig    `yaml:"bitbucket,omitempty" env:",prefix=BITBUCKET_"`
-	Slack        *SlackConfig        `yaml:"slack,omitempty" env:",prefix=SLACK_"`
-	Pubsub       *PubsubConfig       `yaml:"pubsub,omitempty" env:",prefix=PUBSUB_"`
-	Prometheus   *PrometheusConfig   `yaml:"prometheus,omitempty" env:",prefix=PROMETHEUS_"`
-	BigQuery     *BigQueryConfig     `yaml:"bigquery,omitempty" env:",prefix=BIGQUERY_"`
-	CloudStorage *CloudStorageConfig `yaml:"gcs,omitempty" env:",prefix=CLOUDSTORAGE_"`
-	CloudSource  *CloudSourceConfig  `yaml:"cloudsource,omitempty" env:",prefix=CLOUDSOURCE_"`
+	Github       *GithubConfig       `yaml:"github,omitempty"`
+	Bitbucket    *BitbucketConfig    `yaml:"bitbucket,omitempty"`
+	Slack        *SlackConfig        `yaml:"slack,omitempty"`
+	Pubsub       *PubsubConfig       `yaml:"pubsub,omitempty"`
+	Prometheus   *PrometheusConfig   `yaml:"prometheus,omitempty"`
+	BigQuery     *BigQueryConfig     `yaml:"bigquery,omitempty"`
+	CloudStorage *CloudStorageConfig `yaml:"gcs,omitempty"`
+	CloudSource  *CloudSourceConfig  `yaml:"cloudsource,omitempty"`
 }
 
 func (c *APIConfigIntegrations) SetDefaults() {
@@ -1072,7 +1072,7 @@ func (c *APIConfigIntegrations) Validate() (err error) {
 
 // GithubConfig is used to configure github integration
 type GithubConfig struct {
-	Enable bool `yaml:"enable" env:"ENABLE"`
+	Enable bool `yaml:"enable"`
 }
 
 func (c *GithubConfig) SetDefaults() {
@@ -1091,13 +1091,13 @@ func (c *GithubConfig) Validate() (err error) {
 
 // InstallationOrganizations is used to assign organizations to builds triggered through a specific installation
 type InstallationOrganizations struct {
-	Installation  int                       `yaml:"installation" env:"INSTALLATION"`
-	Organizations []*contracts.Organization `yaml:"organizations" env:"ORGANIZATIONS"`
+	Installation  int                       `yaml:"installation"`
+	Organizations []*contracts.Organization `yaml:"organizations"`
 }
 
 // BitbucketConfig is used to configure bitbucket integration
 type BitbucketConfig struct {
-	Enable bool `yaml:"enable" env:"ENABLE"`
+	Enable bool `yaml:"enable"`
 }
 
 func (c *BitbucketConfig) SetDefaults() {
@@ -1114,17 +1114,17 @@ func (c *BitbucketConfig) Validate() (err error) {
 
 // OwnerOrganizations is used to assign organizations to builds triggered through a specific owner
 type OwnerOrganizations struct {
-	Owner         string                    `yaml:"owner" env:"OWNER"`
-	Organizations []*contracts.Organization `yaml:"organizations" env:"ORGANIZATIONS"`
+	Owner         string                    `yaml:"owner"`
+	Organizations []*contracts.Organization `yaml:"organizations"`
 }
 
 // SlackConfig is used to configure slack integration
 type SlackConfig struct {
-	Enable               bool   `yaml:"enable" env:"ENABLE"`
-	ClientID             string `yaml:"clientID" env:"CLIENTID"`
-	ClientSecret         string `yaml:"clientSecret" env:"CLIENTSECRET"`
-	AppVerificationToken string `yaml:"appVerificationToken" env:"APPVERIFICATIONTOKEN"`
-	AppOAuthAccessToken  string `yaml:"appOAuthAccessToken" env:"APPOAUTHACCESSTOKEN"`
+	Enable               bool   `yaml:"enable"`
+	ClientID             string `yaml:"clientID"`
+	ClientSecret         string `yaml:"clientSecret"`
+	AppVerificationToken string `yaml:"appVerificationToken"`
+	AppOAuthAccessToken  string `yaml:"appOAuthAccessToken"`
 }
 
 func (c *SlackConfig) SetDefaults() {
@@ -1156,13 +1156,13 @@ func (c *SlackConfig) Validate() (err error) {
 
 // PubsubConfig is used to be able to subscribe to pub/sub topics for triggering pipelines based on pub/sub events
 type PubsubConfig struct {
-	Enable                         bool   `yaml:"enable" env:"ENABLE"`
-	DefaultProject                 string `yaml:"defaultProject" env:"DEFAULTPROJECT"`
-	Endpoint                       string `yaml:"endpoint" env:"ENDPOINT"`
-	Audience                       string `yaml:"audience" env:"AUDIENCE"`
-	ServiceAccountEmail            string `yaml:"serviceAccountEmail" env:"SERVICEACCOUNTEMAIL"`
-	SubscriptionNameSuffix         string `yaml:"subscriptionNameSuffix" env:"SUBSCRIPTIONNAMESUFFIX"`
-	SubscriptionIdleExpirationDays int    `yaml:"subscriptionIdleExpirationDays" env:"SUBSCRIPTIONIDLEEXPIRATIONDAYS"`
+	Enable                         bool   `yaml:"enable"`
+	DefaultProject                 string `yaml:"defaultProject"`
+	Endpoint                       string `yaml:"endpoint"`
+	Audience                       string `yaml:"audience"`
+	ServiceAccountEmail            string `yaml:"serviceAccountEmail"`
+	SubscriptionNameSuffix         string `yaml:"subscriptionNameSuffix"`
+	SubscriptionIdleExpirationDays int    `yaml:"subscriptionIdleExpirationDays"`
 }
 
 func (c *PubsubConfig) SetDefaults() {
@@ -1210,10 +1210,10 @@ func (c *PubsubConfig) Validate() (err error) {
 
 // CloudStorageConfig is used to configure a google cloud storage bucket to be used to store logs
 type CloudStorageConfig struct {
-	Enable        bool   `yaml:"enable" env:"ENABLE"`
-	ProjectID     string `yaml:"projectID" env:"PROJECTID"`
-	Bucket        string `yaml:"bucket" env:"BUCKET"`
-	LogsDirectory string `yaml:"logsDir" env:"LOGSDIR"`
+	Enable        bool   `yaml:"enable"`
+	ProjectID     string `yaml:"projectID"`
+	Bucket        string `yaml:"bucket"`
+	LogsDirectory string `yaml:"logsDir"`
 }
 
 func (c *CloudStorageConfig) SetDefaults() {
@@ -1246,9 +1246,9 @@ func (c *CloudStorageConfig) Validate() (err error) {
 
 // PrometheusConfig configures where to find prometheus for retrieving max cpu and memory consumption of build and release jobs
 type PrometheusConfig struct {
-	Enable                *bool  `yaml:"enable" env:"ENABLE"`
-	ServerURL             string `yaml:"serverURL" env:"SERVERURL"`
-	ScrapeIntervalSeconds int    `yaml:"scrapeIntervalSeconds" env:"SCRAPEINTERVALSECONDS"`
+	Enable                *bool  `yaml:"enable"`
+	ServerURL             string `yaml:"serverURL"`
+	ScrapeIntervalSeconds int    `yaml:"scrapeIntervalSeconds"`
 }
 
 func (c *PrometheusConfig) SetDefaults() {
@@ -1286,9 +1286,9 @@ func (c *PrometheusConfig) Validate() (err error) {
 
 // BigQueryConfig configures the dataset where to send bigquery events
 type BigQueryConfig struct {
-	Enable    bool   `yaml:"enable" env:"ENABLE"`
-	ProjectID string `yaml:"projectID" env:"PROJECTID"`
-	Dataset   string `yaml:"dataset" env:"DATASET"`
+	Enable    bool   `yaml:"enable"`
+	ProjectID string `yaml:"projectID"`
+	Dataset   string `yaml:"dataset"`
 }
 
 func (c *BigQueryConfig) SetDefaults() {
@@ -1318,8 +1318,8 @@ func (c *BigQueryConfig) Validate() (err error) {
 
 // CloudSourceConfig is used to configure cloudSource integration
 type CloudSourceConfig struct {
-	Enable               bool                   `yaml:"enable" env:"ENABLE"`
-	ProjectOrganizations []ProjectOrganizations `yaml:"projectOrganizations" env:"PROJECTORGANIZATIONS"`
+	Enable               bool                   `yaml:"enable"`
+	ProjectOrganizations []ProjectOrganizations `yaml:"projectOrganizations"`
 }
 
 func (c *CloudSourceConfig) SetDefaults() {
@@ -1338,8 +1338,8 @@ func (c *CloudSourceConfig) Validate() (err error) {
 
 // ProjectOrganizations is used to assign organizations to builds triggered through a specific project
 type ProjectOrganizations struct {
-	Project       string                    `yaml:"project" env:"PROJECT"`
-	Organizations []*contracts.Organization `yaml:"organizations" env:"ORGANIZATIONS"`
+	Project       string                    `yaml:"project"`
+	Organizations []*contracts.Organization `yaml:"organizations"`
 }
 
 // UnmarshalYAML customizes unmarshalling an AffinityAndTolerationsConfig
