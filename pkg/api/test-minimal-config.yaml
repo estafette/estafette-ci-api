@@ -1,0 +1,6 @@
+auth:
+  jwt:
+    domain: ci.estafette.io
+
+jobs:
+  namespace: estafette-ci-jobs
