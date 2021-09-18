@@ -73,9 +73,10 @@ func (c *APIConfig) SetDefaults() {
 	}
 	c.Queue.SetDefaults()
 
-	if c.ManifestPreferences == nil || (len(c.ManifestPreferences.BuilderOperatingSystems) == 0 && len(c.ManifestPreferences.BuilderTracksPerOperatingSystem) == 0 && c.ManifestPreferences.DefaultBranch == "") {
-		c.ManifestPreferences = manifest.GetDefaultManifestPreferences()
+	if c.ManifestPreferences == nil {
+		c.ManifestPreferences = &manifest.EstafetteManifestPreferences{}
 	}
+	c.ManifestPreferences.SetDefaults()
 
 	if c.Catalog != nil {
 		c.Catalog.SetDefaults()

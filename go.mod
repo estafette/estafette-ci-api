@@ -11,7 +11,7 @@ require (
 	github.com/appleboy/gin-jwt/v2 v2.6.4
 	github.com/estafette/estafette-ci-contracts v0.0.272
 	github.com/estafette/estafette-ci-crypt v0.0.43
-	github.com/estafette/estafette-ci-manifest v0.1.200
+	github.com/estafette/estafette-ci-manifest v0.1.201
 	github.com/estafette/estafette-foundation v0.0.75
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gin-contrib/gzip v0.0.2-0.20190827144029-5602d8b438ea
@@ -29,7 +29,6 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/rs/zerolog v1.18.0
 	github.com/sethgrid/pester v1.1.0
-	github.com/sethvargo/go-envconfig v0.3.5
 	github.com/sethvargo/go-password v0.1.3
 	github.com/stretchr/testify v1.7.0
 	github.com/uber/jaeger-client-go v2.22.1+incompatible

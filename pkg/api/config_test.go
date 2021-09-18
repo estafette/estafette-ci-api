@@ -504,8 +504,21 @@ func TestReadConfigFromFile(t *testing.T) {
 		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
 		assert.Nil(t, err)
 
-		assert.Equal(t, true, config.Integrations.Github.Enable)
+		assert.Equal(t, false, config.Integrations.Github.Enable)
 		os.Setenv("ESCI_INTEGRATIONS_GITHUB_ENABLE", "")
+	})
+
+	t.Run("Keeps_Job_AffinitiesAndTolerations_Nil_For_Minimal_Config", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
+
+		// act
+		config, err := configReader.ReadConfigFromFile("test-minimal-config.yaml", true)
+
+		assert.Nil(t, err)
+		assert.Nil(t, config.Jobs.BuildAffinityAndTolerations)
+		assert.Nil(t, config.Jobs.ReleaseAffinityAndTolerations)
+		assert.Nil(t, config.Jobs.BotAffinityAndTolerations)
 	})
 }
 
