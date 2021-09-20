@@ -93,7 +93,6 @@ func TestGetCatalogFilters(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		configFilePath := "/configs/config.yaml"
 		templatesPath := "/templates"
 		cfg := &api.APIConfig{
 			Catalog: &api.CatalogConfig{
@@ -112,7 +111,7 @@ func TestGetCatalogFilters(t *testing.T) {
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 
-		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
+		handler := NewHandler(templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 
@@ -152,7 +151,6 @@ func TestGetPipeline(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		configFilePath := "/configs/config.yaml"
 		templatesPath := "/templates"
 		cfg := &api.APIConfig{}
 		encryptedConfig := cfg
@@ -173,7 +171,7 @@ func TestGetPipeline(t *testing.T) {
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 
-		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
+		handler := NewHandler(templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 		bodyReader := strings.NewReader("")
@@ -230,7 +228,6 @@ func TestGetManifestTemplates(t *testing.T) {
 		err = ioutil.WriteFile(tmpfn, content, 0666)
 		assert.Nil(t, err)
 
-		configFilePath := "/configs/config.yaml"
 		cfg := &api.APIConfig{}
 		encryptedConfig := cfg
 
@@ -241,7 +238,7 @@ func TestGetManifestTemplates(t *testing.T) {
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 
-		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
+		handler := NewHandler(templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 		bodyReader := strings.NewReader("")
@@ -277,7 +274,6 @@ func TestGenerateManifest(t *testing.T) {
 		err = ioutil.WriteFile(tmpfn, content, 0666)
 		assert.Nil(t, err)
 
-		configFilePath := "/configs/config.yaml"
 		cfg := &api.APIConfig{}
 		encryptedConfig := cfg
 
@@ -288,7 +284,7 @@ func TestGenerateManifest(t *testing.T) {
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 
-		handler := NewHandler(configFilePath, templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
+		handler := NewHandler(templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 		bodyReader := strings.NewReader("{\"template\": \"docker\", \"placeholders\": {\"TeamName\": \"estafette\"}}")

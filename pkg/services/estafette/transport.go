@@ -33,10 +33,8 @@ import (
 )
 
 // NewHandler returns a new estafette.Handler
-func NewHandler(configFilePath string, templatesPath string, config *api.APIConfig, encryptedConfig *api.APIConfig, databaseClient database.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper api.WarningHelper, secretHelper crypt.SecretHelper) Handler {
-
+func NewHandler(templatesPath string, config *api.APIConfig, encryptedConfig *api.APIConfig, databaseClient database.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper api.WarningHelper, secretHelper crypt.SecretHelper) Handler {
 	return Handler{
-		configFilePath:     configFilePath,
 		templatesPath:      templatesPath,
 		config:             config,
 		encryptedConfig:    encryptedConfig,
@@ -50,7 +48,6 @@ func NewHandler(configFilePath string, templatesPath string, config *api.APIConf
 }
 
 type Handler struct {
-	configFilePath     string
 	templatesPath      string
 	config             *api.APIConfig
 	encryptedConfig    *api.APIConfig

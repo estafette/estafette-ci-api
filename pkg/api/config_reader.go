@@ -3,6 +3,8 @@ package api
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 
 	crypt "github.com/estafette/estafette-ci-crypt"
 	"github.com/rs/zerolog/log"
@@ -12,6 +14,7 @@ import (
 // ConfigReader reads the api config from file
 type ConfigReader interface {
 	ReadConfigFromFile(string, bool) (*APIConfig, error)
+	ReadConfigFromFiles(string, bool) (*APIConfig, error)
 }
 
 type configReaderImpl struct {
@@ -77,6 +80,84 @@ func (h *configReaderImpl) ReadConfigFromFile(configPath string, decryptSecrets 
 	}
 
 	log.Info().Msgf("Finished reading %v file successfully", configPath)
+
+	return
+}
+
+// ReadConfigFromFiles is used to read configuration from multiple files set from a configmap
+func (h *configReaderImpl) ReadConfigFromFiles(configPath string, decryptSecrets bool) (config *APIConfig, err error) {
+
+	log.Info().Msgf("Reading configs from directory %v...", configPath)
+
+	configFilePaths := []string{}
+
+	// get paths to all yaml files
+	err = filepath.Walk(configPath, func(path string, info os.FileInfo, err error) error {
+		// add all yaml files
+		if !info.IsDir() && filepath.Ext(path) == ".yaml" {
+			configFilePaths = append(configFilePaths, path)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return
+	}
+
+	log.Info().Msgf("Found %v config files: %v", len(configFilePaths), strings.Join(configFilePaths, ","))
+
+	combinedData := []byte{}
+
+	for _, configFilePath := range configFilePaths {
+		data, err := ioutil.ReadFile(configFilePath)
+		if err != nil {
+			return config, err
+		}
+
+		// decrypt secrets before unmarshalling
+		if decryptSecrets {
+			decryptedData, err := h.secretHelper.DecryptAllEnvelopes(string(data), "")
+			if err != nil {
+				log.Fatal().Err(err).Msgf("Failed decrypting secrets in config file %v", configFilePath)
+			}
+
+			data = []byte(decryptedData)
+		}
+
+		combinedData = append(combinedData, data...)
+		combinedData = append(combinedData, []byte("\n")...)
+	}
+
+	// unmarshal into structs
+	if err := yaml.Unmarshal(combinedData, &config); err != nil {
+		return config, err
+	}
+
+	if config == nil {
+		config = &APIConfig{}
+	}
+
+	// fill in all the defaults for empty values
+	config.SetDefaults()
+
+	// override values from envvars
+	err = OverrideFromEnv(config, "ESCI", os.Environ())
+	if err != nil {
+		return config, err
+	}
+
+	// set jwt key from secret
+	if config.Auth.JWT.Key == "" {
+		config.Auth.JWT.Key = h.jwtKey
+	}
+
+	// validate the config
+	err = config.Validate()
+	if err != nil {
+		return
+	}
+
+	log.Info().Msgf("Finished reading configs from directory %v successfully", configPath)
 
 	return
 }

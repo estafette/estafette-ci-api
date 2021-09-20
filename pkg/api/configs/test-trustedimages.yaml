@@ -1,0 +1,28 @@
+trustedImages:
+- path: extensions/docker
+  runDocker: true
+  injectedCredentialTypes:
+  - container-registry
+- path: extensions/gke
+  injectedCredentialTypes:
+  - kubernetes-engine
+- path: extensions/bitbucket-status
+  injectedCredentialTypes:
+  - bitbucket-api-token
+- path: extensions/github-status
+  injectedCredentialTypes:
+  - github-api-token
+- path: extensions/slack-build-status
+  injectedCredentialTypes:
+  - slack-webhook
+- path: extensions/dotnet
+  injectedCredentialTypes:
+  - nuget-server
+  - sonarqube-server
+- path: docker
+  runDocker: true
+- path: multiple-git-sources-test
+  injectedCredentialTypes:
+  - bitbucket-api-token
+  - github-api-token
+  - cloudsource-api-token

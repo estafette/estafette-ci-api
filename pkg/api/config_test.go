@@ -688,12 +688,17 @@ func TestReadLogFromCloudStorage(t *testing.T) {
 	})
 }
 
-// // ReadLogFromDatabase indicates if logReader config is database
-// func (c *APIServerConfig) ReadLogFromDatabase() bool {
-// 	return c.LogReader == "database"
-// }
+func TestReadConfigFromFiles(t *testing.T) {
+	t.Run("MergesMultipleYamlConfigFiles", func(t *testing.T) {
 
-// // ReadLogFromCloudStorage indicates if logReader config is cloudstorage
-// func (c *APIServerConfig) ReadLogFromCloudStorage() bool {
-// 	return c.LogReader == "cloudstorage"
-// }
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
+
+		// act
+		config, err := configReader.ReadConfigFromFiles("configs", true)
+
+		assert.Nil(t, err)
+		assert.Equal(t, "https://ci.estafette.io/", config.APIServer.BaseURL)
+		assert.Equal(t, 9, len(config.Credentials))
+		assert.Equal(t, 8, len(config.TrustedImages))
+	})
+}

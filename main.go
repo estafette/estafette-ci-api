@@ -66,7 +66,7 @@ var (
 var (
 	// flags
 	apiAddress                   = kingpin.Flag("api-listen-address", "The address to listen on for api HTTP requests.").Default(":5000").String()
-	configFilePath               = kingpin.Flag("config-file-path", "The path to yaml config file configuring this application.").Default("/configs/config.yaml").OverrideDefaultFromEnvar("CONFIG_FILE_PATH").String()
+	configFilesPath              = kingpin.Flag("config-files-path", "The path to yaml config file configuring this application.").Default("/configs").OverrideDefaultFromEnvar("CONFIG_FILES_PATH").String()
 	templatesPath                = kingpin.Flag("templates-path", "The path to the manifest templates being used by the 'Create' functionality.").Default("/templates").OverrideDefaultFromEnvar("TEMPLATES_PATH").String()
 	secretDecryptionKeyPath      = kingpin.Flag("secret-decryption-key-path", "The path to the AES-256 key used to decrypt secrets that have been encrypted with it.").Default("/secrets/secretDecryptionKey").OverrideDefaultFromEnvar("SECRET_DECRYPTION_KEY_PATH").String()
 	jwtKeyPath                   = kingpin.Flag("jwt-key-path", "The path to 256 bit jwt key used for api authentication.").Default("/secrets/jwtKey").OverrideDefaultFromEnvar("JWT_KEY_PATH").String()
@@ -133,9 +133,9 @@ func initRequestHandlers(ctx context.Context, stopChannel <-chan struct{}, waitG
 
 	srv := configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler, catalogHandler)
 
-	// watch for configmap changes
-	foundation.WatchForFileChanges(*configFilePath, func(event fsnotify.Event) {
-		log.Info().Msgf("Configmap at %v was updated, refreshing instances...", *configFilePath)
+	// watch for config changes
+	foundation.WatchForFileChanges(*configFilesPath, func(event fsnotify.Event) {
+		log.Info().Msgf("Configs at %v were updated, refreshing instances...", *configFilesPath)
 
 		// refresh config
 		newConfig, newEncryptedConfig, _ := getConfig(ctx)
@@ -201,17 +201,17 @@ func getConfig(ctx context.Context) (*api.APIConfig, *api.APIConfig, crypt.Secre
 	configReader := api.NewConfigReader(secretHelper, string(jwtKeyPathBytes))
 
 	// await for config file to be present, due to git-sync sidecar startup it can take some time
-	for !foundation.FileExists(*configFilePath) {
+	for !foundation.DirExists(*configFilesPath) {
 		log.Debug().Msg("Sleeping for 5 seconds while config file is synced...")
 		time.Sleep(5 * time.Second)
 	}
 
-	config, err := configReader.ReadConfigFromFile(*configFilePath, true)
+	config, err := configReader.ReadConfigFromFiles(*configFilesPath, true)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed reading configuration")
 	}
 
-	encryptedConfig, err := configReader.ReadConfigFromFile(*configFilePath, false)
+	encryptedConfig, err := configReader.ReadConfigFromFiles(*configFilesPath, false)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed reading configuration without decrypting")
 	}
@@ -463,7 +463,7 @@ func getHandlers(ctx context.Context, config *api.APIConfig, encryptedConfig *ap
 	// transport
 	bitbucketHandler = bitbucket.NewHandler(bitbucketService, config, bitbucketapiClient)
 	githubHandler = github.NewHandler(githubService, config, githubapiClient)
-	estafetteHandler = estafette.NewHandler(*configFilePath, *templatesPath, config, encryptedConfig, databaseClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper)
+	estafetteHandler = estafette.NewHandler(*templatesPath, config, encryptedConfig, databaseClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper)
 	rbacHandler = rbac.NewHandler(config, rbacService, databaseClient, bitbucketapiClient, githubapiClient)
 	pubsubHandler = pubsub.NewHandler(pubsubapiClient, estafetteService)
 	slackHandler = slack.NewHandler(secretHelper, config, slackapiClient, databaseClient, estafetteService)
