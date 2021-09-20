@@ -92,14 +92,14 @@ func (h *configReaderImpl) ReadConfigFromFiles(configPath string, decryptSecrets
 		config = &APIConfig{}
 	}
 
-	// fill in all the defaults for empty values
-	config.SetDefaults()
-
 	// override values from envvars
 	err = OverrideFromEnv(config, "ESCI", os.Environ())
 	if err != nil {
 		return config, err
 	}
+
+	// fill in all the defaults for empty values
+	config.SetDefaults()
 
 	// set jwt key from secret
 	if config.Auth.JWT.Key == "" {
