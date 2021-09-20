@@ -105,7 +105,7 @@ func TestInjectStages(t *testing.T) {
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
-			assert.Equal(t, "injected-before-hard", injectedManifest.Stages[0].Name)
+			assert.Equal(t, "injected-before-hardcoded", injectedManifest.Stages[0].Name)
 			assert.Equal(t, 2, len(injectedManifest.Stages[0].ParallelStages))
 
 			assert.Equal(t, "git-clone", injectedManifest.Stages[0].ParallelStages[0].Name)
@@ -125,7 +125,7 @@ func TestInjectStages(t *testing.T) {
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
-			assert.Equal(t, "injected-before-hard", injectedManifest.Stages[0].Name)
+			assert.Equal(t, "injected-before-hardcoded", injectedManifest.Stages[0].Name)
 			assert.Equal(t, 1, len(injectedManifest.Stages[0].ParallelStages))
 			assert.Equal(t, "set-pending-build-status", injectedManifest.Stages[0].ParallelStages[0].Name)
 
@@ -146,7 +146,7 @@ func TestInjectStages(t *testing.T) {
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
-			assert.Equal(t, "injected-before-hard", injectedManifest.Stages[0].Name)
+			assert.Equal(t, "injected-before-hardcoded", injectedManifest.Stages[0].Name)
 			assert.Equal(t, 2, len(injectedManifest.Stages[0].ParallelStages))
 
 			assert.Equal(t, "set-pending-build-status", injectedManifest.Stages[0].ParallelStages[1].Name)
@@ -167,7 +167,7 @@ func TestInjectStages(t *testing.T) {
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
-			assert.Equal(t, "injected-before-hard", injectedManifest.Stages[0].Name)
+			assert.Equal(t, "injected-before-hardcoded", injectedManifest.Stages[0].Name)
 			assert.Equal(t, 1, len(injectedManifest.Stages[0].ParallelStages))
 			assert.Equal(t, "git-clone", injectedManifest.Stages[0].ParallelStages[0].Name)
 
@@ -229,10 +229,10 @@ func TestInjectStages(t *testing.T) {
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 4, len(injectedManifest.Stages)) {
-			assert.Equal(t, "injected-before-hard-0", injectedManifest.Stages[0].Name)
-			assert.Equal(t, "injected-before-hard", injectedManifest.Stages[1].Name)
+			assert.Equal(t, "injected-before-hardcoded-0", injectedManifest.Stages[0].Name)
+			assert.Equal(t, "injected-before-hardcoded", injectedManifest.Stages[1].Name)
 			assert.Equal(t, "build", injectedManifest.Stages[2].Name)
-			assert.Equal(t, "injected-after-hard", injectedManifest.Stages[3].Name)
+			assert.Equal(t, "injected-after-hardcoded", injectedManifest.Stages[3].Name)
 			assert.Equal(t, "set-build-status", injectedManifest.Stages[3].ParallelStages[0].Name)
 		}
 	})
@@ -249,7 +249,7 @@ func TestInjectStages(t *testing.T) {
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 3, len(injectedManifest.Stages)) {
-			assert.Equal(t, "injected-after-hard", injectedManifest.Stages[2].Name)
+			assert.Equal(t, "injected-after-hardcoded", injectedManifest.Stages[2].Name)
 			assert.Equal(t, "status == 'succeeded' || status == 'failed'", injectedManifest.Stages[2].When)
 			assert.Equal(t, "set-build-status", injectedManifest.Stages[2].ParallelStages[0].Name)
 			assert.Equal(t, "extensions/github-status:beta", injectedManifest.Stages[2].ParallelStages[0].ContainerImage)
@@ -285,7 +285,7 @@ func TestInjectStages(t *testing.T) {
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 2, len(injectedManifest.Releases[1].Stages)) {
-			assert.Equal(t, "injected-before-hard", injectedManifest.Releases[1].Stages[0].Name)
+			assert.Equal(t, "injected-before-hardcoded", injectedManifest.Releases[1].Stages[0].Name)
 			assert.Equal(t, "git-clone", injectedManifest.Releases[1].Stages[0].ParallelStages[0].Name)
 			assert.Equal(t, "extensions/git-clone:beta", injectedManifest.Releases[1].Stages[0].ParallelStages[0].ContainerImage)
 		}
@@ -337,7 +337,7 @@ func TestInjectStages(t *testing.T) {
 
 		assert.Nil(t, err)
 		if assert.Equal(t, 2, len(injectedManifest.Stages)) {
-			assert.Equal(t, "injected-before-hard", injectedManifest.Stages[0].Name)
+			assert.Equal(t, "injected-before-hardcoded", injectedManifest.Stages[0].Name)
 			assert.Equal(t, 1, len(injectedManifest.Stages[0].ParallelStages))
 			assert.Equal(t, "git-clone", injectedManifest.Stages[0].ParallelStages[0].Name)
 		}
@@ -435,37 +435,37 @@ func TestInjectStages(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.Equal(t, 4, len(injectedManifest.Stages))
-		assert.Equal(t, "injected-before-hard", injectedManifest.Stages[0].Name)
+		assert.Equal(t, "injected-before-hardcoded", injectedManifest.Stages[0].Name)
 		assert.Equal(t, 1, len(injectedManifest.Stages[0].ParallelStages))
 		assert.Equal(t, "git-clone", injectedManifest.Stages[0].ParallelStages[0].Name)
 		assert.Equal(t, "extensions/git-clone:beta", injectedManifest.Stages[0].ParallelStages[0].ContainerImage)
 
-		assert.Equal(t, "injected-before-soft", injectedManifest.Stages[1].Name)
+		assert.Equal(t, "injected-before-configured", injectedManifest.Stages[1].Name)
 		assert.Equal(t, 1, len(injectedManifest.Stages[1].ParallelStages))
 		assert.Equal(t, "envvar-before", injectedManifest.Stages[1].ParallelStages[0].Name)
 		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Stages[1].ParallelStages[0].ContainerImage)
 
-		assert.Equal(t, "injected-after-soft", injectedManifest.Stages[3].Name)
+		assert.Equal(t, "injected-after-configured", injectedManifest.Stages[3].Name)
 		assert.Equal(t, 1, len(injectedManifest.Stages[3].ParallelStages))
 		assert.Equal(t, "envvar-after", injectedManifest.Stages[3].ParallelStages[0].Name)
 		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Stages[3].ParallelStages[0].ContainerImage)
 
 		assert.Equal(t, 3, len(injectedManifest.Releases[0].Stages))
-		assert.Equal(t, "injected-before-soft", injectedManifest.Releases[0].Stages[0].Name)
+		assert.Equal(t, "injected-before-configured", injectedManifest.Releases[0].Stages[0].Name)
 		assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages[0].ParallelStages))
 		assert.Equal(t, "envvar-before", injectedManifest.Releases[0].Stages[0].ParallelStages[0].Name)
 		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Releases[0].Stages[0].ParallelStages[0].ContainerImage)
-		assert.Equal(t, "injected-after-soft", injectedManifest.Releases[0].Stages[2].Name)
+		assert.Equal(t, "injected-after-configured", injectedManifest.Releases[0].Stages[2].Name)
 		assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages[2].ParallelStages))
 		assert.Equal(t, "envvar-after", injectedManifest.Releases[0].Stages[2].ParallelStages[0].Name)
 		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Releases[0].Stages[2].ParallelStages[0].ContainerImage)
 
 		assert.Equal(t, 3, len(injectedManifest.Bots[0].Stages))
-		assert.Equal(t, "injected-before-soft", injectedManifest.Bots[0].Stages[0].Name)
+		assert.Equal(t, "injected-before-configured", injectedManifest.Bots[0].Stages[0].Name)
 		assert.Equal(t, 1, len(injectedManifest.Bots[0].Stages[0].ParallelStages))
 		assert.Equal(t, "envvar-before", injectedManifest.Bots[0].Stages[0].ParallelStages[0].Name)
 		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Bots[0].Stages[0].ParallelStages[0].ContainerImage)
-		assert.Equal(t, "injected-after-soft", injectedManifest.Bots[0].Stages[2].Name)
+		assert.Equal(t, "injected-after-configured", injectedManifest.Bots[0].Stages[2].Name)
 		assert.Equal(t, 1, len(injectedManifest.Bots[0].Stages[2].ParallelStages))
 		assert.Equal(t, "envvar-after", injectedManifest.Bots[0].Stages[2].ParallelStages[0].Name)
 		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Bots[0].Stages[2].ParallelStages[0].ContainerImage)
@@ -604,37 +604,37 @@ func TestInjectStages(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 4, len(injectedManifest.Stages))
 
-		assert.Equal(t, "injected-before-hard", injectedManifest.Stages[0].Name)
+		assert.Equal(t, "injected-before-hardcoded", injectedManifest.Stages[0].Name)
 		assert.Equal(t, 1, len(injectedManifest.Stages[0].ParallelStages))
 		assert.Equal(t, "git-clone", injectedManifest.Stages[0].ParallelStages[0].Name)
 		assert.Equal(t, "extensions/git-clone:beta", injectedManifest.Stages[0].ParallelStages[0].ContainerImage)
 
-		assert.Equal(t, "injected-before-soft", injectedManifest.Stages[1].Name)
+		assert.Equal(t, "injected-before-configured", injectedManifest.Stages[1].Name)
 		assert.Equal(t, 1, len(injectedManifest.Stages[1].ParallelStages))
 		assert.Equal(t, "envvar-before", injectedManifest.Stages[1].ParallelStages[0].Name)
 		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Stages[1].ParallelStages[0].ContainerImage)
 
-		assert.Equal(t, "injected-after-soft", injectedManifest.Stages[3].Name)
+		assert.Equal(t, "injected-after-configured", injectedManifest.Stages[3].Name)
 		assert.Equal(t, 1, len(injectedManifest.Stages[3].ParallelStages))
 		assert.Equal(t, "envvar-after", injectedManifest.Stages[3].ParallelStages[0].Name)
 		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Stages[3].ParallelStages[0].ContainerImage)
 
 		assert.Equal(t, 3, len(injectedManifest.Releases[0].Stages))
-		assert.Equal(t, "injected-before-soft", injectedManifest.Releases[0].Stages[0].Name)
+		assert.Equal(t, "injected-before-configured", injectedManifest.Releases[0].Stages[0].Name)
 		assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages[0].ParallelStages))
 		assert.Equal(t, "envvar-before", injectedManifest.Releases[0].Stages[0].ParallelStages[0].Name)
 		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Releases[0].Stages[0].ParallelStages[0].ContainerImage)
-		assert.Equal(t, "injected-after-soft", injectedManifest.Releases[0].Stages[2].Name)
+		assert.Equal(t, "injected-after-configured", injectedManifest.Releases[0].Stages[2].Name)
 		assert.Equal(t, 1, len(injectedManifest.Releases[0].Stages[2].ParallelStages))
 		assert.Equal(t, "envvar-after", injectedManifest.Releases[0].Stages[2].ParallelStages[0].Name)
 		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Releases[0].Stages[2].ParallelStages[0].ContainerImage)
 
 		assert.Equal(t, 3, len(injectedManifest.Bots[0].Stages))
-		assert.Equal(t, "injected-before-soft", injectedManifest.Bots[0].Stages[0].Name)
+		assert.Equal(t, "injected-before-configured", injectedManifest.Bots[0].Stages[0].Name)
 		assert.Equal(t, 1, len(injectedManifest.Bots[0].Stages[0].ParallelStages))
 		assert.Equal(t, "envvar-before", injectedManifest.Bots[0].Stages[0].ParallelStages[0].Name)
 		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Bots[0].Stages[0].ParallelStages[0].ContainerImage)
-		assert.Equal(t, "injected-after-soft", injectedManifest.Bots[0].Stages[2].Name)
+		assert.Equal(t, "injected-after-configured", injectedManifest.Bots[0].Stages[2].Name)
 		assert.Equal(t, 1, len(injectedManifest.Bots[0].Stages[2].ParallelStages))
 		assert.Equal(t, "envvar-after", injectedManifest.Bots[0].Stages[2].ParallelStages[0].Name)
 		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Bots[0].Stages[2].ParallelStages[0].ContainerImage)
@@ -756,7 +756,7 @@ func TestInjectStages(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.Equal(t, 4, len(injectedManifest.Stages))
-		assert.Equal(t, "injected-before-hard", injectedManifest.Stages[0].Name)
+		assert.Equal(t, "injected-before-hardcoded", injectedManifest.Stages[0].Name)
 		assert.Equal(t, 1, len(injectedManifest.Stages[0].ParallelStages))
 		assert.Equal(t, "envvar-before", injectedManifest.Stages[1].Name)
 		assert.Equal(t, "extensions/envvars:stable", injectedManifest.Stages[1].ContainerImage)
@@ -1197,7 +1197,7 @@ func getManifestWithoutInjectedStepsButWithInjectedBeforeStage() manifest.Estafe
 		GlobalEnvVars: map[string]string{},
 		Stages: []*manifest.EstafetteStage{
 			{
-				Name: "injected-before-hard",
+				Name: "injected-before-hardcoded",
 			},
 			{
 				Name:             "build",

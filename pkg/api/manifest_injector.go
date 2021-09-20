@@ -94,7 +94,7 @@ func injectBuildStagesBefore(config *APIConfig, operatingSystem manifest.Operati
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		softInjectedStage := &manifest.EstafetteStage{
-			Name:           getInjectedStageName("injected-before-soft", stages),
+			Name:           getInjectedStageName("injected-before-configured", stages),
 			ParallelStages: []*manifest.EstafetteStage{},
 			AutoInjected:   true,
 		}
@@ -112,7 +112,7 @@ func injectBuildStagesBefore(config *APIConfig, operatingSystem manifest.Operati
 	}
 
 	hardInjectedStage := &manifest.EstafetteStage{
-		Name:           getInjectedStageName("injected-before-hard", stages),
+		Name:           getInjectedStageName("injected-before-hardcoded", stages),
 		ParallelStages: []*manifest.EstafetteStage{},
 		AutoInjected:   true,
 	}
@@ -150,7 +150,7 @@ func injectBuildStagesAfter(config *APIConfig, operatingSystem manifest.Operatin
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 
 		softInjectedStage := &manifest.EstafetteStage{
-			Name:           getInjectedStageName("injected-after-soft", stages),
+			Name:           getInjectedStageName("injected-after-configured", stages),
 			ParallelStages: []*manifest.EstafetteStage{},
 			AutoInjected:   true,
 			When:           "status == 'succeeded' || status == 'failed'",
@@ -169,7 +169,7 @@ func injectBuildStagesAfter(config *APIConfig, operatingSystem manifest.Operatin
 	}
 
 	hardInjectedStage := &manifest.EstafetteStage{
-		Name:           getInjectedStageName("injected-after-hard", stages),
+		Name:           getInjectedStageName("injected-after-hardcoded", stages),
 		ParallelStages: []*manifest.EstafetteStage{},
 		AutoInjected:   true,
 		When:           "status == 'succeeded' || status == 'failed'",
@@ -200,7 +200,7 @@ func injectReleaseStagesBefore(config *APIConfig, operatingSystem manifest.Opera
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		softInjectedStage := &manifest.EstafetteStage{
-			Name:           getInjectedStageName("injected-before-soft", stages),
+			Name:           getInjectedStageName("injected-before-configured", stages),
 			ParallelStages: []*manifest.EstafetteStage{},
 			AutoInjected:   true,
 		}
@@ -218,7 +218,7 @@ func injectReleaseStagesBefore(config *APIConfig, operatingSystem manifest.Opera
 	}
 
 	hardInjectedStage := &manifest.EstafetteStage{
-		Name:           getInjectedStageName("injected-before-hard", stages),
+		Name:           getInjectedStageName("injected-before-hardcoded", stages),
 		ParallelStages: []*manifest.EstafetteStage{},
 		AutoInjected:   true,
 	}
@@ -247,7 +247,7 @@ func injectReleaseStagesAfter(config *APIConfig, operatingSystem manifest.Operat
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		softInjectedStage := &manifest.EstafetteStage{
-			Name:           getInjectedStageName("injected-after-soft", stages),
+			Name:           getInjectedStageName("injected-after-configured", stages),
 			ParallelStages: []*manifest.EstafetteStage{},
 			AutoInjected:   true,
 			When:           "status == 'succeeded' || status == 'failed'",
@@ -275,7 +275,7 @@ func injectBotStagesBefore(config *APIConfig, operatingSystem manifest.Operating
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		softInjectedStage := &manifest.EstafetteStage{
-			Name:           getInjectedStageName("injected-before-soft", stages),
+			Name:           getInjectedStageName("injected-before-configured", stages),
 			ParallelStages: []*manifest.EstafetteStage{},
 			AutoInjected:   true,
 		}
@@ -293,7 +293,7 @@ func injectBotStagesBefore(config *APIConfig, operatingSystem manifest.Operating
 	}
 
 	hardInjectedStage := &manifest.EstafetteStage{
-		Name:           getInjectedStageName("injected-before-hard", stages),
+		Name:           getInjectedStageName("injected-before-hardcoded", stages),
 		ParallelStages: []*manifest.EstafetteStage{},
 		AutoInjected:   true,
 	}
@@ -322,7 +322,7 @@ func injectBotStagesAfter(config *APIConfig, operatingSystem manifest.OperatingS
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
 		softInjectedStage := &manifest.EstafetteStage{
-			Name:           getInjectedStageName("injected-after-soft", stages),
+			Name:           getInjectedStageName("injected-after-configured", stages),
 			ParallelStages: []*manifest.EstafetteStage{},
 			AutoInjected:   true,
 			When:           "status == 'succeeded' || status == 'failed'",
