@@ -91,19 +91,39 @@ func injectBuildStagesBefore(config *APIConfig, operatingSystem manifest.Operati
 
 	stages = mft.Stages
 
-	injectedStage := &manifest.EstafetteStage{
-		Name:           getInjectedStageName("injected-before", stages),
+	// add any configured injected stages
+	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
+		softInjectedStage := &manifest.EstafetteStage{
+			Name:           getInjectedStageName("injected-before-soft", stages),
+			ParallelStages: []*manifest.EstafetteStage{},
+			AutoInjected:   true,
+		}
+
+		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Build != nil && injectedStages.Build.Before != nil {
+			softInjectedStage.ParallelStages = injectIfNotExists(mft, stages, softInjectedStage.ParallelStages, injectedStages.Build.Before...)
+		}
+
+		if len(softInjectedStage.ParallelStages) > 0 {
+			for _, ps := range softInjectedStage.ParallelStages {
+				ps.AutoInjected = true
+			}
+			stages = append([]*manifest.EstafetteStage{softInjectedStage}, stages...)
+		}
+	}
+
+	hardInjectedStage := &manifest.EstafetteStage{
+		Name:           getInjectedStageName("injected-before-hard", stages),
 		ParallelStages: []*manifest.EstafetteStage{},
 		AutoInjected:   true,
 	}
 
-	injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
+	hardInjectedStage.ParallelStages = injectIfNotExists(mft, stages, hardInjectedStage.ParallelStages, &manifest.EstafetteStage{
 		Name:           "git-clone",
 		ContainerImage: fmt.Sprintf("extensions/git-clone:%v", builderTrack),
 	})
 
 	if supportsBuildStatus {
-		injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
+		hardInjectedStage.ParallelStages = injectIfNotExists(mft, stages, hardInjectedStage.ParallelStages, &manifest.EstafetteStage{
 			Name:           "set-pending-build-status",
 			ContainerImage: fmt.Sprintf("extensions/%v-status:%v", gitSource, builderTrack),
 			CustomProperties: map[string]interface{}{
@@ -112,18 +132,11 @@ func injectBuildStagesBefore(config *APIConfig, operatingSystem manifest.Operati
 		})
 	}
 
-	// add any configured injected stages
-	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
-		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Build != nil && injectedStages.Build.Before != nil {
-			injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, injectedStages.Build.Before...)
-		}
-	}
-
-	if len(injectedStage.ParallelStages) > 0 {
-		for _, ps := range injectedStage.ParallelStages {
+	if len(hardInjectedStage.ParallelStages) > 0 {
+		for _, ps := range hardInjectedStage.ParallelStages {
 			ps.AutoInjected = true
 		}
-		stages = append([]*manifest.EstafetteStage{injectedStage}, stages...)
+		stages = append([]*manifest.EstafetteStage{hardInjectedStage}, stages...)
 	}
 
 	return stages
@@ -133,33 +146,48 @@ func injectBuildStagesAfter(config *APIConfig, operatingSystem manifest.Operatin
 
 	stages = mft.Stages
 
-	injectedStage := &manifest.EstafetteStage{
-		Name:           getInjectedStageName("injected-after", stages),
+	// add any configured injected stages
+	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
+
+		softInjectedStage := &manifest.EstafetteStage{
+			Name:           getInjectedStageName("injected-after-soft", stages),
+			ParallelStages: []*manifest.EstafetteStage{},
+			AutoInjected:   true,
+			When:           "status == 'succeeded' || status == 'failed'",
+		}
+
+		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Build != nil && injectedStages.Build.After != nil {
+			softInjectedStage.ParallelStages = injectIfNotExists(mft, stages, softInjectedStage.ParallelStages, injectedStages.Build.After...)
+		}
+
+		if len(softInjectedStage.ParallelStages) > 0 {
+			for _, ps := range softInjectedStage.ParallelStages {
+				ps.AutoInjected = true
+			}
+			stages = append(stages, softInjectedStage)
+		}
+	}
+
+	hardInjectedStage := &manifest.EstafetteStage{
+		Name:           getInjectedStageName("injected-after-hard", stages),
 		ParallelStages: []*manifest.EstafetteStage{},
 		AutoInjected:   true,
 		When:           "status == 'succeeded' || status == 'failed'",
 	}
 
 	if supportsBuildStatus {
-		injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
+		hardInjectedStage.ParallelStages = injectIfNotExists(mft, stages, hardInjectedStage.ParallelStages, &manifest.EstafetteStage{
 			Name:           "set-build-status",
 			ContainerImage: fmt.Sprintf("extensions/%v-status:%v", gitSource, builderTrack),
 			When:           "status == 'succeeded' || status == 'failed'",
 		})
 	}
 
-	// add any configured injected stages
-	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
-		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Build != nil && injectedStages.Build.After != nil {
-			injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, injectedStages.Build.After...)
-		}
-	}
-
-	if len(injectedStage.ParallelStages) > 0 {
-		for _, ps := range injectedStage.ParallelStages {
+	if len(hardInjectedStage.ParallelStages) > 0 {
+		for _, ps := range hardInjectedStage.ParallelStages {
 			ps.AutoInjected = true
 		}
-		stages = append(stages, injectedStage)
+		stages = append(stages, hardInjectedStage)
 	}
 
 	return stages
@@ -169,31 +197,44 @@ func injectReleaseStagesBefore(config *APIConfig, operatingSystem manifest.Opera
 
 	stages = release.Stages
 
-	injectedStage := &manifest.EstafetteStage{
-		Name:           getInjectedStageName("injected-before", stages),
+	// add any configured injected stages
+	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
+		softInjectedStage := &manifest.EstafetteStage{
+			Name:           getInjectedStageName("injected-before-soft", stages),
+			ParallelStages: []*manifest.EstafetteStage{},
+			AutoInjected:   true,
+		}
+
+		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Release != nil && injectedStages.Release.Before != nil {
+			softInjectedStage.ParallelStages = injectIfNotExists(mft, stages, softInjectedStage.ParallelStages, injectedStages.Release.Before...)
+		}
+
+		if len(softInjectedStage.ParallelStages) > 0 {
+			for _, ps := range softInjectedStage.ParallelStages {
+				ps.AutoInjected = true
+			}
+			stages = append([]*manifest.EstafetteStage{softInjectedStage}, stages...)
+		}
+	}
+
+	hardInjectedStage := &manifest.EstafetteStage{
+		Name:           getInjectedStageName("injected-before-hard", stages),
 		ParallelStages: []*manifest.EstafetteStage{},
 		AutoInjected:   true,
 	}
 
 	if release.CloneRepository != nil && *release.CloneRepository {
-		injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
+		hardInjectedStage.ParallelStages = injectIfNotExists(mft, stages, hardInjectedStage.ParallelStages, &manifest.EstafetteStage{
 			Name:           "git-clone",
 			ContainerImage: fmt.Sprintf("extensions/git-clone:%v", builderTrack),
 		})
 	}
 
-	// add any configured injected stages
-	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
-		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Release != nil && injectedStages.Release.Before != nil {
-			injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, injectedStages.Release.Before...)
-		}
-	}
-
-	if len(injectedStage.ParallelStages) > 0 {
-		for _, ps := range injectedStage.ParallelStages {
+	if len(hardInjectedStage.ParallelStages) > 0 {
+		for _, ps := range hardInjectedStage.ParallelStages {
 			ps.AutoInjected = true
 		}
-		stages = append([]*manifest.EstafetteStage{injectedStage}, stages...)
+		stages = append([]*manifest.EstafetteStage{hardInjectedStage}, stages...)
 	}
 
 	return stages
@@ -203,25 +244,25 @@ func injectReleaseStagesAfter(config *APIConfig, operatingSystem manifest.Operat
 
 	stages = release.Stages
 
-	injectedStage := &manifest.EstafetteStage{
-		Name:           getInjectedStageName("injected-after", stages),
-		ParallelStages: []*manifest.EstafetteStage{},
-		AutoInjected:   true,
-		When:           "status == 'succeeded' || status == 'failed'",
-	}
-
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
-		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Release != nil && injectedStages.Release.After != nil {
-			injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, injectedStages.Release.After...)
+		softInjectedStage := &manifest.EstafetteStage{
+			Name:           getInjectedStageName("injected-after-soft", stages),
+			ParallelStages: []*manifest.EstafetteStage{},
+			AutoInjected:   true,
+			When:           "status == 'succeeded' || status == 'failed'",
 		}
-	}
 
-	if len(injectedStage.ParallelStages) > 0 {
-		for _, ps := range injectedStage.ParallelStages {
-			ps.AutoInjected = true
+		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Release != nil && injectedStages.Release.After != nil {
+			softInjectedStage.ParallelStages = injectIfNotExists(mft, stages, softInjectedStage.ParallelStages, injectedStages.Release.After...)
 		}
-		stages = append(stages, injectedStage)
+
+		if len(softInjectedStage.ParallelStages) > 0 {
+			for _, ps := range softInjectedStage.ParallelStages {
+				ps.AutoInjected = true
+			}
+			stages = append(stages, softInjectedStage)
+		}
 	}
 
 	return stages
@@ -231,31 +272,44 @@ func injectBotStagesBefore(config *APIConfig, operatingSystem manifest.Operating
 
 	stages = bot.Stages
 
-	injectedStage := &manifest.EstafetteStage{
-		Name:           getInjectedStageName("injected-before", stages),
+	// add any configured injected stages
+	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
+		softInjectedStage := &manifest.EstafetteStage{
+			Name:           getInjectedStageName("injected-before-soft", stages),
+			ParallelStages: []*manifest.EstafetteStage{},
+			AutoInjected:   true,
+		}
+
+		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Bot != nil && injectedStages.Bot.Before != nil {
+			softInjectedStage.ParallelStages = injectIfNotExists(mft, stages, softInjectedStage.ParallelStages, injectedStages.Bot.Before...)
+		}
+
+		if len(softInjectedStage.ParallelStages) > 0 {
+			for _, ps := range softInjectedStage.ParallelStages {
+				ps.AutoInjected = true
+			}
+			stages = append([]*manifest.EstafetteStage{softInjectedStage}, stages...)
+		}
+	}
+
+	hardInjectedStage := &manifest.EstafetteStage{
+		Name:           getInjectedStageName("injected-before-hard", stages),
 		ParallelStages: []*manifest.EstafetteStage{},
 		AutoInjected:   true,
 	}
 
 	if bot.CloneRepository != nil && *bot.CloneRepository {
-		injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, &manifest.EstafetteStage{
+		hardInjectedStage.ParallelStages = injectIfNotExists(mft, stages, hardInjectedStage.ParallelStages, &manifest.EstafetteStage{
 			Name:           "git-clone",
 			ContainerImage: fmt.Sprintf("extensions/git-clone:%v", builderTrack),
 		})
 	}
 
-	// add any configured injected stages
-	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
-		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Bot != nil && injectedStages.Bot.Before != nil {
-			injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, injectedStages.Bot.Before...)
-		}
-	}
-
-	if len(injectedStage.ParallelStages) > 0 {
-		for _, ps := range injectedStage.ParallelStages {
+	if len(hardInjectedStage.ParallelStages) > 0 {
+		for _, ps := range hardInjectedStage.ParallelStages {
 			ps.AutoInjected = true
 		}
-		stages = append([]*manifest.EstafetteStage{injectedStage}, stages...)
+		stages = append([]*manifest.EstafetteStage{hardInjectedStage}, stages...)
 	}
 
 	return stages
@@ -265,25 +319,25 @@ func injectBotStagesAfter(config *APIConfig, operatingSystem manifest.OperatingS
 
 	stages = bot.Stages
 
-	injectedStage := &manifest.EstafetteStage{
-		Name:           getInjectedStageName("injected-after", stages),
-		ParallelStages: []*manifest.EstafetteStage{},
-		AutoInjected:   true,
-		When:           "status == 'succeeded' || status == 'failed'",
-	}
-
 	// add any configured injected stages
 	if config != nil && config.APIServer != nil && config.APIServer.InjectStagesPerOperatingSystem != nil {
-		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Bot != nil && injectedStages.Bot.After != nil {
-			injectedStage.ParallelStages = injectIfNotExists(mft, stages, injectedStage.ParallelStages, injectedStages.Bot.After...)
+		softInjectedStage := &manifest.EstafetteStage{
+			Name:           getInjectedStageName("injected-after-soft", stages),
+			ParallelStages: []*manifest.EstafetteStage{},
+			AutoInjected:   true,
+			When:           "status == 'succeeded' || status == 'failed'",
 		}
-	}
 
-	if len(injectedStage.ParallelStages) > 0 {
-		for _, ps := range injectedStage.ParallelStages {
-			ps.AutoInjected = true
+		if injectedStages, found := config.APIServer.InjectStagesPerOperatingSystem[operatingSystem]; found && injectedStages.Bot != nil && injectedStages.Bot.After != nil {
+			softInjectedStage.ParallelStages = injectIfNotExists(mft, stages, softInjectedStage.ParallelStages, injectedStages.Bot.After...)
 		}
-		stages = append(stages, injectedStage)
+
+		if len(softInjectedStage.ParallelStages) > 0 {
+			for _, ps := range softInjectedStage.ParallelStages {
+				ps.AutoInjected = true
+			}
+			stages = append(stages, softInjectedStage)
+		}
 	}
 
 	return stages
