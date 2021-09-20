@@ -241,15 +241,15 @@ func TestReadConfigFromFiles(t *testing.T) {
 		assert.Equal(t, "ci.estafette.io", authConfig.JWT.Domain)
 		assert.Equal(t, "this is my secret", authConfig.JWT.Key)
 
-		assert.Equal(t, "google", authConfig.GoogleProvider.Name)
-		assert.Equal(t, "abcdasa", authConfig.GoogleProvider.ClientID)
-		assert.Equal(t, "asdsddsfdfs", authConfig.GoogleProvider.ClientSecret)
-		assert.Equal(t, ".+@estafette\\.io", authConfig.GoogleProvider.AllowedIdentitiesRegex)
+		assert.Equal(t, "google", authConfig.Google.Name)
+		assert.Equal(t, "abcdasa", authConfig.Google.ClientID)
+		assert.Equal(t, "asdsddsfdfs", authConfig.Google.ClientSecret)
+		assert.Equal(t, ".+@estafette\\.io", authConfig.Google.AllowedIdentitiesRegex)
 
-		assert.Equal(t, "github", authConfig.GithubProvider.Name)
-		assert.Equal(t, "abcdasa", authConfig.GithubProvider.ClientID)
-		assert.Equal(t, "asdsddsfdfs", authConfig.GithubProvider.ClientSecret)
-		assert.Equal(t, ".+@estafette\\.io", authConfig.GithubProvider.AllowedIdentitiesRegex)
+		assert.Equal(t, "github", authConfig.Github.Name)
+		assert.Equal(t, "abcdasa", authConfig.Github.ClientID)
+		assert.Equal(t, "asdsddsfdfs", authConfig.Github.ClientSecret)
+		assert.Equal(t, ".+@estafette\\.io", authConfig.Github.AllowedIdentitiesRegex)
 
 		assert.Equal(t, 3, len(authConfig.Organizations))
 		assert.Equal(t, "Org A", authConfig.Organizations[0].Name)

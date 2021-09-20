@@ -80,12 +80,12 @@ func (s *service) GetProviders(ctx context.Context) (providers []*api.OAuthProvi
 		}
 	}
 
-	if s.config.Auth.GoogleProvider != nil && s.config.Auth.GoogleProvider.ClientID != "" {
-		providers = append(providers, s.config.Auth.GoogleProvider)
+	if s.config.Auth.Google != nil && s.config.Auth.Google.ClientID != "" {
+		providers = append(providers, s.config.Auth.Google)
 	}
 
-	if s.config.Auth.GithubProvider != nil && s.config.Auth.GithubProvider.ClientID != "" {
-		providers = append(providers, s.config.Auth.GithubProvider)
+	if s.config.Auth.Github != nil && s.config.Auth.Github.ClientID != "" {
+		providers = append(providers, s.config.Auth.Github)
 	}
 
 	return providers, nil

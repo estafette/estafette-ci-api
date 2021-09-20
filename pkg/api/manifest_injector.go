@@ -2,11 +2,11 @@ package api
 
 import (
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 
 	manifest "github.com/estafette/estafette-ci-manifest"
+	"github.com/rs/zerolog/log"
 )
 
 // InjectStages injects some mandatory and configured stages
@@ -312,15 +312,15 @@ func labelSelectorMatches(mft manifest.EstafetteManifest, stage manifest.Estafet
 
 					pattern := fmt.Sprintf("^%v$", strings.TrimSpace(labelSelectorValueString))
 
-					log.Printf("match %v: %v against %v", labelSelectorKey, labelValue, pattern)
+					log.Debug().Msgf("match %v: %v against %v", labelSelectorKey, labelValue, pattern)
 
 					match, err := regexp.MatchString(pattern, labelValue)
 					if err != nil {
-						log.Fatal(err)
+						log.Fatal().Err(err).Msgf("Matching %v: %v against %v failed", labelSelectorKey, labelValue, pattern)
 					}
 
 					if !match {
-						log.Printf("%v: %v does not match %v", labelSelectorKey, labelValue, pattern)
+						log.Debug().Msgf("%v: %v does not match %v", labelSelectorKey, labelValue, pattern)
 
 						allLabelsMatch = false
 						break
@@ -332,7 +332,7 @@ func labelSelectorMatches(mft manifest.EstafetteManifest, stage manifest.Estafet
 
 			return allLabelsMatch
 		} else {
-			log.Fatal("Can't cast labelSelector to map[string]string")
+			log.Fatal().Msg("Can't cast labelSelector to map[string]string")
 		}
 	}
 

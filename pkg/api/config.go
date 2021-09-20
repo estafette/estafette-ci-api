@@ -328,13 +328,11 @@ func (c *APIServerConfig) ReadLogFromCloudStorage() bool {
 
 // AuthConfig determines whether to use IAP for authentication and authorization
 type AuthConfig struct {
-	JWT            *JWTConfig `yaml:"jwt"`
-	Administrators []string   `yaml:"administrators"`
-
-	GoogleProvider *OAuthProvider `yaml:"google"`
-	GithubProvider *OAuthProvider `yaml:"github"`
-
-	Organizations []*AuthOrganizationConfig `yaml:"organizations"`
+	JWT            *JWTConfig                `yaml:"jwt"`
+	Administrators []string                  `yaml:"administrators"`
+	Google         *OAuthProvider            `yaml:"google" env:"GOOGLE"`
+	Github         *OAuthProvider            `yaml:"github" env:"GITHUB"`
+	Organizations  []*AuthOrganizationConfig `yaml:"organizations"`
 }
 
 func (c *AuthConfig) SetDefaults() {
@@ -343,13 +341,13 @@ func (c *AuthConfig) SetDefaults() {
 	}
 	c.JWT.SetDefaults()
 
-	if c.GoogleProvider != nil {
-		c.GoogleProvider.Name = "google"
-		c.GoogleProvider.SetDefaults()
+	if c.Google != nil {
+		c.Google.Name = "google"
+		c.Google.SetDefaults()
 	}
-	if c.GithubProvider != nil {
-		c.GithubProvider.Name = "github"
-		c.GithubProvider.SetDefaults()
+	if c.Github != nil {
+		c.Github.Name = "github"
+		c.Github.SetDefaults()
 	}
 
 	for _, orgProviders := range c.Organizations {
@@ -367,14 +365,14 @@ func (c *AuthConfig) Validate() (err error) {
 		return
 	}
 
-	if c.GoogleProvider != nil {
-		err = c.GoogleProvider.Validate()
+	if c.Google != nil {
+		err = c.Google.Validate()
 		if err != nil {
 			return
 		}
 	}
-	if c.GithubProvider != nil {
-		err = c.GithubProvider.Validate()
+	if c.Github != nil {
+		err = c.Github.Validate()
 		if err != nil {
 			return
 		}

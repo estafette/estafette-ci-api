@@ -3,11 +3,12 @@ package api
 import (
 	"errors"
 	"fmt"
-	"log"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -70,10 +71,10 @@ func OverrideFromEnvMap(config interface{}, prefix string, environmentVariables 
 			fieldEnvarName = prefix + strings.ToUpper(tag)
 		}
 
-		log.Printf("Checking if envvar %v exists", fieldEnvarName)
-
+		log.Debug().Msgf("Checking if envvar %v exists", fieldEnvarName)
 		// check if environment variable for property exists
 		if val, ok := environmentVariables[fieldEnvarName]; ok {
+			log.Debug().Msgf("Envvar %v exists, overriding config value", fieldEnvarName)
 			// set value
 			if err := processField(val, ef); err != nil {
 				return fmt.Errorf("%s(%q): %w", tf.Name, val, err)
