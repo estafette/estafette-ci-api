@@ -13,8 +13,8 @@ import (
 
 // ConfigReader reads the api config from file
 type ConfigReader interface {
-	ReadConfigFromFile(string, bool) (*APIConfig, error)
-	ReadConfigFromFiles(string, bool) (*APIConfig, error)
+	GetConfigFilePaths(configPath string) (configFilePaths []string, err error)
+	ReadConfigFromFiles(configPath string, decryptSecrets bool) (config *APIConfig, err error)
 }
 
 type configReaderImpl struct {
@@ -30,66 +30,8 @@ func NewConfigReader(secretHelper crypt.SecretHelper, jwtKey string) ConfigReade
 	}
 }
 
-// ReadConfigFromFile is used to read configuration from a file set from a configmap
-func (h *configReaderImpl) ReadConfigFromFile(configPath string, decryptSecrets bool) (config *APIConfig, err error) {
-
-	log.Info().Msgf("Reading %v file...", configPath)
-
-	data, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		return config, err
-	}
-
-	// decrypt secrets before unmarshalling
-	if decryptSecrets {
-		decryptedData, err := h.secretHelper.DecryptAllEnvelopes(string(data), "")
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed decrypting secrets in config file")
-		}
-
-		data = []byte(decryptedData)
-	}
-
-	// unmarshal into structs
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return config, err
-	}
-
-	if config == nil {
-		config = &APIConfig{}
-	}
-
-	// fill in all the defaults for empty values
-	config.SetDefaults()
-
-	// override values from envvars
-	err = OverrideFromEnv(config, "ESCI", os.Environ())
-	if err != nil {
-		return config, err
-	}
-
-	// set jwt key from secret
-	if config.Auth.JWT.Key == "" {
-		config.Auth.JWT.Key = h.jwtKey
-	}
-
-	// validate the config
-	err = config.Validate()
-	if err != nil {
-		return
-	}
-
-	log.Info().Msgf("Finished reading %v file successfully", configPath)
-
-	return
-}
-
-// ReadConfigFromFiles is used to read configuration from multiple files set from a configmap
-func (h *configReaderImpl) ReadConfigFromFiles(configPath string, decryptSecrets bool) (config *APIConfig, err error) {
-
-	log.Info().Msgf("Reading configs from directory %v...", configPath)
-
-	configFilePaths := []string{}
+// GetConfigFilePaths returns all matching yaml config file paths inside configPath directory
+func (h *configReaderImpl) GetConfigFilePaths(configPath string) (configFilePaths []string, err error) {
 
 	// get paths to all yaml files
 	err = filepath.Walk(configPath, func(path string, info os.FileInfo, err error) error {
@@ -100,6 +42,19 @@ func (h *configReaderImpl) ReadConfigFromFiles(configPath string, decryptSecrets
 
 		return nil
 	})
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+// ReadConfigFromFiles is used to read configuration from multiple files set from a configmap
+func (h *configReaderImpl) ReadConfigFromFiles(configPath string, decryptSecrets bool) (config *APIConfig, err error) {
+
+	log.Info().Msgf("Reading configs from directory %v...", configPath)
+
+	configFilePaths, err := h.GetConfigFilePaths(configPath)
 	if err != nil {
 		return
 	}

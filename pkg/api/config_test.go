@@ -13,14 +13,27 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-func TestReadConfigFromFile(t *testing.T) {
+func TestReadConfigFromFiles(t *testing.T) {
+
+	t.Run("MergesMultipleYamlConfigFiles", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
+
+		// act
+		config, err := configReader.ReadConfigFromFiles("configs", true)
+
+		assert.Nil(t, err)
+		assert.Equal(t, "https://ci.estafette.io/", config.APIServer.BaseURL)
+		assert.Equal(t, 9, len(config.Credentials))
+		assert.Equal(t, 8, len(config.TrustedImages))
+	})
 
 	t.Run("ReturnsConfigWithoutErrors", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		_, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		_, err := configReader.ReadConfigFromFiles("configs", true)
 
 		assert.Nil(t, err)
 	})
@@ -30,7 +43,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		githubConfig := config.Integrations.Github
 
@@ -43,7 +56,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		bitbucketConfig := config.Integrations.Bitbucket
 
@@ -56,7 +69,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		cloudsourceConfig := config.Integrations.CloudSource
 
@@ -73,7 +86,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		pubsubConfig := config.Integrations.Pubsub
 
@@ -92,7 +105,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		slackConfig := config.Integrations.Slack
 
@@ -109,7 +122,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		prometheusConfig := config.Integrations.Prometheus
 
@@ -124,7 +137,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		bigqueryConfig := config.Integrations.BigQuery
 
@@ -139,7 +152,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		cloudStorageConfig := config.Integrations.CloudStorage
 
@@ -155,7 +168,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		apiServerConfig := config.APIServer
 
@@ -220,7 +233,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		authConfig := config.Auth
 
@@ -262,7 +275,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		jobsConfig := config.Jobs
 
@@ -287,7 +300,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		jobsConfig := config.Jobs
 
@@ -360,7 +373,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		databaseConfig := config.Database
 
@@ -382,7 +395,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		queueConfig := config.Queue
 
@@ -401,7 +414,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		if !assert.Nil(t, err) {
 			return
@@ -426,7 +439,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		catalogConfig := config.Catalog
 
@@ -441,7 +454,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		credentialsConfig := config.Credentials
 
@@ -460,7 +473,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		trustedImagesConfig := config.TrustedImages
 
@@ -484,7 +497,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 		assert.Nil(t, err)
 
 		credentialsConfig := config.Credentials
@@ -501,7 +514,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		os.Setenv("ESCI_INTEGRATIONS_GITHUB_ENABLE", "false")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		assert.Nil(t, err)
 		assert.Equal(t, false, config.Integrations.Github.Enable)
@@ -513,7 +526,7 @@ func TestReadConfigFromFile(t *testing.T) {
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
 
 		// act
-		config, err := configReader.ReadConfigFromFile("test-minimal-config.yaml", true)
+		config, err := configReader.ReadConfigFromFiles("minimal-configs", true)
 
 		assert.Nil(t, err)
 		assert.Nil(t, config.Jobs.BuildAffinityAndTolerations)
@@ -685,20 +698,5 @@ func TestReadLogFromCloudStorage(t *testing.T) {
 		result := config.ReadLogFromCloudStorage()
 
 		assert.False(t, result)
-	})
-}
-
-func TestReadConfigFromFiles(t *testing.T) {
-	t.Run("MergesMultipleYamlConfigFiles", func(t *testing.T) {
-
-		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
-
-		// act
-		config, err := configReader.ReadConfigFromFiles("configs", true)
-
-		assert.Nil(t, err)
-		assert.Equal(t, "https://ci.estafette.io/", config.APIServer.BaseURL)
-		assert.Equal(t, 9, len(config.Credentials))
-		assert.Equal(t, 8, len(config.TrustedImages))
 	})
 }
