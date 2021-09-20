@@ -30,16 +30,17 @@ import (
 
 // APIConfig represent the configuration for the entire api application
 type APIConfig struct {
-	Integrations        *APIConfigIntegrations                 `yaml:"integrations,omitempty"`
-	APIServer           *APIServerConfig                       `yaml:"apiServer,omitempty"`
-	Auth                *AuthConfig                            `yaml:"auth,omitempty"`
-	Jobs                *JobsConfig                            `yaml:"jobs,omitempty"`
-	Database            *DatabaseConfig                        `yaml:"database,omitempty"`
-	Queue               *QueueConfig                           `yaml:"queue,omitempty"`
-	ManifestPreferences *manifest.EstafetteManifestPreferences `yaml:"manifestPreferences,omitempty"`
-	Catalog             *CatalogConfig                         `yaml:"catalog,omitempty"`
-	Credentials         []*contracts.CredentialConfig          `yaml:"credentials,omitempty" json:"credentials,omitempty"`
-	TrustedImages       []*contracts.TrustedImageConfig        `yaml:"trustedImages,omitempty" json:"trustedImages,omitempty"`
+	Integrations              *APIConfigIntegrations                 `yaml:"integrations,omitempty"`
+	APIServer                 *APIServerConfig                       `yaml:"apiServer,omitempty"`
+	Auth                      *AuthConfig                            `yaml:"auth,omitempty"`
+	Jobs                      *JobsConfig                            `yaml:"jobs,omitempty"`
+	Database                  *DatabaseConfig                        `yaml:"database,omitempty"`
+	Queue                     *QueueConfig                           `yaml:"queue,omitempty"`
+	ManifestPreferences       *manifest.EstafetteManifestPreferences `yaml:"manifestPreferences,omitempty"`
+	Catalog                   *CatalogConfig                         `yaml:"catalog,omitempty"`
+	Credentials               []*contracts.CredentialConfig          `yaml:"credentials,omitempty" json:"credentials,omitempty"`
+	ClearDefaultTrustedImages bool                                   `yaml:"clearDefaultTrustedImages,omitempty"`
+	TrustedImages             []*contracts.TrustedImageConfig        `yaml:"trustedImages,omitempty" json:"trustedImages,omitempty"`
 }
 
 func (c *APIConfig) SetDefaults() {
@@ -85,14 +86,13 @@ func (c *APIConfig) SetDefaults() {
 	if c.Credentials == nil {
 		c.Credentials = make([]*contracts.CredentialConfig, 0)
 	}
-	// for _, credential := range c.Credentials {
-	// 	credential.SetDefaults()
-	// }
 
 	if c.TrustedImages == nil || len(c.TrustedImages) == 0 {
 		c.TrustedImages = make([]*contracts.TrustedImageConfig, 0)
+	}
 
-		c.TrustedImages = append(c.TrustedImages, &contracts.TrustedImageConfig{
+	if !c.ClearDefaultTrustedImages {
+		c.appendTrustedImageIfNotExists(&contracts.TrustedImageConfig{
 			ImagePath: "extensions/git-clone",
 			InjectedCredentialTypes: []string{
 				"bitbucket-api-token",
@@ -100,25 +100,25 @@ func (c *APIConfig) SetDefaults() {
 				"cloudsource-api-token",
 			},
 		})
-		c.TrustedImages = append(c.TrustedImages, &contracts.TrustedImageConfig{
+		c.appendTrustedImageIfNotExists(&contracts.TrustedImageConfig{
 			ImagePath: "extensions/github-status",
 			InjectedCredentialTypes: []string{
 				"github-api-token",
 			},
 		})
-		c.TrustedImages = append(c.TrustedImages, &contracts.TrustedImageConfig{
+		c.appendTrustedImageIfNotExists(&contracts.TrustedImageConfig{
 			ImagePath: "extensions/github-release",
 			InjectedCredentialTypes: []string{
 				"github-api-token",
 			},
 		})
-		c.TrustedImages = append(c.TrustedImages, &contracts.TrustedImageConfig{
+		c.appendTrustedImageIfNotExists(&contracts.TrustedImageConfig{
 			ImagePath: "extensions/bitbucket-status",
 			InjectedCredentialTypes: []string{
 				"bitbucket-api-token",
 			},
 		})
-		c.TrustedImages = append(c.TrustedImages, &contracts.TrustedImageConfig{
+		c.appendTrustedImageIfNotExists(&contracts.TrustedImageConfig{
 			ImagePath:          "extensions/docker",
 			RunDocker:          true,
 			AllowNotifications: true,
@@ -127,29 +127,45 @@ func (c *APIConfig) SetDefaults() {
 				"github-api-token",
 			},
 		})
-		c.TrustedImages = append(c.TrustedImages, &contracts.TrustedImageConfig{
+		c.appendTrustedImageIfNotExists(&contracts.TrustedImageConfig{
 			ImagePath: "extensions/gke",
 			InjectedCredentialTypes: []string{
 				"kubernetes-engine",
 			},
 		})
-		c.TrustedImages = append(c.TrustedImages, &contracts.TrustedImageConfig{
+		c.appendTrustedImageIfNotExists(&contracts.TrustedImageConfig{
 			ImagePath: "extensions/helm",
 			InjectedCredentialTypes: []string{
 				"kubernetes-engine",
 			},
 		})
-		c.TrustedImages = append(c.TrustedImages, &contracts.TrustedImageConfig{
+		c.appendTrustedImageIfNotExists(&contracts.TrustedImageConfig{
 			ImagePath: "extensions/cloud-function",
 			InjectedCredentialTypes: []string{
 				"kubernetes-engine",
 			},
 		})
-		c.TrustedImages = append(c.TrustedImages, &contracts.TrustedImageConfig{
+		c.appendTrustedImageIfNotExists(&contracts.TrustedImageConfig{
 			ImagePath:     "bsycorp/kind",
 			RunPrivileged: true,
 		})
 	}
+}
+
+func (c *APIConfig) appendTrustedImageIfNotExists(trustedImage *contracts.TrustedImageConfig) {
+	if !c.containsTrustedImage(trustedImage.ImagePath) {
+		c.TrustedImages = append(c.TrustedImages, trustedImage)
+	}
+}
+
+func (c *APIConfig) containsTrustedImage(imagePath string) bool {
+	for _, ti := range c.TrustedImages {
+		if ti.ImagePath == imagePath {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (c *APIConfig) Validate() (err error) {

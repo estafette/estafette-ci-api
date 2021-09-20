@@ -1,3 +1,4 @@
+clearDefaultTrustedImages: true
 trustedImages:
 - path: extensions/docker
   runDocker: true

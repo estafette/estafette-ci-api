@@ -333,6 +333,7 @@ credentials:
   type: sonarqube-server
   apiUrl: https://my-sonarqube-server.com
 
+clearDefaultTrustedImages: true
 trustedImages:
 - path: extensions/docker
   runDocker: true
