@@ -3,6 +3,7 @@ package bitbucket
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/bitbucketapi"
@@ -18,6 +19,7 @@ import (
 var (
 	ErrNonCloneableEvent = errors.New("The event is not cloneable")
 	ErrNoManifest        = errors.New("The repository has no manifest at the pushed commit")
+	ErrOwnerIsEmpty      = errors.New("The owner slug is empty")
 )
 
 // Service handles http events for Bitbucket integration
@@ -164,7 +166,19 @@ func (s *service) Unarchive(ctx context.Context, repoSource, repoOwner, repoName
 }
 
 func (s *service) IsAllowedOwner(ctx context.Context, repository *bitbucketapi.Repository) (isAllowed bool, organizations []*contracts.Organization) {
-	installation, err := s.bitbucketapiClient.GetInstallationBySlug(ctx, repository.Owner.UserName)
+
+	slug := repository.Owner.UserName
+	if slug == "" {
+		// get it from repository.full_name instead
+		slug = strings.Split(repository.FullName, "/")[0]
+	}
+
+	if slug == "" {
+		log.Error().Err(ErrOwnerIsEmpty).Msg("Can't get owner slug from repository")
+		return false, []*contracts.Organization{}
+	}
+
+	installation, err := s.bitbucketapiClient.GetInstallationBySlug(ctx, slug)
 
 	if err != nil && errors.Is(err, bitbucketapi.ErrMissingInstallation) {
 		return false, []*contracts.Organization{}
