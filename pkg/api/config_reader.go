@@ -33,11 +33,13 @@ func NewConfigReader(secretHelper crypt.SecretHelper, jwtKey string) ConfigReade
 // GetConfigFilePaths returns all matching yaml config file paths inside configPath directory
 func (h *configReaderImpl) GetConfigFilePaths(configPath string) (configFilePaths []string, err error) {
 
+	resolvedConfigPath, _ := filepath.EvalSymlinks(configPath)
+
 	// get paths to all yaml files
-	err = filepath.Walk(configPath, func(path string, info os.FileInfo, err error) error {
+	err = filepath.WalkDir(resolvedConfigPath, func(path string, entry os.DirEntry, err error) error {
 		// add all yaml files
-		if !info.IsDir() && filepath.Ext(path) == ".yaml" {
-			configFilePaths = append(configFilePaths, path)
+		if err == nil && !entry.IsDir() && filepath.Ext(path) == ".yaml" {
+			configFilePaths = append(configFilePaths, filepath.Join(configPath, filepath.Base(path)))
 		}
 
 		return nil
