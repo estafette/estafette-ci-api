@@ -206,12 +206,17 @@ func getConfig(ctx context.Context) (*api.APIConfig, *api.APIConfig, crypt.Secre
 
 	// await for config file to be present, due to git-sync sidecar startup it can take some time
 	for {
-		configFilePaths, err := configReader.GetConfigFilePaths(*configFilesPath)
-		if err != nil {
-			log.Fatal().Err(err).Msgf("Failed getting config file paths inside directory %v", *configFilesPath)
-		}
-		if len(configFilePaths) > 0 {
-			break
+		if foundation.DirExists(*configFilesPath) {
+			configFilePaths, err := configReader.GetConfigFilePaths(*configFilesPath)
+			if err != nil {
+				log.Fatal().Err(err).Msgf("Failed getting config file paths inside directory %v", *configFilesPath)
+			}
+			if len(configFilePaths) > 0 {
+				break
+			}
+			log.Debug().Msg("No config files exist yet")
+		} else {
+			log.Debug().Msgf("Config directory %v does not exist yet", *configFilesPath)
 		}
 
 		log.Debug().Msg("Sleeping for 5 seconds while config file is synced...")
