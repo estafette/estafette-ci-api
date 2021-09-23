@@ -255,9 +255,11 @@ func (c *APIServerConfig) SetDefaults() {
 		c.DockerConfigPerOperatingSystem = map[manifest.OperatingSystem]contracts.DockerConfig{
 			manifest.OperatingSystemLinux: {
 				RunType: contracts.DockerRunTypeDinD,
+				MTU:     1460,
 			},
 			manifest.OperatingSystemWindows: {
 				RunType: contracts.DockerRunTypeDoD,
+				MTU:     1410,
 			},
 		}
 	}
