@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -500,6 +501,14 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	// recovery middleware recovers from any panics and writes a 500 if there was one.
 	log.Debug().Msg("Adding recovery middleware...")
 	router.Use(gin.Recovery())
+	// log panic as error so it gets shipped
+	router.Use(gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
+		if err, ok := recovered.(string); ok {
+			log.Error().Err(fmt.Errorf(err)).Msg("Recovered from panic")
+			c.String(http.StatusInternalServerError, fmt.Sprintf("error: %s", err))
+		}
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}))
 
 	// opentracing middleware
 	log.Debug().Msg("Adding opentracing middleware...")
