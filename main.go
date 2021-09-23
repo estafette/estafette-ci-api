@@ -500,7 +500,6 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 
 	// recovery middleware recovers from any panics and writes a 500 if there was one.
 	log.Debug().Msg("Adding recovery middleware...")
-	router.Use(gin.Recovery())
 	// log panic as error so it gets shipped
 	router.Use(gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
 		if err, ok := recovered.(string); ok {
