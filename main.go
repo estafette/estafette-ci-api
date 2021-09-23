@@ -504,7 +504,8 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	router.Use(gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
 		if err, ok := recovered.(string); ok {
 			log.Error().Err(fmt.Errorf(err)).Msg("Recovered from panic")
-			c.String(http.StatusInternalServerError, fmt.Sprintf("error: %s", err))
+		} else {
+			log.Error().Interface("recovered", recovered).Msg("Recovered from panic without error")
 		}
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}))
