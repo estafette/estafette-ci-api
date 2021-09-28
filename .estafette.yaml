@@ -144,8 +144,8 @@ stages:
     image: golang:1.17-alpine
     commands:
     - apk add git
-    - git tag v${ESTAFETTE_BUILD_VERSION}
-    - git push origin v${ESTAFETTE_BUILD_VERSION}
+    - git tag ${ESTAFETTE_BUILD_VERSION}
+    - git push origin ${ESTAFETTE_BUILD_VERSION}
 
   slack-notify:
     image: extensions/slack-build-status:dev
