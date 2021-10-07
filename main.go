@@ -168,6 +168,18 @@ func initRequestHandlers(ctx context.Context, stopChannel <-chan struct{}, waitG
 		*sourcerepoService = *newSourcerepoService
 	})
 
+	// watch for database client certificate changes
+	if config != nil && config.Database != nil && !config.Database.Insecure && config.Database.CertificatePath != "" {
+		foundation.WatchForFileChanges(config.Database.CertificatePath, func(event fsnotify.Event) {
+			log.Info().Msg("Database client certificate file was updated, refreshing connection...")
+
+			err = databaseClient.Connect(ctx)
+			if err != nil {
+				log.Fatal().Err(err).Msg("Failed connecting to database")
+			}
+		})
+	}
+
 	return srv, queueService
 }
 
