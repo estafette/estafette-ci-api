@@ -468,6 +468,25 @@ func TestReadConfigFromFiles(t *testing.T) {
 		assert.Equal(t, "estafette", credentialsConfig[6].AdditionalProperties["workspace"])
 	})
 
+	t.Run("ReturnsBuildControlConfig", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
+
+		// act
+		config, err := configReader.ReadConfigFromFiles("configs", true)
+
+		assertT := assert.New(t)
+		assertT.Nil(err)
+
+		buildControlConfig := config.BuildControl
+		assertT.Equal(List{"project1", "project2"}, buildControlConfig.Bitbucket.Allowed.Projects)
+		assertT.Equal(List{"repo1"}, buildControlConfig.Bitbucket.Allowed.Repos)
+		assertT.Equal(List{"project3", "project4"}, buildControlConfig.Bitbucket.Blocked.Projects)
+		assertT.Equal(List{"repo2"}, buildControlConfig.Bitbucket.Blocked.Repos)
+		assertT.Equal(List{"repo3"}, buildControlConfig.Github.Allowed)
+		assertT.Equal(List{"repo4"}, buildControlConfig.Github.Blocked)
+	})
+
 	t.Run("ReturnsTrustedImagesConfig", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
@@ -519,6 +538,22 @@ func TestReadConfigFromFiles(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, false, config.Integrations.Github.Enable)
 		os.Setenv("ESCI_INTEGRATIONS_GITHUB_ENABLE", "")
+	})
+
+	t.Run("Overrides_BuildControl_From_Envvar", func(t *testing.T) {
+
+		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
+		os.Setenv("ESCI_BUILDCONTROL_BITBUCKET_ALLOWED_PROJECTS", "project1,project2")
+		os.Setenv("ESCI_BUILDCONTROL_BITBUCKET_ALLOWED_REPOS", "repo1,repo2")
+
+		// act
+		config, err := configReader.ReadConfigFromFiles("configs", true)
+
+		assert.Nil(t, err)
+		assert.Equal(t, List{"project1", "project2"}, config.BuildControl.Bitbucket.Allowed.Projects)
+		assert.Equal(t, List{"repo1", "repo2"}, config.BuildControl.Bitbucket.Allowed.Repos)
+		os.Unsetenv("ESCI_BUILDCONTROL_BITBUCKET_ALLOWED_PROJECTS")
+		os.Unsetenv("ESCI_BUILDCONTROL_BITBUCKET_ALLOWED_REPOS")
 	})
 
 	t.Run("Keeps_Job_AffinitiesAndTolerations_Nil_For_Minimal_Config", func(t *testing.T) {

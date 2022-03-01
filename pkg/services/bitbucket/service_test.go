@@ -6,14 +6,15 @@ import (
 	"sync"
 	"testing"
 
+	manifest "github.com/estafette/estafette-ci-manifest"
+	gomock "github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/pkg/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/pkg/services/estafette"
 	"github.com/estafette/estafette-ci-api/pkg/services/queue"
-	manifest "github.com/estafette/estafette-ci-manifest"
-	gomock "github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateJobForBitbucketPush(t *testing.T) {
@@ -208,6 +209,7 @@ func TestCreateJobForBitbucketPush(t *testing.T) {
 			Integrations: &api.APIConfigIntegrations{
 				Bitbucket: &api.BitbucketConfig{},
 			},
+			BuildControl: &api.BuildControl{},
 		}
 		bitbucketapiClient := bitbucketapi.NewMockClient(ctrl)
 		pubsubapiClient := pubsubapi.NewMockClient(ctrl)
