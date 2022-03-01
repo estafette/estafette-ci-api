@@ -12,6 +12,18 @@ func (s *service) isBuildBlocked(pushEvent bitbucketapi.RepositoryPushEvent) boo
 	project := pushEvent.Repository.Project
 	repoName := pushEvent.GetRepoName()
 
+	// blocked projects
+	blockedProjects := s.config.BuildControl.Bitbucket.Blocked.Projects
+	if blockedProjects.Contains(project.Key) ||
+		blockedProjects.Contains(project.Name) {
+		return true
+	}
+	// blocked repos
+	blockedRepos := s.config.BuildControl.Bitbucket.Blocked.Repos
+	if blockedRepos.Contains(repoName) {
+		return true
+	}
+
 	// allowed projects
 	allowedProjects := s.config.BuildControl.Bitbucket.Allowed.Projects
 	if allowedProjects.Contains(project.Key) ||
@@ -23,18 +35,7 @@ func (s *service) isBuildBlocked(pushEvent bitbucketapi.RepositoryPushEvent) boo
 	if allowedRepos.Contains(repoName) {
 		return false
 	}
-	// if allowed projects/repos are provided block other repos
-	if len(allowedProjects)+len(allowedRepos) > 0 {
-		return true
-	}
 
-	// blocked projects
-	blockedProjects := s.config.BuildControl.Bitbucket.Blocked.Projects
-	if blockedProjects.Contains(project.Key) ||
-		blockedProjects.Contains(project.Name) {
-		return true
-	}
-	// blocked repos
-	blockedRepos := s.config.BuildControl.Bitbucket.Blocked.Repos
-	return blockedRepos.Contains(repoName)
+	// block everything else if allowed projects/repos are provided
+	return len(allowedProjects)+len(allowedRepos) > 0
 }
