@@ -684,6 +684,7 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 		jwtMiddlewareRoutes.GET("/api/config", estafetteHandler.GetConfig)
 		jwtMiddlewareRoutes.GET("/api/config/credentials", estafetteHandler.GetConfigCredentials)
 		jwtMiddlewareRoutes.GET("/api/config/trustedimages", estafetteHandler.GetConfigTrustedImages)
+		jwtMiddlewareRoutes.GET("/api/config/buildControl", estafetteHandler.GetConfigBuildControl)
 		jwtMiddlewareRoutes.GET("/api/pipelines", estafetteHandler.GetPipelines)
 		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo", estafetteHandler.GetPipeline)
 		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/recentbuilds", estafetteHandler.GetPipelineRecentBuilds)
