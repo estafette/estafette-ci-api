@@ -41,9 +41,13 @@ type APIConfig struct {
 	Credentials               []*contracts.CredentialConfig          `yaml:"credentials,omitempty" json:"credentials,omitempty"`
 	ClearDefaultTrustedImages bool                                   `yaml:"clearDefaultTrustedImages,omitempty"`
 	TrustedImages             []*contracts.TrustedImageConfig        `yaml:"trustedImages,omitempty" json:"trustedImages,omitempty"`
+	BuildControl              *BuildControl                          `yaml:"buildControl,omitempty"`
 }
 
 func (c *APIConfig) SetDefaults() {
+	if c.BuildControl == nil {
+		c.BuildControl = &BuildControl{}
+	}
 	if c.Integrations == nil {
 		c.Integrations = &APIConfigIntegrations{}
 	}

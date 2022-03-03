@@ -282,3 +282,23 @@ catalog:
   filters:
   - type
   - team
+
+buildControl:
+  bitbucket:
+    allowed:
+      projects:
+        - project1
+        - project2
+      repos:
+        - repo1
+    blocked:
+      projects:
+        - project3
+        - project4
+      repos:
+        - repo2
+  github:
+    allowed:
+      - repo3
+    blocked:
+      - repo4

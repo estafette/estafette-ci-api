@@ -5,18 +5,20 @@ import (
 	"errors"
 	"strings"
 
+	contracts "github.com/estafette/estafette-ci-contracts"
+	manifest "github.com/estafette/estafette-ci-manifest"
+	"github.com/opentracing/opentracing-go"
+	"github.com/rs/zerolog/log"
+
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/bitbucketapi"
 	"github.com/estafette/estafette-ci-api/pkg/clients/pubsubapi"
 	"github.com/estafette/estafette-ci-api/pkg/services/estafette"
 	"github.com/estafette/estafette-ci-api/pkg/services/queue"
-	contracts "github.com/estafette/estafette-ci-contracts"
-	manifest "github.com/estafette/estafette-ci-manifest"
-	"github.com/opentracing/opentracing-go"
-	"github.com/rs/zerolog/log"
 )
 
 var (
+	ErrBlockedRepository = errors.New("repository is blocked from build")
 	ErrNonCloneableEvent = errors.New("The event is not cloneable")
 	ErrNoManifest        = errors.New("The repository has no manifest at the pushed commit")
 	ErrOwnerIsEmpty      = errors.New("The owner slug is empty")
@@ -59,6 +61,10 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, installation bi
 		return ErrNonCloneableEvent
 	}
 
+	if s.isBuildBlocked(pushEvent) {
+		return ErrBlockedRepository
+	}
+
 	gitEvent := manifest.EstafetteGitEvent{
 		Event:      "push",
 		Repository: pushEvent.GetRepository(),
@@ -75,7 +81,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, installation bi
 	accessToken, err := s.bitbucketapiClient.GetAccessTokenByInstallation(ctx, installation)
 	if err != nil {
 		log.Error().Err(err).
-			Msg("Retrieving Estafettte manifest failed")
+			Msg("Retrieving Estafette manifest failed")
 		return err
 	}
 
@@ -83,7 +89,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, installation bi
 	manifestExists, manifestString, err := s.bitbucketapiClient.GetEstafetteManifest(ctx, accessToken, pushEvent)
 	if err != nil {
 		log.Error().Err(err).
-			Msg("Retrieving Estafettte manifest failed")
+			Msg("Retrieving Estafette manifest failed")
 		return err
 	}
 

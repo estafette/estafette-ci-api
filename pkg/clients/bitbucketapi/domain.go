@@ -147,6 +147,7 @@ type Repository struct {
 	Scm       string          `json:"scm"`
 	Links     RepositoryLinks `json:"links"`
 	Workspace *Workspace      `json:"workspace"`
+	Project   *Project        `json:"project"`
 }
 
 type Workspace struct {
@@ -158,6 +159,13 @@ type Workspace struct {
 // RepositoryLinks represents a collections of links for a Bitbucket repository
 type RepositoryLinks struct {
 	HTML Link `json:"html"`
+}
+
+type Project struct {
+	Type string `json:"type"`
+	Name string `json:"name"`
+	UUID string `json:"uuid"`
+	Key  string `json:"key"`
 }
 
 // Link represents a single link for Bitbucket

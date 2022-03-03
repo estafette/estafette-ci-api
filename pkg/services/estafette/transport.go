@@ -2599,6 +2599,18 @@ func (h *Handler) GetConfigTrustedImages(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"config": configString})
 }
 
+func (h *Handler) GetConfigBuildControl(c *gin.Context) {
+
+	configBytes, err := yaml.Marshal(h.config.BuildControl)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed marshalling buildControl")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"config": string(configBytes)})
+}
+
 func (h *Handler) GetManifestTemplates(c *gin.Context) {
 
 	templateFiles, err := ioutil.ReadDir(h.templatesPath)
