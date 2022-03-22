@@ -47,19 +47,12 @@ func (c *client) SubscriptionForTopic(ctx context.Context, message PubSubPushMes
 		return nil, nil
 	}
 
-	projectID := message.GetProject()
-	subscriptionName := message.GetSubscription()
+	subscriptionProjectID := message.GetSubcriptionProject()
+	subscriptionName := message.GetSubscriptionID()
 
-	if strings.HasSuffix(subscriptionName, c.config.Integrations.Pubsub.SubscriptionNameSuffix) {
-		return &manifest.EstafettePubSubEvent{
-			Project: projectID,
-			Topic:   strings.TrimSuffix(subscriptionName, c.config.Integrations.Pubsub.SubscriptionNameSuffix),
-		}, nil
-	}
-
-	subscription := c.pubsubClient.SubscriptionInProject(subscriptionName, projectID)
+	subscription := c.pubsubClient.SubscriptionInProject(subscriptionName, subscriptionProjectID)
 	if subscription == nil {
-		return nil, fmt.Errorf("Can't find subscription %v in project %v", subscriptionName, projectID)
+		return nil, fmt.Errorf("Can't find subscription %v in project %v", subscriptionName, subscriptionProjectID)
 	}
 
 	subscriptionConfig, err := subscription.Config(ctx)
@@ -67,9 +60,16 @@ func (c *client) SubscriptionForTopic(ctx context.Context, message PubSubPushMes
 		return nil, err
 	}
 
+	topicID := subscriptionConfig.Topic.ID()
+	topicSlices := strings.Split("/", subscriptionConfig.Topic.String())
+	var topicProjectID string
+	if len(topicSlices) > 1 {
+		topicProjectID = topicSlices[1]
+	}
+
 	return &manifest.EstafettePubSubEvent{
-		Project: projectID,
-		Topic:   subscriptionConfig.Topic.ID(),
+		Project: topicProjectID,
+		Topic:   topicID,
 		Message: message.Message,
 	}, nil
 }

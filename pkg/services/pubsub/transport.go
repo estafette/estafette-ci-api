@@ -53,9 +53,10 @@ func (eh *Handler) PostPubsubEvent(c *gin.Context) {
 	log.Info().
 		Interface("msg", message).
 		Str("data", message.GetDecodedData()).
-		Str("project", message.GetProject()).
-		Str("subscription", message.GetSubscription()).
-		Str("topic", pubsubEvent.Topic).
+		Str("subscriptionProject", message.GetSubcriptionProject()).
+		Str("subscriptionID", message.GetSubscriptionID()).
+		Str("topicProject", pubsubEvent.Project).
+		Str("topicID", pubsubEvent.Topic).
 		Msg("Successfully binded pubsub push event")
 
 	err = eh.estafetteService.FirePubSubTriggers(c.Request.Context(), *pubsubEvent)
