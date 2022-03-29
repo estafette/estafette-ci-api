@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"net/http"
 	"sort"
 	"strings"
@@ -85,6 +87,7 @@ func (h *Handler) GetRoles(c *gin.Context) {
 func (h *Handler) GetProviders(c *gin.Context) {
 
 	ctx := c.Request.Context()
+
 	providers, err := h.service.GetProviders(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Retrieving oauth providers failed")
@@ -97,7 +100,7 @@ func (h *Handler) GetProviders(c *gin.Context) {
 		responseItems = append(responseItems, map[string]interface{}{
 			"id":           provider.Name,
 			"organization": provider.Organization,
-			"name":         strings.Title(provider.Name),
+			"name":         cases.Title(language.Und).String(provider.Name),
 			"path":         fmt.Sprintf("/api/auth/login/%v", provider.Name),
 		})
 	}
