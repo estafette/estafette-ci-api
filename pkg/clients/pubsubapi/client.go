@@ -61,7 +61,7 @@ func (c *client) SubscriptionForTopic(ctx context.Context, message PubSubPushMes
 	}
 
 	topicID := subscriptionConfig.Topic.ID()
-	topicSlices := strings.Split("/", subscriptionConfig.Topic.String())
+	topicSlices := strings.Split(subscriptionConfig.Topic.String(), "/")
 	var topicProjectID string
 	if len(topicSlices) > 1 {
 		topicProjectID = topicSlices[1]
