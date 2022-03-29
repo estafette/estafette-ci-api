@@ -47,8 +47,8 @@ func (h *Handler) PostPubsubEvent(c *gin.Context) {
 	log.Info().
 		Interface("msg", message).
 		Str("data", message.GetDecodedData()).
-		Str("project", message.GetProject()).
-		Str("subscription", message.GetSubscription()).
+		Str("subscriptionProject", message.GetSubcriptionProject()).
+		Str("subscriptionID", message.GetSubscriptionID()).
 		Msg("Successfully binded pubsub push event")
 
 	// verify project is allowed

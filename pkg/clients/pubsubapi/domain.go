@@ -14,12 +14,12 @@ type PubSubPushMessage struct {
 }
 
 // GetProject returns the project id for the pubsub subscription
-func (m PubSubPushMessage) GetProject() string {
+func (m PubSubPushMessage) GetSubcriptionProject() string {
 	return strings.Split(m.Subscription, "/")[1]
 }
 
 // GetSubscription returns the subscription name
-func (m PubSubPushMessage) GetSubscription() string {
+func (m PubSubPushMessage) GetSubscriptionID() string {
 	return strings.Split(m.Subscription, "/")[3]
 }
 
