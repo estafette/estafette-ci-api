@@ -748,9 +748,9 @@ func (c *client) getIat(token *jwt.Token) (iat int64) {
 	}
 
 	switch claimType := token.Claims.(type) {
-	case jwt.StandardClaims:
+	case jwt.RegisteredClaims:
 		log.Debug().Msgf("Token has claim type %T", claimType)
-		return claimType.IssuedAt
+		return claimType.IssuedAt.Unix()
 	case jwt.MapClaims:
 		log.Debug().Msgf("Token has claim type %T", claimType)
 		iat, hasIat := claimType["iat"]
