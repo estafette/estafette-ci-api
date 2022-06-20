@@ -147,11 +147,23 @@ func initRequestHandlers(ctx context.Context, stopChannel <-chan struct{}, waitG
 		// refresh google cloud clients
 		newBqClient, newPubsubClient, newGcsClient, newSourcerepoTokenSource, newSourcerepoService := getGoogleCloudClients(ctx, config)
 
-		*bqClient = *newBqClient
-		*pubsubClient = *newPubsubClient
-		*gcsClient = *newGcsClient
-		sourcerepoTokenSource = newSourcerepoTokenSource
-		*sourcerepoService = *newSourcerepoService
+		if newBqClient != nil {
+			*bqClient = *newBqClient
+		}
+		if newPubsubClient != nil {
+			*pubsubClient = *newPubsubClient
+		}
+		if newGcsClient != nil {
+			*gcsClient = *newGcsClient
+		}
+		if newPubsubClient != nil {
+			*pubsubClient = *newPubsubClient
+		}
+		if newSourcerepoService != nil {
+			*sourcerepoService = *newSourcerepoService
+			sourcerepoTokenSource = newSourcerepoTokenSource
+		}
+
 	})
 
 	// watch for service account key file changes
