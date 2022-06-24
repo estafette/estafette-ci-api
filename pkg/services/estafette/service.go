@@ -2168,6 +2168,9 @@ R:
 			}
 		}
 	}
+	if s.config.BuildControl == nil {
+		return false
+	}
 	if !checkRequired && !s.config.BuildControl.Release.RestrictedClusters.Matches(release.Name) {
 		// release is not blocked as cluster is not restricted list
 		return false
