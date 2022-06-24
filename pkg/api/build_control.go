@@ -35,13 +35,13 @@ type GithubBuildControl struct {
 }
 
 type ReleaseControl struct {
-	Repositories       map[string]RepositoryReleaseControl `yaml:"repos"`
-	RestrictedClusters List                                `yaml:"restrictedClusters,omitempty"`
+	Repositories       map[string]RepositoryReleaseControl `yaml:"repos" json:"repositories,omitempty"`
+	RestrictedClusters List                                `yaml:"restrictedClusters,omitempty" json:"restrictedClusters,omitempty"`
 }
 
 type RepositoryReleaseControl struct {
-	Allowed List `yaml:"allowed,omitempty"`
-	Blocked List `yaml:"blocked,omitempty"`
+	Allowed List `yaml:"allowed,omitempty" json:"allowed,omitempty"`
+	Blocked List `yaml:"blocked,omitempty" json:"blocked,omitempty"`
 }
 
 func (l List) Contains(toCheck string) bool {

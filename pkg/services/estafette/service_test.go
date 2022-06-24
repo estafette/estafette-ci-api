@@ -1293,7 +1293,8 @@ func Test_isReleaseBlocked(t *testing.T) {
 				RepoName:       test.repo,
 				ReleaseVersion: "1.0.256",
 			}
-			assert.Equal(t, test.expected, s.isReleaseBlocked(release, test.mft, test.branch))
+			actual, _, _ := s.isReleaseBlocked(release, test.mft, test.branch)
+			assert.Equal(t, test.expected, actual)
 		})
 	}
 }
