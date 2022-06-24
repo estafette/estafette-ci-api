@@ -302,3 +302,18 @@ buildControl:
       - repo3
     blocked:
       - repo4
+  release:
+    repos:
+      "*":
+        allowed:
+          - main
+          - master
+        blocked:
+          - bugfix
+      some-repo:
+        allowed:
+          - main
+    restrictedClusters:
+      - trvx-prd
+      - prd-common
+      - prd-123

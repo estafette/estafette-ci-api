@@ -29,9 +29,10 @@ import (
 )
 
 var (
-	ErrNoBuildCreated   = errors.New("No build is created")
-	ErrNoReleaseCreated = errors.New("No release is created")
-	ErrNoBotCreated     = errors.New("No bot is created")
+	ErrNoBuildCreated            = errors.New("No build is created")
+	ErrNoReleaseCreated          = errors.New("No release is created")
+	ErrNoBotCreated              = errors.New("No bot is created")
+	ErrReleaseNotAllowedOnBranch = errors.New("Release not allowed on this branch")
 )
 
 // Service encapsulates build and release creation and re-triggering
@@ -372,7 +373,9 @@ func (s *service) FinishBuild(ctx context.Context, repoSource, repoOwner, repoNa
 }
 
 func (s *service) CreateRelease(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string) (createdRelease *contracts.Release, err error) {
-
+	if s.isReleaseBlocked(release, mft, repoBranch) {
+		return nil, ErrReleaseNotAllowedOnBranch
+	}
 	// create deep copy to ensure no properties are shared through a pointer
 	mft = mft.DeepCopy()
 
@@ -2150,4 +2153,55 @@ func (s *service) GetEventsForJobEnvvars(ctx context.Context, triggers []manifes
 	}
 
 	return triggersAsEvents, nil
+}
+
+func (s *service) isReleaseBlocked(release contracts.Release, mft manifest.EstafetteManifest, repoBranch string) bool {
+	checkRequired := false
+R:
+	for _, r := range mft.Releases {
+		if r.Name == release.Name {
+			for _, stg := range r.Stages {
+				if s.stageContainsRestrictedCluster(stg) {
+					checkRequired = true
+					break R
+				}
+			}
+		}
+	}
+	if !checkRequired && !s.config.BuildControl.Release.RestrictedClusters.Matches(release.Name) {
+		// release is not blocked as cluster is not restricted list
+		return false
+	}
+	var releaseControl api.RepositoryReleaseControl
+	var ok bool
+	if releaseControl, ok = s.config.BuildControl.Release.Repositories[release.RepoName]; !ok {
+		if releaseControl, ok = s.config.BuildControl.Release.Repositories[api.AllRepositories]; !ok {
+			return false
+		}
+	}
+	// blocked branches
+	if releaseControl.Blocked.Matches(repoBranch) {
+		return true
+	}
+	// allowed branches
+	if releaseControl.Allowed.Matches(repoBranch) {
+		return false
+	}
+	// block everything else if allowed branches are provided
+	return len(releaseControl.Allowed) > 0
+}
+
+func (s *service) stageContainsRestrictedCluster(stage *manifest.EstafetteStage) bool {
+	if creds, ok := stage.CustomProperties["credentials"]; ok {
+		creds1 := strings.TrimPrefix(creds.(string), "gke-")
+		if s.config.BuildControl.Release.RestrictedClusters.Matches(creds1) {
+			return true
+		}
+	}
+	for _, stg := range stage.ParallelStages {
+		if s.stageContainsRestrictedCluster(stg) {
+			return true
+		}
+	}
+	return false
 }

@@ -1,10 +1,22 @@
 package api
 
+import (
+	"regexp"
+	"strings"
+
+	"github.com/rs/zerolog/log"
+)
+
+const (
+	AllRepositories = "*"
+)
+
 type List []string
 
 type BuildControl struct {
 	Bitbucket BitbucketBuildControl `yaml:"bitbucket,omitempty"`
 	Github    GithubBuildControl    `yaml:"github,omitempty"`
+	Release   ReleaseControl        `yaml:"release,omitempty"`
 }
 
 type BitbucketBuildControl struct {
@@ -22,9 +34,42 @@ type GithubBuildControl struct {
 	Blocked List `yaml:"blocked,omitempty"`
 }
 
+type ReleaseControl struct {
+	Repositories       map[string]RepositoryReleaseControl `yaml:"repos"`
+	RestrictedClusters List                                `yaml:"restrictedClusters,omitempty"`
+}
+
+type RepositoryReleaseControl struct {
+	Allowed List `yaml:"allowed,omitempty"`
+	Blocked List `yaml:"blocked,omitempty"`
+}
+
 func (l List) Contains(toCheck string) bool {
 	for _, existing := range l {
 		if existing == toCheck {
+			return true
+		}
+	}
+	return false
+}
+
+func (l List) Matches(toCheck string) bool {
+	if l.Contains(toCheck) {
+		return true
+	}
+	for _, existing := range l {
+		if !strings.HasPrefix(existing, "^") {
+			existing = "^" + existing
+		}
+		if !strings.HasSuffix(existing, "$") {
+			existing = existing + "$"
+		}
+		re, err := regexp.Compile(existing)
+		if err != nil {
+			log.Error().Err(err).Msgf("error compiling regex for '%s'", existing)
+			continue
+		}
+		if re.MatchString(toCheck) {
 			return true
 		}
 	}

@@ -1012,9 +1012,13 @@ func (h *Handler) CreatePipelineRelease(c *gin.Context) {
 	}, *build.ManifestObject, build.RepoBranch, build.RepoRevision)
 
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed creating release %v for pipeline %v/%v/%v version %v for release command issued by %v", releaseCommand.Name, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion, email)
-		log.Error().Err(err).Msg(errorMessage)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		if err == ErrReleaseNotAllowedOnBranch {
+			c.JSON(http.StatusForbidden, gin.H{"code": http.StatusText(http.StatusForbidden), "message": err.Error()})
+		} else {
+			errorMessage := fmt.Sprintf("Failed creating release %v for pipeline %v/%v/%v version %v for release command issued by %v", releaseCommand.Name, releaseCommand.RepoSource, releaseCommand.RepoOwner, releaseCommand.RepoName, releaseCommand.ReleaseVersion, email)
+			log.Error().Err(err).Msg(errorMessage)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		}
 		return
 	}
 
