@@ -1279,7 +1279,7 @@ func Test_isReleaseBlocked(t *testing.T) {
 					Jobs:      &api.JobsConfig{},
 					APIServer: &api.APIServerConfig{},
 					BuildControl: &api.BuildControl{
-						Release: api.ReleaseControl{
+						Release: &api.ReleaseControl{
 							Repositories:       test.repositories,
 							RestrictedClusters: test.restrictedClusters,
 						},
