@@ -14,14 +14,14 @@ const (
 type List []string
 
 type BuildControl struct {
-	Bitbucket BitbucketBuildControl `yaml:"bitbucket,omitempty"`
-	Github    GithubBuildControl    `yaml:"github,omitempty"`
-	Release   ReleaseControl        `yaml:"release,omitempty"`
+	Bitbucket *BitbucketBuildControl `yaml:"bitbucket,omitempty"`
+	Github    *GithubBuildControl    `yaml:"github,omitempty"`
+	Release   *ReleaseControl        `yaml:"release,omitempty"`
 }
 
 type BitbucketBuildControl struct {
-	Allowed BitbucketProjectsRepos `yaml:"allowed,omitempty"`
-	Blocked BitbucketProjectsRepos `yaml:"blocked,omitempty"`
+	Allowed *BitbucketProjectsRepos `yaml:"allowed,omitempty"`
+	Blocked *BitbucketProjectsRepos `yaml:"blocked,omitempty"`
 }
 
 type BitbucketProjectsRepos struct {

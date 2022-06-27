@@ -48,6 +48,7 @@ func (c *APIConfig) SetDefaults() {
 	if c.BuildControl == nil {
 		c.BuildControl = &BuildControl{}
 	}
+
 	if c.Integrations == nil {
 		c.Integrations = &APIConfigIntegrations{}
 	}

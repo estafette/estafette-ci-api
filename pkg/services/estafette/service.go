@@ -2194,7 +2194,7 @@ R:
 			}
 		}
 	}
-	if s.config.BuildControl == nil {
+	if s.config.BuildControl == nil || s.config.BuildControl.Release == nil {
 		return false, "", nil
 	}
 	if !checkRequired {
