@@ -40,8 +40,8 @@ func Test_isBuildBlocked(t *testing.T) {
 	})
 	t.Run("AllowedProject", func(t *testing.T) {
 		var s = genService(&api.BuildControl{
-			Bitbucket: api.BitbucketBuildControl{
-				Allowed: api.BitbucketProjectsRepos{
+			Bitbucket: &api.BitbucketBuildControl{
+				Allowed: &api.BitbucketProjectsRepos{
 					Projects: api.List{
 						"p1",
 					},
@@ -55,8 +55,8 @@ func Test_isBuildBlocked(t *testing.T) {
 	})
 	t.Run("BlockedProject", func(t *testing.T) {
 		var s = genService(&api.BuildControl{
-			Bitbucket: api.BitbucketBuildControl{
-				Blocked: api.BitbucketProjectsRepos{
+			Bitbucket: &api.BitbucketBuildControl{
+				Blocked: &api.BitbucketProjectsRepos{
 					Projects: api.List{
 						"p1",
 					},
@@ -70,8 +70,8 @@ func Test_isBuildBlocked(t *testing.T) {
 	})
 	t.Run("AllowedRepo", func(t *testing.T) {
 		var s = genService(&api.BuildControl{
-			Bitbucket: api.BitbucketBuildControl{
-				Allowed: api.BitbucketProjectsRepos{
+			Bitbucket: &api.BitbucketBuildControl{
+				Allowed: &api.BitbucketProjectsRepos{
 					Repos: api.List{
 						"test-repo-1",
 					},
@@ -85,8 +85,8 @@ func Test_isBuildBlocked(t *testing.T) {
 	})
 	t.Run("BlockedRepo", func(t *testing.T) {
 		var s = genService(&api.BuildControl{
-			Bitbucket: api.BitbucketBuildControl{
-				Blocked: api.BitbucketProjectsRepos{
+			Bitbucket: &api.BitbucketBuildControl{
+				Blocked: &api.BitbucketProjectsRepos{
 					Repos: api.List{
 						"test-repo-1",
 					},
@@ -100,13 +100,13 @@ func Test_isBuildBlocked(t *testing.T) {
 	})
 	t.Run("BlockedRepoAndAllowedProject", func(t *testing.T) {
 		var s = genService(&api.BuildControl{
-			Bitbucket: api.BitbucketBuildControl{
-				Allowed: api.BitbucketProjectsRepos{
+			Bitbucket: &api.BitbucketBuildControl{
+				Allowed: &api.BitbucketProjectsRepos{
 					Projects: api.List{
 						"pr1",
 					},
 				},
-				Blocked: api.BitbucketProjectsRepos{
+				Blocked: &api.BitbucketProjectsRepos{
 					Repos: api.List{
 						"test-repo-1",
 					},
