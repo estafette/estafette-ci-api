@@ -1110,3 +1110,191 @@ func TestGetEventsForJobEnvvars(t *testing.T) {
 		assert.Equal(t, "6.4.3", triggersAsEvents[1].Pipeline.BuildVersion)
 	})
 }
+
+func Test_isReleaseBlocked(t *testing.T) {
+	tests := []struct {
+		name, release, repo, branch string
+		repositories                map[string]api.RepositoryReleaseControl
+		restrictedClusters          api.List
+		mft                         manifest.EstafetteManifest
+		expected                    bool
+	}{
+		{
+			"ReturnsTrueIfBlocked",
+			"prd-cluster",
+			"repo1",
+			"non-master",
+			map[string]api.RepositoryReleaseControl{
+				"repo1": {
+					Blocked: api.List{"non-master"},
+				},
+			},
+			api.List{"prd-cluster"},
+			manifest.EstafetteManifest{},
+			true,
+		},
+		{
+			"ReturnsTrueIfBlockedInAllRepositories",
+			"prd-cluster",
+			"repo1",
+			"main2",
+			map[string]api.RepositoryReleaseControl{
+				api.AllRepositories: {
+					Blocked: api.List{"main2"},
+				},
+			},
+			api.List{"prd-cluster"},
+			manifest.EstafetteManifest{},
+			true,
+		},
+		{
+			"ReturnsTrueIfNotAllowed",
+			"prd-cluster",
+			"repo1",
+			"non-master",
+			map[string]api.RepositoryReleaseControl{
+				"repo1": {
+					Allowed: api.List{"main"},
+				},
+			},
+			api.List{"prd-cluster"},
+			manifest.EstafetteManifest{},
+			true,
+		},
+		{
+			"ReturnsTrueIfNotAllowedClusterCreds",
+			"some-random-release",
+			"repo1",
+			"non-master",
+			map[string]api.RepositoryReleaseControl{
+				"repo1": {
+					Allowed: api.List{"main"},
+				},
+			},
+			api.List{"prd-cluster"},
+			manifest.EstafetteManifest{
+				Releases: []*manifest.EstafetteRelease{
+					{
+						Name: "some-random-release",
+						Stages: []*manifest.EstafetteStage{
+							{
+								CustomProperties: map[string]interface{}{
+									"credentials": "gke-prd-cluster",
+								},
+							},
+						},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"ReturnsTrueIfNotAllowedClusterCredsInParallelStages",
+			"some-random-release",
+			"repo1",
+			"non-master",
+			map[string]api.RepositoryReleaseControl{
+				"repo1": {
+					Allowed: api.List{"main"},
+				},
+			},
+			api.List{"prd-cluster"},
+			manifest.EstafetteManifest{
+				Releases: []*manifest.EstafetteRelease{
+					{
+						Name: "some-random-release",
+						Stages: []*manifest.EstafetteStage{
+							{
+								ParallelStages: []*manifest.EstafetteStage{
+									{
+										CustomProperties: map[string]interface{}{
+											"credentials": "gke-prd-cluster",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"ReturnsFalseIfNotAllowedButNonProdCluster",
+			"dev-cluster",
+			"repo1",
+			"non-master",
+			map[string]api.RepositoryReleaseControl{
+				"repo1": {
+					Allowed: api.List{"main"},
+				},
+			},
+			api.List{"prd-cluster"},
+			manifest.EstafetteManifest{},
+			false,
+		},
+		{
+			"ReturnsFalseIfBlockedButNonProdCluster",
+			"dev-cluster",
+			"repo1",
+			"main1",
+			map[string]api.RepositoryReleaseControl{
+				"repo1": {
+					Allowed: api.List{"main"},
+				},
+			},
+			api.List{"prd-cluster"},
+			manifest.EstafetteManifest{},
+			false,
+		},
+		{
+			"ReturnsFalseIfAllowed",
+			"prd-cluster",
+			"repo1",
+			"main",
+			map[string]api.RepositoryReleaseControl{
+				"repo1": {
+					Allowed: api.List{"main"},
+				},
+			},
+			api.List{"prd-cluster"},
+			manifest.EstafetteManifest{},
+			false,
+		},
+		{
+			"ReturnsFalseIfNotConfigured",
+			"prd-cluster",
+			"repo1",
+			"main1",
+			map[string]api.RepositoryReleaseControl{},
+			api.List{},
+			manifest.EstafetteManifest{},
+			false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			s := &service{
+				config: &api.APIConfig{
+					Jobs:      &api.JobsConfig{},
+					APIServer: &api.APIServerConfig{},
+					BuildControl: &api.BuildControl{
+						Release: &api.ReleaseControl{
+							Repositories:       test.repositories,
+							RestrictedClusters: test.restrictedClusters,
+						},
+					},
+				},
+			}
+			release := contracts.Release{
+				Name:           test.release,
+				RepoSource:     "github.com",
+				RepoOwner:      "estafette",
+				RepoName:       test.repo,
+				ReleaseVersion: "1.0.256",
+			}
+			actual, _, _ := s.isReleaseBlocked(release, test.mft, test.branch)
+			assert.Equal(t, test.expected, actual)
+		})
+	}
+}

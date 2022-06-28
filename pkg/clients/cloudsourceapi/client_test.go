@@ -12,11 +12,13 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
-	sourcerepo "google.golang.org/api/sourcerepo/v1"
-	stdsourcerepo "google.golang.org/api/sourcerepo/v1"
+	"google.golang.org/api/sourcerepo/v1"
 )
 
 func TestGetToken(t *testing.T) {
+	if testing.Short() {
+		return
+	}
 
 	t.Run("ReturnsTokenForRepository", func(t *testing.T) {
 
@@ -32,6 +34,9 @@ func TestGetToken(t *testing.T) {
 }
 
 func TestGetEstafetteManifest(t *testing.T) {
+	if testing.Short() {
+		return
+	}
 
 	notification := PubSubNotification{
 		Name: "projects/test-project/repos/pubsub-test",
@@ -115,7 +120,7 @@ func getTokenSourceAndService() (*api.APIConfig, oauth2.TokenSource, *sourcerepo
 		log.Fatal("Creating google cloud token source has failed")
 	}
 
-	sourcerepoService, err := stdsourcerepo.NewService(ctx, option.WithHTTPClient(oauth2.NewClient(ctx, tokenSource)))
+	sourcerepoService, err := sourcerepo.NewService(ctx, option.WithHTTPClient(oauth2.NewClient(ctx, tokenSource)))
 	if err != nil {
 		log.Fatal("Creating google cloud source repo service has failed")
 	}

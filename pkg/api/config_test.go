@@ -485,6 +485,9 @@ func TestReadConfigFromFiles(t *testing.T) {
 		assertT.Equal(List{"repo2"}, buildControlConfig.Bitbucket.Blocked.Repos)
 		assertT.Equal(List{"repo3"}, buildControlConfig.Github.Allowed)
 		assertT.Equal(List{"repo4"}, buildControlConfig.Github.Blocked)
+		assertT.Equal(List{"main", "master"}, buildControlConfig.Release.Repositories[AllRepositories].Allowed)
+		assertT.Equal(List{"bugfix"}, buildControlConfig.Release.Repositories[AllRepositories].Blocked)
+		assertT.Equal(List{"trvx-prd"}, buildControlConfig.Release.RestrictedClusters)
 	})
 
 	t.Run("ReturnsTrustedImagesConfig", func(t *testing.T) {
@@ -530,21 +533,21 @@ func TestReadConfigFromFiles(t *testing.T) {
 	t.Run("Overrides_Integrations_Github_Enabled_From_Envvar", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
-		os.Setenv("ESCI_INTEGRATIONS_GITHUB_ENABLE", "false")
+		_ = os.Setenv("ESCI_INTEGRATIONS_GITHUB_ENABLE", "false")
 
 		// act
 		config, err := configReader.ReadConfigFromFiles("configs", true)
 
 		assert.Nil(t, err)
 		assert.Equal(t, false, config.Integrations.Github.Enable)
-		os.Setenv("ESCI_INTEGRATIONS_GITHUB_ENABLE", "")
+		_ = os.Setenv("ESCI_INTEGRATIONS_GITHUB_ENABLE", "")
 	})
 
 	t.Run("Overrides_BuildControl_From_Envvar", func(t *testing.T) {
 
 		configReader := NewConfigReader(crypt.NewSecretHelper("SazbwMf3NZxVVbBqQHebPcXCqrVn3DDp", false), "za4BeKbXyMJVsX6gLU2AF352DEu9J5qE")
-		os.Setenv("ESCI_BUILDCONTROL_BITBUCKET_ALLOWED_PROJECTS", "project1,project2")
-		os.Setenv("ESCI_BUILDCONTROL_BITBUCKET_ALLOWED_REPOS", "repo1,repo2")
+		_ = os.Setenv("ESCI_BUILDCONTROL_BITBUCKET_ALLOWED_PROJECTS", "project1,project2")
+		_ = os.Setenv("ESCI_BUILDCONTROL_BITBUCKET_ALLOWED_REPOS", "repo1,repo2")
 
 		// act
 		config, err := configReader.ReadConfigFromFiles("configs", true)
@@ -552,8 +555,8 @@ func TestReadConfigFromFiles(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, List{"project1", "project2"}, config.BuildControl.Bitbucket.Allowed.Projects)
 		assert.Equal(t, List{"repo1", "repo2"}, config.BuildControl.Bitbucket.Allowed.Repos)
-		os.Unsetenv("ESCI_BUILDCONTROL_BITBUCKET_ALLOWED_PROJECTS")
-		os.Unsetenv("ESCI_BUILDCONTROL_BITBUCKET_ALLOWED_REPOS")
+		_ = os.Unsetenv("ESCI_BUILDCONTROL_BITBUCKET_ALLOWED_PROJECTS")
+		_ = os.Unsetenv("ESCI_BUILDCONTROL_BITBUCKET_ALLOWED_REPOS")
 	})
 
 	t.Run("Keeps_Job_AffinitiesAndTolerations_Nil_For_Minimal_Config", func(t *testing.T) {

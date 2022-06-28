@@ -12,14 +12,16 @@ import (
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/appleboy/gin-jwt/v2"
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/builderapi"
 	"github.com/estafette/estafette-ci-api/pkg/clients/cloudstorage"
 	"github.com/estafette/estafette-ci-api/pkg/clients/database"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	crypt "github.com/estafette/estafette-ci-crypt"
+	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/gin-gonic/gin"
-	gomock "github.com/golang/mock/gomock"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -300,6 +302,105 @@ func TestGenerateManifest(t *testing.T) {
 		body, err := ioutil.ReadAll(recorder.Result().Body)
 		assert.Nil(t, err)
 		assert.Equal(t, "{\"manifest\":\"track: stable\\nteam: estafette\"}", string(body))
+
+	})
+}
+
+func TestCreatePipelineRelease_Forbidden(t *testing.T) {
+	t.Run("ReturnsForbiddenError", func(t *testing.T) {
+		repoSource := "github.com"
+		repoOwner := "estafette"
+		repoName := "estafette-ci-api"
+		releaseVersion := "1.0.0-feature-test-123-1727"
+		repoBranch := "main"
+		repoRevision := "sha1234"
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		content := []byte("track: stable")
+		templatesPath, err := ioutil.TempDir("", "templates")
+		assert.Nil(t, err)
+
+		defer os.RemoveAll(templatesPath) // clean up
+
+		tmpfn := filepath.Join(templatesPath, "manifest-docker.tmpl")
+		err = ioutil.WriteFile(tmpfn, content, 0666)
+		assert.Nil(t, err)
+		cfg := &api.APIConfig{}
+		encryptedConfig := cfg
+		databaseClient := database.NewMockClient(ctrl)
+		databaseClient.
+			EXPECT().
+			GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string, optimized bool) (pipeline *contracts.Pipeline, err error) {
+				pipeline = &contracts.Pipeline{
+					BuildStatus: contracts.StatusSucceeded,
+				}
+				return
+			})
+		databaseClient.
+			EXPECT().
+			GetPipelineBuildsByVersion(gomock.Any(), repoSource, repoOwner, repoName, releaseVersion, []contracts.Status{contracts.StatusSucceeded}, uint64(1), false).
+			DoAndReturn(func(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []contracts.Status, limit uint64, optimized bool) (builds []*contracts.Build, err error) {
+				builds = []*contracts.Build{
+					{
+						BuildStatus:  contracts.StatusSucceeded,
+						RepoBranch:   repoBranch,
+						RepoRevision: repoRevision,
+						ReleaseTargets: []contracts.ReleaseTarget{
+							{
+								Name: "tooling-estafette",
+								Actions: []manifest.EstafetteReleaseAction{
+									{
+										Name:      "deploy-canary",
+										HideBadge: false,
+									},
+								},
+							},
+						},
+						ManifestObject: &manifest.EstafetteManifest{},
+					},
+				}
+				return
+			})
+		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
+		builderapiClient := builderapi.NewMockClient(ctrl)
+		buildService := NewMockService(ctrl)
+		buildService.
+			EXPECT().
+			CreateRelease(gomock.Any(), gomock.Any(), gomock.Any(), repoBranch, repoRevision).
+			DoAndReturn(func(ctx context.Context, release contracts.Release, mft manifest.EstafetteManifest, repoBranch, repoRevision string) (r *contracts.Release, err error) {
+				err = &ReleaseError{Message: releaseNotAllowed, Cluster: "abc1", RepositoryReleaseControl: &api.RepositoryReleaseControl{
+					Allowed: api.List{"main"},
+				}}
+				return
+			})
+		secretHelper := crypt.NewSecretHelper("abc", false)
+		warningHelper := api.NewWarningHelper(secretHelper)
+
+		handler := NewHandler(templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
+		recorder := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(recorder)
+		c.Set("JWT_PAYLOAD", jwt.MapClaims{
+			jwt.IdentityKey: "1231",
+			"email":         "user@estafette.io",
+		})
+		c.Params = append(c.Params, gin.Param{Key: "source", Value: "github.com"},
+			gin.Param{Key: "owner", Value: "estafette"},
+			gin.Param{Key: "repo", Value: "estafette-ci-api"})
+		bodyReader := strings.NewReader(`{  "name": "tooling-estafette",  "action": "deploy-canary",  "repoSource": "github.com",  "repoOwner": "estafette",  "repoName": "estafette-ci-api",  "releaseVersion": "1.0.0-feature-test-123-1727",  "releaseStatus": "pending"}`)
+		c.Request = httptest.NewRequest("POST", "https://ci.estafette.io/manifest/templates", bodyReader)
+		if !assert.NotNil(t, c.Request) {
+			return
+		}
+		// act
+		handler.CreatePipelineRelease(c)
+
+		assert.Equal(t, http.StatusForbidden, recorder.Result().StatusCode)
+		body, err := ioutil.ReadAll(recorder.Result().Body)
+		assert.Nil(t, err)
+		assert.Equal(t, `{"code":"Forbidden","error":{"cluster":"abc1","message":"Release not allowed on this branch","repositoryReleaseControl":{"allowed":["main"]}}}`, string(body))
 
 	})
 }
