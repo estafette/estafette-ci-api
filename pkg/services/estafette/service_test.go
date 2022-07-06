@@ -1297,4 +1297,40 @@ func Test_isReleaseBlocked(t *testing.T) {
 			assert.Equal(t, test.expected, actual)
 		})
 	}
+	t.Run("nil release config", func(t *testing.T) {
+		s := &service{
+			config: &api.APIConfig{
+				Jobs:         &api.JobsConfig{},
+				APIServer:    &api.APIServerConfig{},
+				BuildControl: &api.BuildControl{},
+			},
+		}
+		release := contracts.Release{
+			Name:           "prd-cluster",
+			RepoSource:     "github.com",
+			RepoOwner:      "estafette",
+			RepoName:       "repo1",
+			ReleaseVersion: "1.0.256",
+		}
+		mft := manifest.EstafetteManifest{
+			Releases: []*manifest.EstafetteRelease{
+				{
+					Name: "prd-cluster",
+					Stages: []*manifest.EstafetteStage{
+						{
+							ParallelStages: []*manifest.EstafetteStage{
+								{
+									CustomProperties: map[string]interface{}{
+										"credentials": "gke-prd-cluster",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		actual, _, _ := s.isReleaseBlocked(release, mft, "main")
+		assert.Equal(t, false, actual)
+	})
 }

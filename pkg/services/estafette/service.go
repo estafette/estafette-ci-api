@@ -2182,6 +2182,9 @@ func (s *service) GetEventsForJobEnvvars(ctx context.Context, triggers []manifes
 }
 
 func (s *service) isReleaseBlocked(release contracts.Release, mft manifest.EstafetteManifest, repoBranch string) (bool, string, *api.RepositoryReleaseControl) {
+	if s.config.BuildControl == nil || s.config.BuildControl.Release == nil {
+		return false, "", nil
+	}
 	var cluster string
 	var checkRequired bool
 R:
@@ -2193,9 +2196,6 @@ R:
 				}
 			}
 		}
-	}
-	if s.config.BuildControl == nil || s.config.BuildControl.Release == nil {
-		return false, "", nil
 	}
 	if !checkRequired {
 		if s.config.BuildControl.Release.RestrictedClusters.Matches(release.Name) {
