@@ -119,28 +119,28 @@ func (c *metricsClient) UpdateBotResourceUtilization(ctx context.Context, repoSo
 	return c.Client.UpdateBotResourceUtilization(ctx, repoSource, repoOwner, repoName, botID, jobResources)
 }
 
-func (c *metricsClient) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (buildlog contracts.BuildLog, err error) {
+func (c *metricsClient) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (buildlog contracts.BuildLog, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "InsertBuildLog", begin)
 	}(time.Now())
 
-	return c.Client.InsertBuildLog(ctx, buildLog, writeLogToDatabase)
+	return c.Client.InsertBuildLog(ctx, buildLog)
 }
 
-func (c *metricsClient) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (releaselog contracts.ReleaseLog, err error) {
+func (c *metricsClient) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) (releaselog contracts.ReleaseLog, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "InsertReleaseLog", begin)
 	}(time.Now())
 
-	return c.Client.InsertReleaseLog(ctx, releaseLog, writeLogToDatabase)
+	return c.Client.InsertReleaseLog(ctx, releaseLog)
 }
 
-func (c *metricsClient) InsertBotLog(ctx context.Context, botLog contracts.BotLog, writeLogToDatabase bool) (log contracts.BotLog, err error) {
+func (c *metricsClient) InsertBotLog(ctx context.Context, botLog contracts.BotLog) (log contracts.BotLog, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "InsertBotLog", begin)
 	}(time.Now())
 
-	return c.Client.InsertBotLog(ctx, botLog, writeLogToDatabase)
+	return c.Client.InsertBotLog(ctx, botLog)
 }
 
 func (c *metricsClient) UpdateComputedTables(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
@@ -323,20 +323,20 @@ func (c *metricsClient) GetPipelineBuildsByVersion(ctx context.Context, repoSour
 	return c.Client.GetPipelineBuildsByVersion(ctx, repoSource, repoOwner, repoName, buildVersion, statuses, limit, optimized)
 }
 
-func (c *metricsClient) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error) {
+func (c *metricsClient) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string) (buildlog *contracts.BuildLog, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineBuildLogs", begin)
 	}(time.Now())
 
-	return c.Client.GetPipelineBuildLogs(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, readLogFromDatabase)
+	return c.Client.GetPipelineBuildLogs(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID)
 }
 
-func (c *metricsClient) GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error) {
+func (c *metricsClient) GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoOwner, repoName, buildID, id string) (buildlog *contracts.BuildLog, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineBuildLogsByID", begin)
 	}(time.Now())
 
-	return c.Client.GetPipelineBuildLogsByID(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id, readLogFromDatabase)
+	return c.Client.GetPipelineBuildLogsByID(ctx, repoSource, repoOwner, repoName, buildID, id)
 }
 
 func (c *metricsClient) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error) {
@@ -395,20 +395,20 @@ func (c *metricsClient) GetPipelineLastReleasesByName(ctx context.Context, repoS
 	return c.Client.GetPipelineLastReleasesByName(ctx, repoSource, repoOwner, repoName, releaseName, actions)
 }
 
-func (c *metricsClient) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error) {
+func (c *metricsClient) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string) (releaselog *contracts.ReleaseLog, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineReleaseLogs", begin)
 	}(time.Now())
 
-	return c.Client.GetPipelineReleaseLogs(ctx, repoSource, repoOwner, repoName, releaseID, readLogFromDatabase)
+	return c.Client.GetPipelineReleaseLogs(ctx, repoSource, repoOwner, repoName, releaseID)
 }
 
-func (c *metricsClient) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, id string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error) {
+func (c *metricsClient) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, id string) (releaselog *contracts.ReleaseLog, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineReleaseLogsByID", begin)
 	}(time.Now())
 
-	return c.Client.GetPipelineReleaseLogsByID(ctx, repoSource, repoOwner, repoName, releaseID, id, readLogFromDatabase)
+	return c.Client.GetPipelineReleaseLogsByID(ctx, repoSource, repoOwner, repoName, releaseID, id)
 }
 
 func (c *metricsClient) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error) {
@@ -459,20 +459,20 @@ func (c *metricsClient) GetPipelineBot(ctx context.Context, repoSource, repoOwne
 	return c.Client.GetPipelineBot(ctx, repoSource, repoOwner, repoName, botID)
 }
 
-func (c *metricsClient) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID string, readLogFromDatabase bool) (releaselog *contracts.BotLog, err error) {
+func (c *metricsClient) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID string) (releaselog *contracts.BotLog, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineBotLogs", begin)
 	}(time.Now())
 
-	return c.Client.GetPipelineBotLogs(ctx, repoSource, repoOwner, repoName, botID, readLogFromDatabase)
+	return c.Client.GetPipelineBotLogs(ctx, repoSource, repoOwner, repoName, botID)
 }
 
-func (c *metricsClient) GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID string, id string, readLogFromDatabase bool) (releaselog *contracts.BotLog, err error) {
+func (c *metricsClient) GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID string, id string) (releaselog *contracts.BotLog, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetPipelineBotLogsByID", begin)
 	}(time.Now())
 
-	return c.Client.GetPipelineBotLogsByID(ctx, repoSource, repoOwner, repoName, botID, id, readLogFromDatabase)
+	return c.Client.GetPipelineBotLogsByID(ctx, repoSource, repoOwner, repoName, botID, id)
 }
 
 func (c *metricsClient) GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, botID string, pageNumber int, pageSize int) (releaselogs []*contracts.BotLog, err error) {
@@ -729,12 +729,12 @@ func (c *metricsClient) GetReleaseTriggers(ctx context.Context, release contract
 	return c.Client.GetReleaseTriggers(ctx, release, event)
 }
 
-func (c *metricsClient) GetPubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) (pipelines []*contracts.Pipeline, err error) {
+func (c *metricsClient) GetPubSubTriggers(ctx context.Context) (pipelines []*contracts.Pipeline, err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "GetPubSubTriggers", begin)
 	}(time.Now())
 
-	return c.Client.GetPubSubTriggers(ctx, pubsubEvent)
+	return c.Client.GetPubSubTriggers(ctx)
 }
 
 func (c *metricsClient) GetCronTriggers(ctx context.Context) (pipelines []*contracts.Pipeline, err error) {

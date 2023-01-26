@@ -6,65 +6,72 @@ package prometheus
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockClient is a mock of Client interface
+// MockClient is a mock of Client interface.
 type MockClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockClientMockRecorder
 }
 
-// MockClientMockRecorder is the mock recorder for MockClient
+// MockClientMockRecorder is the mock recorder for MockClient.
 type MockClientMockRecorder struct {
 	mock *MockClient
 }
 
-// NewMockClient creates a new mock instance
+// NewMockClient creates a new mock instance.
 func NewMockClient(ctrl *gomock.Controller) *MockClient {
 	mock := &MockClient{ctrl: ctrl}
 	mock.recorder = &MockClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
-// AwaitScrapeInterval mocks base method
+// AwaitScrapeInterval mocks base method.
 func (m *MockClient) AwaitScrapeInterval(ctx context.Context) {
+	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "AwaitScrapeInterval", ctx)
 }
 
-// AwaitScrapeInterval indicates an expected call of AwaitScrapeInterval
+// AwaitScrapeInterval indicates an expected call of AwaitScrapeInterval.
 func (mr *MockClientMockRecorder) AwaitScrapeInterval(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AwaitScrapeInterval", reflect.TypeOf((*MockClient)(nil).AwaitScrapeInterval), ctx)
 }
 
-// GetMaxMemoryByPodName mocks base method
-func (m *MockClient) GetMaxMemoryByPodName(ctx context.Context, podName string) (float64, error) {
-	ret := m.ctrl.Call(m, "GetMaxMemoryByPodName", ctx, podName)
-	ret0, _ := ret[0].(float64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMaxMemoryByPodName indicates an expected call of GetMaxMemoryByPodName
-func (mr *MockClientMockRecorder) GetMaxMemoryByPodName(ctx, podName interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMaxMemoryByPodName", reflect.TypeOf((*MockClient)(nil).GetMaxMemoryByPodName), ctx, podName)
-}
-
-// GetMaxCPUByPodName mocks base method
+// GetMaxCPUByPodName mocks base method.
 func (m *MockClient) GetMaxCPUByPodName(ctx context.Context, podName string) (float64, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMaxCPUByPodName", ctx, podName)
 	ret0, _ := ret[0].(float64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetMaxCPUByPodName indicates an expected call of GetMaxCPUByPodName
+// GetMaxCPUByPodName indicates an expected call of GetMaxCPUByPodName.
 func (mr *MockClientMockRecorder) GetMaxCPUByPodName(ctx, podName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMaxCPUByPodName", reflect.TypeOf((*MockClient)(nil).GetMaxCPUByPodName), ctx, podName)
+}
+
+// GetMaxMemoryByPodName mocks base method.
+func (m *MockClient) GetMaxMemoryByPodName(ctx context.Context, podName string) (float64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMaxMemoryByPodName", ctx, podName)
+	ret0, _ := ret[0].(float64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMaxMemoryByPodName indicates an expected call of GetMaxMemoryByPodName.
+func (mr *MockClientMockRecorder) GetMaxMemoryByPodName(ctx, podName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMaxMemoryByPodName", reflect.TypeOf((*MockClient)(nil).GetMaxMemoryByPodName), ctx, podName)
 }

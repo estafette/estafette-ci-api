@@ -6,68 +6,75 @@ package dockerhubapi
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockClient is a mock of Client interface
+// MockClient is a mock of Client interface.
 type MockClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockClientMockRecorder
 }
 
-// MockClientMockRecorder is the mock recorder for MockClient
+// MockClientMockRecorder is the mock recorder for MockClient.
 type MockClientMockRecorder struct {
 	mock *MockClient
 }
 
-// NewMockClient creates a new mock instance
+// NewMockClient creates a new mock instance.
 func NewMockClient(ctrl *gomock.Controller) *MockClient {
 	mock := &MockClient{ctrl: ctrl}
 	mock.recorder = &MockClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
-// GetToken mocks base method
-func (m *MockClient) GetToken(ctx context.Context, repository string) (DockerHubToken, error) {
-	ret := m.ctrl.Call(m, "GetToken", ctx, repository)
-	ret0, _ := ret[0].(DockerHubToken)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetToken indicates an expected call of GetToken
-func (mr *MockClientMockRecorder) GetToken(ctx, repository interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetToken", reflect.TypeOf((*MockClient)(nil).GetToken), ctx, repository)
-}
-
-// GetDigest mocks base method
+// GetDigest mocks base method.
 func (m *MockClient) GetDigest(ctx context.Context, token DockerHubToken, repository, tag string) (DockerImageDigest, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDigest", ctx, token, repository, tag)
 	ret0, _ := ret[0].(DockerImageDigest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetDigest indicates an expected call of GetDigest
+// GetDigest indicates an expected call of GetDigest.
 func (mr *MockClientMockRecorder) GetDigest(ctx, token, repository, tag interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDigest", reflect.TypeOf((*MockClient)(nil).GetDigest), ctx, token, repository, tag)
 }
 
-// GetDigestCached mocks base method
+// GetDigestCached mocks base method.
 func (m *MockClient) GetDigestCached(ctx context.Context, repository, tag string) (DockerImageDigest, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDigestCached", ctx, repository, tag)
 	ret0, _ := ret[0].(DockerImageDigest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetDigestCached indicates an expected call of GetDigestCached
+// GetDigestCached indicates an expected call of GetDigestCached.
 func (mr *MockClientMockRecorder) GetDigestCached(ctx, repository, tag interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDigestCached", reflect.TypeOf((*MockClient)(nil).GetDigestCached), ctx, repository, tag)
+}
+
+// GetToken mocks base method.
+func (m *MockClient) GetToken(ctx context.Context, repository string) (DockerHubToken, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetToken", ctx, repository)
+	ret0, _ := ret[0].(DockerHubToken)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetToken indicates an expected call of GetToken.
+func (mr *MockClientMockRecorder) GetToken(ctx, repository interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetToken", reflect.TypeOf((*MockClient)(nil).GetToken), ctx, repository)
 }

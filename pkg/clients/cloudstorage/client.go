@@ -25,6 +25,7 @@ var (
 )
 
 // Client is the interface for connecting to google cloud storage
+//
 //go:generate mockgen -package=cloudstorage -destination ./mock.go -source=client.go
 type Client interface {
 	InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error)
@@ -236,7 +237,7 @@ func (c *client) getLogDirectory(repoSource, repoOwner, repoName, logType string
 
 func (c *client) Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error) {
 
-	log.Info().Msgf("Renaming cloud storage logs from %v/%v/%v to %v/%v/%v for bucket %v", fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName, c.config.Integrations.CloudStorage.Bucket)
+	log.Debug().Msgf("Renaming cloud storage logs from %v/%v/%v to %v/%v/%v for bucket %v", fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName, c.config.Integrations.CloudStorage.Bucket)
 
 	bucket := c.client.Bucket(c.config.Integrations.CloudStorage.Bucket)
 

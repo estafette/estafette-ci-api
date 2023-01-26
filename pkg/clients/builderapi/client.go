@@ -39,6 +39,7 @@ var (
 )
 
 // Client is the interface for running kubernetes commands specific to this application
+//
 //go:generate mockgen -package=builderapi -destination ./mock.go -source=client.go
 type Client interface {
 	CreateCiBuilderJob(ctx context.Context, params CiBuilderParams) (job *batchv1.Job, err error)
@@ -80,7 +81,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 	// create job name of max 63 chars
 	jobName := c.getCiBuilderJobName(ctx, ciBuilderParams)
 
-	log.Info().Msgf("Creating job %v...", jobName)
+	log.Debug().Msgf("Creating job %v...", jobName)
 
 	// check # of found secrets
 	manifestBytes, err := json.Marshal(ciBuilderParams.BuilderConfig.Manifest)
@@ -206,7 +207,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 		return job, errors.Wrapf(err, "Failed creating job %v job...", jobName)
 	}
 
-	log.Info().Msgf("Job %v is created", jobName)
+	log.Debug().Msgf("Job %v is created", jobName)
 
 	return
 }
@@ -214,7 +215,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 // RemoveCiBuilderJob waits for a job to finish and then removes it
 func (c *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err error) {
 
-	log.Info().Msgf("Removing job %v after completion...", jobName)
+	log.Debug().Msgf("Removing job %v after completion...", jobName)
 
 	// check if job exists
 	job, err := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Get(ctx, jobName, metav1.GetOptions{})
@@ -235,7 +236,7 @@ func (c *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err er
 		return errors.Wrapf(err, "Failed removing job %v after completion", jobName)
 	}
 
-	log.Info().Msgf("Job %v is removed after completion", jobName)
+	log.Debug().Msgf("Job %v is removed after completion", jobName)
 
 	return
 }
@@ -243,7 +244,7 @@ func (c *client) RemoveCiBuilderJob(ctx context.Context, jobName string) (err er
 // CancelCiBuilderJob removes a job and its pods to cancel a build/release
 func (c *client) CancelCiBuilderJob(ctx context.Context, jobName string) (err error) {
 
-	log.Info().Msgf("Canceling job %v...", jobName)
+	log.Debug().Msgf("Canceling job %v...", jobName)
 
 	// check if job exists
 	job, err := c.kubeClientset.BatchV1().Jobs(c.config.Jobs.Namespace).Get(ctx, jobName, metav1.GetOptions{})
@@ -259,7 +260,7 @@ func (c *client) CancelCiBuilderJob(ctx context.Context, jobName string) (err er
 		return errors.Wrapf(err, "Failed canceling job %v", jobName)
 	}
 
-	log.Info().Msgf("Job %v is canceled", jobName)
+	log.Debug().Msgf("Job %v is canceled", jobName)
 
 	return
 }
@@ -326,7 +327,7 @@ func (c *client) createCiBuilderConfigMap(ctx context.Context, ciBuilderParams C
 		return errors.Wrapf(err, "Creating configmap %v failed", builderConfigConfigmapName)
 	}
 
-	log.Info().Msgf("Configmap %v is created", builderConfigConfigmapName)
+	log.Debug().Msgf("Configmap %v is created", builderConfigConfigmapName)
 
 	return nil
 }
@@ -352,7 +353,7 @@ func (c *client) createCiBuilderSecret(ctx context.Context, ciBuilderParams CiBu
 		return errors.Wrapf(err, "Creating secret %v failed", decryptionKeySecretName)
 	}
 
-	log.Info().Msgf("Secret %v is created", decryptionKeySecretName)
+	log.Debug().Msgf("Secret %v is created", decryptionKeySecretName)
 
 	return nil
 }
@@ -405,7 +406,7 @@ func (c *client) createCiBuilderImagePullSecret(ctx context.Context, ciBuilderPa
 		return false, errors.Wrapf(err, "Creating secret %v failed", imagePullSecretName)
 	}
 
-	log.Info().Msgf("Secret %v is created", imagePullSecretName)
+	log.Debug().Msgf("Secret %v is created", imagePullSecretName)
 
 	return true, nil
 }
@@ -429,7 +430,7 @@ func (c *client) RemoveCiBuilderConfigMap(ctx context.Context, jobName string) (
 		return errors.Wrapf(err, "Deleting configmap %v failed", configmapName)
 	}
 
-	log.Info().Msgf("Configmap %v is deleted", configmapName)
+	log.Debug().Msgf("Configmap %v is deleted", configmapName)
 
 	return
 }
@@ -453,7 +454,7 @@ func (c *client) RemoveCiBuilderSecret(ctx context.Context, jobName string) (err
 		return errors.Wrapf(err, "Deleting secret %v failed", secretName)
 	}
 
-	log.Info().Msgf("Secret %v is deleted", secretName)
+	log.Debug().Msgf("Secret %v is deleted", secretName)
 
 	return
 }
@@ -477,7 +478,7 @@ func (c *client) RemoveCiBuilderImagePullSecret(ctx context.Context, jobName str
 		return errors.Wrapf(err, "Deleting secret %v failed", secretName)
 	}
 
-	log.Info().Msgf("Secret %v is deleted", secretName)
+	log.Debug().Msgf("Secret %v is deleted", secretName)
 
 	return
 }

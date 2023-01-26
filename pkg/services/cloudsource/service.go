@@ -21,6 +21,7 @@ var (
 )
 
 // Service handles pubsub events for Cloud Source Repository integration
+//
 //go:generate mockgen -package=cloudsource -destination ./mock.go -source=service.go
 type Service interface {
 	CreateJobForCloudSourcePush(ctx context.Context, notification cloudsourceapi.PubSubNotification) (err error)
@@ -127,7 +128,7 @@ func (s *service) CreateJobForCloudSourcePush(ctx context.Context, notification 
 		return err
 	}
 
-	log.Info().Msgf("Created build for pipeline %v/%v/%v with revision %v", notification.GetRepoSource(), notification.GetRepoOwner(), notification.GetRepoName(), repoRevision)
+	log.Debug().Msgf("Created build for pipeline %v/%v/%v with revision %v", notification.GetRepoSource(), notification.GetRepoOwner(), notification.GetRepoName(), repoRevision)
 
 	go func() {
 		// create new context to avoid cancellation impacting execution

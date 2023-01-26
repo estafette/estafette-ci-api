@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math"
 	"math/big"
 	"net/http"
@@ -81,7 +81,7 @@ func getGoogleJWKs() (keysResponse *GoogleJWKResponse, err error) {
 		return keysResponse, fmt.Errorf("https://www.googleapis.com/oauth2/v3/certs responded with status code %v", response.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return
 	}

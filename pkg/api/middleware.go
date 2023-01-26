@@ -65,7 +65,7 @@ func (m *authMiddlewareImpl) coreGinJWTMiddleware(authenticator func(c *gin.Cont
 		Key:           []byte(m.config.Auth.JWT.Key),
 		TokenLookup:   "header:Authorization, cookie:jwt",
 		Authenticator: authenticator,
-		Timeout:       time.Duration(3) * time.Hour,
+		Timeout:       time.Duration(8) * time.Hour,
 		TimeFunc:      time.Now,
 	})
 }

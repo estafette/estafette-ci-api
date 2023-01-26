@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -37,7 +37,7 @@ func (h *Handler) Handle(c *gin.Context) {
 	eventType := c.GetHeader("X-Github-Event")
 	// h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "github"}).Inc()
 
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body from Github webhook failed")
 		c.Status(http.StatusInternalServerError)
@@ -177,7 +177,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		switch repositoryEvent.Action {
 		case "renamed":
 			if repositoryEvent.IsValidRenameEvent() {
-				log.Info().Msgf("Renaming repository from %v/%v/%v to %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetOldRepoOwner(), repositoryEvent.GetOldRepoName(), repositoryEvent.GetRepoSource(), repositoryEvent.GetNewRepoOwner(), repositoryEvent.GetNewRepoName())
+				log.Debug().Msgf("Renaming repository from %v/%v/%v to %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetOldRepoOwner(), repositoryEvent.GetOldRepoName(), repositoryEvent.GetRepoSource(), repositoryEvent.GetNewRepoOwner(), repositoryEvent.GetNewRepoName())
 				err = h.service.Rename(c.Request.Context(), repositoryEvent.GetRepoSource(), repositoryEvent.GetOldRepoOwner(), repositoryEvent.GetOldRepoName(), repositoryEvent.GetRepoSource(), repositoryEvent.GetNewRepoOwner(), repositoryEvent.GetNewRepoName())
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed renaming repository from %v/%v/%v to %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetOldRepoOwner(), repositoryEvent.GetOldRepoName(), repositoryEvent.GetRepoSource(), repositoryEvent.GetNewRepoOwner(), repositoryEvent.GetNewRepoName())
@@ -188,7 +188,7 @@ func (h *Handler) Handle(c *gin.Context) {
 
 		case "deleted",
 			"archived":
-			log.Info().Msgf("Archiving repository from %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
+			log.Debug().Msgf("Archiving repository from %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
 			err = h.service.Archive(c.Request.Context(), repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed archiving repository %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
@@ -197,7 +197,7 @@ func (h *Handler) Handle(c *gin.Context) {
 			}
 
 		case "unarchived":
-			log.Info().Msgf("Unarchiving repository from %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
+			log.Debug().Msgf("Unarchiving repository from %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
 			err = h.service.Unarchive(c.Request.Context(), repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed unarchiving repository %v/%v/%v", repositoryEvent.GetRepoSource(), repositoryEvent.GetRepoOwner(), repositoryEvent.GetRepoName())

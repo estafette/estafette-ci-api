@@ -13,6 +13,7 @@ import (
 )
 
 // Client is the interface for communicating with the pubsub apis
+//
 //go:generate mockgen -package=pubsubapi -destination ./mock.go -source=client.go
 type Client interface {
 	SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (event *manifest.EstafettePubSubEvent, err error)
@@ -93,7 +94,7 @@ func (c *client) SubscribeToTopic(ctx context.Context, projectID, topicID string
 	// check if subscription already exists
 	subscriptionName := c.getSubscriptionName(topicID)
 	subscription := c.pubsubClient.SubscriptionInProject(subscriptionName, projectID)
-	log.Info().Msgf("Checking if subscription %v for topic %v in project %v exists...", subscriptionName, topicID, projectID)
+	log.Debug().Msgf("Checking if subscription %v for topic %v in project %v exists...", subscriptionName, topicID, projectID)
 	subscriptionExists, err := subscription.Exists(ctx)
 	if err != nil {
 		return err
@@ -104,7 +105,7 @@ func (c *client) SubscribeToTopic(ctx context.Context, projectID, topicID string
 	}
 
 	// create a subscription to the topic
-	log.Info().Msgf("Creating subscription %v for topic %v in project %v...", subscriptionName, topicID, projectID)
+	log.Debug().Msgf("Creating subscription %v for topic %v in project %v...", subscriptionName, topicID, projectID)
 	_, err = c.pubsubClient.CreateSubscription(ctx, subscriptionName, stdpubsub.SubscriptionConfig{
 		Topic: topic,
 		PushConfig: stdpubsub.PushConfig{
@@ -122,7 +123,7 @@ func (c *client) SubscribeToTopic(ctx context.Context, projectID, topicID string
 		return err
 	}
 
-	log.Info().Msgf("Created subscription %v in project %v", subscriptionName, projectID)
+	log.Debug().Msgf("Created subscription %v in project %v", subscriptionName, projectID)
 
 	return nil
 }

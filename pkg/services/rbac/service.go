@@ -20,6 +20,7 @@ var (
 )
 
 // Service handles http requests for role-based-access-control
+//
 //go:generate mockgen -package=rbac -destination ./mock.go -source=service.go
 type Service interface {
 	GetRoles(ctx context.Context) (roles []string, err error)
@@ -122,7 +123,7 @@ func (s *service) GetUserByIdentity(ctx context.Context, identity contracts.User
 
 func (s *service) CreateUserFromIdentity(ctx context.Context, identity contracts.UserIdentity) (user *contracts.User, err error) {
 
-	log.Info().Msgf("Creating record for user %v from provider %v", identity.Email, identity.Provider)
+	log.Debug().Msgf("Creating record for user %v from provider %v", identity.Email, identity.Provider)
 
 	firstVisit := time.Now().UTC()
 
@@ -145,7 +146,7 @@ func (s *service) CreateUserFromIdentity(ctx context.Context, identity contracts
 
 func (s *service) CreateUser(ctx context.Context, user contracts.User) (insertedUser *contracts.User, err error) {
 
-	log.Info().Msgf("Creating record for user %v", user.Email)
+	log.Debug().Msgf("Creating record for user %v", user.Email)
 
 	firstVisit := time.Now().UTC()
 
@@ -210,7 +211,7 @@ func (s *service) DeleteUser(ctx context.Context, id string) (err error) {
 }
 func (s *service) CreateGroup(ctx context.Context, group contracts.Group) (insertedGroup *contracts.Group, err error) {
 
-	log.Info().Msgf("Creating record for group %v", group.Name)
+	log.Debug().Msgf("Creating record for group %v", group.Name)
 
 	insertedGroup = &contracts.Group{
 		Name:          group.Name,
@@ -260,7 +261,7 @@ func (s *service) DeleteGroup(ctx context.Context, id string) (err error) {
 
 func (s *service) CreateOrganization(ctx context.Context, organization contracts.Organization) (insertedOrganization *contracts.Organization, err error) {
 
-	log.Info().Msgf("Creating record for organization %v", organization.Name)
+	log.Debug().Msgf("Creating record for organization %v", organization.Name)
 
 	insertedOrganization = &contracts.Organization{
 		Name:       organization.Name,
@@ -306,7 +307,7 @@ func (s *service) DeleteOrganization(ctx context.Context, id string) (err error)
 
 func (s *service) CreateClient(ctx context.Context, client contracts.Client) (insertedClient *contracts.Client, err error) {
 
-	log.Info().Msgf("Creating record for client %v", client.Name)
+	log.Debug().Msgf("Creating record for client %v", client.Name)
 
 	insertedClient = &contracts.Client{}
 

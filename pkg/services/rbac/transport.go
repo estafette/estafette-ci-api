@@ -306,7 +306,7 @@ func (h *Handler) HandleOAuthLoginProviderAuthenticator() func(c *gin.Context) (
 func (h *Handler) HandleClientLoginProviderAuthenticator() func(c *gin.Context) (interface{}, error) {
 	return func(c *gin.Context) (interface{}, error) {
 
-		log.Info().Msg("HandleClientLoginProviderAuthenticator")
+		log.Debug().Msg("HandleClientLoginProviderAuthenticator")
 
 		var client contracts.Client
 		err := c.BindJSON(&client)

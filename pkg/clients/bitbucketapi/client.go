@@ -6,9 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -36,6 +37,7 @@ var (
 )
 
 // Client is the interface for communicating with the bitbucket api
+//
 //go:generate mockgen -package=bitbucketapi -destination ./mock.go -source=client.go
 type Client interface {
 	GetAccessTokenByInstallation(ctx context.Context, installation BitbucketAppInstallation) (accesstoken AccessToken, err error)
@@ -145,7 +147,7 @@ func (c *client) GetAccessTokenByJWTToken(ctx context.Context, jwtToken string) 
 		ht.Finish()
 	}
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return
 	}
@@ -210,7 +212,7 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessTok
 		return
 	}
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return
 	}
@@ -640,7 +642,7 @@ func (c *client) upsertConfigmap(ctx context.Context, apps []*BitbucketApp) (err
 }
 
 func (c *client) getCurrentNamespace() string {
-	namespace, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	namespace, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed reading namespace")
 	}
@@ -729,7 +731,7 @@ func (c *client) GetWorkspace(ctx context.Context, installation BitbucketAppInst
 		return
 	}
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return
 	}

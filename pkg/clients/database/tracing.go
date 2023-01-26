@@ -111,25 +111,25 @@ func (c *tracingClient) UpdateBotResourceUtilization(ctx context.Context, repoSo
 	return c.Client.UpdateBotResourceUtilization(ctx, repoSource, repoOwner, repoName, botID, jobResources)
 }
 
-func (c *tracingClient) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (buildlog contracts.BuildLog, err error) {
+func (c *tracingClient) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (buildlog contracts.BuildLog, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "InsertBuildLog"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.InsertBuildLog(ctx, buildLog, writeLogToDatabase)
+	return c.Client.InsertBuildLog(ctx, buildLog)
 }
 
-func (c *tracingClient) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (releaselog contracts.ReleaseLog, err error) {
+func (c *tracingClient) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) (releaselog contracts.ReleaseLog, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "InsertReleaseLog"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.InsertReleaseLog(ctx, releaseLog, writeLogToDatabase)
+	return c.Client.InsertReleaseLog(ctx, releaseLog)
 }
 
-func (c *tracingClient) InsertBotLog(ctx context.Context, botLog contracts.BotLog, writeLogToDatabase bool) (log contracts.BotLog, err error) {
+func (c *tracingClient) InsertBotLog(ctx context.Context, botLog contracts.BotLog) (log contracts.BotLog, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "InsertBotLog"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.InsertBotLog(ctx, botLog, writeLogToDatabase)
+	return c.Client.InsertBotLog(ctx, botLog)
 }
 
 func (c *tracingClient) UpdateComputedTables(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
@@ -293,18 +293,18 @@ func (c *tracingClient) GetPipelineBuildsByVersion(ctx context.Context, repoSour
 	return c.Client.GetPipelineBuildsByVersion(ctx, repoSource, repoOwner, repoName, buildVersion, statuses, limit, optimized)
 }
 
-func (c *tracingClient) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error) {
+func (c *tracingClient) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string) (buildlog *contracts.BuildLog, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBuildLogs"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetPipelineBuildLogs(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, readLogFromDatabase)
+	return c.Client.GetPipelineBuildLogs(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID)
 }
 
-func (c *tracingClient) GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error) {
+func (c *tracingClient) GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoOwner, repoName, buildID, id string) (buildlog *contracts.BuildLog, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBuildLogsByID"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetPipelineBuildLogsByID(ctx, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id, readLogFromDatabase)
+	return c.Client.GetPipelineBuildLogsByID(ctx, repoSource, repoOwner, repoName, buildID, id)
 }
 
 func (c *tracingClient) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error) {
@@ -356,18 +356,18 @@ func (c *tracingClient) GetPipelineLastReleasesByName(ctx context.Context, repoS
 	return c.Client.GetPipelineLastReleasesByName(ctx, repoSource, repoOwner, repoName, releaseName, actions)
 }
 
-func (c *tracingClient) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error) {
+func (c *tracingClient) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string) (releaselog *contracts.ReleaseLog, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineReleaseLogs"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetPipelineReleaseLogs(ctx, repoSource, repoOwner, repoName, releaseID, readLogFromDatabase)
+	return c.Client.GetPipelineReleaseLogs(ctx, repoSource, repoOwner, repoName, releaseID)
 }
 
-func (c *tracingClient) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, id string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error) {
+func (c *tracingClient) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, id string) (releaselog *contracts.ReleaseLog, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineReleaseLogsByID"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetPipelineReleaseLogsByID(ctx, repoSource, repoOwner, repoName, releaseID, id, readLogFromDatabase)
+	return c.Client.GetPipelineReleaseLogsByID(ctx, repoSource, repoOwner, repoName, releaseID, id)
 }
 
 func (c *tracingClient) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error) {
@@ -412,18 +412,18 @@ func (c *tracingClient) GetPipelineBot(ctx context.Context, repoSource, repoOwne
 	return c.Client.GetPipelineBot(ctx, repoSource, repoOwner, repoName, botID)
 }
 
-func (c *tracingClient) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID string, readLogFromDatabase bool) (releaselog *contracts.BotLog, err error) {
+func (c *tracingClient) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID string) (releaselog *contracts.BotLog, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBotLogs"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetPipelineBotLogs(ctx, repoSource, repoOwner, repoName, botID, readLogFromDatabase)
+	return c.Client.GetPipelineBotLogs(ctx, repoSource, repoOwner, repoName, botID)
 }
 
-func (c *tracingClient) GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID string, id string, readLogFromDatabase bool) (releaselog *contracts.BotLog, err error) {
+func (c *tracingClient) GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID string, id string) (releaselog *contracts.BotLog, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPipelineBotLogsByID"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetPipelineBotLogsByID(ctx, repoSource, repoOwner, repoName, botID, id, readLogFromDatabase)
+	return c.Client.GetPipelineBotLogsByID(ctx, repoSource, repoOwner, repoName, botID, id)
 }
 
 func (c *tracingClient) GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, botID string, pageNumber int, pageSize int) (releaselogs []*contracts.BotLog, err error) {
@@ -650,11 +650,11 @@ func (c *tracingClient) GetReleaseTriggers(ctx context.Context, release contract
 	return c.Client.GetReleaseTriggers(ctx, release, event)
 }
 
-func (c *tracingClient) GetPubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) (pipelines []*contracts.Pipeline, err error) {
+func (c *tracingClient) GetPubSubTriggers(ctx context.Context) (pipelines []*contracts.Pipeline, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetPubSubTriggers"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 
-	return c.Client.GetPubSubTriggers(ctx, pubsubEvent)
+	return c.Client.GetPubSubTriggers(ctx)
 }
 
 func (c *tracingClient) GetCronTriggers(ctx context.Context) (pipelines []*contracts.Pipeline, err error) {

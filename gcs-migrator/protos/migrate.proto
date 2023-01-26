@@ -1,0 +1,90 @@
+// Generating protobuf code
+//
+// For golang install protoc (if already not installed)
+//    go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+// and run the following command from the project's root directory
+//    protoc --go_out=. --go-grpc_out=. gcs-migrator/protos/migrate.proto
+//
+// For python create virtualenv as below (if not created before)
+//    virtualenv -p python3 env
+//    pip install grpcio grpcio-tools google-cloud-storage
+// Or activate existing env
+//    source gcs-migrator/env/bin/activate
+// then run the following command from the project root directory
+//    ./gcs-migrator/codegen.py
+
+syntax = "proto3";
+
+option go_package = "pkg/migrationpb";
+
+package migrationpb;
+
+service Service {
+  rpc Migrate (stream Request) returns (Response) {}
+}
+
+service LogCheck {
+  rpc Check(stream LogObject) returns (LogCheckResponse) {}
+}
+
+message LogObject {
+  string bucket = 1;
+  string path = 2;
+}
+
+message Request {
+  int64 id = 1;
+  LogObject from_log_object = 2;
+  LogObject to_log_object = 3;
+}
+
+message Response {
+  repeated Migration migrations  = 1;
+  int64 batches = 2;
+}
+
+message LogObjectStatus {
+  LogObject log_object = 1;
+  bool exists = 2;
+}
+
+message LogCheckResponse {
+  repeated LogObjectStatus log_objects  = 1;
+  int64 batches = 2;
+}
+
+message Migration {
+  int64 id = 1;
+  LogObject from_log_object = 2;
+  LogObject to_log_object = 3;
+  optional GcsError error = 4;
+}
+
+message GcsError {
+  int64 code = 1;
+  string message = 2;
+  repeated ErrorDetail errors = 3;
+}
+
+message ErrorDetail {
+  string domain = 1;
+  string reason = 2;
+  string message = 3;
+}
+
+message HealthCheckRequest {
+  string service = 1;
+}
+
+message HealthCheckResponse {
+  enum ServingStatus {
+    UNKNOWN = 0;
+    SERVING = 1;
+    NOT_SERVING = 2;
+  }
+  ServingStatus status = 1;
+}
+
+service Health {
+  rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+}

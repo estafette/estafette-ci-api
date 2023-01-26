@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -30,6 +30,7 @@ var (
 )
 
 // Client is the interface for communicating with the github api
+//
 //go:generate mockgen -package=githubapi -destination ./mock.go -source=client.go
 type Client interface {
 	GetGithubAppToken(ctx context.Context, app GithubApp) (token string, err error)
@@ -270,7 +271,7 @@ func (c *client) callGithubAPI(ctx context.Context, method, url string, params i
 
 	statusCode = response.StatusCode
 
-	body, err = ioutil.ReadAll(response.Body)
+	body, err = io.ReadAll(response.Body)
 	if err != nil {
 		return
 	}
@@ -340,7 +341,7 @@ func (c *client) ConvertAppManifestCode(ctx context.Context, code string) (err e
 		return fmt.Errorf("Failed requesting %v with status code %v", url, response.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return
 	}
@@ -627,7 +628,7 @@ func (c *client) upsertConfigmap(ctx context.Context, apps []*GithubApp) (err er
 }
 
 func (c *client) getCurrentNamespace() string {
-	namespace, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	namespace, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed reading namespace")
 	}

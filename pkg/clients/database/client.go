@@ -20,7 +20,7 @@ import (
 	_ "github.com/lib/pq" // use postgres client library to connect to cockroachdb
 	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -30,7 +30,7 @@ var (
 	// ErrGroupNotFound is returned if a query for a group returns no results
 	ErrGroupNotFound = errors.New("the group can't be found")
 
-	// ErrOrganizationNotFound is returned if a query for a organization returns no results
+	// ErrOrganizationNotFound is returned if a query for an organization returns no results
 	ErrOrganizationNotFound = errors.New("the organization can't be found")
 
 	// ErrClientNotFound is returned if a query for a client returns no results
@@ -41,8 +41,10 @@ var (
 )
 
 // Client is the interface for communicating with the database
-//go:generate mockgen -package=database -destination ./mock.go -source=client.go
+//
+//go:generate mockgen -package=database -destination ./mock.go -source=client.go -aux_files github.com/estafette/estafette-ci-api/pkg/clients/database=migration.go
 type Client interface {
+	MigrationDatabaseApi
 	Connect(ctx context.Context) (err error)
 	ConnectWithDriverAndSource(ctx context.Context, driverName, dataSourceName string) (err error)
 	AwaitDatabaseReadiness(ctx context.Context) (err error)
@@ -57,9 +59,9 @@ type Client interface {
 	InsertBot(ctx context.Context, bot contracts.Bot, jobResources JobResources) (r *contracts.Bot, err error)
 	UpdateBotStatus(ctx context.Context, repoSource, repoOwner, repoName string, botID string, botStatus contracts.Status) (err error)
 	UpdateBotResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, botID string, jobResources JobResources) (err error)
-	InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (log contracts.BuildLog, err error)
-	InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (log contracts.ReleaseLog, err error)
-	InsertBotLog(ctx context.Context, botLog contracts.BotLog, writeLogToDatabase bool) (log contracts.BotLog, err error)
+	InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (log contracts.BuildLog, err error)
+	InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) (log contracts.ReleaseLog, err error)
+	InsertBotLog(ctx context.Context, botLog contracts.BotLog) (log contracts.BotLog, err error)
 
 	UpdateComputedTables(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 	UpsertComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
@@ -85,8 +87,8 @@ type Client interface {
 	GetLastPipelineReleases(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string, pageSize int) (releases []*contracts.Release, err error)
 	GetFirstPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (release *contracts.Release, err error)
 	GetPipelineBuildsByVersion(ctx context.Context, repoSource, repoOwner, repoName, buildVersion string, statuses []contracts.Status, limit uint64, optimized bool) (builds []*contracts.Build, err error)
-	GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error)
-	GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id string, readLogFromDatabase bool) (buildlog *contracts.BuildLog, err error)
+	GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string) (buildlog *contracts.BuildLog, err error)
+	GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoOwner, repoName, buildID, id string) (buildlog *contracts.BuildLog, err error)
 	GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, pageNumber int, pageSize int) (buildLogs []*contracts.BuildLog, err error)
 	GetPipelineBuildLogsCount(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string) (count int, err error)
 	GetPipelineBuildMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName string, lastNRecords int) (jobresources JobResources, count int, err error)
@@ -94,16 +96,16 @@ type Client interface {
 	GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error)
 	GetPipelineRelease(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string) (release *contracts.Release, err error)
 	GetPipelineLastReleasesByName(ctx context.Context, repoSource, repoOwner, repoName, releaseName string, actions []string) (releases []contracts.Release, err error)
-	GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error)
-	GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, id string, readLogFromDatabase bool) (releaselog *contracts.ReleaseLog, err error)
+	GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string) (releaselog *contracts.ReleaseLog, err error)
+	GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, id string) (releaselog *contracts.ReleaseLog, err error)
 	GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, pageNumber int, pageSize int) (releaselogs []*contracts.ReleaseLog, err error)
 	GetPipelineReleaseLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string) (count int, err error)
 	GetPipelineReleaseMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobresources JobResources, count int, err error)
 	GetPipelineBots(ctx context.Context, repoSource, repoOwner, repoName string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (bots []*contracts.Bot, err error)
 	GetPipelineBotsCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (count int, err error)
 	GetPipelineBot(ctx context.Context, repoSource, repoOwner, repoName string, botID string) (bot *contracts.Bot, err error)
-	GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID string, readLogFromDatabase bool) (releaselog *contracts.BotLog, err error)
-	GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID string, id string, readLogFromDatabase bool) (releaselog *contracts.BotLog, err error)
+	GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID string) (releaselog *contracts.BotLog, err error)
+	GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID string, id string) (releaselog *contracts.BotLog, err error)
 	GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repoOwner, repoName string, botID string, pageNumber int, pageSize int) (releaselogs []*contracts.BotLog, err error)
 	GetPipelineBotLogsCount(ctx context.Context, repoSource, repoOwner, repoName string, botID string) (count int, err error)
 	GetPipelineBotMaxResourceUtilization(ctx context.Context, repoSource, repoOwner, repoName, targetName string, lastNRecords int) (jobresources JobResources, count int, err error)
@@ -162,7 +164,7 @@ type Client interface {
 	GetGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) (pipelines []*contracts.Pipeline, err error)
 	GetPipelineTriggers(ctx context.Context, build contracts.Build, event string) (pipelines []*contracts.Pipeline, err error)
 	GetReleaseTriggers(ctx context.Context, release contracts.Release, event string) (pipelines []*contracts.Pipeline, err error)
-	GetPubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) (pipelines []*contracts.Pipeline, err error)
+	GetPubSubTriggers(ctx context.Context) (pipelines []*contracts.Pipeline, err error)
 	GetCronTriggers(ctx context.Context) (pipelines []*contracts.Pipeline, err error)
 	GetGithubTriggers(ctx context.Context, githubEvent manifest.EstafetteGithubEvent) (pipelines []*contracts.Pipeline, err error)
 	GetBitbucketTriggers(ctx context.Context, bitbucketEvent manifest.EstafetteBitbucketEvent) (pipelines []*contracts.Pipeline, err error)
@@ -263,26 +265,26 @@ func (c *client) Connect(ctx context.Context) (err error) {
 }
 
 // ConnectWithDriverAndSource set up a connection with any database
-func (c *client) ConnectWithDriverAndSource(ctx context.Context, driverName, dataSourceName string) (err error) {
+func (c *client) ConnectWithDriverAndSource(_ context.Context, driverName, dataSourceName string) (err error) {
 
-	log.Info().Msgf("Opening database connection with driver %v...", driverName)
+	log.Debug().Msgf("Opening database connection with driver %v...", driverName)
 	c.databaseConnection, err = sql.Open(driverName, dataSourceName)
 	if err != nil {
 		return
 	}
 
 	if c.config.Database.MaxOpenConns > 0 {
-		log.Info().Msgf("Setting max open connections to database to %v...", c.config.Database.MaxOpenConns)
+		log.Debug().Msgf("Setting max open connections to database to %v...", c.config.Database.MaxOpenConns)
 		c.databaseConnection.SetMaxOpenConns(c.config.Database.MaxOpenConns)
 	}
 
 	if c.config.Database.MaxIdleConns > 0 {
-		log.Info().Msgf("Setting max idle connections to database to %v...", c.config.Database.MaxIdleConns)
+		log.Debug().Msgf("Setting max idle connections to database to %v...", c.config.Database.MaxIdleConns)
 		c.databaseConnection.SetMaxIdleConns(c.config.Database.MaxIdleConns)
 	}
 
 	if c.config.Database.ConnMaxLifetimeMinutes > 0 {
-		log.Info().Msgf("Setting max lifetime for connections to database to %v minutes...", c.config.Database.ConnMaxLifetimeMinutes)
+		log.Debug().Msgf("Setting max lifetime for connections to database to %v minutes...", c.config.Database.ConnMaxLifetimeMinutes)
 		c.databaseConnection.SetConnMaxLifetime(time.Duration(c.config.Database.ConnMaxLifetimeMinutes) * time.Minute)
 	}
 
@@ -291,8 +293,8 @@ func (c *client) ConnectWithDriverAndSource(ctx context.Context, driverName, dat
 
 func (c *client) AwaitDatabaseReadiness(ctx context.Context) (err error) {
 	return foundation.Retry(func() error {
-		log.Info().Msg("Checking if database is ready...")
-		return c.databaseConnection.Ping()
+		log.Debug().Msg("Checking if database is ready...")
+		return c.databaseConnection.PingContext(ctx)
 	}, foundation.Attempts(12), foundation.DelayMillisecond(5000), foundation.Fixed())
 }
 
@@ -321,7 +323,7 @@ func (c *client) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwne
 		)
 		DO UPDATE SET
 			auto_increment = build_versions.auto_increment + 1,
-			updated_at = now()
+			updated_at = NOW()
 		`,
 		shortRepoSource,
 		repoFullName,
@@ -348,7 +350,7 @@ func (c *client) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwne
 		return
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 		if err = rows.Scan(&autoincrement); err != nil {
 			return
@@ -491,7 +493,7 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 		return fmt.Errorf("UpdateBuildStatus argument buildID is empty")
 	}
 
-	allowedBuildStatusesToTransitionFrom := []contracts.Status{}
+	var allowedBuildStatusesToTransitionFrom []contracts.Status
 	switch buildStatus {
 	case contracts.StatusRunning:
 		allowedBuildStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending}
@@ -504,7 +506,7 @@ func (c *client) UpdateBuildStatus(ctx context.Context, repoSource, repoOwner, r
 	}
 
 	// turn into string array so query works as expected
-	allowedBuildStatusesToTransitionFromAsStrings := []string{}
+	allowedBuildStatusesToTransitionFromAsStrings := make([]string, 0)
 	for _, as := range allowedBuildStatusesToTransitionFrom {
 		allowedBuildStatusesToTransitionFromAsStrings = append(allowedBuildStatusesToTransitionFromAsStrings, string(as))
 	}
@@ -656,7 +658,7 @@ func (c *client) InsertRelease(ctx context.Context, release contracts.Release, j
 		return insertedRelease, err
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	recordExists := rows.Next()
 
 	if !recordExists {
@@ -696,7 +698,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 		return fmt.Errorf("UpdateReleaseStatus argument releaseID is empty")
 	}
 
-	allowedReleaseStatusesToTransitionFrom := []contracts.Status{}
+	var allowedReleaseStatusesToTransitionFrom []contracts.Status
 	switch releaseStatus {
 	case contracts.StatusRunning:
 		allowedReleaseStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending}
@@ -709,7 +711,7 @@ func (c *client) UpdateReleaseStatus(ctx context.Context, repoSource, repoOwner,
 	}
 
 	// turn into string array so query works as expected
-	allowedReleaseStatusesToTransitionFromAsStrings := []string{}
+	allowedReleaseStatusesToTransitionFromAsStrings := make([]string, 0)
 	for _, as := range allowedReleaseStatusesToTransitionFrom {
 		allowedReleaseStatusesToTransitionFromAsStrings = append(allowedReleaseStatusesToTransitionFromAsStrings, string(as))
 	}
@@ -864,7 +866,7 @@ func (c *client) InsertBot(ctx context.Context, bot contracts.Bot, jobResources 
 		return insertedBot, err
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	recordExists := rows.Next()
 
 	if !recordExists {
@@ -884,7 +886,7 @@ func (c *client) UpdateBotStatus(ctx context.Context, repoSource, repoOwner, rep
 		return fmt.Errorf("UpdateBotStatus argument botID is empty")
 	}
 
-	allowedBotStatusesToTransitionFrom := []contracts.Status{}
+	var allowedBotStatusesToTransitionFrom []contracts.Status
 	switch botStatus {
 	case contracts.StatusRunning:
 		allowedBotStatusesToTransitionFrom = []contracts.Status{contracts.StatusPending}
@@ -897,7 +899,7 @@ func (c *client) UpdateBotStatus(ctx context.Context, repoSource, repoOwner, rep
 	}
 
 	// turn into string array so query works as expected
-	allowedBotStatusesToTransitionFromAsStrings := []string{}
+	allowedBotStatusesToTransitionFromAsStrings := make([]string, 0)
 	for _, as := range allowedBotStatusesToTransitionFrom {
 		allowedBotStatusesToTransitionFromAsStrings = append(allowedBotStatusesToTransitionFromAsStrings, string(as))
 	}
@@ -950,26 +952,12 @@ func (c *client) UpdateBotResourceUtilization(ctx context.Context, repoSource, r
 	return
 }
 
-func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog, writeLogToDatabase bool) (insertedBuildLog contracts.BuildLog, err error) {
+func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (insertedBuildLog contracts.BuildLog, err error) {
 	if buildLog.BuildID == "" {
 		return insertedBuildLog, fmt.Errorf("InsertBuildLog argument buildLog.BuildID is empty")
 	}
 
 	insertedBuildLog = buildLog
-
-	var bytes []byte
-	if writeLogToDatabase {
-		bytes, err = json.Marshal(buildLog.Steps)
-		if err != nil {
-			return
-		}
-	} else {
-		var steps []*contracts.BuildLogStep
-		bytes, err = json.Marshal(steps)
-		if err != nil {
-			return
-		}
-	}
 
 	// insert logs
 	row := c.databaseConnection.QueryRowContext(ctx,
@@ -982,8 +970,7 @@ func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog
 			repo_name,
 			repo_branch,
 			repo_revision,
-			build_id,
-			steps
+			build_id
 		)
 		VALUES
 		(
@@ -992,8 +979,7 @@ func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog
 			$3,
 			$4,
 			$5,
-			$6,
-			$7
+			$6
 		)
 		RETURNING
 			id
@@ -1004,7 +990,6 @@ func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog
 		buildLog.RepoBranch,
 		buildLog.RepoRevision,
 		buildLog.BuildID,
-		bytes,
 	)
 
 	if err = row.Scan(&insertedBuildLog.ID); err != nil {
@@ -1013,7 +998,7 @@ func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog
 		for _, s := range buildLog.Steps {
 			nrLines += len(s.LogLines)
 		}
-		log.Error().Msgf("INSERT INTO build_logs: failed for %v/%v/%v/%v (%v steps, %v lines, %v bytes)", buildLog.RepoSource, buildLog.RepoOwner, buildLog.RepoName, buildLog.RepoRevision, len(buildLog.Steps), nrLines, len(bytes))
+		log.Error().Msgf("INSERT INTO build_logs: failed for %v/%v/%v/%v", buildLog.RepoSource, buildLog.RepoOwner, buildLog.RepoName, buildLog.RepoRevision)
 
 		return
 	}
@@ -1021,26 +1006,12 @@ func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog
 	return
 }
 
-func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog, writeLogToDatabase bool) (insertedReleaseLog contracts.ReleaseLog, err error) {
+func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.ReleaseLog) (insertedReleaseLog contracts.ReleaseLog, err error) {
 	if releaseLog.ReleaseID == "" {
 		return insertedReleaseLog, fmt.Errorf("InsertReleaseLog argument releaseLog.ReleaseID is empty")
 	}
 
 	insertedReleaseLog = releaseLog
-
-	var bytes []byte
-	if writeLogToDatabase {
-		bytes, err = json.Marshal(releaseLog.Steps)
-		if err != nil {
-			return
-		}
-	} else {
-		var steps []*contracts.BuildLogStep
-		bytes, err = json.Marshal(steps)
-		if err != nil {
-			return
-		}
-	}
 
 	// insert logs
 	row := c.databaseConnection.QueryRowContext(ctx,
@@ -1051,16 +1022,14 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 			repo_source,
 			repo_owner,
 			repo_name,
-			release_id,
-			steps
+			release_id
 		)
 		VALUES
 		(
 			$1,
 			$2,
 			$3,
-			$4,
-			$5
+			$4
 		)
 		RETURNING
 			id		
@@ -1069,7 +1038,6 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 		releaseLog.RepoOwner,
 		releaseLog.RepoName,
 		releaseLog.ReleaseID,
-		bytes,
 	)
 
 	if err = row.Scan(&insertedReleaseLog.ID); err != nil {
@@ -1078,7 +1046,7 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 		for _, s := range releaseLog.Steps {
 			nrLines += len(s.LogLines)
 		}
-		log.Error().Msgf("INSERT INTO build_logs: failed for %v/%v/%v/%v (%v steps, %v lines, %v bytes)", releaseLog.RepoSource, releaseLog.RepoOwner, releaseLog.RepoName, releaseLog.ReleaseID, len(releaseLog.Steps), nrLines, len(bytes))
+		log.Error().Msgf("INSERT INTO build_logs: failed for %v/%v/%v/%v", releaseLog.RepoSource, releaseLog.RepoOwner, releaseLog.RepoName, releaseLog.ReleaseID)
 
 		return
 	}
@@ -1086,26 +1054,12 @@ func (c *client) InsertReleaseLog(ctx context.Context, releaseLog contracts.Rele
 	return
 }
 
-func (c *client) InsertBotLog(ctx context.Context, botLog contracts.BotLog, writeLogToDatabase bool) (insertedBotLog contracts.BotLog, err error) {
+func (c *client) InsertBotLog(ctx context.Context, botLog contracts.BotLog) (insertedBotLog contracts.BotLog, err error) {
 	if botLog.BotID == "" {
 		return insertedBotLog, fmt.Errorf("InsertBotLog argument botLog.BotID is empty")
 	}
 
 	insertedBotLog = botLog
-
-	var bytes []byte
-	if writeLogToDatabase {
-		bytes, err = json.Marshal(botLog.Steps)
-		if err != nil {
-			return
-		}
-	} else {
-		var steps []*contracts.BuildLogStep
-		bytes, err = json.Marshal(steps)
-		if err != nil {
-			return
-		}
-	}
 
 	// insert logs
 	row := c.databaseConnection.QueryRowContext(ctx,
@@ -1116,16 +1070,14 @@ func (c *client) InsertBotLog(ctx context.Context, botLog contracts.BotLog, writ
 			repo_source,
 			repo_owner,
 			repo_name,
-			bot_id,
-			steps
+			bot_id
 		)
 		VALUES
 		(
 			$1,
 			$2,
 			$3,
-			$4,
-			$5
+			$4
 		)
 		RETURNING
 			id		
@@ -1134,7 +1086,6 @@ func (c *client) InsertBotLog(ctx context.Context, botLog contracts.BotLog, writ
 		botLog.RepoOwner,
 		botLog.RepoName,
 		botLog.BotID,
-		bytes,
 	)
 
 	if err = row.Scan(&insertedBotLog.ID); err != nil {
@@ -1143,7 +1094,7 @@ func (c *client) InsertBotLog(ctx context.Context, botLog contracts.BotLog, writ
 		for _, s := range insertedBotLog.Steps {
 			nrLines += len(s.LogLines)
 		}
-		log.Error().Msgf("INSERT INTO build_logs: failed for %v/%v/%v/%v (%v steps, %v lines, %v bytes)", botLog.RepoSource, botLog.RepoOwner, botLog.RepoName, botLog.BotID, len(botLog.Steps), nrLines, len(bytes))
+		log.Error().Msgf("INSERT INTO build_logs: failed for %v/%v/%v/%v", botLog.RepoSource, botLog.RepoOwner, botLog.RepoName, botLog.BotID)
 
 		return
 	}
@@ -1193,6 +1144,13 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 	}
 
 	upsertedPipeline := c.mapBuildToPipeline(lastBuilds[0])
+	// !! Migration changes !!
+	if ctx.Value(isMigration) != nil {
+		// change trigger for the migrating pipeline
+		for i := 0; i < len(upsertedPipeline.Triggers); i++ {
+			upsertedPipeline.Triggers[i].Pipeline.Name = fmt.Sprintf("%v/%v/%v", repoSource, repoOwner, repoName)
+		}
+	}
 
 	// extract recent committers from last builds
 	for _, b := range lastBuilds {
@@ -1209,8 +1167,8 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 	upsertedPipeline.ExtraInfo = &contracts.PipelineExtraInfo{}
 
 	// get median (pending) build time from last builds
-	buildDurations := []time.Duration{}
-	buildPendingDurations := []time.Duration{}
+	var buildDurations []time.Duration
+	var buildPendingDurations []time.Duration
 	for _, b := range lastBuilds {
 		if b.BuildStatus != contracts.StatusSucceeded {
 			continue
@@ -1554,11 +1512,20 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 	}
 
 	lastRelease := lastReleases[0]
+	// !! Migration changes !!
+	if ctx.Value(isMigration) != nil {
+		// change trigger for the migrating pipeline
+		for i := 0; i < len(lastRelease.Events); i++ {
+			lastRelease.Events[i].Pipeline.RepoSource = repoSource
+			lastRelease.Events[i].Pipeline.RepoOwner = repoOwner
+			lastRelease.Events[i].Pipeline.RepoName = repoName
+		}
+	}
 
 	lastRelease.ExtraInfo = &contracts.ReleaseExtraInfo{}
 	// get median (pending) build time from last builds
-	releaseDurations := []time.Duration{}
-	releasePendingDurations := []time.Duration{}
+	var releaseDurations []time.Duration
+	var releasePendingDurations []time.Duration
 	for _, r := range lastReleases {
 		if r.ReleaseStatus != contracts.StatusSucceeded {
 			continue
@@ -2156,13 +2123,13 @@ func (c *client) GetPipelineBuildsByVersion(ctx context.Context, repoSource, rep
 	return
 }
 
-func (c *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string, readLogFromDatabase bool) (buildLog *contracts.BuildLog, err error) {
+func (c *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID string) (buildLog *contracts.BuildLog, err error) {
 	if buildID == "" {
 		return nil, fmt.Errorf("GetPipelineBuildLogs argument buildID is empty")
 	}
 
 	// generate query
-	query := c.selectBuildLogsQuery(readLogFromDatabase).
+	query := c.selectBuildLogsQuery().
 		Where(sq.Eq{"a.build_id": buildID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -2177,50 +2144,25 @@ func (c *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRowContext(ctx)
-	if readLogFromDatabase {
-
-		var stepsData []uint8
-		if err = row.Scan(&buildLog.ID,
-			&buildLog.RepoSource,
-			&buildLog.RepoOwner,
-			&buildLog.RepoName,
-			&buildLog.RepoBranch,
-			&buildLog.RepoRevision,
-			&rowBuildID,
-			&stepsData,
-			&buildLog.InsertedAt); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
-
-			return
+	if err = row.Scan(&buildLog.ID,
+		&buildLog.RepoSource,
+		&buildLog.RepoOwner,
+		&buildLog.RepoName,
+		&buildLog.RepoBranch,
+		&buildLog.RepoRevision,
+		&rowBuildID,
+		&buildLog.InsertedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
 		}
 
-		if err = json.Unmarshal(stepsData, &buildLog.Steps); err != nil {
-			return
-		}
-
-	} else {
-		if err = row.Scan(&buildLog.ID,
-			&buildLog.RepoSource,
-			&buildLog.RepoOwner,
-			&buildLog.RepoName,
-			&buildLog.RepoBranch,
-			&buildLog.RepoRevision,
-			&rowBuildID,
-			&buildLog.InsertedAt); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
-
-			return
-		}
+		return
 	}
 
 	if rowBuildID.Valid {
 		buildLog.BuildID = strconv.FormatInt(rowBuildID.Int64, 10)
 
-		// if theses logs have been stored with build_id it could be a rebuild version with multiple logs, so match the supplied build id
+		// if these logs have been stored with build_id it could be a rebuild version with multiple logs, so match the supplied build id
 		if buildLog.BuildID == buildID {
 			return
 		}
@@ -2232,7 +2174,7 @@ func (c *client) GetPipelineBuildLogs(ctx context.Context, repoSource, repoOwner
 	return
 }
 
-func (c *client) GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoOwner, repoName, repoBranch, repoRevision, buildID, id string, readLogFromDatabase bool) (buildLog *contracts.BuildLog, err error) {
+func (c *client) GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoOwner, repoName, buildID, id string) (buildLog *contracts.BuildLog, err error) {
 	if buildID == "" {
 		return nil, fmt.Errorf("GetPipelineBuildLogsByID argument buildID is empty")
 	}
@@ -2241,7 +2183,7 @@ func (c *client) GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoO
 	}
 
 	// generate query
-	query := c.selectBuildLogsQuery(readLogFromDatabase).
+	query := c.selectBuildLogsQuery().
 		Where(sq.Eq{"a.id": id}).
 		Where(sq.Eq{"a.build_id": buildID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
@@ -2254,50 +2196,25 @@ func (c *client) GetPipelineBuildLogsByID(ctx context.Context, repoSource, repoO
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRowContext(ctx)
-	if readLogFromDatabase {
-
-		var stepsData []uint8
-		if err = row.Scan(&buildLog.ID,
-			&buildLog.RepoSource,
-			&buildLog.RepoOwner,
-			&buildLog.RepoName,
-			&buildLog.RepoBranch,
-			&buildLog.RepoRevision,
-			&rowBuildID,
-			&stepsData,
-			&buildLog.InsertedAt); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
-
-			return
+	if err = row.Scan(&buildLog.ID,
+		&buildLog.RepoSource,
+		&buildLog.RepoOwner,
+		&buildLog.RepoName,
+		&buildLog.RepoBranch,
+		&buildLog.RepoRevision,
+		&rowBuildID,
+		&buildLog.InsertedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
 		}
 
-		if err = json.Unmarshal(stepsData, &buildLog.Steps); err != nil {
-			return
-		}
-
-	} else {
-		if err = row.Scan(&buildLog.ID,
-			&buildLog.RepoSource,
-			&buildLog.RepoOwner,
-			&buildLog.RepoName,
-			&buildLog.RepoBranch,
-			&buildLog.RepoRevision,
-			&rowBuildID,
-			&buildLog.InsertedAt); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
-
-			return
-		}
+		return
 	}
 
 	if rowBuildID.Valid {
 		buildLog.BuildID = strconv.FormatInt(rowBuildID.Int64, 10)
 
-		// if theses logs have been stored with build_id it could be a rebuild version with multiple logs, so match the supplied build id
+		// if these logs have been stored with build_id it could be a rebuild version with multiple logs, so match the supplied build id
 		if buildLog.BuildID == buildID {
 			return
 		}
@@ -2317,7 +2234,7 @@ func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, re
 	buildLogs = make([]*contracts.BuildLog, 0)
 
 	// generate query
-	query := c.selectBuildLogsQuery(false).
+	query := c.selectBuildLogsQuery().
 		Where(sq.Eq{"a.build_id": buildID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -2333,7 +2250,7 @@ func (c *client) GetPipelineBuildLogsPerPage(ctx context.Context, repoSource, re
 		return buildLogs, err
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		buildLog := &contracts.BuildLog{}
@@ -2425,7 +2342,7 @@ func (c *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner,
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
-		// dynamically set order by clause
+	// dynamically set order by clause
 	query, err = orderByClauseGeneratorForSortings(query, "a.inserted_at DESC", sortings)
 	if err != nil {
 		return
@@ -2541,13 +2458,13 @@ func (c *client) GetPipelineLastReleasesByName(ctx context.Context, repoSource, 
 	return
 }
 
-func (c *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, readLogFromDatabase bool) (releaseLog *contracts.ReleaseLog, err error) {
+func (c *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string) (releaseLog *contracts.ReleaseLog, err error) {
 	if releaseID == "" {
 		return nil, fmt.Errorf("GetPipelineReleaseLogs argument releaseID is empty")
 	}
 
 	// generate query
-	query := c.selectReleaseLogsQuery(readLogFromDatabase).
+	query := c.selectReleaseLogsQuery().
 		Where(sq.Eq{"a.release_id": releaseID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -2559,38 +2476,17 @@ func (c *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwn
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRowContext(ctx)
-	if readLogFromDatabase {
-		var stepsData []uint8
-		if err = row.Scan(&releaseLog.ID,
-			&releaseLog.RepoSource,
-			&releaseLog.RepoOwner,
-			&releaseLog.RepoName,
-			&releaseID,
-			&stepsData,
-			&releaseLog.InsertedAt); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
-
-			return
+	if err = row.Scan(&releaseLog.ID,
+		&releaseLog.RepoSource,
+		&releaseLog.RepoOwner,
+		&releaseLog.RepoName,
+		&releaseID,
+		&releaseLog.InsertedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
 		}
 
-		if err = json.Unmarshal(stepsData, &releaseLog.Steps); err != nil {
-			return
-		}
-	} else {
-		if err = row.Scan(&releaseLog.ID,
-			&releaseLog.RepoSource,
-			&releaseLog.RepoOwner,
-			&releaseLog.RepoName,
-			&releaseID,
-			&releaseLog.InsertedAt); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
-
-			return
-		}
+		return
 	}
 
 	releaseLog.ReleaseID = releaseID
@@ -2598,7 +2494,7 @@ func (c *client) GetPipelineReleaseLogs(ctx context.Context, repoSource, repoOwn
 	return
 }
 
-func (c *client) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, id string, readLogFromDatabase bool) (releaseLog *contracts.ReleaseLog, err error) {
+func (c *client) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, releaseID string, id string) (releaseLog *contracts.ReleaseLog, err error) {
 	if releaseID == "" {
 		return nil, fmt.Errorf("GetPipelineReleaseLogsByID argument releaseID is empty")
 	}
@@ -2607,7 +2503,7 @@ func (c *client) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, rep
 	}
 
 	// generate query
-	query := c.selectReleaseLogsQuery(readLogFromDatabase).
+	query := c.selectReleaseLogsQuery().
 		Where(sq.Eq{"a.id": id}).
 		Where(sq.Eq{"a.release_id": releaseID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
@@ -2619,38 +2515,17 @@ func (c *client) GetPipelineReleaseLogsByID(ctx context.Context, repoSource, rep
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRowContext(ctx)
-	if readLogFromDatabase {
-		var stepsData []uint8
-		if err = row.Scan(&releaseLog.ID,
-			&releaseLog.RepoSource,
-			&releaseLog.RepoOwner,
-			&releaseLog.RepoName,
-			&releaseID,
-			&stepsData,
-			&releaseLog.InsertedAt); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
-
-			return
+	if err = row.Scan(&releaseLog.ID,
+		&releaseLog.RepoSource,
+		&releaseLog.RepoOwner,
+		&releaseLog.RepoName,
+		&releaseID,
+		&releaseLog.InsertedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
 		}
 
-		if err = json.Unmarshal(stepsData, &releaseLog.Steps); err != nil {
-			return
-		}
-	} else {
-		if err = row.Scan(&releaseLog.ID,
-			&releaseLog.RepoSource,
-			&releaseLog.RepoOwner,
-			&releaseLog.RepoName,
-			&releaseID,
-			&releaseLog.InsertedAt); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
-
-			return
-		}
+		return
 	}
 
 	releaseLog.ReleaseID = releaseID
@@ -2666,7 +2541,7 @@ func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, 
 	releaseLogs = make([]*contracts.ReleaseLog, 0)
 
 	// generate query
-	query := c.selectReleaseLogsQuery(false).
+	query := c.selectReleaseLogsQuery().
 		Where(sq.Eq{"a.release_id": releaseID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -2680,7 +2555,7 @@ func (c *client) GetPipelineReleaseLogsPerPage(ctx context.Context, repoSource, 
 		return releaseLogs, err
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		releaseLog := &contracts.ReleaseLog{}
@@ -2848,13 +2723,13 @@ func (c *client) GetPipelineBot(ctx context.Context, repoSource, repoOwner, repo
 	return bot, nil
 }
 
-func (c *client) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID string, readLogFromDatabase bool) (botLog *contracts.BotLog, err error) {
+func (c *client) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, repoName string, botID string) (botLog *contracts.BotLog, err error) {
 	if botID == "" {
 		return nil, fmt.Errorf("GetPipelineBotLogs argument botID is empty")
 	}
 
 	// generate query
-	query := c.selectBotLogsQuery(readLogFromDatabase).
+	query := c.selectBotLogsQuery().
 		Where(sq.Eq{"a.bot_id": botID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -2866,38 +2741,17 @@ func (c *client) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, 
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRowContext(ctx)
-	if readLogFromDatabase {
-		var stepsData []uint8
-		if err = row.Scan(&botLog.ID,
-			&botLog.RepoSource,
-			&botLog.RepoOwner,
-			&botLog.RepoName,
-			&botID,
-			&stepsData,
-			&botLog.InsertedAt); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
-
-			return
+	if err = row.Scan(&botLog.ID,
+		&botLog.RepoSource,
+		&botLog.RepoOwner,
+		&botLog.RepoName,
+		&botID,
+		&botLog.InsertedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
 		}
 
-		if err = json.Unmarshal(stepsData, &botLog.Steps); err != nil {
-			return
-		}
-	} else {
-		if err = row.Scan(&botLog.ID,
-			&botLog.RepoSource,
-			&botLog.RepoOwner,
-			&botLog.RepoName,
-			&botID,
-			&botLog.InsertedAt); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
-
-			return
-		}
+		return
 	}
 
 	botLog.BotID = botID
@@ -2905,7 +2759,7 @@ func (c *client) GetPipelineBotLogs(ctx context.Context, repoSource, repoOwner, 
 	return
 }
 
-func (c *client) GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID string, id string, readLogFromDatabase bool) (botLog *contracts.BotLog, err error) {
+func (c *client) GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwner, repoName string, botID string, id string) (botLog *contracts.BotLog, err error) {
 	if botID == "" {
 		return nil, fmt.Errorf("GetPipelineBotLogsByID argument botID is empty")
 	}
@@ -2914,7 +2768,7 @@ func (c *client) GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwn
 	}
 
 	// generate query
-	query := c.selectBotLogsQuery(readLogFromDatabase).
+	query := c.selectBotLogsQuery().
 		Where(sq.Eq{"a.id": id}).
 		Where(sq.Eq{"a.bot_id": botID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
@@ -2926,39 +2780,17 @@ func (c *client) GetPipelineBotLogsByID(ctx context.Context, repoSource, repoOwn
 
 	// execute query
 	row := query.RunWith(c.databaseConnection).QueryRowContext(ctx)
-	if readLogFromDatabase {
-		var stepsData []uint8
-		if err = row.Scan(&botLog.ID,
-			&botLog.RepoSource,
-			&botLog.RepoOwner,
-			&botLog.RepoName,
-			&botID,
-			&stepsData,
-			&botLog.InsertedAt); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
-
-			return
+	if err = row.Scan(&botLog.ID,
+		&botLog.RepoSource,
+		&botLog.RepoOwner,
+		&botLog.RepoName,
+		&botID,
+		&botLog.InsertedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
 		}
 
-		if err = json.Unmarshal(stepsData, &botLog.Steps); err != nil {
-
-			return
-		}
-	} else {
-		if err = row.Scan(&botLog.ID,
-			&botLog.RepoSource,
-			&botLog.RepoOwner,
-			&botLog.RepoName,
-			&botID,
-			&botLog.InsertedAt); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
-
-			return
-		}
+		return
 	}
 
 	botLog.BotID = botID
@@ -2974,7 +2806,7 @@ func (c *client) GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repo
 	botLogs = make([]*contracts.BotLog, 0)
 
 	// generate query
-	query := c.selectBotLogsQuery(false).
+	query := c.selectBotLogsQuery().
 		Where(sq.Eq{"a.bot_id": botID}).
 		Where(sq.Eq{"a.repo_source": repoSource}).
 		Where(sq.Eq{"a.repo_owner": repoOwner}).
@@ -2988,7 +2820,7 @@ func (c *client) GetPipelineBotLogsPerPage(ctx context.Context, repoSource, repo
 		return botLogs, err
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		botLog := &contracts.BotLog{}
@@ -3180,7 +3012,7 @@ func (c *client) GetFirstBuildTimes(ctx context.Context) (buildTimes []time.Time
 		return
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		insertedAt := time.Time{}
@@ -3212,7 +3044,7 @@ func (c *client) GetFirstReleaseTimes(ctx context.Context) (releaseTimes []time.
 		return
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		insertedAt := time.Time{}
@@ -3244,7 +3076,7 @@ func (c *client) GetFirstBotTimes(ctx context.Context) (botTimes []time.Time, er
 		return
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		insertedAt := time.Time{}
@@ -3294,7 +3126,7 @@ func (c *client) GetPipelineBuildsDurations(ctx context.Context, repoSource, rep
 		return
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		var insertedAt time.Time
@@ -3356,7 +3188,7 @@ func (c *client) GetPipelineReleasesDurations(ctx context.Context, repoSource, r
 		return
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		var insertedAt time.Time
@@ -3422,7 +3254,7 @@ func (c *client) GetPipelineBotsDurations(ctx context.Context, repoSource, repoO
 		return
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		var insertedAt time.Time
@@ -3487,7 +3319,7 @@ func (c *client) GetPipelineBuildsCPUUsageMeasurements(ctx context.Context, repo
 		return
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		var insertedAt time.Time
@@ -3543,7 +3375,7 @@ func (c *client) GetPipelineReleasesCPUUsageMeasurements(ctx context.Context, re
 		return
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		var insertedAt time.Time
@@ -3601,7 +3433,7 @@ func (c *client) GetPipelineBotsCPUUsageMeasurements(ctx context.Context, repoSo
 		return
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		var insertedAt time.Time
@@ -3658,7 +3490,7 @@ func (c *client) GetPipelineBuildsMemoryUsageMeasurements(ctx context.Context, r
 		return
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		var insertedAt time.Time
@@ -3713,7 +3545,7 @@ func (c *client) GetPipelineReleasesMemoryUsageMeasurements(ctx context.Context,
 		return
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		var insertedAt time.Time
@@ -3771,7 +3603,7 @@ func (c *client) GetPipelineBotsMemoryUsageMeasurements(ctx context.Context, rep
 		return
 	}
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		var insertedAt time.Time
@@ -3855,7 +3687,7 @@ func (c *client) GetAllPipelineReleases(ctx context.Context, pageNumber, pageSiz
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
-		// dynamically set order by clause
+	// dynamically set order by clause
 	query, err = orderByClauseGeneratorForSortings(query, "a.inserted_at DESC", sortings)
 	if err != nil {
 		return
@@ -4138,9 +3970,9 @@ func (c *client) GetLabelValues(ctx context.Context, labelKey string) (labels []
 	if err != nil {
 		return
 	}
-	defer rows.Close()
+	defer _CloseRows(rows)
 
-	return c.scanItems(ctx, rows)
+	return c.scanItems(rows)
 }
 
 func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string) (labels []map[string]interface{}, err error) {
@@ -4208,9 +4040,9 @@ func (c *client) GetFrequentLabels(ctx context.Context, pageNumber, pageSize int
 	if err != nil {
 		return
 	}
-	defer rows.Close()
+	defer _CloseRows(rows)
 
-	return c.scanItems(ctx, rows)
+	return c.scanItems(rows)
 }
 
 func (c *client) GetFrequentLabelsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
@@ -4341,9 +4173,9 @@ func (c *client) GetReleaseTargets(ctx context.Context, pageNumber, pageSize int
 	if err != nil {
 		return
 	}
-	defer rows.Close()
+	defer _CloseRows(rows)
 
-	return c.scanItems(ctx, rows)
+	return c.scanItems(rows)
 }
 
 func (c *client) GetReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
@@ -4455,9 +4287,9 @@ func (c *client) GetAllPipelinesReleaseTargets(ctx context.Context, pageNumber, 
 	if err != nil {
 		return
 	}
-	defer rows.Close()
+	defer _CloseRows(rows)
 
-	return c.scanItems(ctx, rows)
+	return c.scanItems(rows)
 }
 
 func (c *client) GetAllPipelinesReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
@@ -4537,9 +4369,9 @@ func (c *client) GetAllReleasesReleaseTargets(ctx context.Context, pageNumber, p
 	if err != nil {
 		return
 	}
-	defer rows.Close()
+	defer _CloseRows(rows)
 
-	return c.scanItems(ctx, rows)
+	return c.scanItems(rows)
 }
 
 func (c *client) GetAllReleasesReleaseTargetsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
@@ -4595,9 +4427,9 @@ func (c *client) GetPipelineBuildBranches(ctx context.Context, repoSource, repoO
 	if err != nil {
 		return
 	}
-	defer rows.Close()
+	defer _CloseRows(rows)
 
-	return c.scanItems(ctx, rows)
+	return c.scanItems(rows)
 }
 
 func (c *client) GetPipelineBuildBranchesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (totalCount int, err error) {
@@ -4652,9 +4484,9 @@ func (c *client) GetPipelineBotNames(ctx context.Context, repoSource, repoOwner,
 	if err != nil {
 		return
 	}
-	defer rows.Close()
+	defer _CloseRows(rows)
 
-	return c.scanItems(ctx, rows)
+	return c.scanItems(rows)
 }
 
 func (c *client) GetPipelineBotNamesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (totalCount int, err error) {
@@ -4705,9 +4537,9 @@ func (c *client) GetPipelinesWithMostBuilds(ctx context.Context, pageNumber, pag
 	if err != nil {
 		return
 	}
-	defer rows.Close()
+	defer _CloseRows(rows)
 
-	return c.scanItems(ctx, rows)
+	return c.scanItems(rows)
 }
 
 func (c *client) GetPipelinesWithMostBuildsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
@@ -4735,9 +4567,9 @@ func (c *client) GetPipelinesWithMostReleases(ctx context.Context, pageNumber, p
 	if err != nil {
 		return
 	}
-	defer rows.Close()
+	defer _CloseRows(rows)
 
-	return c.scanItems(ctx, rows)
+	return c.scanItems(rows)
 }
 
 func (c *client) GetPipelinesWithMostReleasesCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
@@ -4789,9 +4621,9 @@ func (c *client) GetPipelinesWithMostBots(ctx context.Context, pageNumber, pageS
 	if err != nil {
 		return
 	}
-	defer rows.Close()
+	defer _CloseRows(rows)
 
-	return c.scanItems(ctx, rows)
+	return c.scanItems(rows)
 }
 
 func (c *client) GetPipelinesWithMostBotsCount(ctx context.Context, filters map[api.FilterType][]string) (totalCount int, err error) {
@@ -5049,7 +4881,7 @@ func whereClauseGeneratorForSearchFilter(query sq.SelectBuilder, filters map[api
 func whereClauseGeneratorForReleaseTargetFilterOnPipelines(query sq.SelectBuilder, filters map[api.FilterType][]string) (sq.SelectBuilder, error) {
 
 	if targets, ok := filters[api.FilterReleaseTarget]; ok && len(targets) > 0 {
-		targetsParam := []contracts.ReleaseTarget{}
+		var targetsParam []contracts.ReleaseTarget
 
 		for _, target := range targets {
 			targetsParam = append(targetsParam, contracts.ReleaseTarget{
@@ -5074,7 +4906,7 @@ func whereClauseGeneratorForLabelsFilter(query sq.SelectBuilder, filters map[api
 
 	if labels, ok := filters[api.FilterLabels]; ok && len(labels) > 0 {
 
-		labelsParam := []contracts.Label{}
+		var labelsParam []contracts.Label
 
 		for _, label := range labels {
 			keyValuePair := strings.Split(label, "=")
@@ -5424,7 +5256,7 @@ func limitClauseGeneratorForLastFilter(query sq.SelectBuilder, filters map[api.F
 	return query, nil
 }
 
-func (c *client) scanItems(ctx context.Context, rows *sql.Rows) (items []map[string]interface{}, err error) {
+func (c *client) scanItems(rows *sql.Rows) (items []map[string]interface{}, err error) {
 
 	items = make([]map[string]interface{}, 0)
 
@@ -5520,7 +5352,7 @@ func (c *client) scanBuilds(rows *sql.Rows, optimized bool) (builds []*contracts
 
 	builds = make([]*contracts.Build, 0)
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		build := contracts.Build{}
@@ -5636,7 +5468,7 @@ func (c *client) scanPipelines(rows *sql.Rows, optimized bool) (pipelines []*con
 
 	pipelines = make([]*contracts.Pipeline, 0)
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		pipeline := contracts.Pipeline{}
@@ -5740,7 +5572,7 @@ func (c *client) scanReleases(rows *sql.Rows) (releases []*contracts.Release, er
 
 	releases = make([]*contracts.Release, 0)
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		release := contracts.Release{}
@@ -5830,7 +5662,7 @@ func (c *client) scanBots(rows *sql.Rows) (bots []*contracts.Bot, err error) {
 
 	bots = make([]*contracts.Bot, 0)
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		bot := contracts.Bot{}
@@ -5878,7 +5710,7 @@ func (c *client) scanNotifications(rows *sql.Rows) (notifications []*contracts.N
 
 	notifications = make([]*contracts.NotificationRecord, 0)
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		notification := contracts.NotificationRecord{}
@@ -5925,7 +5757,7 @@ func (c *client) scanPipelineReleases(rows *sql.Rows) (releases []*contracts.Rel
 
 	releases = make([]*contracts.Release, 0)
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		release := contracts.Release{}
@@ -6077,7 +5909,7 @@ func (c *client) GetReleaseTriggers(ctx context.Context, release contracts.Relea
 	return c.GetTriggers(ctx, triggerType, name, event)
 }
 
-func (c *client) GetPubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) ([]*contracts.Pipeline, error) {
+func (c *client) GetPubSubTriggers(ctx context.Context) ([]*contracts.Pipeline, error) {
 
 	triggerType := "pubsub"
 
@@ -6115,13 +5947,13 @@ func (c *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource
 	var wg sync.WaitGroup
 	wg.Add(nrOfQueries)
 
-	errors := make(chan error, nrOfQueries)
+	_errors := make(chan error, nrOfQueries)
 
 	go func(wg *sync.WaitGroup, ctx context.Context, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName string) {
 		defer wg.Done()
 		err := c.RenameBuildVersion(ctx, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName)
 		if err != nil {
-			errors <- err
+			_errors <- err
 		}
 	}(&wg, ctx, shortFromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoOwner, toRepoName)
 
@@ -6129,7 +5961,7 @@ func (c *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource
 		defer wg.Done()
 		err := c.RenameBuilds(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 		if err != nil {
-			errors <- err
+			_errors <- err
 		}
 	}(&wg, ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 
@@ -6137,7 +5969,7 @@ func (c *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource
 		defer wg.Done()
 		err := c.RenameBuildLogs(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 		if err != nil {
-			errors <- err
+			_errors <- err
 		}
 	}(&wg, ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 
@@ -6145,7 +5977,7 @@ func (c *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource
 		defer wg.Done()
 		err := c.RenameReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 		if err != nil {
-			errors <- err
+			_errors <- err
 		}
 	}(&wg, ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 
@@ -6153,7 +5985,7 @@ func (c *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource
 		defer wg.Done()
 		err := c.RenameReleaseLogs(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 		if err != nil {
-			errors <- err
+			_errors <- err
 		}
 	}(&wg, ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 
@@ -6161,7 +5993,7 @@ func (c *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource
 		defer wg.Done()
 		err := c.RenameComputedPipelines(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 		if err != nil {
-			errors <- err
+			_errors <- err
 		}
 	}(&wg, ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 
@@ -6169,17 +6001,17 @@ func (c *client) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource
 		defer wg.Done()
 		err := c.RenameComputedReleases(ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 		if err != nil {
-			errors <- err
+			_errors <- err
 		}
 	}(&wg, ctx, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 
 	wg.Wait()
 
-	close(errors)
-	for e := range errors {
+	close(_errors)
+	for e := range _errors {
 		log.Warn().Err(e).Msgf("Failed renaming pipeline from %v/%v/%v to %v/%v/%v", fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName)
 	}
-	for e := range errors {
+	for e := range _errors {
 		return e
 	}
 
@@ -6501,7 +6333,7 @@ func (c *client) GetUserByIdentity(ctx context.Context, identity contracts.UserI
 	return user, nil
 }
 
-func (c *client) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (users []*contracts.User, err error) {
+func (c *client) GetUsers(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, _ []api.OrderField) (users []*contracts.User, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -6552,7 +6384,7 @@ func (c *client) GetUsers(ctx context.Context, pageNumber, pageSize int, filters
 	return c.scanUsers(rows)
 }
 
-func (c *client) GetUsersCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+func (c *client) GetUsersCount(ctx context.Context, _ map[api.FilterType][]string) (count int, err error) {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -6728,7 +6560,7 @@ func (c *client) GetGroupByID(ctx context.Context, id string, filters map[api.Fi
 	return group, nil
 }
 
-func (c *client) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (groups []*contracts.Group, err error) {
+func (c *client) GetGroups(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, _ []api.OrderField) (groups []*contracts.Group, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -6752,7 +6584,7 @@ func (c *client) GetGroups(ctx context.Context, pageNumber, pageSize int, filter
 	return c.scanGroups(rows)
 }
 
-func (c *client) GetGroupsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+func (c *client) GetGroupsCount(ctx context.Context, _ map[api.FilterType][]string) (count int, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -6939,7 +6771,7 @@ func (c *client) GetOrganizationByName(ctx context.Context, name string) (organi
 	return organization, nil
 }
 
-func (c *client) GetOrganizations(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (organizations []*contracts.Organization, err error) {
+func (c *client) GetOrganizations(ctx context.Context, pageNumber, pageSize int, _ map[api.FilterType][]string, _ []api.OrderField) (organizations []*contracts.Organization, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -6958,7 +6790,7 @@ func (c *client) GetOrganizations(ctx context.Context, pageNumber, pageSize int,
 	return c.scanOrganizations(rows)
 }
 
-func (c *client) GetOrganizationsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+func (c *client) GetOrganizationsCount(ctx context.Context, _ map[api.FilterType][]string) (count int, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -7107,7 +6939,7 @@ func (c *client) GetClientByID(ctx context.Context, id string) (client *contract
 	return client, nil
 }
 
-func (c *client) GetClients(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (clients []*contracts.Client, err error) {
+func (c *client) GetClients(ctx context.Context, pageNumber, pageSize int, _ map[api.FilterType][]string, _ []api.OrderField) (clients []*contracts.Client, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -7126,7 +6958,7 @@ func (c *client) GetClients(ctx context.Context, pageNumber, pageSize int, filte
 	return c.scanClients(rows)
 }
 
-func (c *client) GetClientsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
+func (c *client) GetClientsCount(ctx context.Context, _ map[api.FilterType][]string) (count int, err error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.
@@ -7346,7 +7178,7 @@ func (c *client) GetCatalogEntityValuesCount(ctx context.Context, filters map[ap
 	return c.getCatalogEntityColumnCount(ctx, "entity_value", filters)
 }
 
-func (c *client) getCatalogEntityColumn(ctx context.Context, groupColumn, countColumn string, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) (keys []map[string]interface{}, err error) {
+func (c *client) getCatalogEntityColumn(ctx context.Context, groupColumn, countColumn string, pageNumber, pageSize int, filters map[api.FilterType][]string, _ []api.OrderField) (keys []map[string]interface{}, err error) {
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
@@ -7360,14 +7192,16 @@ func (c *client) getCatalogEntityColumn(ctx context.Context, groupColumn, countC
 			Offset(uint64((pageNumber - 1) * pageSize))
 
 	query, err = whereClauseGeneratorForCatalogEntityFilters(query, filters)
-
+	if err != nil {
+		return
+	}
 	rows, err := query.RunWith(c.databaseConnection).QueryContext(ctx)
 	if err != nil {
 		return
 	}
-	defer rows.Close()
+	defer _CloseRows(rows)
 
-	return c.scanItems(ctx, rows)
+	return c.scanItems(rows)
 }
 
 func (c *client) getCatalogEntityColumnCount(ctx context.Context, groupColumn string, filters map[api.FilterType][]string) (count int, err error) {
@@ -7432,9 +7266,9 @@ func (c *client) GetCatalogEntityLabels(ctx context.Context, pageNumber, pageSiz
 	if err != nil {
 		return
 	}
-	defer rows.Close()
+	defer _CloseRows(rows)
 
-	return c.scanItems(ctx, rows)
+	return c.scanItems(rows)
 }
 
 func (c *client) GetCatalogEntityLabelsCount(ctx context.Context, filters map[api.FilterType][]string) (count int, err error) {
@@ -7480,7 +7314,7 @@ func (c *client) GetCatalogEntityLabelsCount(ctx context.Context, filters map[ap
 func (c *client) scanUsers(rows *sql.Rows) (users []*contracts.User, err error) {
 	users = make([]*contracts.User, 0)
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		user := &contracts.User{}
@@ -7545,7 +7379,7 @@ func (c *client) scanUser(row sq.RowScanner) (user *contracts.User, err error) {
 func (c *client) scanGroups(rows *sql.Rows) (groups []*contracts.Group, err error) {
 	groups = make([]*contracts.Group, 0)
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		group := &contracts.Group{}
@@ -7608,7 +7442,7 @@ func (c *client) scanGroup(row sq.RowScanner) (group *contracts.Group, err error
 func (c *client) scanOrganizations(rows *sql.Rows) (organizations []*contracts.Organization, err error) {
 	organizations = make([]*contracts.Organization, 0)
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		organization := &contracts.Organization{}
@@ -7671,7 +7505,7 @@ func (c *client) scanOrganization(row sq.RowScanner) (organization *contracts.Or
 func (c *client) scanClients(rows *sql.Rows) (clients []*contracts.Client, err error) {
 	clients = make([]*contracts.Client, 0)
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		client := &contracts.Client{}
@@ -7734,7 +7568,7 @@ func (c *client) scanClient(row sq.RowScanner) (client *contracts.Client, err er
 func (c *client) scanCatalogEntities(rows *sql.Rows) (catalogEntities []*contracts.CatalogEntity, err error) {
 	catalogEntities = make([]*contracts.CatalogEntity, 0)
 
-	defer rows.Close()
+	defer _CloseRows(rows)
 	for rows.Next() {
 
 		catalogEntity := &contracts.CatalogEntity{}
@@ -7859,43 +7693,22 @@ func (c *client) selectComputedReleasesQuery() sq.SelectBuilder {
 		From("computed_releases a")
 }
 
-func (c *client) selectBuildLogsQuery(readLogFromDatabase bool) sq.SelectBuilder {
+func (c *client) selectBuildLogsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-
-	if readLogFromDatabase {
-		return psql.
-			Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_id, a.steps, a.inserted_at").
-			From("build_logs a")
-	}
-
 	return psql.
 		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.repo_branch, a.repo_revision, a.build_id, a.inserted_at").
 		From("build_logs a")
 }
 
-func (c *client) selectReleaseLogsQuery(readLogFromDatabase bool) sq.SelectBuilder {
+func (c *client) selectReleaseLogsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-
-	if readLogFromDatabase {
-		return psql.
-			Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release_id, a.steps, a.inserted_at").
-			From("release_logs a")
-	}
-
 	return psql.
 		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.release_id, a.inserted_at").
 		From("release_logs a")
 }
 
-func (c *client) selectBotLogsQuery(readLogFromDatabase bool) sq.SelectBuilder {
+func (c *client) selectBotLogsQuery() sq.SelectBuilder {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-
-	if readLogFromDatabase {
-		return psql.
-			Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.bot_id, a.steps, a.inserted_at").
-			From("bot_logs a")
-	}
-
 	return psql.
 		Select("a.id, a.repo_source, a.repo_owner, a.repo_name, a.bot_id, a.inserted_at").
 		From("bot_logs a")
@@ -7967,14 +7780,14 @@ func (c *client) setPipelinePropertiesFromJSONB(pipeline *contracts.Pipeline, la
 
 	if !optimized {
 		// unmarshal then marshal manifest to include defaults
-		manifest, err := manifest.ReadManifest(c.config.ManifestPreferences, pipeline.Manifest, false)
+		_manifest, err := manifest.ReadManifest(c.config.ManifestPreferences, pipeline.Manifest, false)
 		if err == nil {
-			pipeline.ManifestObject = &manifest
-			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+			pipeline.ManifestObject = &_manifest
+			manifestWithDefaultBytes, err := yaml.Marshal(_manifest)
 			if err == nil {
 				pipeline.ManifestWithDefaults = string(manifestWithDefaultBytes)
 			} else {
-				log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
+				log.Warn().Err(err).Interface("manifest", _manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
 			}
 		} else {
 			log.Debug().Err(err).Str("manifest", pipeline.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, pipeline.RepoRevision)
@@ -8029,14 +7842,14 @@ func (c *client) setBuildPropertiesFromJSONB(build *contracts.Build, labelsData,
 
 	if !optimized {
 		// unmarshal then marshal manifest to include defaults
-		manifest, err := manifest.ReadManifest(c.config.ManifestPreferences, build.Manifest, false)
+		_manifest, err := manifest.ReadManifest(c.config.ManifestPreferences, build.Manifest, false)
 		if err == nil {
-			build.ManifestObject = &manifest
-			manifestWithDefaultBytes, err := yaml.Marshal(manifest)
+			build.ManifestObject = &_manifest
+			manifestWithDefaultBytes, err := yaml.Marshal(_manifest)
 			if err == nil {
 				build.ManifestWithDefaults = string(manifestWithDefaultBytes)
 			} else {
-				log.Warn().Err(err).Interface("manifest", manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
+				log.Warn().Err(err).Interface("manifest", _manifest).Msgf("Marshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
 			}
 		} else {
 			log.Debug().Err(err).Str("manifest", build.Manifest).Msgf("Unmarshalling manifest for %v/%v/%v revision %v failed", build.RepoSource, build.RepoOwner, build.RepoName, build.RepoRevision)
