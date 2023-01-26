@@ -43,6 +43,7 @@ var (
 // Client is the interface for communicating with the database
 //go:generate mockgen -package=database -destination ./mock.go -source=client.go
 type Client interface {
+	MigrationApi
 	Connect(ctx context.Context) (err error)
 	ConnectWithDriverAndSource(ctx context.Context, driverName, dataSourceName string) (err error)
 	AwaitDatabaseReadiness(ctx context.Context) (err error)
@@ -1193,6 +1194,13 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 	}
 
 	upsertedPipeline := c.mapBuildToPipeline(lastBuilds[0])
+	// !! Migration changes !!
+	if ctx.Value(isMigration) != nil {
+		// change trigger for the migrating pipeline
+		for i := 0; i < len(upsertedPipeline.Triggers); i++ {
+			upsertedPipeline.Triggers[i].Pipeline.Name = fmt.Sprintf("%v/%v/%v", repoSource, repoOwner, repoName)
+		}
+	}
 
 	// extract recent committers from last builds
 	for _, b := range lastBuilds {
