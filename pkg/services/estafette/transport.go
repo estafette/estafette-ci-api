@@ -11,9 +11,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/http"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -2643,7 +2643,7 @@ func (h *Handler) GetConfigBuildControl(c *gin.Context) {
 
 func (h *Handler) GetManifestTemplates(c *gin.Context) {
 
-	templateFiles, err := ioutil.ReadDir(h.templatesPath)
+	templateFiles, err := os.ReadDir(h.templatesPath)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed listing template files directory")
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
@@ -2663,7 +2663,7 @@ func (h *Handler) GetManifestTemplates(c *gin.Context) {
 
 			// read template file
 			templateFilePath := filepath.Join(h.templatesPath, templateFileName)
-			data, err := ioutil.ReadFile(templateFilePath)
+			data, err := os.ReadFile(templateFilePath)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed reading template file %v", templateFilePath)
 				c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
@@ -2709,7 +2709,7 @@ func (h *Handler) GenerateManifest(c *gin.Context) {
 	}
 
 	templateFilePath := filepath.Join(h.templatesPath, fmt.Sprintf("manifest-%v.tmpl", aux.Template))
-	data, err := ioutil.ReadFile(templateFilePath)
+	data, err := os.ReadFile(templateFilePath)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed reading template file %v", templateFilePath)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
@@ -2829,7 +2829,7 @@ func (h *Handler) Commands(c *gin.Context) {
 
 	log.Debug().Msgf("X-Estafette-Event-Job-Name is set to %v", c.GetHeader("X-Estafette-Event-Job-Name"))
 
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body from Estafette 'build finished' event failed")
 		c.String(http.StatusInternalServerError, "Reading body from Estafette 'build finished' event failed")

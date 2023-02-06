@@ -58,6 +58,7 @@ func (r *ReleaseError) Is(target error) bool {
 }
 
 // Service encapsulates build and release creation and re-triggering
+//
 //go:generate mockgen -package=estafette -destination ./mock.go -source=service.go
 type Service interface {
 	CreateBuild(ctx context.Context, build contracts.Build) (b *contracts.Build, err error)
@@ -1845,7 +1846,6 @@ func (s *service) getBuildTriggers(build contracts.Build, hasValidManifest bool,
 func (s *service) getBuildCounter(ctx context.Context, build contracts.Build, shortRepoSource string, hasValidManifest bool, mft manifest.EstafetteManifest, pipeline *contracts.Pipeline) (counter int, updatedBuild contracts.Build, err error) {
 
 	// get or set autoincrement and build version
-	counter = 0
 	if build.BuildVersion == "" {
 		// get autoincrementing counter
 		counter, err = s.databaseClient.GetAutoIncrement(ctx, shortRepoSource, build.RepoOwner, build.RepoName)

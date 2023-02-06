@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -15,6 +15,7 @@ import (
 )
 
 // Client is the interface for communicating with the Slack api
+//
 //go:generate mockgen -package=slackapi -destination ./mock.go -source=client.go
 type Client interface {
 	GetUserProfile(ctx context.Context, userID string) (profile *UserProfile, err error)
@@ -78,7 +79,7 @@ func (c *client) GetUserProfile(ctx context.Context, userID string) (profile *Us
 		ht.Finish()
 	}
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return
 	}

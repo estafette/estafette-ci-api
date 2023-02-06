@@ -71,11 +71,15 @@ func (h *Handler) performMigration(ctx context.Context, task *migration.Task) {
 			}
 		}
 	}
+	var failed bool
 	for _, stage := range stages {
-		task.Changes[stage.Name()], err = stage.Execute(ctx, task)
+		task.Changes[stage.Name()], failed = stage.Execute(ctx, task)
 		err = h.databaseClient.UpdateMigration(ctx, task)
 		if err != nil {
 			log.Error().Err(err).Msg("Error updating migration status in database")
+			return
+		}
+		if failed {
 			return
 		}
 	}

@@ -13,6 +13,7 @@ import (
 )
 
 // Client is the interface for communicating with the pubsub apis
+//
 //go:generate mockgen -package=pubsubapi -destination ./mock.go -source=client.go
 type Client interface {
 	SubscriptionForTopic(ctx context.Context, message PubSubPushMessage) (event *manifest.EstafettePubSubEvent, err error)

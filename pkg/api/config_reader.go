@@ -1,14 +1,13 @@
 package api
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
 	crypt "github.com/estafette/estafette-ci-crypt"
 	"github.com/rs/zerolog/log"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 // ConfigReader reads the api config from file
@@ -66,7 +65,7 @@ func (h *configReaderImpl) ReadConfigFromFiles(configPath string, decryptSecrets
 	combinedData := []byte{}
 
 	for _, configFilePath := range configFilePaths {
-		data, err := ioutil.ReadFile(configFilePath)
+		data, err := os.ReadFile(configFilePath)
 		if err != nil {
 			return config, err
 		}

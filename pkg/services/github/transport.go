@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -37,7 +37,7 @@ func (h *Handler) Handle(c *gin.Context) {
 	eventType := c.GetHeader("X-Github-Event")
 	// h.prometheusInboundEventTotals.With(prometheus.Labels{"event": eventType, "source": "github"}).Inc()
 
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body from Github webhook failed")
 		c.Status(http.StatusInternalServerError)

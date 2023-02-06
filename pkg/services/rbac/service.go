@@ -20,6 +20,7 @@ var (
 )
 
 // Service handles http requests for role-based-access-control
+//
 //go:generate mockgen -package=rbac -destination ./mock.go -source=service.go
 type Service interface {
 	GetRoles(ctx context.Context) (roles []string, err error)

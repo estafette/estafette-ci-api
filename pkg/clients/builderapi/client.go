@@ -39,6 +39,7 @@ var (
 )
 
 // Client is the interface for running kubernetes commands specific to this application
+//
 //go:generate mockgen -package=builderapi -destination ./mock.go -source=client.go
 type Client interface {
 	CreateCiBuilderJob(ctx context.Context, params CiBuilderParams) (job *batchv1.Job, err error)

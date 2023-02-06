@@ -3,18 +3,18 @@ package cloudsourceapi
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"golang.org/x/oauth2"
-	sourcerepo "google.golang.org/api/sourcerepo/v1"
+	"google.golang.org/api/sourcerepo/v1"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 // Client is the interface for communicating with the Google Cloud Source Repository api
+//
 //go:generate mockgen -package=cloudsourceapi -destination ./mock.go -source=client.go
 type Client interface {
 	GetAccessToken(ctx context.Context) (accesstoken AccessToken, err error)
@@ -76,7 +76,7 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessTok
 	// create /tmp dir if it doesnt exist
 	_ = os.Mkdir(os.TempDir(), os.ModeDir)
 	// Tempdir to clone the repository
-	dir, err := ioutil.TempDir("", "sourcerepo-manifest")
+	dir, err := os.MkdirTemp("", "sourcerepo-manifest")
 	if err != nil {
 		return
 	}
@@ -101,7 +101,7 @@ func (c *client) GetEstafetteManifest(ctx context.Context, accesstoken AccessTok
 		return
 	}
 
-	estafetteFile, err := ioutil.ReadFile(estafetteFilename)
+	estafetteFile, err := os.ReadFile(estafetteFilename)
 	if err != nil {
 		return
 	}

@@ -1,7 +1,7 @@
 package api
 
 import (
-	"io/ioutil"
+	"io"
 	"regexp"
 	"testing"
 
@@ -20,7 +20,7 @@ func TestRetrievingGoogleJSONWebKeys(t *testing.T) {
 
 		defer response.Body.Close()
 
-		body, err := ioutil.ReadAll(response.Body)
+		body, err := io.ReadAll(response.Body)
 		if !assert.Nil(t, err, "Did not expect error %v", err) {
 			return
 		}

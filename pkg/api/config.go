@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -650,7 +650,7 @@ func (p *OAuthProvider) callGithubAPI(ctx context.Context, method, url string, a
 		return nil, fmt.Errorf("%v %v responded with status code %v", method, url, response.StatusCode)
 	}
 
-	body, err = ioutil.ReadAll(response.Body)
+	body, err = io.ReadAll(response.Body)
 	if err != nil {
 		return
 	}
@@ -739,7 +739,7 @@ type JobsConfig struct {
 func (c *JobsConfig) SetDefaults() {
 	if c.Namespace == "" {
 		// get current namespace
-		namespace, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+		namespace, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 		if err == nil {
 			c.Namespace = fmt.Sprintf("%v-jobs", string(namespace))
 		}

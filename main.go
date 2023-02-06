@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"sync"
@@ -208,12 +207,12 @@ func getConfig(ctx context.Context) (*api.APIConfig, *api.APIConfig, crypt.Secre
 		log.Fatal().Msgf("Cannot find jwt key at path %v", *jwtKeyPath)
 	}
 
-	secretDecryptionKeyBytes, err := ioutil.ReadFile(*secretDecryptionKeyPath)
+	secretDecryptionKeyBytes, err := os.ReadFile(*secretDecryptionKeyPath)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed reading secret decryption key from path %v", *secretDecryptionKeyPath)
 	}
 
-	jwtKeyPathBytes, err := ioutil.ReadFile(*jwtKeyPath)
+	jwtKeyPathBytes, err := os.ReadFile(*jwtKeyPath)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed reading jwt key from path %v", *jwtKeyPath)
 	}

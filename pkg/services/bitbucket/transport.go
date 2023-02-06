@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -51,7 +51,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		return
 	}
 
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body from Bitbucket webhook failed")
 		c.Status(http.StatusInternalServerError)
@@ -243,7 +243,7 @@ func (h *Handler) Descriptor(c *gin.Context) {
 
 func (h *Handler) Installed(c *gin.Context) {
 
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body for Bitbucket App installed event failed")
 		c.Status(http.StatusInternalServerError)
@@ -300,7 +300,7 @@ func (h *Handler) Installed(c *gin.Context) {
 
 func (h *Handler) Uninstalled(c *gin.Context) {
 
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body for Bitbucket App uninstalled event failed")
 		c.Status(http.StatusInternalServerError)

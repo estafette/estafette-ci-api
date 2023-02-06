@@ -26,7 +26,7 @@ type Stage interface {
 	Name() StageName
 	Success() Step
 	Failure() Step
-	Execute(ctx context.Context, task *Task) ([]Change, error)
+	Execute(ctx context.Context, task *Task) ([]Change, bool)
 }
 
 type Execution func(ctx context.Context, task *Task) ([]Change, error)
@@ -50,7 +50,7 @@ func (s *stage) Failure() Step {
 	return s.failure
 }
 
-func (s *stage) Execute(ctx context.Context, task *Task) ([]Change, error) {
+func (s *stage) Execute(ctx context.Context, task *Task) ([]Change, bool) {
 	changes, err := s.execute(ctx, task)
 	task.LastStep = s.Success()
 	if err != nil {
@@ -58,7 +58,7 @@ func (s *stage) Execute(ctx context.Context, task *Task) ([]Change, error) {
 		errorDetails := err.Error()
 		task.ErrorDetails = &errorDetails
 	}
-	return changes, err
+	return changes, err != nil
 }
 
 func Releases(fn Execution) Stage {

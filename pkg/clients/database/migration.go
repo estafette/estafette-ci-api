@@ -103,7 +103,9 @@ func (c *client) PickMigration(ctx context.Context) (*migration.Task, error) {
 		}
 		e.Status = migration.StatusFrom(status)
 		e.LastStep = migration.StepFrom(lastStep)
-		break
+		if rows.Next() {
+			return nil, fmt.Errorf("failed to pick migration from database: more than one migration was picked up")
+		}
 	}
 	return &e, nil
 }
@@ -176,7 +178,7 @@ func (c *client) MigrateBuilds(ctx context.Context, task *migration.Task) ([]mig
 		defer span.Finish()
 
 		// !! used to change release and pipeline metadata
-		ctx = context.WithValue(ctx, "migrate", true)
+		ctx = context.WithValue(ctx, isMigration, true)
 		err = c.UpdateComputedTables(ctx, task.ToSource, task.ToOwner, task.ToName)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed updating computed tables for pipeline %v", task.ToFQN())

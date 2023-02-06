@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -14,6 +14,7 @@ import (
 )
 
 // Client communicates with docker hub api
+//
 //go:generate mockgen -package=dockerhubapi -destination ./mock.go -source=client.go
 type Client interface {
 	GetToken(ctx context.Context, repository string) (token DockerHubToken, err error)
@@ -45,7 +46,7 @@ func (c *client) GetToken(ctx context.Context, repository string) (token DockerH
 	}
 	defer response.Body.Close()
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return
 	}

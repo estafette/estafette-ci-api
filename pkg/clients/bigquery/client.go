@@ -11,6 +11,7 @@ import (
 )
 
 // Client is the interface for connecting to bigquery
+//
 //go:generate mockgen -package=bigquery -destination ./mock.go -source=client.go
 type Client interface {
 	Init(ctx context.Context) (err error)

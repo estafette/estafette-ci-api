@@ -7369,7 +7369,9 @@ func (c *client) getCatalogEntityColumn(ctx context.Context, groupColumn, countC
 			Offset(uint64((pageNumber - 1) * pageSize))
 
 	query, err = whereClauseGeneratorForCatalogEntityFilters(query, filters)
-
+	if err != nil {
+		return
+	}
 	rows, err := query.RunWith(c.databaseConnection).QueryContext(ctx)
 	if err != nil {
 		return

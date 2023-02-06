@@ -25,6 +25,7 @@ var (
 )
 
 // Client is the interface for connecting to google cloud storage
+//
 //go:generate mockgen -package=cloudstorage -destination ./mock.go -source=client.go
 type Client interface {
 	InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error)
