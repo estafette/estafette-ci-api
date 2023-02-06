@@ -39,6 +39,7 @@ stages:
       build-gcs-migrator:
         image: python:3.11-alpine
         commands:
+        - apk add binutils
         - cd gcs-migrator
         - pip install -r requirements.txt
         - pyinstaller -F -n gcs-migrator server.py
