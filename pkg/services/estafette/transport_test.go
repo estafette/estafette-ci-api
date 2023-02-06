@@ -106,6 +106,7 @@ func TestGetCatalogFilters(t *testing.T) {
 		encryptedConfig := cfg
 
 		databaseClient := database.NewMockClient(ctrl)
+		databaseClient.EXPECT().CreateMigrationSchema().Times(1)
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 
@@ -158,6 +159,7 @@ func TestGetPipeline(t *testing.T) {
 		encryptedConfig := cfg
 
 		databaseClient := database.NewMockClient(ctrl)
+		databaseClient.EXPECT().CreateMigrationSchema().Times(1)
 		databaseClient.
 			EXPECT().
 			GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -234,6 +236,7 @@ func TestGetManifestTemplates(t *testing.T) {
 		encryptedConfig := cfg
 
 		databaseClient := database.NewMockClient(ctrl)
+		databaseClient.EXPECT().CreateMigrationSchema().Times(1)
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 		buildService := NewMockService(ctrl)
@@ -280,6 +283,7 @@ func TestGenerateManifest(t *testing.T) {
 		encryptedConfig := cfg
 
 		databaseClient := database.NewMockClient(ctrl)
+		databaseClient.EXPECT().CreateMigrationSchema().Times(1)
 		cloudStorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 		buildService := NewMockService(ctrl)
@@ -330,6 +334,7 @@ func TestCreatePipelineRelease_Forbidden(t *testing.T) {
 		cfg := &api.APIConfig{}
 		encryptedConfig := cfg
 		databaseClient := database.NewMockClient(ctrl)
+		databaseClient.EXPECT().CreateMigrationSchema().Times(1)
 		databaseClient.
 			EXPECT().
 			GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).

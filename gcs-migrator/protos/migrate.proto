@@ -1,0 +1,60 @@
+// Generating protobuf code
+//
+// For golang install protoc (if already not installed)
+//    go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+// and run the following command from the project's root directory
+//    protoc --go_out=. --go-grpc_out=. gcs-migrator/protos/migrate.proto
+//
+// For python create virtualenv as below (if not created before)
+//    cd gcs-migrator
+//    virtualenv -p python3 env
+//    pip install grpcio grpcio-tools google-cloud-storage
+// Or activate existing env
+//    source gcs-migrator/env/bin/activate
+// then run the following command from the project root directory
+//    python gcs-migrator/codegen.py
+
+syntax = "proto3";
+
+option go_package = "pkg/services/estafette/migrationpb";
+
+package migrationpb;
+
+service Service {
+  rpc Migrate (stream Request) returns (Response) {}
+}
+
+message LogObject {
+  string bucket = 1;
+  string path = 2;
+}
+
+message Request {
+  int64 id = 1;
+  LogObject from_log_object = 2;
+  LogObject to_log_object = 3;
+}
+
+message Response {
+  repeated Migration migrations  = 1;
+  int64 batches = 2;
+}
+
+message Migration {
+  int64 id = 1;
+  LogObject from_log_object = 2;
+  LogObject to_log_object = 3;
+  optional MigrationError error = 4;
+}
+
+message MigrationError {
+  int64 code = 1;
+  string message = 2;
+  repeated MigrationErrorDetail errors = 3;
+}
+
+message MigrationErrorDetail {
+  string domain = 1;
+  string reason = 2;
+  string message = 3;
+}

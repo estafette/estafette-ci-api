@@ -43,6 +43,7 @@ import (
 	foundation "github.com/estafette/estafette-foundation"
 	"github.com/fsnotify/fsnotify"
 	"github.com/gin-contrib/gzip"
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"github.com/uber/jaeger-client-go"
@@ -521,6 +522,7 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	// creates a router without any middleware
 	log.Debug().Msg("Creating gin router...")
 	router := gin.New()
+	router.Use(requestid.New())
 
 	// recovery middleware recovers from any panics and writes a 500 if there was one.
 	log.Debug().Msg("Adding recovery middleware...")

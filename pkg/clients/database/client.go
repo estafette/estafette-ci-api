@@ -20,7 +20,7 @@ import (
 	_ "github.com/lib/pq" // use postgres client library to connect to cockroachdb
 	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -41,9 +41,10 @@ var (
 )
 
 // Client is the interface for communicating with the database
-//go:generate mockgen -package=database -destination ./mock.go -source=client.go
+//
+//go:generate mockgen -package=database -destination ./mock.go -source=client.go -aux_files github.com/estafette/estafette-ci-api/pkg/clients/database=migration.go
 type Client interface {
-	MigrationApi
+	MigrationDatabaseApi
 	Connect(ctx context.Context) (err error)
 	ConnectWithDriverAndSource(ctx context.Context, driverName, dataSourceName string) (err error)
 	AwaitDatabaseReadiness(ctx context.Context) (err error)
@@ -322,7 +323,7 @@ func (c *client) GetAutoIncrement(ctx context.Context, shortRepoSource, repoOwne
 		)
 		DO UPDATE SET
 			auto_increment = build_versions.auto_increment + 1,
-			updated_at = now()
+			updated_at = NOW()
 		`,
 		shortRepoSource,
 		repoFullName,
@@ -2433,7 +2434,7 @@ func (c *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner,
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
-		// dynamically set order by clause
+	// dynamically set order by clause
 	query, err = orderByClauseGeneratorForSortings(query, "a.inserted_at DESC", sortings)
 	if err != nil {
 		return
@@ -3863,7 +3864,7 @@ func (c *client) GetAllPipelineReleases(ctx context.Context, pageNumber, pageSiz
 		Limit(uint64(pageSize)).
 		Offset(uint64((pageNumber - 1) * pageSize))
 
-		// dynamically set order by clause
+	// dynamically set order by clause
 	query, err = orderByClauseGeneratorForSortings(query, "a.inserted_at DESC", sortings)
 	if err != nil {
 		return

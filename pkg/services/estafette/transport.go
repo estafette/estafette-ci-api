@@ -7,6 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/estafette/estafette-ci-api/pkg/services/estafette/migrationpb"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"io"
 	"io/ioutil"
 	"math"
@@ -32,9 +35,22 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+const (
+	// gcsMigratorServer address in the format of host:port should be same as in gcs-migrator/server.py
+	gcsMigratorServer = "localhost:50051"
+)
+
 // NewHandler returns a new estafette.Handler
 func NewHandler(templatesPath string, config *api.APIConfig, encryptedConfig *api.APIConfig, databaseClient database.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper api.WarningHelper, secretHelper crypt.SecretHelper) Handler {
-	return Handler{
+	// !! Migration changes !!
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+	conn, err := grpc.Dial(gcsMigratorServer, opts...)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("failed to dial grpc connection with gcs-migrator: %v", err)
+	}
+	h := Handler{
 		templatesPath:      templatesPath,
 		config:             config,
 		encryptedConfig:    encryptedConfig,
@@ -44,7 +60,15 @@ func NewHandler(templatesPath string, config *api.APIConfig, encryptedConfig *ap
 		buildService:       buildService,
 		warningHelper:      warningHelper,
 		secretHelper:       secretHelper,
+		// !! Migration changes !!
+		gcsMigratorClient: migrationpb.NewServiceClient(conn),
 	}
+	err = h.databaseClient.CreateMigrationSchema()
+	if err != nil {
+		log.Fatal().Err(err).Msgf("failed to create migration schema")
+	}
+	go h.pollMigrationTasks()
+	return h
 }
 
 type Handler struct {
@@ -57,6 +81,8 @@ type Handler struct {
 	buildService       Service
 	warningHelper      api.WarningHelper
 	secretHelper       crypt.SecretHelper
+	// !! Migration changes !!
+	gcsMigratorClient migrationpb.ServiceClient
 }
 
 func (h *Handler) GetPipelines(c *gin.Context) {

@@ -43,6 +43,7 @@ func TestConfigureGinGonic(t *testing.T) {
 		}
 
 		databaseClient := database.NewMockClient(ctrl)
+		databaseClient.EXPECT().CreateMigrationSchema().Times(1)
 		cloudstorageClient := cloudstorage.NewMockClient(ctrl)
 		builderapiClient := builderapi.NewMockClient(ctrl)
 		estafetteService := estafette.NewMockService(ctrl)

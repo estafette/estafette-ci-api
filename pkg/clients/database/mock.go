@@ -10,6 +10,7 @@ import (
 	time "time"
 
 	api "github.com/estafette/estafette-ci-api/pkg/api"
+	migration "github.com/estafette/estafette-ci-api/pkg/migration"
 	estafette_ci_contracts "github.com/estafette/estafette-ci-contracts"
 	estafette_ci_manifest "github.com/estafette/estafette-ci-manifest"
 	gomock "github.com/golang/mock/gomock"
@@ -92,6 +93,20 @@ func (m *MockClient) ConnectWithDriverAndSource(ctx context.Context, driverName,
 func (mr *MockClientMockRecorder) ConnectWithDriverAndSource(ctx, driverName, dataSourceName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConnectWithDriverAndSource", reflect.TypeOf((*MockClient)(nil).ConnectWithDriverAndSource), ctx, driverName, dataSourceName)
+}
+
+// CreateMigrationSchema mocks base method.
+func (m *MockClient) CreateMigrationSchema() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateMigrationSchema")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateMigrationSchema indicates an expected call of CreateMigrationSchema.
+func (mr *MockClientMockRecorder) CreateMigrationSchema() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMigrationSchema", reflect.TypeOf((*MockClient)(nil).CreateMigrationSchema))
 }
 
 // DeleteCatalogEntity mocks base method.
@@ -2132,6 +2147,110 @@ func (mr *MockClientMockRecorder) InsertUser(ctx, user interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertUser", reflect.TypeOf((*MockClient)(nil).InsertUser), ctx, user)
 }
 
+// MigrateBuildLogs mocks base method.
+func (m *MockClient) MigrateBuildLogs(ctx context.Context, task *migration.Task) ([]migration.Change, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MigrateBuildLogs", ctx, task)
+	ret0, _ := ret[0].([]migration.Change)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MigrateBuildLogs indicates an expected call of MigrateBuildLogs.
+func (mr *MockClientMockRecorder) MigrateBuildLogs(ctx, task interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MigrateBuildLogs", reflect.TypeOf((*MockClient)(nil).MigrateBuildLogs), ctx, task)
+}
+
+// MigrateBuildVersions mocks base method.
+func (m *MockClient) MigrateBuildVersions(ctx context.Context, task *migration.Task) ([]migration.Change, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MigrateBuildVersions", ctx, task)
+	ret0, _ := ret[0].([]migration.Change)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MigrateBuildVersions indicates an expected call of MigrateBuildVersions.
+func (mr *MockClientMockRecorder) MigrateBuildVersions(ctx, task interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MigrateBuildVersions", reflect.TypeOf((*MockClient)(nil).MigrateBuildVersions), ctx, task)
+}
+
+// MigrateBuilds mocks base method.
+func (m *MockClient) MigrateBuilds(ctx context.Context, task *migration.Task) ([]migration.Change, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MigrateBuilds", ctx, task)
+	ret0, _ := ret[0].([]migration.Change)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MigrateBuilds indicates an expected call of MigrateBuilds.
+func (mr *MockClientMockRecorder) MigrateBuilds(ctx, task interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MigrateBuilds", reflect.TypeOf((*MockClient)(nil).MigrateBuilds), ctx, task)
+}
+
+// MigrateReleaseLogs mocks base method.
+func (m *MockClient) MigrateReleaseLogs(ctx context.Context, task *migration.Task) ([]migration.Change, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MigrateReleaseLogs", ctx, task)
+	ret0, _ := ret[0].([]migration.Change)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MigrateReleaseLogs indicates an expected call of MigrateReleaseLogs.
+func (mr *MockClientMockRecorder) MigrateReleaseLogs(ctx, task interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MigrateReleaseLogs", reflect.TypeOf((*MockClient)(nil).MigrateReleaseLogs), ctx, task)
+}
+
+// MigrateReleases mocks base method.
+func (m *MockClient) MigrateReleases(ctx context.Context, task *migration.Task) ([]migration.Change, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MigrateReleases", ctx, task)
+	ret0, _ := ret[0].([]migration.Change)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MigrateReleases indicates an expected call of MigrateReleases.
+func (mr *MockClientMockRecorder) MigrateReleases(ctx, task interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MigrateReleases", reflect.TypeOf((*MockClient)(nil).MigrateReleases), ctx, task)
+}
+
+// PickMigration mocks base method.
+func (m *MockClient) PickMigration(ctx context.Context) (*migration.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PickMigration", ctx)
+	ret0, _ := ret[0].(*migration.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PickMigration indicates an expected call of PickMigration.
+func (mr *MockClientMockRecorder) PickMigration(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PickMigration", reflect.TypeOf((*MockClient)(nil).PickMigration), ctx)
+}
+
+// QueueMigration mocks base method.
+func (m *MockClient) QueueMigration(ctx context.Context, task *migration.Task) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueueMigration", ctx, task)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// QueueMigration indicates an expected call of QueueMigration.
+func (mr *MockClientMockRecorder) QueueMigration(ctx, task interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueueMigration", reflect.TypeOf((*MockClient)(nil).QueueMigration), ctx, task)
+}
+
 // Rename mocks base method.
 func (m *MockClient) Rename(ctx context.Context, shortFromRepoSource, fromRepoSource, fromRepoOwner, fromRepoName, shortToRepoSource, toRepoSource, toRepoOwner, toRepoName string) error {
 	m.ctrl.T.Helper()
@@ -2410,6 +2529,20 @@ func (m *MockClient) UpdateGroup(ctx context.Context, group estafette_ci_contrac
 func (mr *MockClientMockRecorder) UpdateGroup(ctx, group interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGroup", reflect.TypeOf((*MockClient)(nil).UpdateGroup), ctx, group)
+}
+
+// UpdateMigration mocks base method.
+func (m *MockClient) UpdateMigration(ctx context.Context, task *migration.Task) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMigration", ctx, task)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateMigration indicates an expected call of UpdateMigration.
+func (mr *MockClientMockRecorder) UpdateMigration(ctx, task interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMigration", reflect.TypeOf((*MockClient)(nil).UpdateMigration), ctx, task)
 }
 
 // UpdateOrganization mocks base method.

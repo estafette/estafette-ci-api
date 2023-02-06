@@ -36,6 +36,13 @@ stages:
         commands:
         - go build -a -installsuffix cgo -ldflags "-X main.appgroup=${ESTAFETTE_LABEL_APP_GROUP} -X main.app=${ESTAFETTE_GIT_NAME} -X main.version=${ESTAFETTE_BUILD_VERSION} -X main.revision=${ESTAFETTE_GIT_REVISION} -X main.branch=${ESTAFETTE_GIT_BRANCH} -X main.buildDate=${ESTAFETTE_BUILD_DATETIME}" -o ./publish/${ESTAFETTE_GIT_NAME} .
 
+      build-gcs-migrator:
+        image: python:3.11-alpine
+        commands:
+        - cd gcs-migrator
+        - pip install -r requirements.txt
+        - pyinstaller -F -n gcs-migrator server.py
+
       lint:
         image: golangci/golangci-lint:latest-alpine
         commands:
