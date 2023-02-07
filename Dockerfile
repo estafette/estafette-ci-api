@@ -9,7 +9,7 @@ LABEL maintainer="estafette.io" \
 RUN apk add bash procps
 
 COPY ca-certificates.crt /etc/ssl/certs/
-COPY ${ESTAFETTE_GIT_NAME} /
+COPY publish/${ESTAFETTE_GIT_NAME} /
 COPY gcs-migrator/dist/gcs-migrator /
 COPY entrypoint.sh /
 COPY healthcheck.sh /

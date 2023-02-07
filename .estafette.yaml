@@ -138,7 +138,7 @@ stages:
     severity: unknown
     repositories:
     - estafette
-    path: ./publish
+    path: .
     copy:
     - /etc/ssl/certs/ca-certificates.crt
 
