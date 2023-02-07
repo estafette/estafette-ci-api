@@ -28,7 +28,7 @@ stages:
   build-lint-and-package:
     parallelStages:
       build:
-        image: golang:1.20-alpine
+        image: golang:1.19-alpine
         env:
           CGO_ENABLED: 0
           GOOS: linux
@@ -50,7 +50,7 @@ stages:
         - golangci-lint run --timeout 3m
 
       test:
-        image: golang:1.18-alpine
+        image: golang:1.19-alpine
         commands:
         - apk add --update --no-cache build-base
         - go test -short -race ./...
@@ -81,7 +81,7 @@ stages:
       ESTAFETTE_LOG_FORMAT: console
 
   integration-tests-against-cockroachdb:
-    image: golang:1.18-alpine
+    image: golang:1.19-alpine
     env:
       CGO_ENABLED: 0
       GOOS: linux
@@ -115,7 +115,7 @@ stages:
       ESTAFETTE_LOG_FORMAT: console
 
   integration-tests-against-postgres:
-    image: golang:1.18-alpine
+    image: golang:1.19-alpine
     env:
       CGO_ENABLED: 0
       GOOS: linux
@@ -149,7 +149,7 @@ stages:
     - estafette
 
   tag-revision:
-    image: golang:1.18-alpine
+    image: golang:1.19-alpine
     commands:
     - apk add git
     - git tag ${ESTAFETTE_BUILD_VERSION}

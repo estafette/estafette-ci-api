@@ -1,6 +1,6 @@
 module github.com/estafette/estafette-ci-api
 
-go 1.20
+go 1.19
 
 require (
 	cloud.google.com/go/bigquery v1.44.0
@@ -15,12 +15,12 @@ require (
 	github.com/estafette/estafette-foundation v0.0.75
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/gin-contrib/gzip v0.0.5
+	github.com/gin-contrib/requestid v0.0.6
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-kit/kit v0.12.0
 	github.com/golang-jwt/jwt/v4 v4.4.1
 	github.com/golang/mock v1.7.0-rc.1.0.20220812172401-5b455625bd2c
 	github.com/google/uuid v1.3.0
-	github.com/googleapis/gax-go/v2 v2.7.0
 	github.com/jinzhu/copier v0.3.5
 	github.com/lib/pq v1.10.6
 	github.com/nats-io/nats.go v1.16.0
@@ -60,7 +60,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.8.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
-	github.com/gin-contrib/requestid v0.0.6 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
@@ -77,6 +76,7 @@ require (
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.0 // indirect
+	github.com/googleapis/gax-go/v2 v2.7.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
