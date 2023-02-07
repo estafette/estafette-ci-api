@@ -1,3 +1,6 @@
+//go:build gcs_migrator
+// +build gcs_migrator
+
 // For testing gcs-migrator locally
 // Run below commands from gcs-migrator directory:
 //
