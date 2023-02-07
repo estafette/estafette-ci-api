@@ -1,7 +1,7 @@
 # FROM ubuntu:latest
 # RUN useradd -u 10001 scratchuser
 
-FROM apline:3.17
+FROM alpine:3.17
 
 LABEL maintainer="estafette.io" \
       description="The ${ESTAFETTE_GIT_NAME} is the component that handles api requests and starts build jobs using the estafette-ci-builder"
