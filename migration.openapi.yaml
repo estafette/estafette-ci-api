@@ -1,0 +1,226 @@
+openapi: 3.0.0
+info:
+  title: estafette-ci-api
+  version: 0.0.0
+  description: Migration API
+paths:
+  /api/auth/client/login:
+    post:
+      description: Authenticate with client id and secret
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+      responses:
+        '200':
+          description: Successfully authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Forbidden
+        '403':
+          description: Unauthorized
+  /api/migrate:
+    post:
+      description: Queue migration task
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MigrateRequest'
+      responses:
+        '200':
+          description: Successfully returned a list of APIs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MigrateResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: invalid request body
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 500
+                message: Queuing migration failed
+  /api/migrate/{taskID}:
+    get:
+      description: Get status of migration task
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskID
+          in: path
+          description: ID of the task
+          required: true
+          schema:
+            type: string
+          example: abc-123
+      responses:
+        '200':
+          description: Successfully returned an task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MigrateResponse'
+        '404':
+          description: task was not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: Not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 500
+                message: Failed to get migration status
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AuthRequest:
+      type: object
+      required:
+        - clientID
+        - clientSecret
+      additionalProperties: false
+      properties:
+        clientID:
+          type: string
+        clientSecret:
+          type: string
+    AuthResponse:
+      type: object
+      required:
+        - token
+      additionalProperties: true
+      properties:
+        token:
+          type: string
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    MigrateRequest:
+      type: object
+      required:
+        - fromSource
+        - fromOwner
+        - fromName
+        - toSource
+        - toOwner
+        - toName
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        fromSource:
+          type: string
+        fromOwner:
+          type: string
+        fromName:
+          type: string
+        toSource:
+          type: string
+        toOwner:
+          type: string
+        toName:
+          type: string
+        callbackURL:
+          type: string
+        restart:
+          description: Restart from the last failed stage or specified stage
+          type: string
+          enum:
+            - last_stage
+            - releases
+            - release_logs
+            - release_log_objects
+            - builds
+            - build_logs
+            - build_log_objects
+            - build_versions
+            - callback
+    MigrateResponse:
+      allOf:
+        - $ref: '#/components/schemas/MigrateRequest'
+        - type: object
+          required:
+            - id
+            - status
+            - lastStep
+          additionalProperties: false
+          properties:
+            status:
+              type: string
+              enum:
+                - queued
+                - in_progress
+                - failed
+                - completed
+                - canceled
+                - unknown
+            lastStep:
+              type: string
+              enum:
+                - releases_failed
+                - releases_done
+                - release_logs_failed
+                - release_logs_done
+                - release_log_objects_failed
+                - release_log_objects_done
+                - builds_failed
+                - builds_done
+                - build_logs_failed
+                - build_logs_done
+                - build_log_objects_failed
+                - build_log_objects_done
+                - build_versions_failed
+                - build_versions_done
+                - callback_failed
+                - callback_done
+            builds:
+              type: integer
+            releases:
+              type: integer
+            totalDuration:
+              type: integer
+            errorDetails:
+              type: string
+            queuedAt:
+              type: string
+              format: date-time
+            startedAt:
+              type: string
+              format: date-time

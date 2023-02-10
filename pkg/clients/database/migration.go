@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"regexp"
 	"time"
@@ -11,7 +12,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/database/queries"
-	"github.com/estafette/estafette-ci-api/pkg/migration"
+	"github.com/estafette/migration"
 	"github.com/opentracing/opentracing-go"
 )
 
@@ -22,7 +23,8 @@ var (
 
 type MigrationDatabaseApi interface {
 	CreateMigrationSchema() error
-	QueueMigration(ctx context.Context, task *migration.Task) error
+	QueueMigration(ctx context.Context, task *migration.Task) (*migration.Task, error)
+	GetMigrationStatus(ctx context.Context, taskID string) (*migration.Task, error)
 	PickMigration(ctx context.Context) (*migration.Task, error)
 	UpdateMigration(ctx context.Context, task *migration.Task) error
 	MigrateBuilds(ctx context.Context, task *migration.Task) ([]migration.Change, error)
@@ -30,6 +32,8 @@ type MigrationDatabaseApi interface {
 	MigrateBuildVersions(ctx context.Context, task *migration.Task) ([]migration.Change, error)
 	MigrateReleases(ctx context.Context, task *migration.Task) ([]migration.Change, error)
 	MigrateReleaseLogs(ctx context.Context, task *migration.Task) ([]migration.Change, error)
+	GetMigrationBuildLogsChanges(ctx context.Context, task *migration.Task) ([]migration.Change, error)
+	GetMigrationReleaseLogsChanges(ctx context.Context, task *migration.Task) ([]migration.Change, error)
 }
 
 func args(m *migration.Task) []any {
@@ -38,6 +42,10 @@ func args(m *migration.Task) []any {
 		sql.NamedArg{Name: "id", Value: m.ID},
 		sql.NamedArg{Name: "status", Value: m.Status.String()},
 		sql.NamedArg{Name: "lastStep", Value: m.LastStep.String()},
+		sql.NamedArg{Name: "lastStep", Value: m.LastStep.String()},
+		sql.NamedArg{Name: "builds", Value: m.Builds},
+		sql.NamedArg{Name: "releases", Value: m.Releases},
+		sql.NamedArg{Name: "totalDuration", Value: m.TotalDuration},
 		// From
 		sql.NamedArg{Name: "fromSource", Value: m.FromSource},
 		sql.NamedArg{Name: "fromSourceName", Value: tld.ReplaceAllString(m.FromSource, "")},
@@ -77,37 +85,58 @@ func (c *client) CreateMigrationSchema() error {
 	return tx.Commit()
 }
 
-func (c *client) QueueMigration(ctx context.Context, task *migration.Task) error {
-	if task.ID == "" {
-		return fmt.Errorf("failed to queue migration requestID: %s %s -> %s: missing task id, should have been genereted if client did't send existing", task.ID, task.FromFQN(), task.ToFQN())
+func (c *client) QueueMigration(ctx context.Context, taskToQueue *migration.Task) (*migration.Task, error) {
+	if taskToQueue.ID == "" {
+		return nil, fmt.Errorf("failed to queue migration requestID: %s %s -> %s: missing task id, should have been genereted if client did't send existing", taskToQueue.ID, taskToQueue.FromFQN(), taskToQueue.ToFQN())
 	}
-	_, err := c.databaseConnection.ExecContext(ctx, queries.QueueMigration, args(task)...)
+	row := c.databaseConnection.QueryRowContext(ctx, queries.QueueMigration, args(taskToQueue)...)
+	var status, lastStep string
+	var task migration.Task
+	var totalDuration int64
+	err := row.Scan(&task.ID, &status, &lastStep, &task.Builds, &task.Releases, &totalDuration, &task.FromSource, &task.FromOwner, &task.FromName, &task.ToSource, &task.ToOwner, &task.ToName, &task.CallbackURL, &task.ErrorDetails, &task.QueuedAt, &task.UpdatedAt)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("failed to queue migration xrequestID: %s %s -> %s: %w", task.ID, task.FromFQN(), task.ToFQN(), err)
+	}
+	task.Status = migration.StatusFrom(status)
+	task.LastStep = migration.StepFrom(lastStep)
+	task.TotalDuration = time.Duration(totalDuration)
+	return &task, nil
+}
+
+func (c *client) GetMigrationStatus(ctx context.Context, taskID string) (*migration.Task, error) {
+	if taskID == "" {
+		return nil, fmt.Errorf("taskID is required to get migration status")
+	}
+	row := c.databaseConnection.QueryRowContext(ctx, queries.GetMigrationStatus, sql.NamedArg{Name: "id", Value: taskID})
+	var status, lastStep string
+	var task migration.Task
+	var totalDuration int64
+	err := row.Scan(&task.ID, &status, &lastStep, &task.Builds, &task.Releases, &totalDuration, &task.FromSource, &task.FromOwner, &task.FromName, &task.ToSource, &task.ToOwner, &task.ToName, &task.CallbackURL, &task.QueuedAt, &task.UpdatedAt)
 	if err != nil {
-		return fmt.Errorf("failed to queue migration xrequestID: %s %s -> %s: %w", task.ID, task.FromFQN(), task.ToFQN(), err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get migration status for taskID: %s : %w", taskID, err)
 	}
-	return nil
+	task.Status = migration.StatusFrom(status)
+	task.LastStep = migration.StepFrom(lastStep)
+	task.TotalDuration = time.Duration(totalDuration)
+	return &task, nil
 }
 
 func (c *client) PickMigration(ctx context.Context) (*migration.Task, error) {
-	rows, err := c.databaseConnection.QueryContext(ctx, queries.PickMigration)
-	if err != nil {
-		return nil, fmt.Errorf("failed to pick migration from database: %w", err)
+	row := c.databaseConnection.QueryRowContext(ctx, queries.PickMigration)
+	var status, lastStep string
+	var totalDuration int64
+	var task migration.Task
+	err := row.Scan(&task.ID, &status, &lastStep, &task.Builds, &task.Releases, &totalDuration, &task.FromSource, &task.FromOwner, &task.FromName, &task.ToSource, &task.ToOwner, &task.ToName, &task.CallbackURL, &task.QueuedAt, &task.UpdatedAt)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("failed to pick up migration from database %s -> %s: %w", task.FromFQN(), task.ToFQN(), err)
 	}
-	defer closeRows(rows)
-	var e migration.Task
-	for rows.Next() {
-		var status, lastStep string
-		err = rows.Scan(&e.ID, &status, &lastStep, &e.FromSource, &e.FromOwner, &e.FromName, &e.ToSource, &e.ToOwner, &e.ToName, &e.CallbackURL, &e.QueuedAt, &e.UpdatedAt)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan picked up migration from database %s -> %s: %w", e.FromFQN(), e.ToFQN(), err)
-		}
-		e.Status = migration.StatusFrom(status)
-		e.LastStep = migration.StepFrom(lastStep)
-		if rows.Next() {
-			return nil, fmt.Errorf("failed to pick migration from database: more than one migration was picked up")
-		}
-	}
-	return &e, nil
+	task.Status = migration.StatusFrom(status)
+	task.LastStep = migration.StepFrom(lastStep)
+	task.TotalDuration = time.Duration(totalDuration)
+	return &task, nil
 }
 
 func (c *client) UpdateMigration(ctx context.Context, task *migration.Task) error {
@@ -223,13 +252,50 @@ func (c *client) MigrateBuildVersions(ctx context.Context, task *migration.Task)
 	return changes, nil
 }
 
+func (c *client) GetMigrationBuildLogsChanges(ctx context.Context, task *migration.Task) ([]migration.Change, error) {
+	rows, err := c.databaseConnection.QueryContext(ctx, queries.GetMigrationBuildLogsChanges, args(task)...)
+	if err != nil {
+		return nil, fmt.Errorf("failed query to get migration build log changes %s -> %s: %w", task.FromFQN(), task.ToFQN(), err)
+	}
+	changes := make([]migration.Change, 0)
+	defer closeRows(rows)
+	for rows.Next() {
+		var result migration.Change
+		if err := rows.Scan(&result.FromID, &result.ToID); err != nil {
+			return nil, fmt.Errorf("failed to get migration build log changes rows %s -> %s: %w", task.FromFQN(), task.ToFQN(), err)
+		}
+		changes = append(changes, result)
+	}
+	return changes, nil
+}
+func (c *client) GetMigrationReleaseLogsChanges(ctx context.Context, task *migration.Task) ([]migration.Change, error) {
+	rows, err := c.databaseConnection.QueryContext(ctx, queries.GetMigrationReleaseLogsChanges, args(task)...)
+	if err != nil {
+		return nil, fmt.Errorf("failed query to get migration release log changes %s -> %s: %w", task.FromFQN(), task.ToFQN(), err)
+	}
+	changes := make([]migration.Change, 0)
+	defer closeRows(rows)
+	for rows.Next() {
+		var result migration.Change
+		if err := rows.Scan(&result.FromID, &result.ToID); err != nil {
+			return nil, fmt.Errorf("failed to get migration release log changes rows %s -> %s: %w", task.FromFQN(), task.ToFQN(), err)
+		}
+		changes = append(changes, result)
+	}
+	return changes, nil
+}
+
 // logging
 
 func (c *loggingClient) CreateMigrationSchema() (err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "CreateMigrationSchema", err) }()
 	return c.Client.CreateMigrationSchema()
 }
-func (c *loggingClient) QueueMigration(ctx context.Context, task *migration.Task) (err error) {
+func (c *loggingClient) GetMigrationStatus(ctx context.Context, taskID string) (task *migration.Task, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetMigrationStatus", err) }()
+	return c.Client.GetMigrationStatus(ctx, taskID)
+}
+func (c *loggingClient) QueueMigration(ctx context.Context, task *migration.Task) (t *migration.Task, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "QueueMigration", err) }()
 	return c.Client.QueueMigration(ctx, task)
 }
@@ -261,6 +327,14 @@ func (c *loggingClient) MigrateBuildVersions(ctx context.Context, task *migratio
 	defer func() { api.HandleLogError(c.prefix, "Client", "MigrateBuildVersions", err) }()
 	return c.Client.MigrateBuildVersions(ctx, task)
 }
+func (c *loggingClient) GetMigrationBuildLogsChanges(ctx context.Context, task *migration.Task) (changes []migration.Change, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetMigrationBuildLogsChanges", err) }()
+	return c.Client.GetMigrationBuildLogsChanges(ctx, task)
+}
+func (c *loggingClient) GetMigrationReleaseLogsChanges(ctx context.Context, task *migration.Task) (changes []migration.Change, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetMigrationReleaseLogsChanges", err) }()
+	return c.Client.GetMigrationReleaseLogsChanges(ctx, task)
+}
 
 // metrics
 
@@ -268,7 +342,11 @@ func (c *metricsClient) CreateMigrationSchema() (err error) {
 	api.UpdateMetrics(c.requestCount, c.requestLatency, "CreateMigrationSchema", time.Now())
 	return c.Client.CreateMigrationSchema()
 }
-func (c *metricsClient) QueueMigration(ctx context.Context, task *migration.Task) (err error) {
+func (c *metricsClient) GetMigrationStatus(ctx context.Context, taskID string) (task *migration.Task, err error) {
+	api.UpdateMetrics(c.requestCount, c.requestLatency, "GetMigrationStatus", time.Now())
+	return c.Client.GetMigrationStatus(ctx, taskID)
+}
+func (c *metricsClient) QueueMigration(ctx context.Context, task *migration.Task) (t *migration.Task, err error) {
 	api.UpdateMetrics(c.requestCount, c.requestLatency, "QueueMigration", time.Now())
 	return c.Client.QueueMigration(ctx, task)
 }
@@ -301,6 +379,14 @@ func (c *metricsClient) MigrateBuildVersions(ctx context.Context, task *migratio
 	api.UpdateMetrics(c.requestCount, c.requestLatency, "MigrateBuildVersions", time.Now())
 	return c.Client.MigrateBuildVersions(ctx, task)
 }
+func (c *metricsClient) GetMigrationBuildLogsChanges(ctx context.Context, task *migration.Task) (changes []migration.Change, err error) {
+	api.UpdateMetrics(c.requestCount, c.requestLatency, "GetMigrationBuildLogsChanges", time.Now())
+	return c.Client.GetMigrationBuildLogsChanges(ctx, task)
+}
+func (c *metricsClient) GetMigrationReleaseLogsChanges(ctx context.Context, task *migration.Task) (changes []migration.Change, err error) {
+	api.UpdateMetrics(c.requestCount, c.requestLatency, "GetMigrationReleaseLogsChanges", time.Now())
+	return c.Client.GetMigrationReleaseLogsChanges(ctx, task)
+}
 
 // logging
 
@@ -309,7 +395,12 @@ func (c *tracingClient) CreateMigrationSchema() (err error) {
 	defer func() { api.FinishSpanWithError(span, err) }()
 	return c.Client.CreateMigrationSchema()
 }
-func (c *tracingClient) QueueMigration(ctx context.Context, task *migration.Task) (err error) {
+func (c *tracingClient) GetMigrationStatus(ctx context.Context, taskID string) (task *migration.Task, err error) {
+	span := opentracing.StartSpan(api.GetSpanName(c.prefix, "GetMigrationStatus"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+	return c.Client.GetMigrationStatus(ctx, taskID)
+}
+func (c *tracingClient) QueueMigration(ctx context.Context, task *migration.Task) (t *migration.Task, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "QueueMigration"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 	return c.Client.QueueMigration(ctx, task)
@@ -348,6 +439,16 @@ func (c *tracingClient) MigrateBuildLogs(ctx context.Context, task *migration.Ta
 }
 func (c *tracingClient) MigrateBuildVersions(ctx context.Context, task *migration.Task) (changes []migration.Change, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "MigrateBuildVersions"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+	return c.Client.MigrateBuildVersions(ctx, task)
+}
+func (c *tracingClient) GetMigrationBuildLogsChanges(ctx context.Context, task *migration.Task) (changes []migration.Change, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetMigrationBuildLogsChanges"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+	return c.Client.MigrateBuildVersions(ctx, task)
+}
+func (c *tracingClient) GetMigrationReleaseLogsChanges(ctx context.Context, task *migration.Task) (changes []migration.Change, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetMigrationReleaseLogsChanges"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 	return c.Client.MigrateBuildVersions(ctx, task)
 }

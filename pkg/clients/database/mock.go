@@ -10,9 +10,9 @@ import (
 	time "time"
 
 	api "github.com/estafette/estafette-ci-api/pkg/api"
-	migration "github.com/estafette/estafette-ci-api/pkg/migration"
 	estafette_ci_contracts "github.com/estafette/estafette-ci-contracts"
 	estafette_ci_manifest "github.com/estafette/estafette-ci-manifest"
+	migration "github.com/estafette/migration"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -957,6 +957,51 @@ func (m *MockClient) GetLastPipelineReleases(ctx context.Context, repoSource, re
 func (mr *MockClientMockRecorder) GetLastPipelineReleases(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction, pageSize interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastPipelineReleases", reflect.TypeOf((*MockClient)(nil).GetLastPipelineReleases), ctx, repoSource, repoOwner, repoName, releaseName, releaseAction, pageSize)
+}
+
+// GetMigrationBuildLogsChanges mocks base method.
+func (m *MockClient) GetMigrationBuildLogsChanges(ctx context.Context, task *migration.Task) ([]migration.Change, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMigrationBuildLogsChanges", ctx, task)
+	ret0, _ := ret[0].([]migration.Change)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMigrationBuildLogsChanges indicates an expected call of GetMigrationBuildLogsChanges.
+func (mr *MockClientMockRecorder) GetMigrationBuildLogsChanges(ctx, task interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMigrationBuildLogsChanges", reflect.TypeOf((*MockClient)(nil).GetMigrationBuildLogsChanges), ctx, task)
+}
+
+// GetMigrationReleaseLogsChanges mocks base method.
+func (m *MockClient) GetMigrationReleaseLogsChanges(ctx context.Context, task *migration.Task) ([]migration.Change, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMigrationReleaseLogsChanges", ctx, task)
+	ret0, _ := ret[0].([]migration.Change)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMigrationReleaseLogsChanges indicates an expected call of GetMigrationReleaseLogsChanges.
+func (mr *MockClientMockRecorder) GetMigrationReleaseLogsChanges(ctx, task interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMigrationReleaseLogsChanges", reflect.TypeOf((*MockClient)(nil).GetMigrationReleaseLogsChanges), ctx, task)
+}
+
+// GetMigrationStatus mocks base method.
+func (m *MockClient) GetMigrationStatus(ctx context.Context, taskID string) (*migration.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMigrationStatus", ctx, taskID)
+	ret0, _ := ret[0].(*migration.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMigrationStatus indicates an expected call of GetMigrationStatus.
+func (mr *MockClientMockRecorder) GetMigrationStatus(ctx, taskID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMigrationStatus", reflect.TypeOf((*MockClient)(nil).GetMigrationStatus), ctx, taskID)
 }
 
 // GetOrganizationByID mocks base method.
@@ -2238,11 +2283,12 @@ func (mr *MockClientMockRecorder) PickMigration(ctx interface{}) *gomock.Call {
 }
 
 // QueueMigration mocks base method.
-func (m *MockClient) QueueMigration(ctx context.Context, task *migration.Task) error {
+func (m *MockClient) QueueMigration(ctx context.Context, task *migration.Task) (*migration.Task, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "QueueMigration", ctx, task)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(*migration.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // QueueMigration indicates an expected call of QueueMigration.

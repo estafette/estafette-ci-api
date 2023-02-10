@@ -17,23 +17,26 @@ ALTER TABLE releases ADD IF NOT EXISTS migrated_from BIGINT;
 CREATE UNIQUE INDEX IF NOT EXISTS unique_release_log ON release_logs (repo_source, repo_owner, repo_name, inserted_at);
 ALTER TABLE release_logs ADD IF NOT EXISTS migrated_from BIGINT;
 
-CREATE TABLE IF NOT EXISTS migration_queue
+CREATE TABLE IF NOT EXISTS migration_task_queue
 (
-  id            VARCHAR(256)                               NOT NULL CONSTRAINT migration_queue_pk PRIMARY KEY,
-  status        VARCHAR(256)             DEFAULT 'queued'  NOT NULL CONSTRAINT migration_queue_status_check CHECK (status <> ''),
-  last_step     VARCHAR(256)             DEFAULT 'waiting' NOT NULL CONSTRAINT migration_queue_last_step_check CHECK (last_step <> ''),
-  from_source   VARCHAR(256)                               NOT NULL,
-  from_owner    VARCHAR(256)                               NOT NULL,
-  from_name     VARCHAR(256)                               NOT NULL,
-  to_source     VARCHAR(256)                               NOT NULL,
-  to_owner      VARCHAR(256)                               NOT NULL,
-  to_name       VARCHAR(256)                               NOT NULL,
-  callback_url  VARCHAR(256),
-  error_details VARCHAR(256),
-  queued_at     TIMESTAMP WITH TIME ZONE DEFAULT NOW()     NOT NULL,
-  updated_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW()     NOT NULL
+  id             VARCHAR(256)                               NOT NULL CONSTRAINT migration_task_queue_pk PRIMARY KEY,
+  status         VARCHAR(256)             DEFAULT 'queued'  NOT NULL CONSTRAINT migration_task_queue_status_check CHECK (status <> ''),
+  last_step      VARCHAR(256)             DEFAULT 'waiting' NOT NULL CONSTRAINT migration_task_queue_last_step_check CHECK (last_step <> ''),
+  builds         BIGINT,
+  releases       BIGINT,
+  total_duration BIGINT,
+  from_source    VARCHAR(256)                               NOT NULL,
+  from_owner     VARCHAR(256)                               NOT NULL,
+  from_name      VARCHAR(256)                               NOT NULL,
+  to_source      VARCHAR(256)                               NOT NULL,
+  to_owner       VARCHAR(256)                               NOT NULL,
+  to_name        VARCHAR(256)                               NOT NULL,
+  callback_url   VARCHAR(256),
+  error_details  VARCHAR(1024),
+  queued_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()     NOT NULL,
+  updated_at     TIMESTAMP WITH TIME ZONE DEFAULT NOW()     NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS unique_migration_queue ON migration_queue (from_source, from_owner, from_name, to_source, to_owner, to_name);
+CREATE UNIQUE INDEX IF NOT EXISTS unique_migration_task_queue ON migration_task_queue (from_source, from_owner, from_name, to_source, to_owner, to_name);
 
-ALTER TABLE migration_queue OWNER TO root;
+ALTER TABLE migration_task_queue OWNER TO root;

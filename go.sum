@@ -143,6 +143,10 @@ github.com/estafette/estafette-ci-manifest v0.1.201 h1:sv+uNKPxM7yS1IcjluquGBzEj
 github.com/estafette/estafette-ci-manifest v0.1.201/go.mod h1:X7OcRjCdADLWIHlOYQVwHEBF21gZx37rqRDn3xDgPgk=
 github.com/estafette/estafette-foundation v0.0.75 h1:yzdPW96Pa+77Y5PHEj+W3KhGOeQAnDL5lBcxgK4tCXM=
 github.com/estafette/estafette-foundation v0.0.75/go.mod h1:HahWOVjh1PYdN+fPpq1PgYUUhVAdbFFtNw36HVYJXFE=
+github.com/estafette/migration v0.1.0 h1:+jI6KE3oA87JtqitDwRHAFo12PF+9oVJ9vBj2kc9rUQ=
+github.com/estafette/migration v0.1.0/go.mod h1:c2Pge7V2T7O7f1JeA842S48+wRy9T5LuKVB148aeloA=
+github.com/estafette/migration v0.1.1 h1:IycashFHj9Jy31bd2KfbwOSUi4FfmT/xyf59+YCbIEg=
+github.com/estafette/migration v0.1.1/go.mod h1:c2Pge7V2T7O7f1JeA842S48+wRy9T5LuKVB148aeloA=
 github.com/evanphx/json-patch v4.12.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
 github.com/flowstack/go-jsonschema v0.1.1/go.mod h1:yL7fNggx1o8rm9RlgXv7hTBWxdBM0rVwpMwimd3F3N0=
 github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568/go.mod h1:xEzjJPgXI435gkrCt3MPfRiAkVrwSbHsst4LCFVfpJc=

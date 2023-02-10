@@ -1,8 +1,4 @@
-UPDATE migration_task_queue
-SET status = 'in_progress'
-WHERE
-    id IN (SELECT id FROM migration_task_queue WHERE status = 'queued' ORDER BY queued_at ASC LIMIT 1)
-RETURNING
+SELECT
   id,
   status,
   last_step,
@@ -18,4 +14,8 @@ RETURNING
   callback_url,
   error_details,
   queued_at,
-  updated_at;
+  updated_at
+FROM
+  migration_task_queue
+WHERE
+    id IN (SELECT id FROM migration_task_queue WHERE status = 'queued' ORDER BY queued_at ASC LIMIT 1);

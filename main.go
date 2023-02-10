@@ -597,7 +597,9 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	jwtMiddlewareRoutes := routes.Group("/", jwtMiddleware.MiddlewareFunc())
 	{
 		// !! Migration changes !!
-		jwtMiddlewareRoutes.POST("/api/repository/migrate", estafetteHandler.Migrate)
+		// TODO: documentation on how to migrate
+		jwtMiddlewareRoutes.POST("/api/migrate", estafetteHandler.Migrate)
+		jwtMiddlewareRoutes.GET("/api/migrate/:taskID", estafetteHandler.GetMigrationStatus)
 
 		// logged in user endpoints
 		jwtMiddlewareRoutes.GET("/api/me", rbacHandler.GetLoggedInUser)

@@ -10,8 +10,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/estafette/estafette-ci-api/pkg/migration"
 	"github.com/estafette/estafette-ci-api/pkg/services/estafette/migrationpb"
+	"github.com/estafette/migration"
 )
 
 var (
@@ -22,26 +22,29 @@ var (
 
 func (h *Handler) pollMigrationTasks() {
 POLL:
-	time.Sleep(5 * time.Second)
-	if inProgressMigrations.Load() >= concurrentMigrations {
-		goto POLL
+	for {
+		time.Sleep(5 * time.Second)
+		if inProgressMigrations.Load() >= concurrentMigrations {
+			goto POLL
+		}
+		inProgressMigrations.Add(1)
+		// worker function
+		go func() {
+			defer inProgressMigrations.Add(-1)
+			ctx, cancel := context.WithTimeout(context.Background(), migrationTimeout)
+			defer cancel()
+			// this picks the next migration from the queue and puts in_progress atomically
+			task, err := h.databaseClient.PickMigration(ctx)
+			if err != nil {
+				log.Error().Err(err).Msg("Error picking migration from database")
+				return
+			}
+			if task != nil {
+				log.Info().Msgf("Starting migration from %v/%v/%v to %v/%v/%v", task.FromSource, task.FromOwner, task.FromName, task.ToSource, task.ToOwner, task.ToName)
+				h.performMigration(ctx, task)
+			}
+		}()
 	}
-	inProgressMigrations.Add(1)
-	go func() {
-		defer inProgressMigrations.Add(-1)
-		ctx, cancel := context.WithTimeout(context.Background(), migrationTimeout)
-		defer cancel()
-		// this picks the next migration from the queue and puts in_progress atomically
-		task, err := h.databaseClient.PickMigration(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("Error picking migration from database")
-			return
-		}
-		if task != nil {
-			log.Info().Msgf("Starting migration from %v/%v/%v to %v/%v/%v", task.FromSource, task.FromOwner, task.FromName, task.ToSource, task.ToOwner, task.ToName)
-			h.performMigration(ctx, task)
-		}
-	}()
 }
 
 func (h *Handler) performMigration(ctx context.Context, task *migration.Task) {
@@ -65,7 +68,8 @@ func (h *Handler) performMigration(ctx context.Context, task *migration.Task) {
 	if task.LastStep != migration.StepWaiting {
 		// if migration was restarted, skip stages that were already completed
 		for i, stage := range stages {
-			if task.LastStep > stage.Success() {
+			// release
+			if task.LastStep < stage.Success() {
 				stages = stages[i:]
 				break
 			}
@@ -73,7 +77,7 @@ func (h *Handler) performMigration(ctx context.Context, task *migration.Task) {
 	}
 	var failed bool
 	for _, stage := range stages {
-		task.Changes[stage.Name()], failed = stage.Execute(ctx, task)
+		_, failed = stage.Execute(ctx, task)
 		err = h.databaseClient.UpdateMigration(ctx, task)
 		if err != nil {
 			log.Error().Err(err).Msg("Error updating migration status in database")
@@ -100,13 +104,17 @@ func (h *Handler) migrateLogObjects(ctx context.Context, logType migration.LogTy
 	if err != nil {
 		log.Fatal().Msgf("gcsMigratorClient.Migrate failed: %v", err)
 	}
+	// fetch changes from database since in case of migration restart
 	var changes []migration.Change
 	if logType == migration.BuildLog {
-		changes = task.Changes[migration.BuildLogsStage]
+		changes, err = h.databaseClient.GetMigrationBuildLogsChanges(ctx, task)
 	} else if logType == migration.ReleaseLog {
-		changes = task.Changes[migration.ReleaseLogsStage]
+		changes, err = h.databaseClient.GetMigrationReleaseLogsChanges(ctx, task)
 	} else {
 		return nil, fmt.Errorf("invalid logType: %s", logType)
+	}
+	if err != nil {
+		return nil, err
 	}
 	requests := make(map[int64]migration.Change, 0)
 	errs := ""
