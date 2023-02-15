@@ -24,7 +24,9 @@ func (h *Handler) Migrate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "invalid request body"})
 		return
 	}
-	task := &migration.Task{}
+	task := &migration.Task{
+		TaskRequest: request,
+	}
 	if request.Restart != "" {
 		// if restart is true, set status to queued to restart/ resume migration
 		task.Status = migration.StatusQueued
@@ -35,18 +37,19 @@ func (h *Handler) Migrate(c *gin.Context) {
 	if request.ID == "" {
 		request.ID = requestid.Get(c)
 	}
-	task, err = h.databaseClient.QueueMigration(c.Request.Context(), task)
+	var savedTask *migration.Task
+	savedTask, err = h.databaseClient.QueueMigration(c.Request.Context(), task)
 	if err != nil {
 		errorMessage := "Queuing migration failed"
 		log.Error().Err(err).Msg(errorMessage)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		return
 	}
-	if task.UpdatedAt.Sub(task.QueuedAt) > 10 {
-		c.JSON(http.StatusOK, gin.H{"id": request.ID})
+	if savedTask.UpdatedAt.Sub(savedTask.QueuedAt) > 10 {
+		c.JSON(http.StatusOK, savedTask)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"id": request.ID})
+	c.JSON(http.StatusCreated, savedTask)
 }
 
 func (h *Handler) GetMigrationStatus(c *gin.Context) {

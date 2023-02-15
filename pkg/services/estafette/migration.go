@@ -47,6 +47,9 @@ POLL:
 				h.performMigration(workerCtx, task)
 			}(t)
 		}
+		if len(tasks) == 0 {
+			log.Info().Msg("No migration tasks found in database")
+		}
 	}
 }
 
