@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -127,7 +129,8 @@ func (c *client) GetMigrationStatus(ctx context.Context, taskID string) (*migrat
 func (c *client) PickMigration(ctx context.Context, maxTasks int64) ([]*migration.Task, error) {
 	// query selects task with repositories that don't have running build/ release in descending order of queued_at
 	// and puts those tasks in_progress atomically
-	rows, err := c.databaseConnection.QueryContext(ctx, queries.PickMigration, sql.NamedArg{Name: "maxTasks", Value: maxTasks})
+	rows, err := c.databaseConnection.QueryContext(ctx, strings.ReplaceAll(queries.PickMigration, "@maxTasks", strconv.FormatInt(maxTasks, 10)))
+	// for some reason @maxTasks is not working with sql named arguments
 	if err != nil {
 		return nil, fmt.Errorf("failed to pick up migration tasks from database: %w", err)
 	}

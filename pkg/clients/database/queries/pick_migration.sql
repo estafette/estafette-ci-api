@@ -16,7 +16,7 @@ WHERE
               FROM releases r
               WHERE r.release_status = 'running') AND
              mq.status = 'queued'
-           ORDER BY queued_at ASC
+           ORDER BY mq.queued_at ASC
            LIMIT @maxTasks)
 RETURNING
   id,
