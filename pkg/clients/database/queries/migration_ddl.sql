@@ -10,7 +10,7 @@ ALTER TABLE build_logs ADD IF NOT EXISTS migrated_from BIGINT;
 ALTER TABLE build_versions ADD IF NOT EXISTS migrated_from BIGINT;
 
 -- modify releases for migrations
-CREATE UNIQUE INDEX IF NOT EXISTS unique_release ON releases (repo_source, repo_owner, repo_name, started_at);
+CREATE UNIQUE INDEX IF NOT EXISTS unique_release ON releases (repo_source, repo_owner, repo_name, started_at, release);
 ALTER TABLE releases ADD IF NOT EXISTS migrated_from BIGINT;
 
 -- modify release_logs for migrations

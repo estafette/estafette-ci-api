@@ -2268,18 +2268,18 @@ func (mr *MockClientMockRecorder) MigrateReleases(ctx, task interface{}) *gomock
 }
 
 // PickMigration mocks base method.
-func (m *MockClient) PickMigration(ctx context.Context) (*migration.Task, error) {
+func (m *MockClient) PickMigration(ctx context.Context, maxTasks int64) ([]*migration.Task, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PickMigration", ctx)
-	ret0, _ := ret[0].(*migration.Task)
+	ret := m.ctrl.Call(m, "PickMigration", ctx, maxTasks)
+	ret0, _ := ret[0].([]*migration.Task)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // PickMigration indicates an expected call of PickMigration.
-func (mr *MockClientMockRecorder) PickMigration(ctx interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) PickMigration(ctx, maxTasks interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PickMigration", reflect.TypeOf((*MockClient)(nil).PickMigration), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PickMigration", reflect.TypeOf((*MockClient)(nil).PickMigration), ctx, maxTasks)
 }
 
 // QueueMigration mocks base method.

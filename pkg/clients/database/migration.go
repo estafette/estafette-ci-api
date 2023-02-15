@@ -25,7 +25,7 @@ type MigrationDatabaseApi interface {
 	CreateMigrationSchema() error
 	QueueMigration(ctx context.Context, task *migration.Task) (*migration.Task, error)
 	GetMigrationStatus(ctx context.Context, taskID string) (*migration.Task, error)
-	PickMigration(ctx context.Context) (*migration.Task, error)
+	PickMigration(ctx context.Context, maxTasks int64) ([]*migration.Task, error)
 	UpdateMigration(ctx context.Context, task *migration.Task) error
 	MigrateBuilds(ctx context.Context, task *migration.Task) ([]migration.Change, error)
 	MigrateBuildLogs(ctx context.Context, task *migration.Task) ([]migration.Change, error)
@@ -124,19 +124,28 @@ func (c *client) GetMigrationStatus(ctx context.Context, taskID string) (*migrat
 	return &task, nil
 }
 
-func (c *client) PickMigration(ctx context.Context) (*migration.Task, error) {
-	row := c.databaseConnection.QueryRowContext(ctx, queries.PickMigration)
-	var status, lastStep string
-	var totalDuration int64
-	var task migration.Task
-	err := row.Scan(&task.ID, &status, &lastStep, &task.Builds, &task.Releases, &totalDuration, &task.FromSource, &task.FromOwner, &task.FromName, &task.ToSource, &task.ToOwner, &task.ToName, &task.CallbackURL, &task.QueuedAt, &task.UpdatedAt)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("failed to pick up migration from database %s -> %s: %w", task.FromFQN(), task.ToFQN(), err)
+func (c *client) PickMigration(ctx context.Context, maxTasks int64) ([]*migration.Task, error) {
+	// query selects task with repositories that don't have running build/ release in descending order of queued_at
+	// and puts those tasks in_progress atomically
+	rows, err := c.databaseConnection.QueryContext(ctx, queries.PickMigration, sql.NamedArg{Name: "maxTasks", Value: maxTasks})
+	if err != nil {
+		return nil, fmt.Errorf("failed to pick up migration tasks from database: %w", err)
 	}
-	task.Status = migration.StatusFrom(status)
-	task.LastStep = migration.StepFrom(lastStep)
-	task.TotalDuration = time.Duration(totalDuration)
-	return &task, nil
+	var status, lastStep string
+	//var totalDuration int64
+	tasks := make([]*migration.Task, 0)
+	for rows.Next() {
+		var task migration.Task
+		err = rows.Scan(&task.ID, &status, &lastStep, &task.Builds, &task.Releases, &task.TotalDuration, &task.FromSource, &task.FromOwner, &task.FromName, &task.ToSource, &task.ToOwner, &task.ToName, &task.CallbackURL, &task.QueuedAt, &task.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan migration task row from database: %w", err)
+		}
+		task.Status = migration.StatusFrom(status)
+		task.LastStep = migration.StepFrom(lastStep)
+		//task.TotalDuration = time.Duration(totalDuration)
+		tasks = append(tasks, &task)
+	}
+	return tasks, nil
 }
 
 func (c *client) UpdateMigration(ctx context.Context, task *migration.Task) error {
@@ -299,9 +308,9 @@ func (c *loggingClient) QueueMigration(ctx context.Context, task *migration.Task
 	defer func() { api.HandleLogError(c.prefix, "Client", "QueueMigration", err) }()
 	return c.Client.QueueMigration(ctx, task)
 }
-func (c *loggingClient) PickMigration(ctx context.Context) (task *migration.Task, err error) {
+func (c *loggingClient) PickMigration(ctx context.Context, maxTasks int64) (tasks []*migration.Task, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "PickMigration", err) }()
-	return c.Client.PickMigration(ctx)
+	return c.Client.PickMigration(ctx, maxTasks)
 }
 func (c *loggingClient) UpdateMigration(ctx context.Context, task *migration.Task) (err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "UpdateMigration", err) }()
@@ -350,9 +359,9 @@ func (c *metricsClient) QueueMigration(ctx context.Context, task *migration.Task
 	api.UpdateMetrics(c.requestCount, c.requestLatency, "QueueMigration", time.Now())
 	return c.Client.QueueMigration(ctx, task)
 }
-func (c *metricsClient) PickMigration(ctx context.Context) (task *migration.Task, err error) {
+func (c *metricsClient) PickMigration(ctx context.Context, maxTasks int64) (tasks []*migration.Task, err error) {
 	api.UpdateMetrics(c.requestCount, c.requestLatency, "PickMigration", time.Now())
-	return c.Client.PickMigration(ctx)
+	return c.Client.PickMigration(ctx, maxTasks)
 }
 func (c *metricsClient) UpdateMigration(ctx context.Context, task *migration.Task) (err error) {
 	api.UpdateMetrics(c.requestCount, c.requestLatency, "UpdateMigration", time.Now())
@@ -405,10 +414,10 @@ func (c *tracingClient) QueueMigration(ctx context.Context, task *migration.Task
 	defer func() { api.FinishSpanWithError(span, err) }()
 	return c.Client.QueueMigration(ctx, task)
 }
-func (c *tracingClient) PickMigration(ctx context.Context) (task *migration.Task, err error) {
+func (c *tracingClient) PickMigration(ctx context.Context, maxTasks int64) (tasks []*migration.Task, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "PickMigration"))
 	defer func() { api.FinishSpanWithError(span, err) }()
-	return c.Client.PickMigration(ctx)
+	return c.Client.PickMigration(ctx, maxTasks)
 }
 
 func (c *tracingClient) UpdateMigration(ctx context.Context, task *migration.Task) (err error) {

@@ -15,35 +15,38 @@ import (
 )
 
 var (
-	concurrentMigrations int64 = 10
-	inProgressMigrations       = &atomic.Int64{}
-	migrationTimeout           = 10 * time.Minute
+	maximumParallelMigrations int64 = 10
+	inProgressMigrations            = &atomic.Int64{}
+	migrationTimeout                = 10 * time.Minute
+	pollingInterval                 = 10 * time.Second
 )
 
 func (h *Handler) pollMigrationTasks() {
+	ctx := context.Background()
 POLL:
 	for {
-		time.Sleep(5 * time.Second)
-		if inProgressMigrations.Load() >= concurrentMigrations {
+		time.Sleep(pollingInterval)
+		maxTasks := maximumParallelMigrations - inProgressMigrations.Load()
+		if maxTasks < 1 {
 			goto POLL
 		}
-		inProgressMigrations.Add(1)
-		// worker function
-		go func() {
-			defer inProgressMigrations.Add(-1)
-			ctx, cancel := context.WithTimeout(context.Background(), migrationTimeout)
-			defer cancel()
-			// this picks the next migration from the queue and puts in_progress atomically
-			task, err := h.databaseClient.PickMigration(ctx)
-			if err != nil {
-				log.Error().Err(err).Msg("Error picking migration from database")
-				return
-			}
-			if task != nil {
+		// this picks the next migration tasks from queue
+		tasks, err := h.databaseClient.PickMigration(ctx, maxTasks)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Error picking migration from database")
+			return
+		}
+		for _, t := range tasks {
+			inProgressMigrations.Add(1)
+			// worker function
+			go func(task *migration.Task) {
+				defer inProgressMigrations.Add(-1)
+				workerCtx, cancel := context.WithTimeout(context.Background(), migrationTimeout)
+				defer cancel()
 				log.Info().Msgf("Starting migration from %v/%v/%v to %v/%v/%v", task.FromSource, task.FromOwner, task.FromName, task.ToSource, task.ToOwner, task.ToName)
-				h.performMigration(ctx, task)
-			}
-		}()
+				h.performMigration(workerCtx, task)
+			}(t)
+		}
 	}
 }
 

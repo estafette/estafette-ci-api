@@ -1,7 +1,23 @@
 UPDATE migration_task_queue
 SET status = 'in_progress'
 WHERE
-    id IN (SELECT id FROM migration_task_queue WHERE status = 'queued' ORDER BY queued_at ASC LIMIT 1)
+    id IN (SELECT
+             mq.id AS id
+           FROM
+             migration_task_queue AS mq
+           WHERE
+             mq.status = 'queued' AND
+             CONCAT(mq.from_source, mq.from_owner, mq.from_name) NOT IN
+             (SELECT DISTINCT CONCAT(b.repo_source, b.repo_owner, b.repo_name)
+              FROM builds b
+              WHERE b.build_status = 'running') AND
+             CONCAT(mq.from_source, mq.from_owner, mq.from_name) NOT IN
+             (SELECT DISTINCT CONCAT(r.repo_source, r.repo_owner, r.repo_name)
+              FROM releases r
+              WHERE r.release_status = 'running') AND
+             mq.status = 'queued'
+           ORDER BY queued_at ASC
+           LIMIT @maxTasks)
 RETURNING
   id,
   status,
