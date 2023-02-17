@@ -5,6 +5,14 @@ import (
 )
 
 var (
+	//go:embed get_migration_release_logs_changes.sql
+	GetMigrationReleaseLogsChanges string
+	//go:embed get_migration_build_logs_changes.sql
+	GetMigrationBuildLogsChanges string
+	//go:embed get_migration_status.sql
+	GetMigrationStatus string
+	//go:embed mark_repository_archived.sql
+	MarkRepositoryArchived string
 	//go:embed migrate_build_logs.sql
 	MigrateBuildLogs string
 	//go:embed migrate_build_versions.sql
@@ -23,10 +31,4 @@ var (
 	QueueMigration string
 	//go:embed update_migration.sql
 	UpdateMigration string
-	//go:embed get_migration_status.sql
-	GetMigrationStatus string
-	//go:embed get_migration_build_logs_changes.sql
-	GetMigrationBuildLogsChanges string
-	//go:embed get_migration_release_logs_changes.sql
-	GetMigrationReleaseLogsChanges string
 )

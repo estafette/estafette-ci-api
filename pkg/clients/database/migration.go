@@ -137,6 +137,7 @@ func (c *client) PickMigration(ctx context.Context, maxTasks int64) ([]*migratio
 	var status, lastStep string
 	//var totalDuration int64
 	tasks := make([]*migration.Task, 0)
+	pickedRepos := make([]string, 0)
 	for rows.Next() {
 		var task migration.Task
 		err = rows.Scan(&task.ID, &status, &lastStep, &task.Builds, &task.Releases, &task.TotalDuration, &task.FromSource, &task.FromOwner, &task.FromName, &task.ToSource, &task.ToOwner, &task.ToName, &task.CallbackURL, &task.QueuedAt, &task.UpdatedAt)
@@ -147,6 +148,11 @@ func (c *client) PickMigration(ctx context.Context, maxTasks int64) ([]*migratio
 		task.LastStep = migration.StepFrom(lastStep)
 		//task.TotalDuration = time.Duration(totalDuration)
 		tasks = append(tasks, &task)
+		pickedRepos = append(pickedRepos, task.FromFQN())
+	}
+	_, err = c.databaseConnection.ExecContext(ctx, queries.MarkRepositoryArchived, sql.NamedArg{Name: "pickedRepos", Value: pickedRepos})
+	if err != nil {
+		return nil, fmt.Errorf("failed to mark repositories as archived: %w", err)
 	}
 	return tasks, nil
 }
