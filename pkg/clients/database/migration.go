@@ -128,9 +128,13 @@ func (c *client) GetMigrationStatus(ctx context.Context, taskID string) (*migrat
 }
 
 func (c *client) PickMigration(ctx context.Context, maxTasks int64) ([]*migration.Task, error) {
+	tx, err := c.databaseConnection.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start transcation for picking up migration tasks: %w", err)
+	}
 	// query selects task with repositories that don't have running build/ release in descending order of queued_at
 	// and puts those tasks in_progress atomically
-	rows, err := c.databaseConnection.QueryContext(ctx, strings.ReplaceAll(queries.PickMigration, "@maxTasks", strconv.FormatInt(maxTasks, 10)))
+	rows, err := tx.QueryContext(ctx, strings.ReplaceAll(queries.PickMigration, "@maxTasks", strconv.FormatInt(maxTasks, 10)))
 	// for some reason @maxTasks is not working with sql named arguments
 	if err != nil {
 		return nil, fmt.Errorf("failed to pick up migration tasks from database: %w", err)
@@ -151,11 +155,13 @@ func (c *client) PickMigration(ctx context.Context, maxTasks int64) ([]*migratio
 		tasks = append(tasks, &task)
 		pickedRepos = append(pickedRepos, task.FromFQN())
 	}
-	_, err = c.databaseConnection.ExecContext(ctx, queries.MarkRepositoryArchived, sql.NamedArg{Name: "pickedRepos", Value: pq.Array(pickedRepos)})
-	if err != nil {
-		return nil, fmt.Errorf("failed to mark repositories as archived: %w", err)
+	if len(pickedRepos) > 0 {
+		_, err = tx.ExecContext(ctx, queries.MarkRepositoryArchived, sql.NamedArg{Name: "pickedRepos", Value: pq.Array(pickedRepos)})
+		if err != nil {
+			return nil, fmt.Errorf("failed to mark repositories as archived: %w", err)
+		}
 	}
-	return tasks, nil
+	return tasks, tx.Commit()
 }
 
 func (c *client) UpdateMigration(ctx context.Context, task *migration.Task) error {
