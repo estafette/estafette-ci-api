@@ -10,12 +10,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lib/pq"
+	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/database/queries"
 	"github.com/estafette/migration"
-	"github.com/opentracing/opentracing-go"
 )
 
 var (
@@ -150,7 +151,7 @@ func (c *client) PickMigration(ctx context.Context, maxTasks int64) ([]*migratio
 		tasks = append(tasks, &task)
 		pickedRepos = append(pickedRepos, task.FromFQN())
 	}
-	_, err = c.databaseConnection.ExecContext(ctx, queries.MarkRepositoryArchived, sql.NamedArg{Name: "pickedRepos", Value: pickedRepos})
+	_, err = c.databaseConnection.ExecContext(ctx, queries.MarkRepositoryArchived, sql.NamedArg{Name: "pickedRepos", Value: pq.Array(pickedRepos)})
 	if err != nil {
 		return nil, fmt.Errorf("failed to mark repositories as archived: %w", err)
 	}
