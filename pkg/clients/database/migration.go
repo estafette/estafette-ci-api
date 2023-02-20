@@ -90,7 +90,7 @@ func (c *client) CreateMigrationSchema() error {
 
 func (c *client) QueueMigration(ctx context.Context, taskToQueue *migration.Task) (*migration.Task, error) {
 	if taskToQueue.ID == "" {
-		return nil, fmt.Errorf("failed to queue migration requestID: %s %s -> %s: missing task id, should have been genereted if client did't send existing", taskToQueue.ID, taskToQueue.FromFQN(), taskToQueue.ToFQN())
+		return nil, fmt.Errorf("failed to queue migration requestID: %s, %s -> %s: missing task id, should have been genereted if client did't send existing", taskToQueue.ID, taskToQueue.FromFQN(), taskToQueue.ToFQN())
 	}
 	row := c.databaseConnection.QueryRowContext(ctx, queries.QueueMigration, args(taskToQueue)...)
 	var status, lastStep string

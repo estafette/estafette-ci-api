@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
@@ -35,7 +35,7 @@ func (h *Handler) Migrate(c *gin.Context) {
 		}
 	}
 	if request.ID == "" {
-		request.ID = requestid.Get(c)
+		request.ID = uuid.New().String()
 	}
 	var savedTask *migration.Task
 	savedTask, err = h.databaseClient.QueueMigration(c.Request.Context(), task)

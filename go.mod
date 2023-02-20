@@ -16,7 +16,6 @@ require (
 	github.com/estafette/migration v0.1.1
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/gin-contrib/gzip v0.0.5
-	github.com/gin-contrib/requestid v0.0.6
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-kit/kit v0.12.0
 	github.com/golang-jwt/jwt/v4 v4.4.1
