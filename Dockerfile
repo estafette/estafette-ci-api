@@ -6,7 +6,7 @@ FROM alpine:3.17
 LABEL maintainer="estafette.io" \
       description="The ${ESTAFETTE_GIT_NAME} is the component that handles api requests and starts build jobs using the estafette-ci-builder"
 
-RUN apk add bash procps
+RUN apk --no-cache update && apk upgrade && apk add bash procps && rm -rf /var/cache/apk/*
 
 COPY ca-certificates.crt /etc/ssl/certs/
 COPY publish/${ESTAFETTE_GIT_NAME} /
