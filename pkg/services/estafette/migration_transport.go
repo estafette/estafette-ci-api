@@ -45,6 +45,7 @@ func (h *Handler) Migrate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		return
 	}
+	log.Info().Msgf("Queued migration %s", savedTask.ID)
 	if savedTask.UpdatedAt.Sub(savedTask.QueuedAt) > 10 {
 		c.JSON(http.StatusOK, savedTask)
 		return

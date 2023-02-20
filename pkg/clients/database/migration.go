@@ -45,7 +45,6 @@ func args(m *migration.Task) []any {
 		sql.NamedArg{Name: "id", Value: m.ID},
 		sql.NamedArg{Name: "status", Value: m.Status.String()},
 		sql.NamedArg{Name: "lastStep", Value: m.LastStep.String()},
-		sql.NamedArg{Name: "lastStep", Value: m.LastStep.String()},
 		sql.NamedArg{Name: "builds", Value: m.Builds},
 		sql.NamedArg{Name: "releases", Value: m.Releases},
 		sql.NamedArg{Name: "totalDuration", Value: m.TotalDuration},
@@ -97,8 +96,8 @@ func (c *client) QueueMigration(ctx context.Context, taskToQueue *migration.Task
 	var task migration.Task
 	var totalDuration int64
 	err := row.Scan(&task.ID, &status, &lastStep, &task.Builds, &task.Releases, &totalDuration, &task.FromSource, &task.FromOwner, &task.FromName, &task.ToSource, &task.ToOwner, &task.ToName, &task.CallbackURL, &task.ErrorDetails, &task.QueuedAt, &task.UpdatedAt)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("failed to queue migration xrequestID: %s %s -> %s: %w", task.ID, task.FromFQN(), task.ToFQN(), err)
+	if err != nil {
+		return nil, fmt.Errorf("failed to queue migration requestID: %s %s -> %s: %w", task.ID, task.FromFQN(), task.ToFQN(), err)
 	}
 	task.Status = migration.StatusFrom(status)
 	task.LastStep = migration.StepFrom(lastStep)
