@@ -6,6 +6,7 @@ info:
 paths:
   /api/auth/client/login:
     post:
+      operationId: authentication
       description: Authenticate with client id and secret
       requestBody:
         content:
@@ -25,6 +26,7 @@ paths:
           description: Unauthorized
   /api/migrate:
     post:
+      operationId: QueueMigration
       description: Queue migration task
       security:
         - bearerAuth: []
@@ -60,6 +62,7 @@ paths:
                 message: Queuing migration failed
   /api/migrate/{taskID}:
     get:
+      operationId: GetMigrationStatus
       description: Get status of migration task
       security:
         - bearerAuth: []
@@ -78,6 +81,44 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MigrateResponse'
+        '404':
+          description: task was not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: Not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 500
+                message: Failed to get migration status
+    delete:
+      operationId: RollbackMigration
+      description: Rollback status of migration task
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskID
+          in: path
+          description: ID of the task
+          required: true
+          schema:
+            type: string
+          example: abc-123
+      responses:
+        '200':
+          description: Successfully rolledback migration, rollback entities count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RollbackResponse'
         '404':
           description: task was not found
           content:
@@ -171,6 +212,7 @@ components:
             - build_logs
             - build_log_objects
             - build_versions
+            - computed_tables
             - callback
     MigrateResponse:
       allOf:
@@ -208,6 +250,8 @@ components:
                 - build_log_objects_done
                 - build_versions_failed
                 - build_versions_done
+                - computed_tables_failed
+                - computed_tables_done
                 - callback_failed
                 - callback_done
             builds:
@@ -224,3 +268,17 @@ components:
             startedAt:
               type: string
               format: date-time
+    RollbackResponse:
+        type: object
+        additionalProperties: false
+        properties:
+           releases:
+             type: integer
+           releaseLogs:
+             type: integer
+           builds:
+             type: integer
+           buildLogs:
+             type: integer
+           buildVersions:
+             type: integer
