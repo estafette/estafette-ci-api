@@ -628,9 +628,11 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	jwtMiddlewareRoutes := routes.Group("/", jwtMiddleware.MiddlewareFunc())
 	{
 		// !! Migration changes !!
-		jwtMiddlewareRoutes.POST("/api/migrate", estafetteHandler.Migrate)
-		jwtMiddlewareRoutes.GET("/api/migrate/:taskID", estafetteHandler.GetMigrationStatus)
-		jwtMiddlewareRoutes.DELETE("/api/migrate/:taskID", estafetteHandler.RollbackMigration)
+		jwtMiddlewareRoutes.POST("/api/migration", estafetteHandler.QueueMigration)
+		jwtMiddlewareRoutes.GET("/api/migration", estafetteHandler.GetAllMigrationsShort)
+		jwtMiddlewareRoutes.GET("/api/migration/from/:source/:owner/:name", estafetteHandler.GetMigrationByFromRepo)
+		jwtMiddlewareRoutes.GET("/api/migration/:taskID", estafetteHandler.GetMigrationByID)
+		jwtMiddlewareRoutes.DELETE("/api/migration/:taskID", estafetteHandler.RollbackMigration)
 
 		// logged in user endpoints
 		jwtMiddlewareRoutes.GET("/api/me", rbacHandler.GetLoggedInUser)

@@ -165,6 +165,21 @@ func (mr *MockClientMockRecorder) DeleteUser(ctx, user interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockClient)(nil).DeleteUser), ctx, user)
 }
 
+// GetAllMigrationsShort mocks base method.
+func (m *MockClient) GetAllMigrationsShort(ctx context.Context) ([]*migration.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllMigrationsShort", ctx)
+	ret0, _ := ret[0].([]*migration.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllMigrationsShort indicates an expected call of GetAllMigrationsShort.
+func (mr *MockClientMockRecorder) GetAllMigrationsShort(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllMigrationsShort", reflect.TypeOf((*MockClient)(nil).GetAllMigrationsShort), ctx)
+}
+
 // GetAllNotifications mocks base method.
 func (m *MockClient) GetAllNotifications(ctx context.Context, pageNumber, pageSize int, filters map[api.FilterType][]string, sortings []api.OrderField) ([]*estafette_ci_contracts.NotificationRecord, error) {
 	m.ctrl.T.Helper()
@@ -975,19 +990,34 @@ func (mr *MockClientMockRecorder) GetMigratedReleaseLogs(ctx, task interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMigratedReleaseLogs", reflect.TypeOf((*MockClient)(nil).GetMigratedReleaseLogs), ctx, task)
 }
 
-// GetMigrationStatus mocks base method.
-func (m *MockClient) GetMigrationStatus(ctx context.Context, taskID string) (*migration.Task, error) {
+// GetMigrationByFromRepo mocks base method.
+func (m *MockClient) GetMigrationByFromRepo(ctx context.Context, fromSource, fromOwner, fromName string) (*migration.Task, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMigrationStatus", ctx, taskID)
+	ret := m.ctrl.Call(m, "GetMigrationByFromRepo", ctx, fromSource, fromOwner, fromName)
 	ret0, _ := ret[0].(*migration.Task)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetMigrationStatus indicates an expected call of GetMigrationStatus.
-func (mr *MockClientMockRecorder) GetMigrationStatus(ctx, taskID interface{}) *gomock.Call {
+// GetMigrationByFromRepo indicates an expected call of GetMigrationByFromRepo.
+func (mr *MockClientMockRecorder) GetMigrationByFromRepo(ctx, fromSource, fromOwner, fromName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMigrationStatus", reflect.TypeOf((*MockClient)(nil).GetMigrationStatus), ctx, taskID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMigrationByFromRepo", reflect.TypeOf((*MockClient)(nil).GetMigrationByFromRepo), ctx, fromSource, fromOwner, fromName)
+}
+
+// GetMigrationByID mocks base method.
+func (m *MockClient) GetMigrationByID(ctx context.Context, taskID string) (*migration.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMigrationByID", ctx, taskID)
+	ret0, _ := ret[0].(*migration.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMigrationByID indicates an expected call of GetMigrationByID.
+func (mr *MockClientMockRecorder) GetMigrationByID(ctx, taskID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMigrationByID", reflect.TypeOf((*MockClient)(nil).GetMigrationByID), ctx, taskID)
 }
 
 // GetOrganizationByID mocks base method.

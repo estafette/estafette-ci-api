@@ -13,7 +13,7 @@ import (
 	"github.com/estafette/migration"
 )
 
-func (h *Handler) Migrate(c *gin.Context) {
+func (h *Handler) QueueMigration(c *gin.Context) {
 	if !api.RequestTokenIsValid(c) {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusText(http.StatusUnauthorized), "message": "JWT is invalid"})
 		return
@@ -21,7 +21,7 @@ func (h *Handler) Migrate(c *gin.Context) {
 	var request migration.Request
 	err := c.BindJSON(&request)
 	if err != nil {
-		log.Error().Err(err).Msg("Binding Migrate body failed")
+		log.Error().Err(err).Msg("Binding QueueMigration body failed")
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": "invalid request body"})
 		return
 	}
@@ -60,14 +60,14 @@ func (h *Handler) Migrate(c *gin.Context) {
 	c.JSON(http.StatusCreated, savedTask)
 }
 
-func (h *Handler) GetMigrationStatus(c *gin.Context) {
+func (h *Handler) GetMigrationByID(c *gin.Context) {
 	taskID := c.Param("taskID")
 	if taskID == "" {
 		errorMessage := "taskID path parameter is required"
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
 	}
-	task, err := h.databaseClient.GetMigrationStatus(c.Request.Context(), taskID)
+	task, err := h.databaseClient.GetMigrationByID(c.Request.Context(), taskID)
 	if err != nil {
 		errorMessage := "Failed to get migration status"
 		log.Error().Err(err).Msg(errorMessage)
@@ -88,7 +88,7 @@ func (h *Handler) RollbackMigration(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
 		return
 	}
-	task, err := h.databaseClient.GetMigrationStatus(c.Request.Context(), taskID)
+	task, err := h.databaseClient.GetMigrationByID(c.Request.Context(), taskID)
 	if err != nil {
 		errorMessage := "Failed to get migration for taskID: " + taskID
 		log.Error().Err(err).Msg(errorMessage)
@@ -107,4 +107,54 @@ func (h *Handler) RollbackMigration(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, changes)
+}
+
+func (h *Handler) GetMigrationByFromRepo(c *gin.Context) {
+	source := c.Param("source")
+	owner := c.Param("owner")
+	name := c.Param("name")
+	if source == "" || owner == "" || name == "" {
+		errorMessage := ""
+		if source == "" {
+			errorMessage = "source"
+		}
+		if owner == "" {
+			if errorMessage != "" {
+				errorMessage += ", "
+			}
+			errorMessage += "owner"
+		}
+		if name == "" {
+			if errorMessage != "" {
+				errorMessage += ", "
+			}
+			errorMessage += "name"
+		}
+		errorMessage += " path parameters are required"
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+	task, err := h.databaseClient.GetMigrationByFromRepo(c.Request.Context(), source, owner, name)
+	if err != nil {
+		if errors.Is(err, database.ErrMigrationNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": err.Error()})
+			return
+		}
+		errorMessage := "Failed to migration"
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+	c.JSON(http.StatusOK, task)
+}
+
+func (h *Handler) GetAllMigrationsShort(c *gin.Context) {
+	tasks, err := h.databaseClient.GetAllMigrationsShort(c.Request.Context())
+	if err != nil {
+		errorMessage := "Failed to get all migration"
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+	c.JSON(http.StatusOK, tasks)
 }
