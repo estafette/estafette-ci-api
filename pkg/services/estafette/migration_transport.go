@@ -158,3 +158,56 @@ func (h *Handler) GetAllMigrationsShort(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, tasks)
 }
+
+func (h *Handler) GetMigratedBuild(c *gin.Context) {
+	buildID := c.Param("buildID")
+	if buildID == "" {
+		errorMessage := "buildID path parameter is required"
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+	build, err := h.databaseClient.GetMigratedBuild(c.Request.Context(), buildID)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to get migrated build")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+	if build == nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": fmt.Sprintf("no migrated build with id '%s'", buildID)})
+		return
+	}
+	// obfuscate all secrets
+	build.Manifest, err = h.obfuscateSecrets(build.Manifest)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed obfuscating secrets")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+	build.ManifestWithDefaults, err = h.obfuscateSecrets(build.ManifestWithDefaults)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed obfuscating secrets")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+	c.JSON(http.StatusOK, build)
+}
+
+func (h *Handler) GetMigratedRelease(c *gin.Context) {
+	releaseID := c.Param("releaseID")
+	if releaseID == "" {
+		errorMessage := "releaseID path parameter is required"
+		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
+		return
+	}
+	release, err := h.databaseClient.GetMigratedRelease(c.Request.Context(), releaseID)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to get migrated release")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+	if release == nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": fmt.Sprintf("no migrated release with id '%s'", releaseID)})
+		return
+	}
+	c.JSON(http.StatusOK, release)
+}

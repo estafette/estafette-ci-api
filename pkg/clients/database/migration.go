@@ -17,6 +17,7 @@ import (
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/database/queries"
+	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/estafette/migration"
 )
 
@@ -29,6 +30,8 @@ var (
 
 type MigrationDatabaseApi interface {
 	GetAllMigrationsShort(ctx context.Context) ([]*migration.Task, error)
+	GetMigratedBuild(ctx context.Context, buildID string) (*contracts.Build, error)
+	GetMigratedRelease(ctx context.Context, buildID string) (*contracts.Release, error)
 	GetMigratedBuildLogs(ctx context.Context, task *migration.Task) ([]migration.Change, error)
 	GetMigratedReleaseLogs(ctx context.Context, task *migration.Task) ([]migration.Change, error)
 	GetMigrationByFromRepo(ctx context.Context, fromSource, fromOwner, fromName string) (*migration.Task, error)
@@ -50,6 +53,32 @@ func _CloseRows(rows *sql.Rows) {
 	if err != nil {
 		log.Error().Err(err).Msg("failed to close rows")
 	}
+}
+
+func (c *client) GetMigratedBuild(ctx context.Context, buildID string) (*contracts.Build, error) {
+	query, args := queries.GetMigratedBuild(sql.NamedArg{Name: "id", Value: buildID})
+	row := c.databaseConnection.QueryRowContext(ctx, query, args...)
+	build, err := c.scanBuild(ctx, row, true, false)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get migrated build %v: %w", buildID, err)
+	}
+	return build, nil
+}
+
+func (c *client) GetMigratedRelease(ctx context.Context, buildID string) (*contracts.Release, error) {
+	query, args := queries.GetMigratedRelease(sql.NamedArg{Name: "id", Value: buildID})
+	row := c.databaseConnection.QueryRowContext(ctx, query, args...)
+	release, err := c.scanRelease(row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get migrated release %v: %w", buildID, err)
+	}
+	return release, nil
 }
 
 func (c *client) GetAllMigrationsShort(ctx context.Context) ([]*migration.Task, error) {
@@ -439,6 +468,14 @@ func (c *loggingClient) UpdateMigration(ctx context.Context, task *migration.Tas
 	defer func() { api.HandleLogError(c.prefix, "Client", "UpdateMigration", err) }()
 	return c.Client.UpdateMigration(ctx, task)
 }
+func (c *loggingClient) GetMigratedBuild(ctx context.Context, buildID string) (build *contracts.Build, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetMigratedBuild", err) }()
+	return c.Client.GetMigratedBuild(ctx, buildID)
+}
+func (c *loggingClient) GetMigratedRelease(ctx context.Context, releaseID string) (release *contracts.Release, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetMigratedRelease", err) }()
+	return c.Client.GetMigratedRelease(ctx, releaseID)
+}
 
 //metrics
 
@@ -501,6 +538,14 @@ func (c *metricsClient) RollbackMigration(ctx context.Context, task *migration.T
 func (c *metricsClient) UpdateMigration(ctx context.Context, task *migration.Task) (err error) {
 	api.UpdateMetrics(c.requestCount, c.requestLatency, "UpdateMigration", time.Now())
 	return c.Client.UpdateMigration(ctx, task)
+}
+func (c *metricsClient) GetMigratedBuild(ctx context.Context, buildID string) (build *contracts.Build, err error) {
+	api.UpdateMetrics(c.requestCount, c.requestLatency, "GetMigratedBuild", time.Now())
+	return c.Client.GetMigratedBuild(ctx, buildID)
+}
+func (c *metricsClient) GetMigratedRelease(ctx context.Context, releaseID string) (release *contracts.Release, err error) {
+	api.UpdateMetrics(c.requestCount, c.requestLatency, "GetMigratedRelease", time.Now())
+	return c.Client.GetMigratedRelease(ctx, releaseID)
 }
 
 // logging
@@ -579,4 +624,14 @@ func (c *tracingClient) UpdateMigration(ctx context.Context, task *migration.Tas
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "UpdateMigration"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 	return c.Client.UpdateMigration(ctx, task)
+}
+func (c *tracingClient) GetMigratedBuild(ctx context.Context, buildID string) (build *contracts.Build, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetMigratedBuild"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+	return c.Client.GetMigratedBuild(ctx, buildID)
+}
+func (c *tracingClient) GetMigratedRelease(ctx context.Context, releaseID string) (release *contracts.Release, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetMigratedRelease"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+	return c.Client.GetMigratedRelease(ctx, releaseID)
 }

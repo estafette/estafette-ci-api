@@ -960,6 +960,21 @@ func (mr *MockClientMockRecorder) GetLastPipelineReleases(ctx, repoSource, repoO
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastPipelineReleases", reflect.TypeOf((*MockClient)(nil).GetLastPipelineReleases), ctx, repoSource, repoOwner, repoName, releaseName, releaseAction, pageSize)
 }
 
+// GetMigratedBuild mocks base method.
+func (m *MockClient) GetMigratedBuild(ctx context.Context, buildID string) (*estafette_ci_contracts.Build, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMigratedBuild", ctx, buildID)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Build)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMigratedBuild indicates an expected call of GetMigratedBuild.
+func (mr *MockClientMockRecorder) GetMigratedBuild(ctx, buildID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMigratedBuild", reflect.TypeOf((*MockClient)(nil).GetMigratedBuild), ctx, buildID)
+}
+
 // GetMigratedBuildLogs mocks base method.
 func (m *MockClient) GetMigratedBuildLogs(ctx context.Context, task *migration.Task) ([]migration.Change, error) {
 	m.ctrl.T.Helper()
@@ -973,6 +988,21 @@ func (m *MockClient) GetMigratedBuildLogs(ctx context.Context, task *migration.T
 func (mr *MockClientMockRecorder) GetMigratedBuildLogs(ctx, task interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMigratedBuildLogs", reflect.TypeOf((*MockClient)(nil).GetMigratedBuildLogs), ctx, task)
+}
+
+// GetMigratedRelease mocks base method.
+func (m *MockClient) GetMigratedRelease(ctx context.Context, buildID string) (*estafette_ci_contracts.Release, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMigratedRelease", ctx, buildID)
+	ret0, _ := ret[0].(*estafette_ci_contracts.Release)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMigratedRelease indicates an expected call of GetMigratedRelease.
+func (mr *MockClientMockRecorder) GetMigratedRelease(ctx, buildID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMigratedRelease", reflect.TypeOf((*MockClient)(nil).GetMigratedRelease), ctx, buildID)
 }
 
 // GetMigratedReleaseLogs mocks base method.

@@ -21,10 +21,14 @@ var (
 	checkExistingMigration string
 	//go:embed get_all_migrations_short.sql
 	getAllMigrationsShort string
+	//go:embed get_migrated_build.sql
+	getMigratedBuild string
 	//go:embed get_migrated_build_logs.sql
 	getMigratedBuildLogs string
 	//go:embed get_migrated_builds_count.sql
 	getMigratedBuildsCount string
+	//go:embed get_migrated_release.sql
+	getMigratedRelease string
 	//go:embed get_migrated_release_logs.sql
 	getMigratedReleaseLogs string
 	//go:embed get_migrated_releases_count.sql
@@ -102,6 +106,13 @@ func GetAllMigrationsShort(namedArg ...sql.NamedArg) (string, []interface{}) {
 	return Prepare(getAllMigrationsShort, namedArg)
 }
 
+// GetMigratedBuild prepares a query for execution by replacing named parameters with positional parameters.
+// Required NamedArg
+//   - id
+func GetMigratedBuild(namedArg ...sql.NamedArg) (string, []interface{}) {
+	return Prepare(getMigratedBuild, namedArg)
+}
+
 // GetMigratedBuildLogs prepares a query for execution by replacing named parameters with positional parameters.
 // Required NamedArg
 //   - toName
@@ -118,6 +129,13 @@ func GetMigratedBuildLogs(namedArg ...sql.NamedArg) (string, []interface{}) {
 //   - toSource
 func GetMigratedBuildsCount(namedArg ...sql.NamedArg) (string, []interface{}) {
 	return Prepare(getMigratedBuildsCount, namedArg)
+}
+
+// GetMigratedRelease prepares a query for execution by replacing named parameters with positional parameters.
+// Required NamedArg
+//   - id
+func GetMigratedRelease(namedArg ...sql.NamedArg) (string, []interface{}) {
+	return Prepare(getMigratedRelease, namedArg)
 }
 
 // GetMigratedReleaseLogs prepares a query for execution by replacing named parameters with positional parameters.

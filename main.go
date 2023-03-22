@@ -628,11 +628,13 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	jwtMiddlewareRoutes := routes.Group("/", jwtMiddleware.MiddlewareFunc())
 	{
 		// !! Migration changes !!
-		jwtMiddlewareRoutes.POST("/api/migration", estafetteHandler.QueueMigration)
-		jwtMiddlewareRoutes.GET("/api/migration", estafetteHandler.GetAllMigrationsShort)
-		jwtMiddlewareRoutes.GET("/api/migration/from/:source/:owner/:name", estafetteHandler.GetMigrationByFromRepo)
-		jwtMiddlewareRoutes.GET("/api/migration/:taskID", estafetteHandler.GetMigrationByID)
-		jwtMiddlewareRoutes.DELETE("/api/migration/:taskID", estafetteHandler.RollbackMigration)
+		jwtMiddlewareRoutes.POST("/api/migrations", estafetteHandler.QueueMigration)
+		jwtMiddlewareRoutes.GET("/api/migrations", estafetteHandler.GetAllMigrationsShort)
+		jwtMiddlewareRoutes.GET("/api/migrations/from/:source/:owner/:name", estafetteHandler.GetMigrationByFromRepo)
+		jwtMiddlewareRoutes.GET("/api/migrations/:taskID", estafetteHandler.GetMigrationByID)
+		jwtMiddlewareRoutes.DELETE("/api/migrations/:taskID", estafetteHandler.RollbackMigration)
+		jwtMiddlewareRoutes.DELETE("/api/migrations/builds/:buildID", estafetteHandler.GetMigratedBuild)
+		jwtMiddlewareRoutes.DELETE("/api/migrations/releases/:releaseID", estafetteHandler.GetMigratedRelease)
 
 		// logged in user endpoints
 		jwtMiddlewareRoutes.GET("/api/me", rbacHandler.GetLoggedInUser)

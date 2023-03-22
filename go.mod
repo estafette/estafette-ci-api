@@ -5,15 +5,15 @@ go 1.20
 require (
 	cloud.google.com/go/bigquery v1.49.0
 	cloud.google.com/go/pubsub v1.29.0
-	cloud.google.com/go/storage v1.30.0
-	github.com/Masterminds/squirrel v1.5.3
+	cloud.google.com/go/storage v1.30.1
+	github.com/Masterminds/squirrel v1.5.4
 	github.com/alecthomas/kingpin v2.2.6+incompatible
 	github.com/appleboy/gin-jwt/v2 v2.9.1
 	github.com/estafette/estafette-ci-contracts v0.0.272
 	github.com/estafette/estafette-ci-crypt v0.0.43
 	github.com/estafette/estafette-ci-manifest v0.1.201
 	github.com/estafette/estafette-foundation v0.0.80
-	github.com/estafette/migration v0.7.0
+	github.com/estafette/migration v0.8.1
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gin-contrib/gzip v0.0.6
 	github.com/gin-gonic/gin v1.9.0
@@ -37,14 +37,14 @@ require (
 	golang.org/x/oauth2 v0.6.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/text v0.8.0
-	google.golang.org/api v0.113.0
-	google.golang.org/grpc v1.53.0
+	google.golang.org/api v0.114.0
+	google.golang.org/grpc v1.54.0
 	google.golang.org/protobuf v1.30.0
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.26.2
-	k8s.io/apimachinery v0.26.2
-	k8s.io/client-go v0.26.2
+	k8s.io/api v0.26.3
+	k8s.io/apimachinery v0.26.3
+	k8s.io/client-go v0.26.3
 	k8s.io/utils v0.0.0-20230313181309-38a27ef9d749
 )
 
@@ -73,8 +73,8 @@ require (
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.11.2 // indirect
-	github.com/goccy/go-json v0.10.1 // indirect
+	github.com/go-playground/validator/v10 v10.12.0 // indirect
+	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
@@ -134,7 +134,7 @@ require (
 	golang.org/x/tools v0.7.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4 // indirect
+	google.golang.org/genproto v0.0.0-20230320184635-7606e756e683 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.2 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
