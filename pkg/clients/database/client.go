@@ -1104,7 +1104,10 @@ func (c *client) InsertBotLog(ctx context.Context, botLog contracts.BotLog) (ins
 }
 
 func (c *client) UpdateComputedTables(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
-
+	err = c.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
+	if err != nil {
+		return
+	}
 	// get pipeline to update all release targets first
 	pipeline, err := c.GetPipeline(ctx, repoSource, repoOwner, repoName, make(map[api.FilterType][]string), false)
 	if err != nil {
@@ -1122,12 +1125,6 @@ func (c *client) UpdateComputedTables(ctx context.Context, repoSource, repoOwner
 			}
 		}
 	}
-
-	err = c.UpsertComputedPipeline(ctx, repoSource, repoOwner, repoName)
-	if err != nil {
-		return
-	}
-
 	return nil
 }
 
@@ -1506,7 +1503,6 @@ func (c *client) UpdateComputedPipelineFirstInsertedAt(ctx context.Context, repo
 }
 
 func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwner, repoName, releaseName, releaseAction string) (err error) {
-
 	// get last x releases
 	lastReleases, err := c.GetLastPipelineReleases(ctx, repoSource, repoOwner, repoName, releaseName, releaseAction, 10)
 	if err != nil {
