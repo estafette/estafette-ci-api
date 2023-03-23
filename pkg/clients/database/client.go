@@ -2376,7 +2376,7 @@ func (c *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner,
 }
 
 func (c *client) GetUniquePipelineReleases(ctx context.Context, toSource, toOwner, toName string, limit int) ([]*contracts.Release, error) {
-	query, args := queries.GetUniquePipelineReleases(sql.NamedArg{Name: "maxReleases	", Value: limit}, sql.NamedArg{Name: "toSource", Value: toSource}, sql.NamedArg{Name: "toOwner", Value: toOwner}, sql.NamedArg{Name: "toName", Value: toName})
+	query, args := queries.GetUniquePipelineReleases(sql.NamedArg{Name: "maxReleases", Value: limit}, sql.NamedArg{Name: "toSource", Value: toSource}, sql.NamedArg{Name: "toOwner", Value: toOwner}, sql.NamedArg{Name: "toName", Value: toName})
 	rows, err := c.databaseConnection.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get unique pipeline releases for repository %s/%s/%s: %w", toSource, toOwner, toName, err)
