@@ -98,8 +98,6 @@ func main() {
 		log.Fatal().Err(err).Msg("failed creating /tmp directory")
 	}
 	startGcsMigrator()
-	// wait for gcs-migrator to be up and running
-	time.Sleep(4 * time.Second)
 	closer := initJaeger()
 	defer closer.Close()
 
@@ -189,6 +187,7 @@ func initRequestHandlers(ctx context.Context, stopChannel <-chan struct{}, waitG
 	// watch for service account key file changes
 	foundation.WatchForFileChanges(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), func(event fsnotify.Event) {
 		log.Info().Msg("Service account key file was updated, refreshing instances...")
+		startGcsMigrator()
 
 		// refresh google cloud clients
 		newBqClient, newPubsubClient, newGcsClient, newSourcerepoTokenSource, newSourcerepoService := getGoogleCloudClients(ctx, config)
@@ -813,7 +812,6 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	routes.GET("/liveness", func(c *gin.Context) {
 		_, err := gcsMigratorHealthClient.Check(context.Background(), &migrationpb.HealthCheckRequest{})
 		if err != nil && !strings.Contains(err.Error(), "50051: connect: connection refused") {
-			startGcsMigrator()
 			log.Warn().Err(err).Msg("error checking liveness of gcs-migrator")
 			c.String(http.StatusBadGateway, "gcs-migrator not available")
 			return

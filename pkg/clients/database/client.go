@@ -14,6 +14,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/estafette/estafette-ci-api/pkg/api"
+	"github.com/estafette/estafette-ci-api/pkg/clients/database/queries"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	manifest "github.com/estafette/estafette-ci-manifest"
 	foundation "github.com/estafette/estafette-foundation"
@@ -1207,8 +1208,14 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 	// add releases
 	c.enrichPipeline(ctx, upsertedPipeline)
 
+	var lastReleases []*contracts.Release
 	// get last x releases
-	lastReleases, err := c.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, 1, 10, map[api.FilterType][]string{api.FilterSince: {"1w"}}, []api.OrderField{})
+	// !! Migration changes !!
+	if ctx.Value(isMigration) != nil {
+		lastReleases, err = c.GetUniquePipelineReleases(ctx, repoSource, repoOwner, repoName, 10)
+	} else {
+		lastReleases, err = c.GetPipelineReleases(ctx, repoSource, repoOwner, repoName, 1, 10, map[api.FilterType][]string{api.FilterSince: {"1w"}}, []api.OrderField{})
+	}
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed getting last releases for upserting computed pipeline %v/%v/%v", repoSource, repoOwner, repoName)
 		return
@@ -2366,6 +2373,19 @@ func (c *client) GetPipelineReleases(ctx context.Context, repoSource, repoOwner,
 	}
 
 	return
+}
+
+func (c *client) GetUniquePipelineReleases(ctx context.Context, toSource, toOwner, toName string, limit int) ([]*contracts.Release, error) {
+	query, args := queries.GetUniquePipelineReleases(sql.NamedArg{Name: "maxReleases	", Value: limit}, sql.NamedArg{Name: "toSource", Value: toSource}, sql.NamedArg{Name: "toOwner", Value: toOwner}, sql.NamedArg{Name: "toName", Value: toName})
+	rows, err := c.databaseConnection.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get unique pipeline releases for repository %s/%s/%s: %w", toSource, toOwner, toName, err)
+	}
+	releases, err := c.scanReleases(rows)
+	if err != nil {
+		return nil, fmt.Errorf("failed scan to unique pipeline releases for repository %s/%s/%s: %w", toSource, toOwner, toName, err)
+	}
+	return releases, nil
 }
 
 func (c *client) GetPipelineReleasesCount(ctx context.Context, repoSource, repoOwner, repoName string, filters map[api.FilterType][]string) (totalCount int, err error) {

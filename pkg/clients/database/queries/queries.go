@@ -37,6 +37,8 @@ var (
 	getMigrationByID string
 	//go:embed get_migration_by_from_repo.sql
 	getMigrationByFromRepo string
+	//go:embed get_unique_pipeline_releases.sql
+	getUniquePipelineReleases string
 	//go:embed mark_repository_archived.sql
 	markRepositoryArchived string
 	//go:embed migrate_build_logs.sql
@@ -170,6 +172,16 @@ func GetMigrationByID(namedArg ...sql.NamedArg) (string, []interface{}) {
 //   - fromSource
 func GetMigrationByFromRepo(namedArg ...sql.NamedArg) (string, []interface{}) {
 	return Prepare(getMigrationByFromRepo, namedArg)
+}
+
+// GetUniquePipelineReleases prepares a query for execution by replacing named parameters with positional parameters.
+// Required NamedArg
+//   - maxReleases
+//   - toName
+//   - toOwner
+//   - toSource
+func GetUniquePipelineReleases(namedArg ...sql.NamedArg) (string, []interface{}) {
+	return Prepare(getUniquePipelineReleases, namedArg)
 }
 
 // MarkRepositoryArchived prepares a query for execution by replacing named parameters with positional parameters.
