@@ -374,6 +374,10 @@ func (c *client) RollbackMigration(ctx context.Context, task *migration.Task) (c
 	if _, err = tx.ExecContext(ctx, query, args...); err != nil {
 		return nil, fmt.Errorf("failed to get rolled back computed pipelines for repository %s: %w", task.FromFQN(), err)
 	}
+	query, args = queries.UnmarkRepositoryArchived(sql.NamedArg{Name: "pickedRepos", Value: pq.Array([]string{task.FromFQN()})})
+	if _, err = tx.ExecContext(ctx, query, args...); err != nil {
+		return nil, fmt.Errorf("failed to unmark repository %s as archived: %w", task.FromFQN(), err)
+	}
 	query, args = queries.RollbackComputedReleases(task.SqlArgs()...)
 	if _, err = tx.ExecContext(ctx, query, args...); err != nil {
 		return nil, fmt.Errorf("failed to get rolled back computed releases for repository %s: %w", task.FromFQN(), err)
