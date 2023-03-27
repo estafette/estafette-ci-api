@@ -1519,9 +1519,16 @@ func (c *client) UpsertComputedRelease(ctx context.Context, repoSource, repoOwne
 	if ctx.Value(isMigration) != nil {
 		// change trigger for the migrating pipeline
 		for i := 0; i < len(lastRelease.Events); i++ {
-			lastRelease.Events[i].Pipeline.RepoSource = repoSource
-			lastRelease.Events[i].Pipeline.RepoOwner = repoOwner
-			lastRelease.Events[i].Pipeline.RepoName = repoName
+			if lastRelease.Events[i].Pipeline != nil {
+				lastRelease.Events[i].Pipeline.RepoSource = repoSource
+				lastRelease.Events[i].Pipeline.RepoOwner = repoOwner
+				lastRelease.Events[i].Pipeline.RepoName = repoName
+			}
+			if lastRelease.Events[i].Release != nil {
+				lastRelease.Events[i].Release.RepoSource = repoSource
+				lastRelease.Events[i].Release.RepoOwner = repoOwner
+				lastRelease.Events[i].Release.RepoName = repoName
+			}
 		}
 	}
 
