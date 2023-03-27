@@ -47,6 +47,8 @@ var (
 	migrateBuildVersions string
 	//go:embed migrate_builds.sql
 	migrateBuilds string
+	//go:embed migrate_computed_pipeline.sql
+	migrateComputedPipeline string
 	//go:embed migrate_release_logs.sql
 	migrateReleaseLogs string
 	//go:embed migrate_releases.sql
@@ -222,6 +224,18 @@ func MigrateBuildVersions(namedArg ...sql.NamedArg) (string, []interface{}) {
 //   - toSource
 func MigrateBuilds(namedArg ...sql.NamedArg) (string, []interface{}) {
 	return Prepare(migrateBuilds, namedArg)
+}
+
+// MigrateComputedPipeline prepares a query for execution by replacing named parameters with positional parameters.
+// Required NamedArg
+//   - fromName
+//   - fromOwner
+//   - fromSource
+//   - toName
+//   - toOwner
+//   - toSource
+func MigrateComputedPipeline(namedArg ...sql.NamedArg) (string, []interface{}) {
+	return Prepare(migrateComputedPipeline, namedArg)
 }
 
 // MigrateReleaseLogs prepares a query for execution by replacing named parameters with positional parameters.

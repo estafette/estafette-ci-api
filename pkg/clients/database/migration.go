@@ -207,8 +207,12 @@ func (c *client) MigrateBuilds(ctx context.Context, task *migration.Task) error 
 }
 
 func (c *client) MigrateComputedTables(ctx context.Context, task *migration.Task) error {
-	ctx = context.WithValue(ctx, isMigration, true)
-	err := c.UpdateComputedTables(ctx, task.ToSource, task.ToOwner, task.ToName)
+	query, args := queries.MigrateComputedPipeline(task.SqlArgs()...)
+	_, err := c.databaseConnection.ExecContext(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("failed to migrate computed pipeline for repository %s: %w", task.FromFQN(), err)
+	}
+	err = c.UpdateComputedTables(context.WithValue(ctx, isMigration, true), task.ToSource, task.ToOwner, task.ToName)
 	if err != nil {
 		return fmt.Errorf("failed to migrate compueted tables for repository %s: %w", task.FromFQN(), err)
 	}

@@ -117,7 +117,7 @@ func main() {
 
 	foundation.HandleGracefulShutdown(sigs, wg, func() {
 
-		time.Sleep(time.Duration(*gracefulShutdownDelaySeconds) * 1000 * time.Millisecond)
+		time.Sleep(time.Duration(*gracefulShutdownDelaySeconds) * time.Second)
 
 		// shut down gracefully
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
