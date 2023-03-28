@@ -58,6 +58,7 @@ func (r *ReleaseError) Is(target error) bool {
 }
 
 // Service encapsulates build and release creation and re-triggering
+//
 //go:generate mockgen -package=estafette -destination ./mock.go -source=service.go
 type Service interface {
 	CreateBuild(ctx context.Context, build contracts.Build) (b *contracts.Build, err error)
@@ -309,7 +310,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build) (creat
 			})
 		}
 
-		insertedBuildLog, err := s.databaseClient.InsertBuildLog(ctx, buildLog, s.config.APIServer.WriteLogToDatabase())
+		insertedBuildLog, err := s.databaseClient.InsertBuildLog(ctx, buildLog)
 		if err != nil {
 			log.Warn().Err(err).Msgf("Failed inserting build log for invalid manifest")
 		}
@@ -349,7 +350,7 @@ func (s *service) CreateBuild(ctx context.Context, build contracts.Build) (creat
 			},
 		}
 
-		insertedBuildLog, err := s.databaseClient.InsertBuildLog(ctx, buildLog, s.config.APIServer.WriteLogToDatabase())
+		insertedBuildLog, err := s.databaseClient.InsertBuildLog(ctx, buildLog)
 		if err != nil {
 			log.Warn().Err(err).Msgf("Failed inserting build log for invalid manifest")
 		}
@@ -576,7 +577,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 			})
 		}
 
-		insertedReleaseLog, err := s.databaseClient.InsertReleaseLog(ctx, releaseLog, s.config.APIServer.WriteLogToDatabase())
+		insertedReleaseLog, err := s.databaseClient.InsertReleaseLog(ctx, releaseLog)
 		if err != nil {
 			log.Warn().Err(err).Msgf("Failed inserting release log for manifest with restricted secrets")
 		}
@@ -767,7 +768,7 @@ func (s *service) CreateBot(ctx context.Context, bot contracts.Bot, mft manifest
 			})
 		}
 
-		insertedBotLog, err := s.databaseClient.InsertBotLog(ctx, botLog, s.config.APIServer.WriteLogToDatabase())
+		insertedBotLog, err := s.databaseClient.InsertBotLog(ctx, botLog)
 		if err != nil {
 			log.Warn().Err(err).Msgf("Failed inserting bot log for manifest with restricted secrets")
 		}
@@ -794,7 +795,7 @@ func (s *service) FinishBot(ctx context.Context, repoSource, repoOwner, repoName
 
 func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.EstafetteGitEvent) error {
 
-	log.Info().Msgf("[trigger:git(%v-%v:%v)] Checking if triggers need to be fired...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event)
+	log.Debug().Msgf("[trigger:git(%v-%v:%v)] Checking if triggers need to be fired...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event)
 
 	// retrieve all pipeline triggers
 	pipelines, err := s.databaseClient.GetGitTriggers(ctx, gitEvent)
@@ -848,19 +849,19 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
-						log.Info().Msgf("[trigger:git(%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						log.Debug().Msgf("[trigger:git(%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 						err := s.fireBuild(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:git(%v-%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 						}
 					} else if t.ReleaseAction != nil {
-						log.Info().Msgf("[trigger:git(%v-%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						log.Debug().Msgf("[trigger:git(%v-%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						err := s.fireRelease(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:git(%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
 					} else if t.BotAction != nil {
-						log.Info().Msgf("[trigger:git(%v-%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						log.Debug().Msgf("[trigger:git(%v-%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						err := s.fireBot(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:git(%v-%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
@@ -879,14 +880,14 @@ func (s *service) FireGitTriggers(ctx context.Context, gitEvent manifest.Estafet
 		return err
 	}
 
-	log.Info().Msgf("[trigger:git(%v-%v:%v)] Fired %v out of %v triggers for %v pipelines", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
+	log.Debug().Msgf("[trigger:git(%v-%v:%v)] Fired %v out of %v triggers for %v pipelines", gitEvent.Repository, gitEvent.Branch, gitEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
 
 	return nil
 }
 
 func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.EstafetteGithubEvent) (err error) {
 
-	log.Info().Msgf("[trigger:github(%v:%v)] Checking if triggers need to be fired...", githubEvent.Repository, githubEvent.Event)
+	log.Debug().Msgf("[trigger:github(%v:%v)] Checking if triggers need to be fired...", githubEvent.Repository, githubEvent.Event)
 
 	// retrieve all pipeline triggers
 	pipelines, err := s.databaseClient.GetGithubTriggers(ctx, githubEvent)
@@ -942,19 +943,19 @@ func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.E
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
-						log.Info().Msgf("[trigger:github(%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						log.Debug().Msgf("[trigger:github(%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 						err := s.fireBuild(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:github(%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 						}
 					} else if t.ReleaseAction != nil {
-						log.Info().Msgf("[trigger:github(%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						log.Debug().Msgf("[trigger:github(%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						err := s.fireRelease(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:github(%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
 					} else if t.BotAction != nil {
-						log.Info().Msgf("[trigger:github(%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						log.Debug().Msgf("[trigger:github(%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						err := s.fireBot(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:github(%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", githubEvent.Repository, githubEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
@@ -973,14 +974,14 @@ func (s *service) FireGithubTriggers(ctx context.Context, githubEvent manifest.E
 		return err
 	}
 
-	log.Info().Msgf("[trigger:github(%v:%v)] Fired %v out of %v triggers for %v pipelines", githubEvent.Repository, githubEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
+	log.Debug().Msgf("[trigger:github(%v:%v)] Fired %v out of %v triggers for %v pipelines", githubEvent.Repository, githubEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
 
 	return nil
 }
 
 func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent manifest.EstafetteBitbucketEvent) (err error) {
 
-	log.Info().Msgf("[trigger:bitbucket(%v:%v)] Checking if triggers need to be fired...", bitbucketEvent.Repository, bitbucketEvent.Event)
+	log.Debug().Msgf("[trigger:bitbucket(%v:%v)] Checking if triggers need to be fired...", bitbucketEvent.Repository, bitbucketEvent.Event)
 
 	// retrieve all pipeline triggers
 	pipelines, err := s.databaseClient.GetBitbucketTriggers(ctx, bitbucketEvent)
@@ -1036,19 +1037,19 @@ func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent mani
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
-						log.Info().Msgf("[trigger:bitbucket(%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						log.Debug().Msgf("[trigger:bitbucket(%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 						err := s.fireBuild(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:bitbucket(%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 						}
 					} else if t.ReleaseAction != nil {
-						log.Info().Msgf("[trigger:bitbucket(%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						log.Debug().Msgf("[trigger:bitbucket(%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						err := s.fireRelease(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:bitbucket(%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
 					} else if t.BotAction != nil {
-						log.Info().Msgf("[trigger:bitbucket(%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						log.Debug().Msgf("[trigger:bitbucket(%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						err := s.fireBot(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:bitbucket(%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", bitbucketEvent.Repository, bitbucketEvent.Event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
@@ -1067,14 +1068,14 @@ func (s *service) FireBitbucketTriggers(ctx context.Context, bitbucketEvent mani
 		return err
 	}
 
-	log.Info().Msgf("[trigger:bitbucket(%v:%v)] Fired %v out of %v triggers for %v pipelines", bitbucketEvent.Repository, bitbucketEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
+	log.Debug().Msgf("[trigger:bitbucket(%v:%v)] Fired %v out of %v triggers for %v pipelines", bitbucketEvent.Repository, bitbucketEvent.Event, firedTriggerCount, triggerCount, len(pipelines))
 
 	return nil
 }
 
 func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Build, event string) error {
 
-	log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Checking if triggers need to be fired...", build.RepoSource, build.RepoOwner, build.RepoName, event)
+	log.Debug().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Checking if triggers need to be fired...", build.RepoSource, build.RepoOwner, build.RepoName, event)
 
 	// retrieve all pipeline triggers
 	pipelines, err := s.databaseClient.GetPipelineTriggers(ctx, build, event)
@@ -1138,19 +1139,19 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
-						log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						log.Debug().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 						err := s.fireBuild(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting build action'%v/%v/%v', branch '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 						}
 					} else if t.ReleaseAction != nil {
-						log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						log.Debug().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						err := s.fireRelease(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
 					} else if t.BotAction != nil {
-						log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						log.Debug().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						err := s.fireBot(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:pipeline(%v/%v/%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", build.RepoSource, build.RepoOwner, build.RepoName, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
@@ -1169,14 +1170,14 @@ func (s *service) FirePipelineTriggers(ctx context.Context, build contracts.Buil
 		return err
 	}
 
-	log.Info().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Fired %v out of %v triggers for %v pipelines", build.RepoSource, build.RepoOwner, build.RepoName, event, firedTriggerCount, triggerCount, len(pipelines))
+	log.Debug().Msgf("[trigger:pipeline(%v/%v/%v:%v)] Fired %v out of %v triggers for %v pipelines", build.RepoSource, build.RepoOwner, build.RepoName, event, firedTriggerCount, triggerCount, len(pipelines))
 
 	return nil
 }
 
 func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Release, event string) error {
 
-	log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v] Checking if triggers need to be fired...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
+	log.Debug().Msgf("[trigger:release(%v/%v/%v-%v:%v] Checking if triggers need to be fired...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event)
 
 	pipelines, err := s.databaseClient.GetReleaseTriggers(ctx, release, event)
 	if err != nil {
@@ -1238,19 +1239,19 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 					defer span.Finish()
 
 					if t.BuildAction != nil {
-						log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						log.Debug().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing build action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 						err := s.fireBuild(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting build action '%v/%v/%v', branch '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 						}
 					} else if t.ReleaseAction != nil {
-						log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						log.Debug().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						err := s.fireRelease(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
 					} else if t.BotAction != nil {
-						log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						log.Debug().Msgf("[trigger:release(%v/%v/%v-%v:%v)] Firing bot action '%v/%v/%v', branch '%v'...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						err := s.fireBot(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:release(%v/%v/%v-%v:%v)] Failed starting bot action '%v/%v/%v', branch '%v'", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
@@ -1269,17 +1270,17 @@ func (s *service) FireReleaseTriggers(ctx context.Context, release contracts.Rel
 		return err
 	}
 
-	log.Info().Msgf("[trigger:release(%v/%v/%v-%v:%v] Fired %v out of %v triggers for %v pipelines", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, firedTriggerCount, triggerCount, len(pipelines))
+	log.Debug().Msgf("[trigger:release(%v/%v/%v-%v:%v] Fired %v out of %v triggers for %v pipelines", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, event, firedTriggerCount, triggerCount, len(pipelines))
 
 	return nil
 }
 
 func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.EstafettePubSubEvent) error {
 
-	log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Checking if triggers need to be fired...", pubsubEvent.Project, pubsubEvent.Topic)
+	log.Debug().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Checking if triggers need to be fired...", pubsubEvent.Project, pubsubEvent.Topic)
 
 	// retrieve all pipeline triggers
-	pipelines, err := s.databaseClient.GetPubSubTriggers(ctx, pubsubEvent)
+	pipelines, err := s.databaseClient.GetPubSubTriggers(ctx)
 	if err != nil {
 		return err
 	}
@@ -1330,19 +1331,19 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
-						log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Firing build action '%v/%v/%v', branch '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						log.Debug().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Firing build action '%v/%v/%v', branch '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 						err := s.fireBuild(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:pubsub(projects/%v/topics/%v)] Failed starting build action'%v/%v/%v', branch '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 						}
 					} else if t.ReleaseAction != nil {
-						log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						log.Debug().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						err := s.fireRelease(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:pubsub(projects/%v/topics/%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
 					} else if t.BotAction != nil {
-						log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Firing bot action '%v/%v/%v', branch '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						log.Debug().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Firing bot action '%v/%v/%v', branch '%v'...", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						err := s.fireBot(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:pubsub(projects/%v/topics/%v)] Failed starting bot action '%v/%v/%v', branch '%v'", pubsubEvent.Project, pubsubEvent.Topic, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
@@ -1361,7 +1362,7 @@ func (s *service) FirePubSubTriggers(ctx context.Context, pubsubEvent manifest.E
 		return err
 	}
 
-	log.Info().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Fired %v out of %v triggers for %v pipelines", pubsubEvent.Project, pubsubEvent.Topic, firedTriggerCount, triggerCount, len(pipelines))
+	log.Debug().Msgf("[trigger:pubsub(projects/%v/topics/%v)] Fired %v out of %v triggers for %v pipelines", pubsubEvent.Project, pubsubEvent.Topic, firedTriggerCount, triggerCount, len(pipelines))
 
 	return nil
 }
@@ -1373,7 +1374,7 @@ func (s *service) FireCronTriggers(ctx context.Context, cronEvent manifest.Estaf
 		Cron:  &cronEvent,
 	}
 
-	log.Info().Msgf("[trigger:cron(%v)] Checking if triggers need to be fired...", cronEvent.Time)
+	log.Debug().Msgf("[trigger:cron(%v)] Checking if triggers need to be fired...", cronEvent.Time)
 
 	pipelines, err := s.databaseClient.GetCronTriggers(ctx)
 	if err != nil {
@@ -1421,19 +1422,19 @@ func (s *service) FireCronTriggers(ctx context.Context, cronEvent manifest.Estaf
 
 					// create new build for t.Run
 					if t.BuildAction != nil {
-						log.Info().Msgf("[trigger:cron(%v)] Firing build action '%v/%v/%v', branch '%v'...", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
+						log.Debug().Msgf("[trigger:cron(%v)] Firing build action '%v/%v/%v', branch '%v'...", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 						err := s.fireBuild(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting build action'%v/%v/%v', branch '%v'", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BuildAction.Branch)
 						}
 					} else if t.ReleaseAction != nil {
-						log.Info().Msgf("[trigger:cron(%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
+						log.Debug().Msgf("[trigger:cron(%v)] Firing release action '%v/%v/%v', target '%v', action '%v'...", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						err := s.fireRelease(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting release action '%v/%v/%v', target '%v', action '%v'", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.ReleaseAction.Target, t.ReleaseAction.Action)
 						}
 					} else if t.BotAction != nil {
-						log.Info().Msgf("[trigger:cron(%v)] Firing bot action '%v/%v/%v', branch '%v'...", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
+						log.Debug().Msgf("[trigger:cron(%v)] Firing bot action '%v/%v/%v', branch '%v'...", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
 						err := s.fireBot(ctx, *p, t, e)
 						if err != nil {
 							log.Error().Err(err).Msgf("[trigger:cron(%v)] Failed starting bot action '%v/%v/%v', branch '%v'", cronEvent.Time, p.RepoSource, p.RepoOwner, p.RepoName, t.BotAction.Branch)
@@ -1452,7 +1453,7 @@ func (s *service) FireCronTriggers(ctx context.Context, cronEvent manifest.Estaf
 		return err
 	}
 
-	log.Info().Msgf("[trigger:cron(%v)] Fired %v out of %v triggers for %v pipelines", cronEvent.Time, firedTriggerCount, triggerCount, len(pipelines))
+	log.Debug().Msgf("[trigger:cron(%v)] Fired %v out of %v triggers for %v pipelines", cronEvent.Time, firedTriggerCount, triggerCount, len(pipelines))
 
 	return nil
 }
@@ -1725,7 +1726,7 @@ func (s *service) UpdateBuildStatus(ctx context.Context, ciBuilderEvent contract
 
 func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent contracts.EstafetteCiBuilderEvent) (err error) {
 
-	log.Info().Msgf("Updating job resources for pod %v", ciBuilderEvent.PodName)
+	log.Debug().Msgf("Updating job resources for pod %v", ciBuilderEvent.PodName)
 
 	err = ciBuilderEvent.Validate()
 	if err != nil {
@@ -1741,14 +1742,14 @@ func (s *service) UpdateJobResources(ctx context.Context, ciBuilderEvent contrac
 			return err
 		}
 
-		log.Info().Msgf("Max cpu usage for pod %v is %v", ciBuilderEvent.PodName, maxCPU)
+		log.Debug().Msgf("Max cpu usage for pod %v is %v", ciBuilderEvent.PodName, maxCPU)
 
 		maxMemory, err := s.prometheusClient.GetMaxMemoryByPodName(ctx, ciBuilderEvent.PodName)
 		if err != nil {
 			return err
 		}
 
-		log.Info().Msgf("Max memory usage for pod %v is %v", ciBuilderEvent.PodName, maxMemory)
+		log.Debug().Msgf("Max memory usage for pod %v is %v", ciBuilderEvent.PodName, maxMemory)
 
 		jobResources := database.JobResources{
 			CPUMaxUsage:    maxCPU,
@@ -1845,7 +1846,6 @@ func (s *service) getBuildTriggers(build contracts.Build, hasValidManifest bool,
 func (s *service) getBuildCounter(ctx context.Context, build contracts.Build, shortRepoSource string, hasValidManifest bool, mft manifest.EstafetteManifest, pipeline *contracts.Pipeline) (counter int, updatedBuild contracts.Build, err error) {
 
 	// get or set autoincrement and build version
-	counter = 0
 	if build.BuildVersion == "" {
 		// get autoincrementing counter
 		counter, err = s.databaseClient.GetAutoIncrement(ctx, shortRepoSource, build.RepoOwner, build.RepoName)
@@ -1941,9 +1941,9 @@ func (s *service) getBuildJobResources(ctx context.Context, build contracts.Buil
 	if err != nil {
 		log.Warn().Err(err).Msgf("Failed retrieving max resource utilization for recent builds of %v/%v/%v, using defaults...", build.RepoSource, build.RepoOwner, build.RepoName)
 	} else if nrRecords < 5 {
-		log.Info().Msgf("Retrieved max resource utilization for recent builds of %v/%v/%v only has %v records, using defaults...", build.RepoSource, build.RepoOwner, build.RepoName, nrRecords)
+		log.Debug().Msgf("Retrieved max resource utilization for recent builds of %v/%v/%v only has %v records, using defaults...", build.RepoSource, build.RepoOwner, build.RepoName, nrRecords)
 	} else {
-		log.Info().Msgf("Retrieved max resource utilization for recent builds of %v/%v/%v, checking if they are within lower and upper bound...", build.RepoSource, build.RepoOwner, build.RepoName)
+		log.Debug().Msgf("Retrieved max resource utilization for recent builds of %v/%v/%v, checking if they are within lower and upper bound...", build.RepoSource, build.RepoOwner, build.RepoName)
 
 		// only override cpu and memory request values if measured values are within min and max
 		if measuredResources.CPUMaxUsage > 0 {
@@ -2001,9 +2001,9 @@ func (s *service) getReleaseJobResources(ctx context.Context, release contracts.
 	if err != nil {
 		log.Warn().Err(err).Msgf("Failed retrieving max resource utilization for recent releases of %v/%v/%v target %v, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
 	} else if nrRecords < 5 {
-		log.Info().Msgf("Retrieved max resource utilization for recent releases of %v/%v/%v target %v only has %v records, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, nrRecords)
+		log.Debug().Msgf("Retrieved max resource utilization for recent releases of %v/%v/%v target %v only has %v records, using defaults...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name, nrRecords)
 	} else {
-		log.Info().Msgf("Retrieved max resource utilization for recent releases of %v/%v/%v target %v, checking if they are within lower and upper bound...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
+		log.Debug().Msgf("Retrieved max resource utilization for recent releases of %v/%v/%v target %v, checking if they are within lower and upper bound...", release.RepoSource, release.RepoOwner, release.RepoName, release.Name)
 
 		// only override cpu and memory request values if measured values are within min and max
 		if measuredResources.CPUMaxUsage > 0 {
@@ -2045,9 +2045,9 @@ func (s *service) getBotJobResources(ctx context.Context, bot contracts.Bot) dat
 	if err != nil {
 		log.Warn().Err(err).Msgf("Failed retrieving max resource utilization for recent bots of %v/%v/%v target %v, using defaults...", bot.RepoSource, bot.RepoOwner, bot.RepoName, bot.Name)
 	} else if nrRecords < 5 {
-		log.Info().Msgf("Retrieved max resource utilization for recent bots of %v/%v/%v target %v only has %v records, using defaults...", bot.RepoSource, bot.RepoOwner, bot.RepoName, bot.Name, nrRecords)
+		log.Debug().Msgf("Retrieved max resource utilization for recent bots of %v/%v/%v target %v only has %v records, using defaults...", bot.RepoSource, bot.RepoOwner, bot.RepoName, bot.Name, nrRecords)
 	} else {
-		log.Info().Msgf("Retrieved max resource utilization for recent bots of %v/%v/%v target %v, checking if they are within lower and upper bound...", bot.RepoSource, bot.RepoOwner, bot.RepoName, bot.Name)
+		log.Debug().Msgf("Retrieved max resource utilization for recent bots of %v/%v/%v target %v, checking if they are within lower and upper bound...", bot.RepoSource, bot.RepoOwner, bot.RepoName, bot.Name)
 
 		// only override cpu and memory request values if measured values are within min and max
 		if measuredResources.CPUMaxUsage > 0 {

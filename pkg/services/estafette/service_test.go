@@ -317,7 +317,7 @@ func TestCreateBuild(t *testing.T) {
 
 		databaseClient.
 			EXPECT().
-			InsertBuildLog(gomock.Any(), gomock.Any(), gomock.Any()).
+			InsertBuildLog(gomock.Any(), gomock.Any()).
 			Times(1)
 
 		githubapiClientJobVarsFunc := func(ctx context.Context, repoSource, repoOwner, repoName string) (token string, err error) {
@@ -399,7 +399,7 @@ func TestCreateBuild(t *testing.T) {
 		databaseClient.EXPECT().GetPipeline(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		databaseClient.EXPECT().GetAutoIncrement(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		databaseClient.EXPECT().GetPipelineBuildMaxResourceUtilization(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		databaseClient.EXPECT().InsertBuildLog(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		databaseClient.EXPECT().InsertBuildLog(gomock.Any(), gomock.Any()).AnyTimes()
 
 		service := NewService(config, databaseClient, secretHelper, prometheusClient, cloudStorageClient, builderapiClient, githubapiClientJobVarsFunc, bitbucketapiClientJobVarsFunc, cloudsourceapiClientJobVarsFunc)
 

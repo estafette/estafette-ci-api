@@ -27,6 +27,7 @@ var (
 )
 
 // Service handles http events for Github integration
+//
 //go:generate mockgen -package=github -destination ./mock.go -source=service.go
 type Service interface {
 	CreateJobForGithubPush(ctx context.Context, event githubapi.PushEvent) (err error)
@@ -148,7 +149,7 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 		return
 	}
 
-	log.Info().Msgf("Created build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
+	log.Debug().Msgf("Created build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
 
 	go func() {
 		// create new context to avoid cancellation impacting execution
@@ -166,7 +167,7 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 }
 
 func (s *service) PublishGithubEvent(ctx context.Context, event manifest.EstafetteGithubEvent) (err error) {
-	log.Info().Msgf("Publishing github event '%v' for repository '%v' to topic...", event.Event, event.Repository)
+	log.Debug().Msgf("Publishing github event '%v' for repository '%v' to topic...", event.Event, event.Repository)
 
 	return s.queueService.PublishGithubEvent(ctx, event)
 }

@@ -7,10 +7,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/estafette/estafette-ci-api/pkg/migrationpb"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/http"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -33,8 +34,8 @@ import (
 )
 
 // NewHandler returns a new estafette.Handler
-func NewHandler(templatesPath string, config *api.APIConfig, encryptedConfig *api.APIConfig, databaseClient database.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper api.WarningHelper, secretHelper crypt.SecretHelper) Handler {
-	return Handler{
+func NewHandler(templatesPath string, config *api.APIConfig, encryptedConfig *api.APIConfig, databaseClient database.Client, cloudStorageClient cloudstorage.Client, ciBuilderClient builderapi.Client, buildService Service, warningHelper api.WarningHelper, secretHelper crypt.SecretHelper, gcsMigratorClient migrationpb.ServiceClient) Handler {
+	h := Handler{
 		templatesPath:      templatesPath,
 		config:             config,
 		encryptedConfig:    encryptedConfig,
@@ -44,7 +45,10 @@ func NewHandler(templatesPath string, config *api.APIConfig, encryptedConfig *ap
 		buildService:       buildService,
 		warningHelper:      warningHelper,
 		secretHelper:       secretHelper,
+		// !! Migration changes !!
+		gcsMigratorClient: gcsMigratorClient,
 	}
+	return h
 }
 
 type Handler struct {
@@ -57,6 +61,8 @@ type Handler struct {
 	buildService       Service
 	warningHelper      api.WarningHelper
 	secretHelper       crypt.SecretHelper
+	// !! Migration changes !!
+	gcsMigratorClient migrationpb.ServiceClient
 }
 
 func (h *Handler) GetPipelines(c *gin.Context) {
@@ -557,7 +563,7 @@ func (h *Handler) GetPipelineBuildLogs(c *gin.Context) {
 		return
 	}
 
-	buildLog, err := h.databaseClient.GetPipelineBuildLogs(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID, h.config.APIServer.ReadLogFromDatabase())
+	buildLog, err := h.databaseClient.GetPipelineBuildLogs(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from db", source, owner, repo, revisionOrID)
@@ -618,7 +624,7 @@ func (h *Handler) GetPipelineBuildLogsByID(c *gin.Context) {
 		return
 	}
 
-	buildLog, err := h.databaseClient.GetPipelineBuildLogsByID(c.Request.Context(), source, owner, repo, build.RepoBranch, build.RepoRevision, build.ID, id, h.config.APIServer.ReadLogFromDatabase())
+	buildLog, err := h.databaseClient.GetPipelineBuildLogsByID(c.Request.Context(), source, owner, repo, build.ID, id)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving build logs for %v/%v/%v/builds/%v/logs from db", source, owner, repo, revisionOrID)
@@ -784,7 +790,7 @@ func (h *Handler) PostPipelineBuildLogs(c *gin.Context) {
 		buildLog.BuildID = revisionOrID
 	}
 
-	insertedBuildLog, err := h.databaseClient.InsertBuildLog(c.Request.Context(), buildLog, h.config.APIServer.WriteLogToDatabase())
+	insertedBuildLog, err := h.databaseClient.InsertBuildLog(c.Request.Context(), buildLog)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed inserting logs for %v/%v/%v/%v", source, owner, repo, revisionOrID)
@@ -1122,7 +1128,7 @@ func (h *Handler) GetPipelineReleaseLogs(c *gin.Context) {
 	repo := c.Param("repo")
 	releaseID := c.Param("releaseId")
 
-	releaseLog, err := h.databaseClient.GetPipelineReleaseLogs(c.Request.Context(), source, owner, repo, releaseID, h.config.APIServer.ReadLogFromDatabase())
+	releaseLog, err := h.databaseClient.GetPipelineReleaseLogs(c.Request.Context(), source, owner, repo, releaseID)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving release logs for %v/%v/%v/%v from db", source, owner, repo, releaseID)
@@ -1162,7 +1168,7 @@ func (h *Handler) GetPipelineReleaseLogsByID(c *gin.Context) {
 	releaseID := c.Param("releaseId")
 	id := c.Param("id")
 
-	releaseLog, err := h.databaseClient.GetPipelineReleaseLogsByID(c.Request.Context(), source, owner, repo, releaseID, id, h.config.APIServer.ReadLogFromDatabase())
+	releaseLog, err := h.databaseClient.GetPipelineReleaseLogsByID(c.Request.Context(), source, owner, repo, releaseID, id)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving release logs for %v/%v/%v/%v from db", source, owner, repo, releaseID)
@@ -1295,7 +1301,7 @@ func (h *Handler) PostPipelineReleaseLogs(c *gin.Context) {
 		return
 	}
 
-	insertedReleaseLog, err := h.databaseClient.InsertReleaseLog(c.Request.Context(), releaseLog, h.config.APIServer.WriteLogToDatabase())
+	insertedReleaseLog, err := h.databaseClient.InsertReleaseLog(c.Request.Context(), releaseLog)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed inserting release logs for %v/%v/%v/%v", source, owner, repo, releaseID)
@@ -1492,7 +1498,7 @@ func (h *Handler) GetPipelineBotLogs(c *gin.Context) {
 	repo := c.Param("repo")
 	botID := c.Param("botId")
 
-	botLog, err := h.databaseClient.GetPipelineBotLogs(c.Request.Context(), source, owner, repo, botID, h.config.APIServer.ReadLogFromDatabase())
+	botLog, err := h.databaseClient.GetPipelineBotLogs(c.Request.Context(), source, owner, repo, botID)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving bot logs for %v/%v/%v/%v from db", source, owner, repo, botID)
@@ -1532,7 +1538,7 @@ func (h *Handler) GetPipelineBotLogsByID(c *gin.Context) {
 	botID := c.Param("botId")
 	id := c.Param("id")
 
-	botLog, err := h.databaseClient.GetPipelineBotLogsByID(c.Request.Context(), source, owner, repo, botID, id, h.config.APIServer.ReadLogFromDatabase())
+	botLog, err := h.databaseClient.GetPipelineBotLogsByID(c.Request.Context(), source, owner, repo, botID, id)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed retrieving bot logs for %v/%v/%v/%v from db", source, owner, repo, botID)
@@ -1673,7 +1679,7 @@ func (h *Handler) PostPipelineBotLogs(c *gin.Context) {
 		return
 	}
 
-	insertedBotLog, err := h.databaseClient.InsertBotLog(c.Request.Context(), botLog, h.config.APIServer.WriteLogToDatabase())
+	insertedBotLog, err := h.databaseClient.InsertBotLog(c.Request.Context(), botLog)
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("Failed inserting bot logs for %v/%v/%v/%v", source, owner, repo, botID)
@@ -2211,7 +2217,7 @@ func (h *Handler) GetPipelineWarnings(c *gin.Context) {
 		return
 	}
 
-	warnings := []contracts.Warning{}
+	warnings := make([]contracts.Warning, 0)
 
 	// get filters (?filter[last]=100)
 	buildsFilters := map[api.FilterType][]string{}
@@ -2617,7 +2623,7 @@ func (h *Handler) GetConfigBuildControl(c *gin.Context) {
 
 func (h *Handler) GetManifestTemplates(c *gin.Context) {
 
-	templateFiles, err := ioutil.ReadDir(h.templatesPath)
+	templateFiles, err := os.ReadDir(h.templatesPath)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed listing template files directory")
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
@@ -2637,7 +2643,7 @@ func (h *Handler) GetManifestTemplates(c *gin.Context) {
 
 			// read template file
 			templateFilePath := filepath.Join(h.templatesPath, templateFileName)
-			data, err := ioutil.ReadFile(templateFilePath)
+			data, err := os.ReadFile(templateFilePath)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed reading template file %v", templateFilePath)
 				c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
@@ -2683,7 +2689,7 @@ func (h *Handler) GenerateManifest(c *gin.Context) {
 	}
 
 	templateFilePath := filepath.Join(h.templatesPath, fmt.Sprintf("manifest-%v.tmpl", aux.Template))
-	data, err := ioutil.ReadFile(templateFilePath)
+	data, err := os.ReadFile(templateFilePath)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed reading template file %v", templateFilePath)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError)})
@@ -2803,7 +2809,7 @@ func (h *Handler) Commands(c *gin.Context) {
 
 	log.Debug().Msgf("X-Estafette-Event-Job-Name is set to %v", c.GetHeader("X-Estafette-Event-Job-Name"))
 
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body from Estafette 'build finished' event failed")
 		c.String(http.StatusInternalServerError, "Reading body from Estafette 'build finished' event failed")
@@ -2854,7 +2860,7 @@ func (h *Handler) Commands(c *gin.Context) {
 				}
 			}(ciBuilderEvent.JobName)
 		} else {
-			log.Info().Msgf("Job is already removed by cancellation, no need to remove job %v and pod %v for event %v", ciBuilderEvent.JobName, ciBuilderEvent.PodName, ciBuilderEvent.BuildEventType)
+			log.Debug().Msgf("Job is already removed by cancellation, no need to remove job %v and pod %v for event %v", ciBuilderEvent.JobName, ciBuilderEvent.PodName, ciBuilderEvent.BuildEventType)
 		}
 
 		go func(ciBuilderEvent contracts.EstafetteCiBuilderEvent) {

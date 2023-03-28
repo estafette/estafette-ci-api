@@ -1,0 +1,14 @@
+version: v1.25.0
+ignore:
+  'snyk:lic:pip:pyinstaller:GPL-2.0':
+    - '*':
+        reason: None Given
+        expires: 2025-01-01T00:00:00.000Z
+  'SNYK-PYTHON-PYELFTOOLS-1579489':
+    - '*':
+        reason: None Given
+        expires: 2025-01-01T00:00:00.000Z
+  'snyk:lic:pip:certifi:MPL-2.0':
+    - '*':
+        reason: None Given
+        expires: 2025-01-01T00:00:00.000Z

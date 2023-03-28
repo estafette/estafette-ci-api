@@ -44,7 +44,7 @@ func (h *Handler) PostPubsubEvent(c *gin.Context) {
 	if err := json.Unmarshal(byteData, &notification); err != nil {
 		log.Error().Err(err).Msg("Failed unmarshalling pubsub notification")
 	}
-	log.Info().
+	log.Debug().
 		Interface("msg", message).
 		Str("data", message.GetDecodedData()).
 		Str("subscriptionProject", message.GetSubcriptionProject()).

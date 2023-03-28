@@ -3,7 +3,8 @@ package estafette
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"github.com/estafette/estafette-ci-api/pkg/migrationpb"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -113,7 +114,8 @@ func TestGetCatalogFilters(t *testing.T) {
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 
-		handler := NewHandler(templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
+		gcsMigratorClient := migrationpb.NewMockServiceClient(ctrl)
+		handler := NewHandler(templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper, gcsMigratorClient)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 
@@ -121,7 +123,7 @@ func TestGetCatalogFilters(t *testing.T) {
 		handler.GetCatalogFilters(c)
 
 		assert.Equal(t, http.StatusOK, recorder.Result().StatusCode)
-		body, err := ioutil.ReadAll(recorder.Result().Body)
+		body, err := io.ReadAll(recorder.Result().Body)
 		assert.Nil(t, err)
 		assert.Equal(t, "[\"type\"]", string(body))
 
@@ -139,7 +141,7 @@ func TestGetCatalogFilters(t *testing.T) {
 		handler.GetCatalogFilters(c)
 
 		assert.Equal(t, http.StatusOK, recorder.Result().StatusCode)
-		body, err = ioutil.ReadAll(recorder.Result().Body)
+		body, err = io.ReadAll(recorder.Result().Body)
 		assert.Nil(t, err)
 		assert.Equal(t, "[\"type\",\"language\"]", string(body))
 
@@ -173,7 +175,8 @@ func TestGetPipeline(t *testing.T) {
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 
-		handler := NewHandler(templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
+		gcsMigratorClient := migrationpb.NewMockServiceClient(ctrl)
+		handler := NewHandler(templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper, gcsMigratorClient)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 		bodyReader := strings.NewReader("")
@@ -186,7 +189,7 @@ func TestGetPipeline(t *testing.T) {
 		handler.GetPipeline(c)
 
 		assert.Equal(t, http.StatusOK, recorder.Result().StatusCode)
-		body, err := ioutil.ReadAll(recorder.Result().Body)
+		body, err := io.ReadAll(recorder.Result().Body)
 		assert.Nil(t, err)
 		assert.Equal(t, "{\"id\":\"\",\"repoSource\":\"\",\"repoOwner\":\"\",\"repoName\":\"\",\"repoBranch\":\"\",\"repoRevision\":\"\",\"buildStatus\":\"succeeded\",\"insertedAt\":\"0001-01-01T00:00:00Z\",\"updatedAt\":\"0001-01-01T00:00:00Z\",\"duration\":0,\"lastUpdatedAt\":\"0001-01-01T00:00:00Z\"}", string(body))
 
@@ -208,7 +211,7 @@ func TestGetPipeline(t *testing.T) {
 		handler.GetPipeline(c)
 
 		assert.Equal(t, http.StatusOK, recorder.Result().StatusCode)
-		_, err = ioutil.ReadAll(recorder.Result().Body)
+		_, err = io.ReadAll(recorder.Result().Body)
 		assert.Nil(t, err)
 		// assert.Equal(t, "{\"id\":\"\",\"repoSource\":\"\",\"repoOwner\":\"\",\"repoName\":\"\",\"repoBranch\":\"\",\"repoRevision\":\"\",\"buildStatus\":\"failed\",\"insertedAt\":\"0001-01-01T00:00:00Z\",\"updatedAt\":\"0001-01-01T00:00:00Z\",\"duration\":0,\"lastUpdatedAt\":\"0001-01-01T00:00:00Z\"}", string(body))
 	})
@@ -221,13 +224,13 @@ func TestGetManifestTemplates(t *testing.T) {
 		defer ctrl.Finish()
 
 		content := []byte("track: stable")
-		templatesPath, err := ioutil.TempDir("", "templates")
+		templatesPath, err := os.MkdirTemp("", "templates")
 		assert.Nil(t, err)
 
 		defer os.RemoveAll(templatesPath) // clean up
 
 		tmpfn := filepath.Join(templatesPath, "manifest-docker.tmpl")
-		err = ioutil.WriteFile(tmpfn, content, 0666)
+		err = os.WriteFile(tmpfn, content, 0666)
 		assert.Nil(t, err)
 
 		cfg := &api.APIConfig{}
@@ -240,7 +243,8 @@ func TestGetManifestTemplates(t *testing.T) {
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 
-		handler := NewHandler(templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
+		gcsMigratorClient := migrationpb.NewMockServiceClient(ctrl)
+		handler := NewHandler(templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper, gcsMigratorClient)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 		bodyReader := strings.NewReader("")
@@ -253,7 +257,7 @@ func TestGetManifestTemplates(t *testing.T) {
 		handler.GetManifestTemplates(c)
 
 		assert.Equal(t, http.StatusOK, recorder.Result().StatusCode)
-		body, err := ioutil.ReadAll(recorder.Result().Body)
+		body, err := io.ReadAll(recorder.Result().Body)
 		assert.Nil(t, err)
 		assert.Equal(t, "{\"templates\":[{\"placeholders\":[],\"template\":\"docker\"}]}", string(body))
 
@@ -267,13 +271,13 @@ func TestGenerateManifest(t *testing.T) {
 		defer ctrl.Finish()
 
 		content := []byte("track: stable\nteam: {{.TeamName}}")
-		templatesPath, err := ioutil.TempDir("", "templates")
+		templatesPath, err := os.MkdirTemp("", "templates")
 		assert.Nil(t, err)
 
 		defer os.RemoveAll(templatesPath) // clean up
 
 		tmpfn := filepath.Join(templatesPath, "manifest-docker.tmpl")
-		err = ioutil.WriteFile(tmpfn, content, 0666)
+		err = os.WriteFile(tmpfn, content, 0666)
 		assert.Nil(t, err)
 
 		cfg := &api.APIConfig{}
@@ -286,7 +290,8 @@ func TestGenerateManifest(t *testing.T) {
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 
-		handler := NewHandler(templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
+		gcsMigratorClient := migrationpb.NewMockServiceClient(ctrl)
+		handler := NewHandler(templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper, gcsMigratorClient)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 		bodyReader := strings.NewReader("{\"template\": \"docker\", \"placeholders\": {\"TeamName\": \"estafette\"}}")
@@ -299,7 +304,7 @@ func TestGenerateManifest(t *testing.T) {
 		handler.GenerateManifest(c)
 
 		assert.Equal(t, http.StatusOK, recorder.Result().StatusCode)
-		body, err := ioutil.ReadAll(recorder.Result().Body)
+		body, err := io.ReadAll(recorder.Result().Body)
 		assert.Nil(t, err)
 		assert.Equal(t, "{\"manifest\":\"track: stable\\nteam: estafette\"}", string(body))
 
@@ -319,13 +324,13 @@ func TestCreatePipelineRelease_Forbidden(t *testing.T) {
 		defer ctrl.Finish()
 
 		content := []byte("track: stable")
-		templatesPath, err := ioutil.TempDir("", "templates")
+		templatesPath, err := os.MkdirTemp("", "templates")
 		assert.Nil(t, err)
 
 		defer os.RemoveAll(templatesPath) // clean up
 
 		tmpfn := filepath.Join(templatesPath, "manifest-docker.tmpl")
-		err = ioutil.WriteFile(tmpfn, content, 0666)
+		err = os.WriteFile(tmpfn, content, 0666)
 		assert.Nil(t, err)
 		cfg := &api.APIConfig{}
 		encryptedConfig := cfg
@@ -379,7 +384,8 @@ func TestCreatePipelineRelease_Forbidden(t *testing.T) {
 		secretHelper := crypt.NewSecretHelper("abc", false)
 		warningHelper := api.NewWarningHelper(secretHelper)
 
-		handler := NewHandler(templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper)
+		gcsMigratorClient := migrationpb.NewMockServiceClient(ctrl)
+		handler := NewHandler(templatesPath, cfg, encryptedConfig, databaseClient, cloudStorageClient, builderapiClient, buildService, warningHelper, secretHelper, gcsMigratorClient)
 		recorder := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(recorder)
 		c.Set("JWT_PAYLOAD", jwt.MapClaims{
@@ -398,7 +404,7 @@ func TestCreatePipelineRelease_Forbidden(t *testing.T) {
 		handler.CreatePipelineRelease(c)
 
 		assert.Equal(t, http.StatusForbidden, recorder.Result().StatusCode)
-		body, err := ioutil.ReadAll(recorder.Result().Body)
+		body, err := io.ReadAll(recorder.Result().Body)
 		assert.Nil(t, err)
 		assert.Equal(t, `{"code":"Forbidden","error":{"cluster":"abc1","message":"Release not allowed on this branch","repositoryReleaseControl":{"allowed":["main"]}}}`, string(body))
 

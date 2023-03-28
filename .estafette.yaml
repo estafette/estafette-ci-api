@@ -10,7 +10,8 @@ labels:
 version:
   semver:
     major: 1
-    minor: 1
+    minor: 4
+    patch: 0
 
 triggers:
 - name: migrator
@@ -20,34 +21,28 @@ triggers:
   builds:
     branch: main
 
-env:
-  GOCACHE: /estafette-work/.go/build
-  GOMODCACHE: /estafette-work/.go/pkg/mod
-
 stages:
-  build-lint-and-package:
+  continues-integration:
     parallelStages:
-      build:
-        image: golang:1.18-alpine
+      ci-api:
+        image: estafette/estafette-ci-api-cache
         env:
           CGO_ENABLED: 0
-          GOOS: linux
           GOGC: off
+          GOOS: linux
         commands:
-        - go build -a -installsuffix cgo -ldflags "-X main.appgroup=${ESTAFETTE_LABEL_APP_GROUP} -X main.app=${ESTAFETTE_GIT_NAME} -X main.version=${ESTAFETTE_BUILD_VERSION} -X main.revision=${ESTAFETTE_GIT_REVISION} -X main.branch=${ESTAFETTE_GIT_BRANCH} -X main.buildDate=${ESTAFETTE_BUILD_DATETIME}" -o ./publish/${ESTAFETTE_GIT_NAME} .
-
-      lint:
-        image: golangci/golangci-lint:latest-alpine
+          - golangci-lint run --timeout 3m
+          - CGO_ENABLED=1 go test -short -race ./...
+          - go build -ldflags "-X main.appgroup=${ESTAFETTE_LABEL_APP_GROUP} -X main.app=${ESTAFETTE_GIT_NAME} -X main.version=${ESTAFETTE_BUILD_VERSION} -X main.revision=${ESTAFETTE_GIT_REVISION} -X main.branch=${ESTAFETTE_GIT_BRANCH} -X main.buildDate=${ESTAFETTE_BUILD_DATETIME}" -o ./publish/${ESTAFETTE_GIT_NAME} .
+      gcs-migrator:
+        image: estafette/gcs-migrator-base
         commands:
-        - golangci-lint run --timeout 3m
+          - cd gcs-migrator
+          - pyinstaller --strip -F -n gcs-migrator server.py
+          - mkdir -p ../publish
+          - staticx --strip dist/gcs-migrator ../publish/gcs-migrator
 
-      test:
-        image: golang:1.18-alpine
-        commands:
-        - apk add --update --no-cache build-base
-        - go test -short -race ./...
-
-  integration-tests-against-cockroachdb-prepare:
+  integration-tests/db-migrator:
     services:
     - name: cockroachdb
       multiStage: true
@@ -61,7 +56,6 @@ stages:
         timeoutSeconds: 120
       commands:
       - /cockroach/cockroach start-single-node --insecure --advertise-addr estafette-ci-db-public
-
     image: estafette/estafette-ci-db-migrator:${ESTAFETTE_TRIGGER_MIGRATOR_BUILD_VERSION}
     env:
       DB_HOST: cockroachdb
@@ -72,55 +66,16 @@ stages:
       DB_PASSWORD: ''
       ESTAFETTE_LOG_FORMAT: console
 
-  integration-tests-against-cockroachdb:
-    image: golang:1.18-alpine
+  integration-tests/db-integration:
+    image: estafette/estafette-ci-api-cache
     env:
-      CGO_ENABLED: 0
-      GOOS: linux
       GOGC: off
-
       DB_HOST: cockroachdb
       DB_DATABASE: defaultdb
       DB_INSECURE: true
       DB_PORT: 26257
       DB_USER: root
       DB_PASSWORD: ''
-    commands:
-    - go test -run TestIntegration ./...
-
-  integration-tests-against-postgres-prepare:
-    services:
-    - name: postgres
-      multiStage: true
-      image: postgres:13.3-alpine
-      env:
-        POSTGRES_PASSWORD: abc
-
-    image: estafette/estafette-ci-db-migrator:${ESTAFETTE_TRIGGER_MIGRATOR_BUILD_VERSION}
-    env:
-      DB_HOST: postgres
-      DB_DATABASE: postgres
-      DB_INSECURE: true
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: abc
-      ESTAFETTE_LOG_FORMAT: console
-
-  integration-tests-against-postgres:
-    image: golang:1.18-alpine
-    env:
-      CGO_ENABLED: 0
-      GOOS: linux
-      GOGC: off
-
-      DB_HOST: postgres
-      DB_DATABASE: postgres
-      DB_INSECURE: true
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: abc
-      DB_MAX_OPEN_CONNECTIONS: 3
-      DB_MAX_IDLE_CONNECTIONS: 3
     commands:
     - go test -run TestIntegration ./...
 
@@ -130,7 +85,7 @@ stages:
     severity: unknown
     repositories:
     - estafette
-    path: ./publish
+    path: .
     copy:
     - /etc/ssl/certs/ca-certificates.crt
 
@@ -141,17 +96,17 @@ stages:
     - estafette
 
   tag-revision:
-    image: golang:1.18-alpine
+    image: bitnami/git
     commands:
-    - apk add git
     - git tag ${ESTAFETTE_BUILD_VERSION}
     - git push origin ${ESTAFETTE_BUILD_VERSION}
+    when: status == 'succeeded' &&
+      branch == 'main'
 
   slack-notify:
     image: extensions/slack-build-status:dev
     workspace: estafette
     channels:
     - '#build-status'
-    when:
-      status == 'succeeded' ||
+    when: status == 'succeeded' ||
       status == 'failed'

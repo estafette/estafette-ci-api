@@ -412,23 +412,6 @@ func TestIntegrationUpdateBotResourceUtilization(t *testing.T) {
 }
 
 func TestIntegrationInsertBuildLog(t *testing.T) {
-	t.Run("ReturnsInsertedBuildLogWithIDWhenWriteLogToDatabaseIsTrue", func(t *testing.T) {
-
-		if testing.Short() {
-			t.Skip("skipping test in short mode.")
-		}
-
-		ctx := context.Background()
-		databaseClient := getDatabaseClient(ctx, t)
-		buildLog := getBuildLog()
-
-		// act
-		insertedBuildLog, err := databaseClient.InsertBuildLog(ctx, buildLog, true)
-
-		assert.Nil(t, err)
-		assert.NotNil(t, insertedBuildLog)
-		assert.True(t, insertedBuildLog.ID != "")
-	})
 
 	t.Run("ReturnsInsertedBuildLogWithIDWhenWriteLogToDatabaseIsFalse", func(t *testing.T) {
 
@@ -441,7 +424,7 @@ func TestIntegrationInsertBuildLog(t *testing.T) {
 		buildLog := getBuildLog()
 
 		// act
-		insertedBuildLog, err := databaseClient.InsertBuildLog(ctx, buildLog, false)
+		insertedBuildLog, err := databaseClient.InsertBuildLog(ctx, buildLog)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedBuildLog)
@@ -450,23 +433,6 @@ func TestIntegrationInsertBuildLog(t *testing.T) {
 }
 
 func TestIntegrationInsertReleaseLog(t *testing.T) {
-	t.Run("ReturnsInsertedReleaseLogWithIDWhenWriteLogToDatabaseIsTrue", func(t *testing.T) {
-
-		if testing.Short() {
-			t.Skip("skipping test in short mode.")
-		}
-
-		ctx := context.Background()
-		databaseClient := getDatabaseClient(ctx, t)
-		releaseLog := getReleaseLog()
-
-		// act
-		insertedReleaseLog, err := databaseClient.InsertReleaseLog(ctx, releaseLog, true)
-
-		assert.Nil(t, err)
-		assert.NotNil(t, insertedReleaseLog)
-		assert.True(t, insertedReleaseLog.ID != "")
-	})
 
 	t.Run("ReturnsInsertedReleaseLogWithIDWhenWriteLogToDatabaseIsFalse", func(t *testing.T) {
 
@@ -479,7 +445,7 @@ func TestIntegrationInsertReleaseLog(t *testing.T) {
 		releaseLog := getReleaseLog()
 
 		// act
-		insertedReleaseLog, err := databaseClient.InsertReleaseLog(ctx, releaseLog, false)
+		insertedReleaseLog, err := databaseClient.InsertReleaseLog(ctx, releaseLog)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedReleaseLog)
@@ -488,23 +454,6 @@ func TestIntegrationInsertReleaseLog(t *testing.T) {
 }
 
 func TestIntegrationInsertBotLog(t *testing.T) {
-	t.Run("ReturnsInsertedBotLogWithIDWhenWriteLogToDatabaseIsTrue", func(t *testing.T) {
-
-		if testing.Short() {
-			t.Skip("skipping test in short mode.")
-		}
-
-		ctx := context.Background()
-		databaseClient := getDatabaseClient(ctx, t)
-		botLog := getBotLog()
-
-		// act
-		insertedBotLog, err := databaseClient.InsertBotLog(ctx, botLog, true)
-
-		assert.Nil(t, err)
-		assert.NotNil(t, insertedBotLog)
-		assert.True(t, insertedBotLog.ID != "")
-	})
 
 	t.Run("ReturnsInsertedBotLogWithIDWhenWriteLogToDatabaseIsFalse", func(t *testing.T) {
 
@@ -517,7 +466,7 @@ func TestIntegrationInsertBotLog(t *testing.T) {
 		botLog := getBotLog()
 
 		// act
-		insertedBotLog, err := databaseClient.InsertBotLog(ctx, botLog, false)
+		insertedBotLog, err := databaseClient.InsertBotLog(ctx, botLog)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, insertedBotLog)

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -51,7 +51,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		return
 	}
 
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body from Bitbucket webhook failed")
 		c.Status(http.StatusInternalServerError)
@@ -137,7 +137,7 @@ func (h *Handler) Handle(c *gin.Context) {
 		}
 
 		if repoUpdatedEvent.IsValidRenameEvent() {
-			log.Info().Msgf("Renaming repository from %v/%v/%v to %v/%v/%v", repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetOldRepoOwner(), repoUpdatedEvent.GetOldRepoName(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetNewRepoOwner(), repoUpdatedEvent.GetNewRepoName())
+			log.Debug().Msgf("Renaming repository from %v/%v/%v to %v/%v/%v", repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetOldRepoOwner(), repoUpdatedEvent.GetOldRepoName(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetNewRepoOwner(), repoUpdatedEvent.GetNewRepoName())
 			err = h.service.Rename(c.Request.Context(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetOldRepoOwner(), repoUpdatedEvent.GetOldRepoName(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetNewRepoOwner(), repoUpdatedEvent.GetNewRepoName())
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed renaming repository from %v/%v/%v to %v/%v/%v", repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetOldRepoOwner(), repoUpdatedEvent.GetOldRepoName(), repoUpdatedEvent.GetRepoSource(), repoUpdatedEvent.GetNewRepoOwner(), repoUpdatedEvent.GetNewRepoName())
@@ -157,7 +157,7 @@ func (h *Handler) Handle(c *gin.Context) {
 			return
 		}
 
-		log.Info().Msgf("Archiving repository %v/%v/%v", repoDeletedEvent.GetRepoSource(), repoDeletedEvent.GetRepoOwner(), repoDeletedEvent.GetRepoName())
+		log.Debug().Msgf("Archiving repository %v/%v/%v", repoDeletedEvent.GetRepoSource(), repoDeletedEvent.GetRepoOwner(), repoDeletedEvent.GetRepoName())
 		err = h.service.Archive(c.Request.Context(), repoDeletedEvent.GetRepoSource(), repoDeletedEvent.GetRepoOwner(), repoDeletedEvent.GetRepoName())
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed archiving repository %v/%v/%v", repoDeletedEvent.GetRepoSource(), repoDeletedEvent.GetRepoOwner(), repoDeletedEvent.GetRepoName())
@@ -243,7 +243,7 @@ func (h *Handler) Descriptor(c *gin.Context) {
 
 func (h *Handler) Installed(c *gin.Context) {
 
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body for Bitbucket App installed event failed")
 		c.Status(http.StatusInternalServerError)
@@ -284,14 +284,14 @@ func (h *Handler) Installed(c *gin.Context) {
 		}
 		installation.Workspace = workspace
 
-		log.Info().Interface("installation", installation).Msg("Unmarshalled bitbucket app install body")
+		log.Debug().Interface("installation", installation).Msg("Unmarshalled bitbucket app install body")
 		err = h.bitbucketapiClient.AddInstallation(c.Request.Context(), installation)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed adding bitbucket app installation")
 			c.Status(http.StatusInternalServerError)
 			return
 		} else {
-			log.Info().Msg("Added bitbucket app installation")
+			log.Debug().Msg("Added bitbucket app installation")
 		}
 	}
 
@@ -300,7 +300,7 @@ func (h *Handler) Installed(c *gin.Context) {
 
 func (h *Handler) Uninstalled(c *gin.Context) {
 
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Reading body for Bitbucket App uninstalled event failed")
 		c.Status(http.StatusInternalServerError)
@@ -314,14 +314,14 @@ func (h *Handler) Uninstalled(c *gin.Context) {
 		c.Status(http.StatusInternalServerError)
 		return
 	} else {
-		log.Info().Interface("installation", installation).Msg("Unmarshalled bitbucket app uninstall body")
+		log.Debug().Interface("installation", installation).Msg("Unmarshalled bitbucket app uninstall body")
 		err = h.bitbucketapiClient.RemoveInstallation(c.Request.Context(), installation)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed removing bitbucket app installation")
 			c.Status(http.StatusInternalServerError)
 			return
 		} else {
-			log.Info().Msg("Removed bitbucket app installation")
+			log.Debug().Msg("Removed bitbucket app installation")
 		}
 	}
 

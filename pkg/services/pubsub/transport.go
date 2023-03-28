@@ -50,7 +50,7 @@ func (eh *Handler) PostPubsubEvent(c *gin.Context) {
 		return
 	}
 
-	log.Info().
+	log.Debug().
 		Interface("msg", message).
 		Str("data", message.GetDecodedData()).
 		Str("subscriptionProject", message.GetSubcriptionProject()).

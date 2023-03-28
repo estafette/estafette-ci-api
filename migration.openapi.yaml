@@ -1,0 +1,408 @@
+openapi: 3.0.0
+info:
+  title: estafette-ci-api
+  version: 0.0.0
+  description: Migration API
+paths:
+  /api/auth/client/login:
+    post:
+      operationId: authentication
+      description: Authenticate with client id and secret
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+      responses:
+        '200':
+          description: Successfully authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Forbidden
+        '403':
+          description: Unauthorized
+  /api/migration:
+    post:
+      operationId: QueueMigration
+      description: Queue migration task
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MigrationRequest'
+      responses:
+        '200':
+          description: Successfully returned a list of APIs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MigrationResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: invalid request body
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 500
+                message: Queuing migration failed
+    get:
+      operationId: GetMigrations
+      description: Get all migration tasks
+      security:
+        - bearerAuth: [ ]
+      responses:
+        '200':
+          description: Successfully returned list of migration task
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MigrationShortResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 500
+                message: Failed to get migration status
+  /api/migration/{taskID}:
+    get:
+      operationId: GetMigrationByID
+      description: Get status of migration task
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskID
+          in: path
+          description: ID of the task
+          required: true
+          schema:
+            type: string
+          example: abc-123
+      responses:
+        '200':
+          description: Successfully returned an task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MigrationResponse'
+        '404':
+          description: task was not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: Not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 500
+                message: Failed to get migration status
+    delete:
+      operationId: RollbackMigration
+      description: Rollback status of migration task
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskID
+          in: path
+          description: ID of the task
+          required: true
+          schema:
+            type: string
+          example: abc-123
+      responses:
+        '200':
+          description: Successfully rolledback migration, rollback entities count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RollbackResponse'
+        '404':
+          description: task was not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: Not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 500
+                message: Failed to get migration status
+  /api/migration/from/{source}/{owner}/{name}:
+    get:
+      operationId: GetMigrationByFromRepo
+      description: Get status of migration task
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: source
+          in: path
+          description: source of repository being migrated
+          required: true
+          schema:
+            type: string
+          example: bitbucket.org
+        - name: owner
+          in: path
+          description: owner of repository being migrated
+          required: true
+          schema:
+            type: string
+          example: xivart
+        - name: name
+          in: path
+          description: name of repository being migrated
+          required: true
+          schema:
+            type: string
+          example: origami
+      responses:
+        '200':
+          description: Successfully returned an task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MigrationResponse'
+        '404':
+          description: task was not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: Not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 500
+                message: Failed to get migration status
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AuthRequest:
+      type: object
+      required:
+        - clientID
+        - clientSecret
+      additionalProperties: false
+      properties:
+        clientID:
+          type: string
+        clientSecret:
+          type: string
+    AuthResponse:
+      type: object
+      required:
+        - token
+      additionalProperties: true
+      properties:
+        token:
+          type: string
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    MigrationRequest:
+      type: object
+      required:
+        - fromSource
+        - fromOwner
+        - fromName
+        - toSource
+        - toOwner
+        - toName
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        fromSource:
+          type: string
+        fromOwner:
+          type: string
+        fromName:
+          type: string
+        toSource:
+          type: string
+        toOwner:
+          type: string
+        toName:
+          type: string
+        callbackURL:
+          type: string
+        restart:
+          description: Restart from the last failed stage or specified stage
+          type: string
+          enum:
+            - last_stage
+            - releases
+            - release_logs
+            - release_log_objects
+            - builds
+            - build_logs
+            - build_log_objects
+            - build_versions
+            - computed_tables
+            - callback
+    MigrationResponse:
+      allOf:
+        - $ref: '#/components/schemas/MigrationRequest'
+        - type: object
+          required:
+            - id
+            - status
+            - lastStep
+          additionalProperties: false
+          properties:
+            status:
+              type: string
+              enum:
+                - queued
+                - in_progress
+                - failed
+                - completed
+                - canceled
+                - unknown
+            lastStep:
+              type: string
+              enum:
+                - releases_failed
+                - releases_done
+                - release_logs_failed
+                - release_logs_done
+                - release_log_objects_failed
+                - release_log_objects_done
+                - builds_failed
+                - builds_done
+                - build_logs_failed
+                - build_logs_done
+                - build_log_objects_failed
+                - build_log_objects_done
+                - build_versions_failed
+                - build_versions_done
+                - computed_tables_failed
+                - computed_tables_done
+                - callback_failed
+                - callback_done
+            builds:
+              type: integer
+            releases:
+              type: integer
+            totalDuration:
+              type: integer
+            callbackURL:
+              type: string
+            errorDetails:
+              type: string
+            queuedAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    MigrationShortResponse:
+      allOf:
+        - $ref: '#/components/schemas/MigrationRequest'
+        - type: object
+          required:
+            - id
+            - status
+            - lastStep
+          additionalProperties: false
+          properties:
+            status:
+              type: string
+              enum:
+                - queued
+                - in_progress
+                - failed
+                - completed
+                - canceled
+                - unknown
+            lastStep:
+              type: string
+              enum:
+                - releases_failed
+                - releases_done
+                - release_logs_failed
+                - release_logs_done
+                - release_log_objects_failed
+                - release_log_objects_done
+                - builds_failed
+                - builds_done
+                - build_logs_failed
+                - build_logs_done
+                - build_log_objects_failed
+                - build_log_objects_done
+                - build_versions_failed
+                - build_versions_done
+                - computed_tables_failed
+                - computed_tables_done
+                - callback_failed
+                - callback_done
+            queuedAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    RollbackResponse:
+        type: object
+        additionalProperties: false
+        properties:
+           releases:
+             type: integer
+           releaseLogs:
+             type: integer
+           builds:
+             type: integer
+           buildLogs:
+             type: integer
+           buildVersions:
+             type: integer

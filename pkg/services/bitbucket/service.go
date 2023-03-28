@@ -25,6 +25,7 @@ var (
 )
 
 // Service handles http events for Bitbucket integration
+//
 //go:generate mockgen -package=bitbucket -destination ./mock.go -source=service.go
 type Service interface {
 	CreateJobForBitbucketPush(ctx context.Context, installation bitbucketapi.BitbucketAppInstallation, event bitbucketapi.RepositoryPushEvent) (err error)
@@ -136,7 +137,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, installation bi
 		return err
 	}
 
-	log.Info().Msgf("Created build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
+	log.Debug().Msgf("Created build for pipeline %v/%v/%v with revision %v", pushEvent.GetRepoSource(), pushEvent.GetRepoOwner(), pushEvent.GetRepoName(), pushEvent.GetRepoRevision())
 
 	go func() {
 		// create new context to avoid cancellation impacting execution
@@ -154,7 +155,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, installation bi
 }
 
 func (s *service) PublishBitbucketEvent(ctx context.Context, event manifest.EstafetteBitbucketEvent) (err error) {
-	log.Info().Msgf("Publishing bitbucket event '%v' for repository '%v' to topic...", event.Event, event.Repository)
+	log.Debug().Msgf("Publishing bitbucket event '%v' for repository '%v' to topic...", event.Event, event.Repository)
 
 	return s.queueService.PublishBitbucketEvent(ctx, event)
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/estafette/estafette-ci-api/pkg/migrationpb"
 	"testing"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
@@ -60,7 +61,8 @@ func TestConfigureGinGonic(t *testing.T) {
 
 		bitbucketHandler := bitbucket.NewHandler(bitbucket.NewMockService(ctrl), config, bitbucketapiClient)
 		githubHandler := github.NewHandler(github.NewMockService(ctrl), config, githubapiClient)
-		estafetteHandler := estafette.NewHandler("", config, config, databaseClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper)
+		gcsMigratorClient := migrationpb.NewMockServiceClient(ctrl)
+		estafetteHandler := estafette.NewHandler("", config, config, databaseClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, gcsMigratorClient)
 
 		rbacHandler := rbac.NewHandler(config, rbac.NewMockService(ctrl), databaseClient, bitbucketapiClient, githubapiClient)
 		pubsubHandler := pubsub.NewHandler(pubsubapiclient, estafetteService)
@@ -69,6 +71,6 @@ func TestConfigureGinGonic(t *testing.T) {
 		catalogHandler := catalog.NewHandler(config, catalog.NewMockService(ctrl), databaseClient)
 
 		// act
-		_ = configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler, catalogHandler)
+		_ = configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler, catalogHandler, nil)
 	})
 }

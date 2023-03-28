@@ -14,3 +14,8 @@
 # ignore build and helm artifacts
 /estafette-ci-api
 /estafette-ci-api-*.tgz
+venv/
+gcs-migrator/dist
+gcs-migrator/build
+.go/
+.pyconfig/

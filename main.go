@@ -3,10 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/estafette/estafette-ci-api/pkg/migrationpb"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -67,11 +71,18 @@ var (
 var (
 	// flags
 	apiAddress                   = kingpin.Flag("api-listen-address", "The address to listen on for api HTTP requests.").Default(":5000").String()
-	configFilesPath              = kingpin.Flag("config-files-path", "The path to yaml config file configuring this application.").Default("/configs").OverrideDefaultFromEnvar("CONFIG_FILES_PATH").String()
-	templatesPath                = kingpin.Flag("templates-path", "The path to the manifest templates being used by the 'Create' functionality.").Default("/templates").OverrideDefaultFromEnvar("TEMPLATES_PATH").String()
-	secretDecryptionKeyPath      = kingpin.Flag("secret-decryption-key-path", "The path to the AES-256 key used to decrypt secrets that have been encrypted with it.").Default("/secrets/secretDecryptionKey").OverrideDefaultFromEnvar("SECRET_DECRYPTION_KEY_PATH").String()
-	jwtKeyPath                   = kingpin.Flag("jwt-key-path", "The path to 256 bit jwt key used for api authentication.").Default("/secrets/jwtKey").OverrideDefaultFromEnvar("JWT_KEY_PATH").String()
-	gracefulShutdownDelaySeconds = kingpin.Flag("graceful-shutdown-delay-seconds", "The number of seconds to wait with graceful shutdown in order to let endpoints update propagation finish.").Default("15").OverrideDefaultFromEnvar("GRACEFUL_SHUTDOWN_DELAY_SECONDS").Int()
+	configFilesPath              = kingpin.Flag("config-files-path", "The path to yaml config file configuring this application.").Default("/configs").Envar("CONFIG_FILES_PATH").String()
+	templatesPath                = kingpin.Flag("templates-path", "The path to the manifest templates being used by the 'Create' functionality.").Default("/templates").Envar("TEMPLATES_PATH").String()
+	secretDecryptionKeyPath      = kingpin.Flag("secret-decryption-key-path", "The path to the AES-256 key used to decrypt secrets that have been encrypted with it.").Default("/secrets/secretDecryptionKey").Envar("SECRET_DECRYPTION_KEY_PATH").String()
+	jwtKeyPath                   = kingpin.Flag("jwt-key-path", "The path to 256 bit jwt key used for api authentication.").Default("/secrets/jwtKey").Envar("JWT_KEY_PATH").String()
+	gracefulShutdownDelaySeconds = kingpin.Flag("graceful-shutdown-delay-seconds", "The number of seconds to wait with graceful shutdown in order to let endpoints update propagation finish.").Default("15").Envar("GRACEFUL_SHUTDOWN_DELAY_SECONDS").Int()
+	gcsMigratorServer            = kingpin.Flag("gcs-migrator-server", "Address in the format of host:port should be same as in gcs-migrator/server.py").Default("localhost:50051").Envar("GCS_MIGRATOR_SERVER").String()
+)
+
+var (
+	gcsMigratorRestartDelay = 1 * time.Minute
+	gcsMigrator             *exec.Cmd
+	gcsMigratorStartedAt    time.Time
 )
 
 func main() {
@@ -82,6 +93,11 @@ func main() {
 	// init log format from envvar ESTAFETTE_LOG_FORMAT
 	foundation.InitLoggingFromEnv(foundation.NewApplicationInfo(appgroup, app, version, branch, revision, buildDate))
 
+	err := os.Mkdir("/tmp", 0744)
+	if err != nil && !os.IsExist(err) {
+		log.Fatal().Err(err).Msg("failed creating /tmp directory")
+	}
+	startGcsMigrator()
 	closer := initJaeger()
 	defer closer.Close()
 
@@ -101,7 +117,7 @@ func main() {
 
 	foundation.HandleGracefulShutdown(sigs, wg, func() {
 
-		time.Sleep(time.Duration(*gracefulShutdownDelaySeconds) * 1000 * time.Millisecond)
+		time.Sleep(time.Duration(*gracefulShutdownDelaySeconds) * time.Second)
 
 		// shut down gracefully
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -121,8 +137,10 @@ func initRequestHandlers(ctx context.Context, stopChannel <-chan struct{}, waitG
 	bqClient, pubsubClient, gcsClient, sourcerepoTokenSource, sourcerepoService := getGoogleCloudClients(ctx, config)
 	bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, databaseClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient := getClients(ctx, config, encryptedConfig, secretHelper, bqClient, pubsubClient, gcsClient, sourcerepoTokenSource, sourcerepoService)
 	estafetteService, queueService, rbacService, githubService, bitbucketService, cloudsourceService, catalogService := getServices(ctx, config, encryptedConfig, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, databaseClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient)
-	bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler, catalogHandler := getHandlers(ctx, config, encryptedConfig, secretHelper, bigqueryClient, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, databaseClient, dockerhubapiClient, builderapiClient, cloudstorageClient, prometheusClient, cloudsourceClient, estafetteService, rbacService, githubService, bitbucketService, cloudsourceService, catalogService)
+	gcsMigratorHealthClient, gcsMigratorClient := getGcsMigratorClients()
+	bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler, catalogHandler := getHandlers(ctx, config, encryptedConfig, secretHelper, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, databaseClient, builderapiClient, cloudstorageClient, estafetteService, rbacService, githubService, bitbucketService, cloudsourceService, catalogService, gcsMigratorClient)
 
+	go estafetteHandler.PollMigrationTasks(stopChannel)
 	err := queueService.CreateConnection(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed creating connection to queue")
@@ -132,11 +150,11 @@ func initRequestHandlers(ctx context.Context, stopChannel <-chan struct{}, waitG
 		log.Fatal().Err(err).Msg("Failed initializing queue subscriptions")
 	}
 
-	srv := configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler, catalogHandler)
+	srv := configureGinGonic(config, bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler, catalogHandler, gcsMigratorHealthClient)
 
 	// watch for config changes
 	foundation.WatchForFileChanges(*configFilesPath, func(event fsnotify.Event) {
-		log.Info().Msgf("Configs at %v were updated, refreshing instances...", *configFilesPath)
+		log.Debug().Msgf("Configs at %v were updated, refreshing instances...", *configFilesPath)
 
 		// refresh config
 		newConfig, newEncryptedConfig, _ := getConfig(ctx)
@@ -169,6 +187,7 @@ func initRequestHandlers(ctx context.Context, stopChannel <-chan struct{}, waitG
 	// watch for service account key file changes
 	foundation.WatchForFileChanges(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), func(event fsnotify.Event) {
 		log.Info().Msg("Service account key file was updated, refreshing instances...")
+		startGcsMigrator()
 
 		// refresh google cloud clients
 		newBqClient, newPubsubClient, newGcsClient, newSourcerepoTokenSource, newSourcerepoService := getGoogleCloudClients(ctx, config)
@@ -183,7 +202,7 @@ func initRequestHandlers(ctx context.Context, stopChannel <-chan struct{}, waitG
 	// watch for database client certificate changes
 	if config != nil && config.Database != nil && !config.Database.Insecure && config.Database.CertificatePath != "" {
 		foundation.WatchForFileChanges(config.Database.CertificatePath, func(event fsnotify.Event) {
-			log.Info().Msg("Database client certificate file was updated, refreshing connection...")
+			log.Debug().Msg("Database client certificate file was updated, refreshing connection...")
 
 			err = databaseClient.Connect(ctx)
 			if err != nil {
@@ -193,6 +212,18 @@ func initRequestHandlers(ctx context.Context, stopChannel <-chan struct{}, waitG
 	}
 
 	return srv, queueService
+}
+
+// !! Migration changes !!
+func getGcsMigratorClients() (migrationpb.HealthClient, migrationpb.ServiceClient) {
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+	conn, err := grpc.Dial(*gcsMigratorServer, opts...)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("failed to dial grpc connection with gcs-migrator: %v", err)
+	}
+	return migrationpb.NewHealthClient(conn), migrationpb.NewServiceClient(conn)
 }
 
 func getConfig(ctx context.Context) (*api.APIConfig, *api.APIConfig, crypt.SecretHelper) {
@@ -207,12 +238,12 @@ func getConfig(ctx context.Context) (*api.APIConfig, *api.APIConfig, crypt.Secre
 		log.Fatal().Msgf("Cannot find jwt key at path %v", *jwtKeyPath)
 	}
 
-	secretDecryptionKeyBytes, err := ioutil.ReadFile(*secretDecryptionKeyPath)
+	secretDecryptionKeyBytes, err := os.ReadFile(*secretDecryptionKeyPath)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed reading secret decryption key from path %v", *secretDecryptionKeyPath)
 	}
 
-	jwtKeyPathBytes, err := ioutil.ReadFile(*jwtKeyPath)
+	jwtKeyPathBytes, err := os.ReadFile(*jwtKeyPath)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed reading jwt key from path %v", *jwtKeyPath)
 	}
@@ -492,8 +523,8 @@ func getServices(ctx context.Context, config *api.APIConfig, encryptedConfig *ap
 	return
 }
 
-func getHandlers(ctx context.Context, config *api.APIConfig, encryptedConfig *api.APIConfig, secretHelper crypt.SecretHelper, bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, databaseClient database.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client, estafetteService estafette.Service, rbacService rbac.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service, catalogService catalog.Service) (bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, rbacHandler rbac.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler, catalogHandler catalog.Handler) {
-
+func getHandlers(_ context.Context, config *api.APIConfig, encryptedConfig *api.APIConfig, secretHelper crypt.SecretHelper, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, databaseClient database.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, estafetteService estafette.Service, rbacService rbac.Service, githubService github.Service, bitbucketService bitbucket.Service, cloudsourceService cloudsource.Service, catalogService catalog.Service, gcsMigratorClient migrationpb.ServiceClient) (
+	bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, rbacHandler rbac.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler, catalogHandler catalog.Handler) {
 	log.Debug().Msg("Creating http handlers...")
 
 	warningHelper := api.NewWarningHelper(secretHelper)
@@ -501,7 +532,7 @@ func getHandlers(ctx context.Context, config *api.APIConfig, encryptedConfig *ap
 	// transport
 	bitbucketHandler = bitbucket.NewHandler(bitbucketService, config, bitbucketapiClient)
 	githubHandler = github.NewHandler(githubService, config, githubapiClient)
-	estafetteHandler = estafette.NewHandler(*templatesPath, config, encryptedConfig, databaseClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper)
+	estafetteHandler = estafette.NewHandler(*templatesPath, config, encryptedConfig, databaseClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, gcsMigratorClient)
 	rbacHandler = rbac.NewHandler(config, rbacService, databaseClient, bitbucketapiClient, githubapiClient)
 	pubsubHandler = pubsub.NewHandler(pubsubapiClient, estafetteService)
 	slackHandler = slack.NewHandler(secretHelper, config, slackapiClient, databaseClient, estafetteService)
@@ -511,7 +542,7 @@ func getHandlers(ctx context.Context, config *api.APIConfig, encryptedConfig *ap
 	return
 }
 
-func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, rbacHandler rbac.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler, catalogHandler catalog.Handler) *http.Server {
+func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler, githubHandler github.Handler, estafetteHandler estafette.Handler, rbacHandler rbac.Handler, pubsubHandler pubsub.Handler, slackHandler slack.Handler, cloudsourceHandler cloudsource.Handler, catalogHandler catalog.Handler, gcsMigratorHealthClient migrationpb.HealthClient) *http.Server {
 
 	// run gin in release mode and other defaults
 	gin.SetMode(gin.ReleaseMode)
@@ -595,6 +626,15 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	// routes that require to be logged in and have a valid jwt
 	jwtMiddlewareRoutes := routes.Group("/", jwtMiddleware.MiddlewareFunc())
 	{
+		// !! Migration changes !!
+		jwtMiddlewareRoutes.POST("/api/migrations", estafetteHandler.QueueMigration)
+		jwtMiddlewareRoutes.GET("/api/migrations", estafetteHandler.GetAllMigrationsShort)
+		jwtMiddlewareRoutes.GET("/api/migrations/from/:source/:owner/:name", estafetteHandler.GetMigrationByFromRepo)
+		jwtMiddlewareRoutes.GET("/api/migrations/:taskID", estafetteHandler.GetMigrationByID)
+		jwtMiddlewareRoutes.DELETE("/api/migrations/:taskID", estafetteHandler.RollbackMigration)
+		jwtMiddlewareRoutes.GET("/api/migrations/builds/:buildID", estafetteHandler.GetMigratedBuild)
+		jwtMiddlewareRoutes.GET("/api/migrations/releases/:releaseID", estafetteHandler.GetMigratedRelease)
+
 		// logged in user endpoints
 		jwtMiddlewareRoutes.GET("/api/me", rbacHandler.GetLoggedInUser)
 
@@ -770,10 +810,27 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 
 	// default routes
 	routes.GET("/liveness", func(c *gin.Context) {
-		c.String(200, "I'm alive!")
+		_, err := gcsMigratorHealthClient.Check(context.Background(), &migrationpb.HealthCheckRequest{})
+		if err != nil && !strings.Contains(err.Error(), "50051: connect: connection refused") {
+			log.Warn().Err(err).Msg("error checking liveness of gcs-migrator")
+			c.String(http.StatusBadGateway, "gcs-migrator not available")
+			return
+		}
+		c.String(http.StatusOK, "I'm alive!")
 	})
 	routes.GET("/readiness", func(c *gin.Context) {
-		c.String(200, "I'm ready!")
+		res, err := gcsMigratorHealthClient.Check(context.Background(), &migrationpb.HealthCheckRequest{})
+		if err != nil {
+			log.Warn().Err(err).Msg("error checking readiness of gcs-migrator")
+			c.String(http.StatusInternalServerError, "failed to check status of gcs-migrator")
+			return
+		}
+		if res.Status == migrationpb.HealthCheckResponse_SERVING {
+			c.String(http.StatusOK, "I'm ready!")
+			return
+		}
+		log.Warn().Int32("gcsMigratorStatus", int32(res.Status)).Err(err).Msg("error checking status of gcs-migrator")
+		c.String(http.StatusBadGateway, "invalid status from gcs-migrator")
 	})
 	router.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": "Page not found"})
@@ -820,4 +877,27 @@ func initJaeger() io.Closer {
 	}
 
 	return closer
+}
+
+// start gcs-migrator
+func startGcsMigrator() {
+	if gcsMigrator != nil {
+		if gcsMigratorStartedAt.Add(gcsMigratorRestartDelay).After(time.Now()) {
+			log.Debug().Msg("gcs-migrator was started less than a minutes ago, not restarting it")
+			return
+		}
+		log.Warn().Msg("Restarting gcs-migrator...")
+		err := gcsMigrator.Process.Kill()
+		if err != nil {
+			log.Error().Err(err).Msg("failed to stop gcs-migrator")
+		}
+	}
+	gcsMigrator = exec.Command("/gcs-migrator")
+	gcsMigrator.Stdout = os.Stdout
+	gcsMigrator.Stderr = os.Stderr
+	err := gcsMigrator.Start()
+	if err != nil {
+		log.Warn().Err(err).Msg("Starting gcs-migrator failed")
+	}
+	gcsMigratorStartedAt = time.Now()
 }

@@ -9,6 +9,7 @@ import (
 )
 
 // Service handles http requests for role-based-access-control
+//
 //go:generate mockgen -package=catalog -destination ./mock.go -source=service.go
 type Service interface {
 	CreateCatalogEntity(ctx context.Context, catalogEntity contracts.CatalogEntity) (insertedCatalogEntity *contracts.CatalogEntity, err error)

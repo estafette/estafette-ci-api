@@ -11,6 +11,7 @@ import (
 )
 
 // Client is the interface for connecting to bigquery
+//
 //go:generate mockgen -package=bigquery -destination ./mock.go -source=client.go
 type Client interface {
 	Init(ctx context.Context) (err error)
@@ -53,7 +54,7 @@ func (c *client) Init(ctx context.Context) (err error) {
 		return
 	}
 
-	log.Info().Msgf("Initializing BigQuery tables %v and %v...", c.buildEventsTableName, c.releaseEventsTableName)
+	log.Debug().Msgf("Initializing BigQuery tables %v and %v...", c.buildEventsTableName, c.releaseEventsTableName)
 
 	datasetExists := c.CheckIfDatasetExists(ctx)
 	if !datasetExists {
@@ -89,7 +90,7 @@ func (c *client) CheckIfDatasetExists(ctx context.Context) bool {
 		return false
 	}
 
-	log.Info().Msgf("Checking if BigQuery dataset %v exists...", c.config.Integrations.BigQuery.Dataset)
+	log.Debug().Msgf("Checking if BigQuery dataset %v exists...", c.config.Integrations.BigQuery.Dataset)
 
 	ds := c.client.Dataset(c.config.Integrations.BigQuery.Dataset)
 
@@ -107,7 +108,7 @@ func (c *client) CheckIfTableExists(ctx context.Context, table string) bool {
 		return false
 	}
 
-	log.Info().Msgf("Checking if BigQuery table %v exists...", table)
+	log.Debug().Msgf("Checking if BigQuery table %v exists...", table)
 
 	tbl := c.client.Dataset(c.config.Integrations.BigQuery.Dataset).Table(table)
 
@@ -125,7 +126,7 @@ func (c *client) CreateTable(ctx context.Context, table string, typeForSchema in
 		return nil
 	}
 
-	log.Info().Msgf("Creating BigQuery table %v in dataset %v...", table, c.config.Integrations.BigQuery.Dataset)
+	log.Debug().Msgf("Creating BigQuery table %v in dataset %v...", table, c.config.Integrations.BigQuery.Dataset)
 
 	tbl := c.client.Dataset(c.config.Integrations.BigQuery.Dataset).Table(table)
 
@@ -161,7 +162,7 @@ func (c *client) CreateTable(ctx context.Context, table string, typeForSchema in
 		}
 	}
 
-	log.Info().Msgf("Finished creating BigQuery table %v in dataset %v", table, c.config.Integrations.BigQuery.Dataset)
+	log.Debug().Msgf("Finished creating BigQuery table %v in dataset %v", table, c.config.Integrations.BigQuery.Dataset)
 
 	return nil
 }
@@ -172,7 +173,7 @@ func (c *client) UpdateTableSchema(ctx context.Context, table string, typeForSch
 		return nil
 	}
 
-	log.Info().Msgf("Updating BigQuery table %v schema in dataset %v...", table, c.config.Integrations.BigQuery.Dataset)
+	log.Debug().Msgf("Updating BigQuery table %v schema in dataset %v...", table, c.config.Integrations.BigQuery.Dataset)
 
 	tbl := c.client.Dataset(c.config.Integrations.BigQuery.Dataset).Table(table)
 

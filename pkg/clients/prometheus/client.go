@@ -3,10 +3,10 @@ package prometheus
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"time"
 
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"strconv"
 
@@ -17,6 +17,7 @@ import (
 )
 
 // Client is the interface for communicating with prometheus
+//
 //go:generate mockgen -package=prometheus -destination ./mock.go -source=client.go
 type Client interface {
 	AwaitScrapeInterval(ctx context.Context)
@@ -92,7 +93,7 @@ func (c *client) getQueryResult(query string) (float64, error) {
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return 0, fmt.Errorf("Reading prometheus query response body for query url %v failed", prometheusQueryURL)
 	}
