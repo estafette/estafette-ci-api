@@ -494,7 +494,7 @@ func (s *service) CreateRelease(ctx context.Context, release contracts.Release, 
 
 		// get max counter for same branch
 		lastBuildsForBranch, _ := s.databaseClient.GetPipelineBuilds(ctx, pipeline.RepoSource, pipeline.RepoOwner, pipeline.RepoName, 1, 10, map[api.FilterType][]string{api.FilterBranch: []string{repoBranch}}, []api.OrderField{}, false)
-		if len(lastBuildsForBranch) == 1 {
+		if len(lastBuildsForBranch) >= 1 {
 			mc := s.getVersionCounter(ctx, lastBuildsForBranch[0].BuildVersion, mft)
 			if mc > maxCounterCurrentBranch {
 				maxCounterCurrentBranch = mc
