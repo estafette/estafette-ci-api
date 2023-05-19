@@ -170,7 +170,7 @@ MIGRATIONS:
 		}
 	}
 	task.ErrorDetails = pointer.String(fmt.Sprintf("%s\n%s", notFoundErrors, unknownErrors))
-	if totalErrors == len(changes) {
+	if totalErrors > 0 && totalErrors == len(changes) {
 		return fmt.Errorf("errors while migrating %s log objects", logType)
 	}
 	return nil
