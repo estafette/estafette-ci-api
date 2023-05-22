@@ -35,6 +35,7 @@ type MigrationDatabaseApi interface {
 	GetMigratedBuildLogs(ctx context.Context, task *migration.Task) ([]migration.Change, error)
 	GetMigratedReleaseLogs(ctx context.Context, task *migration.Task) ([]migration.Change, error)
 	GetMigrationByFromRepo(ctx context.Context, fromSource, fromOwner, fromName string) (*migration.Task, error)
+	GetMigrationByToRepo(ctx context.Context, toSource, toOwner, toName string) (*migration.Task, error)
 	GetMigrationByID(ctx context.Context, taskID string) (*migration.Task, error)
 	MigrateBuildLogs(ctx context.Context, task *migration.Task) error
 	MigrateBuildVersions(ctx context.Context, task *migration.Task) error
@@ -149,6 +150,22 @@ func (c *client) GetMigrationByFromRepo(ctx context.Context, fromSource, fromOwn
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get migration status for repository %s/%s/%s: %w", fromSource, fromOwner, fromName, err)
+	}
+	task.TotalDuration = time.Duration(totalDuration)
+	return &task, nil
+}
+
+func (c *client) GetMigrationByToRepo(ctx context.Context, toSource, toOwner, toName string) (*migration.Task, error) {
+	query, args := queries.GetMigrationByToRepo(sql.NamedArg{Name: "toSource", Value: toSource}, sql.NamedArg{Name: "toOwner", Value: toOwner}, sql.NamedArg{Name: "toName", Value: toName})
+	row := c.databaseConnection.QueryRowContext(ctx, query, args...)
+	var task migration.Task
+	var totalDuration int64
+	err := row.Scan(&task.ID, &task.Status, &task.LastStep, &task.Builds, &task.Releases, &totalDuration, &task.FromSource, &task.FromOwner, &task.FromName, &task.ToSource, &task.ToOwner, &task.ToName, &task.CallbackURL, &task.ErrorDetails, &task.QueuedAt, &task.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get migration status for repository %s/%s/%s: %w", toSource, toOwner, toName, err)
 	}
 	task.TotalDuration = time.Duration(totalDuration)
 	return &task, nil
