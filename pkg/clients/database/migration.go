@@ -5,20 +5,19 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"k8s.io/utils/ptr"
 	"os"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
-	"github.com/lib/pq"
-	"github.com/opentracing/opentracing-go"
-	"github.com/rs/zerolog/log"
-	"k8s.io/utils/pointer"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/database/queries"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/estafette/migration"
+	"github.com/google/uuid"
+	"github.com/lib/pq"
+	"github.com/opentracing/opentracing-go"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -46,6 +45,7 @@ type MigrationDatabaseApi interface {
 	QueueMigration(ctx context.Context, task *migration.Task) (*migration.Task, error)
 	RollbackMigration(ctx context.Context, task *migration.Task) (*migration.Changes, error)
 	UpdateMigration(ctx context.Context, task *migration.Task) error
+	SetPipelineArchival(ctx context.Context, source, owner, name string, archived bool) error
 }
 
 func _CloseRows(rows *sql.Rows) {
@@ -400,7 +400,8 @@ func (c *client) UpdateMigration(ctx context.Context, task *migration.Task) erro
 		if os.Getenv("HOSTNAME") != "" {
 			HOSTNAME = os.Getenv("HOSTNAME")
 		}
-		task.ErrorDetails = pointer.String(
+
+		task.ErrorDetails = ptr.To(
 			strings.TrimSpace(
 				fmt.Sprintf("//%s start: %s\n%s\n//%s end", HOSTNAME, time.Now().Format(time.RFC3339), *task.ErrorDetails, HOSTNAME),
 			),
@@ -410,6 +411,20 @@ func (c *client) UpdateMigration(ctx context.Context, task *migration.Task) erro
 	_, err := c.databaseConnection.ExecContext(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to update migration task %s: %w", task.ID, err)
+	}
+	return nil
+}
+
+func (c *client) SetPipelineArchival(ctx context.Context, source, owner, name string, archived bool) error {
+	query, args := queries.SetPipelineArchival(
+		sql.NamedArg{Name: "archived", Value: archived},
+		sql.NamedArg{Name: "name", Value: name},
+		sql.NamedArg{Name: "owner", Value: owner},
+		sql.NamedArg{Name: "source", Value: source},
+	)
+	_, err := c.databaseConnection.ExecContext(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("failed to set archived status for repository %s/%s: %w", owner, name, err)
 	}
 	return nil
 }
@@ -484,6 +499,10 @@ func (c *loggingClient) GetMigratedRelease(ctx context.Context, releaseID string
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetMigratedRelease", err) }()
 	return c.Client.GetMigratedRelease(ctx, releaseID)
 }
+func (c *loggingClient) SetPipelineArchival(ctx context.Context, source, owner, name string, archived bool) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "SetPipelineArchival", err) }()
+	return c.Client.SetPipelineArchival(ctx, source, owner, name, archived)
+}
 
 //metrics
 
@@ -554,6 +573,10 @@ func (c *metricsClient) GetMigratedBuild(ctx context.Context, buildID string) (b
 func (c *metricsClient) GetMigratedRelease(ctx context.Context, releaseID string) (release *contracts.Release, err error) {
 	api.UpdateMetrics(c.requestCount, c.requestLatency, "GetMigratedRelease", time.Now())
 	return c.Client.GetMigratedRelease(ctx, releaseID)
+}
+func (c *metricsClient) SetPipelineArchival(ctx context.Context, source, owner, name string, archived bool) (err error) {
+	api.UpdateMetrics(c.requestCount, c.requestLatency, "SetPipelineArchival", time.Now())
+	return c.Client.SetPipelineArchival(ctx, source, owner, name, archived)
 }
 
 // logging
@@ -642,4 +665,9 @@ func (c *tracingClient) GetMigratedRelease(ctx context.Context, releaseID string
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetMigratedRelease"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 	return c.Client.GetMigratedRelease(ctx, releaseID)
+}
+func (c *tracingClient) SetPipelineArchival(ctx context.Context, source, owner, name string, archived bool) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "SetPipelineArchival"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+	return c.Client.SetPipelineArchival(ctx, source, owner, name, archived)
 }

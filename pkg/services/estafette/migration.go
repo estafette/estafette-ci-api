@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"google.golang.org/grpc"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sync/atomic"
 	"time"
 
@@ -169,7 +169,7 @@ MIGRATIONS:
 			unknownErrors += fmt.Sprintf("\n\tfrom: %d, to: %d err: %s", req.FromID, req.ToID, data)
 		}
 	}
-	task.ErrorDetails = pointer.String(fmt.Sprintf("%s\n%s", notFoundErrors, unknownErrors))
+	task.ErrorDetails = ptr.To(fmt.Sprintf("%s\n%s", notFoundErrors, unknownErrors))
 	if totalErrors == len(changes) {
 		return fmt.Errorf("errors while migrating %s log objects", logType)
 	}

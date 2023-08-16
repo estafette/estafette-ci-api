@@ -2479,6 +2479,20 @@ func (mr *MockClientMockRecorder) RollbackMigration(ctx, task interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RollbackMigration", reflect.TypeOf((*MockClient)(nil).RollbackMigration), ctx, task)
 }
 
+// SetPipelineArchival mocks base method.
+func (m *MockClient) SetPipelineArchival(ctx context.Context, source, owner, name string, archived bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetPipelineArchival", ctx, source, owner, name, archived)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetPipelineArchival indicates an expected call of SetPipelineArchival.
+func (mr *MockClientMockRecorder) SetPipelineArchival(ctx, source, owner, name, archived interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPipelineArchival", reflect.TypeOf((*MockClient)(nil).SetPipelineArchival), ctx, source, owner, name, archived)
+}
+
 // UnarchiveComputedPipeline mocks base method.
 func (m *MockClient) UnarchiveComputedPipeline(ctx context.Context, repoSource, repoOwner, repoName string) error {
 	m.ctrl.T.Helper()
