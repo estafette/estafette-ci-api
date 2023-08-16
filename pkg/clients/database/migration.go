@@ -46,6 +46,7 @@ type MigrationDatabaseApi interface {
 	QueueMigration(ctx context.Context, task *migration.Task) (*migration.Task, error)
 	RollbackMigration(ctx context.Context, task *migration.Task) (*migration.Changes, error)
 	UpdateMigration(ctx context.Context, task *migration.Task) error
+	SetPipelineArchival(ctx context.Context, source, owner, name string, archived bool) error
 }
 
 func _CloseRows(rows *sql.Rows) {
@@ -414,6 +415,20 @@ func (c *client) UpdateMigration(ctx context.Context, task *migration.Task) erro
 	return nil
 }
 
+func (c *client) SetPipelineArchival(ctx context.Context, source, owner, name string, archived bool) error {
+	query, args := queries.SetPipelineArchival(
+		sql.NamedArg{Name: "archived", Value: archived},
+		sql.NamedArg{Name: "name", Value: name},
+		sql.NamedArg{Name: "owner", Value: owner},
+		sql.NamedArg{Name: "source", Value: source},
+	)
+	_, err := c.databaseConnection.ExecContext(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("failed to set archived status for repository %s/%s: %w", owner, name, err)
+	}
+	return nil
+}
+
 // logging
 
 func (c *loggingClient) GetAllMigrationsShort(ctx context.Context) (tasks []*migration.Task, err error) {
@@ -483,6 +498,10 @@ func (c *loggingClient) GetMigratedBuild(ctx context.Context, buildID string) (b
 func (c *loggingClient) GetMigratedRelease(ctx context.Context, releaseID string) (release *contracts.Release, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetMigratedRelease", err) }()
 	return c.Client.GetMigratedRelease(ctx, releaseID)
+}
+func (c *loggingClient) SetPipelineArchival(ctx context.Context, source, owner, name string, archived bool) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "SetPipelineArchival", err) }()
+	return c.Client.SetPipelineArchival(ctx, source, owner, name, archived)
 }
 
 //metrics
@@ -554,6 +573,10 @@ func (c *metricsClient) GetMigratedBuild(ctx context.Context, buildID string) (b
 func (c *metricsClient) GetMigratedRelease(ctx context.Context, releaseID string) (release *contracts.Release, err error) {
 	api.UpdateMetrics(c.requestCount, c.requestLatency, "GetMigratedRelease", time.Now())
 	return c.Client.GetMigratedRelease(ctx, releaseID)
+}
+func (c *metricsClient) SetPipelineArchival(ctx context.Context, source, owner, name string, archived bool) (err error) {
+	api.UpdateMetrics(c.requestCount, c.requestLatency, "SetPipelineArchival", time.Now())
+	return c.Client.SetPipelineArchival(ctx, source, owner, name, archived)
 }
 
 // logging
@@ -642,4 +665,9 @@ func (c *tracingClient) GetMigratedRelease(ctx context.Context, releaseID string
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetMigratedRelease"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 	return c.Client.GetMigratedRelease(ctx, releaseID)
+}
+func (c *tracingClient) SetPipelineArchival(ctx context.Context, source, owner, name string, archived bool) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "SetPipelineArchival"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+	return c.Client.SetPipelineArchival(ctx, source, owner, name, archived)
 }
