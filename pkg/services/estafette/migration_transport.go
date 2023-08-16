@@ -220,18 +220,19 @@ func (h *Handler) GetMigratedRelease(c *gin.Context) {
 	c.JSON(http.StatusOK, release)
 }
 
-func (h *Handler) SetPipelineArchival(c *gin.Context) {
-	source, owner, name, invalid := validatePathParams(c)
-	if invalid {
-		return
+func (h *Handler) SetPipelineArchival(archived bool) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		source, owner, name, invalid := validatePathParams(c)
+		if invalid {
+			return
+		}
+		err := h.databaseClient.SetPipelineArchival(c.Request.Context(), source, owner, name, archived)
+		if err != nil {
+			errorMessage := "Failed to update archival status"
+			log.Error().Err(err).Msg(errorMessage)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true})
 	}
-	archived := c.Query("archived") == "true"
-	err := h.databaseClient.SetPipelineArchival(c.Request.Context(), source, owner, name, archived)
-	if err != nil {
-		errorMessage := "Failed to update archival status"
-		log.Error().Err(err).Msg(errorMessage)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"success": true})
 }
