@@ -233,6 +233,6 @@ func (h *Handler) SetPipelineArchival(archived bool) func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"success": true})
+		c.JSON(http.StatusOK, gin.H{"archived": archived})
 	}
 }
