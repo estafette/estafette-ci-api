@@ -5,20 +5,19 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"k8s.io/utils/ptr"
 	"os"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
-	"github.com/lib/pq"
-	"github.com/opentracing/opentracing-go"
-	"github.com/rs/zerolog/log"
-	"k8s.io/utils/pointer"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
 	"github.com/estafette/estafette-ci-api/pkg/clients/database/queries"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	"github.com/estafette/migration"
+	"github.com/google/uuid"
+	"github.com/lib/pq"
+	"github.com/opentracing/opentracing-go"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -401,7 +400,8 @@ func (c *client) UpdateMigration(ctx context.Context, task *migration.Task) erro
 		if os.Getenv("HOSTNAME") != "" {
 			HOSTNAME = os.Getenv("HOSTNAME")
 		}
-		task.ErrorDetails = pointer.String(
+
+		task.ErrorDetails = ptr.To(
 			strings.TrimSpace(
 				fmt.Sprintf("//%s start: %s\n%s\n//%s end", HOSTNAME, time.Now().Format(time.RFC3339), *task.ErrorDetails, HOSTNAME),
 			),
