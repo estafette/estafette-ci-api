@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/estafette/estafette-ci-api/pkg/clients/database"
+	"github.com/estafette/migration"
 	"io"
 	"net/http"
 	"strings"
@@ -17,11 +19,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewHandler(service Service, config *api.APIConfig, githubapiClient githubapi.Client) Handler {
+func NewHandler(service Service, config *api.APIConfig, githubapiClient githubapi.Client, databaseClient database.Client) Handler {
 	return Handler{
 		config:          config,
 		service:         service,
 		githubapiClient: githubapiClient,
+		databaseClient:  databaseClient,
 	}
 }
 
@@ -29,6 +32,7 @@ type Handler struct {
 	config          *api.APIConfig
 	service         Service
 	githubapiClient githubapi.Client
+	databaseClient  database.Client
 }
 
 func (h *Handler) Handle(c *gin.Context) {
@@ -83,6 +87,18 @@ func (h *Handler) Handle(c *gin.Context) {
 		if err != nil {
 			log.Error().Err(err).Str("body", string(body)).Msg("Deserializing body to GithubPushEvent failed")
 			c.Status(http.StatusBadRequest)
+			return
+		}
+
+		task, err := h.databaseClient.GetMigrationByToRepo(c.Request.Context(), "github.com", pushEvent.GetRepoOwner(), pushEvent.GetRepoName())
+		if err != nil {
+			log.Error().Err(err).Msg("Failed getting migration for github push event")
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		if task != nil && task.Status != migration.StatusCompleted {
+			log.Warn().Str("taskID", task.ID).Str("repoName", pushEvent.GetRepoFullName()).Str("status", task.Status.String()).Msg("ignoring github push event for repo that is being migrated")
+			c.Status(http.StatusConflict)
 			return
 		}
 

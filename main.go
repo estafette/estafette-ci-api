@@ -531,7 +531,7 @@ func getHandlers(_ context.Context, config *api.APIConfig, encryptedConfig *api.
 
 	// transport
 	bitbucketHandler = bitbucket.NewHandler(bitbucketService, config, bitbucketapiClient)
-	githubHandler = github.NewHandler(githubService, config, githubapiClient)
+	githubHandler = github.NewHandler(githubService, config, githubapiClient, databaseClient)
 	estafetteHandler = estafette.NewHandler(*templatesPath, config, encryptedConfig, databaseClient, cloudstorageClient, builderapiClient, estafetteService, warningHelper, secretHelper, gcsMigratorClient)
 	rbacHandler = rbac.NewHandler(config, rbacService, databaseClient, bitbucketapiClient, githubapiClient)
 	pubsubHandler = pubsub.NewHandler(pubsubapiClient, estafetteService)

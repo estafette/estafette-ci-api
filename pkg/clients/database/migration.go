@@ -34,6 +34,7 @@ type MigrationDatabaseApi interface {
 	GetMigratedBuildLogs(ctx context.Context, task *migration.Task) ([]migration.Change, error)
 	GetMigratedReleaseLogs(ctx context.Context, task *migration.Task) ([]migration.Change, error)
 	GetMigrationByFromRepo(ctx context.Context, fromSource, fromOwner, fromName string) (*migration.Task, error)
+	GetMigrationByToRepo(ctx context.Context, toSource, toOwner, toName string) (*migration.Task, error)
 	GetMigrationByID(ctx context.Context, taskID string) (*migration.Task, error)
 	MigrateBuildLogs(ctx context.Context, task *migration.Task) error
 	MigrateBuildVersions(ctx context.Context, task *migration.Task) error
@@ -149,6 +150,22 @@ func (c *client) GetMigrationByFromRepo(ctx context.Context, fromSource, fromOwn
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get migration status for repository %s/%s/%s: %w", fromSource, fromOwner, fromName, err)
+	}
+	task.TotalDuration = time.Duration(totalDuration)
+	return &task, nil
+}
+
+func (c *client) GetMigrationByToRepo(ctx context.Context, toSource, toOwner, toName string) (*migration.Task, error) {
+	query, args := queries.GetMigrationByToRepo(sql.NamedArg{Name: "toSource", Value: toSource}, sql.NamedArg{Name: "toOwner", Value: toOwner}, sql.NamedArg{Name: "toName", Value: toName})
+	row := c.databaseConnection.QueryRowContext(ctx, query, args...)
+	var task migration.Task
+	var totalDuration int64
+	err := row.Scan(&task.ID, &task.Status, &task.LastStep, &task.Builds, &task.Releases, &totalDuration, &task.FromSource, &task.FromOwner, &task.FromName, &task.ToSource, &task.ToOwner, &task.ToName, &task.CallbackURL, &task.ErrorDetails, &task.QueuedAt, &task.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get migration status for repository %s/%s/%s: %w", toSource, toOwner, toName, err)
 	}
 	task.TotalDuration = time.Duration(totalDuration)
 	return &task, nil
@@ -447,6 +464,10 @@ func (c *loggingClient) GetMigrationByFromRepo(ctx context.Context, fromSource, 
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetMigrationByFromRepo", err) }()
 	return c.Client.GetMigrationByFromRepo(ctx, fromSource, fromOwner, fromName)
 }
+func (c *loggingClient) GetMigrationByToRepo(ctx context.Context, toSource, toOwner, toName string) (task *migration.Task, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetMigrationByToRepo", err) }()
+	return c.Client.GetMigrationByToRepo(ctx, toSource, toOwner, toName)
+}
 func (c *loggingClient) GetMigrationByID(ctx context.Context, taskID string) (task *migration.Task, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetMigrationByID", err) }()
 	return c.Client.GetMigrationByID(ctx, taskID)
@@ -522,6 +543,11 @@ func (c *metricsClient) GetMigrationByFromRepo(ctx context.Context, fromSource, 
 	api.UpdateMetrics(c.requestCount, c.requestLatency, "GetMigrationByFromRepo", time.Now())
 	return c.Client.GetMigrationByFromRepo(ctx, fromSource, fromOwner, fromName)
 }
+
+func (c *metricsClient) GetMigrationByToRepo(ctx context.Context, toSource, toOwner, toName string) (task *migration.Task, err error) {
+	api.UpdateMetrics(c.requestCount, c.requestLatency, "GetMigrationByToRepo", time.Now())
+	return c.Client.GetMigrationByToRepo(ctx, toSource, toOwner, toName)
+}
 func (c *metricsClient) GetMigrationByID(ctx context.Context, taskID string) (task *migration.Task, err error) {
 	api.UpdateMetrics(c.requestCount, c.requestLatency, "GetMigrationByID", time.Now())
 	return c.Client.GetMigrationByID(ctx, taskID)
@@ -595,6 +621,11 @@ func (c *tracingClient) GetMigrationByFromRepo(ctx context.Context, fromSource, 
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetMigrationByFromRepo"))
 	defer func() { api.FinishSpanWithError(span, err) }()
 	return c.Client.GetMigrationByFromRepo(ctx, fromSource, fromOwner, fromName)
+}
+func (c *tracingClient) GetMigrationByToRepo(ctx context.Context, toSource, toOwner, toName string) (task *migration.Task, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetMigrationByToRepo"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+	return c.Client.GetMigrationByToRepo(ctx, toSource, toOwner, toName)
 }
 func (c *tracingClient) GetMigrationByID(ctx context.Context, taskID string) (task *migration.Task, err error) {
 	span := opentracing.StartSpan(api.GetSpanName(c.prefix, "GetMigrationByID"))

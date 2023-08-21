@@ -1050,6 +1050,21 @@ func (mr *MockClientMockRecorder) GetMigrationByID(ctx, taskID interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMigrationByID", reflect.TypeOf((*MockClient)(nil).GetMigrationByID), ctx, taskID)
 }
 
+// GetMigrationByToRepo mocks base method.
+func (m *MockClient) GetMigrationByToRepo(ctx context.Context, toSource, toOwner, toName string) (*migration.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMigrationByToRepo", ctx, toSource, toOwner, toName)
+	ret0, _ := ret[0].(*migration.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMigrationByToRepo indicates an expected call of GetMigrationByToRepo.
+func (mr *MockClientMockRecorder) GetMigrationByToRepo(ctx, toSource, toOwner, toName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMigrationByToRepo", reflect.TypeOf((*MockClient)(nil).GetMigrationByToRepo), ctx, toSource, toOwner, toName)
+}
+
 // GetOrganizationByID mocks base method.
 func (m *MockClient) GetOrganizationByID(ctx context.Context, id string) (*estafette_ci_contracts.Organization, error) {
 	m.ctrl.T.Helper()
