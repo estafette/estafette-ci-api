@@ -77,6 +77,8 @@ var (
 	rollbackReleases string
 	//go:embed set_migration_id_for_pipeline.sql
 	setMigrationIdForPipeline string
+	//go:embed set_pipeline_archival.sql
+	setPipelineArchival string
 	//go:embed unmark_repository_archived.sql
 	unmarkRepositoryArchived string
 	//go:embed update_migration.sql
@@ -372,6 +374,16 @@ func RollbackReleases(namedArg ...sql.NamedArg) (string, []interface{}) {
 //   - id
 func SetMigrationIdForPipeline(namedArg ...sql.NamedArg) (string, []interface{}) {
 	return Prepare(setMigrationIdForPipeline, namedArg)
+}
+
+// SetPipelineArchival prepares a query for execution by replacing named parameters with positional parameters.
+// Required NamedArg
+//   - archived
+//   - name
+//   - owner
+//   - source
+func SetPipelineArchival(namedArg ...sql.NamedArg) (string, []interface{}) {
+	return Prepare(setPipelineArchival, namedArg)
 }
 
 // UnmarkRepositoryArchived prepares a query for execution by replacing named parameters with positional parameters.

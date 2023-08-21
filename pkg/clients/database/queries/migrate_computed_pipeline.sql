@@ -51,7 +51,7 @@ SELECT
   triggers,
   triggered_by_event,
   NOW(),
-  archived,
+  true                       AS archived,
   recent_committers,
   recent_releasers,
   started_at,

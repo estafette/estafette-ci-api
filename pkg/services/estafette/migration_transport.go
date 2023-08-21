@@ -110,6 +110,25 @@ func (h *Handler) RollbackMigration(c *gin.Context) {
 }
 
 func (h *Handler) GetMigrationByFromRepo(c *gin.Context) {
+	source, owner, name, invalid := validatePathParams(c)
+	if invalid {
+		return
+	}
+	task, err := h.databaseClient.GetMigrationByFromRepo(c.Request.Context(), source, owner, name)
+	if err != nil {
+		if errors.Is(err, database.ErrMigrationNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": err.Error()})
+			return
+		}
+		errorMessage := "Failed to migration"
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
+	c.JSON(http.StatusOK, task)
+}
+
+func validatePathParams(c *gin.Context) (string, string, string, bool) {
 	source := c.Param("source")
 	owner := c.Param("owner")
 	name := c.Param("name")
@@ -132,20 +151,9 @@ func (h *Handler) GetMigrationByFromRepo(c *gin.Context) {
 		}
 		errorMessage += " path parameters are required"
 		c.JSON(http.StatusBadRequest, gin.H{"code": http.StatusText(http.StatusBadRequest), "message": errorMessage})
-		return
+		return "", "", "", true
 	}
-	task, err := h.databaseClient.GetMigrationByFromRepo(c.Request.Context(), source, owner, name)
-	if err != nil {
-		if errors.Is(err, database.ErrMigrationNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"code": http.StatusText(http.StatusNotFound), "message": err.Error()})
-			return
-		}
-		errorMessage := "Failed to migration"
-		log.Error().Err(err).Msg(errorMessage)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
-		return
-	}
-	c.JSON(http.StatusOK, task)
+	return source, owner, name, false
 }
 
 func (h *Handler) GetAllMigrationsShort(c *gin.Context) {
@@ -210,4 +218,21 @@ func (h *Handler) GetMigratedRelease(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, release)
+}
+
+func (h *Handler) SetPipelineArchival(archived bool) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		source, owner, name, invalid := validatePathParams(c)
+		if invalid {
+			return
+		}
+		err := h.databaseClient.SetPipelineArchival(c.Request.Context(), source, owner, name, archived)
+		if err != nil {
+			errorMessage := "Failed to update archival status"
+			log.Error().Err(err).Msg(errorMessage)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"archived": archived})
+	}
 }
