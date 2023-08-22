@@ -1,7 +1,6 @@
 package estafette
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -234,37 +233,6 @@ func (h *Handler) SetPipelineArchival(archived bool) func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 			return
 		}
-		if !archived {
-			if err = h.completeMigration(c.Request.Context(), source, owner, name); err != nil {
-				errorMessage := "Failed to complete migration for repository"
-				log.Error().Err(err).Msg(errorMessage)
-				c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
-				return
-			}
-		}
 		c.JSON(http.StatusOK, gin.H{"archived": archived})
 	}
-}
-
-func (h *Handler) completeMigration(ctx context.Context, source string, owner string, name string) error {
-	task, err := h.databaseClient.GetMigrationByToRepo(ctx, source, owner, name)
-	if err != nil {
-		if errors.Is(err, database.ErrMigrationNotFound) {
-			return nil
-		}
-		return err
-	}
-	if task == nil {
-		return nil
-	}
-	stages := migration.
-		NewStages(h.databaseClient.UpdateMigration, task).
-		Set(migration.CompletedStage, migration.CompletedExecutor)
-	for stages.HasNext() {
-		if result := stages.ExecuteNext(ctx); !result {
-			current := stages.Current()
-			return fmt.Errorf("error in stage %s", current.Name())
-		}
-	}
-	return nil
 }

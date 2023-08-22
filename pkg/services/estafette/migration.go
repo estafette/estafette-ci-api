@@ -75,25 +75,19 @@ func (h *Handler) migration(task *migration.Task) {
 		Set(migration.BuildLogsStage, h.databaseClient.MigrateBuildLogs).
 		Set(migration.BuildLogObjectsStage, h.migrateBuildLogObjects).
 		Set(migration.BuildVersionsStage, h.databaseClient.MigrateBuildVersions).
-		Set(migration.ComputedTablesStage, h.databaseClient.MigrateComputedTables)
+		Set(migration.ComputedTablesStage, h.databaseClient.MigrateComputedTables).
+		Set("archive", h.archiveRepository).
+		Set(migration.CompletedStage, migration.CompletedExecutor)
 	var result bool
-	// if a callback url is provided, add a callback stage
-	//if task.CallbackURL != nil {
-	//	stages.Set(migration.CallbackStage, migration.CallbackExecutor)
-	//	defer func() {
-	//		if !result {
-	//			err := migration.CallbackExecutor(ctx, task)
-	//			if err != nil {
-	//				log.Warn().Str("taskID", task.ID).Err(err).Msgf("failed to perform migration callback on failure, url: %v", task.CallbackURL)
-	//			}
-	//		}
-	//	}()
-	//}
 	for stages.HasNext() {
 		if result = stages.ExecuteNext(ctx); !result {
 			return
 		}
 	}
+}
+
+func (h *Handler) archiveRepository(ctx context.Context, task *migration.Task) error {
+	return h.databaseClient.ArchiveComputedPipeline(ctx, task.ToSource, task.ToOwner, task.ToName)
 }
 
 func (h *Handler) migrateReleaseLogObjects(ctx context.Context, task *migration.Task) error {
@@ -119,7 +113,7 @@ func (h *Handler) migrateLogObjects(ctx context.Context, logType migration.LogTy
 	if err != nil {
 		log.Fatal().Msgf("gcsMigratorClient.Migrate failed: %v", err)
 	}
-	requests := make(map[int64]migration.Change, 0)
+	requests := make(map[int64]migration.Change)
 	for index, change := range changes {
 		req := &migrationpb.Request{
 			Id: int64(index),
