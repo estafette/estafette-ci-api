@@ -75,10 +75,7 @@ func (h *Handler) migration(task *migration.Task) {
 		Set(migration.BuildLogsStage, h.databaseClient.MigrateBuildLogs).
 		Set(migration.BuildLogObjectsStage, h.migrateBuildLogObjects).
 		Set(migration.BuildVersionsStage, h.databaseClient.MigrateBuildVersions).
-		Set(migration.ComputedTablesStage, h.databaseClient.MigrateComputedTables).
-		Set("waiting-unarchive", func(_ context.Context, _ *migration.Task) error {
-			return nil
-		})
+		Set(migration.ComputedTablesStage, h.databaseClient.MigrateComputedTables)
 	var result bool
 	// if a callback url is provided, add a callback stage
 	//if task.CallbackURL != nil {

@@ -13,14 +13,14 @@ require (
 	github.com/estafette/estafette-ci-crypt v0.0.47
 	github.com/estafette/estafette-ci-manifest v0.1.201
 	github.com/estafette/estafette-foundation v0.0.82
-	github.com/estafette/migration v0.8.7
+	github.com/estafette/migration v0.9.1
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gin-contrib/gzip v0.0.6
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-kit/kit v0.12.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/golang/mock v1.7.0-rc.1.0.20220812172401-5b455625bd2c
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.3.1
 	github.com/jinzhu/copier v0.3.5
 	github.com/lib/pq v1.10.9
 	github.com/nats-io/nats.go v1.28.0
