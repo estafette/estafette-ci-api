@@ -12,4 +12,6 @@ SELECT
   queued_at,
   updated_at
 FROM
-  migration_task_queue;
+  migration_task_queue
+ORDER BY
+  updated_at DESC;

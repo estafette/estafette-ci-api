@@ -76,7 +76,7 @@ func (h *Handler) migration(task *migration.Task) {
 		Set(migration.BuildLogObjectsStage, h.migrateBuildLogObjects).
 		Set(migration.BuildVersionsStage, h.databaseClient.MigrateBuildVersions).
 		Set(migration.ComputedTablesStage, h.databaseClient.MigrateComputedTables).
-		Set("archive", h.archiveRepository).
+		Set(migration.ArchiveStage, h.archiveRepository).
 		Set(migration.CompletedStage, migration.CompletedExecutor)
 	var result bool
 	for stages.HasNext() {
