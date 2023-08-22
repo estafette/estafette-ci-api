@@ -8,6 +8,7 @@ SELECT
   to_source,
   to_owner,
   to_name,
+  error_details,
   queued_at,
   updated_at
 FROM

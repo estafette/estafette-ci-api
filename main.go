@@ -628,7 +628,7 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 	{
 		// !! Migration changes !!
 		jwtMiddlewareRoutes.POST("/api/migrations", estafetteHandler.QueueMigration)
-		jwtMiddlewareRoutes.GET("/api/migrations", estafetteHandler.GetAllMigrationsShort)
+		jwtMiddlewareRoutes.GET("/api/migrations", estafetteHandler.GetAllMigrations)
 		jwtMiddlewareRoutes.GET("/api/migrations/from/:source/:owner/:name", estafetteHandler.GetMigrationByFromRepo)
 		jwtMiddlewareRoutes.PUT("/api/migrations/from/:source/:owner/:name/archive", estafetteHandler.SetPipelineArchival(true))
 		jwtMiddlewareRoutes.PUT("/api/migrations/from/:source/:owner/:name/unarchive", estafetteHandler.SetPipelineArchival(false))

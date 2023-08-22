@@ -19,8 +19,8 @@ import (
 var (
 	//go:embed check_existing_migration.sql
 	checkExistingMigration string
-	//go:embed get_all_migrations_short.sql
-	getAllMigrationsShort string
+	//go:embed get_all_migrations.sql
+	getAllMigrations string
 	//go:embed get_migrated_build.sql
 	getMigratedBuild string
 	//go:embed get_migrated_build_logs.sql
@@ -110,10 +110,10 @@ func CheckExistingMigration(namedArg ...sql.NamedArg) (string, []interface{}) {
 	return Prepare(checkExistingMigration, namedArg)
 }
 
-// GetAllMigrationsShort prepares a query for execution by replacing named parameters with positional parameters.
+// GetAllMigrations prepares a query for execution by replacing named parameters with positional parameters.
 
-func GetAllMigrationsShort(namedArg ...sql.NamedArg) (string, []interface{}) {
-	return Prepare(getAllMigrationsShort, namedArg)
+func GetAllMigrations(namedArg ...sql.NamedArg) (string, []interface{}) {
+	return Prepare(getAllMigrations, namedArg)
 }
 
 // GetMigratedBuild prepares a query for execution by replacing named parameters with positional parameters.

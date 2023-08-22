@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"k8s.io/utils/ptr"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/estafette/estafette-ci-api/pkg/api"
@@ -28,7 +27,7 @@ var (
 )
 
 type MigrationDatabaseApi interface {
-	GetAllMigrationsShort(ctx context.Context) ([]*migration.Task, error)
+	GetAllMigrations(ctx context.Context) ([]*migration.Task, error)
 	GetMigratedBuild(ctx context.Context, buildID string) (*contracts.Build, error)
 	GetMigratedRelease(ctx context.Context, buildID string) (*contracts.Release, error)
 	GetMigratedBuildLogs(ctx context.Context, task *migration.Task) ([]migration.Change, error)
@@ -61,7 +60,7 @@ func (c *client) GetMigratedBuild(ctx context.Context, buildID string) (*contrac
 	row := c.databaseConnection.QueryRowContext(ctx, query, args...)
 	build, err := c.scanBuild(ctx, row, true, false)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get migrated build %v: %w", buildID, err)
@@ -74,7 +73,7 @@ func (c *client) GetMigratedRelease(ctx context.Context, buildID string) (*contr
 	row := c.databaseConnection.QueryRowContext(ctx, query, args...)
 	release, err := c.scanRelease(row)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get migrated release %v: %w", buildID, err)
@@ -82,8 +81,8 @@ func (c *client) GetMigratedRelease(ctx context.Context, buildID string) (*contr
 	return release, nil
 }
 
-func (c *client) GetAllMigrationsShort(ctx context.Context) ([]*migration.Task, error) {
-	query, args := queries.GetAllMigrationsShort()
+func (c *client) GetAllMigrations(ctx context.Context) ([]*migration.Task, error) {
+	query, args := queries.GetAllMigrations()
 	rows, err := c.databaseConnection.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all migrations: %w", err)
@@ -93,7 +92,7 @@ func (c *client) GetAllMigrationsShort(ctx context.Context) ([]*migration.Task, 
 	for rows.Next() {
 		var task migration.Task
 		var totalDuration int64
-		err = rows.Scan(&task.ID, &task.Status, &task.LastStep, &task.FromSource, &task.FromOwner, &task.FromName, &task.ToSource, &task.ToOwner, &task.ToName, &task.QueuedAt, &task.UpdatedAt)
+		err = rows.Scan(&task.ID, &task.Status, &task.LastStep, &task.FromSource, &task.FromOwner, &task.FromName, &task.ToSource, &task.ToOwner, &task.ToName, &task.ErrorDetails, &task.QueuedAt, &task.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan migration: %w", err)
 		}
@@ -413,16 +412,12 @@ func (c *client) RollbackMigration(ctx context.Context, task *migration.Task) (c
 func (c *client) UpdateMigration(ctx context.Context, task *migration.Task) error {
 	// add pod details to error details
 	if task.ErrorDetails != nil && *task.ErrorDetails != "" {
-		HOSTNAME := "unknown"
-		if os.Getenv("HOSTNAME") != "" {
-			HOSTNAME = os.Getenv("HOSTNAME")
+		errorSpan := os.Getenv("HOSTNAME")
+		if errorSpan == "" {
+			errorSpan = "unknown"
 		}
-
-		task.ErrorDetails = ptr.To(
-			strings.TrimSpace(
-				fmt.Sprintf("//%s start: %s\n%s\n//%s end", HOSTNAME, time.Now().Format(time.RFC3339), *task.ErrorDetails, HOSTNAME),
-			),
-		)
+		errorSpan = fmt.Sprintf("----\n# pod: %s, time: %s", errorSpan, time.Now().Format(time.RFC3339))
+		task.ErrorDetails = ptr.To(fmt.Sprintf("%s\n%s----", errorSpan, *task.ErrorDetails))
 	}
 	query, args := queries.UpdateMigration(task.SqlArgs()...)
 	_, err := c.databaseConnection.ExecContext(ctx, query, args...)
@@ -448,9 +443,9 @@ func (c *client) SetPipelineArchival(ctx context.Context, source, owner, name st
 
 // logging
 
-func (c *loggingClient) GetAllMigrationsShort(ctx context.Context) (tasks []*migration.Task, err error) {
-	defer func() { api.HandleLogError(c.prefix, "Client", "GetAllMigrationsShort", err) }()
-	return c.Client.GetAllMigrationsShort(ctx)
+func (c *loggingClient) GetAllMigrations(ctx context.Context) (tasks []*migration.Task, err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "GetAllMigrations", err) }()
+	return c.Client.GetAllMigrations(ctx)
 }
 func (c *loggingClient) GetMigratedBuildLogs(ctx context.Context, task *migration.Task) (changes []migration.Change, err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "GetMigratedBuildLogs", err) }()
@@ -527,9 +522,9 @@ func (c *loggingClient) SetPipelineArchival(ctx context.Context, source, owner, 
 
 //metrics
 
-func (c *metricsClient) GetAllMigrationsShort(ctx context.Context) (tasks []*migration.Task, err error) {
-	api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAllMigrationsShort", time.Now())
-	return c.Client.GetAllMigrationsShort(ctx)
+func (c *metricsClient) GetAllMigrations(ctx context.Context) (tasks []*migration.Task, err error) {
+	api.UpdateMetrics(c.requestCount, c.requestLatency, "GetAllMigrations", time.Now())
+	return c.Client.GetAllMigrations(ctx)
 }
 func (c *metricsClient) GetMigratedBuildLogs(ctx context.Context, task *migration.Task) (changes []migration.Change, err error) {
 	api.UpdateMetrics(c.requestCount, c.requestLatency, "GetMigratedBuildLogs", time.Now())
@@ -607,10 +602,10 @@ func (c *metricsClient) SetPipelineArchival(ctx context.Context, source, owner, 
 
 // logging
 
-func (c *tracingClient) GetAllMigrationsShort(ctx context.Context) (tasks []*migration.Task, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAllMigrationsShort"))
+func (c *tracingClient) GetAllMigrations(ctx context.Context) (tasks []*migration.Task, err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetAllMigrations"))
 	defer func() { api.FinishSpanWithError(span, err) }()
-	return c.Client.GetAllMigrationsShort(ctx)
+	return c.Client.GetAllMigrations(ctx)
 }
 func (c *tracingClient) GetMigratedReleaseLogs(ctx context.Context, task *migration.Task) (changes []migration.Change, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "GetMigratedReleaseLogs"))

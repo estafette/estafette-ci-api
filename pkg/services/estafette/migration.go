@@ -1,6 +1,7 @@
 package estafette
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -75,20 +76,22 @@ func (h *Handler) migration(task *migration.Task) {
 		Set(migration.BuildLogObjectsStage, h.migrateBuildLogObjects).
 		Set(migration.BuildVersionsStage, h.databaseClient.MigrateBuildVersions).
 		Set(migration.ComputedTablesStage, h.databaseClient.MigrateComputedTables).
-		Set(migration.CompletedStage, migration.CompletedExecutor)
+		Set("waiting-unarchive", func(_ context.Context, _ *migration.Task) error {
+			return nil
+		})
 	var result bool
 	// if a callback url is provided, add a callback stage
-	if task.CallbackURL != nil {
-		stages.Set(migration.CallbackStage, migration.CallbackExecutor)
-		defer func() {
-			if !result {
-				err := migration.CallbackExecutor(ctx, task)
-				if err != nil {
-					log.Warn().Str("taskID", task.ID).Err(err).Msgf("failed to perform migration callback on failure, url: %v", task.CallbackURL)
-				}
-			}
-		}()
-	}
+	//if task.CallbackURL != nil {
+	//	stages.Set(migration.CallbackStage, migration.CallbackExecutor)
+	//	defer func() {
+	//		if !result {
+	//			err := migration.CallbackExecutor(ctx, task)
+	//			if err != nil {
+	//				log.Warn().Str("taskID", task.ID).Err(err).Msgf("failed to perform migration callback on failure, url: %v", task.CallbackURL)
+	//			}
+	//		}
+	//	}()
+	//}
 	for stages.HasNext() {
 		if result = stages.ExecuteNext(ctx); !result {
 			return
@@ -166,12 +169,15 @@ MIGRATIONS:
 			if err != nil {
 				return fmt.Errorf("error marshalling Error field from response: %w", err)
 			}
-			unknownErrors += fmt.Sprintf("\n\tfrom: %d, to: %d err: %s", req.FromID, req.ToID, data)
+			paddedData := bytes.ReplaceAll(data, []byte("\n"), []byte("\n\t"))
+			unknownErrors += fmt.Sprintf("\n\tfrom: %d, to: %d err: %s", req.FromID, req.ToID, paddedData)
 		}
 	}
-	task.ErrorDetails = ptr.To(fmt.Sprintf("%s\n%s", notFoundErrors, unknownErrors))
-	if totalErrors > 0 && totalErrors == len(changes) {
-		return fmt.Errorf("errors while migrating %s log objects", logType)
+	if totalErrors > 0 {
+		task.ErrorDetails = ptr.To(fmt.Sprintf("%s\n%s", notFoundErrors, unknownErrors))
+		if totalErrors == len(changes) {
+			return fmt.Errorf("errors while migrating %s log objects", logType)
+		}
 	}
 	return nil
 }

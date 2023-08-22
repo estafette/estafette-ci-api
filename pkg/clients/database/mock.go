@@ -165,19 +165,19 @@ func (mr *MockClientMockRecorder) DeleteUser(ctx, user interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockClient)(nil).DeleteUser), ctx, user)
 }
 
-// GetAllMigrationsShort mocks base method.
-func (m *MockClient) GetAllMigrationsShort(ctx context.Context) ([]*migration.Task, error) {
+// GetAllMigrations mocks base method.
+func (m *MockClient) GetAllMigrations(ctx context.Context) ([]*migration.Task, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAllMigrationsShort", ctx)
+	ret := m.ctrl.Call(m, "GetAllMigrations", ctx)
 	ret0, _ := ret[0].([]*migration.Task)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetAllMigrationsShort indicates an expected call of GetAllMigrationsShort.
-func (mr *MockClientMockRecorder) GetAllMigrationsShort(ctx interface{}) *gomock.Call {
+// GetAllMigrations indicates an expected call of GetAllMigrations.
+func (mr *MockClientMockRecorder) GetAllMigrations(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllMigrationsShort", reflect.TypeOf((*MockClient)(nil).GetAllMigrationsShort), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllMigrations", reflect.TypeOf((*MockClient)(nil).GetAllMigrations), ctx)
 }
 
 // GetAllNotifications mocks base method.
