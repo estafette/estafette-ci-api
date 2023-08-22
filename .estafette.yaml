@@ -11,7 +11,7 @@ version:
   semver:
     major: 1
     minor: 5
-    patch: 2
+    patch: 3
 
 triggers:
 - name: migrator
