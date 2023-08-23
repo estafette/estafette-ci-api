@@ -13,6 +13,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/estafette/estafette-ci-api/pkg/api"
+	"github.com/estafette/estafette-ci-api/pkg/pool"
 	contracts "github.com/estafette/estafette-ci-contracts"
 	foundation "github.com/estafette/estafette-foundation"
 	"github.com/rs/zerolog/log"
@@ -35,6 +36,7 @@ type Client interface {
 	GetPipelineReleaseLogs(ctx context.Context, releaseLog contracts.ReleaseLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error)
 	GetPipelineBotLogs(ctx context.Context, botLog contracts.BotLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) (err error)
 	Rename(ctx context.Context, fromRepoSource, fromRepoOwner, fromRepoName, toRepoSource, toRepoOwner, toRepoName string) (err error)
+	DeleteLogs(ctx context.Context, repoSource, repoOwner, repoName string) (err error)
 }
 
 // NewClient returns new cloudstorage.Client
@@ -56,6 +58,48 @@ type client struct {
 	enabled bool
 	client  *storage.Client
 	config  *api.APIConfig
+}
+
+func (c *client) DeleteLogs(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	logDirectory := path.Join(c.config.Integrations.CloudStorage.LogsDirectory, repoSource, repoOwner, repoName) + "/"
+	log.Debug().Msgf("Deleting cloud storage logs in %s", logDirectory)
+	bucket := c.client.Bucket(c.config.Integrations.CloudStorage.Bucket)
+	it := bucket.Objects(ctx, &storage.Query{Prefix: logDirectory})
+	// create a pool with string job and string result type
+	worker := func(ctx context.Context, job *storage.ObjectAttrs) (bool, error) {
+		if err = bucket.Object(job.Name).Delete(ctx); err != nil {
+			return false, fmt.Errorf("failed deleting log %v: %w", job.Name, err)
+		}
+		return true, nil
+	}
+	p, err := pool.NewPool(ctx, pool.DefaultConfig(100, worker))
+	if err != nil {
+		return fmt.Errorf("failed creating pool: %w", err)
+	}
+	var objAttrs *storage.ObjectAttrs
+	for {
+		objAttrs, err = it.Next()
+		if err != nil && !errors.Is(err, iterator.Done) {
+			return fmt.Errorf("failed listing logs in %v: %w", logDirectory, err)
+		}
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		p.SendJobs(objAttrs)
+	}
+	jobErrs := p.Errors()
+	if len(jobErrs) > 0 {
+		failedFiles := make([]string, len(jobErrs))
+		for i, jobErr := range jobErrs {
+			if jobErr.Err == nil {
+				continue
+			}
+			log.Error().Err(jobErr.Err).Send()
+			failedFiles[i] = jobErr.Job.(string)
+		}
+		return fmt.Errorf("failed deleting logs: %v", strings.Join(failedFiles, ", "))
+	}
+	return nil
 }
 
 func (c *client) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error) {

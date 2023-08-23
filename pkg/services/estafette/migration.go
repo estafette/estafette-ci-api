@@ -172,3 +172,7 @@ MIGRATIONS:
 	}
 	return nil
 }
+
+func (h *Handler) rollbackLogObjects(ctx context.Context, task *migration.Task) error {
+	return h.cloudStorageClient.DeleteLogs(ctx, task.ToSource, task.ToOwner, task.ToName)
+}

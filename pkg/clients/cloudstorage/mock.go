@@ -36,6 +36,20 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
+// DeleteLogs mocks base method.
+func (m *MockClient) DeleteLogs(ctx context.Context, repoSource, repoOwner, repoName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteLogs", ctx, repoSource, repoOwner, repoName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteLogs indicates an expected call of DeleteLogs.
+func (mr *MockClientMockRecorder) DeleteLogs(ctx, repoSource, repoOwner, repoName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLogs", reflect.TypeOf((*MockClient)(nil).DeleteLogs), ctx, repoSource, repoOwner, repoName)
+}
+
 // GetPipelineBotLogs mocks base method.
 func (m *MockClient) GetPipelineBotLogs(ctx context.Context, botLog contracts.BotLog, acceptGzipEncoding bool, responseWriter http.ResponseWriter) error {
 	m.ctrl.T.Helper()

@@ -21,6 +21,14 @@ type metricsClient struct {
 	requestLatency metrics.Histogram
 }
 
+func (c *metricsClient) DeleteLogs(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	defer func(begin time.Time) {
+		api.UpdateMetrics(c.requestCount, c.requestLatency, "DeleteLogs", begin)
+	}(time.Now())
+
+	return c.Client.DeleteLogs(ctx, repoSource, repoOwner, repoName)
+}
+
 func (c *metricsClient) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error) {
 	defer func(begin time.Time) {
 		api.UpdateMetrics(c.requestCount, c.requestLatency, "InsertBuildLog", begin)

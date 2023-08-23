@@ -18,6 +18,12 @@ type loggingClient struct {
 	prefix string
 }
 
+func (c *loggingClient) DeleteLogs(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	defer func() { api.HandleLogError(c.prefix, "Client", "DeleteLogs", err) }()
+
+	return c.Client.DeleteLogs(ctx, repoSource, repoOwner, repoName)
+}
+
 func (c *loggingClient) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error) {
 	defer func() { api.HandleLogError(c.prefix, "Client", "InsertBuildLog", err) }()
 
