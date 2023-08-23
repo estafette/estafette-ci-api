@@ -106,6 +106,12 @@ func (h *Handler) RollbackMigration(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
 		return
 	}
+	if err = h.rollbackLogObjects(c.Request.Context(), task); err != nil {
+		errorMessage := "Failed to rollback log objects"
+		log.Error().Err(err).Msg(errorMessage)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusText(http.StatusInternalServerError), "message": errorMessage})
+		return
+	}
 	c.JSON(http.StatusOK, changes)
 }
 

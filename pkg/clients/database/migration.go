@@ -394,10 +394,6 @@ func (c *client) RollbackMigration(ctx context.Context, task *migration.Task) (c
 	if _, err = tx.ExecContext(ctx, query, args...); err != nil {
 		return nil, fmt.Errorf("failed to get rolled back computed pipelines for repository %s: %w", task.FromFQN(), err)
 	}
-	query, args = queries.UnmarkRepositoryArchived(sql.NamedArg{Name: "pickedRepos", Value: pq.Array([]string{task.FromFQN()})})
-	if _, err = tx.ExecContext(ctx, query, args...); err != nil {
-		return nil, fmt.Errorf("failed to unmark repository %s as archived: %w", task.FromFQN(), err)
-	}
 	query, args = queries.RollbackComputedReleases(task.SqlArgs()...)
 	if _, err = tx.ExecContext(ctx, query, args...); err != nil {
 		return nil, fmt.Errorf("failed to get rolled back computed releases for repository %s: %w", task.FromFQN(), err)
@@ -405,6 +401,10 @@ func (c *client) RollbackMigration(ctx context.Context, task *migration.Task) (c
 	query, args = queries.RollbackMigrationTaskQueue(task.SqlArgs()...)
 	if _, err = tx.ExecContext(ctx, query, args...); err != nil {
 		return nil, fmt.Errorf("failed to get rolled back migration tasks for repository %s: %w", task.FromFQN(), err)
+	}
+	query, args = queries.UnmarkRepositoryArchived(sql.NamedArg{Name: "pickedRepos", Value: pq.Array([]string{task.FromFQN()})})
+	if _, err = tx.ExecContext(ctx, query, args...); err != nil {
+		return nil, fmt.Errorf("failed to unmark repository %s as archived: %w", task.FromFQN(), err)
 	}
 	return
 }
@@ -417,7 +417,7 @@ func (c *client) UpdateMigration(ctx context.Context, task *migration.Task) erro
 			errorSpan = "unknown"
 		}
 		errorSpan = fmt.Sprintf("----\n# pod: %s, time: %s", errorSpan, time.Now().Format(time.RFC3339))
-		task.ErrorDetails = ptr.To(fmt.Sprintf("%s\n%s----", errorSpan, *task.ErrorDetails))
+		task.ErrorDetails = ptr.To(fmt.Sprintf("%s\n%s\n----\n", errorSpan, *task.ErrorDetails))
 	}
 	query, args := queries.UpdateMigration(task.SqlArgs()...)
 	_, err := c.databaseConnection.ExecContext(ctx, query, args...)

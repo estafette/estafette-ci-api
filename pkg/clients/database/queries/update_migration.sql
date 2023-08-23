@@ -9,7 +9,7 @@ SET
                      ELSE migration_task_queue.total_duration END,
   error_details  = CASE
                      WHEN @errorDetails::VARCHAR IS NOT NULL AND @errorDetails::VARCHAR <> ''
-                       THEN CONCAT(migration_task_queue.error_details, '\n', @errorDetails::VARCHAR)
+                       THEN CONCAT(migration_task_queue.error_details, @errorDetails::VARCHAR)
                      ELSE migration_task_queue.error_details END,
   status         = CASE WHEN @status <> '' THEN @status ELSE migration_task_queue.status END
 WHERE

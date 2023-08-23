@@ -19,6 +19,13 @@ type tracingClient struct {
 	prefix string
 }
 
+func (c *tracingClient) DeleteLogs(ctx context.Context, repoSource, repoOwner, repoName string) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "DeleteLogs"))
+	defer func() { api.FinishSpanWithError(span, err) }()
+
+	return c.Client.DeleteLogs(ctx, repoSource, repoOwner, repoName)
+}
+
 func (c *tracingClient) InsertBuildLog(ctx context.Context, buildLog contracts.BuildLog) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, api.GetSpanName(c.prefix, "InsertBuildLog"))
 	defer func() { api.FinishSpanWithError(span, err) }()
