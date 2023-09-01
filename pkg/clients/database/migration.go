@@ -308,6 +308,9 @@ func (c *client) QueueMigration(ctx context.Context, taskToQueue *migration.Task
 	var pipelineExists bool
 	var existingTaskID string
 	if err = row.Scan(&pipelineExists, &existingTaskID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("failed to check existing migration for: %s: %w", taskToQueue.FromFQN(), ErrPipelineNotFound)
+		}
 		return nil, fmt.Errorf("failed to scan existing migration for: %s: %w", taskToQueue.FromFQN(), err)
 	}
 	if !pipelineExists {
