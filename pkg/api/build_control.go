@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"regexp"
 	"strings"
 
@@ -10,6 +11,8 @@ import (
 const (
 	AllRepositories = "*"
 )
+
+var ErrBlockedRepository = errors.New("repository is blocked from build")
 
 type List []string
 

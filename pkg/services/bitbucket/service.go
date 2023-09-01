@@ -18,7 +18,6 @@ import (
 )
 
 var (
-	ErrBlockedRepository = errors.New("repository is blocked from build")
 	ErrNonCloneableEvent = errors.New("The event is not cloneable")
 	ErrNoManifest        = errors.New("The repository has no manifest at the pushed commit")
 	ErrOwnerIsEmpty      = errors.New("The owner slug is empty")
@@ -63,7 +62,7 @@ func (s *service) CreateJobForBitbucketPush(ctx context.Context, installation bi
 	}
 
 	if s.isBuildBlocked(pushEvent) {
-		return ErrBlockedRepository
+		return api.ErrBlockedRepository
 	}
 
 	gitEvent := manifest.EstafetteGitEvent{
