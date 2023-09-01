@@ -65,6 +65,10 @@ func (s *service) CreateJobForGithubPush(ctx context.Context, pushEvent githubap
 		return ErrNonCloneableEvent
 	}
 
+	if s.isBuildBlocked(pushEvent) {
+		return api.ErrBlockedRepository
+	}
+
 	gitEvent := manifest.EstafetteGitEvent{
 		Event:      "push",
 		Repository: pushEvent.GetRepository(),
