@@ -140,7 +140,8 @@ func initRequestHandlers(ctx context.Context, stopChannel <-chan struct{}, waitG
 	gcsMigratorHealthClient, gcsMigratorClient := getGcsMigratorClients()
 	bitbucketHandler, githubHandler, estafetteHandler, rbacHandler, pubsubHandler, slackHandler, cloudsourceHandler, catalogHandler := getHandlers(ctx, config, encryptedConfig, secretHelper, bitbucketapiClient, githubapiClient, slackapiClient, pubsubapiClient, databaseClient, builderapiClient, cloudstorageClient, estafetteService, rbacService, githubService, bitbucketService, cloudsourceService, catalogService, gcsMigratorClient)
 
-	go estafetteHandler.PollMigrationTasks(stopChannel)
+	waitGroup.Add(1)
+	go estafetteHandler.PollMigrationTasks(stopChannel, waitGroup.Done)
 	err := queueService.CreateConnection(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed creating connection to queue")

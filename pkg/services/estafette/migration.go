@@ -30,7 +30,7 @@ var (
 	pollingInterval                 = 10 * time.Second
 )
 
-func (h *Handler) PollMigrationTasks(stop <-chan struct{}) {
+func (h *Handler) PollMigrationTasks(stop <-chan struct{}, done func()) {
 	ctx := context.Background()
 	go func() {
 		<-stop
@@ -40,6 +40,7 @@ POLL:
 	for {
 		if stopWorkers.Load() {
 			log.Info().Msg("stopping migration workers")
+			done()
 			break
 		}
 		time.Sleep(pollingInterval)
@@ -81,6 +82,12 @@ func (h *Handler) migration(task *migration.Task) {
 	var result bool
 	for stages.HasNext() {
 		if result = stages.ExecuteNext(ctx); !result {
+			return
+		}
+		if stopWorkers.Load() {
+			// put the task back to queue if this pod is shutting down
+			task.Status = migration.StatusQueued
+			log.Warn().Str("taskID", task.ID).Str("fromFQN", task.FromFQN()).Str("toFQN", task.ToFQN()).Msgf("Migration worker is shutting down, putting task back to queue")
 			return
 		}
 	}
