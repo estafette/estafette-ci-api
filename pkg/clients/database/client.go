@@ -1146,7 +1146,9 @@ func (c *client) UpsertComputedPipeline(ctx context.Context, repoSource, repoOwn
 	if ctx.Value(isMigration) != nil {
 		// change trigger for the migrating pipeline
 		for i := 0; i < len(upsertedPipeline.Triggers); i++ {
-			upsertedPipeline.Triggers[i].Pipeline.Name = fmt.Sprintf("%v/%v/%v", repoSource, repoOwner, repoName)
+			if upsertedPipeline.Triggers[i].Pipeline != nil {
+				upsertedPipeline.Triggers[i].Pipeline.Name = fmt.Sprintf("%v/%v/%v", repoSource, repoOwner, repoName)
+			}
 		}
 	}
 
