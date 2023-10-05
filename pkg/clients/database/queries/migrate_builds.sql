@@ -1,3 +1,4 @@
+-- Don't add semicolon at the end of the query as it will be append LIMIT and OFFSET clauses automatically.
 UPSERT
 INTO
   builds
@@ -63,4 +64,4 @@ FROM
 WHERE
   repo_source = @fromSource AND
   repo_owner = @fromOwner AND
-  repo_name = @fromName;
+  repo_name = @fromName
