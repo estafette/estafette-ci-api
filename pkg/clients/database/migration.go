@@ -208,17 +208,51 @@ func (c *client) MigrateBuildVersions(ctx context.Context, task *migration.Task)
 }
 
 func (c *client) MigrateBuilds(ctx context.Context, task *migration.Task) error {
-	query, args := queries.MigrateBuilds(task.SqlArgs()...)
-	_, err := c.databaseConnection.ExecContext(ctx, query, args...)
+	// Construct the SQL query for counting migrated builds.
+	var totalBuildsToMigrate int
+	countQuery, countArgs := queries.GetBuildsToMigrateCount(task.SqlArgs()...)
+	row := c.databaseConnection.QueryRowContext(ctx, countQuery, countArgs...)
+	err := row.Scan(&totalBuildsToMigrate)
 	if err != nil {
-		return fmt.Errorf("failed to migrate builds for repository %s: %w", task.FromFQN(), err)
+		return fmt.Errorf("failed to get builds count for repository %s: %w", task.FromFQN(), err)
 	}
-	query, args = queries.GetMigratedBuildsCount(task.SqlArgs()...)
-	row := c.databaseConnection.QueryRowContext(ctx, query, args...)
+
+	// Initialize the offset.
+	batchSize := 600 // Set hardcoded batch size to 600 no need to make a big change to set it as parameter.
+	offset := 0
+
+	// Construct the base SQL query for the migration.
+	baseMigrateQuery, baseMigrateArgs := queries.MigrateBuilds(task.SqlArgs()...)
+
+	for {
+		// Check if there are more rows to process.
+		if offset >= totalBuildsToMigrate {
+			break
+		}
+
+		// Construct the batched SQL query with LIMIT and OFFSET clauses.
+		migrateQuery := fmt.Sprintf("%s LIMIT $1 OFFSET $2", baseMigrateQuery)
+		args := append(baseMigrateArgs, batchSize, offset)
+
+		// Execute the batched migration query.
+		_, err := c.databaseConnection.ExecContext(ctx, migrateQuery, args...)
+		if err != nil {
+			return fmt.Errorf("failed to migrate builds for repository %s (batch %d): %w", task.FromFQN(), offset/batchSize+1, err)
+		}
+
+		// Increment the offset for the next batch.
+		offset += batchSize
+
+	}
+
+	// Execute the count query to get the total count of migrated builds.
+	query, args := queries.GetMigratedBuildsCount(task.SqlArgs()...)
+	row = c.databaseConnection.QueryRowContext(ctx, query, args...)
 	err = row.Scan(&task.Builds)
 	if err != nil {
-		return fmt.Errorf("failed to get (migrated) releases count for repository %s: %w", task.FromFQN(), err)
+		return fmt.Errorf("failed to get (migrated) builds count for repository %s: %w", task.FromFQN(), err)
 	}
+
 	return nil
 }
 
