@@ -231,8 +231,9 @@ func (c *client) MigrateBuilds(ctx context.Context, task *migration.Task) error 
 		}
 
 		// Construct the batched SQL query with LIMIT and OFFSET clauses.
-		migrateQuery := fmt.Sprintf("%s LIMIT $1 OFFSET $2", baseMigrateQuery)
-		args := append(baseMigrateArgs, batchSize, offset)
+		migrateQuery := fmt.Sprintf("%s LIMIT $4 OFFSET $5", baseMigrateQuery)
+		limitOffsetArgs := []interface{}{batchSize, offset}
+		args := append(baseMigrateArgs, limitOffsetArgs...)
 
 		// Execute the batched migration query.
 		_, err := c.databaseConnection.ExecContext(ctx, migrateQuery, args...)
