@@ -21,6 +21,8 @@ var (
 	checkExistingMigration string
 	//go:embed get_all_migrations.sql
 	getAllMigrations string
+	//go:embed get_builds_to_migrate_count.sql
+	getBuildsToMigrateCount string
 	//go:embed get_migrated_build.sql
 	getMigratedBuild string
 	//go:embed get_migrated_build_logs.sql
@@ -114,6 +116,15 @@ func CheckExistingMigration(namedArg ...sql.NamedArg) (string, []interface{}) {
 
 func GetAllMigrations(namedArg ...sql.NamedArg) (string, []interface{}) {
 	return Prepare(getAllMigrations, namedArg)
+}
+
+// GetBuildsToMigrateCount prepares a query for execution by replacing named parameters with positional parameters.
+// Required NamedArg
+//   - fromName
+//   - fromOwner
+//   - fromSource
+func GetBuildsToMigrateCount(namedArg ...sql.NamedArg) (string, []interface{}) {
+	return Prepare(getBuildsToMigrateCount, namedArg)
 }
 
 // GetMigratedBuild prepares a query for execution by replacing named parameters with positional parameters.

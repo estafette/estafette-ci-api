@@ -2933,9 +2933,11 @@ func (c *client) GetBuildsCount(ctx context.Context, filters map[api.FilterType]
 			From("builds a")
 
 	// dynamically set where clauses for filtering
-	query, err = whereClauseGeneratorForBuildFilters(query, filters)
-	if err != nil {
-		return
+	if len(filters) > 0 {
+		query, err = whereClauseGeneratorForBuildFilters(query, filters)
+		if err != nil {
+			return
+		}
 	}
 
 	// execute query
