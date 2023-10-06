@@ -208,47 +208,48 @@ func (c *client) MigrateBuildVersions(ctx context.Context, task *migration.Task)
 }
 
 func (c *client) MigrateBuilds(ctx context.Context, task *migration.Task) error {
-	// Construct the SQL query for counting migrated builds.
-	var totalBuildsToMigrate int
-	countQuery, countArgs := queries.GetBuildsToMigrateCount(task.SqlArgs()...)
-	row := c.databaseConnection.QueryRowContext(ctx, countQuery, countArgs...)
-	err := row.Scan(&totalBuildsToMigrate)
+	// Get Min and Max build date from the source repository.
+	var minBuildDate, maxBuildDate time.Time
+	minQuery, minMaxArgs := queries.GetBuildsToMigrateMinMaxDateCreated(task.SqlArgs()...)
+	row := c.databaseConnection.QueryRowContext(ctx, minQuery, minMaxArgs...)
+	err := row.Scan(&minBuildDate, &maxBuildDate)
 	if err != nil {
-		return fmt.Errorf("failed to get builds count for repository %s: %w", task.FromFQN(), err)
+		return fmt.Errorf("failed to get min and max build date for repository %s: %w", task.FromFQN(), err)
 	}
 
-	// Initialize the offset.
-	batchSize := 600 // Set hardcoded batch size to 600 no need to make a big change to set it as parameter.
-	offset := 0
-
-	// Construct the base SQL query for the migration.
-	baseMigrateQuery, baseMigrateArgs := queries.MigrateBuilds(task.SqlArgs()...)
+	// Calculate the initial start and end dates for the first month.
+	startMonth := minBuildDate
+	endMonth := minBuildDate.AddDate(0, 1, 0)
 
 	for {
-		// Check if there are more rows to process.
-		if offset >= totalBuildsToMigrate {
-			break
+		// Check if the end date of the month exceeds the max build date.
+		if endMonth.After(maxBuildDate) {
+			endMonth = maxBuildDate
 		}
 
-		// Construct the batched SQL query with LIMIT and OFFSET clauses.
-		migrateQuery := fmt.Sprintf("%s LIMIT $7 OFFSET $8", baseMigrateQuery)
-		limitOffsetArgs := []interface{}{batchSize, offset}
-		args := append(baseMigrateArgs, limitOffsetArgs...)
+		// Construct the base SQL query for the migration with date range conditions.
+		baseMigrateQuery, _ := queries.MigrateBuilds(task.SqlArgs()...)
+		baseMigrateQuery += " AND inserted_at >= ? AND inserted_at < ?"
 
 		// Execute the batched migration query.
-		_, err := c.databaseConnection.ExecContext(ctx, migrateQuery, args...)
+		_, err := c.databaseConnection.ExecContext(ctx, baseMigrateQuery, startMonth, endMonth)
 		if err != nil {
-			return fmt.Errorf("failed to migrate builds for repository %s (batch %d): %w", task.FromFQN(), offset/batchSize+1, err)
+			return fmt.Errorf("failed to migrate builds for repository %s (month %s): %w", task.FromFQN(), startMonth.Format("2006-01"), err)
 		}
 
-		// Increment the offset for the next batch.
-		offset += batchSize
+		// Move to the next month.
+		startMonth = startMonth.AddDate(0, 1, 0)
+		endMonth = startMonth.AddDate(0, 1, 0)
 
+		// Check if we have exceeded the max build date.
+		if startMonth.After(maxBuildDate) {
+			break
+		}
 	}
 
 	// Execute the count query to get the total count of migrated builds.
-	query, args := queries.GetMigratedBuildsCount(task.SqlArgs()...)
-	row = c.databaseConnection.QueryRowContext(ctx, query, args...)
+	migratedBuildQuery, migratedBuildArgs := queries.GetMigratedBuildsCount(task.SqlArgs()...)
+	row = c.databaseConnection.QueryRowContext(ctx, migratedBuildQuery, migratedBuildArgs...)
 	err = row.Scan(&task.Builds)
 	if err != nil {
 		return fmt.Errorf("failed to get (migrated) builds count for repository %s: %w", task.FromFQN(), err)

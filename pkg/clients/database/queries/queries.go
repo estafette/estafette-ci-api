@@ -23,6 +23,8 @@ var (
 	getAllMigrations string
 	//go:embed get_builds_to_migrate_count.sql
 	getBuildsToMigrateCount string
+	//go:embed get_builds_to_migrate_min_max_date_created.sql
+	getBuildsToMigrateMinMaxDateCreated string
 	//go:embed get_migrated_build.sql
 	getMigratedBuild string
 	//go:embed get_migrated_build_logs.sql
@@ -125,6 +127,15 @@ func GetAllMigrations(namedArg ...sql.NamedArg) (string, []interface{}) {
 //   - fromSource
 func GetBuildsToMigrateCount(namedArg ...sql.NamedArg) (string, []interface{}) {
 	return Prepare(getBuildsToMigrateCount, namedArg)
+}
+
+// GetBuildsToMigrateMinMaxDateCreated prepares a query for execution by replacing named parameters with positional parameters.
+// Required NamedArg
+//   - fromName
+//   - fromOwner
+//   - fromSource
+func GetBuildsToMigrateMinMaxDateCreated(namedArg ...sql.NamedArg) (string, []interface{}) {
+	return Prepare(getBuildsToMigrateMinMaxDateCreated, namedArg)
 }
 
 // GetMigratedBuild prepares a query for execution by replacing named parameters with positional parameters.
