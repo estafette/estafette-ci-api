@@ -228,11 +228,14 @@ func (c *client) MigrateBuilds(ctx context.Context, task *migration.Task) error 
 		}
 
 		// Construct the base SQL query for the migration with date range conditions.
-		baseMigrateQuery, _ := queries.MigrateBuilds(task.SqlArgs()...)
+		baseMigrateQuery, baseMigrateArgs := queries.MigrateBuilds(task.SqlArgs()...)
 		baseMigrateQuery += " AND inserted_at >= $7 AND inserted_at < $8"
 
+		args := []interface{}{startMonth, endMonth}
+		baseMigrateArgs = append(baseMigrateArgs, args...)
+
 		// Execute the batched migration query.
-		_, err := c.databaseConnection.ExecContext(ctx, baseMigrateQuery, startMonth, endMonth)
+		_, err = c.databaseConnection.ExecContext(ctx, baseMigrateQuery, baseMigrateArgs...)
 		if err != nil {
 			return fmt.Errorf("failed to migrate builds for repository %s (month %s): %w", task.FromFQN(), startMonth.Format("2006-01"), err)
 		}
