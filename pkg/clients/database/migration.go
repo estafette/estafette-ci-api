@@ -229,7 +229,7 @@ func (c *client) MigrateBuilds(ctx context.Context, task *migration.Task) error 
 
 		// Construct the base SQL query for the migration with date range conditions.
 		baseMigrateQuery, _ := queries.MigrateBuilds(task.SqlArgs()...)
-		baseMigrateQuery += " AND inserted_at >= ? AND inserted_at < ?"
+		baseMigrateQuery += " AND inserted_at >= $7 AND inserted_at < $8"
 
 		// Execute the batched migration query.
 		_, err := c.databaseConnection.ExecContext(ctx, baseMigrateQuery, startMonth, endMonth)
