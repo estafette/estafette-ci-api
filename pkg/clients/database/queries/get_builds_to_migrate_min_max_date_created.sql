@@ -1,6 +1,6 @@
 SELECT
-  MIN(inserted_at) AS oldest_created_date,
-  MAX(inserted_at) AS max_created_date
+  COALESCE(MIN(inserted_at), '1970-01-01'::timestamptz) AS oldest_created_date,
+  COALESCE(MIN(inserted_at), '1970-01-01'::timestamptz)  AS max_created_date
 FROM
   builds
 WHERE

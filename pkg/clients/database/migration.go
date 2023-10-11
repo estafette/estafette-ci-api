@@ -212,9 +212,15 @@ func (c *client) MigrateBuilds(ctx context.Context, task *migration.Task) error 
 	var minBuildDate, maxBuildDate time.Time
 	minQuery, minMaxArgs := queries.GetBuildsToMigrateMinMaxDateCreated(task.SqlArgs()...)
 	row := c.databaseConnection.QueryRowContext(ctx, minQuery, minMaxArgs...)
+
 	err := row.Scan(&minBuildDate, &maxBuildDate)
 	if err != nil {
 		return fmt.Errorf("failed to get min and max build date for repository %s: %w", task.FromFQN(), err)
+	}
+
+	defaultTimestamp := time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC)
+	if minBuildDate.Equal(defaultTimestamp) || maxBuildDate.Equal(defaultTimestamp) {
+		return nil
 	}
 
 	// Calculate the initial start and end dates for the first month.
