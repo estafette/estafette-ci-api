@@ -18,7 +18,7 @@ protobuf==4.21.12
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pyelftools==0.29
-pyinstaller==5.7.0
+pyinstaller==5.13.1
 pyinstaller-hooks-contrib==2022.15
 python-json-logger==2.0.4
 requests==2.28.2
