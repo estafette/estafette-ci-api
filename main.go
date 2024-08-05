@@ -2,14 +2,13 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
-	"github.com/estafette/estafette-ci-api/pkg/migrationpb"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"io"
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -18,31 +17,6 @@ import (
 	stdpubsub "cloud.google.com/go/pubsub"
 	stdstorage "cloud.google.com/go/storage"
 	"github.com/alecthomas/kingpin"
-
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-
-	"github.com/estafette/estafette-ci-api/pkg/api"
-	"github.com/estafette/estafette-ci-api/pkg/clients/bigquery"
-	"github.com/estafette/estafette-ci-api/pkg/clients/bitbucketapi"
-	"github.com/estafette/estafette-ci-api/pkg/clients/builderapi"
-	"github.com/estafette/estafette-ci-api/pkg/clients/cloudsourceapi"
-	"github.com/estafette/estafette-ci-api/pkg/clients/cloudstorage"
-	"github.com/estafette/estafette-ci-api/pkg/clients/database"
-	"github.com/estafette/estafette-ci-api/pkg/clients/dockerhubapi"
-	"github.com/estafette/estafette-ci-api/pkg/clients/githubapi"
-	"github.com/estafette/estafette-ci-api/pkg/clients/prometheus"
-	"github.com/estafette/estafette-ci-api/pkg/clients/pubsubapi"
-	"github.com/estafette/estafette-ci-api/pkg/clients/slackapi"
-	"github.com/estafette/estafette-ci-api/pkg/services/bitbucket"
-	"github.com/estafette/estafette-ci-api/pkg/services/catalog"
-	"github.com/estafette/estafette-ci-api/pkg/services/cloudsource"
-	"github.com/estafette/estafette-ci-api/pkg/services/estafette"
-	"github.com/estafette/estafette-ci-api/pkg/services/github"
-	"github.com/estafette/estafette-ci-api/pkg/services/pubsub"
-	"github.com/estafette/estafette-ci-api/pkg/services/queue"
-	"github.com/estafette/estafette-ci-api/pkg/services/rbac"
-	"github.com/estafette/estafette-ci-api/pkg/services/slack"
 	crypt "github.com/estafette/estafette-ci-crypt"
 	foundation "github.com/estafette/estafette-foundation"
 	"github.com/fsnotify/fsnotify"
@@ -57,6 +31,35 @@ import (
 	"google.golang.org/api/option"
 	"google.golang.org/api/sourcerepo/v1"
 	stdsourcerepo "google.golang.org/api/sourcerepo/v1"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
+
+	"github.com/estafette/estafette-ci-api/pkg/api"
+	"github.com/estafette/estafette-ci-api/pkg/clients/bigquery"
+	"github.com/estafette/estafette-ci-api/pkg/clients/bitbucketapi"
+	"github.com/estafette/estafette-ci-api/pkg/clients/builderapi"
+	"github.com/estafette/estafette-ci-api/pkg/clients/cloudsourceapi"
+	"github.com/estafette/estafette-ci-api/pkg/clients/cloudstorage"
+	"github.com/estafette/estafette-ci-api/pkg/clients/database"
+	"github.com/estafette/estafette-ci-api/pkg/clients/dockerhubapi"
+	"github.com/estafette/estafette-ci-api/pkg/clients/githubapi"
+	"github.com/estafette/estafette-ci-api/pkg/clients/prometheus"
+	"github.com/estafette/estafette-ci-api/pkg/clients/pubsubapi"
+	"github.com/estafette/estafette-ci-api/pkg/clients/slackapi"
+	"github.com/estafette/estafette-ci-api/pkg/migrationpb"
+	"github.com/estafette/estafette-ci-api/pkg/services/bitbucket"
+	"github.com/estafette/estafette-ci-api/pkg/services/catalog"
+	"github.com/estafette/estafette-ci-api/pkg/services/cloudsource"
+	"github.com/estafette/estafette-ci-api/pkg/services/estafette"
+	"github.com/estafette/estafette-ci-api/pkg/services/github"
+	"github.com/estafette/estafette-ci-api/pkg/services/pubsub"
+	"github.com/estafette/estafette-ci-api/pkg/services/queue"
+	"github.com/estafette/estafette-ci-api/pkg/services/rbac"
+	"github.com/estafette/estafette-ci-api/pkg/services/slack"
 )
 
 var (
@@ -77,6 +80,7 @@ var (
 	jwtKeyPath                   = kingpin.Flag("jwt-key-path", "The path to 256 bit jwt key used for api authentication.").Default("/secrets/jwtKey").Envar("JWT_KEY_PATH").String()
 	gracefulShutdownDelaySeconds = kingpin.Flag("graceful-shutdown-delay-seconds", "The number of seconds to wait with graceful shutdown in order to let endpoints update propagation finish.").Default("15").Envar("GRACEFUL_SHUTDOWN_DELAY_SECONDS").Int()
 	gcsMigratorServer            = kingpin.Flag("gcs-migrator-server", "Address in the format of host:port should be same as in gcs-migrator/server.py").Default("localhost:50051").Envar("GCS_MIGRATOR_SERVER").String()
+	outOfK8sCluster              = kingpin.Flag("out-of-k8s-cluster", "Whether the application is running outside of a k8s cluster.").Default("false").Envar("OUT_OF_K8S_CLUSTER").Bool()
 )
 
 var (
@@ -333,14 +337,8 @@ func getGoogleCloudClients(ctx context.Context, config *api.APIConfig) (bqClient
 func getClients(ctx context.Context, config *api.APIConfig, encryptedConfig *api.APIConfig, secretHelper crypt.SecretHelper, bqClient *stdbigquery.Client, pubsubClient *stdpubsub.Client, gcsClient *stdstorage.Client, sourcerepoTokenSource oauth2.TokenSource, sourcerepoService *stdsourcerepo.Service) (bigqueryClient bigquery.Client, bitbucketapiClient bitbucketapi.Client, githubapiClient githubapi.Client, slackapiClient slackapi.Client, pubsubapiClient pubsubapi.Client, databaseClient database.Client, dockerhubapiClient dockerhubapi.Client, builderapiClient builderapi.Client, cloudstorageClient cloudstorage.Client, prometheusClient prometheus.Client, cloudsourceClient cloudsourceapi.Client) {
 
 	log.Debug().Msg("Creating clients...")
-
-	// creates the in-cluster config
-	kubeClientConfig, err := rest.InClusterConfig()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed getting in-cluster kubernetes config")
-	}
 	// creates the clientset
-	kubeClientset, err := kubernetes.NewForConfig(kubeClientConfig)
+	kubeClientset, err := kubernetes.NewForConfig(getKubeClientConfig())
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed creating kubernetes clientset")
 	}
@@ -903,4 +901,29 @@ func startGcsMigrator() {
 		log.Warn().Err(err).Msg("Starting gcs-migrator failed")
 	}
 	gcsMigratorStartedAt = time.Now()
+}
+
+func getKubeClientConfig() *rest.Config {
+	// creates the out-of-cluster config
+	if *outOfK8sCluster {
+		var kubeconfig *string
+		if home := homedir.HomeDir(); home != "" {
+			kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+		} else {
+			kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+		}
+		flag.Parse()
+		// use the current context in kubeconfig
+		kubeClientConfig, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to get out-of-cluster kubernetes config")
+		}
+		return kubeClientConfig
+	}
+	// creates the in-cluster config
+	kubeClientConfig, err := rest.InClusterConfig()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to get in-cluster kubernetes config")
+	}
+	return kubeClientConfig
 }

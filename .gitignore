@@ -19,3 +19,6 @@ gcs-migrator/dist
 gcs-migrator/build
 .go/
 .pyconfig/
+
+# IDEA settings
+.idea/
