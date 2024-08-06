@@ -1,4 +1,4 @@
-FROM scratch
+FROM busybox
 
 LABEL maintainer="estafette.io" \
       description="The ${ESTAFETTE_GIT_NAME} is the component that handles api requests and starts build jobs using the estafette-ci-builder"
