@@ -3,9 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/estafette/estafette-ci-api/pkg/migrationpb"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"io"
 	"net/http"
 	"os"
@@ -13,6 +10,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/estafette/estafette-ci-api/pkg/migrationpb"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	stdbigquery "cloud.google.com/go/bigquery"
 	stdpubsub "cloud.google.com/go/pubsub"
@@ -745,6 +746,7 @@ func configureGinGonic(config *api.APIConfig, bitbucketHandler bitbucket.Handler
 		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/recentbuilds", estafetteHandler.GetPipelineRecentBuilds)
 		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/buildbranches", estafetteHandler.GetPipelineBuildBranches)
 		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/builds", estafetteHandler.GetPipelineBuilds)
+		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/version/:version", estafetteHandler.GetPipelineBuildByVersion)
 		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId", estafetteHandler.GetPipelineBuild)
 		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/warnings", estafetteHandler.GetPipelineBuildWarnings)
 		jwtMiddlewareRoutes.GET("/api/pipelines/:source/:owner/:repo/builds/:revisionOrId/alllogs", estafetteHandler.GetPipelineBuildLogsPerPage)

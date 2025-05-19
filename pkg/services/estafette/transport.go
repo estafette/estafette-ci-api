@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/estafette/estafette-ci-api/pkg/migrationpb"
 	"io"
 	"math"
 	"net/http"
@@ -18,6 +17,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/estafette/estafette-ci-api/pkg/migrationpb"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/estafette/estafette-ci-api/pkg/api"
@@ -266,6 +267,44 @@ func (h *Handler) GetPipelineBuild(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, build)
+}
+
+func (h *Handler) GetPipelineBuildByVersion(c *gin.Context) {
+	source := c.Param("source")
+	owner := c.Param("owner")
+	repo := c.Param("repo")
+	version := c.Param("version")
+
+	statuses := []contracts.Status{
+		contracts.StatusPending,
+		contracts.StatusRunning,
+		contracts.StatusSucceeded,
+		contracts.StatusFailed,
+		contracts.StatusCanceling,
+		contracts.StatusCanceled,
+	}
+
+	builds, err := h.databaseClient.GetPipelineBuildsByVersion(
+		c.Request.Context(), source, owner, repo, version, statuses, 1, true,
+	)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed retrieving build for %v/%v/%v/builds/version/%v from db", source, owner, repo, version)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    http.StatusText(http.StatusInternalServerError),
+			"message": "Failed retrieving pipeline build",
+		})
+		return
+	}
+
+	if len(builds) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":    http.StatusText(http.StatusNotFound),
+			"message": "Pipeline build not found for version",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, builds[0])
 }
 
 func (h *Handler) CreatePipelineBuild(c *gin.Context) {
@@ -615,7 +654,7 @@ func (h *Handler) GetPipelineBuildLogsByID(c *gin.Context) {
 		build, err = h.databaseClient.GetPipelineBuildByID(c.Request.Context(), source, owner, repo, revisionOrID, false)
 		if err != nil {
 			log.Error().Err(err).
-				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, id)
+				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
 		}
 	}
 
