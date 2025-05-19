@@ -654,7 +654,7 @@ func (h *Handler) GetPipelineBuildLogsByID(c *gin.Context) {
 		build, err = h.databaseClient.GetPipelineBuildByID(c.Request.Context(), source, owner, repo, revisionOrID, false)
 		if err != nil {
 			log.Error().Err(err).
-				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, revisionOrID)
+				Msgf("Failed retrieving build for %v/%v/%v/builds/%v from db", source, owner, repo, id)
 		}
 	}
 
