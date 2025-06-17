@@ -14,7 +14,7 @@ grpcio-tools==1.51.1
 idna==3.4
 joblib==1.2.0
 macholib==1.16.2
-protobuf==4.21.12
+protobuf==4.25.8
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pyelftools==0.29
