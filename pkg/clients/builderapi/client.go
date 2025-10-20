@@ -147,6 +147,7 @@ func (c *client) CreateCiBuilderJob(ctx context.Context, ciBuilderParams CiBuild
 	labels := map[string]string{
 		"createdBy": "estafette",
 		"jobType":   string(ciBuilderParams.BuilderConfig.JobType),
+		"repoName":  ciBuilderParams.BuilderConfig.Git.RepoName,
 	}
 
 	terminationGracePeriodSeconds := int64(120)

@@ -9,6 +9,7 @@ import (
 	manifest "github.com/estafette/estafette-ci-manifest"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestGetJobName(t *testing.T) {
@@ -278,6 +279,71 @@ func TestGetCiBuilderJobAffinity(t *testing.T) {
 		ciBuilderClient.getCiBuilderJobAffinity(context.Background(), ciBuilderParams, builderConfig)
 
 		assert.Equal(t, 2, len(apiConfig.Jobs.ReleaseAffinityAndTolerations.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions))
+	})
+
+	t.Run("PreservesPodAntiAffinityConfigurationForBuild", func(t *testing.T) {
+
+		apiConfig := &api.APIConfig{
+			Jobs: &api.JobsConfig{
+				BuildAffinityAndTolerations: &api.AffinityAndTolerationsConfig{
+					Affinity: &v1.Affinity{
+						PodAntiAffinity: &v1.PodAntiAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
+								{
+									LabelSelector: &metav1.LabelSelector{
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{
+												Key:      "repoName",
+												Operator: metav1.LabelSelectorOpIn,
+												Values: []string{
+													"origami",
+												},
+											},
+										},
+									},
+									TopologyKey: "kubernetes.io/hostname",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		ciBuilderClient := &client{
+			config: apiConfig,
+		}
+
+		ciBuilderParams := CiBuilderParams{
+			BuilderConfig: contracts.BuilderConfig{
+				JobType: contracts.JobTypeBuild,
+				Build: &contracts.Build{
+					ID: "390605593734184965",
+				},
+			},
+			OperatingSystem: manifest.OperatingSystemLinux,
+		}
+
+		builderConfig := contracts.BuilderConfig{}
+
+		// act
+		affinity := ciBuilderClient.getCiBuilderJobAffinity(context.Background(), ciBuilderParams, builderConfig)
+
+		// assert
+		assert.NotNil(t, affinity)
+		assert.NotNil(t, affinity.PodAntiAffinity)
+		assert.Equal(t, 1, len(affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution))
+		
+		podAntiAffinityTerm := affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution[0]
+		assert.Equal(t, "kubernetes.io/hostname", podAntiAffinityTerm.TopologyKey)
+		
+		assert.NotNil(t, podAntiAffinityTerm.LabelSelector)
+		assert.Equal(t, 1, len(podAntiAffinityTerm.LabelSelector.MatchExpressions))
+		
+		labelSelectorReq := podAntiAffinityTerm.LabelSelector.MatchExpressions[0]
+		assert.Equal(t, "repoName", labelSelectorReq.Key)
+		assert.Equal(t, metav1.LabelSelectorOpIn, labelSelectorReq.Operator)
+		assert.Equal(t, []string{"origami"}, labelSelectorReq.Values)
 	})
 }
 
